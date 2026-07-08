@@ -1,0 +1,15 @@
+/* packages/ui/src/theme.css */
+
+@theme {
+  /* 🎨 ชุดสีที่คุณคำนวณและ Export ออกมาจากหน้าเว็บ Studio */
+  --color-primary-1: oklch(0.960 0.020 268.0);
+  --color-primary-2: oklch(0.900 0.050 268.0);
+  --color-primary-3: oklch(0.820 0.090 268.0);
+  --color-primary-4: oklch(0.740 0.140 268.0);
+  --color-primary-5: oklch(0.650 0.180 268.0);
+  /* ...ไล่ไปจนครบจำนวนเฉดที่คุณกำหนด... */
+
+  --color-secondary-1: oklch(0.950 0.015 180.0);
+  --color-secondary-2: oklch(0.880 0.040 180.0);
+  /* ...แถวสีอื่นๆ ที่คุณกดเพิ่มในระบบ... */
+}
