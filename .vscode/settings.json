@@ -1,0 +1,13 @@
+{
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
+  "editor.quickSuggestions": {
+    "strings": "on"
+  },
+  "tailwindCSS.experimental.classRegex": [
+    [
+      "[a-zA-Z0-9_-]*(?:Style|Class)\\s*=\\s*([^;]+)",
+      "['\"`]([^'\"`]*?)['\"`]"
+    ]
+  ]
+}
