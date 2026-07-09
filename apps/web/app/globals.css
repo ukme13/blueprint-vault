@@ -1,5 +1,33 @@
+/* ========================================================================
+   1. GROUP ALL IMPORTS AT THE ABSOLUTE TOP (ถูกต้องตามกฎ Native CSS Spec)
+
+   Astryx's reset/astryx.css/theme.css each declare their OWN top-level
+   layers internally (`@layer reset`, `@layer astryx-base`, `@layer
+   astryx-theme` respectively — see the doc comment inside reset.css).
+   Wrapping them in `layer(base)` on import would NEST those layers inside
+   Tailwind's `base` layer — and per the CSS cascade-layers spec, any
+   unlayered/anonymous rule sitting directly in a layer (e.g. Tailwind's own
+   Preflight, which zeroes padding on <button>/<input>/<select>/<textarea>)
+   always beats a nested sub-layer, REGARDLESS of source order or
+   specificity. That was silently stripping the built-in padding off every
+   Astryx form control.
+
+   Instead we declare the full layer priority explicitly, once, up front —
+   letting Astryx's layers land ABOVE Tailwind's `base` (so component
+   padding wins over Preflight) but BELOW `components`/`utilities` (so our
+   own Tailwind utility classes still win over Astryx's defaults). No
+   `!important` required anywhere.
+   ======================================================================== */
+@layer theme, base, reset, astryx-base, astryx-theme, components, utilities;
+
 @import "tailwindcss";
+@import '@astryxdesign/core/reset.css';        /* ระบบล้างค่าเริ่มต้นของ Astryx */
+@import '@astryxdesign/core/astryx.css';       /* โครงสร้างเลเอาต์หลักของ Astryx */
+@import '@astryxdesign/theme-neutral/theme.css'; /* โอนย้ายสิทธิ์สีเริ่มต้นของ Astryx */
+@import "@blueprint/ui/theme.css";            /* โหลดกริดสี Atmos ฐาน 25 */
 
+/* ========================================================================
+   2. TAILWIND V4 SPECIAL DIRECTIVES (วางไว้ใต้กลุ่ม Import เสมอ)
+   ======================================================================== */
+/* เปิดให้ Tailwind วิ่งไปแสกนหาคลาสปุ่มที่เราเขียนไว้ในแพ็กเกจ ui ส่วนกลาง */
 @source "../../../packages/ui/src";
-
-@import "@blueprint/ui/theme.css";

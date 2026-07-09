@@ -11,6 +11,8 @@
     "check-types": "next typegen && tsc --noEmit"
   },
   "dependencies": {
+    "@astryxdesign/core": "^0.1.3",
+    "@astryxdesign/theme-neutral": "^0.1.3",
     "@blueprint/ui": "workspace:*",
     "@tailwindcss/postcss": "^4.3.2",
     "next": "16.2.0",

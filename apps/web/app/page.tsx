@@ -1,120 +1,184 @@
-import { PrimitiveControl } from "@blueprint/ui"; 
-// 💡 โน้ต: อย่าลืมเปลี่ยน @blueprint/ui เป็นชื่อแถมแพ็กเกจ ui ในมอนอรีโปของพี่นะครับ
+'use client';
+
+import { PrimitiveControl } from '@blueprint/ui';
+import { Button } from "@blueprint/ui";
 
 export default function Page() {
   return (
-    <main className="min-h-screen bg-neutral-100 p-4 md:p-10 space-y-8 font-sans antialiased">
+    <main className="min-h-screen bg-linear-to-br from-neutral-950 via-neutral-900 to-neutral-950 p-4 md:p-10 space-y-8 font-sans antialiased">
       
-      {/* 🗺️ Header Bar */}
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-200 pb-6">
-        <div>
-          <h1 className="text-2xl font-black text-neutral-900 tracking-tight flex items-center gap-2">
-            <span>🚀</span> Design System Engineering Workspace
+      {/* 🗺️ Header Section */}
+      <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-neutral-800 pb-8">
+        <div className="space-y-2">
+          <h1 className="text-3xl font-black text-white tracking-tight flex items-center gap-3">
+            <span className="text-2xl">🎨</span> OKLCH Design System Lab
           </h1>
-          <p className="text-xs font-medium text-neutral-500 mt-0.5">
-            สถาปัตยกรรมทดสอบ Token 3 ชั้น: เชื่อมต่อตัวแปรจากเครื่องจักร OKLCH เข้าสู่ระบบ UI Component
+          <p className="text-sm font-medium text-neutral-400">
+            Real-time palette generator with stable 25-interval token naming • Auto-docking anchors • Zero token drift
           </p>
         </div>
       </div>
 
-      {/* 🏗️ Workspace Grid */}
+      {/* 🏗️ Workspace Grid: Studio + Live Preview */}
       <div className="max-w-7xl mx-auto grid xl:grid-cols-3 gap-8 items-start">
         
-        {/* 🛠️ ฝั่งซ้าย: เครื่องมือสตูดิโอ (กินพื้นที่ 2 ใน 3 ส่วน) */}
+        {/* 🛠️ LEFT PANEL: Palette Studio & Generator */}
         <div className="xl:col-span-2">
           <PrimitiveControl />
         </div>
 
-        {/* 📱 ฝั่งขวา: แผง Live Component Preview */}
-        <div className="bg-white p-6 rounded-3xl border border-neutral-200 shadow-xl space-y-6 sticky top-6">
+        {/* 📱 RIGHT PANEL: Live Component Preview */}
+        <div className="bg-neutral-900 p-6 rounded-3xl border border-neutral-800 shadow-2xl space-y-6 sticky top-6">
           
-          <div className="border-b border-neutral-100 pb-4">
-            <h3 className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Dynamic Token Mapping</h3>
-            <p className="text-[11px] text-neutral-500 mt-0.5">
-              ทดสอบการดึงค่าจากชื่อแทร็กสี (เช่น primary, secondary, danger) ที่ระบุในแผงควบคุม
+          {/* Panel Header */}
+          <div className="border-b border-neutral-800 pb-4">
+            <h3 className="text-xs font-bold text-neutral-500 uppercase tracking-widest">Live Component Preview</h3>
+            <p className="text-[11px] text-neutral-400 mt-1">
+              Dynamic token mapping with guaranteed 50 ↔ 950 boundaries + cascading fallbacks
             </p>
           </div>
 
-          {/* 🟣 1. คลาสสิกการ์ดสีแบรนด์ (Primary Block) */}
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          {/* COMPONENT 1: Primary Feature Card */}
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           <div className="space-y-2">
-            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">1. Primary Track Components</span>
+            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">
+              Component 1: Primary Feature Card
+            </span>
             <div 
               style={{ 
-                backgroundColor: 'var(--color-primary-1, #f8f6fb)', 
-                borderColor: 'var(--color-primary-2, #e3d8f5)' 
+                backgroundColor: 'var(--color-primary-50, #f8f6fb)',
+                borderColor: 'var(--color-primary-100, var(--color-primary-50, #f8f6fb))'
               }} 
-              className="p-5 rounded-2xl border text-left transition-all"
+              className="p-5 rounded-2xl border-2 space-y-3 transition-all duration-300"
             >
-              <h4 style={{ color: 'var(--color-primary-5, #56327e)' }} className="text-sm font-black">
-                Interactive Dashboard Feature
-              </h4>
-              <p style={{ color: 'var(--color-primary-4, #7646ab)' }} className="text-xs mt-1.5 leading-relaxed font-medium">
-                กล่องข้อความนี้ใช้ระบบเกลี่ยแสงอัจฉริยะ โดยดึงสีแรกสุดมาทำพื้นหลังอ่อนๆ และใช้เฉดท้ายๆ มาทำเนื้อความเพื่อสู้แสง Contrast
-              </p>
-              
-              <div className="mt-4 flex gap-2">
-                <button 
-                  style={{ backgroundColor: 'var(--color-primary-4, #7646ab)' }}
-                  className="text-white text-[11px] font-bold px-3 py-2 rounded-xl shadow-sm hover:opacity-90 active:scale-95 transition-all"
+              <div>
+                <h4 
+                  style={{ color: 'var(--color-primary-950, #2a1547)' }}
+                  className="text-sm font-black tracking-tight"
                 >
-                  Confirm Action
+                  Dashboard Feature Module
+                </h4>
+                <p 
+                  style={{ color: 'var(--color-primary-700, var(--color-primary-600, #7646ab))' }}
+                  className="text-xs mt-2 leading-relaxed font-medium"
+                >
+                  This card uses guaranteed token boundaries: light background (50) and dark text (950) with safe intermediate fallbacks for optimal contrast.
+                </p>
+              </div>
+              
+              <div className="flex gap-2 pt-2">
+                <button 
+                  style={{ 
+                    backgroundColor: 'var(--color-primary-600, var(--color-primary-700, #7646ab))',
+                    color: 'white'
+                  }}
+                  className="text-[11px] font-bold px-3 py-2 rounded-lg shadow-lg hover:opacity-90 hover:scale-105 active:scale-95 transition-all"
+                >
+                  Primary Action
                 </button>
                 <button 
-                  style={{ backgroundColor: 'var(--color-primary-2, #e3d8f5)', color: 'var(--color-primary-5, #56327e)' }}
-                  className="text-[11px] font-bold px-3 py-2 rounded-xl hover:opacity-80 active:scale-95 transition-all"
+                  style={{ 
+                    backgroundColor: 'var(--color-primary-100, var(--color-primary-50, #f8f6fb))',
+                    color: 'var(--color-primary-800, var(--color-primary-700, #7646ab))'
+                  }}
+                  className="text-[11px] font-bold px-3 py-2 rounded-lg hover:opacity-80 active:scale-95 transition-all border border-current"
                 >
-                  Dismiss
+                  Secondary
                 </button>
               </div>
             </div>
           </div>
 
-          {/* 🟢 2. คอมโพเนนต์สีรอง (Secondary Track) */}
-          <div className="space-y-2 pt-2">
-            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">2. Secondary Track Components</span>
-            <div className="flex items-center justify-between p-4 bg-neutral-25 rounded-2xl border border-neutral-200">
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          {/* COMPONENT 2: Secondary Status Indicator */}
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          <div className="space-y-2">
+            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">
+              Component 2: Status Engine
+            </span>
+            <div 
+              style={{ 
+                backgroundColor: 'var(--color-secondary-50, #e0f2f1)',
+                borderColor: 'var(--color-secondary-100, var(--color-secondary-50, #e0f2f1))'
+              }}
+              className="flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300"
+            >
               <div className="flex items-center gap-3">
-                {/* วงกลมไฟสถานะ ดึงเฉดสีกลางมาเรนเดอร์ */}
+                {/* Animated Status Indicator */}
+                <div className="relative">
+                  <span 
+                    style={{ backgroundColor: 'var(--color-secondary-500, var(--color-secondary-600, #008080))' }}
+                    className="h-3 w-3 rounded-full shadow-md shadow-cyan-500/50 block animate-pulse"
+                  />
+                </div>
                 <span 
-                  style={{ backgroundColor: 'var(--color-secondary-4, #008080)' }} 
-                  className="h-3 w-3 rounded-full shadow-sm animate-pulse" 
-                />
-                <span className="text-xs font-bold text-neutral-800">Secondary Status Engine</span>
+                  style={{ color: 'var(--color-secondary-800, var(--color-secondary-700, #004d40))' }}
+                  className="text-xs font-bold"
+                >
+                  System Engine Running
+                </span>
               </div>
               <span 
-                style={{ backgroundColor: 'var(--color-secondary-1, #e0f2f1)', color: 'var(--color-secondary-5, #004d40)' }} 
-                className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full"
+                style={{ 
+                  backgroundColor: 'var(--color-secondary-100, var(--color-secondary-50, #e0f2f1))',
+                  color: 'var(--color-secondary-700, var(--color-secondary-800, #004d40))'
+                }} 
+                className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border border-current"
               >
-                ONLINE
+                ACTIVE
               </span>
             </div>
           </div>
 
-          {/* 🔴 3. คอมโพเนนต์แจ้งเตือนอันตราย (Danger Track) */}
-          <div className="space-y-2 pt-2 border-t border-neutral-100">
-            <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">3. Destructive Feedbacks</span>
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          {/* COMPONENT 3: Destructive Alert Box */}
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          <div className="space-y-2">
+            <span className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest block">
+              Component 3: Destructive Feedback
+            </span>
             <div 
-              style={{ backgroundColor: 'var(--color-danger-1, #f9ebe8)', borderColor: 'var(--color-danger-2, #f7d5cf)' }} 
-              className="p-4 rounded-2xl border-l-4 border-l-(--color-danger-4,#b02b1b) flex gap-3"
+              style={{ 
+                backgroundColor: 'var(--color-danger-50, #f9ebe8)',
+                borderTopColor: 'var(--color-danger-200, var(--color-danger-100, #f7d5cf))',
+                borderRightColor: 'var(--color-danger-200, var(--color-danger-100, #f7d5cf))',
+                borderBottomColor: 'var(--color-danger-200, var(--color-danger-100, #f7d5cf))',
+                borderLeftColor: 'var(--color-danger-600, var(--color-danger-700, #b02b1b))'
+              }}
+              className="p-4 rounded-2xl border-l-4 flex gap-3 transition-all duration-300"
             >
-              <span className="text-sm">⚠️</span>
-              <div className="space-y-0.5">
-                <h5 style={{ color: 'var(--color-danger-9, #821e12)' }} className="text-xs font-black">สายการผลิตเกิด Error</h5>
-                <p style={{ color: 'var(--color-danger-8, #b02b1b)' }} className="text-[11px] font-medium leading-tight">
-                  ระบบจะเปลี่ยนโทนสีแดงตามโมเดลคณิตศาสตร์เมื่อมีการ Overridden
+              <span className="text-lg shrink-0">⚠️</span>
+              <div className="space-y-1 min-w-0">
+                <h5 
+                  style={{ color: 'var(--color-danger-900, var(--color-danger-800, #821e12))' }}
+                  className="text-xs font-black"
+                >
+                  Production Alert
+                </h5>
+                <p 
+                  style={{ color: 'var(--color-danger-700, var(--color-danger-600, #b02b1b))' }}
+                  className="text-[11px] font-medium leading-snug"
+                >
+                  The palette auto-recalculates danger shades around the anchor point whenever you adjust the main lightness slider.
                 </p>
               </div>
             </div>
           </div>
 
-          {/* 💡 คำแนะนำระบบคุมโทน */}
-          <div className="bg-neutral-900 text-neutral-400 p-4 rounded-2xl text-[10px] font-medium leading-relaxed space-y-1">
-            <div className="font-bold text-amber-400 flex items-center gap-1">
-              <span>🧠</span> DESIGN ARCHITECT NOTE:
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          {/* ARCHITECTURE NOTES */}
+          {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
+          <div className="bg-neutral-800/50 border border-neutral-700 p-4 rounded-2xl text-[10px] font-medium leading-relaxed space-y-2">
+            <div className="font-bold text-emerald-400 flex items-center gap-1.5">
+              <span>🏗️</span> Token Safety Architecture
             </div>
-            <p>
-              หากพี่ทำการ **เปลี่ยนชื่อพิมพ์เขียว** ในช่อง "Token Name" (เช่น เปลี่ยนจาก secondary เป็น accent) ตัวแปรในหน้านี้จะสลับไปเรียกหาค่า `--color-accent-*` ทันทีตามหลักสหภาพโมดูลครับ!
-            </p>
+            <ul className="space-y-1 text-neutral-300 list-disc list-inside">
+              <li>Guaranteed boundaries: <code className="text-white font-mono text-[9px]">--color-*-50</code> (lightest) & <code className="text-white font-mono text-[9px]">--color-*-950</code> (darkest)</li>
+              <li>Cascading fallbacks: <code className="text-white font-mono text-[9px]">var(--color-primary-600, var(--color-primary-50, #fallback))</code></li>
+              <li>Dynamic steps (11-21) don't break intermediate tokens—fallbacks ensure robustness</li>
+              <li>All token names divisible by 25, no duplicates, ascending order guaranteed</li>
+            </ul>
           </div>
 
         </div>

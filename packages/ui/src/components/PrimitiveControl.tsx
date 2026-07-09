@@ -1,6 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { Selector } from '@astryxdesign/core/Selector';
+import { Slider } from '@astryxdesign/core/Slider';
 
 // ==========================================================================
 // 🧮 COLOR SPACE MATH ENGINE (HEX <-> RGB <-> OKLCH)
@@ -48,23 +50,94 @@ function oklchToHex(L: number, C: number, H: number): string {
 }
 
 // ==========================================================================
-// INTERFACES & TYPES
+// STABLE 25-INTERVAL NAMING ENGINE (De-duplication & Collision Prevention)
 // ==========================================================================
-interface OverrideValues {
-  L: number;
-  C: number;
-  H: number;
+function generateStableWeights(numShades: number): number[] {
+  // Linear interpolation from 50 to 950
+  const raw: number[] = [];
+  for (let i = 0; i < numShades; i++) {
+    const t = numShades === 1 ? 0 : i / (numShades - 1);
+    const rawWeight = 50 + (950 - 50) * t;
+    raw.push(rawWeight);
+  }
+
+  // Round to nearest multiple of 25
+  let weights = raw.map(w => Math.round(w / 25) * 25);
+
+  // De-duplication loop: resolve collisions by forcing ascending unique values
+  for (let i = 1; i < weights.length; i++) {
+    if (weights[i]! <= weights[i - 1]!) {
+      weights[i] = weights[i - 1]! + 25;
+    }
+  }
+
+  // Clamp final step at 950 and adjust backward if needed
+  if (weights[weights.length - 1]! > 950) {
+    weights[weights.length - 1] = 950;
+    // Adjust backward to maintain ascending order
+    for (let i = weights.length - 2; i >= 0; i--) {
+      if (weights[i]! >= weights[i + 1]!) {
+        weights[i] = Math.max(50, weights[i + 1]! - 25);
+      }
+    }
+  }
+
+  return weights;
 }
 
-interface ColorTrack {
-  id: string;
-  name: string;      // ชื่อระบบสี เช่น 'primary', 'success'
-  seedHex: string;   // สีต้นแบบช่อง Anchor
-  overrides: Record<number, OverrideValues>; // บันทึกการแต่งแมนนวลรายช่อง (shadeId -> OKLCH)
+// ==========================================================================
+// EASING FUNCTIONS FOR LIGHTNESS DISTRIBUTION
+// ==========================================================================
+type DistributionMode = 'linear' | 'ease-in-out' | 'ease-in' | 'ease-out' | 'custom';
+
+function easeInOut(t: number): number {
+  return (1 - Math.cos(t * Math.PI)) / 2;
 }
 
+function easeIn(t: number): number {
+  return t * t;
+}
+
+function easeOut(t: number): number {
+  return 1 - (1 - t) * (1 - t);
+}
+
+function applyEasing(t: number, mode: DistributionMode): number {
+  switch (mode) {
+    case 'ease-in-out':
+      return easeInOut(t);
+    case 'ease-in':
+      return easeIn(t);
+    case 'ease-out':
+      return easeOut(t);
+    case 'linear':
+    case 'custom':
+    default:
+      return t;
+  }
+}
+
+function generateLightnessArray(
+  numShades: number,
+  maxL: number,
+  minL: number,
+  mode: DistributionMode
+): number[] {
+  const array: number[] = [];
+  for (let i = 0; i < numShades; i++) {
+    const t = numShades === 1 ? 0 : i / (numShades - 1);
+    const eased = applyEasing(t, mode);
+    const lightness = maxL - (maxL - minL) * eased;
+    array.push(lightness);
+  }
+  return array;
+}
+
+// ==========================================================================
+// CONFIGS & INTERFACES
+// ==========================================================================
 interface ShadeItem {
-  id: number;
+  weight: number;
   L: number;
   C: number;
   H: number;
@@ -73,437 +146,332 @@ interface ShadeItem {
   isOverridden: boolean;
 }
 
-export function PrimitiveControl() {
-  // --- 🌐 GLOBAL CONFIG STATES (ตัวควบคุมส่วนกลางร่วมกันทุกแถวสี) ---
-  const [numShades, setNumShades] = useState(15);
-  const [maxL, setMaxL] = useState(96);
-  const [minL, setMinL] = useState(8);
+interface ColorTrack {
+  id: string;
+  name: string;
+  seedHex: string;
+  shades: ShadeItem[];
+}
 
-  // --- 🎨 DYNAMIC COLOR TRACKS STATE (คลังจัดเก็บแถวสี เพิ่ม/ลบได้) ---
+export function PrimitiveControl() {
+  // --- 🎨 STATE: Global palette configuration ---
+  const [numShades, setNumShades] = useState<number>(15);
+  const [distMode, setDistMode] = useState<DistributionMode>('linear');
+  const [maxL, setMaxL] = useState<number>(96);
+  const [minL, setMinL] = useState<number>(6);
+  const [lightnessArray, setLightnessArray] = useState<number[]>([]);
+  
   const [tracks, setTracks] = useState<ColorTrack[]>([
-    { id: '1', name: 'primary', seedHex: '#7646ab', overrides: {} },
-    { id: '2', name: 'secondary', seedHex: '#008080', overrides: {} },
-    { id: '3', name: 'danger', seedHex: '#b02b1b', overrides: {} }
+    { id: '1', name: 'primary', seedHex: '#7646ab', shades: [] },
+    { id: '2', name: 'secondary', seedHex: '#008080', shades: [] },
+    { id: '3', name: 'danger', seedHex: '#b02b1b', shades: [] }
   ]);
 
-  // คลุมตัวเลือกว่าจุดไหนกำลังเปิด Inspector จูนค่าอยู่
-  const [activeEdit, setActiveEdit] = useState<{ trackId: string; shadeId: number } | null>(null);
+  const [activeEdit, setActiveEdit] = useState<{ trackId: string; weight: number } | null>(null);
 
-  // --- ➕ ฟังก์ชันเพิ่มแถวสีใหม่ ---
-  const addTrack = () => {
-    const randomColors = ['#e67e22', '#2ecc71', '#3498db', '#f1c40f', '#9b59b6', '#34495e'];
-    const randomHex = randomColors[Math.floor(Math.random() * randomColors.length)];
-    const nextNum = tracks.length + 1;
-
-    if (!randomHex) {
-      return;
+  // --- ⚡ Sync lightnessArray when distMode or numShades/maxL/minL changes (except 'custom')
+  useEffect(() => {
+    if (distMode !== 'custom') {
+      const newArray = generateLightnessArray(numShades, maxL, minL, distMode);
+      setLightnessArray(newArray);
     }
+  }, [numShades, distMode, maxL, minL]);
 
-    setTracks(prevTracks => [...prevTracks, {
+  // --- Initialize lightnessArray on first mount
+  useEffect(() => {
+    if (lightnessArray.length === 0) {
+      setLightnessArray(generateLightnessArray(numShades, maxL, minL, distMode));
+    }
+  }, []);
+
+  const handleLightnessChange = useCallback((index: number, value: number) => {
+    setLightnessArray(prev => {
+      const updated = [...prev];
+      updated[index] = value;
+      return updated;
+    });
+    // Switch to custom mode when manually adjusting
+    setDistMode('custom');
+  }, []);
+
+  const addTrack = () => {
+    const randomColors = ['#e67e22', '#2ecc71', '#3498db', '#f1c40f', '#9b59b6'] as const;
+    const randomHex = randomColors[Math.floor(Math.random() * randomColors.length)]!;
+    setTracks([...tracks, {
       id: Date.now().toString(),
-      name: `custom-${nextNum}`,
+      name: `custom-${tracks.length + 1}`,
       seedHex: randomHex,
-      overrides: {}
+      shades: []
     }]);
   };
 
-  // --- 🗑️ ฟังก์ชันลบแถวสี ---
   const removeTrack = (id: string) => {
-    if (tracks.length <= 1) {
-      alert("ต้องมีเหลือแถวสีหลักไว้อย่างน้อย 1 แถวนะครับพี่!");
-      return;
-    }
+    if (tracks.length <= 1) return alert("Must keep at least 1 palette");
     setTracks(tracks.filter(t => t.id !== id));
     if (activeEdit?.trackId === id) setActiveEdit(null);
   };
 
-  // --- ✏️ ฟังก์ชันจัดการอัปเดตข้อมูลภายใน Track ---
   const updateTrackProp = (id: string, key: 'name' | 'seedHex', value: string) => {
-    setTracks(prevTracks => prevTracks.map(track => {
-      if (track.id === id) {
-        if (key === 'name') {
-          // ล้างอักขระพิเศษและเคาะช่องว่างออก เพื่อให้ชื่อไปแปลงเป็นคลาส CSS ได้ไม่พัง
-          const cleanName = value.replace(/[^a-zA-Z0-9-_]/g, '').toLowerCase();
-          return { ...track, name: cleanName };
-        }
-        if (key === 'seedHex') {
-          // ถ้าเปลี่ยนสีหลัก แนะนำให้ล้างประวัติ Custom Override เก่าของแถวนั้นออกด้วยเพื่อไม่ให้สีโดด
-          return { ...track, seedHex: value, overrides: {} };
-        }
+    setTracks(prev => prev.map(t => {
+      if (t.id === id) {
+        return key === 'name' 
+          ? { ...t, name: value.replace(/[^a-zA-Z0-9-_]/g, '').toLowerCase() }
+          : { ...t, seedHex: value, shades: [] };
       }
-      return track;
+      return t;
     }));
   };
 
-  // --- ✏️ ฟังก์ชันบันทึกค่า Manual Override รายช่อง ---
-  const updateShadeOverride = (trackId: string, shadeId: number, key: keyof OverrideValues, value: number) => {
-    setTracks(prevTracks => prevTracks.map(track => {
-      if (track.id === trackId) {
-        const currentOverride = track.overrides[shadeId] || {
-          // ดึงค่าเบสไลน์ปัจจุบันมาตั้งต้นก่อนถ้ายังไม่เคยแต่งแมนนวล
-          L: 0.5, C: 0.1, H: 0
-        };
-        
-        // ค้นหาค่าเบสไลน์ดั้งเดิมของช่องนั้นเพื่อนำมาประยุกต์กรณีจุดเริ่มต้น
-        return {
-          ...track,
-          overrides: {
-            ...track.overrides,
-            [shadeId]: { ...currentOverride, [key]: value }
-          }
-        };
-      }
-      return track;
-    }));
-  };
-
-  // --- 🧮 ENGINE: คำนวณแจกแจงเมทริกซ์สีทั้งหมดตาม Global Config และ Track Params ---
+  // --- 🧮 ENGINE: Advanced Palette Generation with Auto-Docking ---
   const computedPalettes = useMemo(() => {
-    const targetMaxL = maxL / 100;
-    const targetMinL = minL / 100;
-
+    const weights = generateStableWeights(numShades);
+    
     return tracks.map(track => {
       const [r, g, b] = hexToRgb(track.seedHex);
       const [sL, sC, sH] = rgbToOklch(r, g, b);
+      const seedLightnessPercent = sL * 100;
 
-      // สร้างสเกลความสว่างพื้นฐานแบบเส้นตรง (Linear Base)
-      const tempShades: Omit<ShadeItem, 'isAnchor' | 'isOverridden'>[] = [];
-      for (let i = 0; i < numShades; i++) {
-        const t = numShades > 1 ? i / (numShades - 1) : 0;
-        const currentL = targetMaxL - t * (targetMaxL - targetMinL);
-        tempShades.push({ id: i + 1, L: currentL, C: 0, H: sH, hex: '' });
-      }
-
-      // ตรวจสอบ Auto-Docking หาช่องล็อกความสว่างที่ใกล้เคียงที่สุด
+      // 🎯 Auto-Docking: Find closest lightness index by perceptual distance
       let closestIdx = 0;
-      let minDifference = Infinity;
-      tempShades.forEach((shade, idx) => {
-        const diff = Math.abs(shade.L - sL);
-        if (diff < minDifference) {
-          minDifference = diff;
+      let minDiff = Infinity;
+      lightnessArray.forEach((l, idx) => {
+        const diff = Math.abs(l - seedLightnessPercent);
+        if (diff < minDiff) {
+          minDiff = diff;
           closestIdx = idx;
         }
       });
 
-      // จัดวางโครงสร้างเกลี่ยสี + ตรวจสอบเงื่อนไข Override แมนนวล
-      const generatedShades: ShadeItem[] = tempShades.map((shade, idx) => {
-        const hasOverride = track.overrides[shade.id] !== undefined;
+      const shades: ShadeItem[] = weights.map((weight, idx) => {
         const isAnchor = idx === closestIdx;
+        const targetL = lightnessArray[idx]! / 100;
 
-        // 1. ถ้ามีคนกดปรับค่าแมนนวลไว้ ให้ดึงค่า Override มาใช้สูงสุด
-        if (hasOverride) {
-          const ov = track.overrides[shade.id];
-          if (ov) {
-            return {
-              id: shade.id,
-              L: ov.L,
-              C: ov.C,
-              H: ov.H,
-              hex: oklchToHex(ov.L, ov.C, ov.H),
-              isAnchor,
-              isOverridden: true
-            };
-          }
-        }
-
-        // 2. ถ้าเป็นช่อง Anchor สแกนล็อกสีหลัก แปะค่าดิบแท้ลงไปตรงๆ
+        // 1. Anchor: Lock to exact seed color OKLCH
         if (isAnchor) {
-          return { id: shade.id, L: sL, C: sC, H: sH, hex: track.seedHex, isAnchor: true, isOverridden: false };
+          return {
+            weight,
+            L: sL,
+            C: sC,
+            H: sH,
+            hex: track.seedHex,
+            isAnchor: true,
+            isOverridden: false
+          };
         }
 
-        // 3. ปรับเกลี่ยเฉดสีปกติแบบคณิตศาสตร์รอบตัวแบรนด์
+        // 2. Interpolate Chroma with smart fading
         let C = sC;
         if (idx < closestIdx) {
+          // Light zone: fade saturation towards lighter end (0.01)
           const factor = closestIdx > 0 ? idx / closestIdx : 0;
           C = 0.01 + factor * (sC - 0.01);
         } else {
-          const denom = numShades - 1 - closestIdx;
+          // Dark zone: gradually taper saturation (avoid muddiness)
+          const denom = weights.length - 1 - closestIdx;
           const factor = denom > 0 ? (idx - closestIdx) / denom : 0;
-          C = sC - factor * (sC - 0.02);
+          C = sC - factor * (sC - 0.025);
         }
 
         return {
-          id: shade.id,
-          L: shade.L,
+          weight,
+          L: targetL,
           C,
           H: sH,
-          hex: oklchToHex(shade.L, C, sH),
+          hex: oklchToHex(targetL, C, sH),
           isAnchor: false,
           isOverridden: false
         };
       });
 
-      return {
-        ...track,
-        shades: generatedShades
-      };
+      return { ...track, shades };
     });
-  }, [tracks, numShades, maxL, minL]);
+  }, [tracks, numShades, lightnessArray]);
 
-  // --- ⚡ INJECTION ENGINE: ส่งกระจายค่าตัวแปรเข้าสู่ระบบ DOM Root ของเบราว์เซอร์ ---
+  // --- ⚡ INJECTION: CSS variable injection with stable naming ---
   useEffect(() => {
     const root = document.documentElement;
-    computedPalettes.forEach(palette => {
-      palette.shades.forEach(shade => {
-        // พ่นออกมาตามชื่อไดนามิกถอดรหัส: --color-primary-1, --color-secondary-12, เป็นต้น
-        if (palette.name) {
+    computedPalettes.forEach(p => {
+      p.shades.forEach(s => {
+        if (p.name) {
           root.style.setProperty(
-            `--color-${palette.name}-${shade.id}`,
-            `oklch(${shade.L.toFixed(3)} ${shade.C.toFixed(3)} ${shade.H.toFixed(1)})`
+            `--color-${p.name}-${s.weight}`, 
+            `oklch(${s.L.toFixed(3)} ${s.C.toFixed(3)} ${s.H.toFixed(1)})`
           );
         }
       });
     });
   }, [computedPalettes]);
 
-  // ฟังก์ชันกวาดส่งออกโค้ด CSS ยกแผงทั้งหมดทุกแถว
-  const exportToClipboard = () => {
-    let css = `/* ==========================================================================\n`;
-    css += `   🎨 EXPORTED MULTI-PALETTE SYSTEM (${numShades} Steps GLOBAL SCALE)\n`;
-    css += `   ========================================================================== */\n\n`;
-
+  const exportAllToClipboard = () => {
+    let css = `/* 🎨 OKLCH Color System - Stable 25-Interval Tokens */\n\n`;
     computedPalettes.forEach(p => {
       css += `/* Palette: ${p.name.toUpperCase()} */\n`;
       p.shades.forEach(s => {
-        css += `--color-${p.name}-${s.id}: oklch(${s.L.toFixed(3)} ${s.C.toFixed(3)} ${s.H.toFixed(1)}); /* ${s.hex} */\n`;
+        css += `--color-${p.name}-${s.weight}: oklch(${s.L.toFixed(3)} ${s.C.toFixed(3)} ${s.H.toFixed(1)}); /* ${s.hex} */\n`;
       });
       css += `\n`;
     });
-
     navigator.clipboard.writeText(css);
-    alert('คัดลอกโครงสร้างสีทุก Palette ทั้งหมดเข้า Clipboard เรียบร้อยแล้วครับพี่!');
+    alert('CSS tokens copied to clipboard!');
   };
 
   return (
-    <div className="bg-neutral-50 border border-neutral-200 rounded-3xl shadow-2xl max-w-7xl mx-auto overflow-hidden font-sans">
+    <div className="bg-neutral-950 border border-neutral-800 rounded-3xl shadow-2xl max-w-full mx-auto overflow-hidden font-sans">
       
-      {/* 🚀 บอร์ดควบคุมชั้นบนสุด (Header Panel) */}
-      <div className="bg-white border-b border-neutral-200 px-8 py-5 flex flex-wrap items-center justify-between gap-4">
-        <div className="space-y-0.5">
-          <div className="flex items-center gap-2">
-            <span className="flex h-3 w-3 rounded-full bg-neutral-900" />
-            <h2 className="text-xl font-black text-neutral-900 tracking-tight">Enterprise Palette Matrix</h2>
+      {/* 🚀 Header */}
+      <div className="bg-neutral-900 border-b border-neutral-800 px-8 py-6 flex flex-col gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-0.5">
+            <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-orange-500" /> OKLCH Palette Generator
+            </h2>
+            <p className="text-xs font-medium text-neutral-400">
+              Stable 25-interval token naming • Easing curves • Auto-docking anchor • Zero token drift
+            </p>
           </div>
-          <p className="text-xs font-medium text-neutral-500">
-            ระบบจัดสรรและผลิตเฉดสีส่วนกลางแบบหลายกลุ่มเครื่องยนต์ ควบคุมสเกลร่วมกันด้วยมาตรฐาน OKLCH
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={addTrack}
-            className="bg-indigo-50 text-indigo-600 border border-indigo-200 font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-indigo-100 transition-all shadow-sm flex items-center gap-1.5"
-          >
-            <span>＋</span> Add Palette
-          </button>
-          <button 
-            onClick={exportToClipboard} 
-            className="bg-neutral-900 text-white font-bold text-xs px-4 py-2.5 rounded-xl hover:bg-neutral-800 transition-all shadow-sm flex items-center gap-1.5"
-          >
-            <span>📥</span> Export All CSS
-          </button>
-        </div>
-      </div>
-
-      <div className="p-8 space-y-8">
-        {/* 🎛️ GLOBAL CONTROL ROOM (แผงตั้งค่าโครงสร้างสเกลหลักคุมทุกแถว) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm">
-          
-          {/* ปรับสเกล Global */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">Global Steps Scale</label>
-              <span className="text-xs font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">{numShades} เฉดร่วมกัน</span>
-            </div>
-            <input 
-              type="range" min="5" max="24" value={numShades} 
-              onChange={(e) => setNumShades(Number(e.target.value))} 
-              className="w-full h-2 bg-neutral-100 rounded-lg appearance-none cursor-pointer accent-neutral-900 mt-2" 
-            />
+          <div className="flex items-center gap-3">
+            <button onClick={addTrack} className="bg-orange-600 hover:bg-orange-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-lg">
+              ＋ Add Palette
+            </button>
+            <button onClick={exportAllToClipboard} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-all shadow-lg">
+              💾 Export CSS
+            </button>
           </div>
-
-          {/* ปรับลิมิตเพดานความสว่าง */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">Global Max Lightness</label>
-              <span className="text-xs font-mono font-bold text-neutral-700">{maxL}%</span>
-            </div>
-            <input 
-              type="range" min="75" max="100" value={maxL} 
-              onChange={(e) => setMaxL(Number(e.target.value))} 
-              className="w-full h-2 bg-neutral-100 rounded-lg appearance-none cursor-pointer accent-neutral-900 mt-2" 
-            />
-          </div>
-
-          {/* ปรับลิมิตฐานความมืด */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <label className="text-[11px] font-bold uppercase tracking-wider text-neutral-500">Global Min Lightness</label>
-              <span className="text-xs font-mono font-bold text-neutral-700">{minL}%</span>
-            </div>
-            <input 
-              type="range" min="0" max="25" value={minL} 
-              onChange={(e) => setMinL(Number(e.target.value))} 
-              className="w-full h-2 bg-neutral-100 rounded-lg appearance-none cursor-pointer accent-neutral-900 mt-2" 
-            />
-          </div>
-
         </div>
 
-        {/* 📋 LIST OF COLORS MATRIX WORKBENCH (รายการแถวสีทั้งหมด) */}
-        <div className="space-y-6">
-          {computedPalettes.map((palette) => (
-            <div key={palette.id} className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-sm space-y-4">
-              
-              {/* แถบปรับค่าคุณสมบัติประจำแถว (Track Header Tool) */}
-              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-neutral-100 pb-3">
-                <div className="flex items-center gap-3 flex-1 max-w-md">
-                  {/* ช่องพ่นแก้ชื่อกลุ่มสี */}
-                  <div className="flex flex-col space-y-1 flex-1">
-                    <span className="text-[10px] font-bold text-neutral-400 uppercase">Token Name Name</span>
-                    <input 
-                      type="text" 
-                      value={palette.name}
-                      onChange={(e) => updateTrackProp(palette.id, 'name', e.target.value)}
-                      placeholder="เช่น primary, accent"
-                      className="text-sm font-black text-neutral-800 bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-1.5 focus:bg-white focus:outline-none focus:ring-1 focus:ring-neutral-900"
-                    />
-                  </div>
+        {/* Global Configuration Controls */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 border-t border-neutral-700 pt-4">
+          <Slider
+            label="Shade Steps"
+            value={numShades}
+            onChange={setNumShades}
+            min={11}
+            max={21}
+            step={1}
+            valueDisplay="text"
+          />
 
-                  {/* ตัวจิ้มสีหลักประจำแถว */}
-                  <div className="flex flex-col space-y-1">
-                    <span className="text-[10px] font-bold text-neutral-400 uppercase">Seed Color</span>
-                    <div className="flex items-center gap-2 bg-neutral-50 px-2.5 py-1.5 rounded-xl border border-neutral-200">
-                      <input 
-                        type="color" 
-                        value={palette.seedHex}
-                        onChange={(e) => updateTrackProp(palette.id, 'seedHex', e.target.value)}
-                        className="w-6 h-6 rounded-md cursor-pointer border-0 p-0 overflow-hidden bg-transparent"
-                      />
-                      <span className="text-xs font-mono font-bold text-neutral-700 uppercase">{palette.seedHex}</span>
-                    </div>
+          <Selector
+            label="Distribution"
+            value={distMode}
+            onChange={(v: string) => setDistMode(v as DistributionMode)}
+            options={[
+              { value: 'linear', label: 'Linear' },
+              { value: 'ease-in-out', label: 'Ease In-Out' },
+              { value: 'ease-in', label: 'Ease In' },
+              { value: 'ease-out', label: 'Ease Out' },
+              { value: 'custom', label: 'Custom' },
+            ]}
+          />
+
+          <Slider
+            label="Max L"
+            value={maxL}
+            onChange={setMaxL}
+            min={70}
+            max={100}
+            step={1}
+            valueDisplay="text"
+            formatValue={(v: number) => `${v}%`}
+          />
+
+          <Slider
+            label="Min L"
+            value={minL}
+            onChange={setMinL}
+            min={2}
+            max={30}
+            step={1}
+            valueDisplay="text"
+            formatValue={(v: number) => `${v}%`}
+          />
+        </div>
+
+        {/* Lightness Array Editor */}
+        {distMode === 'custom' && lightnessArray.length > 0 && (
+          <div className="border-t border-neutral-700 pt-4">
+            <p className="text-xs font-bold text-neutral-400 mb-3">Fine-tune Individual Lightness Values</p>
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${numShades}, minmax(0, 1fr))`, gap: '0.25rem' }}>
+              {lightnessArray.map((l, idx) => (
+                <div key={idx} className="space-y-1">
+                  <Slider
+                    label={`Lightness ${idx}`}
+                    isLabelHidden
+                    orientation="vertical"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={l}
+                    onChange={(v: number) => handleLightnessChange(idx, v)}
+                    valueDisplay="none"
+                    style={{ height: 80 }}
+                  />
+                  <div className="text-center">
+                    <div className="text-[10px] font-mono font-bold text-neutral-300">{Math.round(l)}%</div>
                   </div>
                 </div>
-
-                {/* ปุ่มสั่งระเบิดลบแถวสีทิ้ง */}
-                <button 
-                  onClick={() => removeTrack(palette.id)}
-                  className="text-neutral-400 hover:text-red-500 transition-colors p-2 text-xs font-bold flex items-center gap-1 mt-4"
-                >
-                  <span>🗑️</span> Delete
-                </button>
-              </div>
-
-              {/* สเปกตรัมแสดงเฉดสีแบบ Fluid การันตีหน้ากระดานเส้นตรงเดียว */}
-              <div 
-                className="grid gap-1.5 w-full"
-                style={{ gridTemplateColumns: `repeat(${numShades}, minmax(0, 1fr))` }}
-              >
-                {palette.shades.map((shade) => {
-                  const isSelected = activeEdit?.trackId === palette.id && activeEdit?.shadeId === shade.id;
-                  return (
-                    <div 
-                      key={shade.id}
-                      onClick={() => {
-                        // ดึงข้อมูลตัวแบนดั้งเดิมมาอัดใน Override State ถ้ายังไม่ได้ทำป้องกันค่ากระโดดตอนขยับสไลเดอร์ครั้งแรก
-                        if (palette.overrides[shade.id] === undefined) {
-                          updateShadeOverride(palette.id, shade.id, 'L', shade.L);
-                          updateShadeOverride(palette.id, shade.id, 'C', shade.C);
-                          updateShadeOverride(palette.id, shade.id, 'H', shade.H);
-                        }
-                        setActiveEdit(isSelected ? null : { trackId: palette.id, shadeId: shade.id });
-                      }}
-                      className={`group p-1 bg-white border rounded-lg cursor-pointer transition-all flex flex-col justify-between ${
-                        shade.isAnchor ? 'ring-2 ring-neutral-950 border-neutral-950 shadow-md -translate-y-0.5' : 
-                        shade.isOverridden ? 'border-amber-400 bg-amber-50/10' : 
-                        isSelected ? 'border-neutral-900 ring-1 ring-neutral-900 bg-neutral-50' : 'border-neutral-200 hover:border-neutral-400'
-                      }`}
-                    >
-                      {/* บล็อกสี่เหลี่ยมสี */}
-                      <div 
-                        className="w-full aspect-square rounded-md shadow-inner border border-black/5 relative transition-transform group-hover:scale-[1.03]" 
-                        style={{ backgroundColor: shade.hex }}
-                      >
-                        {shade.isAnchor && <span className="absolute bottom-0.5 right-0.5 text-[7px] bg-neutral-950 text-white font-black px-0.5 rounded scale-90">⚓</span>}
-                        {shade.isOverridden && !shade.isAnchor && <span className="absolute bottom-0.5 right-0.5 text-[7px] bg-amber-500 text-white font-black px-0.5 rounded scale-90">✏️</span>}
-                      </div>
-                      
-                      {/* ตัวอักษรดัชนีกำกับใต้กล่องสี */}
-                      <div className="mt-1.5 text-center">
-                        <div className="text-[9px] font-black text-neutral-800 font-mono">#{shade.id}</div>
-                        <div className="text-[8px] font-mono text-neutral-400 group-hover:text-neutral-600 uppercase tracking-tighter truncate">{shade.hex}</div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
+              ))}
             </div>
-          ))}
-        </div>
-
-        {/* 🎛️ DETAILED INSPECTOR PANEL (แผงจูนแมนนวลแบบเจาะลึกแสดงผลใต้เมทริกซ์แถวคู่กรณี) */}
-        {activeEdit !== null && (
-          <div className="bg-neutral-900 text-white rounded-2xl border border-neutral-800 shadow-2xl max-w-2xl mx-auto overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-200">
-            {(() => {
-              const currentTrack = computedPalettes.find(t => t.id === activeEdit.trackId);
-              const currentShade = currentTrack?.shades.find(s => s.id === activeEdit.shadeId);
-              if (!currentTrack || !currentShade) return null;
-              
-              return (
-                <div className="grid grid-cols-1 sm:grid-cols-3">
-                  {/* พรีวิวฝั่งซ้าย */}
-                  <div className="p-6 flex flex-col justify-between items-center text-center border-b sm:border-b-0 sm:border-r border-neutral-800 bg-black/20">
-                    <div className="space-y-1">
-                      <span className="text-[9px] uppercase font-bold tracking-widest text-indigo-400">Track: {currentTrack.name}</span>
-                      <h4 className="text-sm font-black text-neutral-200">เฉดสีลำดับที่ #{currentShade.id}</h4>
-                    </div>
-                    <div className="w-20 h-20 rounded-2xl shadow-xl border border-white/10 my-4" style={{ backgroundColor: currentShade.hex }} />
-                    <div className="font-mono text-xs text-neutral-300">
-                      <div className="font-black text-amber-400 text-sm uppercase">{currentShade.hex}</div>
-                    </div>
-                  </div>
-
-                  {/* คอนโทรลสไลเดอร์ฝั่งขวา */}
-                  <div className="p-6 sm:col-span-2 space-y-4">
-                    <div className="flex justify-between items-center border-b border-neutral-800 pb-2">
-                      <span className="text-xs font-bold text-neutral-400">Manual Jumper Overrides</span>
-                      <button onClick={() => setActiveEdit(null)} className="text-[10px] font-bold text-neutral-400 hover:text-white px-2 py-0.5 bg-neutral-800 rounded-md">× Close</button>
-                    </div>
-
-                    <div className="space-y-3 text-xs">
-                      {/* ปรับความสว่าง L */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between font-mono text-[11px]">
-                          <span className="text-neutral-400">Lightness (L)</span>
-                          <span className="text-amber-400 font-bold">{(currentShade.L * 100).toFixed(1)}%</span>
-                        </div>
-                        <input type="range" min="0" max="100" step="0.1" value={currentShade.L * 100} onChange={(e) => updateShadeOverride(activeEdit.trackId, activeEdit.shadeId, 'L', Number(e.target.value) / 100)} className="w-full accent-amber-400 h-1 bg-neutral-800 appearance-none rounded" />
-                      </div>
-
-                      {/* ปรับความสด C */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between font-mono text-[11px]">
-                          <span className="text-neutral-400">Chroma (C)</span>
-                          <span className="text-amber-400 font-bold">{currentShade.C.toFixed(3)}</span>
-                        </div>
-                        <input type="range" min="0" max="0.37" step="0.002" value={currentShade.C} onChange={(e) => updateShadeOverride(activeEdit.trackId, activeEdit.shadeId, 'C', Number(e.target.value))} className="w-full accent-amber-400 h-1 bg-neutral-800 appearance-none rounded" />
-                      </div>
-
-                      {/* ปรับองศาเนื้อสี H */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between font-mono text-[11px]">
-                          <span className="text-neutral-400">Hue (H)</span>
-                          <span className="text-amber-400 font-bold">{Math.round(currentShade.H)}°</span>
-                        </div>
-                        <input type="range" min="0" max="360" step="1" value={currentShade.H} onChange={(e) => updateShadeOverride(activeEdit.trackId, activeEdit.shadeId, 'H', Number(e.target.value))} className="w-full accent-amber-400 h-1 bg-neutral-800 appearance-none rounded" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
           </div>
         )}
+      </div>
+
+      {/* 📋 Color Palette Matrix */}
+      <div className="p-8 space-y-6">
+        {computedPalettes.map((palette) => (
+          <div key={palette.id} className="bg-neutral-900 p-5 rounded-2xl border border-neutral-800 shadow-sm space-y-4">
+            
+            {/* Track Properties */}
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-neutral-800 pb-3">
+              <div className="flex items-center gap-3 flex-1 max-w-md">
+                <div className="flex flex-col space-y-1 flex-1">
+                  <span className="text-[10px] font-bold text-neutral-500 uppercase">Track Name</span>
+                  <input 
+                    type="text" 
+                    value={palette.name}
+                    onChange={(e) => updateTrackProp(palette.id, 'name', e.target.value)}
+                    className="text-sm font-black text-white bg-neutral-800 border border-neutral-700 rounded-xl px-3 py-1.5 focus:bg-neutral-750 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  />
+                </div>
+                <div className="flex flex-col space-y-1">
+                  <span className="text-[10px] font-bold text-neutral-500 uppercase">Seed Color</span>
+                  <div className="flex items-center gap-2 bg-neutral-800 px-2.5 py-1.5 rounded-xl border border-neutral-700">
+                    <input type="color" value={palette.seedHex} onChange={(e) => updateTrackProp(palette.id, 'seedHex', e.target.value)} className="w-6 h-6 rounded cursor-pointer border-0 p-0 bg-transparent" />
+                    <span className="text-xs font-mono font-bold text-neutral-300">{palette.seedHex}</span>
+                  </div>
+                </div>
+              </div>
+              <button onClick={() => removeTrack(palette.id)} className="text-neutral-500 hover:text-red-500 transition-colors p-2 text-xs font-bold">🗑️ Delete</button>
+            </div>
+
+            {/* 🌈 Dynamic Color Scale Grid with Responsive Layout */}
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${numShades}, minmax(0, 1fr))`, gap: '0.5rem' }}>
+              {palette.shades.map((shade) => {
+                const isSelected = activeEdit?.trackId === palette.id && activeEdit?.weight === shade.weight;
+                return (
+                  <div 
+                    key={shade.weight}
+                    onClick={() => setActiveEdit(isSelected ? null : { trackId: palette.id, weight: shade.weight })}
+                    className={`p-1.5 bg-neutral-800 border rounded-xl cursor-pointer transition-all flex flex-col justify-between space-y-2 ${
+                      shade.isAnchor ? 'ring-2 ring-orange-500 border-orange-500 shadow-lg shadow-orange-500/20 -translate-y-0.5' : 
+                      isSelected ? 'border-emerald-400 ring-1 ring-emerald-400 bg-neutral-750' : 'border-neutral-700 hover:border-neutral-600'
+                    }`}
+                  >
+                    <div className="w-full aspect-square rounded-lg border border-black/20 relative shadow-inner" style={{ backgroundColor: shade.hex }}>
+                      {shade.isAnchor && <span className="absolute bottom-1 right-1 text-[8px] bg-orange-500 text-white px-1 rounded shadow-sm">⚓</span>}
+                    </div>
+                    <div className="text-center">
+                      <div className="text-[10px] font-black text-neutral-200 font-mono">{shade.weight}</div>
+                      <div className="text-[8px] font-mono text-neutral-500 uppercase truncate tracking-tighter">{shade.hex}</div>
+                      <div className="text-[8px] font-mono text-neutral-600">L:{(shade.L * 100).toFixed(0)}%</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+          </div>
+        ))}
       </div>
 
     </div>
