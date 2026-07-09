@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
@@ -42,8 +42,7 @@ const buttonVariants = cva(
           "[--btn-main:var(--color-error-600)] [--btn-contrast:var(--color-neutral-50)] [--btn-hover:var(--color-error-550)] [--btn-active:var(--color-error-700)] [--btn-border:var(--color-error-400)] [--btn-soft:var(--color-error-50)] [--btn-soft-hover:var(--color-error-100)]",
         warning:
           "[--btn-main:var(--color-warning-300)] [--btn-contrast:var(--color-neutral-50)] [--btn-hover:var(--color-warning-250)] [--btn-active:var(--color-warning-400)] [--btn-border:var(--color-warning-400)] [--btn-soft:var(--color-warning-50)] [--btn-soft-hover:var(--color-warning-100)]",
-        info:
-          "[--btn-main:var(--color-info-500)] [--btn-contrast:var(--color-neutral-50)] [--btn-hover:var(--color-info-450)] [--btn-active:var(--color-info-600)] [--btn-border:var(--color-info-400)] [--btn-soft:var(--color-info-50)] [--btn-soft-hover:var(--color-info-100)]",
+        info: "[--btn-main:var(--color-info-500)] [--btn-contrast:var(--color-neutral-50)] [--btn-hover:var(--color-info-450)] [--btn-active:var(--color-info-600)] [--btn-border:var(--color-info-400)] [--btn-soft:var(--color-info-50)] [--btn-soft-hover:var(--color-info-100)]",
         success:
           "[--btn-main:var(--color-success-500)] [--btn-contrast:var(--color-neutral-50)] [--btn-hover:var(--color-success-450)] [--btn-active:var(--color-success-600)] [--btn-border:var(--color-success-400)] [--btn-soft:var(--color-success-50)] [--btn-soft-hover:var(--color-success-100)]",
         neutral:
@@ -59,7 +58,7 @@ const buttonVariants = cva(
           "border border-transparent bg-[var(--btn-main)] text-[var(--btn-contrast)] hover:bg-[var(--btn-hover)] active:bg-[var(--btn-active)] shadow-sm hover:shadow-md",
         outlined:
           "border border-[var(--btn-border)] bg-transparent text-[var(--btn-main)] hover:bg-[var(--btn-soft)] active:bg-[var(--btn-soft-hover)]",
-        text: "border border-transparent bg-transparent text-[var(--btn-main)] hover:bg-[var(--btn-soft)] active:bg-[var(--btn-soft-hover)]",
+        text: "border border-transparent bg-transparent text-[var(--btn-main)] hover:bg-[var(--btn-soft)]/80 active:bg-[var(--btn-soft-hover)]",
         ghost:
           "border border-transparent bg-[var(--btn-soft)]/50 text-[var(--btn-main)] hover:bg-[var(--btn-soft)]",
         mixed:
@@ -86,7 +85,7 @@ const buttonVariants = cva(
       variant: "contained",
       size: "medium",
     },
-  }
+  },
 );
 
 /**
@@ -94,7 +93,8 @@ const buttonVariants = cva(
  * Extends HTML button attributes and CVA variant props
  */
 export interface ButtonProps
-  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "color">,
+  extends
+    Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "color">,
     VariantProps<typeof buttonVariants> {
   children: React.ReactNode;
   loading?: boolean;
@@ -136,7 +136,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       "aria-label": ariaLabel,
       ...props
     },
-    ref
+    ref,
   ) => {
     const isIconOnly = size === "icon";
     const iconContent = leftIcon ?? (isIconOnly ? children : undefined);
@@ -144,10 +144,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     // Astryx requires a string `label` for the accessible name. When children
     // is plain text we can derive it automatically; otherwise (icons, mixed
     // JSX) the caller must supply aria-label.
-    const label =
-      typeof children === "string"
-        ? children
-        : ariaLabel ?? "";
+    const label = typeof children === "string" ? children : (ariaLabel ?? "");
 
     return (
       <AstryxButton
@@ -169,7 +166,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {isIconOnly ? undefined : children}
       </AstryxButton>
     );
-  }
+  },
 );
 
 Button.displayName = "Button";
