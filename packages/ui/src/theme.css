@@ -198,15 +198,15 @@
   --color-bg-muted: light-dark(var(--color-neutral-150), var(--color-neutral-850));
 
   /* Accents */
-  --color-accent: light-dark(var(--color-primary-600), var(--color-primary-400));
-  --color-accent-muted: light-dark(var(--color-primary-100), var(--color-primary-900));
-  --color-on-accent: light-dark(var(--color-neutral-50), var(--color-neutral-950));
+  --color-accent-base: light-dark(var(--color-primary-500), var(--color-primary-400));
+  --color-accent-muted-base: light-dark(var(--color-primary-400), var(--color-primary-900));
+  --color-on-accent-base: light-dark(var(--color-neutral-50), var(--color-neutral-950));
 
   /* Borders & Controls */
-  --color-border: light-dark(var(--color-neutral-200), var(--color-neutral-800));
-  --color-border-emphasized: light-dark(var(--color-neutral-350), var(--color-neutral-650));
-  --color-skeleton: light-dark(var(--color-neutral-200), var(--color-neutral-800));
-  --color-track: light-dark(var(--color-neutral-200), var(--color-neutral-800));
+  --color-border-base: light-dark(var(--color-neutral-50), var(--color-neutral-950));
+  --color-border-emphasized-base: light-dark(var(--color-neutral-150), var(--color-neutral-850));
+  --color-skeleton-base: light-dark(var(--color-neutral-200), var(--color-neutral-800));
+  --color-track-base: light-dark(var(--color-neutral-200), var(--color-neutral-800));
 }
 
 /* ========================================================================
@@ -225,15 +225,15 @@
     --color-text-secondary: var(--color-fg-secondary);
     --color-text-disabled: var(--color-fg-disabled);
     --color-text-accent: var(--color-fg-accent);
-    --color-accent: var(--color-accent);
-    --color-accent-muted: var(--color-accent-muted);
-    --color-on-accent: var(--color-on-accent);
-    
+    --color-accent: var(--color-accent-base);
+    --color-accent-muted: var(--color-accent-muted-base);
+    --color-on-accent: var(--color-on-accent-base);
+
     /* Borders & Decoratives */
-    --color-border: var(--color-border);
-    --color-border-emphasized: var(--color-border-emphasized);
-    --color-skeleton: var(--color-skeleton);
-    --color-track: var(--color-track);
+    --color-border: var(--color-border-base);
+    --color-border-emphasized: var(--color-border-emphasized-base);
+    --color-skeleton: var(--color-skeleton-base);
+    --color-track: var(--color-track-base);
 
     /* Semantic Status Colors (Success, Warning, Error, Info) */
     --color-background-success: light-dark(var(--color-success-50), var(--color-success-950));

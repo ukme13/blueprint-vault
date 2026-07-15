@@ -31,3 +31,22 @@
    ======================================================================== */
 /* เปิดให้ Tailwind วิ่งไปแสกนหาคลาสปุ่มที่เราเขียนไว้ในแพ็กเกจ ui ส่วนกลาง */
 @source "../../../packages/ui/src";
+
+/* ========================================================================
+   3. FORCE color-scheme ABOVE @astryxdesign/theme-neutral's blanket reset
+   theme-neutral's built theme.css declares `:root { color-scheme: light
+   dark; }` inside its own `astryx-theme` layer, which outranks our `reset`
+   layer's `html[data-theme="light|dark"]` rule purely by layer order —
+   silently making every light-dark() token (CodeBlock, Selector, etc.)
+   follow the OS preference instead of the app's chosen theme. Re-assert it
+   in a layer that sorts after `astryx-theme` so ours wins.
+   ======================================================================== */
+@layer components {
+  :root[data-theme="light"] {
+    color-scheme: light;
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+  }
+}
