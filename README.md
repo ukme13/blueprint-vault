@@ -1,159 +1,177 @@
-# Turborepo starter
+# Blueprint Vault
 
-This Turborepo starter is maintained by the Turborepo core team.
+Blueprint Vault is a monorepo for developing the Blueprint design system and
+testing it in real applications. It currently contains an OKLCH colour-palette
+laboratory, shared design tokens, an Astryx theme bridge, and an early shared
+Button component.
 
-## Using this example
+Blueprint is still in development. The current applications are internal tools
+and documentation, not production products.
 
-Run the following command:
+## Repository structure
 
-```sh
-npx create-turbo@latest
+```text
+apps/
+  docs/       Blueprint design-system documentation
+  web/        OKLCH palette playground and live component previews
+packages/
+  ui/         Shared tokens, theme bridge, components, and palette prototype
+  eslint-config/
+  typescript-config/
 ```
 
-## What's inside?
+`apps/web` is a playground. Palette generation and colour experiments belong
+there. Product-specific pages, content, layouts, and business logic should live
+inside their own application.
 
-This Turborepo includes the following packages/apps:
+`apps/docs` is the home for design-system guidance and component documentation.
+The Button documentation currently remains at `apps/web/app/docs/button` and
+will move to the docs application in a later change.
 
-### Apps and Packages
+## Technology
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+- Next.js and React
+- TypeScript
+- Turborepo and pnpm workspaces
+- Tailwind CSS v4
+- Astryx UI
+- OKLCH colour tokens
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+## Getting started
 
-### Utilities
+Requirements:
 
-This Turborepo has some additional tools already setup for you:
+- Node.js 18 or newer
+- pnpm 9
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+Install dependencies and start all development applications:
 
 ```sh
-cd my-turborepo
-turbo build
+pnpm install
+pnpm dev
 ```
 
-Without global `turbo`, use your package manager:
+The default local addresses are:
+
+- Playground: <http://localhost:3000>
+- Documentation: <http://localhost:3001>
+
+Run one workspace only:
 
 ```sh
-cd my-turborepo
-npx turbo build
-pnpm dlx turbo build
-pnpm exec turbo build
+pnpm --filter web dev
+pnpm --filter docs dev
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+## Project checks
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+Run these commands before opening a pull request:
 
 ```sh
-turbo build --filter=docs
+pnpm lint
+pnpm check-types
+pnpm build
 ```
 
-Without global `turbo`:
+The repository does not yet have an automated test suite. Add focused tests
+when reusable palette logic is separated from the current UI component.
+
+## Colour and token system
+
+The source tokens are in `packages/ui/src/theme.css`.
+
+Primitive colour tracks use a stable 25-interval scale:
+
+```css
+--color-primary-50: ...;
+--color-primary-100: ...;
+--color-primary-150: ...;
+/* optional shades can use any suffix divisible by 25 */
+--color-primary-950: ...;
+```
+
+The exact number of generated shades can change, but:
+
+- `50` is always the lightest boundary.
+- `950` is always the darkest boundary.
+- Generated suffixes must be divisible by 25.
+
+The standard semantic status names are:
+
+- `success`
+- `warning`
+- `error`
+- `info`
+
+Use `error`, not `danger`, for colour tracks and CSS variables. A component API
+may still use a name such as `destructive` when it describes an action rather
+than a colour.
+
+Shared components must use Blueprint tokens. Do not use Tailwind's built-in
+colour palette or hardcoded hexadecimal colours in shared UI code. Utilities
+such as `bg-primary-600` and `text-neutral-950` are allowed because Blueprint
+defines those names in `theme.css`.
+
+## Astryx integration
+
+Applications using Astryx and `@blueprint/ui` need the Astryx reset, core
+styles, base theme, and Blueprint theme. See `apps/web/app/globals.css` for the
+current import and CSS-layer order.
+
+The Blueprint theme bridge is also defined in
+`packages/ui/src/theme.css`. It maps Blueprint semantic tokens to the variables
+expected by Astryx components.
+
+Use Astryx layout and component APIs when they fit the interface. Prefer
+semantic HTML elements such as `main`, `nav`, `section`, `header`, and `ul` when
+they describe the content. A `div` is allowed for layout or grouping when no
+semantic element is appropriate.
+
+Useful Astryx commands:
 
 ```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+pnpm exec astryx build "<interface idea>"
+pnpm exec astryx component <ComponentName>
+pnpm exec astryx docs tokens
+pnpm exec astryx docs layout
 ```
 
-### Develop
+## Shared-code rules
 
-To develop all apps and packages, run the following command:
+- Keep product-specific code inside its application until reuse is proven.
+- Add code to `@blueprint/ui` only when it is product-neutral and has a clear
+  shared use.
+- Use shared design tokens instead of raw colours.
+- Keep palette calculations separate from presentation when extending the
+  generator.
+- Treat `packages/ui/src/card.tsx` as starter code, not an approved Blueprint
+  component.
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+## Adding a product application
 
-```sh
-cd my-turborepo
-turbo dev
+Create a separate Next.js workspace under `apps/<product-name>`. Keep its
+branding, content, pages, layouts, and business logic local to that application.
+
+The application can depend on the shared UI package:
+
+```json
+{
+  "dependencies": {
+    "@blueprint/ui": "workspace:*"
+  }
+}
 ```
 
-Without global `turbo`, use your package manager:
+Import the required global styles, then run the normal repository checks.
+Move a local component into `@blueprint/ui` only after another real application
+needs the same component.
 
-```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
-```
+## Current roadmap
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+The next structural work is:
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo dev --filter=web
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
-
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
-```
-
-Without global `turbo`, use your package manager:
-
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
-```
-
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
-
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
-
-```sh
-turbo link
-```
-
-Without global `turbo`:
-
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+1. Rename `apps/web` to `apps/playground`.
+2. Move Button documentation from `apps/web` to `apps/docs`.
+3. Separate palette calculations from `PrimitiveControl`.
+4. Add unit tests for the extracted colour and palette functions.
+5. Define the first product scope before creating `apps/ferre`.
