@@ -62,7 +62,7 @@ function generateStableWeights(numShades: number): number[] {
   }
 
   // Round to nearest multiple of 25
-  let weights = raw.map(w => Math.round(w / 25) * 25);
+  const weights = raw.map(w => Math.round(w / 25) * 25);
 
   // De-duplication loop: resolve collisions by forcing ascending unique values
   for (let i = 1; i < weights.length; i++) {
@@ -176,13 +176,6 @@ export function PrimitiveControl() {
       setLightnessArray(newArray);
     }
   }, [numShades, distMode, maxL, minL]);
-
-  // --- Initialize lightnessArray on first mount
-  useEffect(() => {
-    if (lightnessArray.length === 0) {
-      setLightnessArray(generateLightnessArray(numShades, maxL, minL, distMode));
-    }
-  }, []);
 
   const handleLightnessChange = useCallback((index: number, value: number) => {
     setLightnessArray(prev => {
