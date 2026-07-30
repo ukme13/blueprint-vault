@@ -1,5 +1,5 @@
 /* ========================================================================
-   1. GROUP ALL IMPORTS AT THE ABSOLUTE TOP (ถูกต้องตามกฎ Native CSS Spec)
+   1. GROUP ALL IMPORTS AT THE ABSOLUTE TOP
 
    Astryx's reset/astryx.css/theme.css each declare their OWN top-level
    layers internally (`@layer reset`, `@layer astryx-base`, `@layer
@@ -21,15 +21,15 @@
 @layer theme, base, reset, astryx-base, astryx-theme, components, utilities;
 
 @import "tailwindcss";
-@import '@astryxdesign/core/reset.css';        /* ระบบล้างค่าเริ่มต้นของ Astryx */
-@import '@astryxdesign/core/astryx.css';       /* โครงสร้างเลเอาต์หลักของ Astryx */
-@import '@astryxdesign/theme-neutral/theme.css'; /* โอนย้ายสิทธิ์สีเริ่มต้นของ Astryx */
-@import "@blueprint/ui/theme.css";            /* โหลดกริดสี Atmos ฐาน 25 */
+@import "@astryxdesign/core/reset.css"; /* Astryx reset */
+@import "@astryxdesign/core/astryx.css"; /* Astryx component structure */
+@import "@astryxdesign/theme-neutral/theme.css"; /* Astryx base colour theme */
+@import "@blueprint/ui/theme.css"; /* Blueprint 25-interval colour grid */
 
 /* ========================================================================
-   2. TAILWIND V4 SPECIAL DIRECTIVES (วางไว้ใต้กลุ่ม Import เสมอ)
+   2. TAILWIND V4 SPECIAL DIRECTIVES
    ======================================================================== */
-/* เปิดให้ Tailwind วิ่งไปแสกนหาคลาสปุ่มที่เราเขียนไว้ในแพ็กเกจ ui ส่วนกลาง */
+/* Include utility classes used by the shared UI package. */
 @source "../../../packages/ui/src";
 
 /* ========================================================================
