@@ -254,15 +254,15 @@ export default function ButtonDocsPage() {
   const importSnippet = `import { Button } from "@blueprint/ui";`;
 
   const playgroundSnippet = useMemo(() => {
-    const props: string[] = [];
-    if (scheme !== 'primary') props.push(`scheme="${scheme}"`);
-    if (variant !== 'contained') props.push(`variant="${variant}"`);
-    if (size !== 'medium') props.push(`size="${size}"`);
-    if (disabled) props.push('disabled');
-    if (loading) props.push('loading');
-    if (!isIconOnly && showLeftIcon) props.push('leftIcon={<PlusIcon />}');
-    if (!isIconOnly && showRightIcon) props.push('rightIcon={<ArrowRightIcon />}');
-    const propString = props.length ? ' ' + props.join(' ') : '';
+    const propParts: string[] = [];
+    if (scheme !== 'primary') propParts.push(`scheme="${scheme}"`);
+    if (variant !== 'contained') propParts.push(`variant="${variant}"`);
+    if (size !== 'medium') propParts.push(`size="${size}"`);
+    if (disabled) propParts.push('disabled');
+    if (loading) propParts.push('loading');
+    if (!isIconOnly && showLeftIcon) propParts.push('leftIcon={<PlusIcon />}');
+    if (!isIconOnly && showRightIcon) propParts.push('rightIcon={<ArrowRightIcon />}');
+    const propString = propParts.length ? ' ' + propParts.join(' ') : '';
     return `<Button${propString}>\n  Continue\n</Button>`;
   }, [scheme, variant, size, disabled, loading, isIconOnly, showLeftIcon, showRightIcon]);
 

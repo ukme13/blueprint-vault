@@ -1,7 +1,6 @@
 'use client';
 
 import { PrimitiveControl } from '@blueprint/ui';
-import { Button } from "@blueprint/ui";
 
 export default function Page() {
   return (
@@ -176,7 +175,7 @@ export default function Page() {
             <ul className="space-y-1 text-neutral-300 list-disc list-inside">
               <li>Guaranteed boundaries: <code className="text-white font-mono text-[9px]">--color-*-50</code> (lightest) & <code className="text-white font-mono text-[9px]">--color-*-950</code> (darkest)</li>
               <li>Cascading fallbacks: <code className="text-white font-mono text-[9px]">var(--color-primary-600, var(--color-primary-50, #fallback))</code></li>
-              <li>Dynamic steps (11-21) don't break intermediate tokens—fallbacks ensure robustness</li>
+              <li>Dynamic steps (11-21) do not break intermediate tokens—fallbacks ensure robustness</li>
               <li>All token names divisible by 25, no duplicates, ascending order guaranteed</li>
             </ul>
           </div>
