@@ -1,19 +1,47 @@
 import { Badge } from "@astryxdesign/core/Badge";
 import {
+  SegmentedControl,
+  SegmentedControlItem,
+} from "@astryxdesign/core/SegmentedControl";
+import { Slider } from "@astryxdesign/core/Slider";
+import {
   BLUEPRINT_20_PRESET,
+  Button,
+  MIN_LIGHTNESS_GAP,
   type ColorTrack,
   type ShadeItem,
 } from "@blueprint/ui";
 import styles from "./palette-workspace.module.css";
+import type { LightnessPattern } from "./types";
 
 interface PaletteControlsProps {
+  lightnessPattern: LightnessPattern;
+  lightnessValues: number[];
   selectedPalette?: ColorTrack;
   selectedShade?: ShadeItem;
+  onLightnessChange: (index: number, value: number) => void;
+  onPatternChange: (pattern: LightnessPattern) => void;
+  onResetLightness: () => void;
+}
+
+const PATTERN_LABELS: Record<LightnessPattern, string> = {
+  linear: "Linear",
+  "ease-in-out": "Ease in/out",
+  custom: "Custom",
+};
+
+function formatLightness(value: number): string {
+  return `${Number.isInteger(value) ? value : value.toFixed(1)}%`;
 }
 
 export function PaletteControls({
+  lightnessPattern,
+  lightnessValues,
   selectedPalette,
   selectedShade,
+  onLightnessChange,
+  onPatternChange,
+  onResetLightness,
 }: PaletteControlsProps) {
   return (
     <aside className={styles.inspector}>
@@ -38,16 +66,66 @@ export function PaletteControls({
         </p>
       </section>
 
-      <section className={styles.settingGroup}>
-        <h2>Target lightness</h2>
+      <section className={styles.lightnessSettingGroup}>
+        <header className={styles.settingTitle}>
+          <span>
+            <h2>Target lightness</h2>
+            <small>{PATTERN_LABELS[lightnessPattern]}</small>
+          </span>
+          <Button
+            scheme="neutral"
+            size="xs"
+            variant="text"
+            onClick={onResetLightness}
+          >
+            Reset
+          </Button>
+        </header>
+
+        <span className={styles.patternControl}>
+          <SegmentedControl
+            label="Lightness pattern"
+            layout="fill"
+            size="sm"
+            value={lightnessPattern}
+            onChange={(value) => onPatternChange(value as LightnessPattern)}
+          >
+            <SegmentedControlItem label="Linear" value="linear" />
+            <SegmentedControlItem label="Ease in/out" value="ease-in-out" />
+            <SegmentedControlItem label="Custom" value="custom" />
+          </SegmentedControl>
+        </span>
+
+        <p className={styles.lightnessHint}>
+          Moving a slider switches the pattern to Custom.
+        </p>
+
         <ol className={styles.lightnessList}>
-          {BLUEPRINT_20_PRESET.lightnessValues.map((lightness, index) => (
+          {lightnessValues.map((lightness, index) => (
             <li key={BLUEPRINT_20_PRESET.weights[index]}>
               <code>{BLUEPRINT_20_PRESET.weights[index]}</code>
-              <span>
-                <i style={{ width: `${lightness}%` }} />
+              <span className={styles.lightnessSlider}>
+                <Slider
+                  isLabelHidden
+                  label={`${BLUEPRINT_20_PRESET.weights[index]} target lightness`}
+                  max={
+                    index === 0
+                      ? 100
+                      : lightnessValues[index - 1]! - MIN_LIGHTNESS_GAP
+                  }
+                  min={
+                    index === lightnessValues.length - 1
+                      ? 0
+                      : lightnessValues[index + 1]! + MIN_LIGHTNESS_GAP
+                  }
+                  step={MIN_LIGHTNESS_GAP}
+                  value={lightness}
+                  valueDisplay="none"
+                  width="100%"
+                  onChange={(value: number) => onLightnessChange(index, value)}
+                />
               </span>
-              <strong>{lightness}%</strong>
+              <strong>{formatLightness(lightness)}</strong>
             </li>
           ))}
         </ol>

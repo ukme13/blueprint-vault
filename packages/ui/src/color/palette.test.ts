@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  clampLightnessValue,
   formatPaletteCss,
   generateLightnessArray,
   generatePalette,
   generatePaletteFromPreset,
   generateStableWeights,
+  isValidLightnessSequence,
   normalizeTrackName,
 } from "./palette";
 import { BLUEPRINT_20_PRESET } from "./presets";
@@ -59,6 +61,22 @@ describe("lightness distribution", () => {
     expect(() => generateLightnessArray(5, 10, 20, "linear")).toThrow(
       "greater than or equal",
     );
+  });
+
+  it("validates strictly descending custom lightness values", () => {
+    expect(isValidLightnessSequence([97.5, 95, 90], 3)).toBe(true);
+    expect(isValidLightnessSequence([97.5, 95, 95], 3)).toBe(false);
+    expect(isValidLightnessSequence([97.5, 95], 3)).toBe(false);
+    expect(isValidLightnessSequence([101, 95, 90], 3)).toBe(false);
+  });
+
+  it("prevents an edited lightness value from crossing its neighbours", () => {
+    const values = [90, 70, 50, 30, 10];
+
+    expect(clampLightnessValue(values, 2, 80)).toBe(69.5);
+    expect(clampLightnessValue(values, 2, 20)).toBe(30.5);
+    expect(clampLightnessValue(values, 0, 101)).toBe(100);
+    expect(clampLightnessValue(values, 4, -1)).toBe(0);
   });
 });
 
