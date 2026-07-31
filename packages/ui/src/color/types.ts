@@ -26,3 +26,11 @@ export interface ColorTrack {
 }
 
 export type ColorTrackInput = Omit<ColorTrack, "shades">;
+
+export interface PalettePreset {
+  id: string;
+  name: string;
+  description: string;
+  weights: number[];
+  lightnessValues: number[];
+}
