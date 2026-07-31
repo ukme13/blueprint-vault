@@ -1,3 +1,4 @@
+import Link from "next/link";
 import styles from "./page.module.css";
 
 const foundations = [
@@ -15,6 +16,16 @@ const foundations = [
     title: "Astryx bridge",
     description:
       "Blueprint semantic tokens map to Astryx theme variables so both systems use the same decisions.",
+  },
+];
+
+const components = [
+  {
+    title: "Button",
+    description:
+      "Actions, links, loading states, icons, colour schemes, variants, and sizes.",
+    href: "/docs/button",
+    status: "Available",
   },
 ];
 
@@ -47,12 +58,34 @@ export default function Page() {
         </ul>
       </section>
 
+      <section aria-labelledby="components-heading" className={styles.section}>
+        <div className={styles.sectionHeading}>
+          <h2 id="components-heading">Components</h2>
+          <p>
+            Explore component behaviour, visual options, usage examples, and API
+            details.
+          </p>
+        </div>
+
+        <ul className={styles.grid}>
+          {components.map((component) => (
+            <li key={component.title}>
+              <Link className={styles.componentCard} href={component.href}>
+                <span className={styles.status}>{component.status}</span>
+                <h3>{component.title}</h3>
+                <p>{component.description}</p>
+                <span className={styles.cardAction}>View component →</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+
       <aside className={styles.notice}>
-        <h2>Documentation status</h2>
+        <h2>Documentation grows with the system</h2>
         <p>
-          Button documentation still lives in the playground at{" "}
-          <code>/docs/button</code>. It will move here during the next
-          repository-structure phase.
+          New guidance belongs here when a token, component, or pattern is
+          stable enough for other products to use.
         </p>
       </aside>
     </main>

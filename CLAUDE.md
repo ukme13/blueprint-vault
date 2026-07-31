@@ -4,7 +4,8 @@
 
 This is a Monorepo workspace engineering an advanced OKLCH-based dynamic color palette studio.
 
-- `apps/web`: Next.js web application (The design playground and live preview lab).
+- `apps/playground`: Next.js application for palette experiments and live previews.
+- `apps/docs`: Next.js application for Blueprint design-system documentation.
 - `packages/ui`: Shared component library containing core mathematical engines and primitive tokens.
 - Tech Stack: React, TypeScript, Tailwind CSS v4, and Astryx UI elements.
 

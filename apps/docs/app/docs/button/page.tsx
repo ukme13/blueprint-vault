@@ -1,29 +1,36 @@
-'use client';
+"use client";
 
-import { useMemo, useState, type ReactNode } from 'react';
-import { Button } from '@blueprint/ui';
-import { Selector } from '@astryxdesign/core/Selector';
-import { CheckboxInput } from '@astryxdesign/core/CheckboxInput';
-import { CodeBlock } from '@astryxdesign/core/CodeBlock';
-import { Table, proportional, pixel } from '@astryxdesign/core/Table';
-import type { TableColumn } from '@astryxdesign/core/Table';
+import { useMemo, useState, type ReactNode } from "react";
+import { Button } from "@blueprint/ui";
+import { Selector } from "@astryxdesign/core/Selector";
+import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
+import { CodeBlock } from "@astryxdesign/core/CodeBlock";
+import { Table, proportional, pixel } from "@astryxdesign/core/Table";
+import type { TableColumn } from "@astryxdesign/core/Table";
 
 /* ────────────────────────────────────────────────────────────────────────
  * Static prop domains — mirrors the CVA config in packages/ui/src/button.tsx
  * ──────────────────────────────────────────────────────────────────────── */
 
-const VARIANTS = ['contained', 'outlined', 'text', 'ghost', 'mixed', 'link'] as const;
-const COLORS = [
-  'primary',
-  'secondary',
-  'tertiary',
-  'error',
-  'warning',
-  'info',
-  'success',
-  'neutral',
+const VARIANTS = [
+  "contained",
+  "outlined",
+  "text",
+  "ghost",
+  "mixed",
+  "link",
 ] as const;
-const SIZES = ['xs', 'small', 'medium', 'large', 'xl', 'icon'] as const;
+const COLORS = [
+  "primary",
+  "secondary",
+  "tertiary",
+  "error",
+  "warning",
+  "info",
+  "success",
+  "neutral",
+] as const;
+const SIZES = ["xs", "small", "medium", "large", "xl", "icon"] as const;
 
 type ButtonVariant = (typeof VARIANTS)[number];
 type ButtonScheme = (typeof COLORS)[number];
@@ -41,23 +48,25 @@ const matrixData: MatrixRow[] = VARIANTS.map((v) => ({ variant: v }));
 
 const matrixColumns: TableColumn<MatrixRow>[] = [
   {
-    key: 'variant',
-    header: 'Variant',
+    key: "variant",
+    header: "Variant",
     width: pixel(112),
-    renderCell: (row) => <span className="text-xs font-bold text-neutral-600">{row.variant}</span>,
+    renderCell: (row) => (
+      <span className="text-xs font-bold text-neutral-600">{row.variant}</span>
+    ),
   },
   ...COLORS.map(
     (c): TableColumn<MatrixRow> => ({
       key: c,
       header: c,
       width: proportional(1),
-      align: 'center',
+      align: "center",
       renderCell: (row) => (
         <Button scheme={c} variant={row.variant} size="small">
           {c}
         </Button>
       ),
-    })
+    }),
   ),
 ];
 
@@ -70,97 +79,107 @@ interface PropRow extends Record<string, unknown> {
 
 const propRows: PropRow[] = [
   {
-    prop: 'scheme',
+    prop: "scheme",
     type: `"primary" | "secondary" | "tertiary" | "error" | "warning" | "info" | "success" | "neutral"`,
     def: '"primary"',
-    desc: 'Selects the OKLCH color track. Drives the --btn-main/hover/active/border/soft CSS variables.',
+    desc: "Selects the OKLCH color track. Drives the --btn-main/hover/active/border/soft CSS variables.",
   },
   {
-    prop: 'variant',
+    prop: "variant",
     type: `"contained" | "outlined" | "text" | "ghost" | "mixed" | "link"`,
     def: '"contained"',
-    desc: 'Visual style of the button — how the scheme colors are applied to background, border, and text.',
+    desc: "Visual style of the button — how the scheme colors are applied to background, border, and text.",
   },
   {
-    prop: 'size',
+    prop: "size",
     type: `"xs" | "small" | "medium" | "large" | "xl" | "icon"`,
     def: '"medium"',
     desc: 'Controls height, padding, radius, and icon scale. "icon" produces a fixed square button.',
   },
   {
-    prop: 'children',
-    type: 'React.ReactNode',
-    def: '—',
-    desc: 'Visible button content. Required. If it is a plain string it also becomes the accessible label automatically.',
+    prop: "children",
+    type: "React.ReactNode",
+    def: "—",
+    desc: "Visible button content. Required. If it is a plain string it also becomes the accessible label automatically.",
   },
   {
-    prop: 'aria-label',
-    type: 'string',
-    def: 'undefined',
-    desc: 'Accessible name override. Required when children is not a plain string (icons, mixed JSX) — Astryx needs a string label internally.',
+    prop: "aria-label",
+    type: "string",
+    def: "undefined",
+    desc: "Accessible name override. Required when children is not a plain string (icons, mixed JSX) — Astryx needs a string label internally.",
   },
   {
-    prop: 'loading',
-    type: 'boolean',
-    def: 'false',
-    desc: 'Maps to Astryx isLoading. Shows a spinner and forces isDisabled while true.',
+    prop: "loading",
+    type: "boolean",
+    def: "false",
+    desc: "Maps to Astryx isLoading. Shows a spinner and forces isDisabled while true.",
   },
   {
-    prop: 'disabled',
-    type: 'boolean',
-    def: 'false',
-    desc: 'Maps to Astryx isDisabled (Astryx has no native disabled prop). Also forced true whenever loading is true.',
+    prop: "disabled",
+    type: "boolean",
+    def: "false",
+    desc: "Maps to Astryx isDisabled (Astryx has no native disabled prop). Also forced true whenever loading is true.",
   },
   {
-    prop: 'leftIcon',
-    type: 'React.ReactNode',
-    def: 'undefined',
+    prop: "leftIcon",
+    type: "React.ReactNode",
+    def: "undefined",
     desc: 'Maps to Astryx icon — rendered before the label. Also used as the glyph when size="icon".',
   },
   {
-    prop: 'rightIcon',
-    type: 'React.ReactNode',
-    def: 'undefined',
+    prop: "rightIcon",
+    type: "React.ReactNode",
+    def: "undefined",
     desc: 'Maps to Astryx endContent — rendered after the label. Ignored when size="icon".',
   },
   {
-    prop: 'href / as / target / rel',
-    type: 'string / React.ElementType / string / string',
-    def: 'undefined',
-    desc: 'Astryx’s native link polymorphism — passing href renders an <a> (or a custom as component, e.g. Next Link) instead of a <button>. There is no asChild/Slot mechanism.',
+    prop: "href / as / target / rel",
+    type: "string / React.ElementType / string / string",
+    def: "undefined",
+    desc: "Astryx’s native link polymorphism — passing href renders an <a> (or a custom as component, e.g. Next Link) instead of a <button>. There is no asChild/Slot mechanism.",
   },
   {
-    prop: '...props',
-    type: 'React.ButtonHTMLAttributes<HTMLButtonElement>',
-    def: '—',
-    desc: 'Any other native button attribute (onClick, type, name, form, …) is spread onto the element.',
+    prop: "...props",
+    type: "React.ButtonHTMLAttributes<HTMLButtonElement>",
+    def: "—",
+    desc: "Any other native button attribute (onClick, type, name, form, …) is spread onto the element.",
   },
 ];
 
 const propsColumns: TableColumn<PropRow>[] = [
   {
-    key: 'prop',
-    header: 'Prop',
+    key: "prop",
+    header: "Prop",
     width: proportional(1),
-    renderCell: (row) => <span className="font-mono text-[13px] text-primary-600">{row.prop}</span>,
+    renderCell: (row) => (
+      <span className="font-mono text-[13px] text-primary-600">{row.prop}</span>
+    ),
   },
   {
-    key: 'type',
-    header: 'Type',
+    key: "type",
+    header: "Type",
     width: proportional(2),
-    renderCell: (row) => <span className="font-mono text-[12px] text-neutral-500">{row.type}</span>,
+    renderCell: (row) => (
+      <span className="font-mono text-[12px] text-neutral-500">{row.type}</span>
+    ),
   },
   {
-    key: 'def',
-    header: 'Default',
+    key: "def",
+    header: "Default",
     width: proportional(1),
-    renderCell: (row) => <span className="font-mono text-[12px] text-neutral-500">{row.def}</span>,
+    renderCell: (row) => (
+      <span className="font-mono text-[12px] text-neutral-500">{row.def}</span>
+    ),
   },
   {
-    key: 'desc',
-    header: 'Description',
+    key: "desc",
+    header: "Description",
     width: proportional(3),
-    renderCell: (row) => <span className="text-[13px] leading-relaxed text-neutral-700">{row.desc}</span>,
+    renderCell: (row) => (
+      <span className="text-[13px] leading-relaxed text-neutral-700">
+        {row.desc}
+      </span>
+    ),
   },
 ];
 
@@ -218,13 +237,23 @@ function SectionHeading({
       <span className="text-[11px] font-bold uppercase tracking-widest text-primary-600">
         {eyebrow}
       </span>
-      <h2 className="text-2xl font-black tracking-tight text-neutral-900">{title}</h2>
-      {description && <p className="max-w-2xl text-sm text-neutral-600">{description}</p>}
+      <h2 className="text-2xl font-black tracking-tight text-neutral-900">
+        {title}
+      </h2>
+      {description && (
+        <p className="max-w-2xl text-sm text-neutral-600">{description}</p>
+      )}
     </div>
   );
 }
 
-function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
+function Card({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <div
       className={`rounded-3xl border border-neutral-200 bg-white/80 p-6 shadow-xl shadow-neutral-200/50 backdrop-blur-sm ${className}`}
@@ -239,32 +268,43 @@ function Card({ children, className = '' }: { children: ReactNode; className?: s
  * ──────────────────────────────────────────────────────────────────────── */
 
 export default function ButtonDocsPage() {
-  const [scheme, setScheme] = useState<ButtonScheme>('primary');
-  const [variant, setVariant] = useState<ButtonVariant>('contained');
-  const [size, setSize] = useState<ButtonSize>('medium');
+  const [scheme, setScheme] = useState<ButtonScheme>("primary");
+  const [variant, setVariant] = useState<ButtonVariant>("contained");
+  const [size, setSize] = useState<ButtonSize>("medium");
   const [disabled, setDisabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showLeftIcon, setShowLeftIcon] = useState(false);
   const [showRightIcon, setShowRightIcon] = useState(false);
 
-  const isIconOnly = size === 'icon';
+  const isIconOnly = size === "icon";
   const leftIcon = !isIconOnly && showLeftIcon ? <PlusIcon /> : undefined;
-  const rightIcon = !isIconOnly && showRightIcon ? <ArrowRightIcon /> : undefined;
+  const rightIcon =
+    !isIconOnly && showRightIcon ? <ArrowRightIcon /> : undefined;
 
   const importSnippet = `import { Button } from "@blueprint/ui";`;
 
   const playgroundSnippet = useMemo(() => {
     const propParts: string[] = [];
-    if (scheme !== 'primary') propParts.push(`scheme="${scheme}"`);
-    if (variant !== 'contained') propParts.push(`variant="${variant}"`);
-    if (size !== 'medium') propParts.push(`size="${size}"`);
-    if (disabled) propParts.push('disabled');
-    if (loading) propParts.push('loading');
-    if (!isIconOnly && showLeftIcon) propParts.push('leftIcon={<PlusIcon />}');
-    if (!isIconOnly && showRightIcon) propParts.push('rightIcon={<ArrowRightIcon />}');
-    const propString = propParts.length ? ' ' + propParts.join(' ') : '';
+    if (scheme !== "primary") propParts.push(`scheme="${scheme}"`);
+    if (variant !== "contained") propParts.push(`variant="${variant}"`);
+    if (size !== "medium") propParts.push(`size="${size}"`);
+    if (disabled) propParts.push("disabled");
+    if (loading) propParts.push("loading");
+    if (!isIconOnly && showLeftIcon) propParts.push("leftIcon={<PlusIcon />}");
+    if (!isIconOnly && showRightIcon)
+      propParts.push("rightIcon={<ArrowRightIcon />}");
+    const propString = propParts.length ? " " + propParts.join(" ") : "";
     return `<Button${propString}>\n  Continue\n</Button>`;
-  }, [scheme, variant, size, disabled, loading, isIconOnly, showLeftIcon, showRightIcon]);
+  }, [
+    scheme,
+    variant,
+    size,
+    disabled,
+    loading,
+    isIconOnly,
+    showLeftIcon,
+    showRightIcon,
+  ]);
 
   return (
     <main className="min-h-screen bg-linear-to-br from-neutral-50 via-white to-neutral-100 p-4 font-sans antialiased md:p-10">
@@ -275,11 +315,13 @@ export default function ButtonDocsPage() {
             <span className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-500">
               @blueprint/ui · Component
             </span>
-            <h1 className="text-4xl font-black tracking-tight text-neutral-900 md:text-5xl">Button</h1>
+            <h1 className="text-4xl font-black tracking-tight text-neutral-900 md:text-5xl">
+              Button
+            </h1>
             <p className="max-w-2xl text-base leading-relaxed text-neutral-600">
-              A polymorphic, CVA-driven button built on the Atmos 25-interval OKLCH color
-              grid. Supports 8 color schemes across 6 visual variants and 6 sizes, with
-              built-in loading and icon slots.
+              A polymorphic, CVA-driven button built on the Atmos 25-interval
+              OKLCH color grid. Supports 8 color schemes across 6 visual
+              variants and 6 sizes, with built-in loading and icon slots.
             </p>
           </div>
           <CodeBlock title="Import" language="tsx" code={importSnippet} />
@@ -300,12 +342,13 @@ export default function ButtonDocsPage() {
                   scheme={scheme}
                   variant={variant}
                   size={size}
+                  aria-label={isIconOnly ? "Continue" : undefined}
                   disabled={disabled}
                   loading={loading}
                   leftIcon={leftIcon}
                   rightIcon={rightIcon}
                 >
-                  {isIconOnly ? <ArrowRightIcon /> : 'Continue'}
+                  {isIconOnly ? <ArrowRightIcon /> : "Continue"}
                 </Button>
               </div>
 
@@ -337,8 +380,18 @@ export default function ButtonDocsPage() {
                   />
 
                   <div className="flex flex-col justify-end gap-2.5 pb-1">
-                    <CheckboxInput label="Disabled" size="sm" value={disabled} onChange={setDisabled} />
-                    <CheckboxInput label="Loading" size="sm" value={loading} onChange={setLoading} />
+                    <CheckboxInput
+                      label="Disabled"
+                      size="sm"
+                      value={disabled}
+                      onChange={setDisabled}
+                    />
+                    <CheckboxInput
+                      label="Loading"
+                      size="sm"
+                      value={loading}
+                      onChange={setLoading}
+                    />
                     <CheckboxInput
                       label="Left icon"
                       size="sm"
@@ -356,7 +409,11 @@ export default function ButtonDocsPage() {
                   </div>
                 </div>
 
-                <CodeBlock title="Generated JSX" language="tsx" code={playgroundSnippet} />
+                <CodeBlock
+                  title="Generated JSX"
+                  language="tsx"
+                  code={playgroundSnippet}
+                />
               </div>
             </div>
           </Card>
@@ -370,7 +427,12 @@ export default function ButtonDocsPage() {
             description="Every one of the 6 variants rendered against all 8 core color tracks — use this to eyeball contrast across the 25-interval grid."
           />
           <Card>
-            <Table data={matrixData} columns={matrixColumns} idKey="variant" hasHover />
+            <Table
+              data={matrixData}
+              columns={matrixColumns}
+              idKey="variant"
+              hasHover
+            />
           </Card>
         </section>
 
@@ -385,8 +447,13 @@ export default function ButtonDocsPage() {
             <div className="flex flex-wrap items-end gap-6">
               {SIZES.map((s) => (
                 <div key={s} className="flex flex-col items-center gap-2">
-                  <Button scheme="primary" variant="contained" size={s}>
-                    {s === 'icon' ? <PlusIcon /> : 'Button'}
+                  <Button
+                    scheme="primary"
+                    variant="contained"
+                    size={s}
+                    aria-label={s === "icon" ? "Add" : undefined}
+                  >
+                    {s === "icon" ? <PlusIcon /> : "Button"}
                   </Button>
                   <span className="text-[11px] font-bold uppercase tracking-widest text-neutral-500">
                     {s}
@@ -405,7 +472,12 @@ export default function ButtonDocsPage() {
             description="Full API surface. Any remaining native <button> attributes (onClick, type, aria-*, …) are forwarded as-is."
           />
           <Card>
-            <Table data={propRows} columns={propsColumns} idKey="prop" hasHover />
+            <Table
+              data={propRows}
+              columns={propsColumns}
+              idKey="prop"
+              hasHover
+            />
           </Card>
         </section>
       </div>
