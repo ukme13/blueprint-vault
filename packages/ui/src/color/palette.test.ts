@@ -3,9 +3,11 @@ import {
   formatPaletteCss,
   generateLightnessArray,
   generatePalette,
+  generatePaletteFromPreset,
   generateStableWeights,
   normalizeTrackName,
 } from "./palette";
+import { BLUEPRINT_20_PRESET } from "./presets";
 
 describe("stable shade weights", () => {
   it("keeps the existing 15-shade token sequence", () => {
@@ -61,6 +63,31 @@ describe("lightness distribution", () => {
 });
 
 describe("palette generation", () => {
+  it("generates the Blueprint 20 preset with stable token names", () => {
+    const palette = generatePaletteFromPreset(
+      { id: "primary", name: "primary", seedHex: "#7646ab" },
+      BLUEPRINT_20_PRESET,
+    );
+
+    expect(palette.shades).toHaveLength(20);
+    expect(palette.shades.map((shade) => shade.weight)).toEqual(
+      BLUEPRINT_20_PRESET.weights,
+    );
+    expect(palette.shades[0]!.weight).toBe(25);
+    expect(palette.shades[0]!.L).toBeCloseTo(0.975);
+    expect(palette.shades.at(-1)!.weight).toBe(950);
+    expect(palette.shades.at(-1)!.L).toBeCloseTo(0.05);
+  });
+
+  it("rejects invalid preset weights", () => {
+    const track = { id: "primary", name: "primary", seedHex: "#7646ab" };
+
+    expect(() => generatePalette(track, [90, 10], [25])).toThrow("same length");
+    expect(() => generatePalette(track, [90, 10], [25, 25])).toThrow(
+      "unique 25-interval",
+    );
+  });
+
   it("keeps the source colour as one auto-docked anchor", () => {
     const lightness = generateLightnessArray(15, 96, 6, "linear");
     const palette = generatePalette(

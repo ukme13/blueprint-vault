@@ -1,121 +1,92 @@
-"use client";
-
-import { Selector } from "@astryxdesign/core/Selector";
-import { Slider } from "@astryxdesign/core/Slider";
-import type { DistributionMode } from "@blueprint/ui";
+import {
+  BLUEPRINT_20_PRESET,
+  type ColorTrack,
+  type ShadeItem,
+} from "@blueprint/ui";
+import styles from "./palette-workspace.module.css";
 
 interface PaletteControlsProps {
-  numShades: number;
-  distributionMode: DistributionMode;
-  maxLightness: number;
-  minLightness: number;
-  lightnessValues: number[];
-  onNumShadesChange: (value: number) => void;
-  onDistributionModeChange: (value: DistributionMode) => void;
-  onMaxLightnessChange: (value: number) => void;
-  onMinLightnessChange: (value: number) => void;
-  onLightnessChange: (index: number, value: number) => void;
+  selectedPalette?: ColorTrack;
+  selectedShade?: ShadeItem;
 }
 
 export function PaletteControls({
-  numShades,
-  distributionMode,
-  maxLightness,
-  minLightness,
-  lightnessValues,
-  onNumShadesChange,
-  onDistributionModeChange,
-  onMaxLightnessChange,
-  onMinLightnessChange,
-  onLightnessChange,
+  selectedPalette,
+  selectedShade,
 }: PaletteControlsProps) {
   return (
-    <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 border-t border-neutral-700 pt-4">
-        <Slider
-          label="Shade Steps"
-          value={numShades}
-          onChange={onNumShadesChange}
-          min={11}
-          max={21}
-          step={1}
-          valueDisplay="text"
-        />
+    <aside className={styles.inspector}>
+      <header className={styles.inspectorHeader}>
+        <span>Palette settings</span>
+        <strong>Blueprint 20</strong>
+      </header>
 
-        <Selector
-          label="Distribution"
-          value={distributionMode}
-          onChange={(value: string) =>
-            onDistributionModeChange(value as DistributionMode)
-          }
-          options={[
-            { value: "linear", label: "Linear" },
-            { value: "ease-in-out", label: "Ease In-Out" },
-            { value: "ease-in", label: "Ease In" },
-            { value: "ease-out", label: "Ease Out" },
-            { value: "custom", label: "Custom" },
-          ]}
-        />
+      <section className={styles.settingGroup}>
+        <h2>Shade count</h2>
+        <p className={styles.shadeCount}>
+          <strong>20</strong>
+          <span>stable tokens</span>
+        </p>
+      </section>
 
-        <Slider
-          label="Max L"
-          value={maxLightness}
-          onChange={onMaxLightnessChange}
-          min={70}
-          max={100}
-          step={1}
-          valueDisplay="text"
-          formatValue={(value: number) => `${value}%`}
-        />
+      <section className={styles.settingGroup}>
+        <h2>Colour space</h2>
+        <p className={styles.segmented}>
+          <span aria-current="true">OKLCH</span>
+          <span>sRGB output</span>
+        </p>
+      </section>
 
-        <Slider
-          label="Min L"
-          value={minLightness}
-          onChange={onMinLightnessChange}
-          min={2}
-          max={30}
-          step={1}
-          valueDisplay="text"
-          formatValue={(value: number) => `${value}%`}
-        />
-      </div>
+      <section className={styles.settingGroup}>
+        <h2>Target lightness</h2>
+        <ol className={styles.lightnessList}>
+          {BLUEPRINT_20_PRESET.lightnessValues.map((lightness, index) => (
+            <li key={BLUEPRINT_20_PRESET.weights[index]}>
+              <code>{BLUEPRINT_20_PRESET.weights[index]}</code>
+              <span>
+                <i style={{ width: `${lightness}%` }} />
+              </span>
+              <strong>{lightness}%</strong>
+            </li>
+          ))}
+        </ol>
+      </section>
 
-      {distributionMode === "custom" && lightnessValues.length > 0 && (
-        <div className="border-t border-neutral-700 pt-4">
-          <p className="text-xs font-bold text-neutral-400 mb-3">
-            Fine-tune Individual Lightness Values
+      <section className={styles.selectionPanel} aria-live="polite">
+        <h2>Selected shade</h2>
+        {selectedPalette && selectedShade ? (
+          <>
+            <p className={styles.selectionTitle}>
+              <i style={{ backgroundColor: selectedShade.hex }} />
+              <strong>
+                {selectedPalette.name} · {selectedShade.weight}
+              </strong>
+            </p>
+            <section className={styles.detailsGrid}>
+              <dl>
+                <dt>HEX</dt>
+                <dd>{selectedShade.hex}</dd>
+              </dl>
+              <dl>
+                <dt>Lightness</dt>
+                <dd>{(selectedShade.L * 100).toFixed(1)}%</dd>
+              </dl>
+              <dl>
+                <dt>Chroma</dt>
+                <dd>{selectedShade.C.toFixed(3)}</dd>
+              </dl>
+              <dl>
+                <dt>Hue</dt>
+                <dd>{selectedShade.H.toFixed(1)}°</dd>
+              </dl>
+            </section>
+          </>
+        ) : (
+          <p className={styles.selectionEmpty}>
+            Select a shade to inspect its OKLCH values.
           </p>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: `repeat(${numShades}, minmax(0, 1fr))`,
-              gap: "0.25rem",
-            }}
-          >
-            {lightnessValues.map((lightness, index) => (
-              <div key={index} className="space-y-1">
-                <Slider
-                  label={`Lightness ${index}`}
-                  isLabelHidden
-                  orientation="vertical"
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={lightness}
-                  onChange={(value: number) => onLightnessChange(index, value)}
-                  valueDisplay="none"
-                  style={{ height: 80 }}
-                />
-                <div className="text-center">
-                  <div className="text-[10px] font-mono font-bold text-neutral-300">
-                    {Math.round(lightness)}%
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </>
+        )}
+      </section>
+    </aside>
   );
 }

@@ -83,18 +83,20 @@ The source tokens are in `packages/ui/src/theme.css`.
 Primitive colour tracks use a stable 25-interval scale:
 
 ```css
+--color-primary-25: ...;
 --color-primary-50: ...;
 --color-primary-100: ...;
 --color-primary-150: ...;
-/* optional shades can use any suffix divisible by 25 */
 --color-primary-950: ...;
 ```
 
-The exact number of generated shades can change, but:
+The recommended `Blueprint 20` preset uses 20 tokens:
 
-- `50` is always the lightest boundary.
+- `25` is the lightest token at 97.5% target lightness.
+- `50` to `950` continue in steps of 50.
 - `950` is always the darkest boundary.
-- Generated suffixes must be divisible by 25.
+
+Other experimental scales may use additional suffixes divisible by 25.
 
 The standard semantic status names are:
 
@@ -170,6 +172,6 @@ needs the same component.
 
 The next structural work is:
 
-1. Redesign the palette playground around the extracted colour engine.
-2. Add shade inspection, accessibility checks, and token export workflows.
+1. Complete the new palette creation and shade-generator workspace.
+2. Add accessibility checks and more token export formats.
 3. Define the first product scope before creating `apps/ferre`.

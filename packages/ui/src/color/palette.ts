@@ -3,10 +3,12 @@ import type {
   ColorTrack,
   ColorTrackInput,
   DistributionMode,
+  PalettePreset,
   ShadeItem,
 } from "./types";
 
 const MIN_WEIGHT = 50;
+const MIN_PRESET_WEIGHT = 25;
 const MAX_WEIGHT = 950;
 const WEIGHT_INTERVAL = 25;
 const MAX_SHADE_COUNT = (MAX_WEIGHT - MIN_WEIGHT) / WEIGHT_INTERVAL + 1;
@@ -26,6 +28,29 @@ function assertShadeCount(numShades: number): void {
 function assertPercentage(value: number, label: string): void {
   if (!Number.isFinite(value) || value < 0 || value > 100) {
     throw new RangeError(`${label} must be between 0 and 100.`);
+  }
+}
+
+function assertPresetWeights(weights: number[], shadeCount: number): void {
+  if (weights.length !== shadeCount) {
+    throw new RangeError(
+      "Preset weights and lightness values must have the same length.",
+    );
+  }
+
+  if (
+    new Set(weights).size !== weights.length ||
+    weights.some(
+      (weight) =>
+        !Number.isInteger(weight) ||
+        weight < MIN_PRESET_WEIGHT ||
+        weight > MAX_WEIGHT ||
+        weight % WEIGHT_INTERVAL !== 0,
+    )
+  ) {
+    throw new RangeError(
+      "Preset weights must be unique 25-interval values from 25 to 950.",
+    );
   }
 }
 
@@ -112,11 +137,12 @@ export function generateLightnessArray(
 export function generatePalette(
   track: ColorTrackInput,
   lightnessArray: number[],
+  weights: number[] = generateStableWeights(lightnessArray.length),
 ): ColorTrack {
   assertShadeCount(lightnessArray.length);
   lightnessArray.forEach((value) => assertPercentage(value, "Lightness value"));
+  assertPresetWeights(weights, lightnessArray.length);
 
-  const weights = generateStableWeights(lightnessArray.length);
   const seedHex = normalizeHex(track.seedHex);
   const [seedLightness, seedChroma, seedHue] = rgbToOklch(...hexToRgb(seedHex));
   const seedLightnessPercent = seedLightness * 100;
@@ -176,6 +202,13 @@ export function generatePalette(
     seedHex,
     shades,
   };
+}
+
+export function generatePaletteFromPreset(
+  track: ColorTrackInput,
+  preset: PalettePreset,
+): ColorTrack {
+  return generatePalette(track, preset.lightnessValues, preset.weights);
 }
 
 export function formatPaletteCss(palettes: ColorTrack[]): string {

@@ -1,7 +1,8 @@
 # Blueprint Playground
 
-The playground is an internal workspace for OKLCH palette generation, token
-experiments, and live component previews.
+The playground is an internal workspace for creating OKLCH colour systems,
+inspecting shades, and exporting design tokens. Its recommended default is the
+20-shade `Blueprint 20` preset.
 
 Run it from the repository root:
 
