@@ -15,7 +15,7 @@ apps/
   docs/         Blueprint design-system documentation
   playground/   OKLCH palette experiments and live component previews
 packages/
-  ui/         Shared tokens, theme bridge, components, and palette prototype
+  ui/           Shared tokens, theme bridge, components, and colour engine
   eslint-config/
   typescript-config/
 ```
@@ -40,7 +40,7 @@ The Button documentation is available at `/docs/button`.
 
 Requirements:
 
-- Node.js 18 or newer
+- Node.js 20.9 or newer
 - pnpm 9
 
 Install dependencies and start all development applications:
@@ -67,13 +67,14 @@ pnpm --filter docs dev
 Run these commands before opening a pull request:
 
 ```sh
+pnpm test
 pnpm lint
 pnpm check-types
 pnpm build
 ```
 
-The repository does not yet have an automated test suite. Add focused tests
-when reusable palette logic is separated from the current UI component.
+Vitest covers the reusable colour conversion and palette-generation functions
+in `packages/ui/src/color`.
 
 ## Colour and token system
 
@@ -169,6 +170,6 @@ needs the same component.
 
 The next structural work is:
 
-1. Separate palette calculations from `PrimitiveControl`.
-2. Add unit tests for the extracted colour and palette functions.
+1. Redesign the palette playground around the extracted colour engine.
+2. Add shade inspection, accessibility checks, and token export workflows.
 3. Define the first product scope before creating `apps/ferre`.

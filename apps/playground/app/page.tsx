@@ -1,6 +1,6 @@
 "use client";
 
-import { PrimitiveControl } from "@blueprint/ui";
+import { PaletteStudio } from "../components/palette/PaletteStudio";
 
 export default function Page() {
   return (
@@ -22,7 +22,7 @@ export default function Page() {
       <div className="max-w-7xl mx-auto grid xl:grid-cols-3 gap-8 items-start">
         {/* 🛠️ LEFT PANEL: Palette Studio & Generator */}
         <div className="xl:col-span-2">
-          <PrimitiveControl />
+          <PaletteStudio />
         </div>
 
         {/* 📱 RIGHT PANEL: Live Component Preview */}
