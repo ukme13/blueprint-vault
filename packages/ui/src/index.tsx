@@ -1,2 +1,2 @@
 export * from "./button";
-export * from "./components/PrimitiveControl";
+export * from "./color";
