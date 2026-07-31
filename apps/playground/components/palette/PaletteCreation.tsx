@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { normalizeHex } from "@blueprint/ui";
+import { SelectableCard } from "@astryxdesign/core/SelectableCard";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { Button, normalizeHex } from "@blueprint/ui";
+import { ColourPicker } from "./ColourPicker";
 import styles from "./palette-workspace.module.css";
 
 type CreationMethod = "brand" | "generated";
@@ -49,78 +52,77 @@ export function PaletteCreation({ onCreate }: PaletteCreationProps) {
       </header>
 
       <form className={styles.creationCard} onSubmit={submit}>
-        <span className={styles.eyebrow}>New palette</span>
         <h1>Create your colour system</h1>
         <p className={styles.creationIntro}>
           Start with one colour. Blueprint will build 20 stable OKLCH shades and
           the main semantic tracks.
         </p>
 
-        <label className={styles.field}>
-          <span>Project name</span>
-          <input
+        <section className={styles.astryxField}>
+          <TextInput
+            label="Project name"
             value={name}
-            onChange={(event) => setName(event.target.value)}
+            onChange={setName}
             placeholder="My colour system"
           />
-        </label>
+        </section>
 
         <fieldset className={styles.methodFieldset}>
           <legend>How do you want to start?</legend>
           <section className={styles.methodGrid}>
-            <label
-              className={method === "brand" ? styles.methodSelected : undefined}
-            >
-              <input
-                checked={method === "brand"}
-                name="method"
-                type="radio"
+            <span className={styles.methodCard}>
+              <SelectableCard
+                label="Start with a brand colour"
+                isSelected={method === "brand"}
                 onChange={() => setMethod("brand")}
-              />
-              <strong>Brand colour</strong>
-              <span>Use your own main colour as the source.</span>
-            </label>
-            <label
-              className={
-                method === "generated" ? styles.methodSelected : undefined
-              }
-            >
-              <input
-                checked={method === "generated"}
-                name="method"
-                type="radio"
+              >
+                <strong>Brand colour</strong>
+                <span>Use your own main colour as the source.</span>
+              </SelectableCard>
+            </span>
+            <span className={styles.methodCard}>
+              <SelectableCard
+                label="Start with a generated set"
+                isSelected={method === "generated"}
                 onChange={() => setMethod("generated")}
-              />
-              <strong>Generated set</strong>
-              <span>Start from a ready-made Blueprint set.</span>
-            </label>
-            <label aria-disabled="true" className={styles.methodDisabled}>
-              <input disabled name="method" type="radio" />
-              <strong>
-                Import tokens <small>Soon</small>
-              </strong>
-              <span>Bring an existing token file into Blueprint.</span>
-            </label>
+              >
+                <strong>Generated set</strong>
+                <span>Start from a ready-made Blueprint set.</span>
+              </SelectableCard>
+            </span>
+            <span className={styles.methodCard}>
+              <SelectableCard
+                isDisabled
+                label="Import tokens, coming soon"
+                isSelected={false}
+                onChange={() => undefined}
+              >
+                <strong>
+                  Import tokens <small>Soon</small>
+                </strong>
+                <span>Bring an existing token file into Blueprint.</span>
+              </SelectableCard>
+            </span>
           </section>
         </fieldset>
 
         {method === "brand" && (
-          <label className={styles.field}>
+          <section className={styles.field}>
             <span>Source colour</span>
             <span className={styles.colourInput}>
-              <input
-                aria-label="Choose source colour"
-                type="color"
+              <ColourPicker
+                label="source colour"
                 value={/^#[0-9a-f]{6}$/i.test(seedHex) ? seedHex : "#7646ab"}
-                onChange={(event) => setSeedHex(event.target.value)}
+                onChange={setSeedHex}
               />
-              <input
-                aria-label="Source colour HEX value"
+              <TextInput
+                isLabelHidden
+                label="Source colour HEX value"
                 value={seedHex}
-                onChange={(event) => setSeedHex(event.target.value)}
+                onChange={setSeedHex}
               />
             </span>
-          </label>
+          </section>
         )}
 
         {error && <p className={styles.formError}>{error}</p>}
@@ -129,7 +131,9 @@ export function PaletteCreation({ onCreate }: PaletteCreationProps) {
           <p>
             Preset: <strong>Blueprint 20</strong>
           </p>
-          <button type="submit">Create palette</button>
+          <Button scheme="primary" type="submit">
+            Create palette
+          </Button>
         </footer>
       </form>
     </main>
