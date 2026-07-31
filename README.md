@@ -12,21 +12,20 @@ and documentation, not production products.
 
 ```text
 apps/
-  docs/       Blueprint design-system documentation
-  web/        OKLCH palette playground and live component previews
+  docs/         Blueprint design-system documentation
+  playground/   OKLCH palette experiments and live component previews
 packages/
   ui/         Shared tokens, theme bridge, components, and palette prototype
   eslint-config/
   typescript-config/
 ```
 
-`apps/web` is a playground. Palette generation and colour experiments belong
-there. Product-specific pages, content, layouts, and business logic should live
-inside their own application.
+`apps/playground` contains palette generation and colour experiments.
+Product-specific pages, content, layouts, and business logic should live inside
+their own application.
 
 `apps/docs` is the home for design-system guidance and component documentation.
-The Button documentation currently remains at `apps/web/app/docs/button` and
-will move to the docs application in a later change.
+The Button documentation is available at `/docs/button`.
 
 ## Technology
 
@@ -59,7 +58,7 @@ The default local addresses are:
 Run one workspace only:
 
 ```sh
-pnpm --filter web dev
+pnpm --filter playground dev
 pnpm --filter docs dev
 ```
 
@@ -115,8 +114,8 @@ defines those names in `theme.css`.
 ## Astryx integration
 
 Applications using Astryx and `@blueprint/ui` need the Astryx reset, core
-styles, base theme, and Blueprint theme. See `apps/web/app/globals.css` for the
-current import and CSS-layer order.
+styles, base theme, and Blueprint theme. See
+`apps/playground/app/globals.css` for the current import and CSS-layer order.
 
 The Blueprint theme bridge is also defined in
 `packages/ui/src/theme.css`. It maps Blueprint semantic tokens to the variables
@@ -170,8 +169,6 @@ needs the same component.
 
 The next structural work is:
 
-1. Rename `apps/web` to `apps/playground`.
-2. Move Button documentation from `apps/web` to `apps/docs`.
-3. Separate palette calculations from `PrimitiveControl`.
-4. Add unit tests for the extracted colour and palette functions.
-5. Define the first product scope before creating `apps/ferre`.
+1. Separate palette calculations from `PrimitiveControl`.
+2. Add unit tests for the extracted colour and palette functions.
+3. Define the first product scope before creating `apps/ferre`.

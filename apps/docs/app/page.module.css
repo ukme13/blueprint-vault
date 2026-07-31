@@ -63,26 +63,69 @@
 }
 
 .card,
+.componentCard,
 .notice {
   border: 1px solid var(--color-border-emphasized-base);
   border-radius: 1rem;
   background: var(--color-bg-surface);
 }
 
-.card {
+.card,
+.componentCard {
   padding: 1.5rem;
 }
 
-.card h3 {
+.card h3,
+.componentCard h3 {
   margin: 0;
   font-size: 1rem;
 }
 
-.card p {
+.card p,
+.componentCard p {
   margin: 0.75rem 0 0;
   color: var(--color-fg-secondary);
   font-size: 0.875rem;
   line-height: 1.6;
+}
+
+.componentCard {
+  display: block;
+  min-height: 100%;
+  transition:
+    border-color 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.componentCard:hover,
+.componentCard:focus-visible {
+  border-color: var(--color-accent-base);
+  box-shadow: 0 0.75rem 2rem
+    color-mix(in oklch, var(--color-primary-950) 10%, transparent);
+  outline: none;
+  transform: translateY(-0.125rem);
+}
+
+.status {
+  display: inline-flex;
+  margin-bottom: 1rem;
+  border-radius: 999px;
+  padding: 0.25rem 0.5rem;
+  color: var(--color-text-success);
+  background: var(--color-background-success);
+  font-size: 0.6875rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cardAction {
+  display: inline-block;
+  margin-top: 1.25rem;
+  color: var(--color-fg-accent);
+  font-size: 0.8125rem;
+  font-weight: 700;
 }
 
 .notice {
