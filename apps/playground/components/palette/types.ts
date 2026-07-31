@@ -3,4 +3,6 @@ export interface ActiveShade {
   weight: number;
 }
 
+export type LightnessPattern = "linear" | "ease-in-out" | "custom";
+
 export type TrackProperty = "name" | "seedHex";

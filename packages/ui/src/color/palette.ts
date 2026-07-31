@@ -12,6 +12,7 @@ const MIN_PRESET_WEIGHT = 25;
 const MAX_WEIGHT = 950;
 const WEIGHT_INTERVAL = 25;
 const MAX_SHADE_COUNT = (MAX_WEIGHT - MIN_WEIGHT) / WEIGHT_INTERVAL + 1;
+export const MIN_LIGHTNESS_GAP = 0.5;
 
 function assertShadeCount(numShades: number): void {
   if (
@@ -132,6 +133,55 @@ export function generateLightnessArray(
     const easedProgress = applyEasing(progress, mode);
     return maxLightness - (maxLightness - minLightness) * easedProgress;
   });
+}
+
+export function isValidLightnessSequence(
+  values: number[],
+  expectedLength?: number,
+): boolean {
+  if (expectedLength !== undefined && values.length !== expectedLength) {
+    return false;
+  }
+
+  return values.every(
+    (value, index) =>
+      Number.isFinite(value) &&
+      value >= 0 &&
+      value <= 100 &&
+      (index === 0 || value < values[index - 1]!),
+  );
+}
+
+export function clampLightnessValue(
+  values: number[],
+  index: number,
+  nextValue: number,
+  minimumGap = MIN_LIGHTNESS_GAP,
+): number {
+  if (!isValidLightnessSequence(values)) {
+    throw new RangeError(
+      "Lightness values must be a strictly descending sequence.",
+    );
+  }
+  if (!Number.isInteger(index) || index < 0 || index >= values.length) {
+    throw new RangeError("Lightness index is outside the sequence.");
+  }
+  if (!Number.isFinite(nextValue)) {
+    throw new TypeError("Lightness value must be a finite number.");
+  }
+  if (!Number.isFinite(minimumGap) || minimumGap <= 0) {
+    throw new RangeError("Minimum lightness gap must be greater than zero.");
+  }
+
+  const upperBound = index === 0 ? 100 : values[index - 1]! - minimumGap;
+  const lowerBound =
+    index === values.length - 1 ? 0 : values[index + 1]! + minimumGap;
+
+  if (lowerBound > upperBound) {
+    throw new RangeError("Neighbouring shades do not have enough space.");
+  }
+
+  return Math.min(upperBound, Math.max(lowerBound, nextValue));
 }
 
 export function generatePalette(

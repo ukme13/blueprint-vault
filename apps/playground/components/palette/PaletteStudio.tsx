@@ -6,8 +6,11 @@ import { Tab, TabList } from "@astryxdesign/core/TabList";
 import {
   BLUEPRINT_20_PRESET,
   Button,
+  clampLightnessValue,
   formatPaletteCss,
-  generatePaletteFromPreset,
+  generateLightnessArray,
+  generatePalette,
+  isValidLightnessSequence,
   normalizeHex,
   normalizeTrackName,
   type ColorTrackInput,
@@ -16,7 +19,7 @@ import { PaletteCreation } from "./PaletteCreation";
 import { PaletteControls } from "./PaletteControls";
 import { PaletteMatrix } from "./PaletteMatrix";
 import styles from "./palette-workspace.module.css";
-import type { ActiveShade, TrackProperty } from "./types";
+import type { ActiveShade, LightnessPattern, TrackProperty } from "./types";
 
 const SEMANTIC_TRACKS: ColorTrackInput[] = [
   { id: "primary", name: "primary", seedHex: "#7646ab" },
@@ -32,6 +35,25 @@ const PROJECT_STORAGE_KEY = "blueprint.palette-project.v1";
 interface PaletteProject {
   name: string;
   tracks: ColorTrackInput[];
+  lightnessPattern: LightnessPattern;
+  lightnessValues: number[];
+}
+
+function isLightnessPattern(value: unknown): value is LightnessPattern {
+  return value === "linear" || value === "ease-in-out" || value === "custom";
+}
+
+function createPatternValues(pattern: LightnessPattern): number[] {
+  if (pattern === "custom") {
+    return [...BLUEPRINT_20_PRESET.lightnessValues];
+  }
+
+  return generateLightnessArray(
+    BLUEPRINT_20_PRESET.weights.length,
+    BLUEPRINT_20_PRESET.lightnessValues[0]!,
+    BLUEPRINT_20_PRESET.lightnessValues.at(-1)!,
+    pattern,
+  );
 }
 
 function readStoredProject(): PaletteProject | null {
@@ -78,7 +100,38 @@ function readStoredProject(): PaletteProject | null {
       }
     });
 
-    return tracks.length > 0 ? { name: parsed.name, tracks } : null;
+    if (tracks.length === 0) return null;
+
+    let lightnessPattern: LightnessPattern = "custom";
+    let lightnessValues = createPatternValues("custom");
+
+    if (
+      "lightnessValues" in parsed &&
+      Array.isArray(parsed.lightnessValues) &&
+      parsed.lightnessValues.every(
+        (value): value is number => typeof value === "number",
+      ) &&
+      isValidLightnessSequence(
+        parsed.lightnessValues,
+        BLUEPRINT_20_PRESET.weights.length,
+      )
+    ) {
+      lightnessValues = [...parsed.lightnessValues];
+
+      if (
+        "lightnessPattern" in parsed &&
+        isLightnessPattern(parsed.lightnessPattern)
+      ) {
+        lightnessPattern = parsed.lightnessPattern;
+      }
+    }
+
+    return {
+      name: parsed.name,
+      tracks,
+      lightnessPattern,
+      lightnessValues,
+    };
   } catch {
     return null;
   }
@@ -114,7 +167,11 @@ export function PaletteStudio() {
   const palettes = useMemo(
     () =>
       project?.tracks.map((track) =>
-        generatePaletteFromPreset(track, BLUEPRINT_20_PRESET),
+        generatePalette(
+          track,
+          project.lightnessValues,
+          BLUEPRINT_20_PRESET.weights,
+        ),
       ) ?? [],
     [project],
   );
@@ -143,6 +200,8 @@ export function PaletteStudio() {
           setProject({
             name,
             tracks: createDefaultTracks(primarySeed),
+            lightnessPattern: "custom",
+            lightnessValues: createPatternValues("custom"),
           });
         }}
       />
@@ -207,10 +266,48 @@ export function PaletteStudio() {
     });
   };
 
-  const resetProject = () => {
+  const changeLightnessPattern = (pattern: LightnessPattern) => {
     setProject((current) =>
       current
-        ? { ...current, tracks: createDefaultTracks("#7646ab") }
+        ? {
+            ...current,
+            lightnessPattern: pattern,
+            lightnessValues:
+              pattern === "custom"
+                ? current.lightnessValues
+                : createPatternValues(pattern),
+          }
+        : current,
+    );
+  };
+
+  const updateLightness = (index: number, value: number) => {
+    setProject((current) => {
+      if (!current) return current;
+
+      const lightnessValues = [...current.lightnessValues];
+      lightnessValues[index] = clampLightnessValue(
+        current.lightnessValues,
+        index,
+        value,
+      );
+
+      return {
+        ...current,
+        lightnessPattern: "custom",
+        lightnessValues,
+      };
+    });
+  };
+
+  const resetLightness = () => {
+    setProject((current) =>
+      current
+        ? {
+            ...current,
+            lightnessPattern: "custom",
+            lightnessValues: createPatternValues("custom"),
+          }
         : current,
     );
     setActiveShade(null);
@@ -286,7 +383,7 @@ export function PaletteStudio() {
           scheme="neutral"
           size="xs"
           variant="text"
-          onClick={resetProject}
+          onClick={resetLightness}
         >
           Reset preset
         </Button>
@@ -317,8 +414,13 @@ export function PaletteStudio() {
         </section>
 
         <PaletteControls
+          lightnessPattern={project.lightnessPattern}
+          lightnessValues={project.lightnessValues}
           selectedPalette={selectedPalette}
           selectedShade={selectedShade}
+          onLightnessChange={updateLightness}
+          onPatternChange={changeLightnessPattern}
+          onResetLightness={resetLightness}
         />
       </section>
     </main>
