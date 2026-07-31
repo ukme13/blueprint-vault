@@ -8,6 +8,8 @@ interface PaletteMatrixProps {
   activeShade: ActiveShade | null;
   onActiveShadeChange: (selection: ActiveShade | null) => void;
   onTrackChange: (id: string, property: TrackProperty, value: string) => void;
+  onTrackMove: (id: string, direction: -1 | 1) => void;
+  onTrackRemove: (id: string) => void;
 }
 
 export function PaletteMatrix({
@@ -15,6 +17,8 @@ export function PaletteMatrix({
   activeShade,
   onActiveShadeChange,
   onTrackChange,
+  onTrackMove,
+  onTrackRemove,
 }: PaletteMatrixProps) {
   return (
     <section className={styles.matrixScroller}>
@@ -34,6 +38,8 @@ export function PaletteMatrix({
               activeShade={activeShade}
               onActiveShadeChange={onActiveShadeChange}
               onTrackChange={onTrackChange}
+              onTrackMove={onTrackMove}
+              onTrackRemove={onTrackRemove}
             />
           ))}
         </section>

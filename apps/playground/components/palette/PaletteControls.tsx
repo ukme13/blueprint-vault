@@ -1,3 +1,4 @@
+import { Badge } from "@astryxdesign/core/Badge";
 import {
   BLUEPRINT_20_PRESET,
   type ColorTrack,
@@ -18,7 +19,7 @@ export function PaletteControls({
     <aside className={styles.inspector}>
       <header className={styles.inspectorHeader}>
         <span>Palette settings</span>
-        <strong>Blueprint 20</strong>
+        <Badge label="Blueprint 20" variant="purple" />
       </header>
 
       <section className={styles.settingGroup}>
@@ -31,8 +32,8 @@ export function PaletteControls({
 
       <section className={styles.settingGroup}>
         <h2>Colour space</h2>
-        <p className={styles.segmented}>
-          <span aria-current="true">OKLCH</span>
+        <p className={styles.colourSpaceStatus}>
+          <Badge label="OKLCH" variant="purple" />
           <span>sRGB output</span>
         </p>
       </section>
