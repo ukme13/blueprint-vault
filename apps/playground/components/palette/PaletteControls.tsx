@@ -1,27 +1,22 @@
 import { Badge } from "@astryxdesign/core/Badge";
+import { NumberInput } from "@astryxdesign/core/NumberInput";
 import {
   SegmentedControl,
   SegmentedControlItem,
 } from "@astryxdesign/core/SegmentedControl";
 import { Slider } from "@astryxdesign/core/Slider";
-import {
-  BLUEPRINT_20_PRESET,
-  Button,
-  MIN_LIGHTNESS_GAP,
-  type ColorTrack,
-  type ShadeItem,
-} from "@blueprint/ui";
+import { Button, MAX_SHADE_COUNT, MIN_LIGHTNESS_GAP } from "@blueprint/ui";
 import styles from "./palette-workspace.module.css";
 import type { LightnessPattern } from "./types";
 
 interface PaletteControlsProps {
   lightnessPattern: LightnessPattern;
   lightnessValues: number[];
-  selectedPalette?: ColorTrack;
-  selectedShade?: ShadeItem;
+  weights: number[];
   onLightnessChange: (index: number, value: number) => void;
   onPatternChange: (pattern: LightnessPattern) => void;
   onResetLightness: () => void;
+  onShadeCountChange: (shadeCount: number) => void;
 }
 
 const PATTERN_LABELS: Record<LightnessPattern, string> = {
@@ -30,19 +25,17 @@ const PATTERN_LABELS: Record<LightnessPattern, string> = {
   custom: "Custom",
 };
 
-function formatLightness(value: number): string {
-  return `${Number.isInteger(value) ? value : value.toFixed(1)}%`;
-}
-
 export function PaletteControls({
   lightnessPattern,
   lightnessValues,
-  selectedPalette,
-  selectedShade,
+  weights,
   onLightnessChange,
   onPatternChange,
   onResetLightness,
+  onShadeCountChange,
 }: PaletteControlsProps) {
+  const shadeCount = lightnessValues.length;
+
   return (
     <aside className={styles.inspector}>
       <header className={styles.inspectorHeader}>
@@ -52,10 +45,40 @@ export function PaletteControls({
 
       <section className={styles.settingGroup}>
         <h2>Shade count</h2>
-        <p className={styles.shadeCount}>
-          <strong>20</strong>
-          <span>stable tokens</span>
-        </p>
+        <section className={styles.shadeCountControl}>
+          <Button
+            aria-label="Remove one shade"
+            disabled={shadeCount <= 2}
+            scheme="neutral"
+            size="small"
+            variant="outlined"
+            onClick={() => onShadeCountChange(shadeCount - 1)}
+          >
+            −
+          </Button>
+          <NumberInput
+            isIntegerOnly
+            isLabelHidden
+            label="Shade count"
+            max={MAX_SHADE_COUNT}
+            min={2}
+            size="md"
+            value={shadeCount}
+            width={76}
+            onChange={onShadeCountChange}
+          />
+          <Button
+            aria-label="Add one shade"
+            disabled={shadeCount >= MAX_SHADE_COUNT}
+            scheme="neutral"
+            size="small"
+            variant="outlined"
+            onClick={() => onShadeCountChange(shadeCount + 1)}
+          >
+            +
+          </Button>
+          <span>2–{MAX_SHADE_COUNT} stable tokens</span>
+        </section>
       </section>
 
       <section className={styles.settingGroup}>
@@ -97,17 +120,31 @@ export function PaletteControls({
         </span>
 
         <p className={styles.lightnessHint}>
-          Moving a slider switches the pattern to Custom.
+          Every bar uses the full 0–100% scale. Moving a slider switches the
+          pattern to Custom.
         </p>
 
         <ol className={styles.lightnessList}>
           {lightnessValues.map((lightness, index) => (
-            <li key={BLUEPRINT_20_PRESET.weights[index]}>
-              <code>{BLUEPRINT_20_PRESET.weights[index]}</code>
+            <li key={weights[index]}>
+              <code>{weights[index]}</code>
               <span className={styles.lightnessSlider}>
                 <Slider
                   isLabelHidden
-                  label={`${BLUEPRINT_20_PRESET.weights[index]} target lightness`}
+                  label={`${weights[index]} target lightness`}
+                  max={100}
+                  min={0}
+                  step={MIN_LIGHTNESS_GAP}
+                  value={lightness}
+                  valueDisplay="none"
+                  width="100%"
+                  onChange={(value: number) => onLightnessChange(index, value)}
+                />
+              </span>
+              <span className={styles.lightnessInput}>
+                <NumberInput
+                  isLabelHidden
+                  label={`${weights[index]} lightness percent`}
                   max={
                     index === 0
                       ? 100
@@ -118,53 +155,17 @@ export function PaletteControls({
                       ? 0
                       : lightnessValues[index + 1]! + MIN_LIGHTNESS_GAP
                   }
+                  size="sm"
                   step={MIN_LIGHTNESS_GAP}
-                  value={lightness}
-                  valueDisplay="none"
+                  units="%"
+                  value={Number(lightness.toFixed(1))}
                   width="100%"
-                  onChange={(value: number) => onLightnessChange(index, value)}
+                  onChange={(value) => onLightnessChange(index, value)}
                 />
               </span>
-              <strong>{formatLightness(lightness)}</strong>
             </li>
           ))}
         </ol>
-      </section>
-
-      <section className={styles.selectionPanel} aria-live="polite">
-        <h2>Selected shade</h2>
-        {selectedPalette && selectedShade ? (
-          <>
-            <p className={styles.selectionTitle}>
-              <i style={{ backgroundColor: selectedShade.hex }} />
-              <strong>
-                {selectedPalette.name} · {selectedShade.weight}
-              </strong>
-            </p>
-            <section className={styles.detailsGrid}>
-              <dl>
-                <dt>HEX</dt>
-                <dd>{selectedShade.hex}</dd>
-              </dl>
-              <dl>
-                <dt>Lightness</dt>
-                <dd>{(selectedShade.L * 100).toFixed(1)}%</dd>
-              </dl>
-              <dl>
-                <dt>Chroma</dt>
-                <dd>{selectedShade.C.toFixed(3)}</dd>
-              </dl>
-              <dl>
-                <dt>Hue</dt>
-                <dd>{selectedShade.H.toFixed(1)}°</dd>
-              </dl>
-            </section>
-          </>
-        ) : (
-          <p className={styles.selectionEmpty}>
-            Select a shade to inspect its OKLCH values.
-          </p>
-        )}
       </section>
     </aside>
   );

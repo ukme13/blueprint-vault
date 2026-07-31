@@ -8,6 +8,7 @@ import {
   generateStableWeights,
   isValidLightnessSequence,
   normalizeTrackName,
+  resizeLightnessArray,
 } from "./palette";
 import { BLUEPRINT_20_PRESET } from "./presets";
 
@@ -77,6 +78,14 @@ describe("lightness distribution", () => {
     expect(clampLightnessValue(values, 2, 20)).toBe(30.5);
     expect(clampLightnessValue(values, 0, 101)).toBe(100);
     expect(clampLightnessValue(values, 4, -1)).toBe(0);
+  });
+
+  it("resizes custom lightness values without changing their boundaries", () => {
+    const original = [90, 50, 10];
+
+    expect(resizeLightnessArray([90, 50, 10], 5)).toEqual([90, 70, 50, 30, 10]);
+    expect(resizeLightnessArray([90, 70, 50, 30, 10], 3)).toEqual([90, 50, 10]);
+    expect(resizeLightnessArray(original, 3)).not.toBe(original);
   });
 });
 

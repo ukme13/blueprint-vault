@@ -1,10 +1,12 @@
-import { BLUEPRINT_20_PRESET, type ColorTrack } from "@blueprint/ui";
+import type { CSSProperties } from "react";
+import type { ColorTrack } from "@blueprint/ui";
 import { PaletteRow } from "./PaletteRow";
 import styles from "./palette-workspace.module.css";
 import type { ActiveShade, TrackProperty } from "./types";
 
 interface PaletteMatrixProps {
   palettes: ColorTrack[];
+  weights: number[];
   activeShade: ActiveShade | null;
   onActiveShadeChange: (selection: ActiveShade | null) => void;
   onTrackChange: (id: string, property: TrackProperty, value: string) => void;
@@ -14,6 +16,7 @@ interface PaletteMatrixProps {
 
 export function PaletteMatrix({
   palettes,
+  weights,
   activeShade,
   onActiveShadeChange,
   onTrackChange,
@@ -22,10 +25,18 @@ export function PaletteMatrix({
 }: PaletteMatrixProps) {
   return (
     <section className={styles.matrixScroller}>
-      <section className={styles.matrix}>
+      <section
+        className={styles.matrix}
+        style={
+          {
+            "--shade-count": weights.length,
+            "--matrix-min-width": `${190 + weights.length * 56}px`,
+          } as CSSProperties
+        }
+      >
         <header className={styles.weightHeader}>
           <span>Colour</span>
-          {BLUEPRINT_20_PRESET.weights.map((weight) => (
+          {weights.map((weight) => (
             <code key={weight}>{weight}</code>
           ))}
         </header>
