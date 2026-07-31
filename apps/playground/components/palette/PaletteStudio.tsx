@@ -1,23 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Badge } from "@astryxdesign/core/Badge";
+import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import {
   BLUEPRINT_20_PRESET,
   Button,
+  MAX_SHADE_COUNT,
   clampLightnessValue,
   formatPaletteCss,
   generateLightnessArray,
   generatePalette,
+  generateStableWeights,
   isValidLightnessSequence,
   normalizeHex,
   normalizeTrackName,
+  resizeLightnessArray,
   type ColorTrackInput,
 } from "@blueprint/ui";
 import { PaletteCreation } from "./PaletteCreation";
 import { PaletteControls } from "./PaletteControls";
 import { PaletteMatrix } from "./PaletteMatrix";
+import { PaletteOverview } from "./PaletteOverview";
+import { PalettePreview } from "./PalettePreview";
 import styles from "./palette-workspace.module.css";
 import type { ActiveShade, LightnessPattern, TrackProperty } from "./types";
 
@@ -31,6 +37,9 @@ const SEMANTIC_TRACKS: ColorTrackInput[] = [
 ];
 
 const PROJECT_STORAGE_KEY = "blueprint.palette-project.v1";
+const MIN_SHADE_COUNT = 2;
+
+type PlaygroundSection = "overview" | "shade-generator" | "preview";
 
 interface PaletteProject {
   name: string;
@@ -43,15 +52,23 @@ function isLightnessPattern(value: unknown): value is LightnessPattern {
   return value === "linear" || value === "ease-in-out" || value === "custom";
 }
 
-function createPatternValues(pattern: LightnessPattern): number[] {
-  if (pattern === "custom") {
+function createPatternValues(
+  pattern: LightnessPattern,
+  shadeCount = BLUEPRINT_20_PRESET.weights.length,
+  maxLightness = BLUEPRINT_20_PRESET.lightnessValues[0]!,
+  minLightness = BLUEPRINT_20_PRESET.lightnessValues.at(-1)!,
+): number[] {
+  if (
+    pattern === "custom" &&
+    shadeCount === BLUEPRINT_20_PRESET.weights.length
+  ) {
     return [...BLUEPRINT_20_PRESET.lightnessValues];
   }
 
   return generateLightnessArray(
-    BLUEPRINT_20_PRESET.weights.length,
-    BLUEPRINT_20_PRESET.lightnessValues[0]!,
-    BLUEPRINT_20_PRESET.lightnessValues.at(-1)!,
+    shadeCount,
+    maxLightness,
+    minLightness,
     pattern,
   );
 }
@@ -111,10 +128,9 @@ function readStoredProject(): PaletteProject | null {
       parsed.lightnessValues.every(
         (value): value is number => typeof value === "number",
       ) &&
-      isValidLightnessSequence(
-        parsed.lightnessValues,
-        BLUEPRINT_20_PRESET.weights.length,
-      )
+      parsed.lightnessValues.length >= MIN_SHADE_COUNT &&
+      parsed.lightnessValues.length <= MAX_SHADE_COUNT &&
+      isValidLightnessSequence(parsed.lightnessValues)
     ) {
       lightnessValues = [...parsed.lightnessValues];
 
@@ -148,6 +164,14 @@ export function PaletteStudio() {
   const [hasLoadedProject, setHasLoadedProject] = useState(false);
   const [activeShade, setActiveShade] = useState<ActiveShade | null>(null);
   const [copyStatus, setCopyStatus] = useState("Export CSS");
+  const [activeSection, setActiveSection] =
+    useState<PlaygroundSection>("shade-generator");
+  const settingsPanel = useResizable({
+    autoSaveId: "blueprint-palette-settings",
+    defaultSize: 350,
+    minSizePx: 300,
+    maxSizePx: 560,
+  });
 
   useEffect(() => {
     setProject(readStoredProject());
@@ -164,16 +188,20 @@ export function PaletteStudio() {
     }
   }, [hasLoadedProject, project]);
 
+  const weights = useMemo(() => {
+    const shadeCount = project?.lightnessValues.length ?? 0;
+    if (shadeCount === 0) return [];
+    return shadeCount === BLUEPRINT_20_PRESET.weights.length
+      ? [...BLUEPRINT_20_PRESET.weights]
+      : generateStableWeights(shadeCount);
+  }, [project?.lightnessValues.length]);
+
   const palettes = useMemo(
     () =>
       project?.tracks.map((track) =>
-        generatePalette(
-          track,
-          project.lightnessValues,
-          BLUEPRINT_20_PRESET.weights,
-        ),
+        generatePalette(track, project.lightnessValues, weights),
       ) ?? [],
-    [project],
+    [project, weights],
   );
 
   useEffect(() => {
@@ -207,13 +235,6 @@ export function PaletteStudio() {
       />
     );
   }
-
-  const selectedPalette = palettes.find(
-    (palette) => palette.id === activeShade?.trackId,
-  );
-  const selectedShade = selectedPalette?.shades.find(
-    (shade) => shade.weight === activeShade?.weight,
-  );
 
   const updateTrack = (id: string, property: TrackProperty, value: string) => {
     setProject((current) => {
@@ -275,10 +296,46 @@ export function PaletteStudio() {
             lightnessValues:
               pattern === "custom"
                 ? current.lightnessValues
-                : createPatternValues(pattern),
+                : createPatternValues(
+                    pattern,
+                    current.lightnessValues.length,
+                    current.lightnessValues[0],
+                    current.lightnessValues.at(-1),
+                  ),
           }
         : current,
     );
+  };
+
+  const changeShadeCount = (nextShadeCount: number) => {
+    const shadeCount = Math.min(
+      MAX_SHADE_COUNT,
+      Math.max(MIN_SHADE_COUNT, Math.round(nextShadeCount)),
+    );
+
+    setProject((current) => {
+      if (!current || current.lightnessValues.length === shadeCount) {
+        return current;
+      }
+
+      const maxLightness = current.lightnessValues[0]!;
+      const minLightness = current.lightnessValues.at(-1)!;
+      const lightnessValues =
+        current.lightnessPattern === "custom"
+          ? resizeLightnessArray(current.lightnessValues, shadeCount)
+          : createPatternValues(
+              current.lightnessPattern,
+              shadeCount,
+              maxLightness,
+              minLightness,
+            );
+
+      return {
+        ...current,
+        lightnessValues,
+      };
+    });
+    setActiveShade(null);
   };
 
   const updateLightness = (index: number, value: number) => {
@@ -331,7 +388,11 @@ export function PaletteStudio() {
           <strong>{project.name}</strong>
         </p>
         <nav aria-label="Playground sections" className={styles.navigation}>
-          <TabList size="sm" value="shade-generator" onChange={() => undefined}>
+          <TabList
+            size="sm"
+            value={activeSection}
+            onChange={(value) => setActiveSection(value as PlaygroundSection)}
+          >
             <Tab label="Overview" value="overview" />
             <Tab label="Shade generator" value="shade-generator" />
             <Tab label="Preview" value="preview" />
@@ -376,7 +437,15 @@ export function PaletteStudio() {
           Add colour
         </Button>
         <span className={styles.toolbarDivider} />
-        <Badge label="Blueprint 20" variant="purple" />
+        <Badge
+          label={
+            project.lightnessValues.length ===
+            BLUEPRINT_20_PRESET.weights.length
+              ? "Blueprint 20"
+              : `${project.lightnessValues.length} shades`
+          }
+          variant="purple"
+        />
         <Badge label="OKLCH" variant="neutral" />
         <Button
           className={styles.resetButton}
@@ -401,28 +470,82 @@ export function PaletteStudio() {
         </Button>
       </section>
 
-      <section className={styles.editor}>
-        <section aria-label="Generated colour shades" className={styles.canvas}>
-          <PaletteMatrix
-            palettes={palettes}
-            activeShade={activeShade}
-            onActiveShadeChange={setActiveShade}
-            onTrackChange={updateTrack}
-            onTrackMove={moveTrack}
-            onTrackRemove={removeTrack}
+      {activeSection === "overview" && (
+        <PaletteOverview
+          projectName={project.name}
+          palettes={palettes}
+          lightnessPattern={project.lightnessPattern}
+          onSourceColourChange={(id, value) =>
+            updateTrack(id, "seedHex", value)
+          }
+        />
+      )}
+
+      {activeSection === "preview" && <PalettePreview palettes={palettes} />}
+
+      {activeSection === "shade-generator" && (
+        <section
+          className={styles.editor}
+          style={
+            {
+              "--inspector-width": `${settingsPanel.size}px`,
+            } as CSSProperties
+          }
+        >
+          <section
+            aria-label="Generated colour shades"
+            className={styles.canvas}
+          >
+            <PaletteMatrix
+              palettes={palettes}
+              weights={weights}
+              activeShade={activeShade}
+              onActiveShadeChange={setActiveShade}
+              onTrackChange={updateTrack}
+              onTrackMove={moveTrack}
+              onTrackRemove={removeTrack}
+            />
+          </section>
+
+          <ResizeHandle
+            className={styles.resizeHandle}
+            direction="horizontal"
+            hasDivider
+            isReversed
+            label="Resize palette settings"
+            pillPlacement="center"
+            resizable={settingsPanel.props}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowLeft") {
+                event.preventDefault();
+                settingsPanel.resize(settingsPanel.size + 10);
+              }
+              if (event.key === "ArrowRight") {
+                event.preventDefault();
+                settingsPanel.resize(settingsPanel.size - 10);
+              }
+              if (event.key === "Home") {
+                event.preventDefault();
+                settingsPanel.resize(300);
+              }
+              if (event.key === "End") {
+                event.preventDefault();
+                settingsPanel.resize(560);
+              }
+            }}
+          />
+
+          <PaletteControls
+            lightnessPattern={project.lightnessPattern}
+            lightnessValues={project.lightnessValues}
+            weights={weights}
+            onLightnessChange={updateLightness}
+            onPatternChange={changeLightnessPattern}
+            onResetLightness={resetLightness}
+            onShadeCountChange={changeShadeCount}
           />
         </section>
-
-        <PaletteControls
-          lightnessPattern={project.lightnessPattern}
-          lightnessValues={project.lightnessValues}
-          selectedPalette={selectedPalette}
-          selectedShade={selectedShade}
-          onLightnessChange={updateLightness}
-          onPatternChange={changeLightnessPattern}
-          onResetLightness={resetLightness}
-        />
-      </section>
+      )}
     </main>
   );
 }

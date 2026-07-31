@@ -11,7 +11,7 @@ const MIN_WEIGHT = 50;
 const MIN_PRESET_WEIGHT = 25;
 const MAX_WEIGHT = 950;
 const WEIGHT_INTERVAL = 25;
-const MAX_SHADE_COUNT = (MAX_WEIGHT - MIN_WEIGHT) / WEIGHT_INTERVAL + 1;
+export const MAX_SHADE_COUNT = (MAX_WEIGHT - MIN_WEIGHT) / WEIGHT_INTERVAL + 1;
 export const MIN_LIGHTNESS_GAP = 0.5;
 
 function assertShadeCount(numShades: number): void {
@@ -132,6 +132,38 @@ export function generateLightnessArray(
     const progress = numShades === 1 ? 0 : index / (numShades - 1);
     const easedProgress = applyEasing(progress, mode);
     return maxLightness - (maxLightness - minLightness) * easedProgress;
+  });
+}
+
+export function resizeLightnessArray(
+  values: number[],
+  nextShadeCount: number,
+): number[] {
+  if (!isValidLightnessSequence(values)) {
+    throw new RangeError(
+      "Lightness values must be a strictly descending sequence.",
+    );
+  }
+
+  assertShadeCount(nextShadeCount);
+
+  if (nextShadeCount === values.length) {
+    return [...values];
+  }
+
+  if (nextShadeCount === 1) {
+    return [values[0]!];
+  }
+
+  return Array.from({ length: nextShadeCount }, (_, index) => {
+    const sourcePosition = (index / (nextShadeCount - 1)) * (values.length - 1);
+    const lowerIndex = Math.floor(sourcePosition);
+    const upperIndex = Math.ceil(sourcePosition);
+    const progress = sourcePosition - lowerIndex;
+    const lowerValue = values[lowerIndex]!;
+    const upperValue = values[upperIndex]!;
+
+    return lowerValue + (upperValue - lowerValue) * progress;
   });
 }
 
