@@ -12,6 +12,8 @@ interface PaletteMatrixProps {
   wcagComparisonHex: string;
   wcagComparisonLabel: "white" | "black" | "custom";
   onActiveShadeChange: (selection: ActiveShade | null) => void;
+  onAnchorChange: (trackId: string, weight: number, hex: string | null) => void;
+  onManualChange: (trackId: string, weight: number, hex: string | null) => void;
   onTrackChange: (
     id: string,
     property: "name" | "seedHex",
@@ -34,6 +36,8 @@ export function PaletteMatrix({
   wcagComparisonHex,
   wcagComparisonLabel,
   onActiveShadeChange,
+  onAnchorChange,
+  onManualChange,
   onTrackChange,
   onTrackOpen,
   onTrackMove,
@@ -72,6 +76,8 @@ export function PaletteMatrix({
               wcagComparisonHex={wcagComparisonHex}
               wcagComparisonLabel={wcagComparisonLabel}
               onActiveShadeChange={onActiveShadeChange}
+              onAnchorChange={onAnchorChange}
+              onManualChange={onManualChange}
               onTrackChange={onTrackChange}
               onTrackOpen={onTrackOpen}
               onTrackMove={onTrackMove}

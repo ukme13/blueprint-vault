@@ -22,6 +22,8 @@ export function useCopyFeedback(resetDelay = 1600) {
       window.clearTimeout(resetTimer.current);
     }
 
+    let didCopy = false;
+
     try {
       if (!navigator.clipboard) {
         throw new Error("Clipboard access is unavailable.");
@@ -29,6 +31,7 @@ export function useCopyFeedback(resetDelay = 1600) {
 
       await navigator.clipboard.writeText(value);
       setStatus("copied");
+      didCopy = true;
     } catch {
       setStatus("error");
     }
@@ -37,6 +40,8 @@ export function useCopyFeedback(resetDelay = 1600) {
       setStatus("idle");
       resetTimer.current = null;
     }, resetDelay);
+
+    return didCopy;
   };
 
   return { copyText, status };

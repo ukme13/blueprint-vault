@@ -5,38 +5,48 @@ import { AlertDialog } from "@astryxdesign/core/AlertDialog";
 import { Dialog } from "@astryxdesign/core/Dialog";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import {
+  assessTrackTransitions,
   Button,
+  COLOUR_FORMAT_LABELS,
+  formatColour,
   generatePalette,
-  hexToRgb,
   normalizeHex,
-  rgbToOklch,
   type ColorTrack,
 } from "@blueprint/ui";
 import { ColourPicker } from "./ColourPicker";
+import { useColourFormat } from "./ColourFormatContext";
 import styles from "./palette-workspace.module.css";
 
 interface TrackDetailDialogProps {
   palette: ColorTrack | null;
   canDelete: boolean;
   isOpen: boolean;
+  lightnessValues: number[];
   onDelete: (id: string) => void;
   onDuplicate: (id: string, name: string, seedHex: string) => void;
   onOpenChange: (isOpen: boolean) => void;
+  onResetAdjustments: (id: string) => void;
   onSave: (id: string, name: string, seedHex: string) => void;
+  weights: number[];
 }
 
 export function TrackDetailDialog({
   palette,
   canDelete,
   isOpen,
+  lightnessValues,
   onDelete,
   onDuplicate,
   onOpenChange,
+  onResetAdjustments,
   onSave,
+  weights,
 }: TrackDetailDialogProps) {
+  const { colourFormat } = useColourFormat();
   const [nameDraft, setNameDraft] = useState("");
   const [seedDraft, setSeedDraft] = useState("#000000");
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [isResetOpen, setIsResetOpen] = useState(false);
 
   useEffect(() => {
     if (!palette || !isOpen) return;
@@ -44,27 +54,33 @@ export function TrackDetailDialog({
     setSeedDraft(palette.seedHex);
   }, [isOpen, palette]);
 
-  const sourceOklch = useMemo(() => {
-    const [lightness, chroma, hue] = rgbToOklch(...hexToRgb(seedDraft));
-    return `${(lightness * 100).toFixed(2)}% ${chroma.toFixed(4)} ${hue.toFixed(2)}`;
-  }, [seedDraft]);
-  const previewShades = useMemo(
-    () => {
-      if (!palette) return [];
+  const previewShades = useMemo(() => {
+    if (!palette) return [];
 
-      return generatePalette(
-        { id: palette.id, name: nameDraft, seedHex: seedDraft },
-        palette.shades.map((shade) => shade.L * 100),
-        palette.shades.map((shade) => shade.weight),
-      ).shades;
-    },
-    [nameDraft, palette, seedDraft],
+    return generatePalette(
+      {
+        id: palette.id,
+        name: nameDraft,
+        seedHex: seedDraft,
+        adjustments: palette.adjustments,
+      },
+      lightnessValues,
+      weights,
+    ).shades;
+  }, [lightnessValues, nameDraft, palette, seedDraft, weights]);
+
+  const transitionWarnings = useMemo(
+    () => assessTrackTransitions(previewShades),
+    [previewShades],
   );
 
   if (!palette) return null;
 
   const closeDialog = () => onOpenChange(false);
   const validName = nameDraft.trim();
+  const anchorCount = Object.keys(palette.adjustments.anchors).length;
+  const manualCount = Object.keys(palette.adjustments.manualOverrides).length;
+  const adjustmentCount = anchorCount + manualCount;
 
   return (
     <>
@@ -122,15 +138,26 @@ export function TrackDetailDialog({
                 />
               </span>
               <span>
-                <small>OKLCH</small>
-                <code>oklch({sourceOklch})</code>
+                <small>{COLOUR_FORMAT_LABELS[colourFormat]}</small>
+                <code>{formatColour(seedDraft, colourFormat)}</code>
               </span>
-              <code>{seedDraft.toUpperCase()}</code>
             </div>
           </section>
 
           <section className={styles.trackDialogSection}>
-            <h3>Shades</h3>
+            <header className={styles.trackDialogSectionHeader}>
+              <h3>Shades</h3>
+              {adjustmentCount > 0 && (
+                <Button
+                  scheme="neutral"
+                  size="xs"
+                  variant="text"
+                  onClick={() => setIsResetOpen(true)}
+                >
+                  Reset changes
+                </Button>
+              )}
+            </header>
             <div
               aria-label={`${validName || palette.name} shade preview`}
               className={styles.trackShadePreview}
@@ -143,6 +170,39 @@ export function TrackDetailDialog({
                 />
               ))}
             </div>
+            {transitionWarnings.length > 0 && (
+              <ul
+                aria-label="Transition warnings"
+                aria-live="polite"
+                className={styles.trackTransitionWarnings}
+              >
+                {transitionWarnings.map((warning) => (
+                  <li key={warning.code}>
+                    <svg
+                      aria-hidden="true"
+                      fill="none"
+                      height="14"
+                      viewBox="0 0 16 16"
+                      width="14"
+                    >
+                      <path
+                        d="M8 2.5 14 13H2L8 2.5Z"
+                        stroke="currentColor"
+                        strokeLinejoin="round"
+                        strokeWidth="1.25"
+                      />
+                      <path
+                        d="M8 6v3.25m0 1.75v.1"
+                        stroke="currentColor"
+                        strokeLinecap="round"
+                        strokeWidth="1.25"
+                      />
+                    </svg>
+                    <span>{warning.message}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </section>
         </section>
 
@@ -190,6 +250,18 @@ export function TrackDetailDialog({
           </Button>
         </footer>
       </Dialog>
+
+      <AlertDialog
+        actionLabel="Reset changes"
+        description={`This removes ${anchorCount} custom ${anchorCount === 1 ? "anchor" : "anchors"} and ${manualCount} manual ${manualCount === 1 ? "shade" : "shades"} from ${palette.name}. The source colour will not change.`}
+        isOpen={isResetOpen}
+        title="Reset custom shade changes?"
+        onAction={() => {
+          setIsResetOpen(false);
+          onResetAdjustments(palette.id);
+        }}
+        onOpenChange={setIsResetOpen}
+      />
 
       <AlertDialog
         actionLabel="Delete colour"

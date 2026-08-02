@@ -11,6 +11,7 @@ import {
   resizeLightnessArray,
 } from "./palette";
 import { BLUEPRINT_20_PRESET } from "./presets";
+import { oklchToHex } from "./conversion";
 
 describe("stable shade weights", () => {
   it("keeps the existing 15-shade token sequence", () => {
@@ -131,6 +132,82 @@ describe("palette generation", () => {
     expect(palette.shades.every((shade) => shade.H === anchors[0]!.H)).toBe(
       true,
     );
+    expect(anchors[0]!.anchorType).toBe("source");
+    expect(palette.adjustments).toEqual({
+      anchors: {},
+      manualOverrides: {},
+    });
+  });
+
+  it("preserves custom anchors and smooths through the full row", () => {
+    const track = { id: "primary", name: "primary", seedHex: "#7646ab" };
+    const base = generatePaletteFromPreset(track, BLUEPRINT_20_PRESET);
+    const anchored = generatePaletteFromPreset(
+      {
+        ...track,
+        adjustments: {
+          anchors: { 200: "#d8c65a" },
+          manualOverrides: {},
+        },
+      },
+      BLUEPRINT_20_PRESET,
+    );
+    const customAnchor = anchored.shades.find((shade) => shade.weight === 200)!;
+    const sourceAnchor = anchored.shades.find(
+      (shade) => shade.anchorType === "source",
+    )!;
+    const shadeBetween = anchored.shades.find((shade) => shade.weight === 350)!;
+    const baseBefore = base.shades.find((shade) => shade.weight === 150)!;
+    const anchoredBefore = anchored.shades.find(
+      (shade) => shade.weight === 150,
+    )!;
+
+    expect(customAnchor.hex).toBe("#d8c65a");
+    expect(customAnchor.anchorType).toBe("custom");
+    expect(sourceAnchor.hex).toBe("#7646ab");
+    expect(shadeBetween.H).not.toBe(base.shades[7]!.H);
+    expect(anchoredBefore.hex).not.toBe(baseBefore.hex);
+    expect(anchored.shades[0]!.hex).toBe(base.shades[0]!.hex);
+    expect(anchored.shades.at(-1)!.hex).toBe(base.shades.at(-1)!.hex);
+  });
+
+  it("interpolates hue through the shortest path around the hue circle", () => {
+    const seedHex = oklchToHex(0.5, 0.1, 10);
+    const anchorHex = oklchToHex(0.3, 0.1, 350);
+    const palette = generatePaletteFromPreset(
+      {
+        id: "wrap",
+        name: "wrap",
+        seedHex,
+        adjustments: {
+          anchors: { 700: anchorHex },
+          manualOverrides: {},
+        },
+      },
+      BLUEPRINT_20_PRESET,
+    );
+    const midpoint = palette.shades.find((shade) => shade.weight === 600)!;
+
+    expect(Math.min(midpoint.H, 360 - midpoint.H)).toBeLessThan(3);
+  });
+
+  it("applies manual overrides after anchor smoothing", () => {
+    const palette = generatePaletteFromPreset(
+      {
+        id: "primary",
+        name: "primary",
+        seedHex: "#7646ab",
+        adjustments: {
+          anchors: { 200: "#d8c65a" },
+          manualOverrides: { 350: "#123456" },
+        },
+      },
+      BLUEPRINT_20_PRESET,
+    );
+    const overridden = palette.shades.find((shade) => shade.weight === 350)!;
+
+    expect(overridden.hex).toBe("#123456");
+    expect(overridden.isOverridden).toBe(true);
   });
 
   it("normalizes semantic danger colours to Astryx error", () => {

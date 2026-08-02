@@ -20,9 +20,11 @@ import {
   generateStableWeights,
   isValidLightnessSequence,
   normalizeHex,
+  normalizeTrackAdjustments,
   normalizeTrackName,
   resizeLightnessArray,
   type ColorTrackInput,
+  type TrackAdjustments,
 } from "@blueprint/ui";
 import { PaletteCreation } from "./PaletteCreation";
 import { PaletteControls } from "./PaletteControls";
@@ -39,6 +41,7 @@ import {
   type TrackProperty,
 } from "./types";
 import { useCopyFeedback } from "./useCopyFeedback";
+import { ColourFormatProvider } from "./ColourFormatContext";
 
 const SEMANTIC_TRACKS: ColorTrackInput[] = [
   { id: "primary", name: "primary", seedHex: "#7646ab" },
@@ -59,6 +62,40 @@ interface PaletteProject {
   tracks: ColorTrackInput[];
   lightnessPattern: LightnessPattern;
   lightnessValues: number[];
+}
+
+function readAdjustmentRecord(value: unknown): Record<number, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+
+  return Object.fromEntries(
+    Object.entries(value).flatMap(([weight, hex]) => {
+      const numericWeight = Number(weight);
+      if (!Number.isInteger(numericWeight) || typeof hex !== "string") {
+        return [];
+      }
+
+      try {
+        return [[numericWeight, normalizeHex(hex)]];
+      } catch {
+        return [];
+      }
+    }),
+  );
+}
+
+function readTrackAdjustments(value: unknown): TrackAdjustments {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return { anchors: {}, manualOverrides: {} };
+  }
+
+  return {
+    anchors: readAdjustmentRecord(
+      "anchors" in value ? value.anchors : undefined,
+    ),
+    manualOverrides: readAdjustmentRecord(
+      "manualOverrides" in value ? value.manualOverrides : undefined,
+    ),
+  };
 }
 
 function isLightnessPattern(value: unknown): value is LightnessPattern {
@@ -123,6 +160,9 @@ function readStoredProject(): PaletteProject | null {
             id: track.id,
             name: normalizeTrackName(track.name),
             seedHex: normalizeHex(track.seedHex),
+            adjustments: readTrackAdjustments(
+              "adjustments" in track ? track.adjustments : undefined,
+            ),
           },
         ];
       } catch {
@@ -173,13 +213,20 @@ function createDefaultTracks(primarySeed: string): ColorTrackInput[] {
 }
 
 export function PaletteStudio() {
+  return (
+    <ColourFormatProvider>
+      <PaletteStudioContent />
+    </ColourFormatProvider>
+  );
+}
+
+function PaletteStudioContent() {
   const [project, setProject] = useState<PaletteProject | null>(null);
   const [hasLoadedProject, setHasLoadedProject] = useState(false);
   const [activeShade, setActiveShade] = useState<ActiveShade | null>(null);
   const [activeTrackId, setActiveTrackId] = useState<string | null>(null);
   const [isContrastModeOpen, setIsContrastModeOpen] = useState(false);
-  const [contrastTarget, setContrastTarget] =
-    useState<ContrastTarget>("white");
+  const [contrastTarget, setContrastTarget] = useState<ContrastTarget>("white");
   const [customContrastColour, setCustomContrastColour] = useState("#7646ab");
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
   const [activeSection, setActiveSection] =
@@ -334,6 +381,9 @@ export function PaletteStudio() {
         id: `custom-${Date.now()}`,
         name: normalizeTrackName(`${name}-copy`),
         seedHex: normalizeHex(seedHex),
+        adjustments: normalizeTrackAdjustments(
+          current.tracks[sourceIndex]!.adjustments,
+        ),
       });
       return { ...current, tracks };
     });
@@ -376,13 +426,104 @@ export function PaletteStudio() {
       const targetIndex = tracks.findIndex((track) => track.id === targetId);
       if (!movedTrack || targetIndex < 0) return current;
 
-      tracks.splice(position === "after" ? targetIndex + 1 : targetIndex, 0, movedTrack);
+      tracks.splice(
+        position === "after" ? targetIndex + 1 : targetIndex,
+        0,
+        movedTrack,
+      );
       return { ...current, tracks };
     });
   };
 
   const updateProjectName = (name: string) => {
     setProject((current) => (current ? { ...current, name } : current));
+  };
+
+  const changeTrackAnchor = (
+    trackId: string,
+    weight: number,
+    hex: string | null,
+  ) => {
+    setProject((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        tracks: current.tracks.map((track) => {
+          if (track.id !== trackId) return track;
+
+          const adjustments = normalizeTrackAdjustments(track.adjustments);
+          const anchors = { ...adjustments.anchors };
+          const manualOverrides = { ...adjustments.manualOverrides };
+
+          if (hex === null) {
+            delete anchors[weight];
+          } else {
+            anchors[weight] = normalizeHex(hex);
+            delete manualOverrides[weight];
+          }
+
+          return {
+            ...track,
+            adjustments: { anchors, manualOverrides },
+          };
+        }),
+      };
+    });
+  };
+
+  const changeManualOverride = (
+    trackId: string,
+    weight: number,
+    hex: string | null,
+  ) => {
+    setProject((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        tracks: current.tracks.map((track) => {
+          if (track.id !== trackId) return track;
+
+          const adjustments = normalizeTrackAdjustments(track.adjustments);
+          const anchors = { ...adjustments.anchors };
+          const manualOverrides = { ...adjustments.manualOverrides };
+
+          if (hex === null) {
+            delete manualOverrides[weight];
+          } else {
+            manualOverrides[weight] = normalizeHex(hex);
+            delete anchors[weight];
+          }
+
+          return {
+            ...track,
+            adjustments: { anchors, manualOverrides },
+          };
+        }),
+      };
+    });
+  };
+
+  const resetTrackAdjustments = (trackId: string) => {
+    setProject((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        tracks: current.tracks.map((track) =>
+          track.id === trackId
+            ? {
+                ...track,
+                adjustments: { anchors: {}, manualOverrides: {} },
+              }
+            : track,
+        ),
+      };
+    });
+    setActiveShade((current) =>
+      current?.trackId === trackId ? null : current,
+    );
   };
 
   const commitProjectName = () => {
@@ -595,9 +736,7 @@ export function PaletteStudio() {
                 layout="fill"
                 size="sm"
                 value={contrastTarget}
-                onChange={(value) =>
-                  setContrastTarget(value as ContrastTarget)
-                }
+                onChange={(value) => setContrastTarget(value as ContrastTarget)}
               >
                 <SegmentedControlItem label="White" value="white" />
                 <SegmentedControlItem label="Black" value="black" />
@@ -672,6 +811,8 @@ export function PaletteStudio() {
                 isContrastModeOpen ? wcagComparisonHex : undefined
               }
               onActiveShadeChange={setActiveShade}
+              onAnchorChange={changeTrackAnchor}
+              onManualChange={changeManualOverride}
               onTrackChange={updateTrack}
               onTrackOpen={setActiveTrackId}
               onTrackMove={moveTrack}
@@ -722,13 +863,16 @@ export function PaletteStudio() {
       <TrackDetailDialog
         canDelete={palettes.length > 1}
         isOpen={activeTrack !== null}
+        lightnessValues={project.lightnessValues}
         palette={activeTrack}
         onDelete={removeTrack}
         onDuplicate={duplicateTrack}
         onOpenChange={(isOpen) => {
           if (!isOpen) setActiveTrackId(null);
         }}
+        onResetAdjustments={resetTrackAdjustments}
         onSave={saveTrack}
+        weights={weights}
       />
 
       <AlertDialog

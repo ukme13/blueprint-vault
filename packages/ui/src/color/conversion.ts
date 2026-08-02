@@ -85,7 +85,7 @@ export function rgbToOklch(r: number, g: number, b: number): Oklch {
   return [lightness, chroma, hue];
 }
 
-export function oklchToRgb(
+function oklchToUnclampedRgb(
   lightness: number,
   chroma: number,
   hue: number,
@@ -115,11 +115,27 @@ export function oklchToRgb(
       ? 12.92 * channel
       : 1.055 * Math.pow(channel, 1 / 2.4) - 0.055;
 
-  return [
-    clamp(toSrgb(linearRed), 0, 1),
-    clamp(toSrgb(linearGreen), 0, 1),
-    clamp(toSrgb(linearBlue), 0, 1),
-  ];
+  return [toSrgb(linearRed), toSrgb(linearGreen), toSrgb(linearBlue)];
+}
+
+export function isOklchInSrgb(
+  lightness: number,
+  chroma: number,
+  hue: number,
+): boolean {
+  return oklchToUnclampedRgb(lightness, chroma, hue).every(
+    (channel) => channel >= -0.000001 && channel <= 1.000001,
+  );
+}
+
+export function oklchToRgb(
+  lightness: number,
+  chroma: number,
+  hue: number,
+): Rgb {
+  return oklchToUnclampedRgb(lightness, chroma, hue).map((channel) =>
+    clamp(channel, 0, 1),
+  ) as Rgb;
 }
 
 export function rgbToHex(r: number, g: number, b: number): string {

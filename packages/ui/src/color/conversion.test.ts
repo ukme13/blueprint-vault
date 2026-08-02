@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   hexToRgb,
+  isOklchInSrgb,
   normalizeHex,
   oklchToHex,
   rgbToHex,
@@ -50,6 +51,11 @@ describe("OKLCH conversion", () => {
 
   it("clips out-of-gamut OKLCH values to a valid HEX colour", () => {
     expect(oklchToHex(0.7, 0.5, 40)).toMatch(/^#[0-9a-f]{6}$/);
+  });
+
+  it("identifies OKLCH colours outside sRGB", () => {
+    expect(isOklchInSrgb(0.55, 0.15, 284)).toBe(true);
+    expect(isOklchInSrgb(0.7, 0.5, 40)).toBe(false);
   });
 
   it("rejects non-finite colour channels", () => {
