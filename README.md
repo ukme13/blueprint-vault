@@ -203,7 +203,12 @@ transition warnings and a guarded reset for all custom shade changes.
 The WCAG 2 mode compares shades with white, black, or a custom colour and
 reports normal text, large text, graphics, controls, focus, and semantic-colour
 results. Shade details use compact status icons and copy the displayed colour
-format without changing the layout. CSS token export is available.
+format without changing the layout.
+
+The export dialog provides CSS variables, Tailwind CSS theme variables, DTCG
+design tokens, and editable Blueprint project files. CSS and token exports can
+use HEX, OKLCH, or RGB values. A saved Blueprint project can be imported from
+the creation screen, or imported into an open project after confirmation.
 
 The documentation application and shared component library are still early.
 Button is the first documented shared component. New shared components should
@@ -213,16 +218,14 @@ be added only when a real product demonstrates a reusable need.
 
 The next priorities are:
 
-1. Add JSON and other design-token export formats, plus palette file import and
-   export.
-2. Add colour-vision simulation and an exportable accessibility report.
-3. Build the [Typography Studio](docs/roadmap/typography-studio.md) for creating,
+1. Add colour-vision simulation and an exportable accessibility report.
+2. Build the [Typography Studio](docs/roadmap/typography-studio.md) for creating,
    previewing, validating, and exporting a shared type scale.
-4. Add GitHub Actions to run tests, lint, type checking, builds, and Playwright
+3. Add GitHub Actions to run tests, lint, type checking, builds, and Playwright
    checks automatically.
-5. Document the core foundations: colour, typography, spacing, shape,
+4. Document the core foundations: colour, typography, spacing, shape,
    elevation, and accessibility.
-6. Define the first product scope before creating a product application such as
+5. Define the first product scope before creating a product application such as
    `apps/ferre`.
 
 The completed shared-format, anchor, and manual-edit milestone is documented in

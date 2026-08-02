@@ -89,7 +89,7 @@ export function TrackDetailDialog({
         isOpen={isOpen}
         maxHeight="82vh"
         padding={0}
-        purpose="form"
+        purpose="info"
         width={720}
         onOpenChange={onOpenChange}
       >
