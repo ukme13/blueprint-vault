@@ -16,16 +16,28 @@ export interface ShadeItem {
   hex: string;
   isAnchor: boolean;
   isOverridden: boolean;
+  anchorType: "source" | "custom" | null;
+}
+
+export interface TrackAdjustments {
+  anchors: Record<number, string>;
+  manualOverrides: Record<number, string>;
 }
 
 export interface ColorTrack {
   id: string;
   name: string;
   seedHex: string;
+  adjustments: TrackAdjustments;
   shades: ShadeItem[];
 }
 
-export type ColorTrackInput = Omit<ColorTrack, "shades">;
+export interface ColorTrackInput {
+  id: string;
+  name: string;
+  seedHex: string;
+  adjustments?: TrackAdjustments;
+}
 
 export interface PalettePreset {
   id: string;

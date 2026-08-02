@@ -5,6 +5,7 @@ import type {
   DistributionMode,
   PalettePreset,
   ShadeItem,
+  TrackAdjustments,
 } from "./types";
 
 const MIN_WEIGHT = 50;
@@ -13,6 +14,130 @@ const MAX_WEIGHT = 950;
 const WEIGHT_INTERVAL = 25;
 export const MAX_SHADE_COUNT = (MAX_WEIGHT - MIN_WEIGHT) / WEIGHT_INTERVAL + 1;
 export const MIN_LIGHTNESS_GAP = 0.5;
+
+export function createEmptyTrackAdjustments(): TrackAdjustments {
+  return { anchors: {}, manualOverrides: {} };
+}
+
+function normalizeAdjustmentRecord(
+  values: Record<number, string> | undefined,
+): Record<number, string> {
+  return Object.fromEntries(
+    Object.entries(values ?? {}).map(([weight, hex]) => {
+      const numericWeight = Number(weight);
+      if (!Number.isInteger(numericWeight)) {
+        throw new TypeError(`Invalid shade weight: "${weight}".`);
+      }
+      return [numericWeight, normalizeHex(hex)];
+    }),
+  );
+}
+
+export function normalizeTrackAdjustments(
+  adjustments?: TrackAdjustments,
+): TrackAdjustments {
+  return {
+    anchors: normalizeAdjustmentRecord(adjustments?.anchors),
+    manualOverrides: normalizeAdjustmentRecord(adjustments?.manualOverrides),
+  };
+}
+
+function interpolateHue(start: number, end: number, progress: number): number {
+  const difference = ((end - start + 540) % 360) - 180;
+  return (start + difference * progress + 360) % 360;
+}
+
+function shadeFromHex(
+  shade: ShadeItem,
+  hex: string,
+  anchorType: ShadeItem["anchorType"],
+  isOverridden = false,
+): ShadeItem {
+  const normalizedHex = normalizeHex(hex);
+  const [L, C, H] = rgbToOklch(...hexToRgb(normalizedHex));
+  return {
+    ...shade,
+    L,
+    C,
+    H,
+    hex: normalizedHex,
+    isAnchor: anchorType !== null,
+    anchorType,
+    isOverridden,
+  };
+}
+
+function applyTrackAdjustments(
+  shades: ShadeItem[],
+  adjustments: TrackAdjustments,
+): ShadeItem[] {
+  const adjusted = shades.map((shade) => ({ ...shade }));
+  const sourceIndex = adjusted.findIndex(
+    (shade) => shade.anchorType === "source",
+  );
+
+  const customAnchorIndexes = Object.entries(adjustments.anchors).flatMap(
+    ([weight, hex]) => {
+      const index = adjusted.findIndex(
+        (shade) => shade.weight === Number(weight),
+      );
+      if (index < 0 || index === sourceIndex) return [];
+      adjusted[index] = shadeFromHex(adjusted[index]!, hex, "custom");
+      return [index];
+    },
+  );
+
+  const anchorIndexes =
+    customAnchorIndexes.length > 0
+      ? [
+          ...new Set([
+            0,
+            sourceIndex,
+            ...customAnchorIndexes,
+            adjusted.length - 1,
+          ]),
+        ]
+          .filter((index) => index >= 0)
+          .sort((first, second) => first - second)
+      : [sourceIndex];
+
+  for (let point = 0; point < anchorIndexes.length - 1; point++) {
+    const startIndex = anchorIndexes[point]!;
+    const endIndex = anchorIndexes[point + 1]!;
+    const start = adjusted[startIndex]!;
+    const end = adjusted[endIndex]!;
+
+    for (let index = startIndex + 1; index < endIndex; index++) {
+      if (adjusted[index]!.anchorType) continue;
+      const progress = (index - startIndex) / (endIndex - startIndex);
+      const L = start.L + (end.L - start.L) * progress;
+      const C = start.C + (end.C - start.C) * progress;
+      const H = interpolateHue(start.H, end.H, progress);
+      adjusted[index] = {
+        ...adjusted[index]!,
+        L,
+        C,
+        H,
+        hex: oklchToHex(L, C, H),
+      };
+    }
+  }
+
+  Object.entries(adjustments.manualOverrides).forEach(([weight, hex]) => {
+    const index = adjusted.findIndex(
+      (shade) => shade.weight === Number(weight),
+    );
+    if (index < 0) return;
+    adjusted[index] = shadeFromHex(
+      adjusted[index]!,
+      hex,
+      adjusted[index]!.anchorType,
+      true,
+    );
+  });
+
+  return adjusted;
+}
 
 function assertShadeCount(numShades: number): void {
   if (
@@ -226,6 +351,7 @@ export function generatePalette(
   assertPresetWeights(weights, lightnessArray.length);
 
   const seedHex = normalizeHex(track.seedHex);
+  const adjustments = normalizeTrackAdjustments(track.adjustments);
   const [seedLightness, seedChroma, seedHue] = rgbToOklch(...hexToRgb(seedHex));
   const seedLightnessPercent = seedLightness * 100;
 
@@ -253,6 +379,7 @@ export function generatePalette(
         hex: seedHex,
         isAnchor: true,
         isOverridden: false,
+        anchorType: "source",
       };
     }
 
@@ -275,6 +402,7 @@ export function generatePalette(
       hex: oklchToHex(targetLightness, chroma, seedHue),
       isAnchor: false,
       isOverridden: false,
+      anchorType: null,
     };
   });
 
@@ -282,7 +410,8 @@ export function generatePalette(
     ...track,
     name: normalizeTrackName(track.name),
     seedHex,
-    shades,
+    adjustments,
+    shades: applyTrackAdjustments(shades, adjustments),
   };
 }
 

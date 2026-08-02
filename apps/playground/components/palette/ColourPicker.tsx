@@ -4,22 +4,46 @@ import {
   useEffect,
   useMemo,
   useState,
+  type CSSProperties,
   type KeyboardEvent,
   type PointerEvent,
+  type ReactNode,
 } from "react";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Popover } from "@astryxdesign/core/Popover";
 import { TextInput } from "@astryxdesign/core/TextInput";
-import { hexToHsv, hsvToHex, normalizeHex, type Hsv } from "@blueprint/ui";
+import {
+  COLOUR_FORMAT_LABELS,
+  formatColour,
+  hexToHsv,
+  hexToRgb,
+  hsvToHex,
+  isOklchInSrgb,
+  oklchToHex,
+  parseColour,
+  rgbToHex,
+  rgbToOklch,
+  type Hsv,
+} from "@blueprint/ui";
+import { useColourFormat } from "./ColourFormatContext";
+import { ColourFormatSelector } from "./ColourFormatSelector";
 import styles from "./palette-workspace.module.css";
 
 interface ColourPickerProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
+  trigger?: ReactNode;
+  triggerLabel?: string;
 }
 
-export function ColourPicker({ label, value, onChange }: ColourPickerProps) {
+export function ColourPicker({
+  label,
+  value,
+  onChange,
+  trigger,
+  triggerLabel,
+}: ColourPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -41,11 +65,15 @@ export function ColourPicker({ label, value, onChange }: ColourPickerProps) {
       onOpenChange={setIsOpen}
     >
       <button
-        aria-label={`Choose ${label}`}
-        className={styles.colourPickerTrigger}
-        style={{ backgroundColor: value }}
+        aria-label={triggerLabel ?? `Choose ${label}`}
+        className={
+          trigger ? styles.colourPickerEditTrigger : styles.colourPickerTrigger
+        }
+        style={trigger ? undefined : { backgroundColor: value }}
         type="button"
-      />
+      >
+        {trigger}
+      </button>
     </Popover>
   );
 }
@@ -54,18 +82,137 @@ interface ColourPickerPanelProps extends ColourPickerProps {
   onClose: () => void;
 }
 
+interface ChannelControlProps {
+  label: string;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  gradient?: string;
+  hasOutOfGamut?: boolean;
+  thumbColour?: string;
+  onChange: (value: number) => void;
+}
+
+function ChannelControl({
+  label,
+  value,
+  min,
+  max,
+  step,
+  gradient,
+  hasOutOfGamut,
+  thumbColour,
+  onChange,
+}: ChannelControlProps) {
+  return (
+    <label className={styles.colourChannel}>
+      <span>{label}</span>
+      <input
+        aria-label={`${label} value`}
+        max={max}
+        min={min}
+        step={step}
+        type="number"
+        value={Number(value.toFixed(step < 0.01 ? 3 : step < 1 ? 2 : 0))}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+      <input
+        aria-label={`${label} slider`}
+        data-has-out-of-gamut={hasOutOfGamut || undefined}
+        max={max}
+        min={min}
+        step={step}
+        style={
+          {
+            background: gradient,
+            "--slider-thumb-colour": thumbColour,
+          } as CSSProperties
+        }
+        type="range"
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+      />
+    </label>
+  );
+}
+
+interface OklchGradient {
+  background: string;
+  hasOutOfGamut: boolean;
+}
+
+function createOklchGradient(
+  channel: 0 | 1 | 2,
+  current: [number, number, number],
+): OklchGradient {
+  const ranges = [
+    { min: 0, max: 1 },
+    { min: 0, max: 0.4 },
+    { min: 0, max: 360 },
+  ] as const;
+  const range = ranges[channel];
+  let hasOutOfGamut = false;
+  const samples = Array.from({ length: 49 }, (_, index) => {
+    const progress = index / 48;
+    const channels = [...current] as [number, number, number];
+    channels[channel] = range.min + (range.max - range.min) * progress;
+    const isDisplayable = isOklchInSrgb(...channels);
+    if (!isDisplayable) hasOutOfGamut = true;
+    return {
+      colour: isDisplayable
+        ? `oklch(${channels[0]} ${channels[1]} ${channels[2]})`
+        : "var(--color-neutral-650)",
+      isDisplayable,
+      progress,
+    };
+  });
+  const stops: string[] = [];
+
+  samples.forEach((sample, index) => {
+    const previous = samples[index - 1];
+
+    if (previous && previous.isDisplayable !== sample.isDisplayable) {
+      const boundary = ((previous.progress + sample.progress) / 2) * 100;
+      stops.push(`${previous.colour} ${boundary.toFixed(2)}%`);
+      stops.push(`${sample.colour} ${boundary.toFixed(2)}%`);
+    }
+
+    stops.push(`${sample.colour} ${(sample.progress * 100).toFixed(2)}%`);
+  });
+
+  return {
+    background: `linear-gradient(90deg, ${stops.join(", ")})`,
+    hasOutOfGamut,
+  };
+}
+
 function ColourPickerPanel({
   label,
   value,
   onChange,
   onClose,
 }: ColourPickerPanelProps) {
+  const { colourFormat } = useColourFormat();
   const hsv = useMemo(() => hexToHsv(value), [value]);
-  const [hexDraft, setHexDraft] = useState(value);
+  const rgb = useMemo(
+    () => hexToRgb(value).map((channel) => channel * 255),
+    [value],
+  );
+  const oklch = useMemo(() => rgbToOklch(...hexToRgb(value)), [value]);
+  const oklchGradients = useMemo(
+    () => [
+      createOklchGradient(0, oklch),
+      createOklchGradient(1, oklch),
+      createOklchGradient(2, oklch),
+    ],
+    [oklch],
+  );
+  const [draft, setDraft] = useState(() => formatColour(value, colourFormat));
 
   useEffect(() => {
-    setHexDraft(value);
-  }, [value]);
+    setDraft(formatColour(value, colourFormat));
+  }, [colourFormat, value]);
 
   const updateColour = (next: Hsv) => onChange(hsvToHex(next));
 
@@ -86,53 +233,54 @@ function ColourPickerPanel({
     const step = event.shiftKey ? 0.1 : 0.02;
     let next = hsv;
 
-    if (event.key === "ArrowLeft") {
+    if (event.key === "ArrowLeft")
       next = { ...hsv, saturation: Math.max(0, hsv.saturation - step) };
-    } else if (event.key === "ArrowRight") {
+    else if (event.key === "ArrowRight")
       next = { ...hsv, saturation: Math.min(1, hsv.saturation + step) };
-    } else if (event.key === "ArrowUp") {
+    else if (event.key === "ArrowUp")
       next = { ...hsv, value: Math.min(1, hsv.value + step) };
-    } else if (event.key === "ArrowDown") {
+    else if (event.key === "ArrowDown")
       next = { ...hsv, value: Math.max(0, hsv.value - step) };
-    } else {
-      return;
-    }
+    else return;
 
     event.preventDefault();
     updateColour(next);
   };
 
-  const updateHexDraft = (nextValue: string) => {
-    setHexDraft(nextValue);
-
+  const updateDraft = (nextValue: string) => {
+    setDraft(nextValue);
     try {
-      onChange(normalizeHex(nextValue));
+      onChange(parseColour(nextValue, colourFormat));
     } catch {
-      // Keep the incomplete value visible until it becomes valid.
+      // Keep an incomplete value visible until it becomes valid.
     }
+  };
+
+  const commitDraft = () => {
+    try {
+      onChange(parseColour(draft, colourFormat));
+      onClose();
+    } catch {
+      setDraft(formatColour(value, colourFormat));
+    }
+  };
+
+  const updateRgb = (index: number, channel: number) => {
+    const next = [...rgb] as [number, number, number];
+    next[index] = Math.min(255, Math.max(0, channel));
+    onChange(rgbToHex(next[0] / 255, next[1] / 255, next[2] / 255));
+  };
+
+  const updateOklch = (index: number, channel: number) => {
+    const next = [...oklch] as [number, number, number];
+    next[index] = channel;
+    onChange(oklchToHex(...next));
   };
 
   return (
     <section className={styles.colourPicker}>
       <header className={styles.colourPickerHeader}>
-        <strong>
-          HEX
-          <svg
-            aria-hidden="true"
-            fill="none"
-            height="14"
-            viewBox="0 0 16 16"
-            width="14"
-          >
-            <path
-              d="m4 6 4 4 4-4"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="1.8"
-            />
-          </svg>
-        </strong>
+        <ColourFormatSelector label="Colour format" width={112} />
         <IconButton
           icon={
             <svg
@@ -157,54 +305,110 @@ function ColourPickerPanel({
         />
       </header>
 
-      <button
-        aria-label={`${label} saturation ${Math.round(hsv.saturation * 100)} percent and brightness ${Math.round(hsv.value * 100)} percent`}
-        className={styles.colourField}
-        style={{
-          backgroundColor: `hsl(${hsv.hue} 100% 50%)`,
-        }}
-        type="button"
-        onKeyDown={handleAreaKeyDown}
-        onPointerDown={(event) => {
-          event.currentTarget.setPointerCapture(event.pointerId);
-          updateSaturationAndValue(event);
-        }}
-        onPointerMove={(event) => {
-          if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-            updateSaturationAndValue(event);
-          }
-        }}
-      >
-        <span
-          className={styles.colourFieldThumb}
-          style={{
-            backgroundColor: value,
-            left: `${hsv.saturation * 100}%`,
-            top: `${(1 - hsv.value) * 100}%`,
-          }}
-        />
-      </button>
+      {colourFormat === "hex" && (
+        <>
+          <button
+            aria-label={`${label} saturation ${Math.round(hsv.saturation * 100)} percent and brightness ${Math.round(hsv.value * 100)} percent`}
+            className={styles.colourField}
+            style={{ backgroundColor: `hsl(${hsv.hue} 100% 50%)` }}
+            type="button"
+            onKeyDown={handleAreaKeyDown}
+            onPointerDown={(event) => {
+              event.currentTarget.setPointerCapture(event.pointerId);
+              updateSaturationAndValue(event);
+            }}
+            onPointerMove={(event) => {
+              if (event.currentTarget.hasPointerCapture(event.pointerId))
+                updateSaturationAndValue(event);
+            }}
+          >
+            <span
+              className={styles.colourFieldThumb}
+              style={{
+                backgroundColor: value,
+                left: `${hsv.saturation * 100}%`,
+                top: `${(1 - hsv.value) * 100}%`,
+              }}
+            />
+          </button>
+          <label className={styles.hueControl}>
+            <span className={styles.visuallyHidden}>Hue</span>
+            <input
+              aria-label={`${label} hue`}
+              max="360"
+              min="0"
+              step="1"
+              type="range"
+              value={Math.round(hsv.hue)}
+              onChange={(event) =>
+                updateColour({ ...hsv, hue: Number(event.target.value) })
+              }
+            />
+          </label>
+        </>
+      )}
 
-      <label className={styles.hueControl}>
-        <span className={styles.visuallyHidden}>Hue</span>
-        <input
-          aria-label={`${label} hue`}
-          max="360"
-          min="0"
-          step="1"
-          type="range"
-          value={Math.round(hsv.hue)}
-          onChange={(event) =>
-            updateColour({ ...hsv, hue: Number(event.target.value) })
-          }
-        />
-      </label>
+      {colourFormat === "oklch" && (
+        <section className={styles.colourChannels}>
+          <ChannelControl
+            label="Lightness"
+            min={0}
+            max={100}
+            step={0.1}
+            value={oklch[0] * 100}
+            gradient={oklchGradients[0]!.background}
+            hasOutOfGamut={oklchGradients[0]!.hasOutOfGamut}
+            thumbColour={value}
+            onChange={(next) => updateOklch(0, next / 100)}
+          />
+          <ChannelControl
+            label="Chroma"
+            min={0}
+            max={0.4}
+            step={0.001}
+            value={oklch[1]}
+            gradient={oklchGradients[1]!.background}
+            hasOutOfGamut={oklchGradients[1]!.hasOutOfGamut}
+            thumbColour={value}
+            onChange={(next) => updateOklch(1, next)}
+          />
+          <ChannelControl
+            label="Hue"
+            min={0}
+            max={360}
+            step={0.1}
+            value={oklch[2]}
+            gradient={oklchGradients[2]!.background}
+            hasOutOfGamut={oklchGradients[2]!.hasOutOfGamut}
+            thumbColour={value}
+            onChange={(next) => updateOklch(2, next)}
+          />
+        </section>
+      )}
+
+      {colourFormat === "rgb" && (
+        <section className={styles.colourChannels}>
+          {(["Red", "Green", "Blue"] as const).map((channel, index) => (
+            <ChannelControl
+              key={channel}
+              label={channel}
+              min={0}
+              max={255}
+              step={1}
+              value={rgb[index]!}
+              gradient={`linear-gradient(90deg, ${rgbToHex(...(rgb.map((item, itemIndex) => (itemIndex === index ? 0 : item) / 255) as [number, number, number]))}, ${rgbToHex(...(rgb.map((item, itemIndex) => (itemIndex === index ? 255 : item) / 255) as [number, number, number]))})`}
+              thumbColour={value}
+              onChange={(next) => updateRgb(index, next)}
+            />
+          ))}
+        </section>
+      )}
 
       <footer className={styles.colourPickerFooter}>
         <span className={styles.colourHexInput}>
           <TextInput
             isLabelHidden
-            label={`${label} HEX value`}
+            label={`${label} ${COLOUR_FORMAT_LABELS[colourFormat]} value`}
             size="lg"
             startIcon={
               <i
@@ -212,17 +416,10 @@ function ColourPickerPanel({
                 style={{ backgroundColor: value }}
               />
             }
-            value={hexDraft}
+            value={draft}
             width="100%"
-            onChange={updateHexDraft}
-            onEnter={() => {
-              try {
-                onChange(normalizeHex(hexDraft));
-                onClose();
-              } catch {
-                setHexDraft(value);
-              }
-            }}
+            onChange={updateDraft}
+            onEnter={commitDraft}
           />
         </span>
       </footer>

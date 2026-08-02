@@ -14,6 +14,8 @@ interface PaletteRowProps {
   wcagComparisonHex: string;
   wcagComparisonLabel: "white" | "black" | "custom";
   onActiveShadeChange: (selection: ActiveShade | null) => void;
+  onAnchorChange: (trackId: string, weight: number, hex: string | null) => void;
+  onManualChange: (trackId: string, weight: number, hex: string | null) => void;
   onTrackChange: (
     id: string,
     property: "name" | "seedHex",
@@ -37,6 +39,8 @@ export function PaletteRow({
   wcagComparisonHex,
   wcagComparisonLabel,
   onActiveShadeChange,
+  onAnchorChange,
+  onManualChange,
   onTrackChange,
   onTrackOpen,
   onTrackMove,
@@ -137,9 +141,7 @@ export function PaletteRow({
             <ColourPicker
               label={`${palette.name} source colour`}
               value={palette.seedHex}
-              onChange={(value) =>
-                onTrackChange(palette.id, "seedHex", value)
-              }
+              onChange={(value) => onTrackChange(palette.id, "seedHex", value)}
             />
           </span>
           <input
@@ -181,6 +183,13 @@ export function PaletteRow({
                   : null,
               )
             }
+            onAnchorChange={(hex) =>
+              onAnchorChange(palette.id, shade.weight, hex)
+            }
+            onManualChange={(hex) =>
+              onManualChange(palette.id, shade.weight, hex)
+            }
+            onSourceChange={(hex) => onTrackChange(palette.id, "seedHex", hex)}
           />
         );
       })}

@@ -58,22 +58,46 @@ test.describe("Shade details", () => {
     const details = page.getByRole("dialog", {
       name: "primary 500 shade details",
     });
-    await expect(details.getByText("OKLCH", { exact: true })).toBeVisible();
+    const formatSelector = details.getByLabel("Shade colour format");
+    await expect(formatSelector).toContainText("HEX");
+    const selectorBackground = await formatSelector.evaluate(
+      (element) => getComputedStyle(element).backgroundColor,
+    );
+    await formatSelector.hover();
+    await expect
+      .poll(() =>
+        formatSelector.evaluate(
+          (element) => getComputedStyle(element).backgroundColor,
+        ),
+      )
+      .toBe(selectorBackground);
+    await expect(
+      details.getByRole("button", { name: "Copy HEX value" }),
+    ).toContainText(/^#[0-9A-F]{6}$/);
+
+    await formatSelector.click();
+    await page.getByRole("option", { name: "OKLCH", exact: true }).click();
+    await expect(formatSelector).toContainText("OKLCH");
     await expect(
       details.getByRole("button", { name: "Copy OKLCH value" }),
     ).toContainText("oklch(");
     await expect(
       details.getByRole("region", { name: "WCAG 2 contrast result" }),
     ).toContainText("Against custom #7646AB");
-    await expect(details.getByText("Large text", { exact: true })).toBeVisible();
-    await expect(details.getByText("Small text", { exact: true })).toBeVisible();
+    await expect(
+      details.getByText("Large text", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      details.getByText("Small text", { exact: true }),
+    ).toBeVisible();
     await expect(details.getByText("Graphics", { exact: true })).toBeVisible();
 
     const copyButton = details.getByRole("button", {
       name: "Copy OKLCH value",
     });
     await copyButton.click();
-    await expect(copyButton).toContainText("Copied");
+    await expect(copyButton).toContainText("oklch(");
+    await expect(page.getByText("Color copied", { exact: true })).toBeVisible();
 
     await details.getByRole("button", { name: "Close shade details" }).click();
     await expect(details).toBeHidden();
@@ -82,10 +106,197 @@ test.describe("Shade details", () => {
     await contrastMode.click();
     await expect(contrastMode).toHaveAttribute("aria-pressed", "false");
     await expect(contrastRatios).toHaveCount(0);
+
+    await page.reload();
+    await shade.click();
+    await expect(
+      page
+        .getByRole("dialog", { name: "primary 500 shade details" })
+        .getByLabel("Shade colour format"),
+    ).toContainText("OKLCH");
+  });
+
+  test("manually edits a shade, promotes it to an anchor, and resets it", async ({
+    seededPage: page,
+  }) => {
+    const anchorShade = page.getByRole("button", {
+      name: /Select primary 200,/,
+    });
+    const blendedShade = page.getByRole("button", {
+      name: /Select primary 350,/,
+    });
+    const leadingShade = page.getByRole("button", {
+      name: /Select primary 150,/,
+    });
+    const originalBlend = await blendedShade.getAttribute("style");
+    const originalLeadingShade = await leadingShade.getAttribute("style");
+    const originalAnchorShade = await anchorShade.getAttribute("style");
+
+    await anchorShade.click();
+    let details = page.getByRole("dialog", {
+      name: "primary 200 shade details",
+    });
+    await details
+      .getByRole("button", { name: "Edit primary 200 colour" })
+      .click();
+    const picker = page.getByRole("dialog", {
+      name: "primary 200 manual colour picker",
+    });
+    const hexInput = picker.getByLabel("primary 200 manual colour HEX value");
+    await hexInput.fill("#d8c65a");
+    await hexInput.press("Enter");
+
+    await expect(details.getByRole("radio", { name: "Manual" })).toBeChecked();
+    await expect(anchorShade.getByLabel("Manual colour")).toBeVisible();
+    await expect(anchorShade).not.toHaveAttribute(
+      "style",
+      originalAnchorShade!,
+    );
+    await expect(blendedShade).toHaveAttribute("style", originalBlend!);
+    await expect(leadingShade).toHaveAttribute("style", originalLeadingShade!);
+
+    await details.getByRole("button", { name: "Close shade details" }).click();
+    await page.reload();
+    await anchorShade.click();
+    details = page.getByRole("dialog", {
+      name: "primary 200 shade details",
+    });
+    await expect(details.getByRole("radio", { name: "Manual" })).toBeChecked();
+    await details.getByRole("radio", { name: "Anchor" }).click();
+
+    await expect(anchorShade.getByLabel("Colour anchor")).toBeVisible();
+    await expect(anchorShade.getByLabel("Manual colour")).toHaveCount(0);
+    await expect(blendedShade).not.toHaveAttribute("style", originalBlend!);
+    await expect(leadingShade).not.toHaveAttribute(
+      "style",
+      originalLeadingShade!,
+    );
+
+    await details.getByRole("button", { name: "Close shade details" }).click();
+    await page.reload();
+    await anchorShade.click();
+    details = page.getByRole("dialog", {
+      name: "primary 200 shade details",
+    });
+    await expect(details.getByRole("radio", { name: "Anchor" })).toBeChecked();
+
+    await details.getByRole("button", { name: "Reset", exact: true }).click();
+    await expect(anchorShade.getByLabel("Colour anchor")).toHaveCount(0);
+    await expect(
+      details.getByRole("region", { name: "Shade edit controls" }),
+    ).toHaveCount(0);
+  });
+
+  test("resets every custom shade change in one track", async ({
+    seededPage: page,
+  }) => {
+    const anchorShade = page.getByRole("button", {
+      name: /Select primary 200,/,
+    });
+    const manualShade = page.getByRole("button", {
+      name: /Select primary 350,/,
+    });
+
+    await anchorShade.click();
+    let details = page.getByRole("dialog", {
+      name: "primary 200 shade details",
+    });
+    await details
+      .getByRole("button", { name: "Edit primary 200 colour" })
+      .click();
+    let picker = page.getByRole("dialog", {
+      name: "primary 200 manual colour picker",
+    });
+    let hexInput = picker.getByLabel("primary 200 manual colour HEX value");
+    await hexInput.fill("#d8c65a");
+    await hexInput.press("Enter");
+    await details.getByRole("radio", { name: "Anchor" }).click();
+    await details.getByRole("button", { name: "Close shade details" }).click();
+
+    await manualShade.click();
+    details = page.getByRole("dialog", {
+      name: "primary 350 shade details",
+    });
+    await details
+      .getByRole("button", { name: "Edit primary 350 colour" })
+      .click();
+    picker = page.getByRole("dialog", {
+      name: "primary 350 manual colour picker",
+    });
+    hexInput = picker.getByLabel("primary 350 manual colour HEX value");
+    await hexInput.fill("#4f7a92");
+    await hexInput.press("Enter");
+    await details.getByRole("button", { name: "Close shade details" }).click();
+
+    await expect(anchorShade.getByLabel("Colour anchor")).toBeVisible();
+    await expect(manualShade.getByLabel("Manual colour")).toBeVisible();
+
+    await page
+      .getByRole("button", { name: "Open primary colour details" })
+      .press("Enter");
+    const colourDialog = page.locator("dialog").filter({
+      has: page.getByLabel("Colour name"),
+    });
+    const transitionWarnings = colourDialog.getByRole("list", {
+      name: "Transition warnings",
+    });
+    await expect(transitionWarnings).toContainText("have a large hue change");
+    await expect(transitionWarnings).toContainText(
+      "Manual shade 350 creates an uneven transition",
+    );
+    await colourDialog.getByRole("button", { name: "Reset changes" }).click();
+
+    const confirmation = page.getByRole("alertdialog", {
+      name: "Reset custom shade changes?",
+    });
+    await expect(confirmation).toContainText(
+      "1 custom anchor and 1 manual shade",
+    );
+    await confirmation.getByRole("button", { name: "Cancel" }).click();
+    await expect(anchorShade.getByLabel("Colour anchor")).toBeVisible();
+
+    await colourDialog.getByRole("button", { name: "Reset changes" }).click();
+    await confirmation.getByRole("button", { name: "Reset changes" }).click();
+
+    await expect(
+      colourDialog.getByRole("button", { name: "Reset changes" }),
+    ).toHaveCount(0);
+    await expect(transitionWarnings).toHaveCount(0);
+    await expect(anchorShade.getByLabel("Colour anchor")).toHaveCount(0);
+    await expect(manualShade.getByLabel("Manual colour")).toHaveCount(0);
+
+    await colourDialog
+      .getByRole("button", { name: "Close colour details" })
+      .click();
+    await page.reload();
+    await expect(anchorShade.getByLabel("Colour anchor")).toHaveCount(0);
+    await expect(manualShade.getByLabel("Manual colour")).toHaveCount(0);
   });
 });
 
 test.describe("Colour track actions", () => {
+  test("greys out OKLCH slider areas outside sRGB", async ({
+    seededPage: page,
+  }) => {
+    await page
+      .getByRole("button", { name: "Choose primary source colour" })
+      .click();
+
+    const picker = page.getByRole("dialog", {
+      name: "primary source colour picker",
+    });
+    await picker.getByLabel("Colour format").click();
+    await page.getByRole("option", { name: "OKLCH", exact: true }).click();
+    await expect(picker.getByLabel("Chroma slider")).toHaveAttribute(
+      "data-has-out-of-gamut",
+      "true",
+    );
+    await expect(picker.getByLabel("Hue slider")).toHaveAttribute(
+      "data-has-out-of-gamut",
+      "true",
+    );
+  });
+
   test("renames the project and supports drag reordering", async ({
     seededPage: page,
   }) => {
