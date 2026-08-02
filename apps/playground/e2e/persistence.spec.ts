@@ -35,18 +35,20 @@ test.describe("Persistence after reload", () => {
   test("a renamed colour track survives a reload", async ({
     seededPage: page,
   }) => {
-    // Anchored by CSS-module class rather than accessible label: the label
-    // text tracks the track name and changes on every keystroke, which would
-    // make a getByLabel locator go stale mid-rename.
-    const nameInput = page.locator('[class*="trackNameInput"] input').first();
-    await nameInput.fill("brand");
-    await nameInput.blur();
+    await page
+      .getByRole("button", { name: "Open primary colour details" })
+      .press("Enter");
+    const colourDialog = page.locator("dialog").filter({
+      has: page.getByLabel("Colour name"),
+    });
+    await colourDialog.getByLabel("Colour name").fill("brand");
+    await colourDialog.getByRole("button", { name: "Save changes" }).click();
 
     await page.reload();
 
     await expect(
-      page.locator('[class*="trackNameInput"] input').first(),
-    ).toHaveValue("brand");
+      page.getByRole("button", { name: "Open brand colour details" }),
+    ).toBeVisible();
   });
 
   test("stores the project under the expected localStorage key", async ({

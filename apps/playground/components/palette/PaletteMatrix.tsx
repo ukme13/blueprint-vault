@@ -2,35 +2,54 @@ import type { CSSProperties } from "react";
 import type { ColorTrack } from "@blueprint/ui";
 import { PaletteRow } from "./PaletteRow";
 import styles from "./palette-workspace.module.css";
-import type { ActiveShade, TrackProperty } from "./types";
+import type { ActiveShade } from "./types";
 
 interface PaletteMatrixProps {
   palettes: ColorTrack[];
   weights: number[];
   activeShade: ActiveShade | null;
+  contrastReferenceHex?: string;
+  wcagComparisonHex: string;
+  wcagComparisonLabel: "white" | "black" | "custom";
   onActiveShadeChange: (selection: ActiveShade | null) => void;
-  onTrackChange: (id: string, property: TrackProperty, value: string) => void;
+  onTrackChange: (
+    id: string,
+    property: "name" | "seedHex",
+    value: string,
+  ) => void;
+  onTrackOpen: (id: string) => void;
   onTrackMove: (id: string, direction: -1 | 1) => void;
-  onTrackRemove: (id: string) => void;
+  onTrackReorder: (
+    sourceId: string,
+    targetId: string,
+    position: "before" | "after",
+  ) => void;
 }
 
 export function PaletteMatrix({
   palettes,
   weights,
   activeShade,
+  contrastReferenceHex,
+  wcagComparisonHex,
+  wcagComparisonLabel,
   onActiveShadeChange,
   onTrackChange,
+  onTrackOpen,
   onTrackMove,
-  onTrackRemove,
+  onTrackReorder,
 }: PaletteMatrixProps) {
   return (
-    <section className={styles.matrixScroller}>
+    <section
+      className={styles.matrixScroller}
+      data-testid="palette-matrix-scroller"
+    >
       <section
         className={styles.matrix}
         style={
           {
             "--shade-count": weights.length,
-            "--matrix-min-width": `${190 + weights.length * 56}px`,
+            "--matrix-min-width": `${190 + weights.length * 54}px`,
           } as CSSProperties
         }
       >
@@ -42,15 +61,21 @@ export function PaletteMatrix({
         </header>
 
         <section className={styles.paletteRows}>
-          {palettes.map((palette) => (
+          {palettes.map((palette, index) => (
             <PaletteRow
               key={palette.id}
               palette={palette}
+              canMoveUp={index > 0}
+              canMoveDown={index < palettes.length - 1}
               activeShade={activeShade}
+              contrastReferenceHex={contrastReferenceHex}
+              wcagComparisonHex={wcagComparisonHex}
+              wcagComparisonLabel={wcagComparisonLabel}
               onActiveShadeChange={onActiveShadeChange}
               onTrackChange={onTrackChange}
+              onTrackOpen={onTrackOpen}
               onTrackMove={onTrackMove}
-              onTrackRemove={onTrackRemove}
+              onTrackReorder={onTrackReorder}
             />
           ))}
         </section>

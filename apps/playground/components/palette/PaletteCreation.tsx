@@ -125,7 +125,11 @@ export function PaletteCreation({ onCreate }: PaletteCreationProps) {
           </section>
         )}
 
-        {error && <p className={styles.formError}>{error}</p>}
+        {error && (
+          <p className={styles.formError} role="alert">
+            {error}
+          </p>
+        )}
 
         <footer className={styles.creationFooter}>
           <p>

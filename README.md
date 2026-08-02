@@ -71,10 +71,14 @@ pnpm test
 pnpm lint
 pnpm check-types
 pnpm build
+pnpm --filter playground test:e2e
 ```
 
 Vitest covers the reusable colour conversion and palette-generation functions
-in `packages/ui/src/color`.
+in `packages/ui/src/color`. Playwright covers the main palette-workspace flows,
+including navigation, persistence, reset behaviour, shade-count changes,
+lightness editing, colour-track actions, WCAG results, responsive layouts, and
+the resizable settings panel.
 
 ## Colour and token system
 
@@ -108,6 +112,24 @@ The standard semantic status names are:
 Use `error`, not `danger`, for colour tracks and CSS variables. A component API
 may still use a name such as `destructive` when it describes an action rather
 than a colour.
+
+## Accessibility checks
+
+The playground preview evaluates important palette combinations using WCAG 2.2
+contrast guidance:
+
+- Normal text: AA at 4.5:1 and AAA at 7:1.
+- Large text: AA at 3:1 and AAA at 4.5:1.
+- Controls, borders, graphical objects, and focus colours: 3:1.
+- White and dark text recommendations for semantic action colours.
+- Important semantic text and surface combinations.
+
+The preview also warns when semantic colours are perceptually similar in OKLab
+space. Similarity is design guidance, not a WCAG pass or fail. Colour should
+not be the only way that an interface communicates meaning.
+
+Focus-colour checks cover contrast with adjacent and unfocused colours. Focus
+indicator area, thickness, and placement still need layout and browser review.
 
 Shared components must use Blueprint tokens. Do not use Tailwind's built-in
 colour palette or hardcoded hexadecimal colours in shared UI code. Utilities
@@ -168,10 +190,34 @@ Import the required global styles, then run the normal repository checks.
 Move a local component into `@blueprint/ui` only after another real application
 needs the same component.
 
+## Current status
+
+The palette workspace currently supports project creation, semantic colour
+tracks, direct colour and name editing, drag reordering, colour detail dialogs,
+editable lightness values, 10–37 stable shade tokens, live previews, and local
+browser persistence. Its WCAG 2 mode compares shades with white, black, or a
+custom colour and reports normal text, large text, graphics, controls, focus,
+and semantic-colour results. Shade details use compact status icons and allow
+the displayed OKLCH value to be copied directly. CSS token export is available.
+
+The documentation application and shared component library are still early.
+Button is the first documented shared component. New shared components should
+be added only when a real product demonstrates a reusable need.
+
 ## Current roadmap
 
-The next structural work is:
+The next priorities are:
 
-1. Complete the new palette creation and shade-generator workspace.
-2. Add accessibility checks and more token export formats.
-3. Define the first product scope before creating `apps/ferre`.
+1. Add a shared HEX, OKLCH, and RGB display preference across colour pickers and
+   shade details, then support explicit per-shade overrides with reset actions.
+2. Add JSON and other design-token export formats, plus palette file import and
+   export.
+3. Add colour-vision simulation and an exportable accessibility report.
+4. Build the [Typography Studio](docs/roadmap/typography-studio.md) for creating,
+   previewing, validating, and exporting a shared type scale.
+5. Add GitHub Actions to run tests, lint, type checking, builds, and Playwright
+   checks automatically.
+6. Document the core foundations: colour, typography, spacing, shape,
+   elevation, and accessibility.
+7. Define the first product scope before creating a product application such as
+   `apps/ferre`.

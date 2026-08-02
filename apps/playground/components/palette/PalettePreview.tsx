@@ -1,15 +1,32 @@
-import { Badge } from "@astryxdesign/core/Badge";
-import { Button, type ColorTrack, type ShadeItem } from "@blueprint/ui";
+import { Badge, type BadgeVariant } from "@astryxdesign/core/Badge";
+import {
+  Button,
+  assessColourSimilarity,
+  assessFocusContrast,
+  assessNonTextContrast,
+  assessTextContrast,
+  recommendTextColour,
+  type AccessibilityStatus,
+  type ColorTrack,
+  type ShadeItem,
+} from "@blueprint/ui";
 import styles from "./palette-workspace.module.css";
 
 interface PalettePreviewProps {
   palettes: ColorTrack[];
 }
 
-interface ContrastExample {
-  background: ShadeItem;
-  foreground: ShadeItem | "#ffffff" | "#000000";
+interface AccessibilityRowProps {
+  background: string;
+  badge: string;
+  detail: string;
+  foreground: string;
   label: string;
+  ratioLabel: string;
+  status: AccessibilityStatus;
+  summary: string;
+  swatchLabel?: string;
+  swatchType?: "text" | "border" | "focus";
 }
 
 function shadeAt(palette: ColorTrack, progress: number): ShadeItem {
@@ -17,43 +34,70 @@ function shadeAt(palette: ColorTrack, progress: number): ShadeItem {
   return palette.shades[index]!;
 }
 
-function channelToLinear(channel: number): number {
-  const value = channel / 255;
-  return value <= 0.04045
-    ? value / 12.92
-    : Math.pow((value + 0.055) / 1.055, 2.4);
+function statusVariant(status: AccessibilityStatus): BadgeVariant {
+  if (status === "pass") return "success";
+  if (status === "partial") return "warning";
+  return "error";
 }
 
-function relativeLuminance(hex: string): number {
-  const value = hex.replace("#", "");
-  const red = Number.parseInt(value.slice(0, 2), 16);
-  const green = Number.parseInt(value.slice(2, 4), 16);
-  const blue = Number.parseInt(value.slice(4, 6), 16);
-
+function AccessibilityRow({
+  background,
+  badge,
+  detail,
+  foreground,
+  label,
+  ratioLabel,
+  status,
+  summary,
+  swatchLabel = "Aa",
+  swatchType = "text",
+}: AccessibilityRowProps) {
   return (
-    0.2126 * channelToLinear(red) +
-    0.7152 * channelToLinear(green) +
-    0.0722 * channelToLinear(blue)
+    <article>
+      <span
+        aria-hidden="true"
+        className={styles.contrastSwatch}
+        style={{ backgroundColor: background, color: foreground }}
+      >
+        {swatchType === "border" ? (
+          <i className={styles.controlContrastExample} />
+        ) : swatchType === "focus" ? (
+          <i className={styles.focusContrastExample} />
+        ) : (
+          swatchLabel
+        )}
+      </span>
+      <span>
+        <strong>{label}</strong>
+        <small>{detail}</small>
+        <small className={styles.contrastResult}>
+          {ratioLabel} — {summary}
+        </small>
+      </span>
+      <Badge label={badge} variant={statusVariant(status)} />
+    </article>
   );
 }
 
-function contrastRatio(foreground: string, background: string): number {
-  const foregroundLuminance = relativeLuminance(foreground);
-  const backgroundLuminance = relativeLuminance(background);
-  const lighter = Math.max(foregroundLuminance, backgroundLuminance);
-  const darker = Math.min(foregroundLuminance, backgroundLuminance);
-  return (lighter + 0.05) / (darker + 0.05);
-}
-
-function readableText(background: string): "#ffffff" | "#000000" {
-  return contrastRatio("#ffffff", background) >=
-    contrastRatio("#000000", background)
-    ? "#ffffff"
-    : "#000000";
-}
-
 export function PalettePreview({ palettes }: PalettePreviewProps) {
-  const primary = palettes.find((palette) => palette.name === "primary")!;
+  if (palettes.length === 0) {
+    return (
+      <section className={styles.sectionPage} aria-labelledby="preview-title">
+        <header className={styles.sectionPageHeader}>
+          <span>
+            <Badge label="Live preview" variant="purple" />
+            <h1 id="preview-title">Palette in context</h1>
+          </span>
+        </header>
+        <p className={styles.previewEmptyState} role="status">
+          No colours are available. Add a colour track to build the preview.
+        </p>
+      </section>
+    );
+  }
+
+  const primary =
+    palettes.find((palette) => palette.name === "primary") ?? palettes[0]!;
   const neutral =
     palettes.find((palette) => palette.name === "neutral") ?? primary;
   const secondary =
@@ -63,9 +107,13 @@ export function PalettePreview({ palettes }: PalettePreviewProps) {
   const warning =
     palettes.find((palette) => palette.name === "warning") ?? primary;
   const error = palettes.find((palette) => palette.name === "error") ?? primary;
+  const info = palettes.find((palette) => palette.name === "info") ?? primary;
 
   const primaryAction = shadeAt(primary, 0.55);
   const primarySoft = shadeAt(primary, 0.12);
+  const primaryFocus =
+    primary.shades.find((shade) => shade.weight === 300) ??
+    shadeAt(primary, 0.32);
   const secondaryAction = shadeAt(secondary, 0.48);
   const neutralLight = shadeAt(neutral, 0.08);
   const neutralMid = shadeAt(neutral, 0.48);
@@ -73,29 +121,108 @@ export function PalettePreview({ palettes }: PalettePreviewProps) {
   const successAction = shadeAt(success, 0.55);
   const warningAction = shadeAt(warning, 0.45);
   const errorAction = shadeAt(error, 0.55);
+  const infoAction = shadeAt(info, 0.55);
 
-  const contrastExamples: ContrastExample[] = [
+  const readableText = (background: string) =>
+    recommendTextColour(background).colour;
+
+  const textChecks = [
     {
-      label: "Primary action",
-      background: primaryAction,
+      label: "Primary action text",
       foreground: readableText(primaryAction.hex),
+      background: primaryAction.hex,
     },
     {
       label: "Body text",
-      background: neutralLight,
-      foreground: neutralDark,
+      foreground: neutralDark.hex,
+      background: neutralLight.hex,
     },
     {
-      label: "Success status",
-      background: successAction,
-      foreground: readableText(successAction.hex),
+      label: "Supporting text",
+      foreground: neutralMid.hex,
+      background: neutralLight.hex,
     },
     {
-      label: "Warning status",
-      background: warningAction,
-      foreground: readableText(warningAction.hex),
+      label: "Primary link",
+      foreground: primaryAction.hex,
+      background: neutralLight.hex,
+    },
+    {
+      label: "Success status text",
+      foreground: successAction.hex,
+      background: neutralLight.hex,
+    },
+    {
+      label: "Warning status text",
+      foreground: warningAction.hex,
+      background: neutralLight.hex,
+    },
+    {
+      label: "Error action text",
+      foreground: readableText(errorAction.hex),
+      background: errorAction.hex,
+    },
+  ].map((check) => ({
+    ...check,
+    result: assessTextContrast(check.foreground, check.background),
+  }));
+
+  const whiteDarkRecommendations = [
+    { label: "Primary action", background: primaryAction.hex },
+    { label: "Success action", background: successAction.hex },
+    { label: "Warning action", background: warningAction.hex },
+    { label: "Error action", background: errorAction.hex },
+  ].map((check) => ({
+    ...check,
+    recommendation: recommendTextColour(check.background),
+  }));
+
+  const nonTextChecks = [
+    {
+      label: "Secondary button border",
+      foreground: secondaryAction.hex,
+      background: neutralLight.hex,
+      result: assessNonTextContrast(secondaryAction.hex, neutralLight.hex),
+      countsTowardWarnings: true,
+    },
+    {
+      label: "Soft surface boundary",
+      foreground: primarySoft.hex,
+      background: neutralLight.hex,
+      result: assessNonTextContrast(primarySoft.hex, neutralLight.hex),
+      countsTowardWarnings: false,
     },
   ];
+
+  const focusCheck = assessFocusContrast(
+    primaryFocus.hex,
+    neutralDark.hex,
+    neutralDark.hex,
+  );
+
+  const similarityChecks = [
+    ["Success and warning", successAction, warningAction],
+    ["Success and error", successAction, errorAction],
+    ["Warning and error", warningAction, errorAction],
+    ["Primary and info", primaryAction, infoAction],
+  ].map(([label, first, second]) => {
+    const firstShade = first as ShadeItem;
+    const secondShade = second as ShadeItem;
+    return {
+      label: label as string,
+      first: firstShade,
+      second: secondShade,
+      result: assessColourSimilarity(firstShade.hex, secondShade.hex),
+    };
+  });
+
+  const issueCount =
+    textChecks.filter((check) => check.result.status !== "pass").length +
+    nonTextChecks.filter(
+      (check) => check.countsTowardWarnings && !check.result.passes,
+    ).length +
+    (focusCheck.status === "fail" ? 1 : 0) +
+    similarityChecks.filter((check) => check.result.isTooSimilar).length;
 
   return (
     <section className={styles.sectionPage} aria-labelledby="preview-title">
@@ -113,7 +240,6 @@ export function PalettePreview({ palettes }: PalettePreviewProps) {
         <article className={styles.previewPanel}>
           <header>
             <h2>Buttons</h2>
-            <p>Primary, secondary and status actions.</p>
           </header>
           <section className={styles.buttonPreview}>
             <Button
@@ -149,7 +275,6 @@ export function PalettePreview({ palettes }: PalettePreviewProps) {
         <article className={styles.previewPanel}>
           <header>
             <h2>Text hierarchy</h2>
-            <p>Readable text on a palette surface.</p>
           </header>
           <section
             className={styles.textPreview}
@@ -173,7 +298,6 @@ export function PalettePreview({ palettes }: PalettePreviewProps) {
         <article className={styles.previewPanel}>
           <header>
             <h2>Surfaces</h2>
-            <p>Layered backgrounds, borders and status areas.</p>
           </header>
           <section
             className={styles.surfacePreview}
@@ -202,44 +326,161 @@ export function PalettePreview({ palettes }: PalettePreviewProps) {
           </section>
         </article>
 
-        <article className={styles.previewPanel} id="preview-accessibility">
-          <header>
-            <h2>Accessibility</h2>
-            <p>WCAG contrast checks for important colour pairs.</p>
+        <article
+          className={`${styles.previewPanel} ${styles.accessibilityPanel}`}
+          id="preview-accessibility"
+        >
+          <header className={styles.accessibilityHeader}>
+            <span>
+              <h2>Accessibility</h2>
+              <p>WCAG 2.2 contrast checks for important colour pairs.</p>
+            </span>
+            <Badge
+              label={
+                issueCount === 0 ? "No warnings" : `${issueCount} warnings`
+              }
+              variant={issueCount === 0 ? "success" : "warning"}
+            />
           </header>
-          <section className={styles.contrastList}>
-            {contrastExamples.map((example) => {
-              const foreground =
-                typeof example.foreground === "string"
-                  ? example.foreground
-                  : example.foreground.hex;
-              const ratio = contrastRatio(foreground, example.background.hex);
-              const passes = ratio >= 4.5;
 
-              return (
-                <article key={example.label}>
-                  <span
-                    className={styles.contrastSwatch}
-                    style={{
-                      backgroundColor: example.background.hex,
-                      color: foreground,
-                    }}
-                  >
-                    Aa
-                  </span>
-                  <span>
-                    <strong>{example.label}</strong>
-                    <small>
-                      {foreground} on {example.background.hex}
-                    </small>
-                  </span>
-                  <Badge
-                    label={`${ratio.toFixed(2)}:1 ${passes ? "Pass" : "Fail"}`}
-                    variant={passes ? "green" : "red"}
+          <section className={styles.accessibilityGrid}>
+            <section aria-labelledby="text-contrast-heading">
+              <h3 id="text-contrast-heading">Text contrast</h3>
+              <p className={styles.accessibilityNote}>
+                Checks each foreground and background pair for normal and large
+                text requirements.
+              </p>
+              <section className={styles.contrastList}>
+                {textChecks.map((check) => (
+                  <AccessibilityRow
+                    key={check.label}
+                    background={check.background}
+                    badge={
+                      check.result.normalText.aaa
+                        ? "AAA"
+                        : check.result.normalText.aa
+                          ? "AA"
+                          : check.result.largeText.aa
+                            ? "Large AA"
+                            : "Fail"
+                    }
+                    detail={`${check.foreground} on ${check.background}`}
+                    foreground={check.foreground}
+                    label={check.label}
+                    ratioLabel={`${check.result.ratio.toFixed(1)}:1`}
+                    status={check.result.status}
+                    summary={check.result.summary}
                   />
-                </article>
-              );
-            })}
+                ))}
+              </section>
+            </section>
+
+            <section aria-labelledby="recommendation-heading">
+              <h3 id="recommendation-heading">White or dark text</h3>
+              <p className={styles.accessibilityNote}>
+                Compares white and dark text, then recommends the option with
+                stronger contrast.
+              </p>
+              <section className={styles.contrastList}>
+                {whiteDarkRecommendations.map((check) => {
+                  const isWhite = check.recommendation.colour === "#ffffff";
+                  return (
+                    <AccessibilityRow
+                      key={check.label}
+                      background={check.background}
+                      badge={isWhite ? "Use white" : "Use dark"}
+                      detail={`White ${
+                        isWhite
+                          ? check.recommendation.ratio.toFixed(1)
+                          : check.recommendation.alternativeRatio.toFixed(1)
+                      }:1 · Dark ${
+                        isWhite
+                          ? check.recommendation.alternativeRatio.toFixed(1)
+                          : check.recommendation.ratio.toFixed(1)
+                      }:1`}
+                      foreground={check.recommendation.colour}
+                      label={check.label}
+                      ratioLabel={`${check.recommendation.ratio.toFixed(1)}:1`}
+                      status="pass"
+                      summary={`${isWhite ? "White" : "Dark"} text gives stronger contrast.`}
+                    />
+                  );
+                })}
+              </section>
+            </section>
+
+            <section aria-labelledby="non-text-heading">
+              <h3 id="non-text-heading">Controls and focus</h3>
+              <p className={styles.accessibilityNote}>
+                Checks the 3:1 requirement for visible boundaries and keyboard
+                focus colours. Decorative surfaces are advisory only.
+              </p>
+              <section className={styles.contrastList}>
+                {nonTextChecks.map((check) => (
+                  <AccessibilityRow
+                    key={check.label}
+                    background={check.background}
+                    badge={
+                      check.countsTowardWarnings
+                        ? check.result.passes
+                          ? "Pass"
+                          : "Fail"
+                        : "Advisory"
+                    }
+                    detail={`${check.foreground} against ${check.background}`}
+                    foreground={check.foreground}
+                    label={check.label}
+                    ratioLabel={`${check.result.ratio.toFixed(1)}:1`}
+                    status={
+                      check.countsTowardWarnings
+                        ? check.result.status
+                        : "partial"
+                    }
+                    summary={
+                      check.countsTowardWarnings
+                        ? check.result.summary
+                        : "Optional design check; increase contrast only when this boundary communicates meaning."
+                    }
+                    swatchType="border"
+                  />
+                ))}
+                <AccessibilityRow
+                  background={neutralDark.hex}
+                  badge={focusCheck.status === "pass" ? "Pass" : "Fail"}
+                  detail={`${primaryFocus.hex} against ${neutralDark.hex}`}
+                  foreground={primaryFocus.hex}
+                  label="Keyboard focus colour"
+                  ratioLabel={`${focusCheck.adjacentContrast.toFixed(1)}:1`}
+                  status={focusCheck.status}
+                  summary={focusCheck.summary}
+                  swatchType="focus"
+                />
+              </section>
+            </section>
+
+            <section aria-labelledby="similarity-heading">
+              <h3 id="similarity-heading">Semantic colour distinction</h3>
+              <p className={styles.accessibilityNote}>
+                This is perceptual design guidance, not a WCAG pass or fail.
+                Always pair status colour with text, an icon, or another cue.
+              </p>
+              <section className={styles.contrastList}>
+                {similarityChecks.map((check) => (
+                  <AccessibilityRow
+                    key={check.label}
+                    background={check.first.hex}
+                    badge={check.result.isTooSimilar ? "Review" : "Distinct"}
+                    detail={`${check.first.hex} and ${check.second.hex}`}
+                    foreground={readableText(check.first.hex)}
+                    label={check.label}
+                    ratioLabel={`Distance ${(check.result.difference * 100).toFixed(1)}`}
+                    status={check.result.isTooSimilar ? "partial" : "pass"}
+                    summary={check.result.summary}
+                    swatchLabel="A/B"
+                  />
+                ))}
+              </section>
+            </section>
           </section>
         </article>
       </section>

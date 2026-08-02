@@ -1,15 +1,13 @@
 import { expect, test } from "./fixtures";
 
 test.describe("Shade count", () => {
-  test("starts at 20 shades with the Blueprint 20 badge", async ({
+  test("starts at 20 shades and shows the supported range", async ({
     seededPage: page,
   }) => {
     await expect(page.getByLabel("Shade count", { exact: true })).toHaveValue(
       "20",
     );
-    await expect(
-      page.getByRole("region", { name: "Palette toolbar" }).getByText("Blueprint 20"),
-    ).toBeVisible();
+    await expect(page.getByText("10–37 stable tokens")).toBeVisible();
     await expect(page.getByLabel(/target lightness$/)).toHaveCount(20);
   });
 
@@ -21,7 +19,6 @@ test.describe("Shade count", () => {
     await expect(page.getByLabel("Shade count", { exact: true })).toHaveValue(
       "21",
     );
-    await expect(page.getByText("21 shades", { exact: true })).toBeVisible();
     await expect(page.getByLabel(/target lightness$/)).toHaveCount(21);
   });
 
@@ -41,20 +38,21 @@ test.describe("Shade count", () => {
     await shadeCountInput.fill("10");
     await shadeCountInput.blur();
 
-    await expect(page.getByText("10 shades", { exact: true })).toBeVisible();
     await expect(page.getByLabel(/target lightness$/)).toHaveCount(10);
   });
 
-  test("cannot go below the 2-shade minimum", async ({
+  test("cannot go below the 10-shade minimum", async ({
     seededPage: page,
   }) => {
     const shadeCountInput = page.getByLabel("Shade count", { exact: true });
-    await shadeCountInput.fill("2");
+    await shadeCountInput.fill("10");
     await shadeCountInput.blur();
+
+    await expect(shadeCountInput).toHaveValue("10");
 
     await expect(
       page.getByRole("button", { name: "Remove one shade" }),
     ).toBeDisabled();
-    await expect(page.getByLabel(/target lightness$/)).toHaveCount(2);
+    await expect(page.getByLabel(/target lightness$/)).toHaveCount(10);
   });
 });

@@ -1,3 +1,4 @@
+export * from "./accessibility";
 export * from "./conversion";
 export * from "./hsv";
 export * from "./palette";

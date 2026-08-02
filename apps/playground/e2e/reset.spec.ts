@@ -12,9 +12,6 @@ test.describe("Reset to Blueprint 20", () => {
     await page.getByRole("button", { name: "Reset preset" }).click();
 
     await expect(shadeCountInput).toHaveValue("20");
-    await expect(
-      page.getByRole("region", { name: "Palette toolbar" }).getByText("Blueprint 20"),
-    ).toBeVisible();
     await expect(page.getByLabel(/target lightness$/)).toHaveCount(20);
   });
 });

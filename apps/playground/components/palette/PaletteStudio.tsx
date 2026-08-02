@@ -1,9 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { Badge } from "@astryxdesign/core/Badge";
+import { AlertDialog } from "@astryxdesign/core/AlertDialog";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
+import {
+  SegmentedControl,
+  SegmentedControlItem,
+} from "@astryxdesign/core/SegmentedControl";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
+import { Tooltip } from "@astryxdesign/core/Tooltip";
 import {
   BLUEPRINT_20_PRESET,
   Button,
@@ -21,11 +26,19 @@ import {
 } from "@blueprint/ui";
 import { PaletteCreation } from "./PaletteCreation";
 import { PaletteControls } from "./PaletteControls";
+import { ColourPicker } from "./ColourPicker";
 import { PaletteMatrix } from "./PaletteMatrix";
 import { PaletteOverview } from "./PaletteOverview";
 import { PalettePreview } from "./PalettePreview";
+import { TrackDetailDialog } from "./TrackDetailDialog";
 import styles from "./palette-workspace.module.css";
-import type { ActiveShade, LightnessPattern, TrackProperty } from "./types";
+import {
+  MIN_SHADE_COUNT,
+  type ActiveShade,
+  type LightnessPattern,
+  type TrackProperty,
+} from "./types";
+import { useCopyFeedback } from "./useCopyFeedback";
 
 const SEMANTIC_TRACKS: ColorTrackInput[] = [
   { id: "primary", name: "primary", seedHex: "#7646ab" },
@@ -36,9 +49,9 @@ const SEMANTIC_TRACKS: ColorTrackInput[] = [
   { id: "info", name: "info", seedHex: "#2878b8" },
 ];
 
-const PROJECT_STORAGE_KEY = "blueprint.palette-project.v1";
-const MIN_SHADE_COUNT = 2;
+type ContrastTarget = "white" | "black" | "custom";
 
+const PROJECT_STORAGE_KEY = "blueprint.palette-project.v1";
 type PlaygroundSection = "overview" | "shade-generator" | "preview";
 
 interface PaletteProject {
@@ -163,9 +176,15 @@ export function PaletteStudio() {
   const [project, setProject] = useState<PaletteProject | null>(null);
   const [hasLoadedProject, setHasLoadedProject] = useState(false);
   const [activeShade, setActiveShade] = useState<ActiveShade | null>(null);
-  const [copyStatus, setCopyStatus] = useState("Export CSS");
+  const [activeTrackId, setActiveTrackId] = useState<string | null>(null);
+  const [isContrastModeOpen, setIsContrastModeOpen] = useState(false);
+  const [contrastTarget, setContrastTarget] =
+    useState<ContrastTarget>("white");
+  const [customContrastColour, setCustomContrastColour] = useState("#7646ab");
+  const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
   const [activeSection, setActiveSection] =
     useState<PlaygroundSection>("shade-generator");
+  const { copyText, status: exportStatus } = useCopyFeedback();
   const settingsPanel = useResizable({
     autoSaveId: "blueprint-palette-settings",
     defaultSize: 350,
@@ -203,6 +222,15 @@ export function PaletteStudio() {
       ) ?? [],
     [project, weights],
   );
+  const activeTrack =
+    palettes.find((palette) => palette.id === activeTrackId) ?? null;
+
+  const wcagComparisonHex =
+    contrastTarget === "white"
+      ? "#ffffff"
+      : contrastTarget === "black"
+        ? "#000000"
+        : customContrastColour;
 
   useEffect(() => {
     palettes.forEach((palette) => {
@@ -216,7 +244,16 @@ export function PaletteStudio() {
   }, [palettes]);
 
   if (!hasLoadedProject) {
-    return <main className={styles.loadingPage}>Loading palette…</main>;
+    return (
+      <main
+        aria-busy="true"
+        aria-live="polite"
+        className={styles.loadingPage}
+        role="status"
+      >
+        Loading palette…
+      </main>
+    );
   }
 
   if (!project) {
@@ -264,6 +301,42 @@ export function PaletteStudio() {
       };
     });
     setActiveShade((current) => (current?.trackId === id ? null : current));
+    setActiveTrackId((current) => (current === id ? null : current));
+  };
+
+  const saveTrack = (id: string, name: string, seedHex: string) => {
+    setProject((current) =>
+      current
+        ? {
+            ...current,
+            tracks: current.tracks.map((track) =>
+              track.id === id
+                ? {
+                    ...track,
+                    name: normalizeTrackName(name),
+                    seedHex: normalizeHex(seedHex),
+                  }
+                : track,
+            ),
+          }
+        : current,
+    );
+  };
+
+  const duplicateTrack = (id: string, name: string, seedHex: string) => {
+    setProject((current) => {
+      if (!current) return current;
+      const sourceIndex = current.tracks.findIndex((track) => track.id === id);
+      if (sourceIndex < 0) return current;
+
+      const tracks = [...current.tracks];
+      tracks.splice(sourceIndex + 1, 0, {
+        id: `custom-${Date.now()}`,
+        name: normalizeTrackName(`${name}-copy`),
+        seedHex: normalizeHex(seedHex),
+      });
+      return { ...current, tracks };
+    });
   };
 
   const moveTrack = (id: string, direction: -1 | 1) => {
@@ -284,6 +357,38 @@ export function PaletteStudio() {
       const [track] = tracks.splice(sourceIndex, 1);
       tracks.splice(targetIndex, 0, track!);
       return { ...current, tracks };
+    });
+  };
+
+  const reorderTrack = (
+    sourceId: string,
+    targetId: string,
+    position: "before" | "after",
+  ) => {
+    setProject((current) => {
+      if (!current || sourceId === targetId) return current;
+
+      const tracks = [...current.tracks];
+      const sourceIndex = tracks.findIndex((track) => track.id === sourceId);
+      if (sourceIndex < 0) return current;
+
+      const [movedTrack] = tracks.splice(sourceIndex, 1);
+      const targetIndex = tracks.findIndex((track) => track.id === targetId);
+      if (!movedTrack || targetIndex < 0) return current;
+
+      tracks.splice(position === "after" ? targetIndex + 1 : targetIndex, 0, movedTrack);
+      return { ...current, tracks };
+    });
+  };
+
+  const updateProjectName = (name: string) => {
+    setProject((current) => (current ? { ...current, name } : current));
+  };
+
+  const commitProjectName = () => {
+    setProject((current) => {
+      if (!current) return current;
+      return { ...current, name: current.name.trim() || "Untitled project" };
     });
   };
 
@@ -371,10 +476,15 @@ export function PaletteStudio() {
   };
 
   const exportCss = async () => {
-    await navigator.clipboard.writeText(formatPaletteCss(palettes));
-    setCopyStatus("Copied");
-    window.setTimeout(() => setCopyStatus("Export CSS"), 1600);
+    await copyText(formatPaletteCss(palettes));
   };
+
+  const exportLabel =
+    exportStatus === "copied"
+      ? "Copied"
+      : exportStatus === "error"
+        ? "Copy failed"
+        : "Export CSS";
 
   return (
     <main className={styles.workspace}>
@@ -385,7 +495,15 @@ export function PaletteStudio() {
           </span>
           Blueprint
           <span className={styles.breadcrumb}>/</span>
-          <strong>{project.name}</strong>
+          <input
+            aria-label="Project name"
+            className={styles.projectNameInput}
+            maxLength={80}
+            spellCheck={false}
+            value={project.name}
+            onBlur={commitProjectName}
+            onChange={(event) => updateProjectName(event.target.value)}
+          />
         </p>
         <nav aria-label="Playground sections" className={styles.navigation}>
           <TabList
@@ -399,14 +517,26 @@ export function PaletteStudio() {
           </TabList>
         </nav>
         <Button
+          aria-label="Export palette CSS"
           className={styles.exportButton}
           scheme="neutral"
           size="small"
           variant="outlined"
           onClick={exportCss}
         >
-          {copyStatus}
+          {exportLabel}
         </Button>
+        <span
+          aria-live="polite"
+          className={styles.visuallyHidden}
+          role="status"
+        >
+          {exportStatus === "copied"
+            ? "Palette CSS copied to clipboard."
+            : exportStatus === "error"
+              ? "Could not copy the palette CSS."
+              : ""}
+        </span>
       </header>
 
       <section aria-label="Palette toolbar" className={styles.toolbar}>
@@ -436,17 +566,56 @@ export function PaletteStudio() {
         >
           Add colour
         </Button>
+        <Tooltip
+          content="Below 3:1 fails. Normal text needs 4.5:1 for AA and 7:1 for AAA."
+          hasHoverIndication={false}
+          placement="below"
+        >
+          <Button
+            aria-pressed={isContrastModeOpen}
+            className={styles.contrastModeButton}
+            data-active={isContrastModeOpen}
+            scheme="neutral"
+            size="small"
+            variant="outlined"
+            onClick={() => setIsContrastModeOpen((current) => !current)}
+          >
+            WCAG 2
+          </Button>
+        </Tooltip>
+        {isContrastModeOpen && (
+          <section
+            aria-label="Contrast comparison"
+            className={styles.contrastOptions}
+          >
+            <small>against</small>
+            <span className={styles.contrastTargetControl}>
+              <SegmentedControl
+                label="Contrast comparison colour"
+                layout="fill"
+                size="sm"
+                value={contrastTarget}
+                onChange={(value) =>
+                  setContrastTarget(value as ContrastTarget)
+                }
+              >
+                <SegmentedControlItem label="White" value="white" />
+                <SegmentedControlItem label="Black" value="black" />
+                <SegmentedControlItem label="Custom" value="custom" />
+              </SegmentedControl>
+            </span>
+            {contrastTarget === "custom" && (
+              <span className={styles.customContrastPicker}>
+                <ColourPicker
+                  label="custom contrast colour"
+                  value={customContrastColour}
+                  onChange={setCustomContrastColour}
+                />
+              </span>
+            )}
+          </section>
+        )}
         <span className={styles.toolbarDivider} />
-        <Badge
-          label={
-            project.lightnessValues.length ===
-            BLUEPRINT_20_PRESET.weights.length
-              ? "Blueprint 20"
-              : `${project.lightnessValues.length} shades`
-          }
-          variant="purple"
-        />
-        <Badge label="OKLCH" variant="neutral" />
         <Button
           className={styles.resetButton}
           scheme="neutral"
@@ -461,10 +630,7 @@ export function PaletteStudio() {
           scheme="neutral"
           size="xs"
           variant="text"
-          onClick={() => {
-            setProject(null);
-            setActiveShade(null);
-          }}
+          onClick={() => setIsNewProjectDialogOpen(true)}
         >
           New project
         </Button>
@@ -500,10 +666,16 @@ export function PaletteStudio() {
               palettes={palettes}
               weights={weights}
               activeShade={activeShade}
+              wcagComparisonHex={wcagComparisonHex}
+              wcagComparisonLabel={contrastTarget}
+              contrastReferenceHex={
+                isContrastModeOpen ? wcagComparisonHex : undefined
+              }
               onActiveShadeChange={setActiveShade}
               onTrackChange={updateTrack}
+              onTrackOpen={setActiveTrackId}
               onTrackMove={moveTrack}
-              onTrackRemove={removeTrack}
+              onTrackReorder={reorderTrack}
             />
           </section>
 
@@ -546,6 +718,34 @@ export function PaletteStudio() {
           />
         </section>
       )}
+
+      <TrackDetailDialog
+        canDelete={palettes.length > 1}
+        isOpen={activeTrack !== null}
+        palette={activeTrack}
+        onDelete={removeTrack}
+        onDuplicate={duplicateTrack}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setActiveTrackId(null);
+        }}
+        onSave={saveTrack}
+      />
+
+      <AlertDialog
+        actionLabel="Start new project"
+        className={styles.newProjectDialog}
+        description="This removes the current palette from this browser. Export it first if you want to keep it."
+        isOpen={isNewProjectDialogOpen}
+        title="Start a new project?"
+        onAction={() => {
+          setIsNewProjectDialogOpen(false);
+          setProject(null);
+          setActiveShade(null);
+          setActiveTrackId(null);
+          setIsContrastModeOpen(false);
+        }}
+        onOpenChange={setIsNewProjectDialogOpen}
+      />
     </main>
   );
 }

@@ -1,4 +1,3 @@
-import { Badge } from "@astryxdesign/core/Badge";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
 import {
   SegmentedControl,
@@ -7,7 +6,7 @@ import {
 import { Slider } from "@astryxdesign/core/Slider";
 import { Button, MAX_SHADE_COUNT, MIN_LIGHTNESS_GAP } from "@blueprint/ui";
 import styles from "./palette-workspace.module.css";
-import type { LightnessPattern } from "./types";
+import { MIN_SHADE_COUNT, type LightnessPattern } from "./types";
 
 interface PaletteControlsProps {
   lightnessPattern: LightnessPattern;
@@ -40,7 +39,6 @@ export function PaletteControls({
     <aside className={styles.inspector}>
       <header className={styles.inspectorHeader}>
         <span>Palette settings</span>
-        <Badge label="Blueprint 20" variant="purple" />
       </header>
 
       <section className={styles.settingGroup}>
@@ -48,7 +46,7 @@ export function PaletteControls({
         <section className={styles.shadeCountControl}>
           <Button
             aria-label="Remove one shade"
-            disabled={shadeCount <= 2}
+            disabled={shadeCount <= MIN_SHADE_COUNT}
             scheme="neutral"
             size="small"
             variant="outlined"
@@ -61,7 +59,7 @@ export function PaletteControls({
             isLabelHidden
             label="Shade count"
             max={MAX_SHADE_COUNT}
-            min={2}
+            min={MIN_SHADE_COUNT}
             size="md"
             value={shadeCount}
             width={76}
@@ -77,16 +75,8 @@ export function PaletteControls({
           >
             +
           </Button>
-          <span>2–{MAX_SHADE_COUNT} stable tokens</span>
+          <span>{MIN_SHADE_COUNT}–{MAX_SHADE_COUNT} stable tokens</span>
         </section>
-      </section>
-
-      <section className={styles.settingGroup}>
-        <h2>Colour space</h2>
-        <p className={styles.colourSpaceStatus}>
-          <Badge label="OKLCH" variant="purple" />
-          <span>sRGB output</span>
-        </p>
       </section>
 
       <section className={styles.lightnessSettingGroup}>
