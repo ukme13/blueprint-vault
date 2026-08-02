@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type CSSProperties,
+} from "react";
 import { AlertDialog } from "@astryxdesign/core/AlertDialog";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
 import {
@@ -9,12 +16,12 @@ import {
 } from "@astryxdesign/core/SegmentedControl";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
+import { useToast } from "@astryxdesign/core/Toast";
 import {
   BLUEPRINT_20_PRESET,
   Button,
   MAX_SHADE_COUNT,
   clampLightnessValue,
-  formatPaletteCss,
   generateLightnessArray,
   generatePalette,
   generateStableWeights,
@@ -22,8 +29,10 @@ import {
   normalizeHex,
   normalizeTrackAdjustments,
   normalizeTrackName,
+  parseBlueprintPaletteProject,
   resizeLightnessArray,
   type ColorTrackInput,
+  type PaletteProjectData,
   type TrackAdjustments,
 } from "@blueprint/ui";
 import { PaletteCreation } from "./PaletteCreation";
@@ -31,6 +40,7 @@ import { PaletteControls } from "./PaletteControls";
 import { ColourPicker } from "./ColourPicker";
 import { PaletteMatrix } from "./PaletteMatrix";
 import { PaletteOverview } from "./PaletteOverview";
+import { PaletteExportDialog } from "./PaletteExportDialog";
 import { PalettePreview } from "./PalettePreview";
 import { TrackDetailDialog } from "./TrackDetailDialog";
 import styles from "./palette-workspace.module.css";
@@ -40,7 +50,6 @@ import {
   type LightnessPattern,
   type TrackProperty,
 } from "./types";
-import { useCopyFeedback } from "./useCopyFeedback";
 import { ColourFormatProvider } from "./ColourFormatContext";
 
 const SEMANTIC_TRACKS: ColorTrackInput[] = [
@@ -57,12 +66,7 @@ type ContrastTarget = "white" | "black" | "custom";
 const PROJECT_STORAGE_KEY = "blueprint.palette-project.v1";
 type PlaygroundSection = "overview" | "shade-generator" | "preview";
 
-interface PaletteProject {
-  name: string;
-  tracks: ColorTrackInput[];
-  lightnessPattern: LightnessPattern;
-  lightnessValues: number[];
-}
+type PaletteProject = PaletteProjectData;
 
 function readAdjustmentRecord(value: unknown): Record<number, string> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
@@ -221,6 +225,8 @@ export function PaletteStudio() {
 }
 
 function PaletteStudioContent() {
+  const toast = useToast();
+  const headerImportInputRef = useRef<HTMLInputElement>(null);
   const [project, setProject] = useState<PaletteProject | null>(null);
   const [hasLoadedProject, setHasLoadedProject] = useState(false);
   const [activeShade, setActiveShade] = useState<ActiveShade | null>(null);
@@ -229,9 +235,12 @@ function PaletteStudioContent() {
   const [contrastTarget, setContrastTarget] = useState<ContrastTarget>("white");
   const [customContrastColour, setCustomContrastColour] = useState("#7646ab");
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [pendingImport, setPendingImport] = useState<PaletteProjectData | null>(
+    null,
+  );
   const [activeSection, setActiveSection] =
     useState<PlaygroundSection>("shade-generator");
-  const { copyText, status: exportStatus } = useCopyFeedback();
   const settingsPanel = useResizable({
     autoSaveId: "blueprint-palette-settings",
     defaultSize: 350,
@@ -272,6 +281,23 @@ function PaletteStudioContent() {
   const activeTrack =
     palettes.find((palette) => palette.id === activeTrackId) ?? null;
 
+  const importFromHeader = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    try {
+      setPendingImport(parseBlueprintPaletteProject(await file.text()));
+    } catch {
+      toast({
+        autoHideDuration: 2400,
+        body: "Choose a valid Blueprint project file.",
+        type: "error",
+        uniqueID: "header-project-import-error",
+      });
+    }
+  };
+
   const wcagComparisonHex =
     contrastTarget === "white"
       ? "#ffffff"
@@ -306,6 +332,7 @@ function PaletteStudioContent() {
   if (!project) {
     return (
       <PaletteCreation
+        onImport={setProject}
         onCreate={({ name, seedHex, method }) => {
           const primarySeed =
             method === "generated" ? "#3b66f5" : normalizeHex(seedHex);
@@ -616,17 +643,6 @@ function PaletteStudioContent() {
     setActiveShade(null);
   };
 
-  const exportCss = async () => {
-    await copyText(formatPaletteCss(palettes));
-  };
-
-  const exportLabel =
-    exportStatus === "copied"
-      ? "Copied"
-      : exportStatus === "error"
-        ? "Copy failed"
-        : "Export CSS";
-
   return (
     <main className={styles.workspace}>
       <header className={styles.topbar}>
@@ -657,26 +673,33 @@ function PaletteStudioContent() {
             <Tab label="Preview" value="preview" />
           </TabList>
         </nav>
-        <Button
-          aria-label="Export palette CSS"
-          className={styles.exportButton}
-          scheme="neutral"
-          size="small"
-          variant="outlined"
-          onClick={exportCss}
-        >
-          {exportLabel}
-        </Button>
-        <span
-          aria-live="polite"
-          className={styles.visuallyHidden}
-          role="status"
-        >
-          {exportStatus === "copied"
-            ? "Palette CSS copied to clipboard."
-            : exportStatus === "error"
-              ? "Could not copy the palette CSS."
-              : ""}
+        <span className={styles.headerActions}>
+          <input
+            ref={headerImportInputRef}
+            className={styles.visuallyHidden}
+            type="file"
+            accept=".json,.blueprint.json,application/json"
+            onChange={importFromHeader}
+          />
+          <Button
+            aria-label="Import palette"
+            scheme="neutral"
+            size="small"
+            variant="text"
+            onClick={() => headerImportInputRef.current?.click()}
+          >
+            Import
+          </Button>
+          <Button
+            aria-label="Export palette"
+            className={styles.exportButton}
+            scheme="neutral"
+            size="small"
+            variant="outlined"
+            onClick={() => setIsExportDialogOpen(true)}
+          >
+            Export
+          </Button>
         </span>
       </header>
 
@@ -873,6 +896,32 @@ function PaletteStudioContent() {
         onResetAdjustments={resetTrackAdjustments}
         onSave={saveTrack}
         weights={weights}
+      />
+
+      <PaletteExportDialog
+        isOpen={isExportDialogOpen}
+        palettes={palettes}
+        project={project}
+        onImportRequest={setPendingImport}
+        onOpenChange={setIsExportDialogOpen}
+      />
+
+      <AlertDialog
+        actionLabel="Import project"
+        description={`This replaces ${project.name} in this browser with ${pendingImport?.name ?? "the imported project"}. Export the current project first if you want to keep it.`}
+        isOpen={pendingImport !== null}
+        title="Replace current project?"
+        onAction={() => {
+          if (!pendingImport) return;
+          setProject(pendingImport);
+          setPendingImport(null);
+          setActiveShade(null);
+          setActiveTrackId(null);
+          setIsContrastModeOpen(false);
+        }}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setPendingImport(null);
+        }}
       />
 
       <AlertDialog

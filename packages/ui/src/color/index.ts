@@ -1,5 +1,6 @@
 export * from "./accessibility";
 export * from "./conversion";
+export * from "./export";
 export * from "./format";
 export * from "./hsv";
 export * from "./palette";

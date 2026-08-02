@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { defaultProject, expect, test } from "./fixtures";
 
 test.describe("Shade details", () => {
   test("opens, copies the OKLCH value, and returns focus when closed", async ({
@@ -425,28 +425,90 @@ test.describe("Interface feedback", () => {
     await expect(page.getByLabel("Project name")).toBeVisible();
   });
 
-  test("shows an error when clipboard access fails", async ({
+  test("previews CSS and Design Tokens exports", async ({
     seededPage: page,
   }) => {
-    await page.evaluate(() => {
-      Object.defineProperty(navigator, "clipboard", {
-        configurable: true,
-        value: {
-          writeText: async () => {
-            throw new Error("Clipboard blocked");
-          },
-        },
+    await page.getByRole("button", { name: "Export palette" }).click();
+    const exportDialog = page.getByRole("dialog", {
+      name: "Export palette",
+    });
+    const exportPreview = page.getByRole("region", {
+      name: "Export preview",
+    });
+    await expect(exportPreview.getByRole("code")).toContainText(":root");
+
+    await exportDialog.getByRole("button", { name: "Design Tokens" }).click();
+    await expect(exportPreview.getByRole("code")).toContainText(
+      "Colour palette exported from Blueprint",
+    );
+  });
+
+  test("confirms before importing over the current project", async ({
+    seededPage: page,
+  }) => {
+    const importedProject = {
+      kind: "blueprint-palette",
+      version: 1,
+      project: {
+        ...defaultProject(),
+        name: "Imported palette",
+      },
+    };
+
+    const chooseImportFile = async () => {
+      await page.getByRole("button", { name: "Export palette" }).click();
+      const chooserPromise = page.waitForEvent("filechooser");
+      await page.getByRole("button", { name: "Import project" }).click();
+      const chooser = await chooserPromise;
+      await chooser.setFiles({
+        name: "imported.blueprint.json",
+        mimeType: "application/json",
+        buffer: Buffer.from(JSON.stringify(importedProject)),
       });
+    };
+
+    await chooseImportFile();
+    const confirmation = page.getByRole("alertdialog", {
+      name: "Replace current project?",
+    });
+    await confirmation.getByRole("button", { name: "Cancel" }).click();
+    await expect(page.getByLabel("Project name")).toHaveValue(
+      "My colour system",
+    );
+
+    await chooseImportFile();
+    await confirmation.getByRole("button", { name: "Import project" }).click();
+    await expect(page.getByLabel("Project name")).toHaveValue(
+      "Imported palette",
+    );
+    await page.reload();
+    await expect(page.getByLabel("Project name")).toHaveValue(
+      "Imported palette",
+    );
+  });
+
+  test("imports from the header", async ({ seededPage: page }) => {
+    const importButton = page.getByRole("button", { name: "Import palette" });
+    await expect(importButton).toBeVisible();
+
+    const chooserPromise = page.waitForEvent("filechooser");
+    await importButton.click();
+    const chooser = await chooserPromise;
+    await chooser.setFiles({
+      name: "header-import.blueprint.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(
+        JSON.stringify({
+          kind: "blueprint-palette",
+          version: 1,
+          project: { ...defaultProject(), name: "Header import" },
+        }),
+      ),
     });
 
-    const exportButton = page.getByRole("button", {
-      name: "Export palette CSS",
-    });
-    await exportButton.click();
-    await expect(exportButton).toContainText("Copy failed");
     await expect(
-      page.getByText("Could not copy the palette CSS.", { exact: true }),
-    ).toBeAttached();
+      page.getByRole("alertdialog", { name: "Replace current project?" }),
+    ).toBeVisible();
   });
 
   test("announces creation errors", async ({ page }) => {
@@ -459,5 +521,24 @@ test.describe("Interface feedback", () => {
 
     const error = page.getByText("Enter a project name.", { exact: true });
     await expect(error).toHaveAttribute("role", "alert");
+  });
+
+  test("imports a saved project from the creation screen", async ({ page }) => {
+    await page.goto("/");
+    await page.evaluate(() => window.localStorage.clear());
+    await page.reload();
+
+    const importedProject = {
+      kind: "blueprint-palette",
+      version: 1,
+      project: { ...defaultProject(), name: "Opened project" },
+    };
+    await page.getByRole("button", { name: "Choose File" }).setInputFiles({
+      name: "opened.blueprint.json",
+      mimeType: "application/json",
+      buffer: Buffer.from(JSON.stringify(importedProject)),
+    });
+
+    await expect(page.getByLabel("Project name")).toHaveValue("Opened project");
   });
 });

@@ -1,9 +1,14 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { SelectableCard } from "@astryxdesign/core/SelectableCard";
 import { TextInput } from "@astryxdesign/core/TextInput";
-import { Button, normalizeHex } from "@blueprint/ui";
+import {
+  Button,
+  normalizeHex,
+  parseBlueprintPaletteProject,
+  type PaletteProjectData,
+} from "@blueprint/ui";
 import { ColourPicker } from "./ColourPicker";
 import styles from "./palette-workspace.module.css";
 
@@ -15,13 +20,27 @@ interface PaletteCreationProps {
     seedHex: string;
     method: CreationMethod;
   }) => void;
+  onImport: (project: PaletteProjectData) => void;
 }
 
-export function PaletteCreation({ onCreate }: PaletteCreationProps) {
+export function PaletteCreation({ onCreate, onImport }: PaletteCreationProps) {
   const [name, setName] = useState("My colour system");
   const [seedHex, setSeedHex] = useState("#7646ab");
   const [method, setMethod] = useState<CreationMethod>("brand");
   const [error, setError] = useState("");
+  const importInputRef = useRef<HTMLInputElement>(null);
+
+  const importProject = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    try {
+      onImport(parseBlueprintPaletteProject(await file.text()));
+    } catch {
+      setError("Choose a valid Blueprint project file.");
+    }
+  };
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -92,16 +111,20 @@ export function PaletteCreation({ onCreate }: PaletteCreationProps) {
             </span>
             <span className={styles.methodCard}>
               <SelectableCard
-                isDisabled
-                label="Import tokens, coming soon"
+                label="Import Blueprint project"
                 isSelected={false}
-                onChange={() => undefined}
+                onChange={() => importInputRef.current?.click()}
               >
-                <strong>
-                  Import tokens <small>Soon</small>
-                </strong>
-                <span>Bring an existing token file into Blueprint.</span>
+                <strong>Import project</strong>
+                <span>Continue editing a saved Blueprint palette.</span>
               </SelectableCard>
+              <input
+                ref={importInputRef}
+                className={styles.visuallyHidden}
+                type="file"
+                accept=".json,.blueprint.json,application/json"
+                onChange={importProject}
+              />
             </span>
           </section>
         </fieldset>
