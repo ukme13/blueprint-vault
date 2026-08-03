@@ -18,7 +18,7 @@ import { useColourFormat } from "./ColourFormatContext";
 import { ColourFormatSelector } from "./ColourFormatSelector";
 import { ColourPicker } from "./ColourPicker";
 import styles from "./palette-workspace.module.css";
-import { useCopyFeedback } from "./useCopyFeedback";
+import { useCopyFeedback } from "../useCopyFeedback";
 
 interface ShadeDetailPopoverProps {
   paletteName: string;

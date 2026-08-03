@@ -35,6 +35,7 @@ import {
   type PaletteProjectData,
   type TrackAdjustments,
 } from "@blueprint/ui";
+import { WorkspaceNav } from "../WorkspaceNav";
 import { PaletteCreation } from "./PaletteCreation";
 import { PaletteControls } from "./PaletteControls";
 import { ColourPicker } from "./ColourPicker";
@@ -674,6 +675,7 @@ function PaletteStudioContent() {
           </TabList>
         </nav>
         <span className={styles.headerActions}>
+          <WorkspaceNav active="colour" />
           <input
             ref={headerImportInputRef}
             className={styles.visuallyHidden}
