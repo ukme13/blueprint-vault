@@ -2,8 +2,8 @@
 
 Blueprint Vault is a monorepo for developing the Blueprint design system and
 testing it in real applications. It currently contains an OKLCH colour-palette
-laboratory, shared design tokens, an Astryx theme bridge, and an early shared
-Button component.
+laboratory, a type-scale studio, shared design tokens, an Astryx theme bridge,
+and an early shared Button component.
 
 Blueprint is still in development. The current applications are internal tools
 and documentation, not production products.
@@ -13,16 +13,16 @@ and documentation, not production products.
 ```text
 apps/
   docs/         Blueprint design-system documentation
-  playground/   OKLCH palette experiments and live component previews
+  playground/   OKLCH palette and type-scale experiments, live component previews
 packages/
-  ui/           Shared tokens, theme bridge, components, and colour engine
+  ui/           Shared tokens, theme bridge, components, colour and typography engines
   eslint-config/
   typescript-config/
 ```
 
-`apps/playground` contains palette generation and colour experiments.
-Product-specific pages, content, layouts, and business logic should live inside
-their own application.
+`apps/playground` contains the palette workspace (`/`) and the typography
+workspace (`/typography`). Product-specific pages, content, layouts, and
+business logic should live inside their own application.
 
 `apps/docs` is the home for design-system guidance and component documentation.
 The Button documentation is available at `/docs/button`.
@@ -75,10 +75,12 @@ pnpm --filter playground test:e2e
 ```
 
 Vitest covers the reusable colour conversion and palette-generation functions
-in `packages/ui/src/color`. Playwright covers the main palette-workspace flows,
-including navigation, persistence, reset behaviour, shade-count changes,
-lightness editing, colour-track actions, WCAG results, responsive layouts, and
-the resizable settings panel.
+in `packages/ui/src/color`, and the type-scale generation, role-assignment,
+validation, and export functions in `packages/ui/src/typography`. Playwright
+covers the main palette-workspace flows, including navigation, persistence,
+reset behaviour, shade-count changes, lightness editing, colour-track actions,
+WCAG results, responsive layouts, and the resizable settings panel, plus the
+typography-workspace flows: creation, persistence, scale editing, and export.
 
 ## Colour and token system
 
@@ -214,19 +216,35 @@ The documentation application and shared component library are still early.
 Button is the first documented shared component. New shared components should
 be added only when a real product demonstrates a reusable need.
 
+The [Typography Studio](docs/roadmap/typography-studio.md) first version is
+complete. It generates a modular type scale from a base font size, a ratio,
+and a step count, then maps the steps to six semantic roles (display,
+heading, title, body, label, caption) with editable weight, line height, and
+letter spacing per role. It flags common issues, such as body text that is
+too small, line height that is too tight, a ratio that grows too fast, or too
+many steps. English and Thai live previews use real semantic HTML. Projects
+persist locally in the browser, and the scale exports as CSS custom
+properties or a Tailwind v4 `@theme` block. Project-file import and export,
+fluid typography, and responsive per-breakpoint overrides are not built yet;
+see the roadmap document's "Later improvements" for the full list.
+
+CI now runs lint, type checking, unit tests, build, and Playwright checks
+automatically on every push and pull request to `main` (see
+`.github/workflows/ci.yml`).
+
 ## Current roadmap
 
 The next priorities are:
 
 1. Add [colour-vision simulation and an exportable accessibility report](docs/roadmap/colour-vision-simulation.md).
-2. Build the [Typography Studio](docs/roadmap/typography-studio.md) for creating,
-   previewing, validating, and exporting a shared type scale.
-3. Add GitHub Actions to run tests, lint, type checking, builds, and Playwright
-   checks automatically.
-4. Document the core foundations: colour, typography, spacing, shape,
+2. Document the core foundations: colour, typography, spacing, shape,
    elevation, and accessibility.
-5. Define the first product scope before creating a product application such as
+3. Define the first product scope before creating a product application such as
    `apps/ferre`.
+
+Later improvements to the Typography Studio (fluid typography, responsive
+overrides, JSON export, project-file import and export, more presets) remain
+open; see [Typography Studio](docs/roadmap/typography-studio.md).
 
 The completed shared-format, anchor, and manual-edit milestone is documented in
 [Colour formats and anchors](docs/roadmap/colour-formats-and-anchors.md).

@@ -83,7 +83,45 @@
   justify-self: end;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 14px;
+}
+
+.headerActions nav {
+  display: flex;
+  gap: 10px;
+}
+
+.headerActions nav a {
+  color: var(--color-neutral-400);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.headerActions nav a:hover,
+.headerActions nav a[aria-current="page"] {
+  color: var(--color-neutral-100);
+}
+
+.creationHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.creationHeaderActions nav {
+  display: flex;
+  gap: 14px;
+}
+
+.creationHeaderActions nav a {
+  color: var(--color-neutral-400);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.creationHeaderActions nav a:hover,
+.creationHeaderActions nav a[aria-current="page"] {
+  color: var(--color-neutral-100);
 }
 
 .exportDialogHeader,
@@ -1871,6 +1909,11 @@
 
   .breadcrumb,
   .brand strong {
+    display: none;
+  }
+
+  .headerActions nav,
+  .creationHeaderActions nav {
     display: none;
   }
 

@@ -9,6 +9,7 @@ import {
   parseBlueprintPaletteProject,
   type PaletteProjectData,
 } from "@blueprint/ui";
+import { WorkspaceNav } from "../WorkspaceNav";
 import { ColourPicker } from "./ColourPicker";
 import styles from "./palette-workspace.module.css";
 
@@ -67,7 +68,10 @@ export function PaletteCreation({ onCreate, onImport }: PaletteCreationProps) {
           </span>
           Blueprint
         </p>
-        <a href="http://localhost:3001">Documentation</a>
+        <span className={styles.creationHeaderActions}>
+          <WorkspaceNav active="colour" />
+          <a href="http://localhost:3001">Documentation</a>
+        </span>
       </header>
 
       <form className={styles.creationCard} onSubmit={submit}>
