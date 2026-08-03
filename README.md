@@ -40,7 +40,7 @@ The Button documentation is available at `/docs/button`.
 
 Requirements:
 
-- Node.js 20.9 or newer
+- Node.js 21.7 or newer
 - pnpm 9
 
 Install dependencies and start all development applications:
