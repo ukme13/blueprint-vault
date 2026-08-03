@@ -218,7 +218,7 @@ be added only when a real product demonstrates a reusable need.
 
 The next priorities are:
 
-1. Add colour-vision simulation and an exportable accessibility report.
+1. Add [colour-vision simulation and an exportable accessibility report](docs/roadmap/colour-vision-simulation.md).
 2. Build the [Typography Studio](docs/roadmap/typography-studio.md) for creating,
    previewing, validating, and exporting a shared type scale.
 3. Add GitHub Actions to run tests, lint, type checking, builds, and Playwright
