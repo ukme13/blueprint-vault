@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import Link from "next/link";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
 import { Selector } from "@astryxdesign/core/Selector";
 import { TextInput } from "@astryxdesign/core/TextInput";
@@ -159,6 +160,14 @@ export function TypographyCreation({ onCreate }: TypographyCreationProps) {
             Create type scale
           </Button>
         </footer>
+
+        <section className={styles.presetCallout}>
+          <span>
+            <strong>Ferre EN</strong>
+            Start with 23 responsive roles, Orbitron and Noto Sans Thai.
+          </span>
+          <Link href="/typography/ferre">Open Ferre preset</Link>
+        </section>
       </form>
     </main>
   );
