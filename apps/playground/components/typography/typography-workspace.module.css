@@ -449,6 +449,37 @@
   color: var(--color-neutral-300);
 }
 
+.presetCallout {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid var(--color-neutral-750);
+  border-radius: 12px;
+  background: var(--color-neutral-850);
+}
+
+.presetCallout span {
+  display: grid;
+  gap: 4px;
+  color: var(--color-neutral-500);
+  font-size: 11px;
+}
+
+.presetCallout strong {
+  color: var(--color-neutral-200);
+  font-size: 12px;
+}
+
+.presetCallout a {
+  flex: none;
+  margin-left: auto;
+  color: var(--color-primary-300);
+  font-size: 11px;
+  text-decoration: none;
+}
+
 .visuallyHidden {
   position: absolute;
   width: 1px;
