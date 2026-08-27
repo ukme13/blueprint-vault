@@ -92,11 +92,6 @@ export interface TypeRole {
   id: string;
   name: string;
   groupId: string;
-  /**
-   * Semantic element. Ignored for the heading group, which derives h1–h6 from
-   * the role's position.
-   */
-  element: string;
   fontId: string;
   fontWeight: number;
   textTransform: TypographyTextTransform;
@@ -128,25 +123,19 @@ export interface TypeSystem {
   roles: TypeRole[];
 }
 
-const HEADING_ID = /^h([1-6])$/;
-
 /**
- * Default semantic element for a role id.
+ * Semantic element for a role, derived rather than stored.
  *
- * Only a default: the element is stored on the role and can be changed, except
- * in the heading group where it is derived and not offered.
+ * The heading group is h1 to h6 by position; everything else is a paragraph.
+ * A stored, editable element was a control nobody needed: headings already know
+ * their level, and every other role is a visual style applied to body copy.
  */
-export function defaultElementForRole(id: string): string {
-  const normalized = id.trim().toLowerCase();
-
-  if (HEADING_ID.test(normalized)) return normalized;
-  if (normalized.startsWith("display")) return "h2";
-  if (normalized.startsWith("label")) return "label";
-  if (normalized.startsWith("button")) return "span";
-  if (normalized.startsWith("caption") || normalized.startsWith("overline")) {
-    return "small";
-  }
-  return "p";
+export function elementForRole(system: TypeSystem, role: TypeRole): string {
+  if (role.groupId !== HEADING_GROUP_ID) return "p";
+  const index = rolesInGroup(system, HEADING_GROUP_ID).findIndex(
+    (candidate) => candidate.id === role.id,
+  );
+  return `h${Math.min(Math.max(index, 0) + 1, MAX_HEADING_LEVEL)}`;
 }
 
 /** Roles in a group, in insertion order. */
@@ -229,8 +218,6 @@ export function reindexGroup(system: TypeSystem, groupId: string): TypeSystem {
         ...role,
         id: renamed ?? role.id,
         name: renamed && role.name === role.id ? renamed : role.name,
-        element:
-          renamed && groupId === HEADING_GROUP_ID ? renamed : role.element,
         sameAsRoleId: following,
       };
     }),

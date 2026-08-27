@@ -5,6 +5,7 @@ import {
   splitFontFamily,
   type LegacyTypographyProject,
 } from "./migrate";
+import { elementForRole } from "./system";
 import { generateTypeScale } from "./scale";
 import { SEMANTIC_ROLES } from "./types";
 
@@ -117,7 +118,9 @@ describe("migrateLegacyProject", () => {
 
   it("leaves exactly one role owning the h1 element", () => {
     // Two h1s would misrepresent the document outline the preview demonstrates.
-    const h1s = system.roles.filter((role) => role.element === "h1");
+    const h1s = system.roles.filter(
+      (role) => elementForRole(system, role) === "h1",
+    );
     expect(h1s.map((role) => role.id)).toEqual(["h1"]);
   });
 
@@ -153,7 +156,6 @@ describe("normalizeStoredSystem", () => {
         id: "body",
         name: "body",
         group: "body",
-        element: "p",
         fontId: "base",
         fontWeight: 400,
         textTransform: "none",
@@ -209,5 +211,43 @@ describe("normalizeStoredSystem", () => {
   it("rejects something that is not a system", () => {
     expect(normalizeStoredSystem(null)).toBeNull();
     expect(normalizeStoredSystem({ roles: "nope" })).toBeNull();
+  });
+});
+
+describe("normalizeStoredSystem repairs stale ids", () => {
+  it("turns a group holding body and body-1 into body-1 and body-2", () => {
+    /* An earlier release appended a role without renaming its siblings, so a
+       saved project can hold both. Loading should fix it untouched. */
+    const stored = {
+      id: "s",
+      name: "Saved",
+      baseFontSizePx: 16,
+      ratio: 1.25,
+      stepCount: 9,
+      breakpointPx: 768,
+      groups: [
+        { id: "body", label: "Body", isFixed: true, indexing: "number" },
+      ],
+      fonts: [
+        { id: "base", name: "Base", families: ["Inter"], source: "system" },
+      ],
+      roles: ["body", "body-1"].map((id) => ({
+        id,
+        name: id,
+        groupId: "body",
+        fontId: "base",
+        fontWeight: 400,
+        textTransform: "none",
+        stepOffset: 0,
+        sameAsRoleId: null,
+        desktop: { fontSizePx: 16, lineHeight: 1.5, letterSpacingPx: 0 },
+        mobile: { fontSizePx: 16, lineHeight: 1.5, letterSpacingPx: 0 },
+      })),
+    };
+
+    const system = normalizeStoredSystem(stored)!;
+    expect(
+      system.roles.filter((r) => r.groupId === "body").map((r) => r.id),
+    ).toEqual(["body-1", "body-2"]);
   });
 });

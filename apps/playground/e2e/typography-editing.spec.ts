@@ -140,45 +140,41 @@ test.describe("Typography scale editing", () => {
       ).toBeVisible();
     }
 
-    const before = await settings.getByLabel(/ element$/).count();
+    const before = await settings.getByLabel(/ font weight$/).count();
     await settings
       .getByRole("heading", { name: "Body", exact: true })
       .locator("..")
       .getByRole("button", { name: "Add" })
       .click();
 
-    expect(await settings.getByLabel(/ element$/).count()).toBe(before + 1);
+    expect(await settings.getByLabel(/ font weight$/).count()).toBe(before + 1);
   });
 
   test("removes a role", async ({ seededPage: page }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    const before = await settings.getByLabel(/ element$/).count();
+    const before = await settings.getByLabel(/ font weight$/).count();
 
     // exact, or this also matches the group's own "Remove Caption group".
     await settings
       .getByRole("button", { name: "Remove caption", exact: true })
       .click();
 
-    expect(await settings.getByLabel(/ element$/).count()).toBe(before - 1);
+    expect(await settings.getByLabel(/ font weight$/).count()).toBe(before - 1);
     await expect(
       settings.getByRole("button", { name: "Remove caption", exact: true }),
     ).toBeHidden();
   });
 
-  test("changes the element a role renders as", async ({
+  test("derives heading elements from position", async ({
     seededPage: page,
   }) => {
-    const settings = page.getByRole("region", { name: "Type scale settings" });
-    // Astryx Selector is a listbox, not a native select.
-    await settings.getByLabel("body element").click();
-    await page.getByRole("option", { name: "h4", exact: true }).click();
-
     await page.getByRole("button", { name: "Preview", exact: true }).click();
+    const preview = page.getByRole("region", { name: "Type scale preview" });
+
+    // Migrated legacy heading and title become h1 and h2.
+    await expect(preview.getByRole("heading", { level: 1 })).toHaveCount(1);
     await expect(
-      page
-        .getByRole("region", { name: "Type scale preview" })
-        .getByRole("heading", { level: 4 })
-        .first(),
+      preview.getByRole("heading", { level: 2 }).first(),
     ).toBeVisible();
   });
 
@@ -186,10 +182,8 @@ test.describe("Typography scale editing", () => {
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    // body is a free-form role, so it keeps the control.
-    await expect(settings.getByLabel("body element")).toBeVisible();
-    // heading roles derive their element from position.
-    await expect(settings.getByLabel("heading element")).toBeHidden();
+    // The element is derived everywhere now, so no role offers the control.
+    await expect(settings.getByLabel(/ element$/)).toHaveCount(0);
   });
 
   test("adds a group, renames it, and moves it", async ({
