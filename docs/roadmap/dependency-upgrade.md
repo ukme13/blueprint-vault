@@ -200,7 +200,7 @@ If it stalls, ESLint 9 has a `maintenance` tag at 9.39.5 as a holding position.
 `eslint-plugin-react@7.37.5` — the latest stable — declares
 `^3 || ... || ^9.7` and does not accept ESLint 10. It is used centrally in both
 `next.js` and `react-internal.js`, so it cannot simply be dropped. The only
-newer publish is `7.8.0-rc.0`, a prerelease whose peer range is *older*
+newer publish is `7.8.0-rc.0`, a prerelease whose peer range is _older_
 (`^3 || ^4`), and our own package rules forbid prereleases anyway.
 
 So this stage moved to the newest 9.x instead:
@@ -288,10 +288,10 @@ stable, and Microsoft describes 6.0 as "the bridge between TypeScript 5.9 and
 peer range.** 7.0.2 is the native Go port, and the npm package is a thin wrapper
 around 20 platform binaries:
 
-| | 5.9.2 | 6.0.3 | 7.0.2 |
-| --- | --- | --- | --- |
-| unpacked size | 23.6 MB | 24.3 MB | 2.5 MB |
-| `bin` | `tsc`, `tsserver` | `tsc`, `tsserver` | `tsc` only |
+|               | 5.9.2             | 6.0.3             | 7.0.2      |
+| ------------- | ----------------- | ----------------- | ---------- |
+| unpacked size | 23.6 MB           | 24.3 MB           | 2.5 MB     |
+| `bin`         | `tsc`, `tsserver` | `tsc`, `tsserver` | `tsc` only |
 
 Its `package.json` maps the root export to `./lib/version.cjs` — importing
 `typescript` yields only a version string. There is no `lib/typescript.js` in the
@@ -299,7 +299,7 @@ package, `main` and `types` are unset, and the whole API surface lives under
 `./unstable/*`. It vendors `vscode-jsonrpc` instead of shipping `tsserver`.
 
 So `tsc` works — `check-types`, `test` and `build` all pass under 7.0.2 — but
-anything using TypeScript *as a library* breaks. `typescript-eslint` throws
+anything using TypeScript _as a library_ breaks. `typescript-eslint` throws
 outright: "typescript-eslint does not support TS 7.0." Their tracking issue is
 [typescript-eslint#10940], still open, and aimed at TS **>=7.1**.
 
@@ -348,7 +348,7 @@ and 4 are both capped by upstream rather than by this repo.
   `set-state-in-effect` suppressions are gone.
 
   A `key` was considered for the dialog and rejected. Closing sets the active
-  track to `null`, so the key would change *while the dialog is closing* and
+  track to `null`, so the key would change _while the dialog is closing_ and
   remount it mid-transition. Astryx's Dialog animates out — `astryx.css` uses
   `transition-behavior: allow-discrete` and `@starting-style`, and `Dialog.js`
   computes a directional entry animation from `durationVars`/`easeVars` — so a
