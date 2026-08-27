@@ -118,4 +118,64 @@ test.describe("Typography scale editing", () => {
       "true",
     );
   });
+
+  test("migrates a project saved before the merged model", async ({
+    seededPage: page,
+  }) => {
+    // The fixture seeds the pre-merge shape: roleStyles and a flat fontFamily.
+    // Reaching the editor at all means the migration ran.
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await expect(settings.getByRole("heading", { name: "Body" })).toBeVisible();
+    await expect(settings.getByLabel("Base font stack")).toHaveValue(
+      /Geist Sans/,
+    );
+  });
+
+  test("groups roles and adds one to a group", async ({ seededPage: page }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+
+    for (const group of ["Display", "Heading", "Body", "Supporting"]) {
+      await expect(
+        settings.getByRole("heading", { name: group, exact: true }),
+      ).toBeVisible();
+    }
+
+    const before = await settings.getByLabel(/ element$/).count();
+    await settings
+      .getByRole("heading", { name: "Body", exact: true })
+      .locator("..")
+      .getByRole("button", { name: "Add" })
+      .click();
+
+    expect(await settings.getByLabel(/ element$/).count()).toBe(before + 1);
+  });
+
+  test("removes a role", async ({ seededPage: page }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const before = await settings.getByLabel(/ element$/).count();
+
+    await settings.getByRole("button", { name: "Remove caption" }).click();
+
+    expect(await settings.getByLabel(/ element$/).count()).toBe(before - 1);
+    await expect(
+      settings.getByRole("button", { name: "Remove caption" }),
+    ).toBeHidden();
+  });
+
+  test("changes the element a role renders as", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    // Astryx Selector is a listbox, not a native select.
+    await settings.getByLabel("body element").click();
+    await page.getByRole("option", { name: "h4", exact: true }).click();
+
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    await expect(
+      page
+        .getByRole("region", { name: "Type scale preview" })
+        .getByRole("heading", { level: 4 })
+        .first(),
+    ).toBeVisible();
+  });
 });
