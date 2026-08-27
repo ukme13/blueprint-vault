@@ -67,4 +67,55 @@ test.describe("Typography scale editing", () => {
 
     await expect(page.getByText(/grows quickly/i)).toBeVisible();
   });
+
+  test("switches preview templates and languages", async ({
+    seededPage: page,
+  }) => {
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    const preview = page.getByRole("region", { name: "Type scale preview" });
+
+    // Specimen is the default and lists every role.
+    await expect(
+      preview.getByRole("heading", { name: "display" }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Article" }).click();
+    await expect(
+      preview.getByRole("heading", {
+        name: "A type scale is a set of decisions, not a set of sizes",
+        level: 1,
+      }),
+    ).toBeVisible();
+
+    // Exactly one h1: the mapping puts only `display` at the top level.
+    expect(await preview.getByRole("heading", { level: 1 }).count()).toBe(1);
+
+    await page.getByRole("button", { name: "ไทย" }).click();
+    await expect(preview.getByRole("heading", { level: 1 })).toContainText(
+      "สเกลตัวอักษร",
+    );
+
+    await page.getByRole("button", { name: "Marketing page" }).click();
+    await expect(preview.getByRole("heading", { level: 1 })).toBeVisible();
+  });
+
+  test("keeps the chosen template after a reload", async ({
+    seededPage: page,
+  }) => {
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    await page.getByRole("button", { name: "Article" }).click();
+
+    await page.reload();
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+
+    await expect(
+      page
+        .getByRole("region", { name: "Type scale preview" })
+        .getByRole("heading", { level: 1 }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Article" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
 });

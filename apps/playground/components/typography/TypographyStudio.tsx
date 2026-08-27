@@ -21,6 +21,7 @@ import {
   MIN_BASE_FONT_SIZE_PX,
   MIN_STEP_COUNT,
   SEMANTIC_ROLES,
+  elementForRole,
   formatLength,
   TYPE_SCALE_UNITS,
   TYPE_SCALE_RATIO_PRESETS,
@@ -32,6 +33,16 @@ import {
 import { TypographyCreation } from "./TypographyCreation";
 import { TypographyExportDialog } from "./TypographyExportDialog";
 import { WorkspaceNav } from "../WorkspaceNav";
+import {
+  ArticleTemplate,
+  MarketingTemplate,
+  PREVIEW_TEMPLATES,
+  PREVIEW_WIDTH_OPTIONS,
+  PREVIEW_WIDTHS,
+  type PreviewLanguage,
+  type PreviewTemplateId,
+  type PreviewWidth,
+} from "./preview-templates";
 import styles from "./typography-workspace.module.css";
 import type { RoleStyleMap, TypographySection } from "./types";
 
@@ -48,10 +59,13 @@ interface TypographyProject {
   unit: TypeScaleUnit;
   /** Text shown at every step so a scale can be judged in real copy. */
   specimenText: string;
+  /** Which preview template the Preview section shows. */
+  template: PreviewTemplateId;
 }
 
 const DEFAULT_UNIT: TypeScaleUnit = "rem";
 const DEFAULT_SPECIMEN_TEXT = "How vexingly quick daft zebras jump";
+const DEFAULT_TEMPLATE: PreviewTemplateId = "specimen";
 
 const PREVIEW_TEXT: Record<SemanticRole, { en: string; th: string }> = {
   display: { en: "Design with clarity", th: "ออกแบบด้วยความชัดเจน" },
@@ -156,6 +170,11 @@ function readStoredProject(): TypographyProject | null {
         "specimenText" in parsed && typeof parsed.specimenText === "string"
           ? parsed.specimenText
           : DEFAULT_SPECIMEN_TEXT,
+      template:
+        "template" in parsed &&
+        PREVIEW_TEMPLATES.some((entry) => entry.id === parsed.template)
+          ? (parsed.template as PreviewTemplateId)
+          : DEFAULT_TEMPLATE,
     };
   } catch {
     return null;
@@ -169,6 +188,10 @@ export function TypographyStudio() {
     useState<TypographySection>("editor");
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
+  /* Width and language are ways of looking at the project, not part of it, so
+     they are view state rather than persisted fields. */
+  const [previewWidth, setPreviewWidth] = useState<PreviewWidth>("desktop");
+  const [previewLang, setPreviewLang] = useState<PreviewLanguage>("en");
   const inspectorPanel = useResizable({
     autoSaveId: "blueprint-typography-inspector",
     defaultSize: 340,
@@ -272,6 +295,7 @@ export function TypographyStudio() {
             roleStyles: defaultRoleStyles(assignDefaultRoles(initialSteps)),
             unit: DEFAULT_UNIT,
             specimenText: DEFAULT_SPECIMEN_TEXT,
+            template: DEFAULT_TEMPLATE,
           });
         }}
       />
@@ -305,6 +329,20 @@ export function TypographyStudio() {
   const rolesLargeToSmall = SEMANTIC_ROLES.map((role) =>
     roles.find((candidate) => candidate.role === role)!,
   );
+
+  /* Templates receive resolved CSS so they never do scale maths themselves.
+     Sizes stay in px here: this is a rendered preview, not exported output. */
+  const styleForRole = (role: SemanticRole): CSSProperties => {
+    const assignment = roles.find((candidate) => candidate.role === role)!;
+    const step = steps.find((candidate) => candidate.step === assignment.step)!;
+    return {
+      fontFamily: project.fontFamily,
+      fontSize: `${step.fontSizePx}px`,
+      fontWeight: assignment.fontWeight,
+      lineHeight: assignment.lineHeight,
+      letterSpacing: `${assignment.letterSpacingPx}px`,
+    };
+  };
 
   return (
     <main className={styles.workspace}>
@@ -542,45 +580,107 @@ export function TypographyStudio() {
 
       {activeSection === "preview" && (
         <section aria-label="Type scale preview" className={styles.previewPage}>
-          {rolesLargeToSmall.map((role) => {
-            const step = steps.find(
-              (candidate) => candidate.step === role.step,
-            )!;
-            const text = PREVIEW_TEXT[role.role];
-            const style: CSSProperties = {
-              fontFamily: project.fontFamily,
-              fontSize: `${step.fontSizePx}px`,
-              fontWeight: role.fontWeight,
-              lineHeight: role.lineHeight,
-              letterSpacing: `${role.letterSpacingPx}px`,
-            };
-            const Tag =
-              role.role === "display" || role.role === "heading"
-                ? "h1"
-                : role.role === "title"
-                  ? "h2"
-                  : role.role === "body"
-                    ? "p"
-                    : role.role === "label"
-                      ? "label"
-                      : "small";
+          <div
+            className={styles.previewControls}
+            role="group"
+            aria-label="Preview options"
+          >
+            <div
+              className={styles.previewControlGroup}
+              role="group"
+              aria-label="Template"
+            >
+              {PREVIEW_TEMPLATES.map((entry) => (
+                <Button
+                  key={entry.id}
+                  aria-pressed={project.template === entry.id}
+                  scheme="neutral"
+                  size="xs"
+                  variant={
+                    project.template === entry.id ? "contained" : "outlined"
+                  }
+                  onClick={() =>
+                    setProject((current) =>
+                      current ? { ...current, template: entry.id } : current,
+                    )
+                  }
+                >
+                  {entry.label}
+                </Button>
+              ))}
+            </div>
+            <div
+              className={styles.previewControlGroup}
+              role="group"
+              aria-label="Preview width"
+            >
+              {PREVIEW_WIDTH_OPTIONS.map((entry) => (
+                <Button
+                  key={entry.id}
+                  aria-pressed={previewWidth === entry.id}
+                  scheme="neutral"
+                  size="xs"
+                  variant={previewWidth === entry.id ? "contained" : "outlined"}
+                  onClick={() => setPreviewWidth(entry.id)}
+                >
+                  {entry.label}
+                </Button>
+              ))}
+            </div>
+            <div
+              className={styles.previewControlGroup}
+              role="group"
+              aria-label="Preview language"
+            >
+              {(["en", "th"] as PreviewLanguage[]).map((code) => (
+                <Button
+                  key={code}
+                  aria-pressed={previewLang === code}
+                  scheme="neutral"
+                  size="xs"
+                  variant={previewLang === code ? "contained" : "outlined"}
+                  onClick={() => setPreviewLang(code)}
+                >
+                  {code === "en" ? "English" : "ไทย"}
+                </Button>
+              ))}
+            </div>
+          </div>
 
-            return (
-              <article key={role.role} className={styles.previewRole}>
-                <header>
-                  <h3>{role.role}</h3>
-                  <p>
-                    {step.fontSizePx.toFixed(1)}px · weight {role.fontWeight} ·
-                    line height {role.lineHeight}
-                  </p>
-                </header>
-                <Tag style={style}>{text.en}</Tag>
-                <Tag style={style} lang="th">
-                  {text.th}
-                </Tag>
-              </article>
-            );
-          })}
+          <div
+            className={styles.previewStage}
+            style={{ maxWidth: `${PREVIEW_WIDTHS[previewWidth]}px` }}
+          >
+            {project.template === "article" && (
+              <ArticleTemplate lang={previewLang} styleFor={styleForRole} />
+            )}
+            {project.template === "marketing" && (
+              <MarketingTemplate lang={previewLang} styleFor={styleForRole} />
+            )}
+            {project.template === "specimen" &&
+              rolesLargeToSmall.map((role) => {
+                const step = steps.find(
+                  (candidate) => candidate.step === role.step,
+                )!;
+                const text = PREVIEW_TEXT[role.role];
+                const Tag = elementForRole(role.role) as "p";
+
+                return (
+                  <article key={role.role} className={styles.previewRole}>
+                    <header>
+                      <h3>{role.role}</h3>
+                      <p>
+                        {formatLength(step.fontSizePx, project.unit)} · weight{" "}
+                        {role.fontWeight} · line height {role.lineHeight}
+                      </p>
+                    </header>
+                    <Tag style={styleForRole(role.role)}>
+                      {previewLang === "th" ? text.th : text.en}
+                    </Tag>
+                  </article>
+                );
+              })}
+          </div>
         </section>
       )}
 

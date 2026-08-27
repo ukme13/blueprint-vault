@@ -561,3 +561,48 @@
   font-size: var(--font-caption-size);
   line-height: var(--font-caption-line-height);
 }
+
+.previewControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-400);
+  align-items: center;
+  padding-bottom: var(--spacing-300);
+}
+
+.previewControlGroup {
+  display: flex;
+  gap: var(--spacing-100);
+}
+
+.previewStage {
+  width: 100%;
+  margin-inline: auto;
+  transition: max-width 160ms ease;
+}
+
+.templateArticle,
+.templateMarketing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-400);
+}
+
+.templateArticle blockquote {
+  margin: 0;
+  padding-inline-start: var(--spacing-400);
+  border-inline-start: var(--border-width) solid var(--color-border);
+}
+
+.templateArticle figure {
+  margin: 0;
+}
+
+.templateFeatures {
+  display: grid;
+  gap: var(--spacing-500);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+}

@@ -83,7 +83,7 @@ given a unit.
 
 This is small, and it unlocks Stage 5.
 
-## Stage 3 — Preview templates
+## Stage 3 — Preview templates ✅ done
 
 Replace the single specimen view with a template picker. Start with three:
 
@@ -114,6 +114,19 @@ title   → h3     caption → small / figcaption
 
 Add device-width toggles over the preview (mobile, tablet, desktop). The Ferre
 studio already has a viewport switch; unify rather than duplicate.
+
+**Two notes from building it.**
+
+The old preview mapped _both_ `display` and `heading` to `h1`, so every specimen
+emitted two page titles. The shared mapping fixes that — `heading` is now `h2`
+and `title` is `h3` — and a unit test asserts exactly one role maps to `h1`, with
+no skipped heading level. A preview that misrepresents the document outline is
+worse than no preview.
+
+Template and language are handled differently on purpose. The chosen template
+persists with the project, because it is part of what you are designing. Preview
+width and language do not: they are ways of looking at the project, not part of
+it, so they reset on reload.
 
 ## Stage 4 — Preview against the real palette
 

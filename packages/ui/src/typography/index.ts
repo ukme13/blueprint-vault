@@ -3,6 +3,7 @@ export * from "./ferre-preset";
 export * from "./presets";
 export * from "./responsive-export";
 export * from "./responsive-types";
+export * from "./roles";
 export * from "./scale";
 export * from "./types";
 export * from "./validation";
