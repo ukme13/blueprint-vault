@@ -20,15 +20,23 @@ import {
   MAX_STEP_COUNT,
   MIN_BASE_FONT_SIZE_PX,
   MIN_STEP_COUNT,
-  SEMANTIC_ROLES,
-  elementForRole,
+  fontFamilyValue,
   formatLength,
+  migrateLegacyProject,
+  splitFontFamily,
+  defaultElementForRole,
+  nextRoleId,
+  TYPE_ROLE_GROUP_LABELS,
+  TYPE_ROLE_GROUPS,
   TYPE_SCALE_UNITS,
   TYPE_SCALE_RATIO_PRESETS,
   type RoleAssignment,
   type SemanticRole,
-  type TypeScale,
+  type LegacyTypographyProject,
+  type TypeRole,
+  type TypeRoleGroup,
   type TypeScaleUnit,
+  type TypeSystem,
 } from "@blueprint/ui";
 import { TypographyCreation } from "./TypographyCreation";
 import { TypographyExportDialog } from "./TypographyExportDialog";
@@ -49,12 +57,8 @@ import type { RoleStyleMap, TypographySection } from "./types";
 const TYPOGRAPHY_STORAGE_KEY = "blueprint.typography-project.v1";
 
 interface TypographyProject {
-  name: string;
-  fontFamily: string;
-  baseFontSizePx: number;
-  ratio: number;
-  stepCount: number;
-  roleStyles: RoleStyleMap;
+  /** The typography system itself. Everything else here is a preference. */
+  system: TypeSystem;
   /** Output unit. Optional in storage: projects saved before units existed. */
   unit: TypeScaleUnit;
   /** Text shown at every step so a scale can be judged in real copy. */
@@ -66,6 +70,20 @@ interface TypographyProject {
 const DEFAULT_UNIT: TypeScaleUnit = "rem";
 const DEFAULT_SPECIMEN_TEXT = "How vexingly quick daft zebras jump";
 const DEFAULT_TEMPLATE: PreviewTemplateId = "specimen";
+
+/** Elements a role may render as. Kept short: these cover the type roles. */
+const ELEMENT_OPTIONS = [
+  "h1",
+  "h2",
+  "h3",
+  "h4",
+  "h5",
+  "h6",
+  "p",
+  "label",
+  "span",
+  "small",
+];
 
 const PREVIEW_TEXT: Record<SemanticRole, { en: string; th: string }> = {
   display: { en: "Design with clarity", th: "ออกแบบด้วยความชัดเจน" },
@@ -104,81 +122,67 @@ function readStoredProject(): TypographyProject | null {
     if (!stored) return null;
 
     const parsed: unknown = JSON.parse(stored);
+    if (!parsed || typeof parsed !== "object") return null;
+
+    const prefs = readPreferences(parsed);
+
+    /* Two shapes live under this key. The pre-merge one has roleStyles and a
+       flat fontFamily; the merged one has a system. Detect rather than version,
+       so nobody's saved work is orphaned by the rename. */
+    if ("roleStyles" in parsed && !("system" in parsed)) {
+      const legacy = parsed as unknown as LegacyTypographyProject;
+      if (
+        typeof legacy.name !== "string" ||
+        typeof legacy.fontFamily !== "string" ||
+        typeof legacy.baseFontSizePx !== "number" ||
+        typeof legacy.ratio !== "number" ||
+        typeof legacy.stepCount !== "number" ||
+        !legacy.roleStyles
+      ) {
+        return null;
+      }
+      return { system: migrateLegacyProject(legacy), ...prefs };
+    }
+
+    if (!("system" in parsed)) return null;
+    const system = parsed.system as TypeSystem;
     if (
-      !parsed ||
-      typeof parsed !== "object" ||
-      !("name" in parsed) ||
-      typeof parsed.name !== "string" ||
-      !("fontFamily" in parsed) ||
-      typeof parsed.fontFamily !== "string" ||
-      !("baseFontSizePx" in parsed) ||
-      typeof parsed.baseFontSizePx !== "number" ||
-      !("ratio" in parsed) ||
-      typeof parsed.ratio !== "number" ||
-      !("stepCount" in parsed) ||
-      typeof parsed.stepCount !== "number" ||
-      !("roleStyles" in parsed) ||
-      !parsed.roleStyles ||
-      typeof parsed.roleStyles !== "object"
+      !system ||
+      typeof system !== "object" ||
+      !Array.isArray(system.roles) ||
+      !Array.isArray(system.fonts) ||
+      typeof system.baseFontSizePx !== "number"
     ) {
       return null;
     }
 
-    const steps = generateTypeSteps(
-      parsed.baseFontSizePx,
-      parsed.ratio,
-      parsed.stepCount,
-    );
-    const fallbackRoleStyles = defaultRoleStyles(assignDefaultRoles(steps));
-    const roleStyles = { ...fallbackRoleStyles };
-
-    SEMANTIC_ROLES.forEach((role) => {
-      const stored = (parsed.roleStyles as Record<string, unknown>)[role];
-      if (
-        stored &&
-        typeof stored === "object" &&
-        "fontWeight" in stored &&
-        typeof stored.fontWeight === "number" &&
-        "lineHeight" in stored &&
-        typeof stored.lineHeight === "number" &&
-        "letterSpacingPx" in stored &&
-        typeof stored.letterSpacingPx === "number"
-      ) {
-        roleStyles[role] = {
-          fontWeight: stored.fontWeight,
-          lineHeight: stored.lineHeight,
-          letterSpacingPx: stored.letterSpacingPx,
-        };
-      }
-    });
-
-    return {
-      name: parsed.name,
-      fontFamily: parsed.fontFamily,
-      baseFontSizePx: parsed.baseFontSizePx,
-      ratio: parsed.ratio,
-      stepCount: parsed.stepCount,
-      roleStyles,
-      /* Defaulted rather than required: projects saved before units and
-         specimen text existed must still load. */
-      unit:
-        "unit" in parsed &&
-        TYPE_SCALE_UNITS.includes(parsed.unit as TypeScaleUnit)
-          ? (parsed.unit as TypeScaleUnit)
-          : DEFAULT_UNIT,
-      specimenText:
-        "specimenText" in parsed && typeof parsed.specimenText === "string"
-          ? parsed.specimenText
-          : DEFAULT_SPECIMEN_TEXT,
-      template:
-        "template" in parsed &&
-        PREVIEW_TEMPLATES.some((entry) => entry.id === parsed.template)
-          ? (parsed.template as PreviewTemplateId)
-          : DEFAULT_TEMPLATE,
-    };
+    return { system, ...prefs };
   } catch {
     return null;
   }
+}
+
+function readPreferences(parsed: object): {
+  unit: TypeScaleUnit;
+  specimenText: string;
+  template: PreviewTemplateId;
+} {
+  return {
+    unit:
+      "unit" in parsed &&
+      TYPE_SCALE_UNITS.includes(parsed.unit as TypeScaleUnit)
+        ? (parsed.unit as TypeScaleUnit)
+        : DEFAULT_UNIT,
+    specimenText:
+      "specimenText" in parsed && typeof parsed.specimenText === "string"
+        ? parsed.specimenText
+        : DEFAULT_SPECIMEN_TEXT,
+    template:
+      "template" in parsed &&
+      PREVIEW_TEMPLATES.some((entry) => entry.id === parsed.template)
+        ? (parsed.template as PreviewTemplateId)
+        : DEFAULT_TEMPLATE,
+  };
 }
 
 export function TypographyStudio() {
@@ -221,44 +225,147 @@ export function TypographyStudio() {
     }
   }, [hasLoadedProject, project]);
 
+  const system = project?.system ?? null;
+
+  /* Steps still come from the base and ratio; roles linked to a step follow
+     them, roles with step: null keep the size someone set by hand. */
   const steps = useMemo(() => {
-    if (!project) return [];
+    if (!system) return [];
     return generateTypeSteps(
-      project.baseFontSizePx,
-      project.ratio,
-      project.stepCount,
+      system.baseFontSizePx,
+      system.ratio,
+      system.stepCount,
     );
-  }, [project]);
+  }, [system]);
 
-  const roles = useMemo((): RoleAssignment[] => {
-    if (!project) return [];
-    return assignDefaultRoles(steps).map((role) => ({
-      ...role,
-      ...project.roleStyles[role.role],
-    }));
-  }, [project, steps]);
+  const resolvedRoles = useMemo((): TypeRole[] => {
+    if (!system) return [];
+    return system.roles.map((role) => {
+      if (role.step === null) return role;
+      const step = steps.find((candidate) => candidate.step === role.step);
+      if (!step) return role;
+      return {
+        ...role,
+        desktop: { ...role.desktop, fontSizePx: step.fontSizePx },
+        mobile: { ...role.mobile, fontSizePx: step.fontSizePx },
+      };
+    });
+  }, [system, steps]);
 
-  const scale: TypeScale | null = project
-    ? {
-        fontFamily: project.fontFamily,
-        baseFontSizePx: project.baseFontSizePx,
-        ratio: project.ratio,
-        steps,
-        roles,
-      }
+  const resolvedSystem: TypeSystem | null = system
+    ? { ...system, roles: resolvedRoles }
     : null;
 
-  const bodyRole = roles.find((role) => role.role === "body");
-  const bodyStep =
-    bodyRole && steps.find((step) => step.step === bodyRole.step);
+  const updateSystem = (patch: Partial<TypeSystem>) =>
+    setProject((current) =>
+      current
+        ? { ...current, system: { ...current.system, ...patch } }
+        : current,
+    );
 
-  const warnings = project
+  const updateRole = (id: string, patch: Partial<TypeRole>) =>
+    setProject((current) =>
+      current
+        ? {
+            ...current,
+            system: {
+              ...current.system,
+              roles: current.system.roles.map((role) =>
+                role.id === id ? { ...role, ...patch } : role,
+              ),
+            },
+          }
+        : current,
+    );
+
+  /* Editing a size by hand unlinks the role from the scale, so the ratio stops
+     driving it. Line height and spacing are always per-role and never linked. */
+  const updateRoleValue = (
+    id: string,
+    patch: Partial<{ lineHeight: number; letterSpacingPx: number }>,
+  ) =>
+    setProject((current) =>
+      current
+        ? {
+            ...current,
+            system: {
+              ...current.system,
+              roles: current.system.roles.map((role) =>
+                role.id === id
+                  ? {
+                      ...role,
+                      desktop: { ...role.desktop, ...patch },
+                      mobile: { ...role.mobile, ...patch },
+                    }
+                  : role,
+              ),
+            },
+          }
+        : current,
+    );
+
+  const addRole = (group: TypeRoleGroup) =>
+    setProject((current) => {
+      if (!current) return current;
+      const id = nextRoleId(current.system, group);
+      const template =
+        current.system.roles.find((role) => role.group === group) ??
+        current.system.roles[0];
+      if (!template) return current;
+
+      return {
+        ...current,
+        system: {
+          ...current.system,
+          roles: [
+            ...current.system.roles,
+            {
+              ...template,
+              id,
+              name: id,
+              group,
+              element: defaultElementForRole(id),
+              /* A new role starts unlinked: it copies a sibling's size rather
+                 than claiming a step that already belongs to another role. */
+              step: null,
+            },
+          ],
+        },
+      };
+    });
+
+  const removeRole = (id: string) =>
+    setProject((current) =>
+      current
+        ? {
+            ...current,
+            system: {
+              ...current.system,
+              roles: current.system.roles.filter((role) => role.id !== id),
+            },
+          }
+        : current,
+    );
+
+  const bodyRole =
+    resolvedRoles.find((role) => role.id === "body") ??
+    resolvedRoles.find((role) => role.group === "body");
+
+  const warnings = system
     ? [
-        bodyStep ? assessBodyFontSize(bodyStep.fontSizePx) : null,
-        bodyRole ? assessLineHeight(bodyRole.lineHeight) : null,
-        assessScaleGrowth(project.ratio),
-        assessStepCount(project.stepCount),
-        assessRoleWeights(roles),
+        bodyRole ? assessBodyFontSize(bodyRole.desktop.fontSizePx) : null,
+        bodyRole ? assessLineHeight(bodyRole.desktop.lineHeight) : null,
+        assessScaleGrowth(system.ratio),
+        assessStepCount(system.stepCount),
+        assessRoleWeights(
+          resolvedRoles.map((role) => ({
+            role: role.id as never,
+            step: role.step ?? 0,
+            fontWeight: role.fontWeight,
+            lineHeight: role.desktop.lineHeight,
+            letterSpacingPx: role.desktop.letterSpacingPx,
+          })),
+        ),
       ].filter(
         (result): result is NonNullable<typeof result> => result !== null,
       )
@@ -277,7 +384,7 @@ export function TypographyStudio() {
     );
   }
 
-  if (!project || !scale) {
+  if (!project || !system || !resolvedSystem) {
     return (
       <TypographyCreation
         onCreate={({ name, fontFamily, baseFontSizePx, ratio, stepCount }) => {
@@ -287,12 +394,14 @@ export function TypographyStudio() {
             stepCount,
           );
           setProject({
-            name,
-            fontFamily,
-            baseFontSizePx,
-            ratio,
-            stepCount,
-            roleStyles: defaultRoleStyles(assignDefaultRoles(initialSteps)),
+            system: migrateLegacyProject({
+              name,
+              fontFamily,
+              baseFontSizePx,
+              ratio,
+              stepCount,
+              roleStyles: defaultRoleStyles(assignDefaultRoles(initialSteps)),
+            }),
             unit: DEFAULT_UNIT,
             specimenText: DEFAULT_SPECIMEN_TEXT,
             template: DEFAULT_TEMPLATE,
@@ -302,45 +411,33 @@ export function TypographyStudio() {
     );
   }
 
-  const updateProject = (patch: Partial<TypographyProject>) => {
-    setProject((current) => (current ? { ...current, ...patch } : current));
-  };
-
-  const updateRoleStyle = (
-    role: SemanticRole,
-    patch: Partial<RoleStyleMap[SemanticRole]>,
-  ) => {
-    setProject((current) =>
-      current
-        ? {
-            ...current,
-            roleStyles: {
-              ...current.roleStyles,
-              [role]: { ...current.roleStyles[role], ...patch },
-            },
-          }
-        : current,
-    );
-  };
-
   const sortedSteps = [...steps].sort(
     (first, second) => second.fontSizePx - first.fontSizePx,
   );
-  const rolesLargeToSmall = SEMANTIC_ROLES.map((role) =>
-    roles.find((candidate) => candidate.role === role)!,
+  const rolesLargeToSmall = [...resolvedRoles].sort(
+    (first, second) => second.desktop.fontSizePx - first.desktop.fontSizePx,
   );
 
   /* Templates receive resolved CSS so they never do scale maths themselves.
      Sizes stay in px here: this is a rendered preview, not exported output. */
-  const styleForRole = (role: SemanticRole): CSSProperties => {
-    const assignment = roles.find((candidate) => candidate.role === role)!;
-    const step = steps.find((candidate) => candidate.step === assignment.step)!;
+  const styleForRole = (roleId: string): CSSProperties => {
+    /* Templates ask for roles by name. An arbitrary system may not have the one
+       a template wants, so fall back within the group, then to body, then to
+       anything — a template must never render unstyled. */
+    const role =
+      resolvedRoles.find((candidate) => candidate.id === roleId) ??
+      resolvedRoles.find((candidate) => candidate.group === roleId) ??
+      bodyRole ??
+      resolvedRoles[0];
+    if (!role) return {};
+
     return {
-      fontFamily: project.fontFamily,
-      fontSize: `${step.fontSizePx}px`,
-      fontWeight: assignment.fontWeight,
-      lineHeight: assignment.lineHeight,
-      letterSpacing: `${assignment.letterSpacingPx}px`,
+      fontFamily: fontFamilyValue(resolvedSystem, role),
+      fontSize: `${role.desktop.fontSizePx}px`,
+      fontWeight: role.fontWeight,
+      lineHeight: role.desktop.lineHeight,
+      letterSpacing: `${role.desktop.letterSpacingPx}px`,
+      textTransform: role.textTransform,
     };
   };
 
@@ -358,8 +455,8 @@ export function TypographyStudio() {
             className={styles.projectNameInput}
             maxLength={80}
             spellCheck={false}
-            value={project.name}
-            onChange={(event) => updateProject({ name: event.target.value })}
+            value={system.name}
+            onChange={(event) => updateSystem({ name: event.target.value })}
           />
         </p>
         <nav aria-label="Playground sections" className={styles.navigation}>
@@ -422,7 +519,7 @@ export function TypographyStudio() {
           <section aria-label="Generated type steps" className={styles.canvas}>
             <ul className={styles.stepList}>
               {sortedSteps.map((step) => {
-                const stepRoles = roles.filter(
+                const stepRoles = resolvedRoles.filter(
                   (role) => role.step === step.step,
                 );
                 return (
@@ -430,7 +527,10 @@ export function TypographyStudio() {
                     <span
                       className={styles.stepSample}
                       style={{
-                        fontFamily: project.fontFamily,
+                        fontFamily: fontFamilyValue(
+                          resolvedSystem,
+                          bodyRole ?? resolvedRoles[0]!,
+                        ),
                         fontSize: `${step.fontSizePx}px`,
                       }}
                     >
@@ -440,7 +540,7 @@ export function TypographyStudio() {
                       <code>{formatLength(step.fontSizePx, project.unit)}</code>
                       {step.isBase && <small>base</small>}
                       {stepRoles.map((role) => (
-                        <small key={role.role}>{role.role}</small>
+                        <small key={role.id}>{role.id}</small>
                       ))}
                     </span>
                   </li>
@@ -477,18 +577,34 @@ export function TypographyStudio() {
 
             <div className={styles.settingGroup}>
               <h2>Base settings</h2>
-              <TextInput
-                label="Font family"
-                value={project.fontFamily}
-                onChange={(value) => updateProject({ fontFamily: value })}
-              />
+              {system.fonts.map((font, index) => (
+                <TextInput
+                  key={font.id}
+                  description={
+                    index === 0
+                      ? "Comma separated. Later families cover glyphs the first lacks."
+                      : undefined
+                  }
+                  label={`${font.name} font stack`}
+                  value={font.families.join(", ")}
+                  onChange={(value) =>
+                    updateSystem({
+                      fonts: system.fonts.map((candidate) =>
+                        candidate.id === font.id
+                          ? { ...candidate, families: splitFontFamily(value) }
+                          : candidate,
+                      ),
+                    })
+                  }
+                />
+              ))}
               <NumberInput
                 label="Base font size"
                 min={MIN_BASE_FONT_SIZE_PX}
                 max={MAX_BASE_FONT_SIZE_PX}
                 units="px"
-                value={project.baseFontSizePx}
-                onChange={(value) => updateProject({ baseFontSizePx: value })}
+                value={system.baseFontSizePx}
+                onChange={(value) => updateSystem({ baseFontSizePx: value })}
               />
               <Selector
                 label="Scale ratio"
@@ -498,62 +614,118 @@ export function TypographyStudio() {
                     value: String(preset.ratio),
                   })),
                 ]}
-                value={String(project.ratio)}
-                onChange={(value) => updateProject({ ratio: Number(value) })}
+                value={String(system.ratio)}
+                onChange={(value) => updateSystem({ ratio: Number(value) })}
               />
               <NumberInput
                 isIntegerOnly
                 label="Number of steps"
                 min={MIN_STEP_COUNT}
                 max={MAX_STEP_COUNT}
-                value={project.stepCount}
-                onChange={(value) => updateProject({ stepCount: value })}
+                value={system.stepCount}
+                onChange={(value) => updateSystem({ stepCount: value })}
               />
             </div>
 
-            <div className={styles.settingGroup}>
-              <h2>Semantic roles</h2>
-              {rolesLargeToSmall.map((role) => (
-                <div key={role.role} className={styles.roleSetting}>
-                  <span className={styles.roleSettingLabel}>{role.role}</span>
-                  <NumberInput
-                    isIntegerOnly
-                    isLabelHidden
-                    label={`${role.role} font weight`}
-                    min={100}
-                    max={900}
-                    step={100}
-                    value={role.fontWeight}
-                    onChange={(value) =>
-                      updateRoleStyle(role.role, { fontWeight: value })
-                    }
-                  />
-                  <NumberInput
-                    isLabelHidden
-                    label={`${role.role} line height`}
-                    min={1}
-                    max={2.5}
-                    step={0.05}
-                    value={role.lineHeight}
-                    onChange={(value) =>
-                      updateRoleStyle(role.role, { lineHeight: value })
-                    }
-                  />
-                  <NumberInput
-                    isLabelHidden
-                    label={`${role.role} letter spacing`}
-                    min={-2}
-                    max={2}
-                    step={0.05}
-                    units="px"
-                    value={role.letterSpacingPx}
-                    onChange={(value) =>
-                      updateRoleStyle(role.role, { letterSpacingPx: value })
-                    }
-                  />
+            {TYPE_ROLE_GROUPS.map((group) => {
+              const groupRoles = rolesLargeToSmall.filter(
+                (role) => role.group === group,
+              );
+
+              return (
+                <div key={group} className={styles.settingGroup}>
+                  <header className={styles.roleGroupHeader}>
+                    <h2>{TYPE_ROLE_GROUP_LABELS[group]}</h2>
+                    <Button
+                      scheme="neutral"
+                      size="xs"
+                      variant="text"
+                      onClick={() => addRole(group)}
+                    >
+                      Add
+                    </Button>
+                  </header>
+
+                  {groupRoles.length === 0 && (
+                    <p className={styles.roleGroupEmpty}>No roles yet.</p>
+                  )}
+
+                  {groupRoles.map((role) => (
+                    <div key={role.id} className={styles.roleSetting}>
+                      <div className={styles.roleSettingTop}>
+                        <span className={styles.roleSettingLabel}>
+                          {role.id}
+                        </span>
+                        <Button
+                          aria-label={`Remove ${role.id}`}
+                          scheme="neutral"
+                          size="xs"
+                          variant="text"
+                          onClick={() => removeRole(role.id)}
+                        >
+                          Remove
+                        </Button>
+                      </div>
+
+                      <Selector
+                        label={`${role.id} element`}
+                        options={ELEMENT_OPTIONS.map((element) => ({
+                          label: element,
+                          value: element,
+                        }))}
+                        value={role.element}
+                        onChange={(value) =>
+                          updateRole(role.id, { element: value })
+                        }
+                      />
+                      <Selector
+                        label={`${role.id} font`}
+                        options={system.fonts.map((font) => ({
+                          label: font.name,
+                          value: font.id,
+                        }))}
+                        value={role.fontId}
+                        onChange={(value) =>
+                          updateRole(role.id, { fontId: value })
+                        }
+                      />
+                      <NumberInput
+                        isIntegerOnly
+                        label={`${role.id} font weight`}
+                        min={100}
+                        max={900}
+                        step={100}
+                        value={role.fontWeight}
+                        onChange={(value) =>
+                          updateRole(role.id, { fontWeight: value })
+                        }
+                      />
+                      <NumberInput
+                        label={`${role.id} line height`}
+                        min={1}
+                        max={2.5}
+                        step={0.05}
+                        value={role.desktop.lineHeight}
+                        onChange={(value) =>
+                          updateRoleValue(role.id, { lineHeight: value })
+                        }
+                      />
+                      <NumberInput
+                        label={`${role.id} letter spacing`}
+                        min={-2}
+                        max={2}
+                        step={0.05}
+                        units="px"
+                        value={role.desktop.letterSpacingPx}
+                        onChange={(value) =>
+                          updateRoleValue(role.id, { letterSpacingPx: value })
+                        }
+                      />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              );
+            })}
 
             {warnings.length > 0 && (
               <div className={styles.settingGroup}>
@@ -659,24 +831,27 @@ export function TypographyStudio() {
             )}
             {project.template === "specimen" &&
               rolesLargeToSmall.map((role) => {
-                const step = steps.find(
-                  (candidate) => candidate.step === role.step,
-                )!;
-                const text = PREVIEW_TEXT[role.role];
-                const Tag = elementForRole(role.role) as "p";
+                /* Sample copy exists for the six original roles. An arbitrary
+                   role falls back to the specimen text, which is always set. */
+                const sample = PREVIEW_TEXT[role.id as SemanticRole];
+                const text = sample
+                  ? previewLang === "th"
+                    ? sample.th
+                    : sample.en
+                  : project.specimenText || role.name;
+                const Tag = role.element as "p";
 
                 return (
-                  <article key={role.role} className={styles.previewRole}>
+                  <article key={role.id} className={styles.previewRole}>
                     <header>
-                      <h3>{role.role}</h3>
+                      <h3>{role.id}</h3>
                       <p>
-                        {formatLength(step.fontSizePx, project.unit)} · weight{" "}
-                        {role.fontWeight} · line height {role.lineHeight}
+                        {formatLength(role.desktop.fontSizePx, project.unit)} ·
+                        weight {role.fontWeight} · line height{" "}
+                        {role.desktop.lineHeight} · {role.element}
                       </p>
                     </header>
-                    <Tag style={styleForRole(role.role)}>
-                      {previewLang === "th" ? text.th : text.en}
-                    </Tag>
+                    <Tag style={styleForRole(role.id)}>{text}</Tag>
                   </article>
                 );
               })}
@@ -686,8 +861,8 @@ export function TypographyStudio() {
 
       <TypographyExportDialog
         isOpen={isExportDialogOpen}
-        projectName={project.name}
-        scale={scale}
+        projectName={system.name}
+        system={resolvedSystem}
         unit={project.unit}
         onOpenChange={setIsExportDialogOpen}
         onUnitChange={(unit) =>

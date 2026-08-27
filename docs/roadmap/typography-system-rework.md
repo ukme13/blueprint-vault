@@ -176,13 +176,32 @@ Rules:
 
 ## Stages
 
-1. **Model and migration.** Merge the two shapes, add `element`, `step`, and font
+1. ✅ **Model and migration.** Merge the two shapes, add `element`, `step`, and font
    stacks. Migrate both storage keys forward. No new UI.
-2. **Role editor.** Groups, add and remove, per-role element, font, weight,
+2. ✅ **Role editor.** Groups, add and remove, per-role element, font, weight,
    line-height and spacing.
 3. **Rounding.** Whole-pixel default, optional 2/4/8 snapping, exact value shown.
-4. **Google font picker.** Runtime loading, Thai-capable filtering, privacy note.
-5. **Uploaded fonts.** Only once storage is settled.
+
+### Notes from stages 1 and 2
+
+The storage key was **not** versioned. `readStoredProject` detects which shape is
+stored — the pre-merge one has `roleStyles`, the merged one has `system` — so no
+saved project is orphaned by the rename.
+
+Editing a size by hand sets `step: null`, which unlinks that role from the scale.
+That is the mechanism behind the rule above: the ratio keeps driving everything
+else and never reverts the value someone set.
+
+A new role starts unlinked and copies a sibling's size, rather than claiming a
+step that already belongs to another role.
+
+Preview templates ask for roles by name, but an arbitrary system may not have the
+one a template wants. `styleForRole` falls back id → group → body → first role, so
+a template can never render unstyled.
+
+The `FerreTypographyStudio` retirement is **not** part of stage 2. The main studio
+now runs on the merged model while Ferre still runs on its own; both work, and
+retiring it is a separate change so this one stayed reviewable. 4. **Google font picker.** Runtime loading, Thai-capable filtering, privacy note. 5. **Uploaded fonts.** Only once storage is settled.
 
 ## Migration
 

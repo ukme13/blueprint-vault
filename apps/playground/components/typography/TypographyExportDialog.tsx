@@ -7,10 +7,10 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import {
   Button,
-  formatTypeScaleCssExport,
-  formatTypeScaleTailwindExport,
+  formatTypeSystemCssExport,
+  formatTypeSystemTailwindExport,
   TYPE_SCALE_UNITS,
-  type TypeScale,
+  type TypeSystem,
   type TypeScaleUnit,
 } from "@blueprint/ui";
 import styles from "./typography-workspace.module.css";
@@ -31,7 +31,7 @@ const UNIT_LABELS: Record<TypeScaleUnit, string> = {
 interface TypographyExportDialogProps {
   isOpen: boolean;
   projectName: string;
-  scale: TypeScale;
+  system: TypeSystem;
   unit: TypeScaleUnit;
   onOpenChange: (isOpen: boolean) => void;
   onUnitChange: (unit: TypeScaleUnit) => void;
@@ -40,7 +40,7 @@ interface TypographyExportDialogProps {
 export function TypographyExportDialog({
   isOpen,
   projectName,
-  scale,
+  system,
   unit,
   onOpenChange,
   onUnitChange,
@@ -50,9 +50,9 @@ export function TypographyExportDialog({
   const output = useMemo(
     () =>
       exportFormat === "tailwind"
-        ? formatTypeScaleTailwindExport(scale, unit)
-        : formatTypeScaleCssExport(scale, unit),
-    [exportFormat, scale, unit],
+        ? formatTypeSystemTailwindExport(system, unit)
+        : formatTypeSystemCssExport(system, unit),
+    [exportFormat, system, unit],
   );
 
   const filename = `${

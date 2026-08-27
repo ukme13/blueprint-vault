@@ -606,3 +606,22 @@
   list-style: none;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
 }
+
+.roleGroupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-200);
+}
+
+.roleGroupEmpty {
+  margin: 0;
+  color: var(--color-text-secondary);
+}
+
+.roleSettingTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-200);
+}
