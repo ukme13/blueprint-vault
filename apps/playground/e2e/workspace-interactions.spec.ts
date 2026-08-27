@@ -97,7 +97,14 @@ test.describe("Shade details", () => {
     });
     await copyButton.click();
     await expect(copyButton).toContainText("oklch(");
-    await expect(page.getByText("Color copied", { exact: true })).toBeVisible();
+    // Scoped to the notifications region: since Astryx 0.5.0 a toast also
+    // announces itself through a separate aria-live region carrying the same
+    // text, so an unscoped getByText matches two elements.
+    await expect(
+      page.getByLabel("Notifications").getByText("Color copied", {
+        exact: true,
+      }),
+    ).toBeVisible();
 
     await details.getByRole("button", { name: "Close shade details" }).click();
     await expect(details).toBeHidden();

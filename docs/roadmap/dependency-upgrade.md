@@ -131,7 +131,43 @@ OKLCH token grid in `packages/ui/src/theme.css`.
 Visual check on the playground before merging. Type-checks passing is not
 enough for a UI library upgrade.
 
-**Risk:** high. Give this its own branch and expect real work.
+### What actually happened
+
+This stage was far smaller than budgeted. Almost every risk above turned out not
+to apply.
+
+- **No breaking change in this repo touched anything.** All 19 codemods, run
+  against `apps/playground`, `apps/docs`, and `packages/ui`, reported "no changes
+  needed". The breaking changes across 0.1.4 → 0.5.0 land on `Avatar`,
+  `DropdownMenuRadioGroup`, `TabList`'s `orientation`, Table render-props, and
+  the authoring/CLI-JSON surfaces — none of which this repo uses.
+- **Theme tokens did not shift.** `theme-neutral` has the same 90 tokens in
+  0.1.3 and 0.5.0, none added or removed. Only four values changed
+  (`--color-accent-muted`, `--color-border`, `--color-error`,
+  `--color-text-secondary`). There is no collision with the OKLCH grid: Astryx
+  emits semantic names, ours are numbered `--color-neutral-{25..950}`.
+- **No component was removed**, and the count went 149 → 163. The only dropped
+  package export is `./astryx.umd.js`, which nothing here imports.
+- `@stylexjs/stylex` resolved from 0.18.3 to 0.19.0 on its own. No manual work.
+- `astryx upgrade` needs `--from <old-version>`, and its `--path` defaults to
+  `./src`, which does not exist in this monorepo. Run it once per source
+  directory or the codemods silently do nothing.
+- Astryx 0.5.0 added `postinstall` scripts to `core` and `cli`, so pnpm asked for
+  another `allowBuilds` decision. Both are set to `false`: the scripts only print
+  a "run astryx init" nudge, do no writes and no network, and stay quiet once the
+  project has the Astryx marker in its agent docs.
+- `astryx upgrade` rewrites the `<!-- ASTRYX:START -->` block in `CLAUDE.md`
+  itself, so step 6 above is automatic. Note the guidance tightened: `<div>` for
+  layout is no longer permitted. Existing code was not reworked for this.
+
+**One real regression, and it was in a test, not the app.** Astryx 0.5.0 toasts
+now also announce through a separate `aria-live` region carrying the same text.
+That made an unscoped `getByText("Color copied", {exact: true})` match two
+elements and fail Playwright's strict mode. Fixed by scoping the assertion to
+the notifications region. This is the kind of thing only e2e catches — lint,
+types, unit tests, and build were all green while it was failing.
+
+**Risk in hindsight:** low to medium, not high. The codemod does the work.
 
 ## Stage 3 — ESLint 9 to 10
 
