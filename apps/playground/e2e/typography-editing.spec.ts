@@ -35,6 +35,24 @@ test.describe("Typography scale editing", () => {
     ).toBeVisible();
   });
 
+  test("generates even sizes, with 11px as the only odd one", async ({
+    seededPage: page,
+  }) => {
+    await page.getByRole("radio", { name: "PX" }).click();
+    const steps = page.getByRole("region", { name: "Generated type steps" });
+
+    const sizes = await steps.locator("code").allTextContents();
+    expect(sizes.length).toBeGreaterThan(0);
+    for (const size of sizes) {
+      const px = Number(size.replace("px", ""));
+      expect(px === 11 || px % 2 === 0).toBe(true);
+    }
+
+    // 25 is the tie on the default scale and resolves to the multiple of four.
+    expect(sizes).toContain("24px");
+    expect(sizes).not.toContain("26px");
+  });
+
   test("shows step sizes in the chosen unit", async ({ seededPage: page }) => {
     const steps = page.getByRole("region", { name: "Generated type steps" });
     await expect(steps.getByText("1rem", { exact: true })).toBeVisible();

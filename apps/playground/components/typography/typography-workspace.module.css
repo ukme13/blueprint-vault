@@ -699,3 +699,8 @@
   justify-content: flex-start;
   padding-bottom: var(--spacing-3);
 }
+
+.stepExact {
+  opacity: 0.55;
+  font-variant-numeric: tabular-nums;
+}

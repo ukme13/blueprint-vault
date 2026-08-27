@@ -642,6 +642,15 @@ export function TypographyStudio() {
                     />
                     <span className={styles.stepMeta}>
                       <code>{formatLength(step.fontSizePx, project.unit)}</code>
+                      {Math.abs(step.exactFontSizePx - step.fontSizePx) >
+                        0.01 && (
+                        <small
+                          className={styles.stepExact}
+                          title={`Exact ${step.exactFontSizePx.toFixed(2)}px before rounding`}
+                        >
+                          {step.exactFontSizePx.toFixed(2)}
+                        </small>
+                      )}
                       {step.isBase && <small>base</small>}
                       {stepRoles.map((role) => (
                         <small key={role.id}>{role.id}</small>
@@ -703,9 +712,11 @@ export function TypographyStudio() {
                 />
               ))}
               <NumberInput
+                description="Even numbers only."
                 label="Base font size"
                 min={MIN_BASE_FONT_SIZE_PX}
                 max={MAX_BASE_FONT_SIZE_PX}
+                step={2}
                 units="px"
                 value={system.baseFontSizePx}
                 onChange={(value) => updateSystem({ baseFontSizePx: value })}
