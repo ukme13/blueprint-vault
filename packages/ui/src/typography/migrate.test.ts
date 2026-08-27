@@ -41,10 +41,11 @@ describe("splitFontFamily", () => {
 describe("migrateLegacyProject", () => {
   const system = migrateLegacyProject(legacy);
 
-  it("keeps every role", () => {
+  it("keeps every role, with headings renamed to their level", () => {
     expect(system.roles.map((role) => role.id).sort()).toEqual(
-      [...SEMANTIC_ROLES].sort(),
+      ["body", "caption", "display", "h1", "h2", "label"].sort(),
     );
+    expect(system.roles).toHaveLength(SEMANTIC_ROLES.length);
   });
 
   it("keeps role ids as the legacy names, so token names do not change", () => {
@@ -61,9 +62,18 @@ describe("migrateLegacyProject", () => {
       stepCount: legacy.stepCount,
     });
 
+    const idFor: Record<string, string> = {
+      display: "display",
+      heading: "h1",
+      title: "h2",
+      body: "body",
+      label: "label",
+      caption: "caption",
+    };
+
     scale.roles.forEach((assignment) => {
       const migrated = system.roles.find(
-        (role) => role.id === assignment.role,
+        (role) => role.id === idFor[assignment.role],
       )!;
       const step = scale.steps.find(
         (candidate) => candidate.step === assignment.step,
@@ -105,9 +115,10 @@ describe("migrateLegacyProject", () => {
     });
   });
 
-  it("gives display the only h1", () => {
+  it("leaves exactly one role owning the h1 element", () => {
+    // Two h1s would misrepresent the document outline the preview demonstrates.
     const h1s = system.roles.filter((role) => role.element === "h1");
-    expect(h1s.map((role) => role.id)).toEqual(["display"]);
+    expect(h1s.map((role) => role.id)).toEqual(["h1"]);
   });
 
   it("wraps the single family in a one-entry stack", () => {

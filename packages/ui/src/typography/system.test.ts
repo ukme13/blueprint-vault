@@ -5,7 +5,9 @@ import {
   defaultElementForRole,
   defaultGroups,
   moveGroup,
-  nextRoleId,
+  groupCapacity,
+  reindexGroup,
+  roleIdsForGroup,
   resolveRoleSizePx,
   type TypeGroup,
   type TypeRole,
@@ -20,7 +22,7 @@ function role(id: string, groupId: string, over: Partial<TypeRole> = {}) {
     element: defaultElementForRole(id),
     fontId: "base",
     fontWeight: 400,
-    textTransform: "none",
+    textTransform: "number",
     stepOffset: 0,
     sameAsRoleId: null,
     desktop: { fontSizePx: 16, lineHeight: 1.5, letterSpacingPx: 0 },
@@ -53,49 +55,90 @@ const free = (id: string, indexing: TypeGroup["indexing"]): TypeGroup => ({
   indexing,
 });
 
-describe("nextRoleId", () => {
-  it("gives headings h1 to h6 and then stops", () => {
-    const groups = defaultGroups();
-    const heading = groups[0]!;
-    const roles = Array.from({ length: 6 }, (_, i) =>
-      role(`h${i + 1}`, "heading"),
-    );
-
-    expect(nextRoleId(system({ roles: [] }), heading)).toBe("h1");
-    expect(nextRoleId(system({ roles }), heading)).toBeNull();
+describe("roleIdsForGroup", () => {
+  it("drops the index when a group holds one role", () => {
+    // A lone caption-1 reads as the first of a family that does not exist.
+    const group = free("caption", "number");
+    expect(roleIdsForGroup(group, 1)).toEqual(["caption"]);
   });
 
-  it("numbers a number-indexed group", () => {
-    const group = free("subtitle", "number");
-    const s = system({ groups: [...defaultGroups(), group], roles: [] });
-    expect(nextRoleId(s, group)).toBe("subtitle-1");
-    expect(
-      nextRoleId({ ...s, roles: [role("subtitle-1", "subtitle")] }, group),
-    ).toBe("subtitle-2");
+  it("indexes from one as soon as there are two", () => {
+    const group = free("caption", "number");
+    expect(roleIdsForGroup(group, 3)).toEqual([
+      "caption-1",
+      "caption-2",
+      "caption-3",
+    ]);
   });
 
   it("walks shirt sizes small to large", () => {
     const group = free("subtitle", "size");
-    const s = system({ groups: [...defaultGroups(), group], roles: [] });
-    expect(nextRoleId(s, group)).toBe("subtitle-xs");
+    expect(roleIdsForGroup(group, 3)).toEqual([
+      "subtitle-xs",
+      "subtitle-sm",
+      "subtitle-md",
+    ]);
   });
 
-  it("lets a single group hold exactly one role", () => {
-    // A project may want one caption. Forcing caption-1 would be noise.
-    const group = free("caption", "none");
-    const s = system({ groups: [...defaultGroups(), group], roles: [] });
-    expect(nextRoleId(s, group)).toBe("caption");
+  it("names headings h1 upward and never drops the number", () => {
+    const heading = defaultGroups()[0]!;
+    expect(roleIdsForGroup(heading, 1)).toEqual(["h1"]);
+    expect(roleIdsForGroup(heading, 3)).toEqual(["h1", "h2", "h3"]);
+  });
 
-    const filled = { ...s, roles: [role("caption", "caption")] };
-    expect(nextRoleId(filled, group)).toBeNull();
-    expect(canAddRole(filled, group)).toBe(false);
+  it("caps each group at what its indexing can name", () => {
+    expect(groupCapacity(defaultGroups()[0]!)).toBe(6);
+    expect(groupCapacity(free("s", "size"))).toBe(5);
+    expect(canAddRole(system({ roles: [] }), free("s", "size"))).toBe(true);
+  });
+});
+
+describe("reindexGroup", () => {
+  it("renames a lone role when a second joins it", () => {
+    const group = free("caption", "number");
+    const s = system({
+      groups: [...defaultGroups(), group],
+      roles: [role("caption", "caption"), role("caption-x", "caption")],
+    });
+    const next = reindexGroup(s, "caption");
+    expect(next.roles.map((r) => r.id)).toEqual(["caption-1", "caption-2"]);
+  });
+
+  it("repoints anything following a renamed role", () => {
+    // Otherwise a role would silently stop following the one it was tied to.
+    const group = free("caption", "number");
+    const s = system({
+      groups: [...defaultGroups(), group],
+      roles: [
+        role("caption", "caption"),
+        role("caption-x", "caption"),
+        role("body", "body", { sameAsRoleId: "caption" }),
+      ],
+    });
+    const next = reindexGroup(s, "caption");
+    expect(next.roles.find((r) => r.id === "body")!.sameAsRoleId).toBe(
+      "caption-1",
+    );
+  });
+
+  it("keeps heading elements in step with their level", () => {
+    const s = system({
+      roles: [role("h1", "heading"), role("hx", "heading")],
+    });
+    const next = reindexGroup(s, "heading");
+    expect(next.roles.map((r) => r.element)).toEqual(["h1", "h2"]);
+  });
+
+  it("does nothing when the ids are already right", () => {
+    const s = system();
+    expect(reindexGroup(s, "body")).toBe(s);
   });
 });
 
 describe("moveGroup", () => {
   it("moves a free group", () => {
-    const a = free("a", "none");
-    const b = free("b", "none");
+    const a = free("a", "number");
+    const b = free("b", "number");
     const s = system({ groups: [a, b, ...defaultGroups()] });
     expect(moveGroup(s, "b", -1).map((g) => g.id)).toEqual([
       "b",
@@ -106,7 +149,7 @@ describe("moveGroup", () => {
   });
 
   it("refuses to move a fixed group", () => {
-    const s = system({ groups: [...defaultGroups(), free("a", "none")] });
+    const s = system({ groups: [...defaultGroups(), free("a", "number")] });
     expect(moveGroup(s, "heading", 1).map((g) => g.id)).toEqual([
       "heading",
       "body",
@@ -115,7 +158,7 @@ describe("moveGroup", () => {
   });
 
   it("refuses to move past the ends", () => {
-    const s = system({ groups: [free("a", "none"), ...defaultGroups()] });
+    const s = system({ groups: [free("a", "number"), ...defaultGroups()] });
     expect(moveGroup(s, "a", -1)[0]!.id).toBe("a");
   });
 });

@@ -134,7 +134,7 @@ test.describe("Typography scale editing", () => {
   test("groups roles and adds one to a group", async ({ seededPage: page }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
 
-    for (const group of ["Display", "Heading", "Body", "Supporting"]) {
+    for (const group of ["Display", "Heading", "Body", "Label", "Caption"]) {
       await expect(
         settings.getByRole("heading", { name: group, exact: true }),
       ).toBeVisible();
@@ -154,11 +154,14 @@ test.describe("Typography scale editing", () => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
     const before = await settings.getByLabel(/ element$/).count();
 
-    await settings.getByRole("button", { name: "Remove caption" }).click();
+    // exact, or this also matches the group's own "Remove Caption group".
+    await settings
+      .getByRole("button", { name: "Remove caption", exact: true })
+      .click();
 
     expect(await settings.getByLabel(/ element$/).count()).toBe(before - 1);
     await expect(
-      settings.getByRole("button", { name: "Remove caption" }),
+      settings.getByRole("button", { name: "Remove caption", exact: true }),
     ).toBeHidden();
   });
 
@@ -231,8 +234,10 @@ test.describe("Typography scale editing", () => {
       .getByRole("button", { name: "Add" })
       .click();
 
-    await expect(settings.getByLabel("body-1 size")).toContainText(
-      "Same as body",
+    /* Two body roles now, so they are reindexed to body-1 and body-2. The new
+       one follows the first rather than claiming a step. */
+    await expect(settings.getByLabel("body-2 size")).toContainText(
+      "Same as body-1",
     );
   });
 

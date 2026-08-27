@@ -23,12 +23,18 @@ export const TEXT_TRANSFORMS: TypographyTextTransform[] = [
  * `none` exists because not every style is a family: a project may want exactly
  * one caption, and forcing it to be `caption-1` is noise.
  */
-export type TypeIndexing = "number" | "size" | "none";
+/**
+ * How a group names its roles.
+ *
+ * A group holding a single role drops the index entirely — one caption is
+ * `caption`, not `caption-1` — so "single" is a consequence of the count rather
+ * than a mode the user has to pick.
+ */
+export type TypeIndexing = "number" | "size";
 
 export const TYPE_INDEXING_LABELS: Record<TypeIndexing, string> = {
   number: "Number",
   size: "Size",
-  none: "Single",
 };
 
 /** Shirt sizes, small to large, used by `size` indexing. */
@@ -155,48 +161,80 @@ export function findGroup(
   return system.groups.find((group) => group.id === groupId);
 }
 
+/** Most roles a group can hold, which its indexing decides. */
+export function groupCapacity(group: TypeGroup): number {
+  if (group.id === HEADING_GROUP_ID) return MAX_HEADING_LEVEL;
+  return group.indexing === "size" ? SIZE_INDEX.length : 99;
+}
+
 /**
- * Id for the next role in a group, following the group's indexing mode.
+ * The ids a group's roles should have, given how many there are.
  *
- * Heading always yields h1–h6. A `none` group holds a single role, so it yields
- * the group id itself and refuses to grow.
+ * A single role drops the index — one caption is `caption` — because a lone
+ * `caption-1` reads as the first of a family that does not exist. Heading is
+ * exempt: `h1` is the name, not an index onto one.
  */
-export function nextRoleId(
-  system: TypeSystem,
-  group: TypeGroup,
-): string | null {
-  const taken = new Set(system.roles.map((role) => role.id));
-
+export function roleIdsForGroup(group: TypeGroup, count: number): string[] {
   if (group.id === HEADING_GROUP_ID) {
-    for (let level = 1; level <= MAX_HEADING_LEVEL; level += 1) {
-      const id = `h${level}`;
-      if (!taken.has(id)) return id;
-    }
-    return null;
+    return Array.from({ length: count }, (_, index) => `h${index + 1}`);
   }
-
-  if (group.indexing === "none") {
-    return taken.has(group.id) ? null : group.id;
-  }
-
+  if (count === 1) return [group.id];
   if (group.indexing === "size") {
-    for (const size of SIZE_INDEX) {
-      const id = `${group.id}-${size}`;
-      if (!taken.has(id)) return id;
-    }
-    return null;
+    return Array.from(
+      { length: count },
+      (_, index) => `${group.id}-${SIZE_INDEX[index] ?? index + 1}`,
+    );
   }
-
-  for (let index = 1; index <= 99; index += 1) {
-    const id = `${group.id}-${index}`;
-    if (!taken.has(id)) return id;
-  }
-  return null;
+  return Array.from(
+    { length: count },
+    (_, index) => `${group.id}-${index + 1}`,
+  );
 }
 
 /** Whether a group can take another role. */
 export function canAddRole(system: TypeSystem, group: TypeGroup): boolean {
-  return nextRoleId(system, group) !== null;
+  return rolesInGroup(system, group.id).length < groupCapacity(group);
+}
+
+/**
+ * Rename a group's roles to match its indexing and its current size.
+ *
+ * Adding a second role to a group turns `caption` into `caption-1`, so any role
+ * following it by id has to be repointed. Exported token names follow role ids,
+ * so this does rename tokens — the alternative is a group whose members are
+ * named inconsistently, which is worse to live with.
+ */
+export function reindexGroup(system: TypeSystem, groupId: string): TypeSystem {
+  const group = findGroup(system, groupId);
+  if (!group) return system;
+
+  const members = rolesInGroup(system, groupId);
+  const wanted = roleIdsForGroup(group, members.length);
+
+  const renames = new Map<string, string>();
+  members.forEach((role, index) => {
+    const next = wanted[index];
+    if (next && next !== role.id) renames.set(role.id, next);
+  });
+  if (renames.size === 0) return system;
+
+  return {
+    ...system,
+    roles: system.roles.map((role) => {
+      const renamed = renames.get(role.id);
+      const following = role.sameAsRoleId
+        ? (renames.get(role.sameAsRoleId) ?? role.sameAsRoleId)
+        : null;
+      return {
+        ...role,
+        id: renamed ?? role.id,
+        name: renamed && role.name === role.id ? renamed : role.name,
+        element:
+          renamed && groupId === HEADING_GROUP_ID ? renamed : role.element,
+        sameAsRoleId: following,
+      };
+    }),
+  };
 }
 
 /**

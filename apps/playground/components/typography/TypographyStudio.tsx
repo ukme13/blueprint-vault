@@ -26,7 +26,7 @@ import {
   normalizeStoredSystem,
   splitFontFamily,
   defaultElementForRole,
-  nextRoleId,
+  reindexGroup,
   canAddRole,
   HEADING_GROUP_ID,
   moveGroup,
@@ -199,9 +199,9 @@ export function TypographyStudio() {
   const [previewLang, setPreviewLang] = useState<PreviewLanguage>("en");
   const inspectorPanel = useResizable({
     autoSaveId: "blueprint-typography-inspector",
-    defaultSize: 340,
-    minSizePx: 300,
-    maxSizePx: 520,
+    defaultSize: 560,
+    minSizePx: 360,
+    maxSizePx: 900,
   });
 
   useEffect(() => {
@@ -306,8 +306,7 @@ export function TypographyStudio() {
   const addRole = (group: TypeGroup) =>
     setProject((current) => {
       if (!current) return current;
-      const id = nextRoleId(current.system, group);
-      if (!id) return current;
+      if (!canAddRole(current.system, group)) return current;
 
       const template =
         current.system.roles.find((role) => role.groupId === group.id) ??
@@ -315,65 +314,72 @@ export function TypographyStudio() {
         current.system.roles[0];
       if (!template) return current;
 
-      return {
-        ...current,
-        system: {
-          ...current.system,
-          roles: [
-            ...current.system.roles,
-            {
-              ...template,
-              id,
-              name: id,
-              groupId: group.id,
-              element:
-                group.id === HEADING_GROUP_ID ? id : defaultElementForRole(id),
-              /* A new role follows body rather than claiming a step of its own.
-                 Most component styles are body with a small adjustment, and
-                 adding a role must never force the ramp to grow. */
-              stepOffset: null,
-              sameAsRoleId: template.id,
-            },
-          ],
-        },
+      /* Placeholder id: reindexGroup gives every role in the group its real
+         name, which is how a lone `caption` becomes `caption-1` once a second
+         one joins it. */
+      const placeholder = `${group.id}-new-${current.system.roles.length}`;
+      const withRole: TypeSystem = {
+        ...current.system,
+        roles: [
+          ...current.system.roles,
+          {
+            ...template,
+            id: placeholder,
+            name: placeholder,
+            groupId: group.id,
+            element:
+              group.id === HEADING_GROUP_ID
+                ? placeholder
+                : defaultElementForRole(group.id),
+            /* A new role follows body rather than claiming a step of its own.
+               Most component styles are body with a small adjustment, and
+               adding a role must never force the ramp to grow. */
+            stepOffset: null,
+            sameAsRoleId: template.id,
+          },
+        ],
       };
+
+      return { ...current, system: reindexGroup(withRole, group.id) };
     });
 
   const removeRole = (id: string) =>
-    setProject((current) =>
-      current
-        ? {
-            ...current,
-            system: {
-              ...current.system,
-              roles: current.system.roles
-                .filter((role) => role.id !== id)
-                /* Anything following the removed role keeps its size rather
-                   than silently falling back to whatever it stored. */
-                .map((role) =>
-                  role.sameAsRoleId === id
-                    ? { ...role, sameAsRoleId: null }
-                    : role,
-                ),
-            },
-          }
-        : current,
-    );
+    setProject((current) => {
+      if (!current) return current;
+      const groupId = current.system.roles.find(
+        (role) => role.id === id,
+      )?.groupId;
+
+      const without: TypeSystem = {
+        ...current.system,
+        roles: current.system.roles
+          .filter((role) => role.id !== id)
+          /* Anything following the removed role keeps its size rather than
+             silently falling back to whatever it stored. */
+          .map((role) =>
+            role.sameAsRoleId === id ? { ...role, sameAsRoleId: null } : role,
+          ),
+      };
+
+      return {
+        ...current,
+        system: groupId ? reindexGroup(without, groupId) : without,
+      };
+    });
 
   const updateGroup = (groupId: string, patch: Partial<TypeGroup>) =>
-    setProject((current) =>
-      current
-        ? {
-            ...current,
-            system: {
-              ...current.system,
-              groups: current.system.groups.map((group) =>
-                group.id === groupId ? { ...group, ...patch } : group,
-              ),
-            },
-          }
-        : current,
-    );
+    setProject((current) => {
+      if (!current) return current;
+      const updated: TypeSystem = {
+        ...current.system,
+        groups: current.system.groups.map((group) =>
+          group.id === groupId ? { ...group, ...patch } : group,
+        ),
+      };
+      /* Switching a group between number and size renames its roles, so the
+         ids follow the mode rather than whatever they were created under. */
+      return { ...current, system: reindexGroup(updated, groupId) };
+    });
 
   const shiftGroup = (groupId: string, direction: -1 | 1) =>
     setProject((current) =>
@@ -778,12 +784,12 @@ export function TypographyStudio() {
                       <Selector
                         label={`${group.label} indexing`}
                         isLabelHidden
-                        options={(
-                          ["number", "size", "none"] as TypeIndexing[]
-                        ).map((mode) => ({
-                          label: TYPE_INDEXING_LABELS[mode],
-                          value: mode,
-                        }))}
+                        options={(["number", "size"] as TypeIndexing[]).map(
+                          (mode) => ({
+                            label: TYPE_INDEXING_LABELS[mode],
+                            value: mode,
+                          }),
+                        )}
                         value={group.indexing}
                         onChange={(value) =>
                           updateGroup(group.id, {
@@ -822,9 +828,18 @@ export function TypographyStudio() {
                             label={`${role.id} size`}
                             isLabelHidden
                             options={[
-                              ...(role.id === "body"
-                                ? []
-                                : [{ label: "Same as body", value: "same" }]),
+                              /* Resolved rather than hardcoded: reindexing can
+                                 rename body to body-1, and a dangling
+                                 reference would silently fall back to a stored
+                                 size. */
+                              ...(bodyRole && role.id !== bodyRole.id
+                                ? [
+                                    {
+                                      label: `Same as ${bodyRole.id}`,
+                                      value: "same",
+                                    },
+                                  ]
+                                : []),
                               ...steps.map((step) => ({
                                 label: `${step.offset >= 0 ? "+" : ""}${step.offset} · ${formatLength(step.fontSizePx, project.unit)}`,
                                 value: String(step.offset),
@@ -839,7 +854,10 @@ export function TypographyStudio() {
                               updateRole(
                                 role.id,
                                 value === "same"
-                                  ? { sameAsRoleId: "body", stepOffset: null }
+                                  ? {
+                                      sameAsRoleId: bodyRole?.id ?? null,
+                                      stepOffset: null,
+                                    }
                                   : {
                                       sameAsRoleId: null,
                                       stepOffset: Number(value),

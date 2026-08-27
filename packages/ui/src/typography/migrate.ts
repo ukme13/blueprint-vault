@@ -25,17 +25,28 @@ const LEGACY_FONT_ID = "base";
  * Preserved exactly so a migrated project looks the same as before. This is the
  * mapping from roles.ts, which deliberately gives only `display` an h1.
  */
+/** Legacy role name to its id in the merged model. */
+const LEGACY_IDS: Record<SemanticRole, string> = {
+  display: "display",
+  heading: "h1",
+  title: "h2",
+  body: "body",
+  label: "label",
+  caption: "caption",
+};
+
 const LEGACY_ELEMENTS: Record<SemanticRole, string> = {
-  display: "h1",
-  heading: "h2",
-  title: "h3",
+  /* Display is a visual style, not the document title: the legacy heading role
+     becomes h1, so display must not claim it too. */
+  display: "p",
+  heading: "h1",
+  title: "h2",
   body: "p",
   label: "label",
   caption: "small",
 };
 
 const DISPLAY_GROUP_ID = "display";
-const SUPPORTING_GROUP_ID = "supporting";
 
 /** Which group each legacy role lands in. */
 const LEGACY_GROUPS: Record<SemanticRole, string> = {
@@ -43,8 +54,8 @@ const LEGACY_GROUPS: Record<SemanticRole, string> = {
   heading: HEADING_GROUP_ID,
   title: HEADING_GROUP_ID,
   body: BODY_GROUP_ID,
-  label: SUPPORTING_GROUP_ID,
-  caption: SUPPORTING_GROUP_ID,
+  label: "label",
+  caption: "caption",
 };
 
 /** Groups a migrated legacy project needs: the two fixed ones plus two free. */
@@ -54,15 +65,11 @@ function legacyGroups(): TypeGroup[] {
       id: DISPLAY_GROUP_ID,
       label: "Display",
       isFixed: false,
-      indexing: "none",
+      indexing: "number",
     },
     ...defaultGroups(),
-    {
-      id: SUPPORTING_GROUP_ID,
-      label: "Supporting",
-      isFixed: false,
-      indexing: "none",
-    },
+    { id: "label", label: "Label", isFixed: false, indexing: "number" },
+    { id: "caption", label: "Caption", isFixed: false, indexing: "number" },
   ];
 }
 
@@ -118,8 +125,8 @@ export function migrateLegacyProject(
     };
 
     return {
-      id: role,
-      name: role,
+      id: LEGACY_IDS[role],
+      name: LEGACY_IDS[role],
       groupId: LEGACY_GROUPS[role],
       element: LEGACY_ELEMENTS[role],
       fontId: LEGACY_FONT_ID,
@@ -266,10 +273,9 @@ function normalizeGroups(value: unknown, roles: TypeRole[]): TypeGroup[] {
           group.id === HEADING_GROUP_ID || group.id === BODY_GROUP_ID
             ? true
             : Boolean(group.isFixed),
-        indexing:
-          group.indexing === "size" || group.indexing === "none"
-            ? group.indexing
-            : "number",
+        /* "none" was a mode in an earlier release; a single role now simply
+           drops its index, so it collapses to number. */
+        indexing: group.indexing === "size" ? "size" : "number",
       }));
     return withFixedGroups(groups);
   }
