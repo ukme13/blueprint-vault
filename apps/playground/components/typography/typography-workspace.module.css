@@ -675,3 +675,9 @@
   font-size: var(--font-caption-size);
   color: var(--color-text-secondary);
 }
+
+.unitChips {
+  display: flex;
+  justify-content: flex-start;
+  padding-bottom: var(--spacing-3);
+}

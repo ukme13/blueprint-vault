@@ -4,6 +4,10 @@ import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { AlertDialog } from "@astryxdesign/core/AlertDialog";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
+import {
+  SegmentedControl,
+  SegmentedControlItem,
+} from "@astryxdesign/core/SegmentedControl";
 import { Selector } from "@astryxdesign/core/Selector";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { TextInput } from "@astryxdesign/core/TextInput";
@@ -581,6 +585,30 @@ export function TypographyStudio() {
           }
         >
           <section aria-label="Generated type steps" className={styles.canvas}>
+            {/* Sits above the steps so the unit is chosen where the sizes are
+                read, not buried in the export dialog. */}
+            <div className={styles.unitChips}>
+              <SegmentedControl
+                label="Size unit"
+                size="sm"
+                value={project.unit}
+                onChange={(value) =>
+                  setProject((current) =>
+                    current
+                      ? { ...current, unit: value as TypeScaleUnit }
+                      : current,
+                  )
+                }
+              >
+                {TYPE_SCALE_UNITS.map((unit) => (
+                  <SegmentedControlItem
+                    key={unit}
+                    label={unit.toUpperCase()}
+                    value={unit}
+                  />
+                ))}
+              </SegmentedControl>
+            </div>
             <ul className={styles.stepList}>
               {sortedSteps.map((step) => {
                 const stepRoles = resolvedRoles.filter(

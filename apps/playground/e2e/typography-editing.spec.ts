@@ -39,9 +39,8 @@ test.describe("Typography scale editing", () => {
     const steps = page.getByRole("region", { name: "Generated type steps" });
     await expect(steps.getByText("1rem", { exact: true })).toBeVisible();
 
-    await page.getByRole("button", { name: "Export type scale" }).click();
-    await page.getByRole("button", { name: "px", exact: true }).click();
-    await page.getByRole("button", { name: "Close export" }).click();
+    // The unit chips sit above the steps, so no dialog is involved.
+    await page.getByRole("radio", { name: "PX" }).click();
 
     await expect(steps.getByText("16px", { exact: true })).toBeVisible();
     await expect(steps.getByText("1rem", { exact: true })).toBeHidden();
