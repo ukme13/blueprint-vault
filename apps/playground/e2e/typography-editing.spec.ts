@@ -50,13 +50,17 @@ test.describe("Typography scale editing", () => {
   test("renders the specimen text at every step", async ({
     seededPage: page,
   }) => {
-    await page.getByLabel("Specimen text").fill("Test ไฟหกฟ");
+    // Typed into one step row; every row shares the same value.
+    await page.getByLabel("Specimen text").first().fill("Test ไฟหกฟ");
 
     const samples = page
       .getByRole("region", { name: "Generated type steps" })
-      .getByText("Test ไฟหกฟ");
+      .getByLabel("Specimen text");
     expect(await samples.count()).toBeGreaterThan(1);
-    await expect(samples.first()).toBeVisible();
+    // Every row follows, which is the point of editing in place.
+    for (const sample of await samples.all()) {
+      await expect(sample).toHaveValue("Test ไฟหกฟ");
+    }
   });
 
   test("shows a warning when the scale ratio grows too fast", async ({
@@ -134,7 +138,7 @@ test.describe("Typography scale editing", () => {
   test("groups roles and adds one to a group", async ({ seededPage: page }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
 
-    for (const group of ["Display", "Heading", "Body", "Label", "Caption"]) {
+    for (const group of ["Display", "H", "Body", "Label", "Caption"]) {
       await expect(
         settings.getByRole("heading", { name: group, exact: true }),
       ).toBeVisible();
@@ -290,5 +294,28 @@ test.describe("Typography scale editing", () => {
     await expect(settings.getByRole("heading", { name: "Body" })).toBeVisible();
     await expect(settings.getByLabel("body font weight")).toHaveValue("400");
     await expect(page.getByLabel("Project name")).toHaveValue("Saved earlier");
+  });
+
+  test("renaming a group renames its roles", async ({ seededPage: page }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings.getByLabel("Caption name").fill("Overline");
+
+    await expect(
+      settings.getByRole("button", { name: "Remove overline", exact: true }),
+    ).toBeVisible();
+  });
+
+  test("the size menu lists the largest step first", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings.getByLabel("body size").click();
+
+    const options = page.getByRole("option");
+    const first = await options.first().textContent();
+    const last = await options.last().textContent();
+    // Offsets run high to low, matching the step list on the left.
+    expect(first).toContain("+");
+    expect(last).toContain("-");
   });
 });

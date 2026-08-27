@@ -7,6 +7,8 @@ import {
   moveGroup,
   groupCapacity,
   reindexGroup,
+  renameGroup,
+  slugify,
   roleIdsForGroup,
   resolveRoleSizePx,
   type TypeGroup,
@@ -208,5 +210,60 @@ describe("resolveRoleSizePx", () => {
     const b = role("b", "body", { sameAsRoleId: "a" });
     const s = system({ roles: [a, b] });
     expect(() => resolveRoleSizePx(s, steps, a)).not.toThrow();
+  });
+});
+
+describe("renameGroup", () => {
+  it("renames the group's roles with it", () => {
+    // Ids are built from the group id, so the label and the exported token
+    // names would otherwise drift apart.
+    const group = free("caption", "number");
+    const s = system({
+      groups: [...defaultGroups(), group],
+      roles: [role("caption", "caption")],
+    });
+
+    const next = renameGroup(s, "caption", "Overline");
+    expect(next.groups.find((g) => g.label === "Overline")!.id).toBe(
+      "overline",
+    );
+    expect(next.roles.map((r) => r.id)).toEqual(["overline"]);
+  });
+
+  it("keeps indexes when the group holds several", () => {
+    const group = free("caption", "number");
+    const s = system({
+      groups: [...defaultGroups(), group],
+      roles: [role("caption-1", "caption"), role("caption-2", "caption")],
+    });
+    const next = renameGroup(s, "caption", "Overline");
+    expect(next.roles.map((r) => r.id)).toEqual(["overline-1", "overline-2"]);
+  });
+
+  it("does not change a fixed group's id", () => {
+    // Heading and body are referred to by id elsewhere.
+    const s = system();
+    const next = renameGroup(s, "heading", "Titles");
+    const heading = next.groups.find((g) => g.label === "Titles")!;
+    expect(heading.id).toBe("heading");
+  });
+
+  it("avoids colliding with an existing group", () => {
+    const s = system({
+      groups: [
+        ...defaultGroups(),
+        free("caption", "number"),
+        free("overline", "number"),
+      ],
+      roles: [],
+    });
+    const next = renameGroup(s, "caption", "Overline");
+    expect(next.groups.map((g) => g.id)).toContain("overline-2");
+  });
+});
+
+describe("slugify", () => {
+  it("lowercases and joins words with a dash", () => {
+    expect(slugify("  Small  Print ")).toBe("small-print");
   });
 });

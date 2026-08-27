@@ -27,6 +27,7 @@ import {
   splitFontFamily,
   elementForRole,
   reindexGroup,
+  renameGroup,
   canAddRole,
   moveGroup,
   resolveRoleSizePx,
@@ -348,6 +349,15 @@ export function TypographyStudio() {
       };
     });
 
+  /* Renaming a group renames its roles: ids are built from the group id, so
+     the label and the exported token names would otherwise drift apart. */
+  const renameGroupById = (groupId: string, label: string) =>
+    setProject((current) =>
+      current
+        ? { ...current, system: renameGroup(current.system, groupId, label) }
+        : current,
+    );
+
   const updateGroup = (groupId: string, patch: Partial<TypeGroup>) =>
     setProject((current) => {
       if (!current) return current;
@@ -559,18 +569,6 @@ export function TypographyStudio() {
         >
           New project
         </Button>
-        <TextInput
-          className={styles.specimenInput}
-          label="Specimen text"
-          placeholder={DEFAULT_SPECIMEN_TEXT}
-          size="sm"
-          value={project.specimenText}
-          onChange={(value) =>
-            setProject((current) =>
-              current ? { ...current, specimenText: value } : current,
-            )
-          }
-        />
       </section>
 
       {activeSection === "editor" && (
@@ -590,8 +588,14 @@ export function TypographyStudio() {
                 );
                 return (
                   <li key={step.step} className={styles.stepRow}>
-                    <span
+                    {/* Editable in place: type in any row and every row
+                        follows, so the scale is judged in your own copy without
+                        a separate field to find. */}
+                    <input
+                      aria-label="Specimen text"
                       className={styles.stepSample}
+                      placeholder={DEFAULT_SPECIMEN_TEXT}
+                      spellCheck={false}
                       style={{
                         fontFamily: fontFamilyValue(
                           resolvedSystem,
@@ -599,9 +603,15 @@ export function TypographyStudio() {
                         ),
                         fontSize: `${step.fontSizePx}px`,
                       }}
-                    >
-                      {project.specimenText || "Ag"}
-                    </span>
+                      value={project.specimenText}
+                      onChange={(event) =>
+                        setProject((current) =>
+                          current
+                            ? { ...current, specimenText: event.target.value }
+                            : current,
+                        )
+                      }
+                    />
                     <span className={styles.stepMeta}>
                       <code>{formatLength(step.fontSizePx, project.unit)}</code>
                       {step.isBase && <small>base</small>}
@@ -757,9 +767,7 @@ export function TypographyStudio() {
                         isLabelHidden
                         size="sm"
                         value={group.label}
-                        onChange={(value) =>
-                          updateGroup(group.id, { label: value })
-                        }
+                        onChange={(value) => renameGroupById(group.id, value)}
                       />
                       <Selector
                         label={`${group.label} indexing`}
@@ -819,10 +827,13 @@ export function TypographyStudio() {
                                     },
                                   ]
                                 : []),
-                              ...steps.map((step) => ({
-                                label: `${step.offset >= 0 ? "+" : ""}${step.offset} · ${formatLength(step.fontSizePx, project.unit)}`,
-                                value: String(step.offset),
-                              })),
+                              /* Largest first, matching the step list. */
+                              ...[...steps]
+                                .sort((a, b) => b.fontSizePx - a.fontSizePx)
+                                .map((step) => ({
+                                  label: `${step.offset >= 0 ? "+" : ""}${step.offset} · ${formatLength(step.fontSizePx, project.unit)}`,
+                                  value: String(step.offset),
+                                })),
                             ]}
                             value={
                               role.sameAsRoleId
