@@ -1,8 +1,8 @@
 import { assignDefaultRoles, generateTypeSteps } from "./scale";
 import {
   BODY_GROUP_ID,
-  defaultElementForRole,
   defaultGroups,
+  reindexGroup,
   HEADING_GROUP_ID,
   type TypeGroup,
   type TypeRole,
@@ -33,17 +33,6 @@ const LEGACY_IDS: Record<SemanticRole, string> = {
   body: "body",
   label: "label",
   caption: "caption",
-};
-
-const LEGACY_ELEMENTS: Record<SemanticRole, string> = {
-  /* Display is a visual style, not the document title: the legacy heading role
-     becomes h1, so display must not claim it too. */
-  display: "p",
-  heading: "h1",
-  title: "h2",
-  body: "p",
-  label: "label",
-  caption: "small",
 };
 
 const DISPLAY_GROUP_ID = "display";
@@ -128,7 +117,6 @@ export function migrateLegacyProject(
       id: LEGACY_IDS[role],
       name: LEGACY_IDS[role],
       groupId: LEGACY_GROUPS[role],
-      element: LEGACY_ELEMENTS[role],
       fontId: LEGACY_FONT_ID,
       fontWeight: style.fontWeight,
       textTransform: "none" as const,
@@ -219,10 +207,6 @@ export function normalizeStoredSystem(value: unknown): TypeSystem | null {
         id,
         name: typeof role.name === "string" ? role.name : id,
         groupId,
-        element:
-          typeof role.element === "string"
-            ? role.element
-            : defaultElementForRole(id),
         fontId: typeof role.fontId === "string" ? role.fontId : "base",
         fontWeight: typeof role.fontWeight === "number" ? role.fontWeight : 400,
         textTransform:
@@ -248,7 +232,7 @@ export function normalizeStoredSystem(value: unknown): TypeSystem | null {
     if (!known.has(role.groupId)) role.groupId = BODY_GROUP_ID;
   });
 
-  return {
+  const system: TypeSystem = {
     id: typeof raw.id === "string" ? raw.id : "type-system",
     name: typeof raw.name === "string" ? raw.name : "Type scale",
     groups,
@@ -259,6 +243,14 @@ export function normalizeStoredSystem(value: unknown): TypeSystem | null {
     fonts: raw.fonts as TypeSystem["fonts"],
     roles,
   };
+
+  /* Repair ids that an earlier release left inconsistent. It appended a role
+     without renaming its siblings, so a group could hold both `body` and
+     `body-1`. Reindexing on load fixes that without the user touching it. */
+  return system.groups.reduce(
+    (acc, group) => reindexGroup(acc, group.id),
+    system,
+  );
 }
 
 function normalizeGroups(value: unknown, roles: TypeRole[]): TypeGroup[] {

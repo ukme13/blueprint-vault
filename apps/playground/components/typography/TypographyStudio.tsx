@@ -25,10 +25,9 @@ import {
   migrateLegacyProject,
   normalizeStoredSystem,
   splitFontFamily,
-  defaultElementForRole,
+  elementForRole,
   reindexGroup,
   canAddRole,
-  HEADING_GROUP_ID,
   moveGroup,
   resolveRoleSizePx,
   TYPE_INDEXING_LABELS,
@@ -75,20 +74,6 @@ interface TypographyProject {
 const DEFAULT_UNIT: TypeScaleUnit = "rem";
 const DEFAULT_SPECIMEN_TEXT = "How vexingly quick daft zebras jump";
 const DEFAULT_TEMPLATE: PreviewTemplateId = "specimen";
-
-/** Elements a role may render as. Kept short: these cover the type roles. */
-const ELEMENT_OPTIONS = [
-  "h1",
-  "h2",
-  "h3",
-  "h4",
-  "h5",
-  "h6",
-  "p",
-  "label",
-  "span",
-  "small",
-];
 
 const PREVIEW_TEXT: Record<SemanticRole, { en: string; th: string }> = {
   display: { en: "Design with clarity", th: "ออกแบบด้วยความชัดเจน" },
@@ -327,10 +312,6 @@ export function TypographyStudio() {
             id: placeholder,
             name: placeholder,
             groupId: group.id,
-            element:
-              group.id === HEADING_GROUP_ID
-                ? placeholder
-                : defaultElementForRole(group.id),
             /* A new role follows body rather than claiming a step of its own.
                Most component styles are body with a small adjustment, and
                adding a role must never force the ramp to grow. */
@@ -716,7 +697,6 @@ export function TypographyStudio() {
               const groupRoles = resolvedRoles.filter(
                 (role) => role.groupId === group.id,
               );
-              const isHeading = group.id === HEADING_GROUP_ID;
 
               return (
                 <div key={group.id} className={styles.settingGroup}>
@@ -810,7 +790,6 @@ export function TypographyStudio() {
                       <div className={styles.roleTableHead} aria-hidden="true">
                         <span>Role</span>
                         <span>Size</span>
-                        {!isHeading && <span>Element</span>}
                         <span>Font</span>
                         <span>Weight</span>
                         <span>Line height</span>
@@ -865,21 +844,6 @@ export function TypographyStudio() {
                               )
                             }
                           />
-
-                          {!isHeading && (
-                            <Selector
-                              label={`${role.id} element`}
-                              isLabelHidden
-                              options={ELEMENT_OPTIONS.map((element) => ({
-                                label: element,
-                                value: element,
-                              }))}
-                              value={role.element}
-                              onChange={(value) =>
-                                updateRole(role.id, { element: value })
-                              }
-                            />
-                          )}
 
                           <Selector
                             label={`${role.id} font`}
@@ -1070,7 +1034,7 @@ export function TypographyStudio() {
                     ? sample.th
                     : sample.en
                   : project.specimenText || role.name;
-                const Tag = role.element as "p";
+                const Tag = elementForRole(resolvedSystem, role) as "p";
 
                 return (
                   <article key={role.id} className={styles.previewRole}>
@@ -1079,7 +1043,8 @@ export function TypographyStudio() {
                       <p>
                         {formatLength(role.desktop.fontSizePx, project.unit)} ·
                         weight {role.fontWeight} · line height{" "}
-                        {role.desktop.lineHeight} · {role.element}
+                        {role.desktop.lineHeight} ·{" "}
+                        {elementForRole(resolvedSystem, role)}
                       </p>
                     </header>
                     <Tag style={styleForRole(role.id)}>{text}</Tag>

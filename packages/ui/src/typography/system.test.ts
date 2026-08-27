@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { generateTypeSteps } from "./scale";
 import {
   canAddRole,
-  defaultElementForRole,
+  elementForRole,
   defaultGroups,
   moveGroup,
   groupCapacity,
@@ -19,7 +19,6 @@ function role(id: string, groupId: string, over: Partial<TypeRole> = {}) {
     id,
     name: id,
     groupId,
-    element: defaultElementForRole(id),
     fontId: "base",
     fontWeight: 400,
     textTransform: "number",
@@ -126,7 +125,16 @@ describe("reindexGroup", () => {
       roles: [role("h1", "heading"), role("hx", "heading")],
     });
     const next = reindexGroup(s, "heading");
-    expect(next.roles.map((r) => r.element)).toEqual(["h1", "h2"]);
+    // Element is derived from position, so it follows the rename for free.
+    expect(next.roles.map((r) => elementForRole(next, r))).toEqual([
+      "h1",
+      "h2",
+    ]);
+  });
+
+  it("derives p for everything outside the heading group", () => {
+    const s = system();
+    expect(elementForRole(s, s.roles[0]!)).toBe("p");
   });
 
   it("does nothing when the ids are already right", () => {
