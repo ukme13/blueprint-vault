@@ -12,14 +12,14 @@ This supersedes the role model in `typography-studio.md`. Stages 4 and 5 of
 
 There are two typography models in the repo, and they disagree.
 
-| | `TypographyStudio` | `FerreTypographyStudio` |
-| --- | --- | --- |
-| Fonts | one `fontFamily` string | `fonts[]`, named |
-| Roles | fixed six | arbitrary, with `group` |
-| Per-role font | no | yes, `fontFamilyId` |
-| Add or remove roles | no | yes |
-| Sizes | generated from a ratio | authored by hand |
-| Storage key | `blueprint.typography-project.v1` | `blueprint.ferre-typography.v1` |
+|                     | `TypographyStudio`                | `FerreTypographyStudio`         |
+| ------------------- | --------------------------------- | ------------------------------- |
+| Fonts               | one `fontFamily` string           | `fonts[]`, named                |
+| Roles               | fixed six                         | arbitrary, with `group`         |
+| Per-role font       | no                                | yes, `fontFamilyId`             |
+| Add or remove roles | no                                | yes                             |
+| Sizes               | generated from a ratio            | authored by hand                |
+| Storage key         | `blueprint.typography-project.v1` | `blueprint.ferre-typography.v1` |
 
 The desired flow matches the Ferre model, so that is the one to keep. The main
 studio contributes the part Ferre lacks: sizes generated from a base and ratio.
@@ -28,17 +28,46 @@ studio contributes the part Ferre lacks: sizes generated from a base and ratio.
 studio's are derived from a scale. The merged model has to hold both, because the
 flow is "generate a scale, then tweak individual roles".
 
+## Which studio survives
+
+**Keep `TypographyStudio`. Transplant the Ferre model into it. Retire
+`FerreTypographyStudio`, and keep the Ferre preset.**
+
+They are not peers. The main studio is 711 lines and holds the product surface —
+export dialog and units, five validation checks, the creation flow, scale
+generation from a base and ratio, preview templates, the resizable panel. The
+Ferre studio is 394 lines and holds none of those; what it has is the better data
+model: multiple fonts, add and remove roles, groups, per-role desktop and mobile
+values, and `textTransform`.
+
+Deleting the main studio would throw away most of the product. Rebuilding the
+product inside Ferre would be the same work in a smaller shell.
+
+Three things to carry across rather than drop:
+
+- **The `/typography/ferre` route** becomes a redirect that opens the Ferre preset
+  in the main studio, so saved links keep working.
+- **Its four e2e tests** — load preset, mobile switching, responsive export, add
+  and remove a custom role — cover behaviour that must survive the merge. Rewrite
+  them against the main studio; they are the safety net for exactly this
+  refactor.
+- **The Ferre preset itself.** `Orbitron` plus `Noto Sans Thai` is the only
+  working example of the bilingual case in the repo. It must stay reachable.
+
+The main studio gains desktop and mobile per-role values and `textTransform`,
+neither of which it has today.
+
 ## The merged model
 
-A role links to a generated step *or* carries its own values:
+A role links to a generated step _or_ carries its own values:
 
 ```ts
 interface TypeRole {
-  id: string;              // "h1", "body-1", "button"
+  id: string; // "h1", "body-1", "button"
   name: string;
   group: TypeRoleGroup;
-  element: string;         // semantic tag, see below
-  fontId: string;          // which font stack
+  element: string; // semantic tag, see below
+  fontId: string; // which font stack
   fontWeight: number;
   textTransform: TypographyTextTransform;
   /** Step in the generated scale. Null when the size is hand-set. */
@@ -57,12 +86,12 @@ it must not silently undo a deliberate override.
 
 Groups exist so the list stays legible as roles are added:
 
-| Group | Roles |
-| --- | --- |
-| Display | `display`, and more if added |
-| Heading | `h1`…`h6` |
-| Subtitle | `subtitle-1`…`subtitle-3` |
-| Body | `body-1`…`body-3` |
+| Group      | Roles                                    |
+| ---------- | ---------------------------------------- |
+| Display    | `display`, and more if added             |
+| Heading    | `h1`…`h6`                                |
+| Subtitle   | `subtitle-1`…`subtitle-3`                |
+| Body       | `body-1`…`body-3`                        |
 | Supporting | `label`, `button`, `caption`, `overline` |
 
 Adding to a group appends the next index. Nothing is fixed: a project can have
@@ -86,7 +115,7 @@ Stage 3 read this field.
 interface TypeFont {
   id: string;
   name: string;
-  families: string[];   // ordered; first that has the glyph wins
+  families: string[]; // ordered; first that has the glyph wins
   source: "google" | "local" | "system";
 }
 ```
@@ -96,8 +125,8 @@ per glyph: with `families: ["Orbitron", "Noto Sans Thai"]`, Latin renders in
 Orbitron and Thai in Noto Sans Thai, because Orbitron has no Thai glyphs. The two
 behaviours wanted are therefore:
 
-- *Replace everything* — set `families` to one entry.
-- *Latin primary, other scripts secondary* — order the stack.
+- _Replace everything_ — set `families` to one entry.
+- _Latin primary, other scripts secondary_ — order the stack.
 
 ### Loading Google fonts at runtime
 
@@ -164,15 +193,18 @@ Two persisted projects exist and both must survive:
 - `blueprint.ferre-typography.v1` — already close. Add `element` from the id,
   `step: null` because its sizes are authored.
 
-Exported token names change for main-studio projects, from `--font-body-size` to
-the role id. That is breaking for anyone consuming those tokens and needs saying
-in the release note.
+**Correction to an earlier claim: token names do not change.** The old export
+emits `--font-{role}-size` for the six fixed role names, and the merged export
+emits `--font-{role.id}-size`. Migrating the six roles keeps their names as ids,
+so `--font-body-size` stays `--font-body-size`. The step tokens
+`--font-size-{n}` must keep being emitted as well; the Ferre export does not
+emit them today and would drop them silently.
 
 ## Effect on work in flight
 
 - **#24, units.** Model-agnostic. Unaffected.
 - **#25, preview templates.** The role to element mapping in `roles.ts` becomes a
-  *default generator* for new roles rather than a fixed table, since `element`
+  _default generator_ for new roles rather than a fixed table, since `element`
   moves onto the role. Templates keep working: they ask for a role and get
   resolved CSS. The single-`h1` rule survives as a validation warning rather than
   a hard mapping.
