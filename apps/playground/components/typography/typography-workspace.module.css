@@ -577,14 +577,14 @@
 .previewControls {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-400);
+  gap: var(--spacing-4);
   align-items: center;
-  padding-bottom: var(--spacing-300);
+  padding-bottom: var(--spacing-3);
 }
 
 .previewControlGroup {
   display: flex;
-  gap: var(--spacing-100);
+  gap: var(--spacing-1);
 }
 
 .previewStage {
@@ -597,12 +597,12 @@
 .templateMarketing {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-400);
+  gap: var(--spacing-4);
 }
 
 .templateArticle blockquote {
   margin: 0;
-  padding-inline-start: var(--spacing-400);
+  padding-inline-start: var(--spacing-4);
   border-inline-start: var(--border-width) solid var(--color-border);
 }
 
@@ -612,7 +612,7 @@
 
 .templateFeatures {
   display: grid;
-  gap: var(--spacing-500);
+  gap: var(--spacing-5);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -623,7 +623,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-200);
+  gap: var(--spacing-2);
 }
 
 .roleGroupEmpty {
@@ -635,26 +635,26 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--spacing-200);
+  gap: var(--spacing-2);
 }
 
 .roleGroupActions {
   display: flex;
-  gap: var(--spacing-100);
+  gap: var(--spacing-1);
   align-items: center;
 }
 
 .roleGroupMeta {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: var(--spacing-200);
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-2);
   align-items: end;
 }
 
 .roleTable {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-200);
+  gap: var(--spacing-2);
   overflow-x: auto;
 }
 
@@ -664,7 +664,8 @@
   grid-template-columns:
     minmax(5rem, 0.9fr) minmax(8rem, 1.3fr) minmax(6rem, 1fr)
     minmax(4.5rem, 0.7fr) minmax(4.5rem, 0.7fr) minmax(5rem, 0.8fr) auto;
-  gap: var(--spacing-200);
+  column-gap: var(--spacing-1);
+  row-gap: var(--spacing-2);
   align-items: center;
 }
 
