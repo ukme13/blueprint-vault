@@ -1,7 +1,19 @@
-.workspace,
 .creationPage,
 .loadingPage {
   min-height: 100svh;
+  background: var(--color-neutral-800);
+  color: var(--color-neutral-100);
+  font-family: var(--font-geist-sans), sans-serif;
+}
+
+/* The workspace is exactly one viewport and never scrolls itself. Header and
+   toolbar take their own height; everything left goes to the panels, which
+   scroll independently. */
+.workspace {
+  height: 100svh;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
   background: var(--color-neutral-800);
   color: var(--color-neutral-100);
   font-family: var(--font-geist-sans), sans-serif;
@@ -133,15 +145,19 @@
 }
 
 .editor {
-  min-height: calc(100svh - 165px);
+  /* min-height: 0 lets a grid child shrink below its content, which is what
+     makes the children scroll rather than the page. */
+  min-height: 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 1px var(--inspector-width, 340px);
 }
 
 .canvas {
   min-width: 0;
+  min-height: 0;
   padding: 24px 18px;
   overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--color-neutral-800);
 }
 
@@ -200,8 +216,8 @@
 }
 
 .inspector {
-  height: calc(100svh - 165px);
   min-width: 0;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   background: var(--color-neutral-900);
@@ -273,7 +289,9 @@
 }
 
 .previewPage {
-  min-height: calc(100svh - 165px);
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   display: grid;
   gap: 20px;
   padding: 32px clamp(20px, 4vw, 64px) 60px;
