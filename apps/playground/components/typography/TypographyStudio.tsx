@@ -21,10 +21,13 @@ import {
   MIN_BASE_FONT_SIZE_PX,
   MIN_STEP_COUNT,
   SEMANTIC_ROLES,
+  formatLength,
+  TYPE_SCALE_UNITS,
   TYPE_SCALE_RATIO_PRESETS,
   type RoleAssignment,
   type SemanticRole,
   type TypeScale,
+  type TypeScaleUnit,
 } from "@blueprint/ui";
 import { TypographyCreation } from "./TypographyCreation";
 import { TypographyExportDialog } from "./TypographyExportDialog";
@@ -41,7 +44,14 @@ interface TypographyProject {
   ratio: number;
   stepCount: number;
   roleStyles: RoleStyleMap;
+  /** Output unit. Optional in storage: projects saved before units existed. */
+  unit: TypeScaleUnit;
+  /** Text shown at every step so a scale can be judged in real copy. */
+  specimenText: string;
 }
+
+const DEFAULT_UNIT: TypeScaleUnit = "rem";
+const DEFAULT_SPECIMEN_TEXT = "How vexingly quick daft zebras jump";
 
 const PREVIEW_TEXT: Record<SemanticRole, { en: string; th: string }> = {
   display: { en: "Design with clarity", th: "ออกแบบด้วยความชัดเจน" },
@@ -135,6 +145,17 @@ function readStoredProject(): TypographyProject | null {
       ratio: parsed.ratio,
       stepCount: parsed.stepCount,
       roleStyles,
+      /* Defaulted rather than required: projects saved before units and
+         specimen text existed must still load. */
+      unit:
+        "unit" in parsed &&
+        TYPE_SCALE_UNITS.includes(parsed.unit as TypeScaleUnit)
+          ? (parsed.unit as TypeScaleUnit)
+          : DEFAULT_UNIT,
+      specimenText:
+        "specimenText" in parsed && typeof parsed.specimenText === "string"
+          ? parsed.specimenText
+          : DEFAULT_SPECIMEN_TEXT,
     };
   } catch {
     return null;
@@ -249,6 +270,8 @@ export function TypographyStudio() {
             ratio,
             stepCount,
             roleStyles: defaultRoleStyles(assignDefaultRoles(initialSteps)),
+            unit: DEFAULT_UNIT,
+            specimenText: DEFAULT_SPECIMEN_TEXT,
           });
         }}
       />
@@ -335,6 +358,18 @@ export function TypographyStudio() {
         >
           New project
         </Button>
+        <TextInput
+          className={styles.specimenInput}
+          label="Specimen text"
+          placeholder={DEFAULT_SPECIMEN_TEXT}
+          size="sm"
+          value={project.specimenText}
+          onChange={(value) =>
+            setProject((current) =>
+              current ? { ...current, specimenText: value } : current,
+            )
+          }
+        />
       </section>
 
       {activeSection === "editor" && (
@@ -361,10 +396,10 @@ export function TypographyStudio() {
                         fontSize: `${step.fontSizePx}px`,
                       }}
                     >
-                      Ag
+                      {project.specimenText || "Ag"}
                     </span>
                     <span className={styles.stepMeta}>
-                      <code>{step.fontSizePx.toFixed(1)}px</code>
+                      <code>{formatLength(step.fontSizePx, project.unit)}</code>
                       {step.isBase && <small>base</small>}
                       {stepRoles.map((role) => (
                         <small key={role.role}>{role.role}</small>
@@ -553,7 +588,11 @@ export function TypographyStudio() {
         isOpen={isExportDialogOpen}
         projectName={project.name}
         scale={scale}
+        unit={project.unit}
         onOpenChange={setIsExportDialogOpen}
+        onUnitChange={(unit) =>
+          setProject((current) => (current ? { ...current, unit } : current))
+        }
       />
 
       <AlertDialog

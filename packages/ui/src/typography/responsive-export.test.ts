@@ -35,9 +35,30 @@ describe("formatResponsiveTypographyCssExport", () => {
     );
 
     expect(output).toContain('--font-family-display: "Orbitron", sans-serif;');
-    expect(output).toContain("--font-h1-size: 24px;");
+    expect(output).toContain("--font-h1-size: 1.5rem;");
     expect(output).toContain("--font-h1-transform: uppercase;");
     expect(output).toContain("@media (min-width: 768px)");
-    expect(output).toContain("--font-h1-size: 56px;");
+    expect(output).toContain("--font-h1-size: 3.5rem;");
+  });
+});
+
+describe("responsive export units", () => {
+  it("defaults to rem and honours an explicit unit", () => {
+    expect(
+      formatResponsiveTypographyCssExport(createFerreTypographyPreset()),
+    ).toContain("--font-h1-size: 1.5rem;");
+    expect(
+      formatResponsiveTypographyCssExport(createFerreTypographyPreset(), "px"),
+    ).toContain("--font-h1-size: 24px;");
+    expect(
+      formatResponsiveTypographyCssExport(createFerreTypographyPreset(), "pt"),
+    ).toContain("--font-h1-size: 18pt;");
+  });
+
+  it("keeps the media-query breakpoint in px", () => {
+    // A breakpoint is a viewport width, not a type size: px is correct here.
+    expect(
+      formatResponsiveTypographyCssExport(createFerreTypographyPreset(), "rem"),
+    ).toContain("@media (min-width: 768px)");
   });
 });
