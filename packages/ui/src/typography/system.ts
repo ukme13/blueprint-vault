@@ -59,7 +59,7 @@ export function defaultGroups(): TypeGroup[] {
   return [
     {
       id: HEADING_GROUP_ID,
-      label: "Heading",
+      label: "H",
       isFixed: true,
       indexing: "number",
     },
@@ -222,6 +222,65 @@ export function reindexGroup(system: TypeSystem, groupId: string): TypeSystem {
       };
     }),
   };
+}
+
+/** Turn a label into an id: lowercase, words joined by a single dash. */
+export function slugify(label: string): string {
+  return label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/**
+ * Rename a group, and rename its roles with it.
+ *
+ * Role ids are built from the group id, so a group called Caption holding a
+ * role called `caption` has to become `overline` when renamed — otherwise the
+ * label and the exported token names drift apart. Fixed groups keep their id:
+ * heading and body are referred to by name elsewhere.
+ */
+export function renameGroup(
+  system: TypeSystem,
+  groupId: string,
+  label: string,
+): TypeSystem {
+  const group = findGroup(system, groupId);
+  if (!group) return system;
+  if (group.isFixed) {
+    return {
+      ...system,
+      groups: system.groups.map((candidate) =>
+        candidate.id === groupId ? { ...candidate, label } : candidate,
+      ),
+    };
+  }
+
+  const wanted = slugify(label);
+  let nextId = wanted || groupId;
+  let suffix = 2;
+  while (
+    nextId !== groupId &&
+    system.groups.some((candidate) => candidate.id === nextId)
+  ) {
+    nextId = `${wanted}-${suffix}`;
+    suffix += 1;
+  }
+
+  const renamed: TypeSystem = {
+    ...system,
+    groups: system.groups.map((candidate) =>
+      candidate.id === groupId
+        ? { ...candidate, id: nextId, label }
+        : candidate,
+    ),
+    roles: system.roles.map((role) =>
+      role.groupId === groupId ? { ...role, groupId: nextId } : role,
+    ),
+  };
+
+  return reindexGroup(renamed, nextId);
 }
 
 /**

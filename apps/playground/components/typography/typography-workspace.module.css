@@ -549,10 +549,22 @@
   }
 }
 
-.specimenInput {
-  flex: 1;
-  min-width: 12rem;
-  max-width: 28rem;
+/* The step sample is an input so the specimen can be typed in place. It has to
+   look like text, not like a form field. */
+.stepSample {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: 1.1;
+}
+
+.stepSample:focus-visible {
+  outline: 2px solid var(--color-border-emphasized, var(--color-border));
+  outline-offset: 2px;
 }
 
 .exportUnitHint {
