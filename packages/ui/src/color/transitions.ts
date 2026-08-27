@@ -1,9 +1,7 @@
 import type { ShadeItem } from "./types";
 
 export type TrackTransitionWarningCode =
-  | "lightness-order"
-  | "hue-jump"
-  | "manual-jump";
+  "lightness-order" | "hue-jump" | "manual-jump";
 
 export interface TrackTransitionWarning {
   code: TrackTransitionWarningCode;

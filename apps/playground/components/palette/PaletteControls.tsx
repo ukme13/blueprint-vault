@@ -75,7 +75,9 @@ export function PaletteControls({
           >
             +
           </Button>
-          <span>{MIN_SHADE_COUNT}–{MAX_SHADE_COUNT} stable tokens</span>
+          <span>
+            {MIN_SHADE_COUNT}–{MAX_SHADE_COUNT} stable tokens
+          </span>
         </section>
       </section>
 

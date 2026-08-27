@@ -24,7 +24,9 @@ test.describe("Lightness editing", () => {
     await input.blur();
 
     const neighbourValue = Number(
-      await page.getByLabel("500 lightness percent", { exact: true }).inputValue(),
+      await page
+        .getByLabel("500 lightness percent", { exact: true })
+        .inputValue(),
     );
     const value = Number(await input.inputValue());
 

@@ -41,9 +41,7 @@ test.describe("Shade count", () => {
     await expect(page.getByLabel(/target lightness$/)).toHaveCount(10);
   });
 
-  test("cannot go below the 10-shade minimum", async ({
-    seededPage: page,
-  }) => {
+  test("cannot go below the 10-shade minimum", async ({ seededPage: page }) => {
     const shadeCountInput = page.getByLabel("Shade count", { exact: true });
     await shadeCountInput.fill("10");
     await shadeCountInput.blur();

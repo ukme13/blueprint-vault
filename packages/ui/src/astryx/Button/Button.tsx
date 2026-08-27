@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 /**
  * Swizzled from @astryxdesign/core/Button.
@@ -16,31 +16,30 @@
  * thing that ever draws pixels — no specificity fights, no `!important`.
  */
 
-import { useRef, useTransition, type ReactNode } from 'react';
-import { Tooltip } from '@astryxdesign/core/Tooltip';
-import { Spinner } from '@astryxdesign/core/Spinner';
-import { VisuallyHidden } from '@astryxdesign/core/VisuallyHidden';
-import { useButtonGroup } from '@astryxdesign/core/ButtonGroup';
-import { useLinkComponent } from '@astryxdesign/core/Link';
-import type { LinkComponentType } from '@astryxdesign/core/Link';
+import { useRef, useTransition, type ReactNode } from "react";
+import { Tooltip } from "@astryxdesign/core/Tooltip";
+import { Spinner } from "@astryxdesign/core/Spinner";
+import { VisuallyHidden } from "@astryxdesign/core/VisuallyHidden";
+import { useButtonGroup } from "@astryxdesign/core/ButtonGroup";
+import { useLinkComponent } from "@astryxdesign/core/Link";
+import type { LinkComponentType } from "@astryxdesign/core/Link";
 
 const cn = (...classes: (string | undefined | false | null)[]): string =>
-  classes.filter(Boolean).join(' ');
+  classes.filter(Boolean).join(" ");
 
 /**
  * Astryx's internal `BaseProps` type isn't exported as a public subpath
  * (only whole components are), so this swizzled copy extends the plain
  * native button attributes instead — we own this file now anyway.
  */
-export interface ButtonProps
-  extends Omit<
-    React.ButtonHTMLAttributes<HTMLButtonElement>,
-    'color' | 'type' | 'name' | 'value' | 'form' | 'children' | 'onClick'
-  > {
+export interface ButtonProps extends Omit<
+  React.ButtonHTMLAttributes<HTMLButtonElement>,
+  "color" | "type" | "name" | "value" | "form" | "children" | "onClick"
+> {
   /** Ref forwarded to the root element */
   ref?: React.Ref<HTMLButtonElement>;
   /** HTML button type attribute. @default 'button' */
-  type?: 'button' | 'submit' | 'reset';
+  type?: "button" | "submit" | "reset";
   /** HTML name attribute for form submission. */
   name?: string;
   /** HTML value attribute for form submission. */
@@ -77,7 +76,9 @@ export interface ButtonProps
   /**
    * Async click action. Shows loading state while pending.
    */
-  clickAction?: (e: React.MouseEvent<HTMLButtonElement>) => void | Promise<void>;
+  clickAction?: (
+    e: React.MouseEvent<HTMLButtonElement>,
+  ) => void | Promise<void>;
   /**
    * Icon element rendered before the label text.
    */
@@ -125,7 +126,7 @@ export interface ButtonProps
 
 export function Button({
   label,
-  type = 'button',
+  type = "button",
   isDisabled = false,
   isLoading = false,
   isInterruptible = false,
@@ -189,7 +190,7 @@ export function Button({
   // other keys (Escape, arrows) to reach consumer handlers.
   const handleKeyDown = useAriaDisabled
     ? (e: React.KeyboardEvent<HTMLButtonElement>) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+        if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
         } else {
           props.onKeyDown?.(e);
@@ -202,10 +203,10 @@ export function Button({
   // (active:scale) entirely. Only structural/behavioral classes live here,
   // so there's never two conflicting rules fighting over the same property.
   const rootClassName = cn(
-    'relative inline-flex items-center justify-center whitespace-nowrap',
-    buttonDisabled && 'cursor-not-allowed active:scale-100',
-    isIconOnly && 'aspect-square',
-    className
+    "relative inline-flex items-center justify-center whitespace-nowrap",
+    buttonDisabled && "cursor-not-allowed active:scale-100",
+    isIconOnly && "aspect-square",
+    className,
   );
 
   const buttonContent = (
@@ -213,8 +214,9 @@ export function Button({
       {isLoadingState && (
         <span
           className={cn(
-            'absolute inset-0 grid place-items-center',
-            delaySpinner && 'motion-safe:animate-[fade-in_150ms_ease-out_120ms_backwards]'
+            "absolute inset-0 grid place-items-center",
+            delaySpinner &&
+              "motion-safe:animate-[fade-in_150ms_ease-out_120ms_backwards]",
           )}
           aria-hidden="true"
         >
@@ -222,22 +224,26 @@ export function Button({
         </span>
       )}
       <span
-        className={cn('contents', isLoadingState && 'text-transparent')}
+        className={cn("contents", isLoadingState && "text-transparent")}
         aria-hidden={isLoadingState || undefined}
       >
         {icon && (
-          <span className="inline-flex shrink-0 items-center justify-center">{icon}</span>
+          <span className="inline-flex shrink-0 items-center justify-center">
+            {icon}
+          </span>
         )}
         {isIconOnly ? null : (
           <span className="min-w-0">{children ?? label}</span>
         )}
         {!isIconOnly && endContent && (
-          <span className="inline-flex items-center text-inherit">{endContent}</span>
+          <span className="inline-flex items-center text-inherit">
+            {endContent}
+          </span>
         )}
       </span>
       {/* Live region for loading state announcements */}
       <VisuallyHidden role="status" aria-live="polite">
-        {isLoadingState ? 'Loading' : ''}
+        {isLoadingState ? "Loading" : ""}
       </VisuallyHidden>
     </>
   );
@@ -247,10 +253,10 @@ export function Button({
   // 2. Loading state on non-icon-only (announce the button's purpose)
   // 3. Children differ from label (children are visible, label is accessible name)
   const needsAriaLabel =
-    (isIconOnly && label !== '') ||
+    (isIconOnly && label !== "") ||
     (isLoadingState && !isIconOnly) ||
     (children != null && children !== label);
-  const ariaLabelProp = needsAriaLabel ? { 'aria-label': label } : null;
+  const ariaLabelProp = needsAriaLabel ? { "aria-label": label } : null;
 
   let element: ReactNode;
 
@@ -301,4 +307,4 @@ export function Button({
   return element;
 }
 
-Button.displayName = 'Button';
+Button.displayName = "Button";

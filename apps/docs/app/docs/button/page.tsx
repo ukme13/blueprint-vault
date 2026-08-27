@@ -55,19 +55,17 @@ const matrixColumns: TableColumn<MatrixRow>[] = [
       <span className="text-xs font-bold text-neutral-600">{row.variant}</span>
     ),
   },
-  ...COLORS.map(
-    (c): TableColumn<MatrixRow> => ({
-      key: c,
-      header: c,
-      width: proportional(1),
-      align: "center",
-      renderCell: (row) => (
-        <Button scheme={c} variant={row.variant} size="small">
-          {c}
-        </Button>
-      ),
-    }),
-  ),
+  ...COLORS.map((c): TableColumn<MatrixRow> => ({
+    key: c,
+    header: c,
+    width: proportional(1),
+    align: "center",
+    renderCell: (row) => (
+      <Button scheme={c} variant={row.variant} size="small">
+        {c}
+      </Button>
+    ),
+  })),
 ];
 
 interface PropRow extends Record<string, unknown> {

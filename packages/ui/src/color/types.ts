@@ -2,11 +2,7 @@ export type Rgb = [number, number, number];
 export type Oklch = [number, number, number];
 
 export type DistributionMode =
-  | "linear"
-  | "ease-in-out"
-  | "ease-in"
-  | "ease-out"
-  | "custom";
+  "linear" | "ease-in-out" | "ease-in" | "ease-out" | "custom";
 
 export interface ShadeItem {
   weight: number;
