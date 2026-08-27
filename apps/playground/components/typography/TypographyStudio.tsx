@@ -765,7 +765,6 @@ export function TypographyStudio() {
                       <TextInput
                         label={`${group.label} name`}
                         isLabelHidden
-                        size="sm"
                         value={group.label}
                         onChange={(value) => renameGroupById(group.id, value)}
                       />
