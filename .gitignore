@@ -37,6 +37,13 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Next.js agent rules — regenerated on every `next dev` since 16.3
+# (set `agentRules: false` in next.config.js to stop generating them).
+# Scoped to apps/ on purpose: the root CLAUDE.md and .agents/AGENTS.md are
+# authored and tracked.
+apps/*/AGENTS.md
+apps/*/CLAUDE.md
+
 # Misc
 .DS_Store
 *.pem
