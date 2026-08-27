@@ -211,6 +211,9 @@ function ColourPickerPanel({
   const [draft, setDraft] = useState(() => formatColour(value, colourFormat));
 
   useEffect(() => {
+    /* Re-syncs the draft when the value or format changes. Worth replacing
+       with an adjust-during-render pattern; tracked in the upgrade roadmap. */
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDraft(formatColour(value, colourFormat));
   }, [colourFormat, value]);
 

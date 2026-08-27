@@ -193,6 +193,67 @@ If it stalls, ESLint 9 has a `maintenance` tag at 9.39.5 as a holding position.
 
 **Risk:** medium to high, driven by the hooks plugin.
 
+### What actually happened
+
+**ESLint 10 is blocked upstream, and we took the holding position.**
+
+`eslint-plugin-react@7.37.5` — the latest stable — declares
+`^3 || ... || ^9.7` and does not accept ESLint 10. It is used centrally in both
+`next.js` and `react-internal.js`, so it cannot simply be dropped. The only
+newer publish is `7.8.0-rc.0`, a prerelease whose peer range is *older*
+(`^3 || ^4`), and our own package rules forbid prereleases anyway.
+
+So this stage moved to the newest 9.x instead:
+
+| Package                     | From   | To      |
+| --------------------------- | ------ | ------- |
+| `eslint`                    | 9.39.1 | 9.39.5  |
+| `@eslint/js`                | 9.39.1 | 9.39.5  |
+| `eslint-plugin-react-hooks` | 5.2.0  | 7.1.1   |
+| `eslint-plugin-only-warn`   | 1.1.0  | 1.2.1   |
+| `globals`                   | 16.5.0 | 17.11.0 |
+
+Note `@eslint/js` tracks ESLint's major, so its "latest" is 10.0.1, not 10.9.x.
+`globals` 17 is a major, but its only breaking change splits `audioWorklet` out
+of `browser`, and the configs use `browser` and `serviceworker` only.
+
+**Both 9.x and 10.x carry an npm deprecation notice.** ESLint marks the whole 9
+line "no longer supported", including the `maintenance` tag. There is nothing to
+do about that until `eslint-plugin-react` ships ESLint 10 support. Recheck with
+`npm view eslint-plugin-react peerDependencies.eslint` before retrying.
+
+**The hooks plugin did produce work, as predicted — 8 new violations.** All were
+judged individually rather than blanket-suppressed, and the rules stay enabled so
+new code is still checked.
+
+- `react-hooks/static-components` (1, `packages/ui/.../Button.tsx`) — false
+  positive. `useLinkComponent` memoizes its wrapper precisely to stay
+  referentially stable, and Astryx's own Button uses the same pattern.
+- `react-hooks/purity` (2, `FerreTypographyStudio`) — false positives.
+  `Date.now()` sits in `addRole`/`duplicateRole`, which only run from `onClick`.
+  A monotonic counter was rejected: it resets on reload and could collide with an
+  already-persisted `custom-N` id.
+- `react-hooks/set-state-in-effect` (4 of 6) — legitimate SSR-safe hydration in
+  `ColourFormatContext`, `PaletteStudio`, `TypographyStudio`,
+  `FerreTypographyStudio`. Reading `localStorage` in a `useState` initializer
+  would run during SSR and desync hydration, so the effect is correct.
+
+**Two are genuine and deserve a follow-up, tracked here so they are not lost:**
+
+- `TrackDetailDialog.tsx` — resets drafts from props in an effect. Better
+  expressed as a `key` on the dialog.
+- `ColourPicker.tsx` — re-syncs a draft from `value`/`colourFormat` in an effect.
+  Better expressed as an adjust-during-render pattern.
+
+Both are suppressed with a pointer to this section. They are state-management
+refactors, not dependency work, so they were deliberately left out of the
+upgrade PR.
+
+A note on writing these suppressions: `eslint-disable-next-line` applies to the
+literal next line, so a `-- reason` that wraps onto a second comment line
+silently targets the comment instead of the code. Keep the directive on one
+line and put the prose in a block comment above it.
+
 ## Stage 4 — TypeScript 5.9 to 7.0
 
 Do this last, alone, after everything else is green.

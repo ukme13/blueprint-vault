@@ -60,6 +60,10 @@ export function FerreTypographyStudio() {
   const [selectedRoleId, setSelectedRoleId] = useState("h1");
   const [isExportOpen, setIsExportOpen] = useState(false);
 
+  /* Reading localStorage must happen in an effect: a useState initializer
+     would run during SSR, where window does not exist, and desync
+     hydration. */
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => setSystem(readSystem()), []);
   useEffect(() => {
     if (system)
@@ -100,6 +104,9 @@ export function FerreTypographyStudio() {
   };
 
   const addRole = () => {
+    /* addRole only runs from onClick, never during render. A monotonic counter
+       would reset on reload and could collide with a persisted id. */
+    // eslint-disable-next-line react-hooks/purity
     const id = `custom-${Date.now()}`;
     const role: ResponsiveTypographyRole = {
       ...structuredClone(selectedRole),
@@ -114,6 +121,8 @@ export function FerreTypographyStudio() {
   };
 
   const duplicateRole = () => {
+    /* duplicateRole only runs from onClick, never during render. */
+    // eslint-disable-next-line react-hooks/purity
     const id = `${selectedRole.id}-copy-${Date.now()}`;
     const role = {
       ...structuredClone(selectedRole),
