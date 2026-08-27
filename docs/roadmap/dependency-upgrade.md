@@ -25,7 +25,7 @@ Do this first. Everything else installs on top of it.
 
 | Item | Current | Target |
 | --- | --- | --- |
-| `engines.node` | `>=21.7.0` | `>=22.12.0` |
+| `engines.node` | `>=21.7.0` | `>=22.13.0` |
 | `packageManager` | `pnpm@9.0.0` | `pnpm@11.24.0` |
 
 Node 21 is end-of-life and should not be an allowed floor. Local Node is
@@ -37,9 +37,25 @@ lockfile will be rewritten. Review that diff on its own, not mixed with package
 changes.
 
 Check `.github/workflows` still pins a Node version that satisfies the new
-floor.
+floor. `pnpm/action-setup@v4` is unpinned there, so it reads `packageManager`
+and follows this bump automatically.
 
-**Risk:** medium. Isolated, but it rewrites the lockfile.
+### What actually happened
+
+- The floor is `>=22.13.0`, not `>=22.12.0`. pnpm 11.24 requires `>=22.13` and
+  ESLint 10.9 requires `^22.13.0`, so 22.12 would have been too low.
+- The lockfile did **not** get rewritten. It stayed at `lockfileVersion: 9.0`
+  and pnpm 11 read it unchanged.
+- pnpm 11 refuses to purge `node_modules` without a TTY. Non-interactive runs
+  need `CI=true`.
+- pnpm 10+ blocks dependency build scripts by default. Install wrote an
+  `allowBuilds` placeholder into `pnpm-workspace.yaml` for `sharp`, which had to
+  be resolved by hand. Set to `true`: sharp's install script is
+  `node install/check.js || npm run build`, which is a no-op check when the
+  `@img/sharp-*` prebuilts are present, and Next needs sharp for image
+  optimization.
+
+**Risk:** medium. Isolated. Lower than expected, since the lockfile survived.
 
 ## Stage 1 — Patch and minor sweep
 
