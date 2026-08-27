@@ -9,6 +9,17 @@ This is a Monorepo workspace engineering an advanced OKLCH-based dynamic color p
 - `packages/ui`: Shared component library containing core mathematical engines and primitive tokens.
 - Tech Stack: React, TypeScript, Tailwind CSS v4, and Astryx UI elements.
 
+## 📦 Package & Dependency Rules
+
+**Before using ANY package, go read the online docs first. Never write code from memory about a library.**
+
+1. **Check the real version.** Run `npm view <pkg> version` (and `npm view <pkg> dist-tags`) before you assume what is current. Your training data is out of date.
+2. **Read the current online docs** for that exact version before writing code against it. APIs move between majors.
+3. **Use the latest stable release.** Stable only — never `canary`, `next`, `beta`, `rc`, `alpha`, `insiders`, or a dated `-dev` build, unless the user explicitly asks for one.
+4. **Do not invent versions, URLs, or changelog links.** If you cite a release note, it must be a page you actually fetched. The package's real `homepage`/`repository` comes from `npm view <pkg> homepage repository`.
+5. **Check what is actually installed**, not just what is declared: `package.json` holds a range (`^1.2.3`), `pnpm-lock.yaml` holds the resolved version. Report the resolved one.
+6. **Never bump a major version silently.** Patch and minor bumps are routine. A major bump is its own branch, its own commit, and its own note to the user about breaking changes.
+
 ## 🛠️ Build & Development Commands
 
 - Start local development server: `pnpm dev`
