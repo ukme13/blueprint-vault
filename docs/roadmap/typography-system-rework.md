@@ -30,8 +30,20 @@ flow is "generate a scale, then tweak individual roles".
 
 ## Which studio survives
 
-**Keep `TypographyStudio`. Transplant the Ferre model into it. Retire
-`FerreTypographyStudio`, and keep the Ferre preset.**
+**Keep `TypographyStudio`. Transplant the model into it. `FerreTypographyStudio`
+is removed.**
+
+*Decision changed:* the plan originally kept the Ferre preset and redirected its
+route. It is now deleted outright — the studio, its route, its stylesheet, its
+e2e spec, the preset, `responsive-types.ts`, `responsive-export.ts` and
+`migrateFerreSystem`. Nothing in the product needs it.
+
+Two things had to move first. `TypographyTextTransform` lived in
+`responsive-types.ts` but is used by the merged model, so it now lives in
+`system.ts`. And the Ferre preset was the fixture for the multi-font,
+authored-size, differing-viewport cases in the export tests; that coverage is
+kept through an explicit fixture defined in the test file, so removing the
+preset lost no assertions.
 
 They are not peers. The main studio is 711 lines and holds the product surface —
 export dialog and units, five validation checks, the creation flow, scale

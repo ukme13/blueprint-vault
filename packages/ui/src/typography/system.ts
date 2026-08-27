@@ -1,5 +1,3 @@
-import type { TypographyTextTransform } from "./responsive-types";
-
 /**
  * The merged typography model.
  *
@@ -8,6 +6,15 @@ import type { TypographyTextTransform } from "./responsive-types";
  * They also differed in origin — Ferre's sizes are authored, the main studio's
  * are generated from a ratio — so a role here can do either.
  */
+
+/** Casing applied to a role. Lives with the model that uses it. */
+export type TypographyTextTransform = "none" | "uppercase" | "capitalize";
+
+export const TEXT_TRANSFORMS: TypographyTextTransform[] = [
+  "none",
+  "uppercase",
+  "capitalize",
+];
 
 export type TypeRoleGroup =
   "display" | "heading" | "subtitle" | "body" | "supporting";

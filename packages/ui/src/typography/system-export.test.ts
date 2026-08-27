@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createFerreTypographyPreset } from "./ferre-preset";
-import {
-  migrateFerreSystem,
-  migrateLegacyProject,
-  type LegacyTypographyProject,
-} from "./migrate";
+import { migrateLegacyProject, type LegacyTypographyProject } from "./migrate";
+import type { TypeSystem } from "./system";
 import {
   formatTypeSystemCssExport,
   formatTypeSystemTailwindExport,
@@ -27,7 +23,59 @@ const legacy: LegacyTypographyProject = {
 };
 
 const migratedLegacy = migrateLegacyProject(legacy);
-const migratedFerre = migrateFerreSystem(createFerreTypographyPreset());
+/**
+ * A hand-authored bilingual system: two fonts, sizes set rather than generated,
+ * and viewports that differ. Covers everything a scale-generated system does
+ * not.
+ */
+const authored: TypeSystem = {
+  id: "authored",
+  name: "Authored",
+  baseFontSizePx: 16,
+  ratio: 1.25,
+  stepCount: 5,
+  breakpointPx: 768,
+  fonts: [
+    {
+      id: "display",
+      name: "Display",
+      families: ["Orbitron", "sans-serif"],
+      source: "system",
+    },
+    {
+      id: "content",
+      name: "Content",
+      families: ["Noto Sans Thai", "sans-serif"],
+      source: "system",
+    },
+  ],
+  roles: [
+    {
+      id: "h1",
+      name: "h1",
+      group: "heading",
+      element: "h1",
+      fontId: "display",
+      fontWeight: 700,
+      textTransform: "uppercase",
+      step: null,
+      desktop: { fontSizePx: 56, lineHeight: 1.1, letterSpacingPx: 0 },
+      mobile: { fontSizePx: 24, lineHeight: 1.2, letterSpacingPx: 0 },
+    },
+    {
+      id: "body",
+      name: "body",
+      group: "body",
+      element: "p",
+      fontId: "content",
+      fontWeight: 400,
+      textTransform: "none",
+      step: null,
+      desktop: { fontSizePx: 16, lineHeight: 1.6, letterSpacingPx: 0 },
+      mobile: { fontSizePx: 16, lineHeight: 1.6, letterSpacingPx: 0 },
+    },
+  ],
+};
 
 describe("formatTypeSystemCssExport", () => {
   it("keeps the token names the previous export produced", () => {
@@ -48,14 +96,14 @@ describe("formatTypeSystemCssExport", () => {
   });
 
   it("emits one font-family variable per font, referenced by role", () => {
-    const output = formatTypeSystemCssExport(migratedFerre);
+    const output = formatTypeSystemCssExport(authored);
     expect(output).toContain("--font-family-display:");
     expect(output).toContain("--font-family-content:");
     expect(output).toContain("--font-h1-family: var(--font-family-display);");
   });
 
   it("quotes multi-word families only", () => {
-    const output = formatTypeSystemCssExport(migratedFerre);
+    const output = formatTypeSystemCssExport(authored);
     expect(output).toContain('"Noto Sans Thai"');
     expect(output).toContain("--font-family-display: Orbitron, sans-serif;");
   });
@@ -70,7 +118,7 @@ describe("formatTypeSystemCssExport", () => {
   });
 
   it("never gives line-height a unit", () => {
-    const output = formatTypeSystemCssExport(migratedFerre, "pt");
+    const output = formatTypeSystemCssExport(authored, "pt");
     expect(output).not.toMatch(/line-height: [\d.]+(rem|px|pt)/);
   });
 });
@@ -83,15 +131,13 @@ describe("viewport handling", () => {
   });
 
   it("emits desktop as a min-width override when roles differ", () => {
-    const output = formatTypeSystemCssExport(migratedFerre);
-    expect(output).toContain(
-      `@media (min-width: ${migratedFerre.breakpointPx}px)`,
-    );
+    const output = formatTypeSystemCssExport(authored);
+    expect(output).toContain(`@media (min-width: ${authored.breakpointPx}px)`);
   });
 
   it("puts mobile in :root, so the smallest layout is the default", () => {
-    const h1 = migratedFerre.roles.find((role) => role.id === "h1")!;
-    const output = formatTypeSystemCssExport(migratedFerre, "px");
+    const h1 = authored.roles.find((role) => role.id === "h1")!;
+    const output = formatTypeSystemCssExport(authored, "px");
     const rootBlock = output.slice(0, output.indexOf("@media"));
 
     expect(rootBlock).toContain(`--font-h1-size: ${h1.mobile.fontSizePx}px;`);
@@ -101,7 +147,7 @@ describe("viewport handling", () => {
   });
 
   it("keeps the breakpoint in px whatever the size unit", () => {
-    const output = formatTypeSystemCssExport(migratedFerre, "rem");
+    const output = formatTypeSystemCssExport(authored, "rem");
     expect(output).toContain("@media (min-width: 768px)");
   });
 });
