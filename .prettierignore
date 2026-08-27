@@ -1,0 +1,13 @@
+# Generated / vendor-managed files.
+
+# The Astryx block in CLAUDE.md is written by `astryx upgrade`. Prettier reads
+# the `*` in `var(--color-*)` as markdown emphasis and rewrites it to
+# `var(--color-_)`, corrupting the token guidance the file exists to give.
+CLAUDE.md
+.agents/AGENTS.md
+
+# Next.js regenerates these on every `next dev` (also gitignored).
+apps/*/CLAUDE.md
+apps/*/AGENTS.md
+
+pnpm-lock.yaml
