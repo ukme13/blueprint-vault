@@ -38,7 +38,10 @@ export interface TypeStep {
    * silently points at a different size after a resize; an offset does not.
    */
   offset: number;
+  /** Rounded to an even number of pixels. This is the size that ships. */
   fontSizePx: number;
+  /** Before rounding, so the drift from the ratio stays visible. */
+  exactFontSizePx: number;
   isBase: boolean;
 }
 

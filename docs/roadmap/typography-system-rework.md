@@ -191,18 +191,74 @@ rest.
 
 ## Rounding
 
-**Decision taken: whole pixels by default, with optional snapping to 2, 4 or 8.**
+**Decision taken: every generated size is an even number of pixels, with 11px as
+the single exception at the bottom.**
 
 A modular scale produces decimals by definition, so rounding means the ratio
 becomes a guide rather than a law. That is the intent, but it should be visible:
-show the exact value alongside the rounded one so the drift is never a surprise.
+the exact value is shown beside the rounded one so the drift is never a surprise.
 
-Rules:
+### The rule
 
-- Round at scale generation, so every consumer sees the same number.
+1. Round the exact size to the nearest even number.
+2. Never go below **11px**. Anything that would is clamped there.
+
+11 is the one odd size allowed. It exists because 12 is often too heavy for the
+smallest caption and 10 is too small to read, and it only ever appears at the
+floor.
+
+### What the default scale becomes
+
+Base 16, ratio 1.25, nine steps:
+
+| offset | exact | rounded          |
+| ------ | ----- | ---------------- |
+| -2     | 10.24 | **11** (clamped) |
+| -1     | 12.80 | 12               |
+| 0      | 16.00 | 16               |
+| +1     | 20.00 | 20               |
+| +2     | 25.00 | **tie**          |
+| +3     | 31.25 | 32               |
+| +4     | 39.06 | 40               |
+| +5     | 48.83 | 48               |
+| +6     | 61.04 | 62               |
+
+### Ties go to the multiple of four
+
+25 is equidistant from 24 and 26, and it appears on the default scale, so this is
+not an edge case. **A tie resolves to whichever candidate divides by four** — 24
+here.
+
+This is unambiguous by construction: of any two consecutive even numbers, exactly
+one divides by four. It also pulls the scale toward the 4px grid most component
+work already sits on.
+
+### Duplicates are allowed
+
+Rounding can give two adjacent steps the same size. At base 16 with ratio 1.1,
+offsets -1 and -2 are 14.55 and 13.22, and both round to 14.
+
+That is left alone. Forcing them apart would distort the ratio further to hide a
+problem the user created by choosing a ratio too tight for the base, and the
+honest signal is that the ramp really does have two steps of the same size.
+
+### The base is always even
+
+The base size field steps by two, so an odd base is never entered. The number
+typed is always the number shown, and 11px stays the only odd size in the
+system.
+
+### Rules that hold regardless
+
+- Round at generation, so the preview, the role table and the export can never
+  disagree.
 - Apply identically to desktop and mobile.
-- Never round below the minimum body size the validation already enforces.
+- A hand-set size is a decision and is left alone. Rounding applies to sizes the
+  scale generates, not to ones a person typed.
 - Line-height stays a unitless multiplier and is never rounded to pixels.
+- The floor is 11px, which is below the validation's 12px minimum for body text.
+  That is deliberate: 11 is for captions, and body text landing there should
+  still fail validation rather than be quietly allowed.
 
 ## Stages
 

@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  MIN_GENERATED_FONT_SIZE_PX,
+  roundToEvenPx,
   assignDefaultRoles,
   generateTypeScale,
   generateTypeSteps,
@@ -17,12 +19,18 @@ describe("generateTypeSteps", () => {
   });
 
   it("grows steps above the base and shrinks steps below it by the ratio", () => {
+    // The ratio governs the exact value; fontSizePx is that value rounded even
+    // and floored at 11, so the maths is asserted against exactFontSizePx.
     const steps = generateTypeSteps(16, 2, 5);
 
-    expect(steps[3]!.fontSizePx).toBeCloseTo(32);
-    expect(steps[4]!.fontSizePx).toBeCloseTo(64);
-    expect(steps[1]!.fontSizePx).toBeCloseTo(8);
-    expect(steps[0]!.fontSizePx).toBeCloseTo(4);
+    expect(steps[3]!.exactFontSizePx).toBeCloseTo(32);
+    expect(steps[4]!.exactFontSizePx).toBeCloseTo(64);
+    expect(steps[1]!.exactFontSizePx).toBeCloseTo(8);
+    expect(steps[0]!.exactFontSizePx).toBeCloseTo(4);
+
+    // Both bottom steps fall under the floor and clamp to it.
+    expect(steps[0]!.fontSizePx).toBe(11);
+    expect(steps[1]!.fontSizePx).toBe(11);
   });
 
   it("rejects out-of-range inputs", () => {
@@ -72,8 +80,11 @@ describe("assignDefaultRoles", () => {
         (step) => step.step === roleByName(roles, "caption").step,
       )!;
 
-      expect(bodyStep.fontSizePx).toBeCloseTo(16);
-      expect(captionStep.fontSizePx).toBeCloseTo(16 / 1.25 ** 2);
+      expect(bodyStep.exactFontSizePx).toBeCloseTo(16);
+      expect(captionStep.exactFontSizePx).toBeCloseTo(16 / 1.25 ** 2);
+      // Base is even already; caption falls under the floor and clamps.
+      expect(bodyStep.fontSizePx).toBe(16);
+      expect(captionStep.fontSizePx).toBe(11);
     }
   });
 
@@ -123,5 +134,57 @@ describe("ramp shape", () => {
   it("copes when there are fewer steps than the room below base", () => {
     const steps = generateTypeSteps(16, 1.25, 3);
     expect(steps.filter((step) => step.isBase)).toHaveLength(1);
+  });
+});
+
+describe("roundToEvenPx", () => {
+  it("rounds to the nearest even number", () => {
+    expect(roundToEvenPx(31.25)).toBe(32);
+    expect(roundToEvenPx(12.8)).toBe(12);
+    expect(roundToEvenPx(48.83)).toBe(48);
+  });
+
+  it("breaks a tie toward the multiple of four", () => {
+    // 25 sits between 24 and 26 and appears on the default scale.
+    expect(roundToEvenPx(25)).toBe(24);
+    // 27 sits between 26 and 28; 28 is the multiple of four.
+    expect(roundToEvenPx(27)).toBe(28);
+  });
+
+  it("never goes below the floor, the one odd size allowed", () => {
+    expect(roundToEvenPx(10.24)).toBe(MIN_GENERATED_FONT_SIZE_PX);
+    expect(roundToEvenPx(4)).toBe(MIN_GENERATED_FONT_SIZE_PX);
+    expect(MIN_GENERATED_FONT_SIZE_PX).toBe(11);
+  });
+
+  it("leaves an even value alone", () => {
+    [12, 16, 20, 64].forEach((px) => expect(roundToEvenPx(px)).toBe(px));
+  });
+});
+
+describe("generated sizes", () => {
+  it("are all even, apart from the floor", () => {
+    const steps = generateTypeSteps(16, 1.25, 9);
+    steps.forEach((step) => {
+      const isEven = step.fontSizePx % 2 === 0;
+      expect(isEven || step.fontSizePx === MIN_GENERATED_FONT_SIZE_PX).toBe(
+        true,
+      );
+    });
+  });
+
+  it("keeps the exact value so the drift stays visible", () => {
+    const steps = generateTypeSteps(16, 1.25, 9);
+    const plusTwo = steps.find((step) => step.offset === 2)!;
+    expect(plusTwo.exactFontSizePx).toBe(25);
+    expect(plusTwo.fontSizePx).toBe(24);
+  });
+
+  it("allows two steps to share a size at a tight ratio", () => {
+    /* Forcing them apart would distort the ratio to hide a choice the user
+       made. Two steps really do land on 14 here. */
+    const steps = generateTypeSteps(16, 1.1, 5);
+    const sizes = steps.map((step) => step.fontSizePx);
+    expect(new Set(sizes).size).toBeLessThan(sizes.length);
   });
 });

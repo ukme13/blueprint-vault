@@ -72,6 +72,37 @@ function assertRatio(ratio: number): void {
 /** Steps generated below base. Everything past that goes up. */
 export const STEPS_BELOW_BASE = 2;
 
+/**
+ * Smallest size the scale will generate, and the only odd one.
+ *
+ * 12 is often too heavy for the smallest caption and 10 too small to read, so 11
+ * earns its exception. It sits below the validation's 12px body minimum on
+ * purpose: 11 is for captions, and body text landing there should still fail.
+ */
+export const MIN_GENERATED_FONT_SIZE_PX = 11;
+
+/**
+ * Round a size to an even number of pixels, never below the floor.
+ *
+ * A tie resolves to whichever candidate divides by four — 25 becomes 24, not 26.
+ * That is unambiguous by construction, since exactly one of any two consecutive
+ * even numbers divides by four, and it pulls the scale toward the 4px grid most
+ * component work already sits on.
+ */
+export function roundToEvenPx(fontSizePx: number): number {
+  const lower = Math.floor(fontSizePx / 2) * 2;
+  const upper = lower + 2;
+  const toLower = fontSizePx - lower;
+  const toUpper = upper - fontSizePx;
+
+  let rounded: number;
+  if (toLower < toUpper) rounded = lower;
+  else if (toUpper < toLower) rounded = upper;
+  else rounded = lower % 4 === 0 ? lower : upper;
+
+  return Math.max(rounded, MIN_GENERATED_FONT_SIZE_PX);
+}
+
 export function generateTypeSteps(
   baseFontSizePx: number,
   ratio: number,
@@ -86,12 +117,18 @@ export function generateTypeSteps(
      centring the ramp spent half of it on sizes nobody sets. */
   const baseIndex = Math.min(STEPS_BELOW_BASE, stepCount - 1);
 
-  return Array.from({ length: stepCount }, (_, index) => ({
-    step: index,
-    offset: index - baseIndex,
-    fontSizePx: baseFontSizePx * Math.pow(ratio, index - baseIndex),
-    isBase: index === baseIndex,
-  }));
+  return Array.from({ length: stepCount }, (_, index) => {
+    const exactFontSizePx = baseFontSizePx * Math.pow(ratio, index - baseIndex);
+    return {
+      step: index,
+      offset: index - baseIndex,
+      /* Rounded at generation, so the preview, the role table and the export
+         can never disagree about a size. */
+      fontSizePx: roundToEvenPx(exactFontSizePx),
+      exactFontSizePx,
+      isBase: index === baseIndex,
+    };
+  });
 }
 
 export function assignDefaultRoles(steps: TypeStep[]): RoleAssignment[] {
