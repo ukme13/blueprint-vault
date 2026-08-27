@@ -33,7 +33,7 @@ flow is "generate a scale, then tweak individual roles".
 **Keep `TypographyStudio`. Transplant the model into it. `FerreTypographyStudio`
 is removed.**
 
-*Decision changed:* the plan originally kept the Ferre preset and redirected its
+_Decision changed:_ the plan originally kept the Ferre preset and redirected its
 route. It is now deleted outright — the studio, its route, its stylesheet, its
 e2e spec, the preset, `responsive-types.ts`, `responsive-export.ts` and
 `migrateFerreSystem`. Nothing in the product needs it.
@@ -93,6 +93,24 @@ interface TypeRole {
 Tracking `step` rather than copying the size is what lets the ratio keep driving
 the roles that have not been overridden. Changing the base size should move them;
 it must not silently undo a deliberate override.
+
+### Steps are offsets, not indexes
+
+A role stores **how far it sits from base**, not an absolute index into the ramp.
+
+The original code computed base as the midpoint, `Math.floor((stepCount - 1) / 2)`.
+So a role on index 4 was base at 9 steps and one below base at 11 — changing the
+step count silently reassigned every role. Offsets make the ramp free to grow or
+shrink without moving anything.
+
+### Roles are not steps
+
+The step count answers "how many distinct sizes do I want", not "how many roles do
+I have". Many roles share one step: a button is body's size with more weight, a
+caption is one below. Adding roles must never require adding steps.
+
+A role therefore either picks a step, or declares itself **the same as another
+role**, which is how most component styles behave — body with a small adjustment.
 
 ### Groups
 

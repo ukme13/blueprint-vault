@@ -178,4 +178,61 @@ test.describe("Typography scale editing", () => {
         .first(),
     ).toBeVisible();
   });
+
+  test("heading offers no element picker, because h1-h6 is derived", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    // body is a free-form role, so it keeps the control.
+    await expect(settings.getByLabel("body element")).toBeVisible();
+    // heading roles derive their element from position.
+    await expect(settings.getByLabel("heading element")).toBeHidden();
+  });
+
+  test("adds a group, renames it, and moves it", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings.getByRole("button", { name: "Add group" }).click();
+
+    const nameField = settings.getByLabel(/^Group \d+ name$/);
+    await expect(nameField).toBeVisible();
+    await nameField.fill("Overline");
+
+    await expect(
+      settings.getByRole("heading", { name: "Overline" }),
+    ).toBeVisible();
+    await expect(
+      settings.getByRole("button", { name: "Move Overline up" }),
+    ).toBeVisible();
+  });
+
+  test("fixed groups cannot be removed or reordered", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await expect(
+      settings.getByRole("button", { name: "Remove Heading group" }),
+    ).toBeHidden();
+    await expect(
+      settings.getByRole("button", { name: "Move Body up" }),
+    ).toBeHidden();
+  });
+
+  test("a new role follows body instead of taking its own step", async ({
+    seededPage: page,
+  }) => {
+    // Adding roles must never force the size ramp to grow: most component
+    // styles are body with a small adjustment.
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings
+      .getByRole("heading", { name: "Body", exact: true })
+      .locator("..")
+      .getByRole("button", { name: "Add" })
+      .click();
+
+    await expect(settings.getByLabel("body-1 size")).toContainText(
+      "Same as body",
+    );
+  });
 });

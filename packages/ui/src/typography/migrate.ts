@@ -1,5 +1,12 @@
 import { assignDefaultRoles, generateTypeSteps } from "./scale";
-import { type TypeRole, type TypeSystem } from "./system";
+import {
+  BODY_GROUP_ID,
+  defaultGroups,
+  HEADING_GROUP_ID,
+  type TypeGroup,
+  type TypeRole,
+  type TypeSystem,
+} from "./system";
 import { SEMANTIC_ROLES, type SemanticRole } from "./types";
 
 /**
@@ -26,14 +33,37 @@ const LEGACY_ELEMENTS: Record<SemanticRole, string> = {
   caption: "small",
 };
 
-const LEGACY_GROUPS: Record<SemanticRole, TypeRole["group"]> = {
-  display: "display",
-  heading: "heading",
-  title: "heading",
-  body: "body",
-  label: "supporting",
-  caption: "supporting",
+const DISPLAY_GROUP_ID = "display";
+const SUPPORTING_GROUP_ID = "supporting";
+
+/** Which group each legacy role lands in. */
+const LEGACY_GROUPS: Record<SemanticRole, string> = {
+  display: DISPLAY_GROUP_ID,
+  heading: HEADING_GROUP_ID,
+  title: HEADING_GROUP_ID,
+  body: BODY_GROUP_ID,
+  label: SUPPORTING_GROUP_ID,
+  caption: SUPPORTING_GROUP_ID,
 };
+
+/** Groups a migrated legacy project needs: the two fixed ones plus two free. */
+function legacyGroups(): TypeGroup[] {
+  return [
+    {
+      id: DISPLAY_GROUP_ID,
+      label: "Display",
+      isFixed: false,
+      indexing: "none",
+    },
+    ...defaultGroups(),
+    {
+      id: SUPPORTING_GROUP_ID,
+      label: "Supporting",
+      isFixed: false,
+      indexing: "none",
+    },
+  ];
+}
 
 export interface LegacyTypographyProject {
   name: string;
@@ -89,12 +119,15 @@ export function migrateLegacyProject(
     return {
       id: role,
       name: role,
-      group: LEGACY_GROUPS[role],
+      groupId: LEGACY_GROUPS[role],
       element: LEGACY_ELEMENTS[role],
       fontId: LEGACY_FONT_ID,
       fontWeight: style.fontWeight,
       textTransform: "none" as const,
-      step: stepNumber,
+      /* Stored as a distance from base, so changing the step count later does
+         not move this role onto a different size. */
+      stepOffset: step?.offset ?? 0,
+      sameAsRoleId: null,
       desktop: value,
       mobile: { ...value },
     };
@@ -102,6 +135,7 @@ export function migrateLegacyProject(
 
   return {
     id: "migrated-type-scale",
+    groups: legacyGroups(),
     name: project.name,
     baseFontSizePx: project.baseFontSizePx,
     ratio: project.ratio,

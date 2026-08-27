@@ -82,6 +82,7 @@ export function generateTypeSteps(
 
   return Array.from({ length: stepCount }, (_, index) => ({
     step: index,
+    offset: index - baseIndex,
     fontSizePx: baseFontSizePx * Math.pow(ratio, index - baseIndex),
     isBase: index === baseIndex,
   }));

@@ -625,3 +625,39 @@
   justify-content: space-between;
   gap: var(--spacing-200);
 }
+
+.roleGroupActions {
+  display: flex;
+  gap: var(--spacing-100);
+  align-items: center;
+}
+
+.roleGroupMeta {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--spacing-200);
+  align-items: end;
+}
+
+.roleTable {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-200);
+  overflow-x: auto;
+}
+
+.roleTableHead,
+.roleTableRow {
+  display: grid;
+  grid-template-columns:
+    minmax(5rem, 0.9fr) minmax(8rem, 1.2fr) minmax(5rem, 0.8fr)
+    minmax(6rem, 1fr) minmax(4.5rem, 0.7fr) minmax(4.5rem, 0.7fr)
+    minmax(5rem, 0.8fr) auto;
+  gap: var(--spacing-200);
+  align-items: center;
+}
+
+.roleTableHead {
+  font-size: var(--font-caption-size);
+  color: var(--color-text-secondary);
+}

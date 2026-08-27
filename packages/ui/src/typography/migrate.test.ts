@@ -67,7 +67,8 @@ describe("migrateLegacyProject", () => {
       const step = scale.steps.find(
         (candidate) => candidate.step === assignment.step,
       )!;
-      expect(migrated.step).toBe(assignment.step);
+      // Stored as a distance from base, not the raw index.
+      expect(migrated.stepOffset).toBe(step.offset);
       expect(migrated.desktop.fontSizePx).toBe(step.fontSizePx);
     });
   });
@@ -80,7 +81,21 @@ describe("migrateLegacyProject", () => {
   });
 
   it("keeps every role linked to a step, because these sizes were generated", () => {
-    expect(system.roles.every((role) => role.step !== null)).toBe(true);
+    expect(system.roles.every((role) => role.stepOffset !== null)).toBe(true);
+  });
+
+  it("survives a change of step count without moving roles", () => {
+    // The bug this replaces: base is the ramp midpoint, so an absolute index
+    // pointed at a different size as soon as the count changed.
+    const wider = migrateLegacyProject({ ...legacy, stepCount: 13 });
+    const body = system.roles.find((role) => role.id === "body")!;
+    const widerBody = wider.roles.find((role) => role.id === "body")!;
+    expect(widerBody.stepOffset).toBe(body.stepOffset);
+  });
+
+  it("gives every system the two fixed groups", () => {
+    const fixed = system.groups.filter((group) => group.isFixed);
+    expect(fixed.map((group) => group.id).sort()).toEqual(["body", "heading"]);
   });
 
   it("starts mobile equal to desktop rather than inventing smaller sizes", () => {
