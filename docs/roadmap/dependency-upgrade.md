@@ -84,6 +84,19 @@ bump.
 Already at latest, nothing to do: `@playwright/test` 1.62.1,
 `class-variance-authority` 0.7.1.
 
+### What actually happened
+
+- `@next/eslint-plugin-next` (16.2.0 → 16.3.3) and `eslint-plugin-turbo`
+  (2.7.1 → 2.10.12) were moved here from Stage 3. Both are same-major bumps that
+  should track `next` and `turbo`, and lint still passes at `--max-warnings 0`.
+- `@types/node` went 22.15.3 → 22.20.1, staying on 22.x to match the Node floor.
+- `globals` was **not** bumped. Latest is 17.x, which is a major, so it stays for
+  the ESLint stage.
+- `pnpm install` needs `--no-frozen-lockfile` when manifests change. With
+  `CI=true` set, frozen is the default and the install fails by design.
+- Prettier 3.9 reformatted 12 files. The change is cosmetic: short union types
+  now collapse onto one line where they fit.
+
 **Risk:** low.
 
 ## Stage 2 — Astryx 0.1.3 to 0.5.0
