@@ -23,18 +23,23 @@ import {
   fontFamilyValue,
   formatLength,
   migrateLegacyProject,
+  normalizeStoredSystem,
   splitFontFamily,
   defaultElementForRole,
-  nextRoleId,
-  TYPE_ROLE_GROUP_LABELS,
-  TYPE_ROLE_GROUPS,
+  reindexGroup,
+  canAddRole,
+  HEADING_GROUP_ID,
+  moveGroup,
+  resolveRoleSizePx,
+  TYPE_INDEXING_LABELS,
   TYPE_SCALE_UNITS,
   TYPE_SCALE_RATIO_PRESETS,
   type RoleAssignment,
   type SemanticRole,
   type LegacyTypographyProject,
   type TypeRole,
-  type TypeRoleGroup,
+  type TypeGroup,
+  type TypeIndexing,
   type TypeScaleUnit,
   type TypeSystem,
 } from "@blueprint/ui";
@@ -145,16 +150,12 @@ function readStoredProject(): TypographyProject | null {
     }
 
     if (!("system" in parsed)) return null;
-    const system = parsed.system as TypeSystem;
-    if (
-      !system ||
-      typeof system !== "object" ||
-      !Array.isArray(system.roles) ||
-      !Array.isArray(system.fonts) ||
-      typeof system.baseFontSizePx !== "number"
-    ) {
-      return null;
-    }
+
+    /* Normalise rather than trust: an earlier release stored a system with no
+       groups, roles keyed by `group`, and absolute steps. Reading one of those
+       as-is crashed on system.groups.map. */
+    const system = normalizeStoredSystem(parsed.system);
+    if (!system) return null;
 
     return { system, ...prefs };
   } catch {
@@ -198,9 +199,9 @@ export function TypographyStudio() {
   const [previewLang, setPreviewLang] = useState<PreviewLanguage>("en");
   const inspectorPanel = useResizable({
     autoSaveId: "blueprint-typography-inspector",
-    defaultSize: 340,
-    minSizePx: 300,
-    maxSizePx: 520,
+    defaultSize: 560,
+    minSizePx: 360,
+    maxSizePx: 900,
   });
 
   useEffect(() => {
@@ -241,13 +242,11 @@ export function TypographyStudio() {
   const resolvedRoles = useMemo((): TypeRole[] => {
     if (!system) return [];
     return system.roles.map((role) => {
-      if (role.step === null) return role;
-      const step = steps.find((candidate) => candidate.step === role.step);
-      if (!step) return role;
+      const size = resolveRoleSizePx(system, steps, role);
       return {
         ...role,
-        desktop: { ...role.desktop, fontSizePx: step.fontSizePx },
-        mobile: { ...role.mobile, fontSizePx: step.fontSizePx },
+        desktop: { ...role.desktop, fontSizePx: size },
+        mobile: { ...role.mobile, fontSizePx: size },
       };
     });
   }, [system, steps]);
@@ -304,44 +303,130 @@ export function TypographyStudio() {
         : current,
     );
 
-  const addRole = (group: TypeRoleGroup) =>
+  const addRole = (group: TypeGroup) =>
     setProject((current) => {
       if (!current) return current;
-      const id = nextRoleId(current.system, group);
+      if (!canAddRole(current.system, group)) return current;
+
       const template =
-        current.system.roles.find((role) => role.group === group) ??
+        current.system.roles.find((role) => role.groupId === group.id) ??
+        current.system.roles.find((role) => role.id === "body") ??
         current.system.roles[0];
       if (!template) return current;
 
-      return {
-        ...current,
-        system: {
-          ...current.system,
-          roles: [
-            ...current.system.roles,
-            {
-              ...template,
-              id,
-              name: id,
-              group,
-              element: defaultElementForRole(id),
-              /* A new role starts unlinked: it copies a sibling's size rather
-                 than claiming a step that already belongs to another role. */
-              step: null,
-            },
-          ],
-        },
+      /* Placeholder id: reindexGroup gives every role in the group its real
+         name, which is how a lone `caption` becomes `caption-1` once a second
+         one joins it. */
+      const placeholder = `${group.id}-new-${current.system.roles.length}`;
+      const withRole: TypeSystem = {
+        ...current.system,
+        roles: [
+          ...current.system.roles,
+          {
+            ...template,
+            id: placeholder,
+            name: placeholder,
+            groupId: group.id,
+            element:
+              group.id === HEADING_GROUP_ID
+                ? placeholder
+                : defaultElementForRole(group.id),
+            /* A new role follows body rather than claiming a step of its own.
+               Most component styles are body with a small adjustment, and
+               adding a role must never force the ramp to grow. */
+            stepOffset: null,
+            sameAsRoleId: template.id,
+          },
+        ],
       };
+
+      return { ...current, system: reindexGroup(withRole, group.id) };
     });
 
   const removeRole = (id: string) =>
+    setProject((current) => {
+      if (!current) return current;
+      const groupId = current.system.roles.find(
+        (role) => role.id === id,
+      )?.groupId;
+
+      const without: TypeSystem = {
+        ...current.system,
+        roles: current.system.roles
+          .filter((role) => role.id !== id)
+          /* Anything following the removed role keeps its size rather than
+             silently falling back to whatever it stored. */
+          .map((role) =>
+            role.sameAsRoleId === id ? { ...role, sameAsRoleId: null } : role,
+          ),
+      };
+
+      return {
+        ...current,
+        system: groupId ? reindexGroup(without, groupId) : without,
+      };
+    });
+
+  const updateGroup = (groupId: string, patch: Partial<TypeGroup>) =>
+    setProject((current) => {
+      if (!current) return current;
+      const updated: TypeSystem = {
+        ...current.system,
+        groups: current.system.groups.map((group) =>
+          group.id === groupId ? { ...group, ...patch } : group,
+        ),
+      };
+      /* Switching a group between number and size renames its roles, so the
+         ids follow the mode rather than whatever they were created under. */
+      return { ...current, system: reindexGroup(updated, groupId) };
+    });
+
+  const shiftGroup = (groupId: string, direction: -1 | 1) =>
     setProject((current) =>
       current
         ? {
             ...current,
             system: {
               ...current.system,
-              roles: current.system.roles.filter((role) => role.id !== id),
+              groups: moveGroup(current.system, groupId, direction),
+            },
+          }
+        : current,
+    );
+
+  const addGroup = () =>
+    setProject((current) => {
+      if (!current) return current;
+      let index = current.system.groups.length + 1;
+      while (current.system.groups.some((g) => g.id === `group-${index}`)) {
+        index += 1;
+      }
+      const id = `group-${index}`;
+      return {
+        ...current,
+        system: {
+          ...current.system,
+          groups: [
+            ...current.system.groups,
+            { id, label: `Group ${index}`, isFixed: false, indexing: "number" },
+          ],
+        },
+      };
+    });
+
+  const removeGroup = (groupId: string) =>
+    setProject((current) =>
+      current
+        ? {
+            ...current,
+            system: {
+              ...current.system,
+              groups: current.system.groups.filter(
+                (group) => group.id !== groupId,
+              ),
+              roles: current.system.roles.filter(
+                (role) => role.groupId !== groupId,
+              ),
             },
           }
         : current,
@@ -349,7 +434,7 @@ export function TypographyStudio() {
 
   const bodyRole =
     resolvedRoles.find((role) => role.id === "body") ??
-    resolvedRoles.find((role) => role.group === "body");
+    resolvedRoles.find((role) => role.groupId === "body");
 
   const warnings = system
     ? [
@@ -360,7 +445,7 @@ export function TypographyStudio() {
         assessRoleWeights(
           resolvedRoles.map((role) => ({
             role: role.id as never,
-            step: role.step ?? 0,
+            step: role.stepOffset ?? 0,
             fontWeight: role.fontWeight,
             lineHeight: role.desktop.lineHeight,
             letterSpacingPx: role.desktop.letterSpacingPx,
@@ -426,7 +511,7 @@ export function TypographyStudio() {
        anything — a template must never render unstyled. */
     const role =
       resolvedRoles.find((candidate) => candidate.id === roleId) ??
-      resolvedRoles.find((candidate) => candidate.group === roleId) ??
+      resolvedRoles.find((candidate) => candidate.groupId === roleId) ??
       bodyRole ??
       resolvedRoles[0];
     if (!role) return {};
@@ -520,7 +605,7 @@ export function TypographyStudio() {
             <ul className={styles.stepList}>
               {sortedSteps.map((step) => {
                 const stepRoles = resolvedRoles.filter(
-                  (role) => role.step === step.step,
+                  (role) => role.stepOffset === step.offset,
                 );
                 return (
                   <li key={step.step} className={styles.stepRow}>
@@ -627,105 +712,251 @@ export function TypographyStudio() {
               />
             </div>
 
-            {TYPE_ROLE_GROUPS.map((group) => {
-              const groupRoles = rolesLargeToSmall.filter(
-                (role) => role.group === group,
+            {system.groups.map((group, groupIndex) => {
+              const groupRoles = resolvedRoles.filter(
+                (role) => role.groupId === group.id,
               );
+              const isHeading = group.id === HEADING_GROUP_ID;
 
               return (
-                <div key={group} className={styles.settingGroup}>
+                <div key={group.id} className={styles.settingGroup}>
                   <header className={styles.roleGroupHeader}>
-                    <h2>{TYPE_ROLE_GROUP_LABELS[group]}</h2>
-                    <Button
-                      scheme="neutral"
-                      size="xs"
-                      variant="text"
-                      onClick={() => addRole(group)}
-                    >
-                      Add
-                    </Button>
-                  </header>
-
-                  {groupRoles.length === 0 && (
-                    <p className={styles.roleGroupEmpty}>No roles yet.</p>
-                  )}
-
-                  {groupRoles.map((role) => (
-                    <div key={role.id} className={styles.roleSetting}>
-                      <div className={styles.roleSettingTop}>
-                        <span className={styles.roleSettingLabel}>
-                          {role.id}
-                        </span>
+                    <h2>{group.label}</h2>
+                    <div className={styles.roleGroupActions}>
+                      {!group.isFixed && (
+                        <>
+                          <Button
+                            aria-label={`Move ${group.label} up`}
+                            disabled={groupIndex === 0}
+                            scheme="neutral"
+                            size="xs"
+                            variant="text"
+                            onClick={() => shiftGroup(group.id, -1)}
+                          >
+                            ↑
+                          </Button>
+                          <Button
+                            aria-label={`Move ${group.label} down`}
+                            disabled={groupIndex === system.groups.length - 1}
+                            scheme="neutral"
+                            size="xs"
+                            variant="text"
+                            onClick={() => shiftGroup(group.id, 1)}
+                          >
+                            ↓
+                          </Button>
+                        </>
+                      )}
+                      <Button
+                        disabled={!canAddRole(system, group)}
+                        scheme="neutral"
+                        size="xs"
+                        variant="text"
+                        onClick={() => addRole(group)}
+                      >
+                        Add
+                      </Button>
+                      {!group.isFixed && (
                         <Button
-                          aria-label={`Remove ${role.id}`}
+                          aria-label={`Remove ${group.label} group`}
                           scheme="neutral"
                           size="xs"
                           variant="text"
-                          onClick={() => removeRole(role.id)}
+                          onClick={() => removeGroup(group.id)}
                         >
-                          Remove
+                          Remove group
                         </Button>
-                      </div>
+                      )}
+                    </div>
+                  </header>
 
-                      <Selector
-                        label={`${role.id} element`}
-                        options={ELEMENT_OPTIONS.map((element) => ({
-                          label: element,
-                          value: element,
-                        }))}
-                        value={role.element}
+                  {!group.isFixed && (
+                    <div className={styles.roleGroupMeta}>
+                      <TextInput
+                        label={`${group.label} name`}
+                        isLabelHidden
+                        size="sm"
+                        value={group.label}
                         onChange={(value) =>
-                          updateRole(role.id, { element: value })
+                          updateGroup(group.id, { label: value })
                         }
                       />
                       <Selector
-                        label={`${role.id} font`}
-                        options={system.fonts.map((font) => ({
-                          label: font.name,
-                          value: font.id,
-                        }))}
-                        value={role.fontId}
+                        label={`${group.label} indexing`}
+                        isLabelHidden
+                        options={(["number", "size"] as TypeIndexing[]).map(
+                          (mode) => ({
+                            label: TYPE_INDEXING_LABELS[mode],
+                            value: mode,
+                          }),
+                        )}
+                        value={group.indexing}
                         onChange={(value) =>
-                          updateRole(role.id, { fontId: value })
-                        }
-                      />
-                      <NumberInput
-                        isIntegerOnly
-                        label={`${role.id} font weight`}
-                        min={100}
-                        max={900}
-                        step={100}
-                        value={role.fontWeight}
-                        onChange={(value) =>
-                          updateRole(role.id, { fontWeight: value })
-                        }
-                      />
-                      <NumberInput
-                        label={`${role.id} line height`}
-                        min={1}
-                        max={2.5}
-                        step={0.05}
-                        value={role.desktop.lineHeight}
-                        onChange={(value) =>
-                          updateRoleValue(role.id, { lineHeight: value })
-                        }
-                      />
-                      <NumberInput
-                        label={`${role.id} letter spacing`}
-                        min={-2}
-                        max={2}
-                        step={0.05}
-                        units="px"
-                        value={role.desktop.letterSpacingPx}
-                        onChange={(value) =>
-                          updateRoleValue(role.id, { letterSpacingPx: value })
+                          updateGroup(group.id, {
+                            indexing: value as TypeIndexing,
+                          })
                         }
                       />
                     </div>
-                  ))}
+                  )}
+
+                  {groupRoles.length === 0 ? (
+                    <p className={styles.roleGroupEmpty}>No roles yet.</p>
+                  ) : (
+                    <div className={styles.roleTable}>
+                      {/* Column headers once per group, so each role is one
+                          readable row instead of repeating its own name on
+                          every control. */}
+                      <div className={styles.roleTableHead} aria-hidden="true">
+                        <span>Role</span>
+                        <span>Size</span>
+                        {!isHeading && <span>Element</span>}
+                        <span>Font</span>
+                        <span>Weight</span>
+                        <span>Line height</span>
+                        <span>Spacing</span>
+                        <span />
+                      </div>
+
+                      {groupRoles.map((role) => (
+                        <div key={role.id} className={styles.roleTableRow}>
+                          <span className={styles.roleSettingLabel}>
+                            {role.id}
+                          </span>
+
+                          <Selector
+                            label={`${role.id} size`}
+                            isLabelHidden
+                            options={[
+                              /* Resolved rather than hardcoded: reindexing can
+                                 rename body to body-1, and a dangling
+                                 reference would silently fall back to a stored
+                                 size. */
+                              ...(bodyRole && role.id !== bodyRole.id
+                                ? [
+                                    {
+                                      label: `Same as ${bodyRole.id}`,
+                                      value: "same",
+                                    },
+                                  ]
+                                : []),
+                              ...steps.map((step) => ({
+                                label: `${step.offset >= 0 ? "+" : ""}${step.offset} · ${formatLength(step.fontSizePx, project.unit)}`,
+                                value: String(step.offset),
+                              })),
+                            ]}
+                            value={
+                              role.sameAsRoleId
+                                ? "same"
+                                : String(role.stepOffset ?? 0)
+                            }
+                            onChange={(value) =>
+                              updateRole(
+                                role.id,
+                                value === "same"
+                                  ? {
+                                      sameAsRoleId: bodyRole?.id ?? null,
+                                      stepOffset: null,
+                                    }
+                                  : {
+                                      sameAsRoleId: null,
+                                      stepOffset: Number(value),
+                                    },
+                              )
+                            }
+                          />
+
+                          {!isHeading && (
+                            <Selector
+                              label={`${role.id} element`}
+                              isLabelHidden
+                              options={ELEMENT_OPTIONS.map((element) => ({
+                                label: element,
+                                value: element,
+                              }))}
+                              value={role.element}
+                              onChange={(value) =>
+                                updateRole(role.id, { element: value })
+                              }
+                            />
+                          )}
+
+                          <Selector
+                            label={`${role.id} font`}
+                            isLabelHidden
+                            options={system.fonts.map((font) => ({
+                              label: font.name,
+                              value: font.id,
+                            }))}
+                            value={role.fontId}
+                            onChange={(value) =>
+                              updateRole(role.id, { fontId: value })
+                            }
+                          />
+                          <NumberInput
+                            isIntegerOnly
+                            isLabelHidden
+                            label={`${role.id} font weight`}
+                            min={100}
+                            max={900}
+                            step={100}
+                            value={role.fontWeight}
+                            onChange={(value) =>
+                              updateRole(role.id, { fontWeight: value })
+                            }
+                          />
+                          <NumberInput
+                            isLabelHidden
+                            label={`${role.id} line height`}
+                            min={1}
+                            max={2.5}
+                            step={0.05}
+                            value={role.desktop.lineHeight}
+                            onChange={(value) =>
+                              updateRoleValue(role.id, { lineHeight: value })
+                            }
+                          />
+                          <NumberInput
+                            isLabelHidden
+                            label={`${role.id} letter spacing`}
+                            min={-2}
+                            max={2}
+                            step={0.05}
+                            units="px"
+                            value={role.desktop.letterSpacingPx}
+                            onChange={(value) =>
+                              updateRoleValue(role.id, {
+                                letterSpacingPx: value,
+                              })
+                            }
+                          />
+                          <Button
+                            aria-label={`Remove ${role.id}`}
+                            scheme="neutral"
+                            size="xs"
+                            variant="text"
+                            onClick={() => removeRole(role.id)}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
+
+            <div className={styles.settingGroup}>
+              <Button
+                scheme="neutral"
+                size="small"
+                variant="outlined"
+                onClick={addGroup}
+              >
+                Add group
+              </Button>
+            </div>
 
             {warnings.length > 0 && (
               <div className={styles.settingGroup}>

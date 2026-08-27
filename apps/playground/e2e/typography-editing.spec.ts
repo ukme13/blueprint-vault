@@ -134,7 +134,7 @@ test.describe("Typography scale editing", () => {
   test("groups roles and adds one to a group", async ({ seededPage: page }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
 
-    for (const group of ["Display", "Heading", "Body", "Supporting"]) {
+    for (const group of ["Display", "Heading", "Body", "Label", "Caption"]) {
       await expect(
         settings.getByRole("heading", { name: group, exact: true }),
       ).toBeVisible();
@@ -154,11 +154,14 @@ test.describe("Typography scale editing", () => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
     const before = await settings.getByLabel(/ element$/).count();
 
-    await settings.getByRole("button", { name: "Remove caption" }).click();
+    // exact, or this also matches the group's own "Remove Caption group".
+    await settings
+      .getByRole("button", { name: "Remove caption", exact: true })
+      .click();
 
     expect(await settings.getByLabel(/ element$/).count()).toBe(before - 1);
     await expect(
-      settings.getByRole("button", { name: "Remove caption" }),
+      settings.getByRole("button", { name: "Remove caption", exact: true }),
     ).toBeHidden();
   });
 
@@ -177,5 +180,121 @@ test.describe("Typography scale editing", () => {
         .getByRole("heading", { level: 4 })
         .first(),
     ).toBeVisible();
+  });
+
+  test("heading offers no element picker, because h1-h6 is derived", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    // body is a free-form role, so it keeps the control.
+    await expect(settings.getByLabel("body element")).toBeVisible();
+    // heading roles derive their element from position.
+    await expect(settings.getByLabel("heading element")).toBeHidden();
+  });
+
+  test("adds a group, renames it, and moves it", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings.getByRole("button", { name: "Add group" }).click();
+
+    const nameField = settings.getByLabel(/^Group \d+ name$/);
+    await expect(nameField).toBeVisible();
+    await nameField.fill("Overline");
+
+    await expect(
+      settings.getByRole("heading", { name: "Overline" }),
+    ).toBeVisible();
+    await expect(
+      settings.getByRole("button", { name: "Move Overline up" }),
+    ).toBeVisible();
+  });
+
+  test("fixed groups cannot be removed or reordered", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await expect(
+      settings.getByRole("button", { name: "Remove Heading group" }),
+    ).toBeHidden();
+    await expect(
+      settings.getByRole("button", { name: "Move Body up" }),
+    ).toBeHidden();
+  });
+
+  test("a new role follows body instead of taking its own step", async ({
+    seededPage: page,
+  }) => {
+    // Adding roles must never force the size ramp to grow: most component
+    // styles are body with a small adjustment.
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings
+      .getByRole("heading", { name: "Body", exact: true })
+      .locator("..")
+      .getByRole("button", { name: "Add" })
+      .click();
+
+    /* Two body roles now, so they are reindexed to body-1 and body-2. The new
+       one follows the first rather than claiming a step. */
+    await expect(settings.getByLabel("body-2 size")).toContainText(
+      "Same as body-1",
+    );
+  });
+
+  test("loads a project saved by the previous release", async ({ page }) => {
+    /* That release stored a system with no `groups`, roles keyed by `group`,
+       and absolute steps. Reading one crashed the editor on
+       system.groups.map. Seeded directly because the shared fixture writes the
+       older, pre-merge shape and so never reproduced it. */
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "blueprint.typography-project.v1",
+        JSON.stringify({
+          system: {
+            id: "s",
+            name: "Saved earlier",
+            baseFontSizePx: 16,
+            ratio: 1.25,
+            stepCount: 9,
+            breakpointPx: 768,
+            fonts: [
+              {
+                id: "base",
+                name: "Base",
+                families: ["Inter"],
+                source: "system",
+              },
+            ],
+            roles: [
+              {
+                id: "body",
+                name: "body",
+                group: "body",
+                element: "p",
+                fontId: "base",
+                fontWeight: 400,
+                textTransform: "none",
+                step: 4,
+                desktop: {
+                  fontSizePx: 16,
+                  lineHeight: 1.5,
+                  letterSpacingPx: 0,
+                },
+                mobile: { fontSizePx: 16, lineHeight: 1.5, letterSpacingPx: 0 },
+              },
+            ],
+          },
+          unit: "rem",
+          specimenText: "Test",
+          template: "specimen",
+        }),
+      );
+    });
+    await page.goto("/typography");
+
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await expect(settings.getByRole("heading", { name: "Body" })).toBeVisible();
+    await expect(settings.getByLabel("body font weight")).toHaveValue("400");
+    await expect(page.getByLabel("Project name")).toHaveValue("Saved earlier");
   });
 });

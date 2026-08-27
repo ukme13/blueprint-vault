@@ -1,3 +1,4 @@
+import type { TypeStep } from "./types";
 /**
  * The merged typography model.
  *
@@ -16,24 +17,55 @@ export const TEXT_TRANSFORMS: TypographyTextTransform[] = [
   "capitalize",
 ];
 
-export type TypeRoleGroup =
-  "display" | "heading" | "subtitle" | "body" | "supporting";
+/**
+ * How a group names its roles.
+ *
+ * `none` exists because not every style is a family: a project may want exactly
+ * one caption, and forcing it to be `caption-1` is noise.
+ */
+/**
+ * How a group names its roles.
+ *
+ * A group holding a single role drops the index entirely — one caption is
+ * `caption`, not `caption-1` — so "single" is a consequence of the count rather
+ * than a mode the user has to pick.
+ */
+export type TypeIndexing = "number" | "size";
 
-export const TYPE_ROLE_GROUPS: TypeRoleGroup[] = [
-  "display",
-  "heading",
-  "subtitle",
-  "body",
-  "supporting",
-];
-
-export const TYPE_ROLE_GROUP_LABELS: Record<TypeRoleGroup, string> = {
-  display: "Display",
-  heading: "Heading",
-  subtitle: "Subtitle",
-  body: "Body",
-  supporting: "Supporting",
+export const TYPE_INDEXING_LABELS: Record<TypeIndexing, string> = {
+  number: "Number",
+  size: "Size",
 };
+
+/** Shirt sizes, small to large, used by `size` indexing. */
+export const SIZE_INDEX = ["xs", "sm", "md", "lg", "xl"] as const;
+
+/** Heading is always h1–h6, so it never grows past six. */
+export const MAX_HEADING_LEVEL = 6;
+
+export interface TypeGroup {
+  id: string;
+  label: string;
+  /** Fixed groups cannot be removed or reordered. Only heading and body. */
+  isFixed: boolean;
+  indexing: TypeIndexing;
+}
+
+export const HEADING_GROUP_ID = "heading";
+export const BODY_GROUP_ID = "body";
+
+/** The two groups every system has. */
+export function defaultGroups(): TypeGroup[] {
+  return [
+    {
+      id: HEADING_GROUP_ID,
+      label: "Heading",
+      isFixed: true,
+      indexing: "number",
+    },
+    { id: BODY_GROUP_ID, label: "Body", isFixed: true, indexing: "number" },
+  ];
+}
 
 /** Where a font's families come from, which decides how they are loaded. */
 export type TypeFontSource = "google" | "local" | "system";
@@ -59,26 +91,34 @@ export interface TypeRoleValue {
 export interface TypeRole {
   id: string;
   name: string;
-  group: TypeRoleGroup;
-  /** Semantic element. Stored, not inferred — see defaultElementForRole. */
+  groupId: string;
+  /**
+   * Semantic element. Ignored for the heading group, which derives h1–h6 from
+   * the role's position.
+   */
   element: string;
   fontId: string;
   fontWeight: number;
   textTransform: TypographyTextTransform;
   /**
-   * Step in the generated scale, or null when the size is hand-set.
+   * Distance from the base step, or null when the size is hand-set.
    *
-   * Storing the link rather than a copy of the size is what lets the ratio keep
-   * driving roles that have not been overridden, without reverting ones that
-   * have.
+   * An offset rather than an index: base is the midpoint of the ramp, so an
+   * absolute index points at a different size as soon as the step count changes.
    */
-  step: number | null;
+  stepOffset: number | null;
+  /**
+   * Follow another role's size. Most component styles are "body with a small
+   * adjustment", and recording that intent keeps them in step when body moves.
+   */
+  sameAsRoleId: string | null;
   desktop: TypeRoleValue;
   mobile: TypeRoleValue;
 }
 
 export interface TypeSystem {
   id: string;
+  groups: TypeGroup[];
   name: string;
   baseFontSizePx: number;
   ratio: number;
@@ -93,46 +133,167 @@ const HEADING_ID = /^h([1-6])$/;
 /**
  * Default semantic element for a role id.
  *
- * Only a default: the element is stored on the role and can be changed. Two
- * roles can legitimately default to `h1` — `display` and `h1` both do — which is
- * why this is not treated as an authoritative mapping. A project with two `h1`s
- * is reported by validation rather than prevented here.
+ * Only a default: the element is stored on the role and can be changed, except
+ * in the heading group where it is derived and not offered.
  */
 export function defaultElementForRole(id: string): string {
   const normalized = id.trim().toLowerCase();
 
   if (HEADING_ID.test(normalized)) return normalized;
-  if (normalized === "display" || normalized.startsWith("display")) return "h1";
-  if (normalized === "label") return "label";
-  if (normalized === "button") return "span";
-  if (normalized === "caption" || normalized === "overline") return "small";
+  if (normalized.startsWith("display")) return "h2";
+  if (normalized.startsWith("label")) return "label";
+  if (normalized.startsWith("button")) return "span";
+  if (normalized.startsWith("caption") || normalized.startsWith("overline")) {
+    return "small";
+  }
   return "p";
 }
 
-/** Default group for a role id, used when creating a role. */
-export function defaultGroupForRole(id: string): TypeRoleGroup {
-  const normalized = id.trim().toLowerCase();
-
-  if (normalized.startsWith("display")) return "display";
-  if (HEADING_ID.test(normalized)) return "heading";
-  if (normalized.startsWith("subtitle")) return "subtitle";
-  if (normalized.startsWith("body")) return "body";
-  return "supporting";
+/** Roles in a group, in insertion order. */
+export function rolesInGroup(system: TypeSystem, groupId: string): TypeRole[] {
+  return system.roles.filter((role) => role.groupId === groupId);
 }
 
-/** Roles in a group, in the order they should be listed. */
-export function rolesInGroup(
+export function findGroup(
   system: TypeSystem,
-  group: TypeRoleGroup,
-): TypeRole[] {
-  return system.roles.filter((role) => role.group === group);
+  groupId: string,
+): TypeGroup | undefined {
+  return system.groups.find((group) => group.id === groupId);
+}
+
+/** Most roles a group can hold, which its indexing decides. */
+export function groupCapacity(group: TypeGroup): number {
+  if (group.id === HEADING_GROUP_ID) return MAX_HEADING_LEVEL;
+  return group.indexing === "size" ? SIZE_INDEX.length : 99;
+}
+
+/**
+ * The ids a group's roles should have, given how many there are.
+ *
+ * A single role drops the index — one caption is `caption` — because a lone
+ * `caption-1` reads as the first of a family that does not exist. Heading is
+ * exempt: `h1` is the name, not an index onto one.
+ */
+export function roleIdsForGroup(group: TypeGroup, count: number): string[] {
+  if (group.id === HEADING_GROUP_ID) {
+    return Array.from({ length: count }, (_, index) => `h${index + 1}`);
+  }
+  if (count === 1) return [group.id];
+  if (group.indexing === "size") {
+    return Array.from(
+      { length: count },
+      (_, index) => `${group.id}-${SIZE_INDEX[index] ?? index + 1}`,
+    );
+  }
+  return Array.from(
+    { length: count },
+    (_, index) => `${group.id}-${index + 1}`,
+  );
+}
+
+/** Whether a group can take another role. */
+export function canAddRole(system: TypeSystem, group: TypeGroup): boolean {
+  return rolesInGroup(system, group.id).length < groupCapacity(group);
+}
+
+/**
+ * Rename a group's roles to match its indexing and its current size.
+ *
+ * Adding a second role to a group turns `caption` into `caption-1`, so any role
+ * following it by id has to be repointed. Exported token names follow role ids,
+ * so this does rename tokens — the alternative is a group whose members are
+ * named inconsistently, which is worse to live with.
+ */
+export function reindexGroup(system: TypeSystem, groupId: string): TypeSystem {
+  const group = findGroup(system, groupId);
+  if (!group) return system;
+
+  const members = rolesInGroup(system, groupId);
+  const wanted = roleIdsForGroup(group, members.length);
+
+  const renames = new Map<string, string>();
+  members.forEach((role, index) => {
+    const next = wanted[index];
+    if (next && next !== role.id) renames.set(role.id, next);
+  });
+  if (renames.size === 0) return system;
+
+  return {
+    ...system,
+    roles: system.roles.map((role) => {
+      const renamed = renames.get(role.id);
+      const following = role.sameAsRoleId
+        ? (renames.get(role.sameAsRoleId) ?? role.sameAsRoleId)
+        : null;
+      return {
+        ...role,
+        id: renamed ?? role.id,
+        name: renamed && role.name === role.id ? renamed : role.name,
+        element:
+          renamed && groupId === HEADING_GROUP_ID ? renamed : role.element,
+        sameAsRoleId: following,
+      };
+    }),
+  };
+}
+
+/**
+ * Move a free group up or down. Fixed groups do not move, and nothing may be
+ * placed such that a fixed group changes position.
+ */
+export function moveGroup(
+  system: TypeSystem,
+  groupId: string,
+  direction: -1 | 1,
+): TypeGroup[] {
+  const groups = [...system.groups];
+  const index = groups.findIndex((group) => group.id === groupId);
+  const target = index + direction;
+  if (index === -1 || target < 0 || target >= groups.length) return groups;
+  if (groups[index]!.isFixed || groups[target]!.isFixed) return groups;
+
+  [groups[index], groups[target]] = [groups[target]!, groups[index]!];
+  return groups;
+}
+
+/**
+ * Resolve a role's font size in px.
+ *
+ * Precedence: follow another role, else a step offset, else the value already
+ * stored. `seen` breaks a cycle if two roles somehow point at each other.
+ */
+export function resolveRoleSizePx(
+  system: TypeSystem,
+  steps: TypeStep[],
+  role: TypeRole,
+  viewport: "desktop" | "mobile" = "desktop",
+  seen: Set<string> = new Set(),
+): number {
+  if (role.sameAsRoleId && !seen.has(role.id)) {
+    seen.add(role.id);
+    const target = system.roles.find(
+      (candidate) => candidate.id === role.sameAsRoleId,
+    );
+    if (target) {
+      return resolveRoleSizePx(system, steps, target, viewport, seen);
+    }
+  }
+
+  if (role.stepOffset !== null) {
+    const step = steps.find(
+      (candidate) => candidate.offset === role.stepOffset,
+    );
+    if (step) return step.fontSizePx;
+  }
+
+  return role[viewport].fontSizePx;
 }
 
 /**
  * Resolve a role's font stack to a CSS font-family value.
  *
- * Families containing a space are quoted, which is what makes a stack like
- * `Noto Sans Thai` valid CSS rather than three bare identifiers.
+ * Families that are not valid CSS identifiers are quoted, which is what makes a
+ * stack like `Noto Sans Thai` valid rather than three bare identifiers.
  */
 export function fontFamilyValue(system: TypeSystem, role: TypeRole): string {
   const font = system.fonts.find((candidate) => candidate.id === role.fontId);
@@ -143,22 +304,4 @@ export function fontFamilyValue(system: TypeSystem, role: TypeRole): string {
       /^[a-zA-Z][a-zA-Z0-9-]*$/.test(family) ? family : `"${family}"`,
     )
     .join(", ");
-}
-
-/** Next free id in a group, so adding a body role yields body-2 then body-3. */
-export function nextRoleId(system: TypeSystem, group: TypeRoleGroup): string {
-  if (group === "heading") {
-    for (let level = 1; level <= 6; level += 1) {
-      const id = `h${level}`;
-      if (!system.roles.some((role) => role.id === id)) return id;
-    }
-    return `h6-${system.roles.length + 1}`;
-  }
-
-  const stem = group === "supporting" ? "custom" : group;
-  for (let index = 1; index <= 99; index += 1) {
-    const id = index === 1 && group === "display" ? stem : `${stem}-${index}`;
-    if (!system.roles.some((role) => role.id === id)) return id;
-  }
-  return `${stem}-${system.roles.length + 1}`;
 }

@@ -30,6 +30,14 @@ export const ROOT_FONT_SIZE_PX = 16;
 
 export interface TypeStep {
   step: number;
+  /**
+   * Distance from the base step: 0 is base, +1 one larger, -1 one smaller.
+   *
+   * Roles reference this rather than `step`, because base is the midpoint of the
+   * ramp and therefore moves when the step count changes. An absolute index
+   * silently points at a different size after a resize; an offset does not.
+   */
+  offset: number;
   fontSizePx: number;
   isBase: boolean;
 }
