@@ -14,6 +14,21 @@ test.describe("Typography export", () => {
     await expect(page.getByText("@theme {")).toBeVisible();
   });
 
+  test("exports rem by default and switches unit on request", async ({
+    seededPage: page,
+  }) => {
+    await page.getByRole("button", { name: "Export type scale" }).click();
+
+    const preview = page.getByRole("region", { name: "Export preview" });
+    await expect(preview.getByText("--font-body-size: 1rem;")).toBeVisible();
+
+    await page.getByRole("button", { name: "pt", exact: true }).click();
+    await expect(preview.getByText("--font-body-size: 12pt;")).toBeVisible();
+
+    await page.getByRole("button", { name: "px", exact: true }).click();
+    await expect(preview.getByText("--font-body-size: 16px;")).toBeVisible();
+  });
+
   test("downloads the generated CSS file", async ({ seededPage: page }) => {
     await page.getByLabel("Project name").fill("Ferre Type");
     await page.getByRole("button", { name: "Export type scale" }).click();

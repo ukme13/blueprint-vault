@@ -41,7 +41,7 @@ Three ideas, kept separate so they can ship independently.
    Templates live in `apps/playground/components/typography`. They consume role
    tokens and know nothing about scale maths.
 
-## Stage 1 — Units
+## Stage 1 — Units ✅ done
 
 Add `rem`, `px` and `pt` output. Engine work plus one control.
 
@@ -61,17 +61,19 @@ Add `rem`, `px` and `pt` output. Engine work plus one control.
   computed value is visible without opening the export dialog.
 - Persist the chosen unit with the project.
 
-**Open decision — the default.** `rem` is the accessible default and the reason
-this stage exists. Making it the default changes what every existing project
-exports. The alternative is defaulting to `px` and letting people opt in, which
-preserves current output but leaves the defect in place for anyone who never
-finds the control. Recommendation: default to `rem`, and say so plainly in the
-export dialog.
+**Decision taken: `rem` is the default.** It is the accessible choice and the
+reason this stage exists. This does change what existing projects export, which
+is deliberate. The export dialog says why in one line.
+
+`formatResponsiveTypographyCssExport` was made unit-aware too. Leaving it on px
+would have fixed the defect in the main studio while leaving it in the Ferre
+studio — the same output, half corrected. The media-query breakpoint stays in
+px: a viewport width is not a type size.
 
 Unit tests: each conversion, rounding behaviour, and that line-height is never
 given a unit.
 
-## Stage 2 — Specimen text
+## Stage 2 — Specimen text ✅ done
 
 - A text field above the generated steps, as in the reference.
 - Default to the existing English sample. Accept any script.

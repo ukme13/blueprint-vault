@@ -10,6 +10,24 @@ export const SEMANTIC_ROLES: SemanticRole[] = [
   "caption",
 ];
 
+/**
+ * Output unit for generated font sizes.
+ *
+ * The scale is always stored in px. The unit is applied at the edges — preview
+ * and export — so switching units never changes the stored scale.
+ */
+export type TypeScaleUnit = "rem" | "px" | "pt";
+
+export const TYPE_SCALE_UNITS: TypeScaleUnit[] = ["rem", "px", "pt"];
+
+/**
+ * Root font size that `rem` is measured against.
+ *
+ * This is the browser default, deliberately not the scale's own base size: a
+ * scale with an 18px base should read as 1.125rem for body, not 1rem.
+ */
+export const ROOT_FONT_SIZE_PX = 16;
+
 export interface TypeStep {
   step: number;
   fontSizePx: number;

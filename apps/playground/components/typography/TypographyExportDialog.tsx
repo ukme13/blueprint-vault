@@ -9,7 +9,9 @@ import {
   Button,
   formatTypeScaleCssExport,
   formatTypeScaleTailwindExport,
+  TYPE_SCALE_UNITS,
   type TypeScale,
+  type TypeScaleUnit,
 } from "@blueprint/ui";
 import styles from "./typography-workspace.module.css";
 
@@ -20,27 +22,37 @@ const FORMATS: Array<{ value: ExportFormat; label: string }> = [
   { value: "tailwind", label: "Tailwind CSS" },
 ];
 
+const UNIT_LABELS: Record<TypeScaleUnit, string> = {
+  rem: "rem",
+  px: "px",
+  pt: "pt",
+};
+
 interface TypographyExportDialogProps {
   isOpen: boolean;
   projectName: string;
   scale: TypeScale;
+  unit: TypeScaleUnit;
   onOpenChange: (isOpen: boolean) => void;
+  onUnitChange: (unit: TypeScaleUnit) => void;
 }
 
 export function TypographyExportDialog({
   isOpen,
   projectName,
   scale,
+  unit,
   onOpenChange,
+  onUnitChange,
 }: TypographyExportDialogProps) {
   const [exportFormat, setExportFormat] = useState<ExportFormat>("css");
 
   const output = useMemo(
     () =>
       exportFormat === "tailwind"
-        ? formatTypeScaleTailwindExport(scale)
-        : formatTypeScaleCssExport(scale),
-    [exportFormat, scale],
+        ? formatTypeScaleTailwindExport(scale, unit)
+        : formatTypeScaleCssExport(scale, unit),
+    [exportFormat, scale, unit],
   );
 
   const filename = `${
@@ -101,6 +113,25 @@ export function TypographyExportDialog({
               </Button>
             ))}
           </div>
+          <h3>Unit</h3>
+          <div className={styles.exportFormatGrid}>
+            {TYPE_SCALE_UNITS.map((value) => (
+              <Button
+                key={value}
+                aria-pressed={unit === value}
+                scheme="neutral"
+                size="small"
+                variant={unit === value ? "contained" : "outlined"}
+                onClick={() => onUnitChange(value)}
+              >
+                {UNIT_LABELS[value]}
+              </Button>
+            ))}
+          </div>
+          <p className={styles.exportUnitHint}>
+            rem scales with the reader&rsquo;s browser font-size setting. px and
+            pt do not.
+          </p>
         </section>
         <section className={styles.exportPreview} aria-label="Export preview">
           <CodeBlock

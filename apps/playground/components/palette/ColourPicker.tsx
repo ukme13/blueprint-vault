@@ -215,7 +215,9 @@ function ColourPickerPanel({
      A `key` would be wrong here: the value changes continuously while dragging
      the picker, and remounting would drop focus mid-edit. Setting state during
      render is supported — React re-runs this component before painting. */
-  const [lastInput, setLastInput] = useState(() => `${value}\u0000${colourFormat}`);
+  const [lastInput, setLastInput] = useState(
+    () => `${value}\u0000${colourFormat}`,
+  );
   const currentInput = `${value}\u0000${colourFormat}`;
 
   if (currentInput !== lastInput) {
