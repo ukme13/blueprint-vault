@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useEffect,
   useMemo,
   useState,
   type CSSProperties,
@@ -210,12 +209,19 @@ function ColourPickerPanel({
   );
   const [draft, setDraft] = useState(() => formatColour(value, colourFormat));
 
-  useEffect(() => {
-    /* Re-syncs the draft when the value or format changes. Worth replacing
-       with an adjust-during-render pattern; tracked in the upgrade roadmap. */
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+  /* Re-sync the draft during render rather than in an effect, so the input
+     never shows one frame of the previous colour or format.
+
+     A `key` would be wrong here: the value changes continuously while dragging
+     the picker, and remounting would drop focus mid-edit. Setting state during
+     render is supported — React re-runs this component before painting. */
+  const [lastInput, setLastInput] = useState(() => `${value}\u0000${colourFormat}`);
+  const currentInput = `${value}\u0000${colourFormat}`;
+
+  if (currentInput !== lastInput) {
+    setLastInput(currentInput);
     setDraft(formatColour(value, colourFormat));
-  }, [colourFormat, value]);
+  }
 
   const updateColour = (next: Hsv) => onChange(hsvToHex(next));
 

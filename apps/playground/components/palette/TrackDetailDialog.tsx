@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { AlertDialog } from "@astryxdesign/core/AlertDialog";
 import { Dialog } from "@astryxdesign/core/Dialog";
 import { IconButton } from "@astryxdesign/core/IconButton";
@@ -48,14 +48,28 @@ export function TrackDetailDialog({
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
 
-  useEffect(() => {
-    if (!palette || !isOpen) return;
-    /* Resets the drafts when the dialog opens or the palette changes. Worth
-       replacing with a `key` on the dialog; tracked in the upgrade roadmap. */
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setNameDraft(palette.name);
-    setSeedDraft(palette.seedHex);
-  }, [isOpen, palette]);
+  /* Reset the drafts during render rather than in an effect, so the dialog
+     never paints one frame of the previous track's values.
+
+     A `key` on the dialog would be the usual alternative, but it does not work
+     here: closing sets the active track to null, so the key would change while
+     the dialog is closing and remount it mid-transition, cutting off Astryx's
+     exit animation.
+
+     Setting state during render is supported: React re-runs this component
+     immediately, before painting, so no extra frame reaches the screen.
+     Reference equality on the track mirrors the previous effect's [isOpen,
+     palette] dependencies exactly. */
+  const [lastPalette, setLastPalette] = useState<ColorTrack | null>(null);
+  const activePalette = isOpen ? palette : null;
+
+  if (activePalette !== lastPalette) {
+    setLastPalette(activePalette);
+    if (activePalette) {
+      setNameDraft(activePalette.name);
+      setSeedDraft(activePalette.seedHex);
+    }
+  }
 
   const previewShades = useMemo(() => {
     if (!palette) return [];

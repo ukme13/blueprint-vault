@@ -339,11 +339,45 @@ Stage 4  TypeScript 6.0.3            →  7.x deferred until typescript-eslint l
 Stages 0 and 1 are safe to do in one sitting. Stage 2 turned out small. Stages 3
 and 4 are both capped by upstream rather than by this repo.
 
+## Done since
+
+- **Visual check against Astryx 0.5.0: passed.** The four changed token values
+  look right in the playground.
+- **`TrackDetailDialog` and `ColourPicker` are fixed.** Both derived their draft
+  state from props inside an effect; both now adjust during render, and their
+  `set-state-in-effect` suppressions are gone.
+
+  A `key` was considered for the dialog and rejected. Closing sets the active
+  track to `null`, so the key would change *while the dialog is closing* and
+  remount it mid-transition. Astryx's Dialog animates out — `astryx.css` uses
+  `transition-behavior: allow-discrete` and `@starting-style`, and `Dialog.js`
+  computes a directional entry animation from `durationVars`/`easeVars` — so a
+  remount would cut that off. A `key` is also wrong for `ColourPicker`, where the
+  value changes continuously while dragging and remounting would drop focus
+  mid-edit.
+
+  Both now use the same shape, which is React's documented recipe:
+
+  ```tsx
+  const [lastInput, setLastInput] = useState(initial);
+  const currentInput = /* derived from props */;
+  if (currentInput !== lastInput) {
+    setLastInput(currentInput);
+    setDraft(/* recomputed */);
+  }
+  ```
+
+  Setting state during render is supported: React re-runs the component
+  immediately, before painting, so no stale frame reaches the screen and there is
+  no extra paint. The dialog compares the track by reference, which mirrors the
+  old effect's `[isOpen, palette]` dependencies exactly.
+
 ## Still owed
 
-- A visual check of the playground against Astryx 0.5.0 (four theme token values
-  changed).
-- `TrackDetailDialog` and `ColourPicker` set state from props inside an effect.
-  Both are suppressed with a pointer here; both deserve a proper refactor.
+- ESLint 10, once `eslint-plugin-react` supports it.
+- TypeScript 7, once `typescript-eslint` supports it.
+- The four remaining `set-state-in-effect` suppressions are all SSR-safe
+  localStorage hydration and are correct as they stand. Every suppression left in
+  the codebase is now a known non-problem.
 - ESLint 10, once `eslint-plugin-react` supports it.
 - TypeScript 7, once `typescript-eslint` supports it.
