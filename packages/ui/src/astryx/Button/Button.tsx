@@ -262,6 +262,12 @@ export function Button({
 
   if (renderAsLink) {
     element = (
+      /* useLinkComponent memoizes its wrapper specifically to keep it
+         referentially stable, so this is not a component created fresh on every
+         render. The rule cannot see through the hook. Astryx's own Button
+         resolves its link element the same way, and this is the usage its docs
+         show. */
+      // eslint-disable-next-line react-hooks/static-components
       <LinkComponent
         ref={ref as React.Ref<HTMLAnchorElement>}
         href={href}

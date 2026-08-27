@@ -156,6 +156,10 @@ export function TypographyStudio() {
   });
 
   useEffect(() => {
+    /* Reading localStorage must happen in an effect: a useState initializer
+       would run during SSR, where window does not exist, and desync
+       hydration. */
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setProject(readStoredProject());
     setHasLoadedProject(true);
   }, []);

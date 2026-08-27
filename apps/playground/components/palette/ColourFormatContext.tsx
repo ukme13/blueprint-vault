@@ -25,6 +25,10 @@ export function ColourFormatProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY);
+    /* Reading localStorage must happen in an effect: a useState initializer
+       would run during SSR, where window does not exist, and desync
+       hydration. */
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isColourFormat(stored)) setColourFormat(stored);
   }, []);
 

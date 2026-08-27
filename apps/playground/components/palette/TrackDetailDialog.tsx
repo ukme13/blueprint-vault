@@ -50,6 +50,9 @@ export function TrackDetailDialog({
 
   useEffect(() => {
     if (!palette || !isOpen) return;
+    /* Resets the drafts when the dialog opens or the palette changes. Worth
+       replacing with a `key` on the dialog; tracked in the upgrade roadmap. */
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setNameDraft(palette.name);
     setSeedDraft(palette.seedHex);
   }, [isOpen, palette]);
