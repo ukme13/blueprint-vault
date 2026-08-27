@@ -2,6 +2,8 @@ import { test as base, type Page } from "@playwright/test";
 
 export const TYPOGRAPHY_STORAGE_KEY = "blueprint.typography-project.v1";
 
+const SEED_GUARD_KEY = "blueprint.e2e-seeded.typography";
+
 export function defaultTypographyProject() {
   return {
     name: "My type scale",
@@ -24,15 +26,19 @@ export async function seedTypographyProject(
   page: Page,
   project = defaultTypographyProject(),
 ): Promise<void> {
-  await page.goto("/typography");
-  await page.getByRole("heading", { name: "Create your type scale" }).waitFor();
-  await page.evaluate(
-    ({ key, value }) => {
+  // See the comment on seedProject in ./fixtures.ts. Waiting for the onboarding
+  // heading only narrows the race, because that heading is server-rendered and
+  // appears before hydration runs the effect that clears storage. Seeding from
+  // an init script closes it.
+  await page.addInitScript(
+    ({ key, value, guard }) => {
+      if (window.sessionStorage.getItem(guard)) return;
+      window.sessionStorage.setItem(guard, "1");
       window.localStorage.setItem(key, JSON.stringify(value));
     },
-    { key: TYPOGRAPHY_STORAGE_KEY, value: project },
+    { key: TYPOGRAPHY_STORAGE_KEY, value: project, guard: SEED_GUARD_KEY },
   );
-  await page.reload();
+  await page.goto("/typography");
 }
 
 export const test = base.extend<{ seededPage: Page }>({
