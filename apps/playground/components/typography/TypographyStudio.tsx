@@ -275,8 +275,8 @@ export function TypographyStudio() {
   const sortedSteps = [...steps].sort(
     (first, second) => second.fontSizePx - first.fontSizePx,
   );
-  const rolesLargeToSmall = SEMANTIC_ROLES.map(
-    (role) => roles.find((candidate) => candidate.role === role)!,
+  const rolesLargeToSmall = SEMANTIC_ROLES.map((role) =>
+    roles.find((candidate) => candidate.role === role)!,
   );
 
   return (

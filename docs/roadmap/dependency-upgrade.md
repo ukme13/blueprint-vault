@@ -23,9 +23,9 @@ with `npm view <pkg> version` before starting, because these move weekly.
 
 Do this first. Everything else installs on top of it.
 
-| Item | Current | Target |
-| --- | --- | --- |
-| `engines.node` | `>=21.7.0` | `>=22.13.0` |
+| Item             | Current      | Target         |
+| ---------------- | ------------ | -------------- |
+| `engines.node`   | `>=21.7.0`   | `>=22.13.0`    |
 | `packageManager` | `pnpm@9.0.0` | `pnpm@11.24.0` |
 
 Node 21 is end-of-life and should not be an allowed floor. Local Node is
@@ -61,18 +61,18 @@ and follows this bump automatically.
 
 Low risk. These are all same-major bumps. Do them together in one commit.
 
-| Package | Current | Target |
-| --- | --- | --- |
-| `next` | 16.2.0 | 16.3.3 |
-| `react`, `react-dom` | 19.2.0 | 19.2.8 |
-| `@types/react`, `@types/react-dom` | 19.2.2 | latest 19.2.x |
-| `tailwindcss` | 4.3.2 | 4.3.3 |
-| `@tailwindcss/postcss` | 4.3.2 | 4.3.3 |
-| `postcss` | 8.5.16 | 8.5.26 |
-| `prettier` | 3.7.4 | 3.9.6 |
-| `turbo` | 2.10.4 | 2.10.12 |
-| `vitest` | 4.1.10 | 4.1.11 |
-| `typescript-eslint` | 8.50.0 | 8.68.0 |
+| Package                            | Current | Target        |
+| ---------------------------------- | ------- | ------------- |
+| `next`                             | 16.2.0  | 16.3.3        |
+| `react`, `react-dom`               | 19.2.0  | 19.2.8        |
+| `@types/react`, `@types/react-dom` | 19.2.2  | latest 19.2.x |
+| `tailwindcss`                      | 4.3.2   | 4.3.3         |
+| `@tailwindcss/postcss`             | 4.3.2   | 4.3.3         |
+| `postcss`                          | 8.5.16  | 8.5.26        |
+| `prettier`                         | 3.7.4   | 3.9.6         |
+| `turbo`                            | 2.10.4  | 2.10.12       |
+| `vitest`                           | 4.1.10  | 4.1.11        |
+| `typescript-eslint`                | 8.50.0  | 8.68.0        |
 
 `next` is pinned exactly (`"next": "16.2.0"`, no caret) in both apps. Update the
 literal string in each app's `package.json`.
@@ -83,6 +83,19 @@ bump.
 
 Already at latest, nothing to do: `@playwright/test` 1.62.1,
 `class-variance-authority` 0.7.1.
+
+### What actually happened
+
+- `@next/eslint-plugin-next` (16.2.0 → 16.3.3) and `eslint-plugin-turbo`
+  (2.7.1 → 2.10.12) were moved here from Stage 3. Both are same-major bumps that
+  should track `next` and `turbo`, and lint still passes at `--max-warnings 0`.
+- `@types/node` went 22.15.3 → 22.20.1, staying on 22.x to match the Node floor.
+- `globals` was **not** bumped. Latest is 17.x, which is a major, so it stays for
+  the ESLint stage.
+- `pnpm install` needs `--no-frozen-lockfile` when manifests change. With
+  `CI=true` set, frozen is the default and the install fails by design.
+- Prettier 3.9 reformatted 12 files. The change is cosmetic: short union types
+  now collapse onto one line where they fit.
 
 **Risk:** low.
 
@@ -122,15 +135,15 @@ enough for a UI library upgrade.
 
 ## Stage 3 — ESLint 9 to 10
 
-| Package | Current | Target |
-| --- | --- | --- |
-| `eslint` | 9.39.1 | 10.9.1 |
-| `@eslint/js` | 9.39.1 | 10.x |
-| `eslint-plugin-react-hooks` | 5.2.0 | 7.1.1 |
-| `eslint-config-prettier` | 10.1.1 | latest |
-| `eslint-plugin-react` | 7.37.5 | latest |
-| `eslint-plugin-turbo` | 2.7.1 | match turbo |
-| `@next/eslint-plugin-next` | 16.2.0 | match next |
+| Package                     | Current | Target      |
+| --------------------------- | ------- | ----------- |
+| `eslint`                    | 9.39.1  | 10.9.1      |
+| `@eslint/js`                | 9.39.1  | 10.x        |
+| `eslint-plugin-react-hooks` | 5.2.0   | 7.1.1       |
+| `eslint-config-prettier`    | 10.1.1  | latest      |
+| `eslint-plugin-react`       | 7.37.5  | latest      |
+| `eslint-plugin-turbo`       | 2.7.1   | match turbo |
+| `@next/eslint-plugin-next`  | 16.2.0  | match next  |
 
 All shared config lives in `packages/eslint-config`, so the changes are
 concentrated in `base.js`, `next.js`, and `react-internal.js`.

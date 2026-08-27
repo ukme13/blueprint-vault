@@ -1,10 +1,5 @@
 export type SemanticRole =
-  | "display"
-  | "heading"
-  | "title"
-  | "body"
-  | "label"
-  | "caption";
+  "display" | "heading" | "title" | "body" | "label" | "caption";
 
 export const SEMANTIC_ROLES: SemanticRole[] = [
   "display",
