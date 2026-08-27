@@ -235,4 +235,61 @@ test.describe("Typography scale editing", () => {
       "Same as body",
     );
   });
+
+  test("loads a project saved by the previous release", async ({ page }) => {
+    /* That release stored a system with no `groups`, roles keyed by `group`,
+       and absolute steps. Reading one crashed the editor on
+       system.groups.map. Seeded directly because the shared fixture writes the
+       older, pre-merge shape and so never reproduced it. */
+    await page.addInitScript(() => {
+      window.localStorage.setItem(
+        "blueprint.typography-project.v1",
+        JSON.stringify({
+          system: {
+            id: "s",
+            name: "Saved earlier",
+            baseFontSizePx: 16,
+            ratio: 1.25,
+            stepCount: 9,
+            breakpointPx: 768,
+            fonts: [
+              {
+                id: "base",
+                name: "Base",
+                families: ["Inter"],
+                source: "system",
+              },
+            ],
+            roles: [
+              {
+                id: "body",
+                name: "body",
+                group: "body",
+                element: "p",
+                fontId: "base",
+                fontWeight: 400,
+                textTransform: "none",
+                step: 4,
+                desktop: {
+                  fontSizePx: 16,
+                  lineHeight: 1.5,
+                  letterSpacingPx: 0,
+                },
+                mobile: { fontSizePx: 16, lineHeight: 1.5, letterSpacingPx: 0 },
+              },
+            ],
+          },
+          unit: "rem",
+          specimenText: "Test",
+          template: "specimen",
+        }),
+      );
+    });
+    await page.goto("/typography");
+
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await expect(settings.getByRole("heading", { name: "Body" })).toBeVisible();
+    await expect(settings.getByLabel("body font weight")).toHaveValue("400");
+    await expect(page.getByLabel("Project name")).toHaveValue("Saved earlier");
+  });
 });

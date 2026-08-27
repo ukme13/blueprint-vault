@@ -23,6 +23,7 @@ import {
   fontFamilyValue,
   formatLength,
   migrateLegacyProject,
+  normalizeStoredSystem,
   splitFontFamily,
   defaultElementForRole,
   nextRoleId,
@@ -149,16 +150,12 @@ function readStoredProject(): TypographyProject | null {
     }
 
     if (!("system" in parsed)) return null;
-    const system = parsed.system as TypeSystem;
-    if (
-      !system ||
-      typeof system !== "object" ||
-      !Array.isArray(system.roles) ||
-      !Array.isArray(system.fonts) ||
-      typeof system.baseFontSizePx !== "number"
-    ) {
-      return null;
-    }
+
+    /* Normalise rather than trust: an earlier release stored a system with no
+       groups, roles keyed by `group`, and absolute steps. Reading one of those
+       as-is crashed on system.groups.map. */
+    const system = normalizeStoredSystem(parsed.system);
+    if (!system) return null;
 
     return { system, ...prefs };
   } catch {

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   migrateLegacyProject,
+  normalizeStoredSystem,
   splitFontFamily,
   type LegacyTypographyProject,
 } from "./migrate";
@@ -121,5 +122,81 @@ describe("migrateLegacyProject", () => {
       roleStyles: { body: legacy.roleStyles.body! },
     };
     expect(() => migrateLegacyProject(partial)).not.toThrow();
+  });
+});
+
+describe("normalizeStoredSystem", () => {
+  /** Exactly what the previous release wrote: no groups, `group`, absolute step. */
+  const previousRelease = {
+    id: "s",
+    name: "Saved",
+    baseFontSizePx: 16,
+    ratio: 1.25,
+    stepCount: 9,
+    breakpointPx: 768,
+    fonts: [
+      { id: "base", name: "Base", families: ["Inter"], source: "system" },
+    ],
+    roles: [
+      {
+        id: "body",
+        name: "body",
+        group: "body",
+        element: "p",
+        fontId: "base",
+        fontWeight: 400,
+        textTransform: "none",
+        step: 4,
+        desktop: { fontSizePx: 16, lineHeight: 1.5, letterSpacingPx: 0 },
+        mobile: { fontSizePx: 16, lineHeight: 1.5, letterSpacingPx: 0 },
+      },
+    ],
+  };
+
+  it("gives a system with no groups the fixed ones", () => {
+    // This is the crash: system.groups was undefined and the editor mapped it.
+    const system = normalizeStoredSystem(previousRelease)!;
+    expect(Array.isArray(system.groups)).toBe(true);
+    expect(system.groups.some((group) => group.id === "heading")).toBe(true);
+    expect(system.groups.some((group) => group.id === "body")).toBe(true);
+  });
+
+  it("converts an absolute step into an offset from base", () => {
+    // stepCount 9 puts base at index 4, so step 4 is offset 0.
+    const system = normalizeStoredSystem(previousRelease)!;
+    expect(system.roles[0]!.stepOffset).toBe(0);
+  });
+
+  it("renames group to groupId and fills sameAsRoleId", () => {
+    const system = normalizeStoredSystem(previousRelease)!;
+    expect(system.roles[0]!.groupId).toBe("body");
+    expect(system.roles[0]!.sameAsRoleId).toBeNull();
+  });
+
+  it("keeps a current system unchanged in the ways that matter", () => {
+    const current = normalizeStoredSystem(previousRelease)!;
+    const again = normalizeStoredSystem(current)!;
+    expect(again.roles[0]!.stepOffset).toBe(current.roles[0]!.stepOffset);
+    expect(again.groups.length).toBe(current.groups.length);
+  });
+
+  it("adopts a role whose group no longer exists rather than losing it", () => {
+    const orphaned = {
+      ...previousRelease,
+      groups: [
+        { id: "heading", label: "Heading", isFixed: true, indexing: "number" },
+      ],
+      roles: [{ ...previousRelease.roles[0], group: "gone" }],
+    };
+    const system = normalizeStoredSystem(orphaned)!;
+    expect(system.roles).toHaveLength(1);
+    expect(system.groups.some((g) => g.id === system.roles[0]!.groupId)).toBe(
+      true,
+    );
+  });
+
+  it("rejects something that is not a system", () => {
+    expect(normalizeStoredSystem(null)).toBeNull();
+    expect(normalizeStoredSystem({ roles: "nope" })).toBeNull();
   });
 });

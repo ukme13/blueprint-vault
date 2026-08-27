@@ -1,6 +1,7 @@
 import { assignDefaultRoles, generateTypeSteps } from "./scale";
 import {
   BODY_GROUP_ID,
+  defaultElementForRole,
   defaultGroups,
   HEADING_GROUP_ID,
   type TypeGroup,
@@ -159,4 +160,143 @@ export function splitFontFamily(value: string): string[] {
     .split(",")
     .map((family) => family.trim().replace(/^["']|["']$/g, ""))
     .filter((family) => family.length > 0);
+}
+
+/**
+ * Bring a stored system up to the current shape.
+ *
+ * An earlier release persisted a system with no `groups`, roles keyed by
+ * `group` rather than `groupId`, and an absolute `step` rather than an offset.
+ * Reading one of those without upgrading it crashes on `system.groups.map`, so
+ * every field the model now requires is backfilled here rather than assumed.
+ *
+ * Returns null only when the value is not recognisably a system at all.
+ */
+export function normalizeStoredSystem(value: unknown): TypeSystem | null {
+  if (!value || typeof value !== "object") return null;
+  const raw = value as Record<string, unknown>;
+
+  if (
+    !Array.isArray(raw.roles) ||
+    !Array.isArray(raw.fonts) ||
+    typeof raw.baseFontSizePx !== "number" ||
+    typeof raw.ratio !== "number" ||
+    typeof raw.stepCount !== "number"
+  ) {
+    return null;
+  }
+
+  /* Base sits at the midpoint of the ramp, which is exactly why an absolute
+     index had to become an offset. */
+  const baseIndex = Math.floor((raw.stepCount - 1) / 2);
+
+  const roles: TypeRole[] = (raw.roles as Record<string, unknown>[]).map(
+    (role) => {
+      const groupId =
+        typeof role.groupId === "string"
+          ? role.groupId
+          : typeof role.group === "string"
+            ? role.group
+            : BODY_GROUP_ID;
+
+      const stepOffset =
+        role.stepOffset === null || typeof role.stepOffset === "number"
+          ? (role.stepOffset as number | null)
+          : typeof role.step === "number"
+            ? role.step - baseIndex
+            : null;
+
+      const id = typeof role.id === "string" ? role.id : "role";
+
+      return {
+        id,
+        name: typeof role.name === "string" ? role.name : id,
+        groupId,
+        element:
+          typeof role.element === "string"
+            ? role.element
+            : defaultElementForRole(id),
+        fontId: typeof role.fontId === "string" ? role.fontId : "base",
+        fontWeight: typeof role.fontWeight === "number" ? role.fontWeight : 400,
+        textTransform:
+          role.textTransform === "uppercase" ||
+          role.textTransform === "capitalize"
+            ? role.textTransform
+            : "none",
+        stepOffset,
+        sameAsRoleId:
+          typeof role.sameAsRoleId === "string" ? role.sameAsRoleId : null,
+        desktop: role.desktop as TypeRole["desktop"],
+        mobile: (role.mobile ?? role.desktop) as TypeRole["mobile"],
+      };
+    },
+  );
+
+  const groups = normalizeGroups(raw.groups, roles);
+
+  /* A role pointing at a group that no longer exists would vanish from the
+     editor entirely, so it is adopted by body rather than dropped. */
+  const known = new Set(groups.map((group) => group.id));
+  roles.forEach((role) => {
+    if (!known.has(role.groupId)) role.groupId = BODY_GROUP_ID;
+  });
+
+  return {
+    id: typeof raw.id === "string" ? raw.id : "type-system",
+    name: typeof raw.name === "string" ? raw.name : "Type scale",
+    groups,
+    baseFontSizePx: raw.baseFontSizePx,
+    ratio: raw.ratio,
+    stepCount: raw.stepCount,
+    breakpointPx: typeof raw.breakpointPx === "number" ? raw.breakpointPx : 768,
+    fonts: raw.fonts as TypeSystem["fonts"],
+    roles,
+  };
+}
+
+function normalizeGroups(value: unknown, roles: TypeRole[]): TypeGroup[] {
+  if (Array.isArray(value) && value.length > 0) {
+    const groups = (value as Record<string, unknown>[])
+      .filter((group) => typeof group.id === "string")
+      .map((group): TypeGroup => ({
+        id: group.id as string,
+        label:
+          typeof group.label === "string" ? group.label : (group.id as string),
+        isFixed:
+          group.id === HEADING_GROUP_ID || group.id === BODY_GROUP_ID
+            ? true
+            : Boolean(group.isFixed),
+        indexing:
+          group.indexing === "size" || group.indexing === "none"
+            ? group.indexing
+            : "number",
+      }));
+    return withFixedGroups(groups);
+  }
+
+  /* No groups stored: rebuild them from whatever the roles claim to belong to,
+     keeping the order the roles appear in. */
+  const seen = new Set<string>();
+  const derived: TypeGroup[] = [];
+  roles.forEach((role) => {
+    if (seen.has(role.groupId)) return;
+    seen.add(role.groupId);
+    derived.push({
+      id: role.groupId,
+      label: role.groupId.charAt(0).toUpperCase() + role.groupId.slice(1),
+      isFixed:
+        role.groupId === HEADING_GROUP_ID || role.groupId === BODY_GROUP_ID,
+      indexing: "number",
+    });
+  });
+  return withFixedGroups(derived);
+}
+
+/** Heading and body always exist, whatever the stored value said. */
+function withFixedGroups(groups: TypeGroup[]): TypeGroup[] {
+  const result = [...groups];
+  defaultGroups().forEach((fixed) => {
+    if (!result.some((group) => group.id === fixed.id)) result.push(fixed);
+  });
+  return result;
 }
