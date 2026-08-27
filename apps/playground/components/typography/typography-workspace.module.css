@@ -646,9 +646,11 @@
 
 .roleGroupMeta {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr auto;
   gap: var(--spacing-2);
-  align-items: end;
+  /* Both controls hide their label and share a size, so they line up on their
+     centres rather than needing a shared baseline. */
+  align-items: center;
 }
 
 .roleTable {
