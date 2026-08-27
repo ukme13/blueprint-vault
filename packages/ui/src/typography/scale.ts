@@ -69,6 +69,9 @@ function assertRatio(ratio: number): void {
   }
 }
 
+/** Steps generated below base. Everything past that goes up. */
+export const STEPS_BELOW_BASE = 2;
+
 export function generateTypeSteps(
   baseFontSizePx: number,
   ratio: number,
@@ -78,7 +81,10 @@ export function generateTypeSteps(
   assertRatio(ratio);
   assertStepCount(stepCount);
 
-  const baseIndex = Math.floor((stepCount - 1) / 2);
+  /* Two steps below base, the rest above. A type scale needs a little room
+     under body for captions and labels, and a lot above it for headings —
+     centring the ramp spent half of it on sizes nobody sets. */
+  const baseIndex = Math.min(STEPS_BELOW_BASE, stepCount - 1);
 
   return Array.from({ length: stepCount }, (_, index) => ({
     step: index,

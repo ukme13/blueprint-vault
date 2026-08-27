@@ -102,3 +102,26 @@ describe("generateTypeScale", () => {
     expect(scale.fontFamily).toBe("Inter, sans-serif");
   });
 });
+
+describe("ramp shape", () => {
+  it("puts base two steps up from the bottom, with the rest above", () => {
+    // A scale needs a little room under body and a lot above it, so a centred
+    // ramp spent half its steps on sizes nobody sets.
+    const steps = generateTypeSteps(16, 1.25, 9);
+    expect(steps.map((step) => step.offset)).toEqual([
+      -2, -1, 0, 1, 2, 3, 4, 5, 6,
+    ]);
+  });
+
+  it("never goes below two steps under base", () => {
+    [5, 9, 16, 24].forEach((count) => {
+      const steps = generateTypeSteps(16, 1.25, count);
+      expect(Math.min(...steps.map((step) => step.offset))).toBe(-2);
+    });
+  });
+
+  it("copes when there are fewer steps than the room below base", () => {
+    const steps = generateTypeSteps(16, 1.25, 3);
+    expect(steps.filter((step) => step.isBase)).toHaveLength(1);
+  });
+});

@@ -175,9 +175,21 @@ describe("normalizeStoredSystem", () => {
   });
 
   it("converts an absolute step into an offset from base", () => {
-    // stepCount 9 puts base at index 4, so step 4 is offset 0.
+    // Base sits two steps up from the bottom, so index 4 is offset +2.
     const system = normalizeStoredSystem(previousRelease)!;
-    expect(system.roles[0]!.stepOffset).toBe(0);
+    expect(system.roles[0]!.stepOffset).toBe(2);
+  });
+
+  it("clamps an offset that no longer has a step", () => {
+    /* The ramp used to be centred, so a saved -4 has no step now that base
+       moved up. Clamping keeps the role on the scale instead of freezing it at
+       a stored size. */
+    const deep = {
+      ...previousRelease,
+      roles: [{ ...previousRelease.roles[0], step: undefined, stepOffset: -4 }],
+    };
+    const system = normalizeStoredSystem(deep)!;
+    expect(system.roles[0]!.stepOffset).toBe(-2);
   });
 
   it("renames group to groupId and fills sameAsRoleId", () => {

@@ -1,4 +1,8 @@
-import { assignDefaultRoles, generateTypeSteps } from "./scale";
+import {
+  assignDefaultRoles,
+  generateTypeSteps,
+  STEPS_BELOW_BASE,
+} from "./scale";
 import {
   BODY_GROUP_ID,
   defaultGroups,
@@ -181,9 +185,8 @@ export function normalizeStoredSystem(value: unknown): TypeSystem | null {
     return null;
   }
 
-  /* Base sits at the midpoint of the ramp, which is exactly why an absolute
-     index had to become an offset. */
-  const baseIndex = Math.floor((raw.stepCount - 1) / 2);
+  const stepCount = raw.stepCount;
+  const baseIndex = Math.min(STEPS_BELOW_BASE, stepCount - 1);
 
   const roles: TypeRole[] = (raw.roles as Record<string, unknown>[]).map(
     (role) => {
@@ -194,12 +197,23 @@ export function normalizeStoredSystem(value: unknown): TypeSystem | null {
             ? role.group
             : BODY_GROUP_ID;
 
-      const stepOffset =
+      const rawOffset =
         role.stepOffset === null || typeof role.stepOffset === "number"
           ? (role.stepOffset as number | null)
           : typeof role.step === "number"
             ? role.step - baseIndex
             : null;
+
+      /* The ramp used to be centred, so a saved offset can sit outside it now
+         that base has moved up. Clamp rather than drop: an offset with no step
+         would silently freeze the role at whatever size it last stored. */
+      const stepOffset =
+        rawOffset === null
+          ? null
+          : Math.min(
+              Math.max(rawOffset, -baseIndex),
+              stepCount - 1 - baseIndex,
+            );
 
       const id = typeof role.id === "string" ? role.id : "role";
 
@@ -238,7 +252,7 @@ export function normalizeStoredSystem(value: unknown): TypeSystem | null {
     groups,
     baseFontSizePx: raw.baseFontSizePx,
     ratio: raw.ratio,
-    stepCount: raw.stepCount,
+    stepCount,
     breakpointPx: typeof raw.breakpointPx === "number" ? raw.breakpointPx : 768,
     fonts: raw.fonts as TypeSystem["fonts"],
     roles,
