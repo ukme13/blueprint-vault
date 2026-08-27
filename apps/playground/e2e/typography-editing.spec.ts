@@ -317,4 +317,23 @@ test.describe("Typography scale editing", () => {
     expect(first).toContain("+");
     expect(last).toContain("-");
   });
+
+  test("panels scroll on their own, the page does not", async ({
+    seededPage: page,
+  }) => {
+    const pageScrolls = await page.evaluate(
+      () =>
+        document.documentElement.scrollHeight >
+        document.documentElement.clientHeight + 1,
+    );
+    expect(pageScrolls).toBe(false);
+
+    // Each panel owns its own overflow, so they can be driven separately.
+    for (const name of ["Generated type steps", "Type scale settings"]) {
+      const overflow = await page
+        .getByRole("region", { name })
+        .evaluate((el) => getComputedStyle(el).overflowY);
+      expect(overflow).toBe("auto");
+    }
+  });
 });
