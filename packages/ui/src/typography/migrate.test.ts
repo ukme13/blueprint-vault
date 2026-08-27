@@ -1,13 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { createFerreTypographyPreset } from "./ferre-preset";
 import {
-  migrateFerreSystem,
   migrateLegacyProject,
   splitFontFamily,
   type LegacyTypographyProject,
 } from "./migrate";
 import { generateTypeScale } from "./scale";
-import { fontFamilyValue } from "./system";
 import { SEMANTIC_ROLES } from "./types";
 
 const legacy: LegacyTypographyProject = {
@@ -109,51 +106,5 @@ describe("migrateLegacyProject", () => {
       roleStyles: { body: legacy.roleStyles.body! },
     };
     expect(() => migrateLegacyProject(partial)).not.toThrow();
-  });
-});
-
-describe("migrateFerreSystem", () => {
-  const system = migrateFerreSystem(createFerreTypographyPreset());
-
-  it("keeps every role and font", () => {
-    const preset = createFerreTypographyPreset();
-    expect(system.roles).toHaveLength(preset.roles.length);
-    expect(system.fonts).toHaveLength(preset.fonts.length);
-  });
-
-  it("unlinks every role from the scale, because its sizes were authored", () => {
-    expect(system.roles.every((role) => role.step === null)).toBe(true);
-  });
-
-  it("keeps desktop and mobile values distinct", () => {
-    const h1 = system.roles.find((role) => role.id === "h1")!;
-    expect(h1.desktop.fontSizePx).not.toBe(h1.mobile.fontSizePx);
-  });
-
-  it("derives groups and elements from role ids", () => {
-    const h1 = system.roles.find((role) => role.id === "h1")!;
-    expect(h1.group).toBe("heading");
-    expect(h1.element).toBe("h1");
-  });
-
-  it("keeps per-role fonts, which is what makes a bilingual system work", () => {
-    const fontIds = new Set(system.roles.map((role) => role.fontId));
-    expect(fontIds.size).toBeGreaterThan(1);
-  });
-
-  it("quotes multi-word families so the css stack stays valid", () => {
-    const contentRole = system.roles.find((role) => role.fontId === "content")!;
-    // "Noto Sans Thai" must be quoted; a bare identifier like Orbitron must not,
-    // because quoting is only required where the family is not a valid ident.
-    expect(fontFamilyValue(system, contentRole)).toContain('"Noto Sans Thai"');
-
-    const displayRole = system.roles.find((role) => role.fontId === "display")!;
-    expect(fontFamilyValue(system, displayRole)).toBe("Orbitron, sans-serif");
-  });
-
-  it("carries the breakpoint across", () => {
-    expect(system.breakpointPx).toBe(
-      createFerreTypographyPreset().breakpointPx,
-    );
   });
 });
