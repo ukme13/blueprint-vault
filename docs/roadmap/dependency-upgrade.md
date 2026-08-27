@@ -277,15 +277,73 @@ Do not force it.
 
 **Risk:** high, and partly outside our control.
 
+### What actually happened — the target changed to 6.0.3
+
+**The plan missed that TypeScript 6.0 exists as a stable release.** It framed this
+stage as 5.9 → 7 and skipped the bridge. 6.0.2 and 6.0.3 are both published and
+stable, and Microsoft describes 6.0 as "the bridge between TypeScript 5.9 and
+7.0". So this stage went to **6.0.3**, and 7.x is deferred.
+
+**TypeScript 7 is blocked, and the reason is architectural rather than a stale
+peer range.** 7.0.2 is the native Go port, and the npm package is a thin wrapper
+around 20 platform binaries:
+
+| | 5.9.2 | 6.0.3 | 7.0.2 |
+| --- | --- | --- | --- |
+| unpacked size | 23.6 MB | 24.3 MB | 2.5 MB |
+| `bin` | `tsc`, `tsserver` | `tsc`, `tsserver` | `tsc` only |
+
+Its `package.json` maps the root export to `./lib/version.cjs` — importing
+`typescript` yields only a version string. There is no `lib/typescript.js` in the
+package, `main` and `types` are unset, and the whole API surface lives under
+`./unstable/*`. It vendors `vscode-jsonrpc` instead of shipping `tsserver`.
+
+So `tsc` works — `check-types`, `test` and `build` all pass under 7.0.2 — but
+anything using TypeScript *as a library* breaks. `typescript-eslint` throws
+outright: "typescript-eslint does not support TS 7.0." Their tracking issue is
+[typescript-eslint#10940], still open, and aimed at TS **>=7.1**.
+
+Recheck before attempting 7 again:
+
+```
+npm view typescript-eslint peerDependencies.typescript
+```
+
+[typescript-eslint#10940]: https://github.com/typescript-eslint/typescript-eslint/issues/10940
+
+**6.0.3 was verified end-to-end in a throwaway worktree before being applied**,
+and `pnpm peers check` reports no issues, since `<6.1.0` includes it.
+
+The two changed defaults that looked risky caused nothing:
+
+- `types` now defaults to `[]` rather than auto-enumerating `@types`
+- `noUncheckedSideEffectImports` now defaults to `true`
+
+The tsconfigs were already well positioned for the removals: `moduleResolution`
+is `NodeNext`/`Bundler` (not the removed `classic` or deprecated `node`),
+`target` is an explicit `ES2022` (not the removed `es5`), `strict` and `module`
+are explicit, and nothing uses `outFile`, `baseUrl`, or `downlevelIteration`.
+
+**Risk in hindsight:** low for 6.0.3. Genuinely blocked for 7.x.
+
 ## Order summary
 
 ```
-Stage 0  Node floor + pnpm 11        →  merge
-Stage 1  patch/minor sweep           →  merge
-Stage 2  Astryx 0.5.0                →  merge   (visual check required)
-Stage 3  ESLint 10 + hooks 7         →  merge
-Stage 4  TypeScript 7                →  only if the ecosystem supports it
+Stage 0  Node floor + pnpm 11        →  merged
+Stage 1  patch/minor sweep           →  merged
+Stage 2  Astryx 0.5.0                →  merged  (visual check still owed)
+Stage 3  react-hooks 7               →  ESLint held at 9.39.5, 10 blocked
+Stage 4  TypeScript 6.0.3            →  7.x deferred until typescript-eslint lands
 ```
 
-Stages 0 and 1 are safe to do in one sitting. Stage 2 is a real project. Stages
-3 and 4 can wait.
+Stages 0 and 1 are safe to do in one sitting. Stage 2 turned out small. Stages 3
+and 4 are both capped by upstream rather than by this repo.
+
+## Still owed
+
+- A visual check of the playground against Astryx 0.5.0 (four theme token values
+  changed).
+- `TrackDetailDialog` and `ColourPicker` set state from props inside an effect.
+  Both are suppressed with a pointer here; both deserve a proper refactor.
+- ESLint 10, once `eslint-plugin-react` supports it.
+- TypeScript 7, once `typescript-eslint` supports it.
