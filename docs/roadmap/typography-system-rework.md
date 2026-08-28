@@ -266,7 +266,10 @@ system.
    stacks. Migrate both storage keys forward. No new UI.
 2. ✅ **Role editor.** Groups, add and remove, per-role element, font, weight,
    line-height and spacing.
-3. **Rounding.** Whole-pixel default, optional 2/4/8 snapping, exact value shown.
+3. ✅ **Rounding.** Even-pixel sizes, floored at 11, exact value kept alongside.
+4. ✅ **Google font picker.** Runtime loading, script-filtered bilingual fallback,
+   display/main font pairing, preview weight.
+5. **Uploaded fonts.** Only once storage is settled.
 
 ### Notes from stages 1 and 2
 
@@ -287,7 +290,39 @@ a template can never render unstyled.
 
 The `FerreTypographyStudio` retirement is **not** part of stage 2. The main studio
 now runs on the merged model while Ferre still runs on its own; both work, and
-retiring it is a separate change so this one stayed reviewable. 4. ✅ **Google font picker.** Runtime loading, Thai-capable filtering, privacy note. 5. **Uploaded fonts.** Only once storage is settled.
+retiring it is a separate change so this one stayed reviewable.
+
+### Notes from stages 3 and 4
+
+`FerreTypographyStudio` is gone. The retirement stayed a separate change, as
+planned, and then the preset itself turned out to be unwanted.
+
+`element` was removed from the model. It was inferred from the role id anyway
+(`/^h[1-6]$/`), so storing it meant two sources of truth that could disagree.
+The section above describing it as explicit is kept as a record of the decision
+that was reversed.
+
+Steps became offsets from the base rather than absolute indexes. With absolute
+indexes the base sat at the ramp midpoint, so changing the step count silently
+reassigned every role's size.
+
+A font is a **stack**, and the stylesheet request has to name every family in
+it. Requesting only the primary meant the bilingual fallback was never
+downloaded, and a fallback the browser does not have cannot be fallen back to —
+it skipped straight to the generic.
+
+No `subset=` parameter is sent. The Google CSS API already returns one
+`@font-face` per subset with a `unicode-range`, so the browser fetches only the
+ranges the page uses. Naming a subset would at best be redundant and at worst
+drop glyphs.
+
+The preview weight is chosen from what the family actually ships. More than half
+the catalogue ships a single weight, so a fixed 100–900 control would offer
+weights that do not exist, and the browser would synthesise them.
+
+A family that is not in the catalogue is still shown in the picker. Every
+migrated project carries `Geist Sans`, which is not a Google font; rendering
+only known families left the field blank and made the font look lost.
 
 ## Migration
 
