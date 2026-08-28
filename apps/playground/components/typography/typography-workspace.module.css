@@ -256,7 +256,8 @@
 
 .roleSettingLabel {
   color: var(--color-neutral-300);
-  font-size: 11px;
+  /* --font-size-base is 0.875rem, 14px at a 16px root. */
+  font-size: var(--font-size-base);
   text-transform: capitalize;
 }
 
@@ -588,8 +589,8 @@
 .exportUnitHint {
   margin: 0;
   color: var(--color-text-secondary);
-  font-size: var(--font-caption-size);
-  line-height: var(--font-caption-line-height);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
 }
 
 .previewControls {
@@ -690,7 +691,8 @@
 }
 
 .roleTableHead {
-  font-size: var(--font-caption-size);
+  /* --font-size-sm is 0.75rem, 12px at a 16px root. */
+  font-size: var(--font-size-sm);
   color: var(--color-text-secondary);
 }
 
