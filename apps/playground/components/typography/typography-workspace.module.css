@@ -181,9 +181,20 @@
 }
 
 .stepSample {
+  /* An input styled as text, so the specimen can be typed in place.
+
+     `font: inherit` is a shorthand and resets line-height, so the explicit
+     line-height has to follow it. Family, size and weight come from the inline
+     style. */
+  width: 100%;
   min-width: 0;
   overflow: hidden;
-  color: var(--color-neutral-100);
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: 1.1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -570,16 +581,6 @@
 
 /* The step sample is an input so the specimen can be typed in place. It has to
    look like text, not like a form field. */
-.stepSample {
-  width: 100%;
-  min-width: 0;
-  border: 0;
-  padding: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  line-height: 1.1;
-}
 
 .stepSample:focus-visible {
   outline: 2px solid var(--color-border-emphasized, var(--color-border));

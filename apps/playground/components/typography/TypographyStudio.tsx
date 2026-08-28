@@ -24,6 +24,7 @@ import {
   MIN_BASE_FONT_SIZE_PX,
   MIN_STEP_COUNT,
   familiesToCss,
+  findGoogleFont,
   fontFamilyValue,
   formatLength,
   googleFontsHref,
@@ -185,6 +186,7 @@ export function TypographyStudio() {
   /* Which font entry the step list renders in. The steps are sizes shared by
      several roles, so they have no font of their own to follow. */
   const [previewFontId, setPreviewFontId] = useState<string | null>(null);
+  const [previewWeight, setPreviewWeight] = useState<number | null>(null);
   const inspectorPanel = useResizable({
     autoSaveId: "blueprint-typography-inspector",
     defaultSize: 560,
@@ -424,11 +426,36 @@ export function TypographyStudio() {
         : current,
     );
 
+  /* Defaults to whatever body uses, since that is the size people read most,
+     and falls through if the chosen entry has since been removed. */
+  const previewFont =
+    system?.fonts.find((font) => font.id === previewFontId) ??
+    system?.fonts.find(
+      (font) =>
+        font.id === system.roles.find((role) => role.id === "body")?.fontId,
+    ) ??
+    system?.fonts[0];
+
+  /* Only the weights this family actually ships. More than half the catalogue
+     ships exactly one, so a fixed 100-900 control would offer eight weights the
+     browser could only fake. */
+  const previewWeights =
+    findGoogleFont(previewFont?.families[0] ?? "")?.weights ?? [];
+  const resolvedPreviewWeight =
+    previewWeight !== null && previewWeights.includes(previewWeight)
+      ? previewWeight
+      : (previewWeights.find((weight) => weight === 400) ??
+        previewWeights[0] ??
+        400);
+
   /* Load whatever Google families the system names, in one request.
      next/font cannot do this: it downloads at build time and needs the family
      known then, which a picker over the whole catalogue rules out. The cost is
      that the browser now talks to fonts.googleapis.com. */
-  const googleHref = useMemo(() => {
+  /* Built every render rather than memoised: it is a handful of array walks,
+     and the effect below depends on the resulting string, so value equality
+     already stops the stylesheet being replaced when nothing changed. */
+  const googleHref = ((): string | null => {
     if (!system) return null;
     const weightsByFamily = new Map<string, Set<number>>();
     system.roles.forEach((role) => {
@@ -445,13 +472,21 @@ export function TypographyStudio() {
       });
     });
 
+    /* The previewed weight too. Without it the step list renders a weight that
+       was never downloaded, and the browser draws a synthetic one. */
+    previewFont?.families.forEach((family) => {
+      const weights = weightsByFamily.get(family) ?? new Set<number>();
+      weights.add(resolvedPreviewWeight);
+      weightsByFamily.set(family, weights);
+    });
+
     return googleFontsHref(
       [...weightsByFamily].map(([family, weights]) => ({
         family,
         weights: [...weights],
       })),
     );
-  }, [system]);
+  })();
 
   useEffect(() => {
     if (!googleHref) return;
@@ -463,16 +498,6 @@ export function TypographyStudio() {
        stylesheets behind. */
     return () => link.remove();
   }, [googleHref]);
-
-  /* Defaults to whatever body uses, since that is the size people read most,
-     and falls through if the chosen entry has since been removed. */
-  const previewFont =
-    system?.fonts.find((font) => font.id === previewFontId) ??
-    system?.fonts.find(
-      (font) =>
-        font.id === system.roles.find((role) => role.id === "body")?.fontId,
-    ) ??
-    system?.fonts[0];
 
   const bodyRole =
     resolvedRoles.find((role) => role.id === "body") ??
@@ -669,6 +694,22 @@ export function TypographyStudio() {
                   ))}
                 </SegmentedControl>
               )}
+
+              {previewWeights.length > 1 && (
+                <div className="w-28">
+                  <Selector
+                    isLabelHidden
+                    label="Preview weight"
+                    options={previewWeights.map((weight) => ({
+                      label: String(weight),
+                      value: String(weight),
+                    }))}
+                    size="sm"
+                    value={String(resolvedPreviewWeight)}
+                    onChange={(value) => setPreviewWeight(Number(value))}
+                  />
+                </div>
+              )}
             </div>
             <ul className={styles.stepList}>
               {sortedSteps.map((step) => {
@@ -688,6 +729,7 @@ export function TypographyStudio() {
                       style={{
                         fontFamily: familiesToCss(previewFont?.families ?? []),
                         fontSize: `${step.fontSizePx}px`,
+                        fontWeight: resolvedPreviewWeight,
                       }}
                       value={project.specimenText}
                       onChange={(event) =>

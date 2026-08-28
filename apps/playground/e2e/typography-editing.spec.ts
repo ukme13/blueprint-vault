@@ -577,4 +577,45 @@ test.describe("Typography scale editing", () => {
       /Orbitron/,
     );
   });
+
+  test("offers only the weights a family actually ships", async ({
+    seededPage: page,
+  }) => {
+    /* More than half the catalogue ships one weight, so a fixed 100-900 control
+       would offer weights the browser could only fake. */
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const steps = page.getByRole("region", { name: "Generated type steps" });
+
+    await settings.getByLabel("Base font", { exact: true }).fill("Orbitron");
+    await page.getByRole("option", { name: "Orbitron" }).first().click();
+
+    await steps.getByLabel("Preview weight").click();
+    const options = await page.getByRole("option").allTextContents();
+    // Orbitron ships 400-900. There is no 100.
+    expect(options).toContain("400");
+    expect(options).toContain("900");
+    expect(options).not.toContain("100");
+  });
+
+  test("requests the weight it previews", async ({ seededPage: page }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const steps = page.getByRole("region", { name: "Generated type steps" });
+
+    await settings.getByLabel("Base font", { exact: true }).fill("Orbitron");
+    await page.getByRole("option", { name: "Orbitron" }).first().click();
+    await steps.getByLabel("Preview weight").click();
+    await page.getByRole("option", { name: "900", exact: true }).click();
+
+    /* Otherwise the step list renders a weight that was never downloaded and
+       the browser draws a synthetic one. */
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          [...document.querySelectorAll("link[href*='fonts.googleapis.com']")]
+            .map((link) => link.getAttribute("href") ?? "")
+            .join(" "),
+        ),
+      )
+      .toMatch(/Orbitron[^&]*900/);
+  });
 });

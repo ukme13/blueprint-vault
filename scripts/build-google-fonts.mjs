@@ -71,12 +71,18 @@ const snapshot = families
   .map((family) => [
     family.family,
     family.category ?? "",
-    // Numeric weights only: the italic variants share them.
+    /* Numeric weights only; the italic variants share them.
+       Matched whole rather than sliced: a fixed three-character slice read
+       "1000" as 100, so families with a 1000 weight silently lost it and
+       gained a duplicate 100. CSS font-weight runs 1 to 1000, and the
+       variable families that start at 1 really do mean it. */
     [
       ...new Set(
         Object.keys(family.fonts ?? {})
-          .map((variant) => Number.parseInt(variant, 10))
-          .filter(Number.isFinite),
+          .map((variant) => /^(\d+)/.exec(variant)?.[1])
+          .filter((weight) => weight !== undefined)
+          .map(Number)
+          .filter((weight) => weight >= 1 && weight <= 1000),
       ),
     ].sort((a, b) => a - b),
     (family.subsets ?? [])
