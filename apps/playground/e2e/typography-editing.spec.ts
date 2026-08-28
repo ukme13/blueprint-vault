@@ -552,4 +552,29 @@ test.describe("Typography scale editing", () => {
       settings.getByRole("button", { name: /^Remove .* font$/ }),
     ).toHaveCount(0);
   });
+
+  test("previews the step list in the chosen font entry", async ({
+    seededPage: page,
+  }) => {
+    /* Steps are sizes shared by several roles, so they have no font of their
+       own. Without this you cannot see a display face in the step list at all. */
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const steps = page.getByRole("region", { name: "Generated type steps" });
+
+    // One entry means no choice to make, so the control stays hidden.
+    await expect(
+      steps.getByRole("radiogroup", { name: "Preview font" }),
+    ).toHaveCount(0);
+
+    await settings.getByRole("button", { name: "Add font" }).click();
+    await settings.getByLabel("font-2 name").fill("Display");
+    await settings.getByLabel("Display font", { exact: true }).fill("Orbitron");
+    await page.getByRole("option", { name: "Orbitron" }).first().click();
+
+    await steps.getByRole("radio", { name: "Display" }).click();
+    await expect(steps.getByLabel("Specimen text").first()).toHaveCSS(
+      "font-family",
+      /Orbitron/,
+    );
+  });
 });

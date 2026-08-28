@@ -504,9 +504,18 @@ export function resolveRoleSizePx(
  */
 export function fontFamilyValue(system: TypeSystem, role: TypeRole): string {
   const font = system.fonts.find((candidate) => candidate.id === role.fontId);
-  if (!font || font.families.length === 0) return "inherit";
+  return font ? familiesToCss(font.families) : "inherit";
+}
 
-  return font.families
+/**
+ * Turn a family stack into a CSS font-family value.
+ *
+ * Families that are not valid CSS identifiers are quoted, which is what makes
+ * `Noto Sans Thai` one family rather than three bare identifiers.
+ */
+export function familiesToCss(families: string[]): string {
+  if (families.length === 0) return "inherit";
+  return families
     .map((family) =>
       /^[a-zA-Z][a-zA-Z0-9-]*$/.test(family) ? family : `"${family}"`,
     )

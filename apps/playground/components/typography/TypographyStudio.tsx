@@ -23,6 +23,7 @@ import {
   MAX_STEP_COUNT,
   MIN_BASE_FONT_SIZE_PX,
   MIN_STEP_COUNT,
+  familiesToCss,
   fontFamilyValue,
   formatLength,
   googleFontsHref,
@@ -181,6 +182,9 @@ export function TypographyStudio() {
      they are view state rather than persisted fields. */
   const [previewWidth, setPreviewWidth] = useState<PreviewWidth>("desktop");
   const [previewLang, setPreviewLang] = useState<PreviewLanguage>("en");
+  /* Which font entry the step list renders in. The steps are sizes shared by
+     several roles, so they have no font of their own to follow. */
+  const [previewFontId, setPreviewFontId] = useState<string | null>(null);
   const inspectorPanel = useResizable({
     autoSaveId: "blueprint-typography-inspector",
     defaultSize: 560,
@@ -460,6 +464,16 @@ export function TypographyStudio() {
     return () => link.remove();
   }, [googleHref]);
 
+  /* Defaults to whatever body uses, since that is the size people read most,
+     and falls through if the chosen entry has since been removed. */
+  const previewFont =
+    system?.fonts.find((font) => font.id === previewFontId) ??
+    system?.fonts.find(
+      (font) =>
+        font.id === system.roles.find((role) => role.id === "body")?.fontId,
+    ) ??
+    system?.fonts[0];
+
   const bodyRole =
     resolvedRoles.find((role) => role.id === "body") ??
     resolvedRoles.find((role) => role.groupId === "body");
@@ -616,7 +630,7 @@ export function TypographyStudio() {
           <section aria-label="Generated type steps" className={styles.canvas}>
             {/* Sits above the steps so the unit is chosen where the sizes are
                 read, not buried in the export dialog. */}
-            <div className={styles.unitChips}>
+            <div className="flex flex-wrap items-center gap-4 pb-3">
               <SegmentedControl
                 label="Size unit"
                 size="sm"
@@ -637,6 +651,24 @@ export function TypographyStudio() {
                   />
                 ))}
               </SegmentedControl>
+
+              {/* Only worth showing once there is a choice to make. */}
+              {system.fonts.length > 1 && (
+                <SegmentedControl
+                  label="Preview font"
+                  size="sm"
+                  value={previewFont?.id ?? ""}
+                  onChange={setPreviewFontId}
+                >
+                  {system.fonts.map((font) => (
+                    <SegmentedControlItem
+                      key={font.id}
+                      label={font.name}
+                      value={font.id}
+                    />
+                  ))}
+                </SegmentedControl>
+              )}
             </div>
             <ul className={styles.stepList}>
               {sortedSteps.map((step) => {
@@ -654,10 +686,7 @@ export function TypographyStudio() {
                       placeholder={DEFAULT_SPECIMEN_TEXT}
                       spellCheck={false}
                       style={{
-                        fontFamily: fontFamilyValue(
-                          resolvedSystem,
-                          bodyRole ?? resolvedRoles[0]!,
-                        ),
+                        fontFamily: familiesToCss(previewFont?.families ?? []),
                         fontSize: `${step.fontSizePx}px`,
                       }}
                       value={project.specimenText}
