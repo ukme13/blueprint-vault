@@ -146,7 +146,7 @@ test.describe("Typography scale editing", () => {
     // The fixture seeds the pre-merge shape: roleStyles and a flat fontFamily.
     // Reaching the editor at all means the migration ran.
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await expect(settings.getByRole("heading", { name: "Body" })).toBeVisible();
+    await expect(settings.getByRole("group", { name: "Body" })).toBeVisible();
     await expect(settings.getByLabel("Base font stack")).toHaveValue(
       /Geist Sans/,
     );
@@ -157,14 +157,13 @@ test.describe("Typography scale editing", () => {
 
     for (const group of ["Display", "H", "Body", "Label", "Caption"]) {
       await expect(
-        settings.getByRole("heading", { name: group, exact: true }),
+        settings.getByRole("group", { name: group, exact: true }),
       ).toBeVisible();
     }
 
     const before = await settings.getByLabel(/ font weight$/).count();
     await settings
-      .getByRole("heading", { name: "Body", exact: true })
-      .locator("..")
+      .getByRole("group", { name: "Body", exact: true })
       .getByRole("button", { name: "Add" })
       .click();
 
@@ -218,7 +217,7 @@ test.describe("Typography scale editing", () => {
     await nameField.fill("Overline");
 
     await expect(
-      settings.getByRole("heading", { name: "Overline" }),
+      settings.getByRole("group", { name: "Overline" }),
     ).toBeVisible();
     await expect(
       settings.getByRole("button", { name: "Move Overline up" }),
@@ -248,8 +247,7 @@ test.describe("Typography scale editing", () => {
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await settings
-      .getByRole("heading", { name: "H", exact: true })
-      .locator("..")
+      .getByRole("group", { name: "H", exact: true })
       .getByRole("button", { name: "Add" })
       .click();
 
@@ -263,8 +261,7 @@ test.describe("Typography scale editing", () => {
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await settings
-      .getByRole("heading", { name: "Body", exact: true })
-      .locator("..")
+      .getByRole("group", { name: "Body", exact: true })
       .getByRole("button", { name: "Add" })
       .click();
 
@@ -352,7 +349,7 @@ test.describe("Typography scale editing", () => {
     await page.goto("/typography");
 
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await expect(settings.getByRole("heading", { name: "Body" })).toBeVisible();
+    await expect(settings.getByRole("group", { name: "Body" })).toBeVisible();
     await expect(settings.getByLabel("body font weight")).toHaveValue("400");
     await expect(page.getByLabel("Project name")).toHaveValue("Saved earlier");
   });
@@ -362,6 +359,17 @@ test.describe("Typography scale editing", () => {
     await settings.getByLabel("caption name").fill("Overline");
     await settings.getByLabel("caption name").blur();
 
+    await expect(
+      settings.getByRole("button", { name: "Remove overline", exact: true }),
+    ).toBeVisible();
+  });
+
+  test("applies a group rename on Enter", async ({ seededPage: page }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings.getByLabel("caption name").fill("Overline");
+    await settings.getByLabel("caption name").press("Enter");
+
+    // No need to click elsewhere for it to take effect.
     await expect(
       settings.getByRole("button", { name: "Remove overline", exact: true }),
     ).toBeVisible();

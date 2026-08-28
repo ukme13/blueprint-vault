@@ -732,9 +732,13 @@ export function TypographyStudio() {
               );
 
               return (
-                <div key={group.id} className={styles.settingGroup}>
+                <div
+                  key={group.id}
+                  aria-label={group.label}
+                  className={styles.settingGroup}
+                  role="group"
+                >
                   <header className={styles.roleGroupHeader}>
-                    <h2>{group.label}</h2>
                     <div className={styles.roleGroupActions}>
                       {
                         <>
@@ -798,6 +802,14 @@ export function TypographyStudio() {
                           updateGroup(group.id, { label: value })
                         }
                         onBlur={() => renameGroupById(group.id, group.label)}
+                        /* Enter blurs rather than renaming directly, so both
+                           paths commit through the same handler. */
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            event.currentTarget.blur();
+                          }
+                        }}
                       />
                       <Selector
                         label={`${group.id} indexing`}
