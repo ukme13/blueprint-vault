@@ -786,13 +786,21 @@ export function TypographyStudio() {
                   {
                     <div className={styles.roleGroupMeta}>
                       <TextInput
-                        label={`${group.label} name`}
+                        label={`${group.id} name`}
                         isLabelHidden
                         value={group.label}
-                        onChange={(value) => renameGroupById(group.id, value)}
+                        /* Typing changes the label only. Renaming re-slugs the
+                           group id, which is this row's React key, so doing it
+                           per keystroke remounted the field and dropped focus
+                           after one character. It also renamed every role in
+                           the group on each letter typed. */
+                        onChange={(value) =>
+                          updateGroup(group.id, { label: value })
+                        }
+                        onBlur={() => renameGroupById(group.id, group.label)}
                       />
                       <Selector
-                        label={`${group.label} indexing`}
+                        label={`${group.id} indexing`}
                         isLabelHidden
                         options={(["number", "size"] as TypeIndexing[]).map(
                           (mode) => ({

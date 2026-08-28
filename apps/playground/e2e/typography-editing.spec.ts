@@ -213,7 +213,7 @@ test.describe("Typography scale editing", () => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await settings.getByRole("button", { name: "Add group" }).click();
 
-    const nameField = settings.getByLabel(/^Group \d+ name$/);
+    const nameField = settings.getByLabel(/^group-\d+ name$/);
     await expect(nameField).toBeVisible();
     await nameField.fill("Overline");
 
@@ -231,7 +231,9 @@ test.describe("Typography scale editing", () => {
     // H and Body are only defaults now, not locked.
     const settings = page.getByRole("region", { name: "Type scale settings" });
     for (const group of ["H", "Body"]) {
-      await expect(settings.getByLabel(`${group} name`)).toBeVisible();
+      await expect(
+        settings.getByLabel(`${group.toLowerCase()} name`),
+      ).toBeVisible();
       await expect(
         settings.getByRole("button", { name: `Move ${group} up` }),
       ).toBeVisible();
@@ -357,11 +359,27 @@ test.describe("Typography scale editing", () => {
 
   test("renaming a group renames its roles", async ({ seededPage: page }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("Caption name").fill("Overline");
+    await settings.getByLabel("caption name").fill("Overline");
+    await settings.getByLabel("caption name").blur();
 
     await expect(
       settings.getByRole("button", { name: "Remove overline", exact: true }),
     ).toBeVisible();
+  });
+
+  test("keeps focus while a group name is typed", async ({
+    seededPage: page,
+  }) => {
+    /* The group id is this row's React key, so renaming per keystroke remounted
+       the field and focus was lost after one character. */
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const field = settings.getByLabel("caption name");
+
+    await field.click();
+    await page.keyboard.type("Overline");
+
+    await expect(field).toBeFocused();
+    await expect(field).toHaveValue("CaptionOverline");
   });
 
   test("the size menu lists the largest step first", async ({
