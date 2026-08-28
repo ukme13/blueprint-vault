@@ -4,6 +4,7 @@ import {
   googleFonts,
   googleFontsHref,
   searchGoogleFonts,
+  genericForCategory,
 } from "./google-fonts";
 
 describe("the catalogue", () => {
@@ -13,13 +14,22 @@ describe("the catalogue", () => {
     expect(all.every((font) => font.weights.length > 0)).toBe(true);
   });
 
-  it("knows which families ship Thai", () => {
-    /* A bilingual project that picks a Latin-only family falls back to a system
-       font with no warning, so this flag is what the picker filters on. */
-    const thai = googleFonts().filter((font) => font.thai);
+  it("knows which writing systems a family covers", () => {
+    /* A bilingual project that picks a family without the script falls back to
+       a system font with no warning, so this is what the picker filters on.
+       Thai is the case at hand; Arabic, Devanagari and Korean have the same
+       problem. */
+    const thai = googleFonts().filter((font) => font.scripts.includes("thai"));
     expect(thai.length).toBeGreaterThan(10);
     expect(thai.map((font) => font.family)).toContain("Sarabun");
-    expect(findGoogleFont("Inter")?.thai).toBe(false);
+    expect(findGoogleFont("Inter")?.scripts).not.toContain("thai");
+  });
+
+  it("covers scripts beyond Thai", () => {
+    const all = googleFonts();
+    ["arabic", "devanagari", "korean", "cyrillic"].forEach((script) => {
+      expect(all.some((font) => font.scripts.includes(script))).toBe(true);
+    });
   });
 
   it("finds a family whatever the casing", () => {
@@ -36,10 +46,10 @@ describe("searchGoogleFonts", () => {
     expect(results[0]!.family.toLowerCase().startsWith("not")).toBe(true);
   });
 
-  it("can restrict to families with Thai", () => {
-    const results = searchGoogleFonts("", { thaiOnly: true, limit: 100 });
+  it("can restrict to a writing system", () => {
+    const results = searchGoogleFonts("", { script: "thai", limit: 100 });
     expect(results.length).toBeGreaterThan(0);
-    expect(results.every((font) => font.thai)).toBe(true);
+    expect(results.every((font) => font.scripts.includes("thai"))).toBe(true);
   });
 
   it("honours the limit", () => {
@@ -62,9 +72,9 @@ describe("searchGoogleFonts", () => {
     expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
   });
 
-  it("puts popular Thai families first when filtered", () => {
-    const results = searchGoogleFonts("", { thaiOnly: true, limit: 6 });
-    expect(results.every((font) => font.thai)).toBe(true);
+  it("puts popular families first when filtered by script", () => {
+    const results = searchGoogleFonts("", { script: "thai", limit: 6 });
+    expect(results.every((font) => font.scripts.includes("thai"))).toBe(true);
     expect(results.map((font) => font.family)).toContain("Sarabun");
   });
 });
@@ -117,5 +127,25 @@ describe("googleFontsHref", () => {
   it("puts several families in one request", () => {
     const href = googleFontsHref([{ family: "Inter" }, { family: "Sarabun" }])!;
     expect(href.match(/family=/g)).toHaveLength(2);
+  });
+});
+
+describe("genericForCategory", () => {
+  it("maps a category to the generic a stack should end in", () => {
+    /* Appended automatically: without it, two failed loads leave the browser
+       default, which may be a serif nobody chose. */
+    expect(genericForCategory("Sans Serif")).toBe("sans-serif");
+    expect(genericForCategory("Serif")).toBe("serif");
+    expect(genericForCategory("Monospace")).toBe("monospace");
+    expect(genericForCategory("Handwriting")).toBe("cursive");
+    expect(genericForCategory("Display")).toBe("sans-serif");
+  });
+
+  it("does not mistake Sans Serif for a serif", () => {
+    expect(genericForCategory("Sans Serif")).not.toBe("serif");
+  });
+
+  it("falls back to sans-serif for anything unknown", () => {
+    expect(genericForCategory("")).toBe("sans-serif");
   });
 });

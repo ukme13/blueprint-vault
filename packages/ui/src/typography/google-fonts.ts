@@ -1,3 +1,4 @@
+import scriptNames from "./google-font-scripts.json";
 import snapshot from "./google-fonts.json";
 
 /**
@@ -13,25 +14,34 @@ import snapshot from "./google-fonts.json";
  * families but never load them.
  */
 
-/** [family, category, weights, supports thai, popularity rank] */
-type FontTuple = [string, string, number[], number, number];
+/** [family, category, weights, script indices, popularity rank] */
+type FontTuple = [string, string, number[], number[], number];
+
+/**
+ * Writing systems a family may cover, beyond Latin.
+ *
+ * Latin is not listed: nearly every family has it, so it separates nothing.
+ * These are what a bilingual fallback is chosen for — Thai here, but the same
+ * problem exists for Arabic, Devanagari, Korean and the rest.
+ */
+export const FONT_SCRIPTS: string[] = scriptNames as string[];
 
 export interface GoogleFont {
   family: string;
   category: string;
   weights: number[];
-  /** Whether the family ships Thai glyphs. */
-  thai: boolean;
+  /** Non-Latin writing systems this family covers. */
+  scripts: string[];
   /** Google's own usage rank, 1 being the most used. */
   popularity: number;
 }
 
 const CATALOGUE: GoogleFont[] = (snapshot as FontTuple[]).map(
-  ([family, category, weights, thai, popularity]) => ({
+  ([family, category, weights, scripts, popularity]) => ({
     family,
     category,
     weights,
-    thai: thai === 1,
+    scripts: scripts.map((index) => FONT_SCRIPTS[index]!),
     popularity,
   }),
 );
@@ -53,8 +63,8 @@ export function findGoogleFont(family: string): GoogleFont | undefined {
 }
 
 export interface GoogleFontSearch {
-  /** Only families that ship Thai glyphs. */
-  thaiOnly?: boolean;
+  /** Only families covering this writing system, e.g. "thai". */
+  script?: string;
   limit?: number;
 }
 
@@ -68,11 +78,11 @@ export interface GoogleFontSearch {
  */
 export function searchGoogleFonts(
   query: string,
-  { thaiOnly = false, limit = 50 }: GoogleFontSearch = {},
+  { script, limit = 50 }: GoogleFontSearch = {},
 ): GoogleFont[] {
   const needle = query.trim().toLowerCase();
-  const pool = thaiOnly
-    ? BY_POPULARITY.filter((font) => font.thai)
+  const pool = script
+    ? BY_POPULARITY.filter((font) => font.scripts.includes(script))
     : BY_POPULARITY;
   if (!needle) return pool.slice(0, limit);
 
@@ -84,6 +94,24 @@ export function searchGoogleFonts(
     else if (name.includes(needle)) contains.push(font);
   }
   return [...starts, ...contains].slice(0, limit);
+}
+
+/**
+ * The CSS generic a family should fall back to.
+ *
+ * Appended automatically so a stack always ends in something the browser can
+ * render. Without it, two failed loads leave the browser default, which may be
+ * a serif nobody chose.
+ */
+export function genericForCategory(category: string): string {
+  const normalized = category.trim().toLowerCase();
+  if (normalized.includes("serif") && !normalized.includes("sans")) {
+    return "serif";
+  }
+  if (normalized.includes("mono")) return "monospace";
+  if (normalized.includes("handwriting")) return "cursive";
+  if (normalized.includes("display")) return "sans-serif";
+  return "sans-serif";
 }
 
 /**

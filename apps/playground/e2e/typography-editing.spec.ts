@@ -147,9 +147,9 @@ test.describe("Typography scale editing", () => {
     // Reaching the editor at all means the migration ran.
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await expect(settings.getByRole("group", { name: "Body" })).toBeVisible();
-    await expect(settings.getByLabel("Base font stack")).toHaveValue(
-      /Geist Sans/,
-    );
+    await expect(
+      settings.getByText(/^Stack: Geist Sans/).first(),
+    ).toBeVisible();
   });
 
   test("groups roles and adds one to a group", async ({ seededPage: page }) => {
@@ -427,13 +427,11 @@ test.describe("Typography scale editing", () => {
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("Google font").fill("Sarabun");
+    await settings.getByLabel("Base font", { exact: true }).fill("Sarabun");
     await page.getByRole("option", { name: "Sarabun" }).first().click();
 
-    // The head of the stack is replaced; the fallbacks stay.
-    await expect(settings.getByLabel("Base font stack")).toHaveValue(
-      /^Sarabun/,
-    );
+    // The stack is rebuilt with the generic appended.
+    await expect(settings.getByText(/^Stack: Sarabun/).first()).toBeVisible();
 
     /* next/font cannot load a runtime choice, so the studio injects the
        stylesheet itself. */
@@ -452,10 +450,40 @@ test.describe("Typography scale editing", () => {
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("Google font").fill("Inter");
+    await settings.getByLabel("Base font", { exact: true }).fill("Inter");
     await page.getByRole("option", { name: "Inter" }).first().click();
 
     // Otherwise Thai silently falls back to a system font.
-    await expect(settings.getByText(/no Thai glyphs/)).toBeVisible();
+    await expect(settings.getByText(/no Thai glyphs/).first()).toBeVisible();
+  });
+
+  test("a new scale ships a Display group and two fonts", async ({ page }) => {
+    /* Display is the expressive brand face used big; headings and body use the
+       readable one, because a blog still needs a legible h1. */
+    await page.goto("/typography");
+    await page.getByLabel("Project name").fill("Pairing");
+    await page.getByRole("button", { name: "Create type scale" }).click();
+
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await expect(
+      settings.getByRole("group", { name: "Display" }),
+    ).toBeVisible();
+    await expect(
+      settings.getByLabel("display-1 font", { exact: true }),
+    ).toContainText("Display");
+    await expect(settings.getByLabel("h1 font", { exact: true })).toContainText(
+      "Main",
+    );
+  });
+
+  test("offers a bilingual fallback filtered by script", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const fallback = settings.getByLabel("Base bilingual fallback");
+
+    await fallback.click();
+    // Thai is the default script, so every option covers it.
+    await expect(page.getByRole("option", { name: "Sarabun" })).toBeVisible();
   });
 });

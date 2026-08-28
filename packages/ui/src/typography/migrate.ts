@@ -53,12 +53,9 @@ const LEGACY_GROUPS: Record<SemanticRole, string> = {
 
 /** Groups a migrated legacy project needs: the two fixed ones plus two free. */
 function legacyGroups(): TypeGroup[] {
+  /* Display comes from defaultGroups now; adding it here as well gave a
+     migrated project two groups with the same id. */
   return [
-    {
-      id: DISPLAY_GROUP_ID,
-      label: "Display",
-      indexing: "number",
-    },
     ...defaultGroups(),
     { id: "label", label: "Label", indexing: "number" },
     { id: "caption", label: "Caption", indexing: "number" },

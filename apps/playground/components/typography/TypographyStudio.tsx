@@ -60,7 +60,7 @@ import {
   type PreviewTemplateId,
   type PreviewWidth,
 } from "./preview-templates";
-import { GoogleFontPicker } from "./GoogleFontPicker";
+import { FontStackEditor } from "./FontStackEditor";
 import styles from "./typography-workspace.module.css";
 import type { TypographySection } from "./types";
 
@@ -714,43 +714,19 @@ export function TypographyStudio() {
             <div className={styles.settingGroup}>
               <h2>Base settings</h2>
               {system.fonts.map((font) => (
-                <div key={font.id} className="flex flex-col gap-2">
-                  <TextInput
-                    label={`${font.name} font stack`}
-                    value={font.families.join(", ")}
-                    onChange={(value) =>
-                      updateSystem({
-                        fonts: system.fonts.map((candidate) =>
-                          candidate.id === font.id
-                            ? { ...candidate, families: splitFontFamily(value) }
-                            : candidate,
-                        ),
-                      })
-                    }
-                  />
-                  <GoogleFontPicker
-                    family={font.families[0] ?? ""}
-                    onPick={(picked) =>
-                      updateSystem({
-                        fonts: system.fonts.map((candidate) =>
-                          candidate.id === font.id
-                            ? {
-                                ...candidate,
-                                /* Replace the head and keep the rest: the
-                                   fallbacks are what make a bilingual stack
-                                   work. */
-                                families: [
-                                  picked.family,
-                                  ...candidate.families.slice(1),
-                                ],
-                                source: "google" as const,
-                              }
-                            : candidate,
-                        ),
-                      })
-                    }
-                  />
-                </div>
+                <FontStackEditor
+                  key={font.id}
+                  font={font}
+                  onChange={(families) =>
+                    updateSystem({
+                      fonts: system.fonts.map((candidate) =>
+                        candidate.id === font.id
+                          ? { ...candidate, families, source: "google" }
+                          : candidate,
+                      ),
+                    })
+                  }
+                />
               ))}
 
               <NumberInput

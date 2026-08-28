@@ -17,6 +17,34 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const SOURCE = "https://fonts.google.com/metadata/fonts";
+
+/**
+ * Writing systems worth filtering a bilingual fallback by.
+ *
+ * Latin is left out because nearly every family has it, so it separates
+ * nothing. Maths and symbol subsets are not writing systems. The order is
+ * fixed: families store indices into this list.
+ */
+const SCRIPTS = [
+  "arabic",
+  "bengali",
+  "chinese-simplified",
+  "chinese-traditional",
+  "cyrillic",
+  "devanagari",
+  "greek",
+  "gujarati",
+  "gurmukhi",
+  "hebrew",
+  "japanese",
+  "kannada",
+  "khmer",
+  "korean",
+  "tamil",
+  "telugu",
+  "thai",
+  "vietnamese",
+];
 const OUT = join(
   dirname(fileURLToPath(import.meta.url)),
   "..",
@@ -51,7 +79,10 @@ const snapshot = families
           .filter(Number.isFinite),
       ),
     ].sort((a, b) => a - b),
-    (family.subsets ?? []).includes("thai") ? 1 : 0,
+    (family.subsets ?? [])
+      .map((subset) => SCRIPTS.indexOf(subset))
+      .filter((index) => index >= 0)
+      .sort((a, b) => a - b),
     /* Google's own popularity rank, 1 being the most used. Without it the
        picker opens on ABeeZee and Abel rather than anything anyone wants. */
     family.popularity ?? 99999,
@@ -61,7 +92,14 @@ const snapshot = families
 
 writeFileSync(OUT, JSON.stringify(snapshot));
 
-const thai = snapshot.filter(([, , , isThai]) => isThai).length;
+writeFileSync(
+  OUT.replace("google-fonts.json", "google-font-scripts.json"),
+  JSON.stringify(SCRIPTS),
+);
+
+const thai = snapshot.filter(([, , , scripts]) =>
+  scripts.includes(SCRIPTS.indexOf("thai")),
+).length;
 console.log(
-  `Wrote ${snapshot.length} families (${thai} with Thai) to ${OUT.split("/").slice(-2).join("/")}`,
+  `Wrote ${snapshot.length} families (${thai} with Thai) across ${SCRIPTS.length} scripts`,
 );

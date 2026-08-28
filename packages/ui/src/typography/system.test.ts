@@ -81,7 +81,7 @@ describe("roleIdsForGroup", () => {
   });
 
   it("names headings h1 upward and never drops the number", () => {
-    const heading = defaultGroups()[0]!;
+    const heading = defaultGroups().find((g) => g.id === "h")!;
     expect(roleIdsForGroup(heading, 1)).toEqual(["h1"]);
     expect(roleIdsForGroup(heading, 3)).toEqual(["h1", "h2", "h3"]);
     // No dash: h1, not h-1.
@@ -91,7 +91,7 @@ describe("roleIdsForGroup", () => {
   });
 
   it("caps each group at what its indexing can name", () => {
-    expect(groupCapacity(defaultGroups()[0]!)).toBe(6);
+    expect(groupCapacity(defaultGroups().find((g) => g.id === "h")!)).toBe(6);
     expect(groupCapacity(free("s", "size"))).toBe(5);
     expect(canAddRole(system({ roles: [] }), free("s", "size"))).toBe(true);
   });
@@ -160,6 +160,7 @@ describe("moveGroup", () => {
     expect(moveGroup(s, "b", -1).map((g) => g.id)).toEqual([
       "b",
       "a",
+      "display",
       "h",
       "body",
     ]);
@@ -167,7 +168,12 @@ describe("moveGroup", () => {
 
   it("moves a default group like any other, since none are locked", () => {
     const s = system({ groups: [...defaultGroups(), free("a", "number")] });
-    expect(moveGroup(s, "h", 1).map((g) => g.id)).toEqual(["body", "h", "a"]);
+    expect(moveGroup(s, "h", 1).map((g) => g.id)).toEqual([
+      "display",
+      "body",
+      "h",
+      "a",
+    ]);
   });
 
   it("refuses to move past the ends", () => {

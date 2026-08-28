@@ -57,10 +57,16 @@ export interface TypeGroup {
  */
 export const HEADING_GROUP_ID = "h";
 export const BODY_GROUP_ID = "body";
+export const DISPLAY_GROUP_ID = "display";
 
-/** Groups a new or reset scale starts with. Neither is special afterwards. */
+/** The expressive brand font, and the readable one everything else uses. */
+export const DISPLAY_FONT_ID = "display";
+export const MAIN_FONT_ID = "main";
+
+/** Groups a new or reset scale starts with. None is special afterwards. */
 export function defaultGroups(): TypeGroup[] {
   return [
+    { id: DISPLAY_GROUP_ID, label: "Display", indexing: "number" },
     { id: HEADING_GROUP_ID, label: "H", indexing: "number" },
     { id: BODY_GROUP_ID, label: "Body", indexing: "number" },
   ];
@@ -85,11 +91,28 @@ export function defaultSystem(
     letterSpacingPx: 0,
   });
 
+  /* One display role, not six. A full parallel set to h1-h6 would start every
+     project with thirteen roles, and most use one or two display sizes. */
+  const display: TypeRole = {
+    id: "display-1",
+    name: "display-1",
+    groupId: DISPLAY_GROUP_ID,
+    fontId: DISPLAY_FONT_ID,
+    fontWeight: 700,
+    textTransform: "none",
+    stepOffset: 6,
+    sameAsRoleId: null,
+    desktop: value(baseFontSizePx, 1.1),
+    mobile: value(baseFontSizePx, 1.1),
+  };
+
   const headings: TypeRole[] = Array.from({ length: 6 }, (_, index) => ({
     id: `h${index + 1}`,
     name: `h${index + 1}`,
     groupId: HEADING_GROUP_ID,
-    fontId: "base",
+    /* Headings use the main font: a blog still needs a readable h1, and the
+       display font is chosen for character rather than legibility. */
+    fontId: MAIN_FONT_ID,
     fontWeight: 700,
     textTransform: "none",
     /* Largest heading at the top of the ramp, stepping down to base. */
@@ -103,7 +126,7 @@ export function defaultSystem(
     id: "body",
     name: "body",
     groupId: BODY_GROUP_ID,
-    fontId: "base",
+    fontId: MAIN_FONT_ID,
     fontWeight: 400,
     textTransform: "none",
     stepOffset: 0,
@@ -121,9 +144,20 @@ export function defaultSystem(
     stepCount,
     breakpointPx: 768,
     fonts: [
-      { id: "base", name: "Base", families: fontFamilies, source: "system" },
+      {
+        id: DISPLAY_FONT_ID,
+        name: "Display",
+        families: fontFamilies,
+        source: "system",
+      },
+      {
+        id: MAIN_FONT_ID,
+        name: "Main",
+        families: fontFamilies,
+        source: "system",
+      },
     ],
-    roles: [...headings, body],
+    roles: [display, ...headings, body],
   };
 }
 

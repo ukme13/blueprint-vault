@@ -105,6 +105,12 @@ describe("migrateLegacyProject", () => {
     expect(widerBody.stepOffset).toBe(body.stepOffset);
   });
 
+  it("never repeats a group id", () => {
+    // Display was added twice once: by legacyGroups and by defaultGroups.
+    const ids = system.groups.map((group) => group.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   it("gives every system the default groups", () => {
     const ids = system.groups.map((group) => group.id);
     expect(ids).toContain("h");

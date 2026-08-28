@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
+import { useMemo } from "react";
 import { Typeahead } from "@astryxdesign/core/Typeahead";
 import {
   findGoogleFont,
@@ -20,21 +19,29 @@ function toItem(font: GoogleFont): FontItem {
 }
 
 interface GoogleFontPickerProps {
-  /** Family currently at the head of the stack, if it is a Google font. */
+  label: string;
+  /** Family currently in this slot, if it is a Google font. */
   family: string;
-  onPick: (font: GoogleFont) => void;
+  /** Restrict to families covering this writing system, e.g. "thai". */
+  script?: string;
+  placeholder?: string;
+  onPick: (font: GoogleFont | null) => void;
 }
 
 /**
- * Pick a family from the Google Fonts catalogue.
+ * Pick one family from the Google Fonts catalogue.
  *
- * The Thai filter is the point of it. A bilingual project that picks a
- * Latin-only family gets no warning — the browser silently falls back to a
- * system font for Thai, which looks like the font simply not applying.
+ * `script` is what makes a bilingual stack work. A family that does not cover
+ * the script gives no warning: the browser quietly falls back to a system font,
+ * which reads as the font simply not applying.
  */
-export function GoogleFontPicker({ family, onPick }: GoogleFontPickerProps) {
-  const [thaiOnly, setThaiOnly] = useState(false);
-
+export function GoogleFontPicker({
+  label,
+  family,
+  script,
+  placeholder,
+  onPick,
+}: GoogleFontPickerProps) {
   const selected = useMemo(() => {
     const known = findGoogleFont(family);
     return known ? toItem(known) : null;
@@ -43,37 +50,22 @@ export function GoogleFontPicker({ family, onPick }: GoogleFontPickerProps) {
   const searchSource = useMemo(
     () => ({
       search: (query: string) =>
-        searchGoogleFonts(query, { thaiOnly }).map(toItem),
-      bootstrap: () => searchGoogleFonts("", { thaiOnly }).map(toItem),
+        searchGoogleFonts(query, { script }).map(toItem),
+      bootstrap: () => searchGoogleFonts("", { script }).map(toItem),
     }),
-    [thaiOnly],
+    [script],
   );
 
   return (
-    <div className="flex flex-col gap-2">
-      <Typeahead<FontItem>
-        hasEntriesOnFocus
-        label="Google font"
-        /* The default of 10 made 1946 families look like a shortlist. */
-        maxMenuItems={30}
-        placeholder="Search Google Fonts"
-        searchSource={searchSource}
-        value={selected}
-        onChange={(item) => {
-          if (item) onPick(item.font);
-        }}
-      />
-      <CheckboxInput
-        label="Thai-capable only"
-        value={thaiOnly}
-        onChange={(checked) => setThaiOnly(checked === true)}
-      />
-      {selected && !selected.font.thai && (
-        <p className="text-xs text-[var(--color-text-secondary)]">
-          {selected.font.family} has no Thai glyphs. Add a Thai family after it
-          in the stack so Thai text has something to fall back to.
-        </p>
-      )}
-    </div>
+    <Typeahead<FontItem>
+      hasEntriesOnFocus
+      label={label}
+      /* The default of 10 made 1946 families look like a shortlist. */
+      maxMenuItems={30}
+      placeholder={placeholder}
+      searchSource={searchSource}
+      value={selected}
+      onChange={(item) => onPick(item?.font ?? null)}
+    />
   );
 }
