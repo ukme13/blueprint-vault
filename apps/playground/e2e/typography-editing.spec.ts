@@ -1,4 +1,24 @@
 import { expect, test } from "./typography-fixtures";
+import type { Locator } from "@playwright/test";
+
+/**
+ * Type a query into a font picker.
+ *
+ * Astryx collapses the Typeahead's input to zero width while a value token is
+ * shown, so a picker that already holds a font cannot be filled directly.
+ * Clearing the token is what the widget offers to get back to an editable
+ * field, and it is what a person does too.
+ */
+async function searchFont(scope: Locator, label: string, query: string) {
+  const input = scope.getByLabel(label, { exact: true });
+  if (!(await input.isVisible())) {
+    await input
+      .locator("xpath=..")
+      .getByRole("button", { name: "Clear selection" })
+      .click();
+  }
+  await input.fill(query);
+}
 
 test.describe("Typography scale editing", () => {
   test("switches between Editor and Preview sections", async ({
@@ -147,9 +167,13 @@ test.describe("Typography scale editing", () => {
     // Reaching the editor at all means the migration ran.
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await expect(settings.getByRole("group", { name: "Body" })).toBeVisible();
+    /* Geist Sans is a local face, not a Google one. It still has to show, or
+       the field reads as empty and the font looks lost. Typeahead presents a
+       selection as a token, not as the input's value. */
     await expect(
-      settings.getByText(/^Stack: Geist Sans/).first(),
+      settings.getByRole("button", { name: "Geist Sans" }),
     ).toBeVisible();
+    await expect(settings.getByText(/is not a Google font/)).toBeVisible();
   });
 
   test("groups roles and adds one to a group", async ({ seededPage: page }) => {
@@ -427,30 +451,28 @@ test.describe("Typography scale editing", () => {
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("Base font", { exact: true }).fill("Sarabun");
+    await searchFont(settings, "Base font", "Sarabun");
     await page.getByRole("option", { name: "Sarabun" }).first().click();
 
-    // The stack is rebuilt with the generic appended.
-    await expect(settings.getByText(/^Stack: Sarabun/).first()).toBeVisible();
-
-    /* next/font cannot load a runtime choice, so the studio injects the
-       stylesheet itself. */
+    /* Asserting the outcome rather than the widget: next/font cannot load a
+       runtime choice, so the studio injects the stylesheet itself, and the
+       chosen family reaching that URL is what proves the pick took effect. */
     await expect
       .poll(() =>
-        page.evaluate(
-          () =>
-            document.querySelectorAll('link[href*="fonts.googleapis.com/css2"]')
-              .length,
+        page.evaluate(() =>
+          [...document.querySelectorAll('link[href*="fonts.googleapis.com"]')]
+            .map((link) => link.getAttribute("href") ?? "")
+            .join(" "),
         ),
       )
-      .toBeGreaterThan(0);
+      .toMatch(/Sarabun/);
   });
 
   test("warns when a chosen family has no Thai glyphs", async ({
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("Base font", { exact: true }).fill("Inter");
+    await searchFont(settings, "Base font", "Inter");
     await page.getByRole("option", { name: "Inter" }).first().click();
 
     // Otherwise Thai silently falls back to a system font.
@@ -495,9 +517,9 @@ test.describe("Typography scale editing", () => {
        ignored. */
     const settings = page.getByRole("region", { name: "Type scale settings" });
 
-    await settings.getByLabel("Base font", { exact: true }).fill("Orbitron");
+    await searchFont(settings, "Base font", "Orbitron");
     await page.getByRole("option", { name: "Orbitron" }).first().click();
-    await settings.getByLabel("Base bilingual fallback").fill("Kanit");
+    await searchFont(settings, "Base bilingual fallback", "Kanit");
     await page.getByRole("option", { name: "Kanit" }).first().click();
 
     await expect
@@ -568,7 +590,7 @@ test.describe("Typography scale editing", () => {
 
     await settings.getByRole("button", { name: "Add font" }).click();
     await settings.getByLabel("font-2 name").fill("Display");
-    await settings.getByLabel("Display font", { exact: true }).fill("Orbitron");
+    await searchFont(settings, "Display font", "Orbitron");
     await page.getByRole("option", { name: "Orbitron" }).first().click();
 
     await steps.getByRole("radio", { name: "Display" }).click();
@@ -586,7 +608,7 @@ test.describe("Typography scale editing", () => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
     const steps = page.getByRole("region", { name: "Generated type steps" });
 
-    await settings.getByLabel("Base font", { exact: true }).fill("Orbitron");
+    await searchFont(settings, "Base font", "Orbitron");
     await page.getByRole("option", { name: "Orbitron" }).first().click();
 
     await steps.getByLabel("Preview weight").click();
@@ -601,7 +623,7 @@ test.describe("Typography scale editing", () => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
     const steps = page.getByRole("region", { name: "Generated type steps" });
 
-    await settings.getByLabel("Base font", { exact: true }).fill("Orbitron");
+    await searchFont(settings, "Base font", "Orbitron");
     await page.getByRole("option", { name: "Orbitron" }).first().click();
     await steps.getByLabel("Preview weight").click();
     await page.getByRole("option", { name: "900", exact: true }).click();

@@ -18,6 +18,27 @@ function toItem(font: GoogleFont): FontItem {
   return { id: font.family, label: font.family, font };
 }
 
+/**
+ * The item to show in the field for `family`.
+ *
+ * A family that is not on Google — a local face like Geist Sans, or one typed
+ * before this picker existed — is synthesised rather than dropped. Otherwise
+ * the field reads as empty and the font looks lost, when it is really still in
+ * the stack and still rendering.
+ */
+function selectedItem(family: string): FontItem | null {
+  if (!family) return null;
+  const known = findGoogleFont(family);
+  if (known) return toItem(known);
+  return toItem({
+    family,
+    category: "",
+    weights: [400],
+    scripts: [],
+    popularity: Number.MAX_SAFE_INTEGER,
+  });
+}
+
 interface GoogleFontPickerProps {
   label: string;
   /** Family currently in this slot, if it is a Google font. */
@@ -42,10 +63,7 @@ export function GoogleFontPicker({
   placeholder,
   onPick,
 }: GoogleFontPickerProps) {
-  const selected = useMemo(() => {
-    const known = findGoogleFont(family);
-    return known ? toItem(known) : null;
-  }, [family]);
+  const selected = selectedItem(family);
 
   const searchSource = useMemo(
     () => ({

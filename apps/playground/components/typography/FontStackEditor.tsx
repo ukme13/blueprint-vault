@@ -160,7 +160,13 @@ export function FontStackEditor({
         </div>
       </div>
 
-      {primary && covered && (
+      {primary && !primaryFont && (
+        <p className="text-xs text-[var(--color-text-secondary)]">
+          {primary} is not a Google font, so it is not loaded here. It still
+          applies wherever it is installed.
+        </p>
+      )}
+      {primary && primaryFont && covered && (
         <p className="text-xs text-[var(--color-text-secondary)]">
           {primary} already covers {label(script)}, so a fallback is optional.
         </p>
@@ -171,10 +177,6 @@ export function FontStackEditor({
           browser substitutes a system font.
         </p>
       )}
-
-      <p className="text-xs text-[var(--color-text-secondary)]">
-        Stack: {font.families.join(", ") || "empty"}
-      </p>
     </div>
   );
 }
