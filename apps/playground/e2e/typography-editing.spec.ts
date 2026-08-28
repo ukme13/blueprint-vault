@@ -422,4 +422,40 @@ test.describe("Typography scale editing", () => {
       expect(overflow).toBe("auto");
     }
   });
+
+  test("picks a Google font and loads it at runtime", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings.getByLabel("Google font").fill("Sarabun");
+    await page.getByRole("option", { name: "Sarabun" }).first().click();
+
+    // The head of the stack is replaced; the fallbacks stay.
+    await expect(settings.getByLabel("Base font stack")).toHaveValue(
+      /^Sarabun/,
+    );
+
+    /* next/font cannot load a runtime choice, so the studio injects the
+       stylesheet itself. */
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            document.querySelectorAll('link[href*="fonts.googleapis.com/css2"]')
+              .length,
+        ),
+      )
+      .toBeGreaterThan(0);
+  });
+
+  test("warns when a chosen family has no Thai glyphs", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings.getByLabel("Google font").fill("Inter");
+    await page.getByRole("option", { name: "Inter" }).first().click();
+
+    // Otherwise Thai silently falls back to a system font.
+    await expect(settings.getByText(/no Thai glyphs/)).toBeVisible();
+  });
 });

@@ -25,6 +25,7 @@ import {
   MIN_STEP_COUNT,
   fontFamilyValue,
   formatLength,
+  googleFontsHref,
   defaultSystem,
   migrateLegacyProject,
   normalizeStoredSystem,
@@ -59,6 +60,7 @@ import {
   type PreviewTemplateId,
   type PreviewWidth,
 } from "./preview-templates";
+import { GoogleFontPicker } from "./GoogleFontPicker";
 import styles from "./typography-workspace.module.css";
 import type { TypographySection } from "./types";
 
@@ -415,6 +417,43 @@ export function TypographyStudio() {
         : current,
     );
 
+  /* Load whatever Google families the system names, in one request.
+     next/font cannot do this: it downloads at build time and needs the family
+     known then, which a picker over the whole catalogue rules out. The cost is
+     that the browser now talks to fonts.googleapis.com. */
+  const googleHref = useMemo(() => {
+    if (!system) return null;
+    const weightsByFamily = new Map<string, Set<number>>();
+    system.roles.forEach((role) => {
+      const font = system.fonts.find(
+        (candidate) => candidate.id === role.fontId,
+      );
+      const family = font?.families[0];
+      if (!family) return;
+      const weights = weightsByFamily.get(family) ?? new Set<number>();
+      weights.add(role.fontWeight);
+      weightsByFamily.set(family, weights);
+    });
+
+    return googleFontsHref(
+      [...weightsByFamily].map(([family, weights]) => ({
+        family,
+        weights: [...weights],
+      })),
+    );
+  }, [system]);
+
+  useEffect(() => {
+    if (!googleHref) return;
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = googleHref;
+    document.head.append(link);
+    /* Removed on change so switching fonts does not leave a stack of dead
+       stylesheets behind. */
+    return () => link.remove();
+  }, [googleHref]);
+
   const bodyRole =
     resolvedRoles.find((role) => role.id === "body") ??
     resolvedRoles.find((role) => role.groupId === "body");
@@ -675,26 +714,50 @@ export function TypographyStudio() {
             <div className={styles.settingGroup}>
               <h2>Base settings</h2>
               {system.fonts.map((font, index) => (
-                <TextInput
-                  key={font.id}
-                  description={
-                    index === 0
-                      ? "Comma separated. Later families cover glyphs the first lacks."
-                      : undefined
-                  }
-                  label={`${font.name} font stack`}
-                  value={font.families.join(", ")}
-                  onChange={(value) =>
-                    updateSystem({
-                      fonts: system.fonts.map((candidate) =>
-                        candidate.id === font.id
-                          ? { ...candidate, families: splitFontFamily(value) }
-                          : candidate,
-                      ),
-                    })
-                  }
-                />
+                <div key={font.id} className="flex flex-col gap-2">
+                  <TextInput
+                    description={
+                      index === 0
+                        ? "Comma separated. Later families cover glyphs the first lacks."
+                        : undefined
+                    }
+                    label={`${font.name} font stack`}
+                    value={font.families.join(", ")}
+                    onChange={(value) =>
+                      updateSystem({
+                        fonts: system.fonts.map((candidate) =>
+                          candidate.id === font.id
+                            ? { ...candidate, families: splitFontFamily(value) }
+                            : candidate,
+                        ),
+                      })
+                    }
+                  />
+                  <GoogleFontPicker
+                    family={font.families[0] ?? ""}
+                    onPick={(picked) =>
+                      updateSystem({
+                        fonts: system.fonts.map((candidate) =>
+                          candidate.id === font.id
+                            ? {
+                                ...candidate,
+                                /* Replace the head and keep the rest: the
+                                   fallbacks are what make a bilingual stack
+                                   work. */
+                                families: [
+                                  picked.family,
+                                  ...candidate.families.slice(1),
+                                ],
+                                source: "google" as const,
+                              }
+                            : candidate,
+                        ),
+                      })
+                    }
+                  />
+                </div>
               ))}
+
               <NumberInput
                 description="Even numbers only."
                 label="Base font size"

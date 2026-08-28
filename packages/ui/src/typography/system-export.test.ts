@@ -163,3 +163,31 @@ describe("formatTypeSystemTailwindExport", () => {
     expect(output).toContain("--font-body-size:");
   });
 });
+
+describe("google font notice", () => {
+  it("names the google families the tokens rely on", () => {
+    /* Tokens can name a family but cannot load it, so the requirement has to
+       travel with the export or the consuming app silently gets a fallback. */
+    const withGoogle: TypeSystem = {
+      ...authored,
+      fonts: [
+        {
+          id: "content",
+          name: "Content",
+          families: ["Sarabun", "sans-serif"],
+          source: "google",
+        },
+      ],
+    };
+    const output = formatTypeSystemCssExport(withGoogle);
+    expect(output).toContain("Google Fonts");
+    expect(output).toContain("- Sarabun");
+    // A generic keyword is not a Google family.
+    expect(output).not.toContain("- sans-serif");
+  });
+
+  it("says nothing when no family comes from Google", () => {
+    const output = formatTypeSystemCssExport(migratedLegacy);
+    expect(output).not.toContain("Google Fonts");
+  });
+});

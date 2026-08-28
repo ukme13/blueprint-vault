@@ -287,7 +287,7 @@ a template can never render unstyled.
 
 The `FerreTypographyStudio` retirement is **not** part of stage 2. The main studio
 now runs on the merged model while Ferre still runs on its own; both work, and
-retiring it is a separate change so this one stayed reviewable. 4. **Google font picker.** Runtime loading, Thai-capable filtering, privacy note. 5. **Uploaded fonts.** Only once storage is settled.
+retiring it is a separate change so this one stayed reviewable. 4. ✅ **Google font picker.** Runtime loading, Thai-capable filtering, privacy note. 5. **Uploaded fonts.** Only once storage is settled.
 
 ## Migration
 

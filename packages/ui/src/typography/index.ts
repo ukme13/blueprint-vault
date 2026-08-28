@@ -1,4 +1,5 @@
 export * from "./export";
+export * from "./google-fonts";
 export * from "./migrate";
 export * from "./presets";
 export * from "./scale";
