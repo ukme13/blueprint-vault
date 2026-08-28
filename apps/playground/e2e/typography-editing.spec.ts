@@ -510,4 +510,46 @@ test.describe("Typography scale editing", () => {
       )
       .toMatch(/Kanit/);
   });
+
+  test("adds a font entry and assigns a role to it", async ({
+    seededPage: page,
+  }) => {
+    /* Without a second entry the per-role Font dropdown has one option, so a
+       display face and a readable one cannot coexist. */
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings.getByRole("button", { name: "Add font" }).click();
+
+    const name = settings.getByLabel("font-2 name");
+    await expect(name).toBeVisible();
+    await name.fill("Display");
+
+    // The name is what the role dropdown offers.
+    await settings.getByLabel("h1 font", { exact: true }).click();
+    await expect(page.getByRole("option", { name: "Display" })).toBeVisible();
+  });
+
+  test("moves roles off a font entry that is removed", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings.getByRole("button", { name: "Add font" }).click();
+    await settings.getByLabel("font-2 name").fill("Display");
+
+    await settings.getByLabel("h1 font", { exact: true }).click();
+    await page.getByRole("option", { name: "Display" }).click();
+
+    await settings.getByRole("button", { name: "Remove Display font" }).click();
+
+    // A role pointing at a deleted font would have nothing to render with.
+    await expect(settings.getByLabel("h1 font", { exact: true })).toContainText(
+      "Base",
+    );
+  });
+
+  test("keeps the last font entry", async ({ seededPage: page }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await expect(
+      settings.getByRole("button", { name: /^Remove .* font$/ }),
+    ).toHaveCount(0);
+  });
 });

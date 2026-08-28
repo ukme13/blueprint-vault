@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { Selector } from "@astryxdesign/core/Selector";
+import { TextInput } from "@astryxdesign/core/TextInput";
 import {
+  Button,
   FONT_SCRIPTS,
   findGoogleFont,
   genericForCategory,
@@ -65,10 +67,20 @@ function label(script: string): string {
 
 interface FontStackEditorProps {
   font: TypeFont;
+  /** Removal is refused for the last entry: a role needs something to render. */
+  canRemove: boolean;
   onChange: (families: string[]) => void;
+  onRename: (name: string) => void;
+  onRemove: () => void;
 }
 
-export function FontStackEditor({ font, onChange }: FontStackEditorProps) {
+export function FontStackEditor({
+  font,
+  canRemove,
+  onChange,
+  onRename,
+  onRemove,
+}: FontStackEditorProps) {
   const [script, setScript] = useState(DEFAULT_SCRIPT);
 
   const named = font.families.filter((family) => !isGeneric(family));
@@ -92,7 +104,31 @@ export function FontStackEditor({ font, onChange }: FontStackEditorProps) {
   const covered = primaryFont?.scripts.includes(script) ?? false;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 border-t border-[var(--color-border)] pt-3 first:border-t-0 first:pt-0">
+      <div className="flex items-end gap-2">
+        <div className="min-w-0 flex-1">
+          <TextInput
+            /* The name is what the per-role Font dropdown shows, so "Display"
+               beats "Font 2". Ids are stable, so renaming moves no tokens. */
+            isLabelHidden
+            label={`${font.id} name`}
+            value={font.name}
+            onChange={onRename}
+          />
+        </div>
+        {canRemove && (
+          <Button
+            aria-label={`Remove ${font.name} font`}
+            scheme="neutral"
+            size="xs"
+            variant="text"
+            onClick={onRemove}
+          >
+            Remove
+          </Button>
+        )}
+      </div>
+
       <GoogleFontPicker
         family={primary}
         label={`${font.name} font`}

@@ -33,7 +33,10 @@ import {
   elementForRole,
   reindexGroup,
   renameGroup,
+  addFont,
   canAddRole,
+  removeFont,
+  renameFont,
   moveGroup,
   resolveRoleSizePx,
   TYPE_INDEXING_LABELS,
@@ -719,6 +722,7 @@ export function TypographyStudio() {
               {system.fonts.map((font) => (
                 <FontStackEditor
                   key={font.id}
+                  canRemove={system.fonts.length > 1}
                   font={font}
                   onChange={(families) =>
                     updateSystem({
@@ -729,8 +733,42 @@ export function TypographyStudio() {
                       ),
                     })
                   }
+                  onRemove={() =>
+                    setProject((current) =>
+                      current
+                        ? {
+                            ...current,
+                            system: removeFont(current.system, font.id),
+                          }
+                        : current,
+                    )
+                  }
+                  onRename={(name) =>
+                    setProject((current) =>
+                      current
+                        ? {
+                            ...current,
+                            system: renameFont(current.system, font.id, name),
+                          }
+                        : current,
+                    )
+                  }
                 />
               ))}
+              <Button
+                scheme="neutral"
+                size="xs"
+                variant="outlined"
+                onClick={() =>
+                  setProject((current) =>
+                    current
+                      ? { ...current, system: addFont(current.system) }
+                      : current,
+                  )
+                }
+              >
+                Add font
+              </Button>
 
               <NumberInput
                 description="Even numbers only."

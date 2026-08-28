@@ -6,6 +6,9 @@ import {
   defaultGroups,
   moveGroup,
   groupCapacity,
+  addFont,
+  removeFont,
+  renameFont,
   reindexGroup,
   renameGroup,
   slugify,
@@ -272,5 +275,51 @@ describe("renameGroup", () => {
 describe("slugify", () => {
   it("lowercases and joins words with a dash", () => {
     expect(slugify("  Small  Print ")).toBe("small-print");
+  });
+});
+
+describe("font entries", () => {
+  it("adds one starting from the first entry's stack", () => {
+    /* Not empty: a new font should render something immediately rather than
+       showing nothing until a family is picked. */
+    const s = system();
+    const next = addFont(s, "Display");
+    expect(next.fonts).toHaveLength(2);
+    expect(next.fonts[1]!.name).toBe("Display");
+    expect(next.fonts[1]!.families).toEqual(s.fonts[0]!.families);
+  });
+
+  it("gives each new entry its own id", () => {
+    const s = addFont(addFont(system()));
+    expect(new Set(s.fonts.map((font) => font.id)).size).toBe(s.fonts.length);
+  });
+
+  it("moves roles onto a survivor when an entry goes", () => {
+    // A role pointing at a deleted font would have nothing to render with.
+    const s = addFont(system(), "Display");
+    const assigned = {
+      ...s,
+      roles: [role("body", "body", { fontId: s.fonts[1]!.id })],
+    };
+    const next = removeFont(assigned, s.fonts[1]!.id);
+    expect(next.fonts).toHaveLength(1);
+    expect(next.roles[0]!.fontId).toBe(next.fonts[0]!.id);
+  });
+
+  it("refuses to remove the last entry", () => {
+    const s = system();
+    expect(removeFont(s, s.fonts[0]!.id)).toBe(s);
+  });
+
+  it("ignores an entry that is not there", () => {
+    const s = addFont(system());
+    expect(removeFont(s, "nope").fonts).toHaveLength(2);
+  });
+
+  it("renames without moving the id, so exported tokens stay put", () => {
+    const s = system();
+    const next = renameFont(s, s.fonts[0]!.id, "Primary");
+    expect(next.fonts[0]!.name).toBe("Primary");
+    expect(next.fonts[0]!.id).toBe(s.fonts[0]!.id);
   });
 });

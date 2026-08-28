@@ -161,6 +161,75 @@ export function defaultSystem(
   };
 }
 
+/** Id for a new font entry, unique within the system. */
+export function nextFontId(system: TypeSystem): string {
+  for (let index = 2; index <= 99; index += 1) {
+    const id = `font-${index}`;
+    if (!system.fonts.some((font) => font.id === id)) return id;
+  }
+  return `font-${system.fonts.length + 1}`;
+}
+
+/**
+ * Add a font entry.
+ *
+ * Entries are what a role points at — a display face and a readable one, say.
+ * The stack inside each entry is a different axis: which family covers which
+ * script.
+ */
+export function addFont(system: TypeSystem, name?: string): TypeSystem {
+  const id = nextFontId(system);
+  const template = system.fonts[0];
+  return {
+    ...system,
+    fonts: [
+      ...system.fonts,
+      {
+        id,
+        name: name ?? `Font ${system.fonts.length + 1}`,
+        /* Starts from the first entry's stack rather than empty, so a new font
+           renders something immediately and can be changed from there. */
+        families: template ? [...template.families] : ["sans-serif"],
+        source: template?.source ?? "system",
+      },
+    ],
+  };
+}
+
+/**
+ * Remove a font entry, moving any role that used it onto the first survivor.
+ *
+ * The last entry cannot go: a role with no font has nothing to render with.
+ */
+export function removeFont(system: TypeSystem, fontId: string): TypeSystem {
+  if (system.fonts.length <= 1) return system;
+  const remaining = system.fonts.filter((font) => font.id !== fontId);
+  if (remaining.length === system.fonts.length) return system;
+
+  const fallback = remaining[0]!.id;
+  return {
+    ...system,
+    fonts: remaining,
+    roles: system.roles.map((role) =>
+      role.fontId === fontId ? { ...role, fontId: fallback } : role,
+    ),
+  };
+}
+
+/** Rename a font entry. Ids are stable, so exported tokens do not move. */
+export function renameFont(
+  system: TypeSystem,
+  fontId: string,
+  name: string,
+): TypeSystem {
+  return {
+    ...system,
+    fonts: system.fonts.map((font) =>
+      font.id === fontId ? { ...font, name } : font,
+    ),
+  };
+}
+
 /** Whether a group names its roles without a separator, as `h` does. */
 export function isHeadingGroup(group: Pick<TypeGroup, "id">): boolean {
   return group.id.trim().toLowerCase() === HEADING_GROUP_ID;
