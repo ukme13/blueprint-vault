@@ -46,25 +46,90 @@ export const MAX_HEADING_LEVEL = 6;
 export interface TypeGroup {
   id: string;
   label: string;
-  /** Fixed groups cannot be removed or reordered. Only heading and body. */
-  isFixed: boolean;
   indexing: TypeIndexing;
 }
 
-export const HEADING_GROUP_ID = "heading";
+/**
+ * A group named `h` numbers its roles without a separator.
+ *
+ * `h1` is a name, not `h` indexed by 1, so the dash a group like `body-1` needs
+ * would be wrong here. It also caps at six, because there is no h7.
+ */
+export const HEADING_GROUP_ID = "h";
 export const BODY_GROUP_ID = "body";
 
-/** The two groups every system has. */
+/** Groups a new or reset scale starts with. Neither is special afterwards. */
 export function defaultGroups(): TypeGroup[] {
   return [
-    {
-      id: HEADING_GROUP_ID,
-      label: "H",
-      isFixed: true,
-      indexing: "number",
-    },
-    { id: BODY_GROUP_ID, label: "Body", isFixed: true, indexing: "number" },
+    { id: HEADING_GROUP_ID, label: "H", indexing: "number" },
+    { id: BODY_GROUP_ID, label: "Body", indexing: "number" },
   ];
+}
+
+/**
+ * The system a new or reset scale starts from: six headings and one body.
+ *
+ * Both are ordinary groups afterwards — renameable, removable, reorderable.
+ */
+export function defaultSystem(
+  name: string,
+  fontFamilies: string[],
+  baseFontSizePx: number,
+  ratio: number,
+  stepCount: number,
+): TypeSystem {
+  const groups = defaultGroups();
+  const value = (fontSizePx: number, lineHeight: number) => ({
+    fontSizePx,
+    lineHeight,
+    letterSpacingPx: 0,
+  });
+
+  const headings: TypeRole[] = Array.from({ length: 6 }, (_, index) => ({
+    id: `h${index + 1}`,
+    name: `h${index + 1}`,
+    groupId: HEADING_GROUP_ID,
+    fontId: "base",
+    fontWeight: 700,
+    textTransform: "none",
+    /* Largest heading at the top of the ramp, stepping down to base. */
+    stepOffset: Math.max(6 - index, 0),
+    sameAsRoleId: null,
+    desktop: value(baseFontSizePx, 1.2),
+    mobile: value(baseFontSizePx, 1.2),
+  }));
+
+  const body: TypeRole = {
+    id: "body",
+    name: "body",
+    groupId: BODY_GROUP_ID,
+    fontId: "base",
+    fontWeight: 400,
+    textTransform: "none",
+    stepOffset: 0,
+    sameAsRoleId: null,
+    desktop: value(baseFontSizePx, 1.5),
+    mobile: value(baseFontSizePx, 1.5),
+  };
+
+  return {
+    id: "type-system",
+    name,
+    groups,
+    baseFontSizePx,
+    ratio,
+    stepCount,
+    breakpointPx: 768,
+    fonts: [
+      { id: "base", name: "Base", families: fontFamilies, source: "system" },
+    ],
+    roles: [...headings, body],
+  };
+}
+
+/** Whether a group names its roles without a separator, as `h` does. */
+export function isHeadingGroup(group: Pick<TypeGroup, "id">): boolean {
+  return group.id.trim().toLowerCase() === HEADING_GROUP_ID;
 }
 
 /** Where a font's families come from, which decides how they are loaded. */
@@ -123,6 +188,9 @@ export interface TypeSystem {
   roles: TypeRole[];
 }
 
+/** A role id that names an HTML heading level. */
+const HEADING_ID = /^h[1-6]$/;
+
 /**
  * Semantic element for a role, derived rather than stored.
  *
@@ -130,12 +198,10 @@ export interface TypeSystem {
  * A stored, editable element was a control nobody needed: headings already know
  * their level, and every other role is a visual style applied to body copy.
  */
-export function elementForRole(system: TypeSystem, role: TypeRole): string {
-  if (role.groupId !== HEADING_GROUP_ID) return "p";
-  const index = rolesInGroup(system, HEADING_GROUP_ID).findIndex(
-    (candidate) => candidate.id === role.id,
-  );
-  return `h${Math.min(Math.max(index, 0) + 1, MAX_HEADING_LEVEL)}`;
+export function elementForRole(_system: TypeSystem, role: TypeRole): string {
+  /* Read from the id rather than the group, so renaming or moving a group
+     never changes what a role renders as. */
+  return HEADING_ID.test(role.id) ? role.id : "p";
 }
 
 /** Roles in a group, in insertion order. */
@@ -152,7 +218,7 @@ export function findGroup(
 
 /** Most roles a group can hold, which its indexing decides. */
 export function groupCapacity(group: TypeGroup): number {
-  if (group.id === HEADING_GROUP_ID) return MAX_HEADING_LEVEL;
+  if (isHeadingGroup(group)) return MAX_HEADING_LEVEL;
   return group.indexing === "size" ? SIZE_INDEX.length : 99;
 }
 
@@ -164,8 +230,13 @@ export function groupCapacity(group: TypeGroup): number {
  * exempt: `h1` is the name, not an index onto one.
  */
 export function roleIdsForGroup(group: TypeGroup, count: number): string[] {
-  if (group.id === HEADING_GROUP_ID) {
-    return Array.from({ length: count }, (_, index) => `h${index + 1}`);
+  if (isHeadingGroup(group)) {
+    /* No separator, and always numbered: h1 is the name, so a lone heading is
+       still h1 rather than a bare h. */
+    return Array.from(
+      { length: count },
+      (_, index) => `${group.id}${index + 1}`,
+    );
   }
   if (count === 1) return [group.id];
   if (group.indexing === "size") {
@@ -238,8 +309,7 @@ export function slugify(label: string): string {
  *
  * Role ids are built from the group id, so a group called Caption holding a
  * role called `caption` has to become `overline` when renamed — otherwise the
- * label and the exported token names drift apart. Fixed groups keep their id:
- * heading and body are referred to by name elsewhere.
+ * label and the exported token names drift apart.
  */
 export function renameGroup(
   system: TypeSystem,
@@ -248,14 +318,6 @@ export function renameGroup(
 ): TypeSystem {
   const group = findGroup(system, groupId);
   if (!group) return system;
-  if (group.isFixed) {
-    return {
-      ...system,
-      groups: system.groups.map((candidate) =>
-        candidate.id === groupId ? { ...candidate, label } : candidate,
-      ),
-    };
-  }
 
   const wanted = slugify(label);
   let nextId = wanted || groupId;
@@ -283,10 +345,7 @@ export function renameGroup(
   return reindexGroup(renamed, nextId);
 }
 
-/**
- * Move a free group up or down. Fixed groups do not move, and nothing may be
- * placed such that a fixed group changes position.
- */
+/** Move a group up or down. */
 export function moveGroup(
   system: TypeSystem,
   groupId: string,
@@ -296,7 +355,6 @@ export function moveGroup(
   const index = groups.findIndex((group) => group.id === groupId);
   const target = index + direction;
   if (index === -1 || target < 0 || target >= groups.length) return groups;
-  if (groups[index]!.isFixed || groups[target]!.isFixed) return groups;
 
   [groups[index], groups[target]] = [groups[target]!, groups[index]!];
   return groups;

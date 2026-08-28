@@ -36,8 +36,8 @@ const authored: TypeSystem = {
   stepCount: 5,
   breakpointPx: 768,
   groups: [
-    { id: "heading", label: "Heading", isFixed: true, indexing: "number" },
-    { id: "body", label: "Body", isFixed: true, indexing: "number" },
+    { id: "heading", label: "Heading", indexing: "number" },
+    { id: "body", label: "Body", indexing: "number" },
   ],
   fonts: [
     {

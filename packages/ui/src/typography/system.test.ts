@@ -52,7 +52,6 @@ function system(over: Partial<TypeSystem> = {}): TypeSystem {
 const free = (id: string, indexing: TypeGroup["indexing"]): TypeGroup => ({
   id,
   label: id,
-  isFixed: false,
   indexing,
 });
 
@@ -85,6 +84,10 @@ describe("roleIdsForGroup", () => {
     const heading = defaultGroups()[0]!;
     expect(roleIdsForGroup(heading, 1)).toEqual(["h1"]);
     expect(roleIdsForGroup(heading, 3)).toEqual(["h1", "h2", "h3"]);
+    // No dash: h1, not h-1.
+    expect(roleIdsForGroup(heading, 2).every((id) => !id.includes("-"))).toBe(
+      true,
+    );
   });
 
   it("caps each group at what its indexing can name", () => {
@@ -122,16 +125,20 @@ describe("reindexGroup", () => {
     );
   });
 
-  it("keeps heading elements in step with their level", () => {
-    const s = system({
-      roles: [role("h1", "heading"), role("hx", "heading")],
-    });
-    const next = reindexGroup(s, "heading");
-    // Element is derived from position, so it follows the rename for free.
+  it("numbers headings without a dash, and the element follows the id", () => {
+    const s = system({ roles: [role("h1", "h"), role("hx", "h")] });
+    const next = reindexGroup(s, "h");
+    expect(next.roles.map((r) => r.id)).toEqual(["h1", "h2"]);
     expect(next.roles.map((r) => elementForRole(next, r))).toEqual([
       "h1",
       "h2",
     ]);
+  });
+
+  it("keeps a lone heading numbered rather than a bare h", () => {
+    // h1 is the name; a bare "h" is not a role anyone means.
+    const s = system({ roles: [role("hx", "h")] });
+    expect(reindexGroup(s, "h").roles[0]!.id).toBe("h1");
   });
 
   it("derives p for everything outside the heading group", () => {
@@ -153,18 +160,14 @@ describe("moveGroup", () => {
     expect(moveGroup(s, "b", -1).map((g) => g.id)).toEqual([
       "b",
       "a",
-      "heading",
+      "h",
       "body",
     ]);
   });
 
-  it("refuses to move a fixed group", () => {
+  it("moves a default group like any other, since none are locked", () => {
     const s = system({ groups: [...defaultGroups(), free("a", "number")] });
-    expect(moveGroup(s, "heading", 1).map((g) => g.id)).toEqual([
-      "heading",
-      "body",
-      "a",
-    ]);
+    expect(moveGroup(s, "h", 1).map((g) => g.id)).toEqual(["body", "h", "a"]);
   });
 
   it("refuses to move past the ends", () => {
@@ -240,12 +243,10 @@ describe("renameGroup", () => {
     expect(next.roles.map((r) => r.id)).toEqual(["overline-1", "overline-2"]);
   });
 
-  it("does not change a fixed group's id", () => {
-    // Heading and body are referred to by id elsewhere.
+  it("renames a default group like any other", () => {
     const s = system();
-    const next = renameGroup(s, "heading", "Titles");
-    const heading = next.groups.find((g) => g.label === "Titles")!;
-    expect(heading.id).toBe("heading");
+    const next = renameGroup(s, "h", "Titles");
+    expect(next.groups.find((g) => g.label === "Titles")!.id).toBe("titles");
   });
 
   it("avoids colliding with an existing group", () => {

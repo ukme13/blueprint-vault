@@ -225,16 +225,35 @@ test.describe("Typography scale editing", () => {
     ).toBeVisible();
   });
 
-  test("fixed groups cannot be removed or reordered", async ({
+  test("every group can be renamed, moved and removed", async ({
+    seededPage: page,
+  }) => {
+    // H and Body are only defaults now, not locked.
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    for (const group of ["H", "Body"]) {
+      await expect(settings.getByLabel(`${group} name`)).toBeVisible();
+      await expect(
+        settings.getByRole("button", { name: `Move ${group} up` }),
+      ).toBeVisible();
+      await expect(
+        settings.getByRole("button", { name: `Remove ${group} group` }),
+      ).toBeVisible();
+    }
+  });
+
+  test("a group named h numbers its roles without a dash", async ({
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await expect(
-      settings.getByRole("button", { name: "Remove Heading group" }),
-    ).toBeHidden();
-    await expect(
-      settings.getByRole("button", { name: "Move Body up" }),
-    ).toBeHidden();
+    await settings
+      .getByRole("heading", { name: "H", exact: true })
+      .locator("..")
+      .getByRole("button", { name: "Add" })
+      .click();
+
+    // h1, h2 — not h-1, h-2.
+    await expect(settings.getByLabel("h2 size")).toBeVisible();
+    await expect(settings.getByLabel("h-2 size")).toBeHidden();
   });
 
   test("a new role reuses its sibling's step rather than growing the ramp", async ({

@@ -17,7 +17,6 @@ import {
   assessRoleWeights,
   assessScaleGrowth,
   assessStepCount,
-  assignDefaultRoles,
   Button,
   generateTypeSteps,
   MAX_BASE_FONT_SIZE_PX,
@@ -26,6 +25,7 @@ import {
   MIN_STEP_COUNT,
   fontFamilyValue,
   formatLength,
+  defaultSystem,
   migrateLegacyProject,
   normalizeStoredSystem,
   splitFontFamily,
@@ -38,7 +38,6 @@ import {
   TYPE_INDEXING_LABELS,
   TYPE_SCALE_UNITS,
   TYPE_SCALE_RATIO_PRESETS,
-  type RoleAssignment,
   type SemanticRole,
   type LegacyTypographyProject,
   type TypeRole,
@@ -61,7 +60,7 @@ import {
   type PreviewWidth,
 } from "./preview-templates";
 import styles from "./typography-workspace.module.css";
-import type { RoleStyleMap, TypographySection } from "./types";
+import type { TypographySection } from "./types";
 
 const TYPOGRAPHY_STORAGE_KEY = "blueprint.typography-project.v1";
 
@@ -100,19 +99,6 @@ const PREVIEW_TEXT: Record<SemanticRole, { en: string; th: string }> = {
   label: { en: "Field label", th: "ป้ายกำกับฟิลด์" },
   caption: { en: "Last updated a moment ago", th: "อัปเดตล่าสุดเมื่อสักครู่" },
 };
-
-function defaultRoleStyles(roles: RoleAssignment[]): RoleStyleMap {
-  return Object.fromEntries(
-    roles.map((role) => [
-      role.role,
-      {
-        fontWeight: role.fontWeight,
-        lineHeight: role.lineHeight,
-        letterSpacingPx: role.letterSpacingPx,
-      },
-    ]),
-  ) as RoleStyleMap;
-}
 
 function readStoredProject(): TypographyProject | null {
   try {
@@ -405,7 +391,7 @@ export function TypographyStudio() {
           ...current.system,
           groups: [
             ...current.system.groups,
-            { id, label: `Group ${index}`, isFixed: false, indexing: "number" },
+            { id, label: `Group ${index}`, indexing: "number" },
           ],
         },
       };
@@ -470,20 +456,16 @@ export function TypographyStudio() {
     return (
       <TypographyCreation
         onCreate={({ name, fontFamily, baseFontSizePx, ratio, stepCount }) => {
-          const initialSteps = generateTypeSteps(
-            baseFontSizePx,
-            ratio,
-            stepCount,
-          );
           setProject({
-            system: migrateLegacyProject({
+            /* A new scale starts with six headings and one body. Neither group
+               is special afterwards. */
+            system: defaultSystem(
               name,
-              fontFamily,
+              splitFontFamily(fontFamily),
               baseFontSizePx,
               ratio,
               stepCount,
-              roleStyles: defaultRoleStyles(assignDefaultRoles(initialSteps)),
-            }),
+            ),
             unit: DEFAULT_UNIT,
             specimenText: DEFAULT_SPECIMEN_TEXT,
             template: DEFAULT_TEMPLATE,
@@ -754,7 +736,7 @@ export function TypographyStudio() {
                   <header className={styles.roleGroupHeader}>
                     <h2>{group.label}</h2>
                     <div className={styles.roleGroupActions}>
-                      {!group.isFixed && (
+                      {
                         <>
                           <Button
                             aria-label={`Move ${group.label} up`}
@@ -777,7 +759,7 @@ export function TypographyStudio() {
                             ↓
                           </Button>
                         </>
-                      )}
+                      }
                       <Button
                         disabled={!canAddRole(system, group)}
                         scheme="neutral"
@@ -787,7 +769,7 @@ export function TypographyStudio() {
                       >
                         Add
                       </Button>
-                      {!group.isFixed && (
+                      {
                         <Button
                           aria-label={`Remove ${group.label} group`}
                           scheme="neutral"
@@ -797,11 +779,11 @@ export function TypographyStudio() {
                         >
                           Remove group
                         </Button>
-                      )}
+                      }
                     </div>
                   </header>
 
-                  {!group.isFixed && (
+                  {
                     <div className={styles.roleGroupMeta}>
                       <TextInput
                         label={`${group.label} name`}
@@ -826,7 +808,7 @@ export function TypographyStudio() {
                         }
                       />
                     </div>
-                  )}
+                  }
 
                   {groupRoles.length === 0 ? (
                     <p className={styles.roleGroupEmpty}>No roles yet.</p>
