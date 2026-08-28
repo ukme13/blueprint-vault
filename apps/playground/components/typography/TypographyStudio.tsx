@@ -80,6 +80,9 @@ const DEFAULT_UNIT: TypeScaleUnit = "rem";
 const DEFAULT_SPECIMEN_TEXT = "How vexingly quick daft zebras jump";
 const DEFAULT_TEMPLATE: PreviewTemplateId = "specimen";
 
+/** Sentinel for a role that carries its own size rather than following a step. */
+const CUSTOM_STEP = "custom";
+
 const PREVIEW_TEXT: Record<SemanticRole, { en: string; th: string }> = {
   display: { en: "Design with clarity", th: "ออกแบบด้วยความชัดเจน" },
   heading: {
@@ -317,11 +320,10 @@ export function TypographyStudio() {
             id: placeholder,
             name: placeholder,
             groupId: group.id,
-            /* A new role follows body rather than claiming a step of its own.
-               Most component styles are body with a small adjustment, and
-               adding a role must never force the ramp to grow. */
-            stepOffset: null,
-            sameAsRoleId: template.id,
+            /* A new role reuses its sibling's step rather than claiming one of
+               its own. Adding roles must never force the ramp to grow. */
+            stepOffset: template.stepOffset,
+            sameAsRoleId: null,
           },
         ],
       };
@@ -849,50 +851,63 @@ export function TypographyStudio() {
                             {role.id}
                           </span>
 
-                          <Selector
-                            label={`${role.id} size`}
-                            isLabelHidden
-                            options={[
-                              /* Resolved rather than hardcoded: reindexing can
-                                 rename body to body-1, and a dangling
-                                 reference would silently fall back to a stored
-                                 size. */
-                              ...(bodyRole && role.id !== bodyRole.id
-                                ? [
-                                    {
-                                      label: `Same as ${bodyRole.id}`,
-                                      value: "same",
-                                    },
-                                  ]
-                                : []),
-                              /* Largest first, matching the step list. */
-                              ...[...steps]
-                                .sort((a, b) => b.fontSizePx - a.fontSizePx)
-                                .map((step) => ({
-                                  label: `${step.offset >= 0 ? "+" : ""}${step.offset} · ${formatLength(step.fontSizePx, project.unit)}`,
-                                  value: String(step.offset),
-                                })),
-                            ]}
-                            value={
-                              role.sameAsRoleId
-                                ? "same"
-                                : String(role.stepOffset ?? 0)
-                            }
-                            onChange={(value) =>
-                              updateRole(
-                                role.id,
-                                value === "same"
-                                  ? {
-                                      sameAsRoleId: bodyRole?.id ?? null,
-                                      stepOffset: null,
-                                    }
-                                  : {
-                                      sameAsRoleId: null,
-                                      stepOffset: Number(value),
-                                    },
-                              )
-                            }
-                          />
+                          {/* Value first, preset second — the same shape as
+                              binding a variable in Figma. Type any size, or
+                              pick a step off the ramp. */}
+                          <div className={styles.sizeCell}>
+                            <NumberInput
+                              isLabelHidden
+                              label={`${role.id} size`}
+                              min={1}
+                              max={400}
+                              units="px"
+                              value={role.desktop.fontSizePx}
+                              onChange={(value) =>
+                                /* Typing a size unlinks the role from the ramp,
+                                   so changing the ratio never overwrites a
+                                   number someone set deliberately. */
+                                updateRole(role.id, {
+                                  stepOffset: null,
+                                  sameAsRoleId: null,
+                                  desktop: {
+                                    ...role.desktop,
+                                    fontSizePx: value,
+                                  },
+                                  mobile: { ...role.mobile, fontSizePx: value },
+                                })
+                              }
+                            />
+                            <Selector
+                              label={`${role.id} step`}
+                              isLabelHidden
+                              options={[
+                                { label: "Custom", value: CUSTOM_STEP },
+                                /* Largest first, matching the step list. */
+                                ...[...steps]
+                                  .sort((a, b) => b.fontSizePx - a.fontSizePx)
+                                  .map((step) => ({
+                                    label: `${step.offset >= 0 ? "+" : ""}${step.offset} · ${formatLength(step.fontSizePx, project.unit)}`,
+                                    value: String(step.offset),
+                                  })),
+                              ]}
+                              value={
+                                role.stepOffset === null
+                                  ? CUSTOM_STEP
+                                  : String(role.stepOffset)
+                              }
+                              onChange={(value) =>
+                                updateRole(
+                                  role.id,
+                                  value === CUSTOM_STEP
+                                    ? { stepOffset: null, sameAsRoleId: null }
+                                    : {
+                                        stepOffset: Number(value),
+                                        sameAsRoleId: null,
+                                      },
+                                )
+                              }
+                            />
+                          </div>
 
                           <Selector
                             label={`${role.id} font`}
