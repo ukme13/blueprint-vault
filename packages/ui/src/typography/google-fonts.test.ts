@@ -46,8 +46,26 @@ describe("searchGoogleFonts", () => {
     expect(searchGoogleFonts("a", { limit: 5 })).toHaveLength(5);
   });
 
-  it("returns the head of the catalogue for an empty query", () => {
-    expect(searchGoogleFonts("   ").length).toBeGreaterThan(0);
+  it("opens on the most popular families, not the alphabet", () => {
+    /* It used to return the catalogue alphabetically, so the picker opened on
+       ABeeZee and Abel — which made 1946 families look like a shortlist of
+       fonts nobody asked for. */
+    const results = searchGoogleFonts("   ");
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.slice(0, 5).map((font) => font.family)).toContain("Roboto");
+    expect(results[0]!.family).not.toBe("ABeeZee");
+  });
+
+  it("ranks the most used first within a match", () => {
+    const results = searchGoogleFonts("noto", { limit: 10 });
+    const ranks = results.map((font) => font.popularity);
+    expect(ranks).toEqual([...ranks].sort((a, b) => a - b));
+  });
+
+  it("puts popular Thai families first when filtered", () => {
+    const results = searchGoogleFonts("", { thaiOnly: true, limit: 6 });
+    expect(results.every((font) => font.thai)).toBe(true);
+    expect(results.map((font) => font.family)).toContain("Sarabun");
   });
 });
 

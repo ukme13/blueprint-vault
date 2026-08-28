@@ -713,14 +713,9 @@ export function TypographyStudio() {
 
             <div className={styles.settingGroup}>
               <h2>Base settings</h2>
-              {system.fonts.map((font, index) => (
+              {system.fonts.map((font) => (
                 <div key={font.id} className="flex flex-col gap-2">
                   <TextInput
-                    description={
-                      index === 0
-                        ? "Comma separated. Later families cover glyphs the first lacks."
-                        : undefined
-                    }
                     label={`${font.name} font stack`}
                     value={font.families.join(", ")}
                     onChange={(value) =>

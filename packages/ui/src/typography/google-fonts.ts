@@ -13,8 +13,8 @@ import snapshot from "./google-fonts.json";
  * families but never load them.
  */
 
-/** [family, category, weights, supports thai] */
-type FontTuple = [string, string, number[], number];
+/** [family, category, weights, supports thai, popularity rank] */
+type FontTuple = [string, string, number[], number, number];
 
 export interface GoogleFont {
   family: string;
@@ -22,15 +22,22 @@ export interface GoogleFont {
   weights: number[];
   /** Whether the family ships Thai glyphs. */
   thai: boolean;
+  /** Google's own usage rank, 1 being the most used. */
+  popularity: number;
 }
 
 const CATALOGUE: GoogleFont[] = (snapshot as FontTuple[]).map(
-  ([family, category, weights, thai]) => ({
+  ([family, category, weights, thai, popularity]) => ({
     family,
     category,
     weights,
     thai: thai === 1,
+    popularity,
   }),
+);
+
+const BY_POPULARITY = [...CATALOGUE].sort(
+  (a, b) => a.popularity - b.popularity,
 );
 
 /** Every family in the snapshot, sorted by name. */
@@ -54,15 +61,19 @@ export interface GoogleFontSearch {
 /**
  * Search the catalogue by name.
  *
- * Families starting with the query come first: typing "not" should reach Noto
- * before Merriweather, which merely contains the letters.
+ * Ranked by how the results are useful rather than alphabetically: families
+ * starting with the query come before ones that merely contain it, and within
+ * each the most-used come first. An empty query returns the most popular
+ * families, since opening the picker on ABeeZee and Abel helps nobody.
  */
 export function searchGoogleFonts(
   query: string,
   { thaiOnly = false, limit = 50 }: GoogleFontSearch = {},
 ): GoogleFont[] {
   const needle = query.trim().toLowerCase();
-  const pool = thaiOnly ? CATALOGUE.filter((font) => font.thai) : CATALOGUE;
+  const pool = thaiOnly
+    ? BY_POPULARITY.filter((font) => font.thai)
+    : BY_POPULARITY;
   if (!needle) return pool.slice(0, limit);
 
   const starts: GoogleFont[] = [];

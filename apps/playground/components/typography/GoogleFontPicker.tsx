@@ -54,6 +54,8 @@ export function GoogleFontPicker({ family, onPick }: GoogleFontPickerProps) {
       <Typeahead<FontItem>
         hasEntriesOnFocus
         label="Google font"
+        /* The default of 10 made 1946 families look like a shortlist. */
+        maxMenuItems={30}
         placeholder="Search Google Fonts"
         searchSource={searchSource}
         value={selected}

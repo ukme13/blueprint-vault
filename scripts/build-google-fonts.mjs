@@ -52,6 +52,9 @@ const snapshot = families
       ),
     ].sort((a, b) => a - b),
     (family.subsets ?? []).includes("thai") ? 1 : 0,
+    /* Google's own popularity rank, 1 being the most used. Without it the
+       picker opens on ABeeZee and Abel rather than anything anyone wants. */
+    family.popularity ?? 99999,
   ])
   .filter(([name, , weights]) => name && weights.length > 0)
   .sort((a, b) => a[0].localeCompare(b[0]));
