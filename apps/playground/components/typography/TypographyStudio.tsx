@@ -428,11 +428,14 @@ export function TypographyStudio() {
       const font = system.fonts.find(
         (candidate) => candidate.id === role.fontId,
       );
-      const family = font?.families[0];
-      if (!family) return;
-      const weights = weightsByFamily.get(family) ?? new Set<number>();
-      weights.add(role.fontWeight);
-      weightsByFamily.set(family, weights);
+      /* Every family in the stack, not just the first. A fallback that is never
+         downloaded cannot be fallen back to: the browser skips it and lands on
+         the generic, which reads as the fallback being ignored. */
+      font?.families.forEach((family) => {
+        const weights = weightsByFamily.get(family) ?? new Set<number>();
+        weights.add(role.fontWeight);
+        weightsByFamily.set(family, weights);
+      });
     });
 
     return googleFontsHref(

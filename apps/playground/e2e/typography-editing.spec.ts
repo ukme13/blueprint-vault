@@ -486,4 +486,28 @@ test.describe("Typography scale editing", () => {
     // Thai is the default script, so every option covers it.
     await expect(page.getByRole("option", { name: "Sarabun" })).toBeVisible();
   });
+
+  test("loads the bilingual fallback, not only the primary", async ({
+    seededPage: page,
+  }) => {
+    /* A fallback that is never downloaded cannot be fallen back to: the browser
+       skips it and lands on the generic, which reads as the fallback being
+       ignored. */
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+
+    await settings.getByLabel("Base font", { exact: true }).fill("Orbitron");
+    await page.getByRole("option", { name: "Orbitron" }).first().click();
+    await settings.getByLabel("Base bilingual fallback").fill("Kanit");
+    await page.getByRole("option", { name: "Kanit" }).first().click();
+
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          [...document.querySelectorAll("link[href*='fonts.googleapis.com']")]
+            .map((link) => link.getAttribute("href") ?? "")
+            .join(" "),
+        ),
+      )
+      .toMatch(/Kanit/);
+  });
 });
