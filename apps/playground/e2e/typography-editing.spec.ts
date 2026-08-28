@@ -237,11 +237,9 @@ test.describe("Typography scale editing", () => {
     ).toBeHidden();
   });
 
-  test("a new role follows body instead of taking its own step", async ({
+  test("a new role reuses its sibling's step rather than growing the ramp", async ({
     seededPage: page,
   }) => {
-    // Adding roles must never force the size ramp to grow: most component
-    // styles are body with a small adjustment.
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await settings
       .getByRole("heading", { name: "Body", exact: true })
@@ -249,11 +247,36 @@ test.describe("Typography scale editing", () => {
       .getByRole("button", { name: "Add" })
       .click();
 
-    /* Two body roles now, so they are reindexed to body-1 and body-2. The new
-       one follows the first rather than claiming a step. */
-    await expect(settings.getByLabel("body-2 size")).toContainText(
-      "Same as body-1",
+    // Reindexed to body-1 and body-2; both sit on the same step.
+    await expect(settings.getByLabel("body-1 size")).toHaveValue(
+      await settings.getByLabel("body-2 size").inputValue(),
     );
+  });
+
+  test("a size can be typed, which unlinks it from the ramp", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+
+    // 14 is not on the default ramp, so this is only reachable by typing.
+    await settings.getByLabel("body size").fill("14");
+    await settings.getByLabel("body size").blur();
+
+    await expect(settings.getByLabel("body size")).toHaveValue("14");
+    await expect(settings.getByLabel("body step")).toContainText("Custom");
+  });
+
+  test("picking a step relinks the size to the ramp", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings.getByLabel("body size").fill("14");
+    await settings.getByLabel("body size").blur();
+
+    await settings.getByLabel("body step").click();
+    await page.getByRole("option", { name: /^\+1 / }).click();
+
+    await expect(settings.getByLabel("body step")).not.toContainText("Custom");
   });
 
   test("loads a project saved by the previous release", async ({ page }) => {
@@ -326,14 +349,14 @@ test.describe("Typography scale editing", () => {
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("body size").click();
+    await settings.getByLabel("body step").click();
 
     const options = page.getByRole("option");
-    const first = await options.first().textContent();
-    const last = await options.last().textContent();
-    // Offsets run high to low, matching the step list on the left.
-    expect(first).toContain("+");
-    expect(last).toContain("-");
+    // Custom heads the list; the steps under it run high to low, matching the
+    // step list on the left.
+    expect(await options.first().textContent()).toContain("Custom");
+    expect(await options.nth(1).textContent()).toContain("+");
+    expect(await options.last().textContent()).toContain("-");
   });
 
   test("panels scroll on their own, the page does not", async ({
