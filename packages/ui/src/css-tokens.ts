@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 
 /**
  * Find CSS custom properties that are referenced but never defined.
@@ -148,7 +148,12 @@ export function findUndefinedCssVars(root: string): UndefinedCssVar[] {
       if (hasFallback) continue;
 
       if (!defined.has(name)) {
-        undefinedVars.push({ file: file.replace(root, "").slice(1), name });
+        /* Forward slashes whatever the platform. walk() builds paths with
+           join(), which spells them with backslashes on Windows: a
+           difference that means nothing to whoever reads the report, and
+           breaks every test that names a path. */
+        const shown = relative(root, file).replaceAll("\\", "/");
+        undefinedVars.push({ file: shown, name });
       }
     }
   }
