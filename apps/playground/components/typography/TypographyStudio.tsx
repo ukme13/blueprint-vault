@@ -10,7 +10,6 @@ import {
 } from "@astryxdesign/core/SegmentedControl";
 import { Selector } from "@astryxdesign/core/Selector";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
-import { TextInput } from "@astryxdesign/core/TextInput";
 import {
   assessBodyFontSize,
   assessLineHeight,
@@ -29,7 +28,6 @@ import {
   formatLength,
   defaultSystem,
   splitFontFamily,
-  elementForRole,
   reindexGroup,
   renameGroup,
   addFont,
@@ -38,29 +36,20 @@ import {
   renameFont,
   moveGroup,
   resolveRoleSizePx,
-  TYPE_INDEXING_LABELS,
   TYPE_SCALE_UNITS,
   TYPE_SCALE_RATIO_PRESETS,
-  type SemanticRole,
   type TypeRole,
   type TypeGroup,
-  type TypeIndexing,
   type TypeScaleUnit,
   type TypeSystem,
 } from "@blueprint/ui";
 import { TypographyCreation } from "./TypographyCreation";
 import { TypographyExportDialog } from "./TypographyExportDialog";
 import { WorkspaceNav } from "../WorkspaceNav";
-import {
-  ArticleTemplate,
-  MarketingTemplate,
-  PREVIEW_TEMPLATES,
-  PREVIEW_WIDTH_OPTIONS,
-  PREVIEW_WIDTHS,
-  type PreviewLanguage,
-  type PreviewWidth,
-} from "./preview-templates";
+import { type PreviewLanguage, type PreviewWidth } from "./preview-templates";
 import { FontStackEditor } from "./FontStackEditor";
+import { RoleGroupEditor } from "./RoleGroupEditor";
+import { TypographyPreview } from "./TypographyPreview";
 import {
   DEFAULT_SPECIMEN_TEXT,
   DEFAULT_TEMPLATE,
@@ -72,27 +61,6 @@ import {
 import { useGoogleFontsLink } from "./use-google-fonts";
 import styles from "./typography-workspace.module.css";
 import type { TypographySection } from "./types";
-
-/** Sentinel for a role that carries its own size rather than following a step. */
-const CUSTOM_STEP = "custom";
-
-const PREVIEW_TEXT: Record<SemanticRole, { en: string; th: string }> = {
-  display: { en: "Design with clarity", th: "ออกแบบด้วยความชัดเจน" },
-  heading: {
-    en: "Build a stable type scale",
-    th: "สร้างสเกลตัวอักษรที่มั่นคง",
-  },
-  title: {
-    en: "Semantic roles, not raw sizes",
-    th: "บทบาทเชิงความหมาย ไม่ใช่ขนาดดิบ",
-  },
-  body: {
-    en: "Blueprint generates a modular scale from a base size and ratio, then maps each step to a semantic role so components stay consistent.",
-    th: "Blueprint สร้างสเกลตัวอักษรจากขนาดฐานและอัตราส่วน แล้วจับคู่แต่ละขั้นกับบทบาทเชิงความหมาย เพื่อให้คอมโพเนนต์มีความสม่ำเสมอ",
-  },
-  label: { en: "Field label", th: "ป้ายกำกับฟิลด์" },
-  caption: { en: "Last updated a moment ago", th: "อัปเดตล่าสุดเมื่อสักครู่" },
-};
 
 export function TypographyStudio() {
   const [project, setProject] = useState<TypographyProject | null>(null);
@@ -738,256 +706,32 @@ export function TypographyStudio() {
               />
             </div>
 
-            {system.groups.map((group, groupIndex) => {
-              const groupRoles = resolvedRoles.filter(
-                (role) => role.groupId === group.id,
-              );
-
-              return (
-                <div
-                  key={group.id}
-                  aria-label={group.label}
-                  className={styles.settingGroup}
-                  role="group"
-                >
-                  <header className={styles.roleGroupHeader}>
-                    <div className={styles.roleGroupActions}>
-                      {
-                        <>
-                          <Button
-                            aria-label={`Move ${group.label} up`}
-                            disabled={groupIndex === 0}
-                            scheme="neutral"
-                            size="xs"
-                            variant="text"
-                            onClick={() => shiftGroup(group.id, -1)}
-                          >
-                            ↑
-                          </Button>
-                          <Button
-                            aria-label={`Move ${group.label} down`}
-                            disabled={groupIndex === system.groups.length - 1}
-                            scheme="neutral"
-                            size="xs"
-                            variant="text"
-                            onClick={() => shiftGroup(group.id, 1)}
-                          >
-                            ↓
-                          </Button>
-                        </>
-                      }
-                      <Button
-                        disabled={!canAddRole(system, group)}
-                        scheme="neutral"
-                        size="xs"
-                        variant="text"
-                        onClick={() => addRole(group)}
-                      >
-                        Add
-                      </Button>
-                      {
-                        <Button
-                          aria-label={`Remove ${group.label} group`}
-                          scheme="neutral"
-                          size="xs"
-                          variant="text"
-                          onClick={() => removeGroup(group.id)}
-                        >
-                          Remove group
-                        </Button>
-                      }
-                    </div>
-                  </header>
-
-                  {
-                    <div className={styles.roleGroupMeta}>
-                      <TextInput
-                        label={`${group.id} name`}
-                        isLabelHidden
-                        value={group.label}
-                        /* Typing changes the label only. Renaming re-slugs the
-                           group id, which is this row's React key, so doing it
-                           per keystroke remounted the field and dropped focus
-                           after one character. It also renamed every role in
-                           the group on each letter typed. */
-                        onChange={(value) =>
-                          updateGroup(group.id, { label: value })
-                        }
-                        onBlur={() => renameGroupById(group.id, group.label)}
-                        /* Enter blurs rather than renaming directly, so both
-                           paths commit through the same handler. */
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            event.currentTarget.blur();
-                          }
-                        }}
-                      />
-                      <Selector
-                        label={`${group.id} indexing`}
-                        isLabelHidden
-                        options={(["number", "size"] as TypeIndexing[]).map(
-                          (mode) => ({
-                            label: TYPE_INDEXING_LABELS[mode],
-                            value: mode,
-                          }),
-                        )}
-                        value={group.indexing}
-                        onChange={(value) =>
-                          updateGroup(group.id, {
-                            indexing: value as TypeIndexing,
-                          })
-                        }
-                      />
-                    </div>
-                  }
-
-                  {groupRoles.length === 0 ? (
-                    <p className={styles.roleGroupEmpty}>No roles yet.</p>
-                  ) : (
-                    <div className={styles.roleTable}>
-                      {/* Column headers once per group, so each role is one
-                          readable row instead of repeating its own name on
-                          every control. */}
-                      <div className={styles.roleTableHead} aria-hidden="true">
-                        <span>Role</span>
-                        <span>Size</span>
-                        <span>Font</span>
-                        <span>Weight</span>
-                        <span>Line height</span>
-                        <span>Spacing</span>
-                        <span />
-                      </div>
-
-                      {groupRoles.map((role) => (
-                        <div key={role.id} className={styles.roleTableRow}>
-                          <span className={styles.roleSettingLabel}>
-                            {role.id}
-                          </span>
-
-                          {/* Value first, preset second — the same shape as
-                              binding a variable in Figma. Type any size, or
-                              pick a step off the ramp. */}
-                          <div className={styles.sizeCell}>
-                            <NumberInput
-                              isLabelHidden
-                              label={`${role.id} size`}
-                              min={1}
-                              max={400}
-                              units="px"
-                              value={role.desktop.fontSizePx}
-                              onChange={(value) =>
-                                /* Typing a size unlinks the role from the ramp,
-                                   so changing the ratio never overwrites a
-                                   number someone set deliberately. */
-                                updateRole(role.id, {
-                                  stepOffset: null,
-                                  sameAsRoleId: null,
-                                  desktop: {
-                                    ...role.desktop,
-                                    fontSizePx: value,
-                                  },
-                                  mobile: { ...role.mobile, fontSizePx: value },
-                                })
-                              }
-                            />
-                            <Selector
-                              label={`${role.id} step`}
-                              isLabelHidden
-                              options={[
-                                { label: "Custom", value: CUSTOM_STEP },
-                                /* Largest first, matching the step list. */
-                                ...[...steps]
-                                  .sort((a, b) => b.fontSizePx - a.fontSizePx)
-                                  .map((step) => ({
-                                    label: `${step.offset >= 0 ? "+" : ""}${step.offset} · ${formatLength(step.fontSizePx, project.unit)}`,
-                                    value: String(step.offset),
-                                  })),
-                              ]}
-                              value={
-                                role.stepOffset === null
-                                  ? CUSTOM_STEP
-                                  : String(role.stepOffset)
-                              }
-                              onChange={(value) =>
-                                updateRole(
-                                  role.id,
-                                  value === CUSTOM_STEP
-                                    ? { stepOffset: null, sameAsRoleId: null }
-                                    : {
-                                        stepOffset: Number(value),
-                                        sameAsRoleId: null,
-                                      },
-                                )
-                              }
-                            />
-                          </div>
-
-                          <Selector
-                            label={`${role.id} font`}
-                            isLabelHidden
-                            options={system.fonts.map((font) => ({
-                              label: font.name,
-                              value: font.id,
-                            }))}
-                            value={role.fontId}
-                            onChange={(value) =>
-                              updateRole(role.id, { fontId: value })
-                            }
-                          />
-                          <NumberInput
-                            isIntegerOnly
-                            isLabelHidden
-                            label={`${role.id} font weight`}
-                            min={100}
-                            max={900}
-                            step={100}
-                            value={role.fontWeight}
-                            onChange={(value) =>
-                              updateRole(role.id, { fontWeight: value })
-                            }
-                          />
-                          <NumberInput
-                            isLabelHidden
-                            label={`${role.id} line height`}
-                            min={1}
-                            max={2.5}
-                            step={0.05}
-                            value={role.desktop.lineHeight}
-                            onChange={(value) =>
-                              updateRoleValue(role.id, { lineHeight: value })
-                            }
-                          />
-                          <NumberInput
-                            isLabelHidden
-                            label={`${role.id} letter spacing`}
-                            min={-2}
-                            max={2}
-                            step={0.05}
-                            units="px"
-                            value={role.desktop.letterSpacingPx}
-                            onChange={(value) =>
-                              updateRoleValue(role.id, {
-                                letterSpacingPx: value,
-                              })
-                            }
-                          />
-                          <Button
-                            aria-label={`Remove ${role.id}`}
-                            scheme="neutral"
-                            size="xs"
-                            variant="text"
-                            onClick={() => removeRole(role.id)}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {system.groups.map((group, groupIndex) => (
+              <RoleGroupEditor
+                key={group.id}
+                canAddRole={canAddRole(system, group)}
+                fonts={system.fonts}
+                group={group}
+                groupCount={system.groups.length}
+                index={groupIndex}
+                roles={resolvedRoles.filter(
+                  (role) => role.groupId === group.id,
+                )}
+                steps={sortedSteps}
+                unit={project.unit}
+                onAddRole={() => addRole(group)}
+                onIndexingChange={(indexing) =>
+                  updateGroup(group.id, { indexing })
+                }
+                onLabelChange={(label) => updateGroup(group.id, { label })}
+                onLabelCommit={() => renameGroupById(group.id, group.label)}
+                onMove={(direction) => shiftGroup(group.id, direction)}
+                onRemove={() => removeGroup(group.id)}
+                onRoleChange={updateRole}
+                onRoleRemove={removeRole}
+                onRoleValueChange={updateRoleValue}
+              />
+            ))}
 
             <div className={styles.settingGroup}>
               <Button
@@ -1024,113 +768,23 @@ export function TypographyStudio() {
       )}
 
       {activeSection === "preview" && (
-        <section aria-label="Type scale preview" className={styles.previewPage}>
-          <div
-            className={styles.previewControls}
-            role="group"
-            aria-label="Preview options"
-          >
-            <div
-              className={styles.previewControlGroup}
-              role="group"
-              aria-label="Template"
-            >
-              {PREVIEW_TEMPLATES.map((entry) => (
-                <Button
-                  key={entry.id}
-                  aria-pressed={project.template === entry.id}
-                  scheme="neutral"
-                  size="xs"
-                  variant={
-                    project.template === entry.id ? "contained" : "outlined"
-                  }
-                  onClick={() =>
-                    setProject((current) =>
-                      current ? { ...current, template: entry.id } : current,
-                    )
-                  }
-                >
-                  {entry.label}
-                </Button>
-              ))}
-            </div>
-            <div
-              className={styles.previewControlGroup}
-              role="group"
-              aria-label="Preview width"
-            >
-              {PREVIEW_WIDTH_OPTIONS.map((entry) => (
-                <Button
-                  key={entry.id}
-                  aria-pressed={previewWidth === entry.id}
-                  scheme="neutral"
-                  size="xs"
-                  variant={previewWidth === entry.id ? "contained" : "outlined"}
-                  onClick={() => setPreviewWidth(entry.id)}
-                >
-                  {entry.label}
-                </Button>
-              ))}
-            </div>
-            <div
-              className={styles.previewControlGroup}
-              role="group"
-              aria-label="Preview language"
-            >
-              {(["en", "th"] as PreviewLanguage[]).map((code) => (
-                <Button
-                  key={code}
-                  aria-pressed={previewLang === code}
-                  scheme="neutral"
-                  size="xs"
-                  variant={previewLang === code ? "contained" : "outlined"}
-                  onClick={() => setPreviewLang(code)}
-                >
-                  {code === "en" ? "English" : "ไทย"}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <div
-            className={styles.previewStage}
-            style={{ maxWidth: `${PREVIEW_WIDTHS[previewWidth]}px` }}
-          >
-            {project.template === "article" && (
-              <ArticleTemplate lang={previewLang} styleFor={styleForRole} />
-            )}
-            {project.template === "marketing" && (
-              <MarketingTemplate lang={previewLang} styleFor={styleForRole} />
-            )}
-            {project.template === "specimen" &&
-              rolesLargeToSmall.map((role) => {
-                /* Sample copy exists for the six original roles. An arbitrary
-                   role falls back to the specimen text, which is always set. */
-                const sample = PREVIEW_TEXT[role.id as SemanticRole];
-                const text = sample
-                  ? previewLang === "th"
-                    ? sample.th
-                    : sample.en
-                  : project.specimenText || role.name;
-                const Tag = elementForRole(resolvedSystem, role) as "p";
-
-                return (
-                  <article key={role.id} className={styles.previewRole}>
-                    <header>
-                      <h3>{role.id}</h3>
-                      <p>
-                        {formatLength(role.desktop.fontSizePx, project.unit)} ·
-                        weight {role.fontWeight} · line height{" "}
-                        {role.desktop.lineHeight} ·{" "}
-                        {elementForRole(resolvedSystem, role)}
-                      </p>
-                    </header>
-                    <Tag style={styleForRole(role.id)}>{text}</Tag>
-                  </article>
-                );
-              })}
-          </div>
-        </section>
+        <TypographyPreview
+          lang={previewLang}
+          roles={rolesLargeToSmall}
+          specimenText={project.specimenText}
+          styleFor={styleForRole}
+          system={resolvedSystem}
+          template={project.template}
+          unit={project.unit}
+          width={previewWidth}
+          onLangChange={setPreviewLang}
+          onTemplateChange={(template) =>
+            setProject((current) =>
+              current ? { ...current, template } : current,
+            )
+          }
+          onWidthChange={setPreviewWidth}
+        />
       )}
 
       <TypographyExportDialog
