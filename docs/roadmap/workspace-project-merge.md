@@ -147,7 +147,7 @@ git if the choice turns out wrong.
 2. ✅ **Palette studio onto the workspace,** writing its slice only.
 3. ✅ **Typography studio onto the workspace,** same. After this the legacy keys
    are written by nobody.
-4. **One name, both topbars.** Until this lands the workspace name is written
+4. ✅ **One name, both topbars.** Until this lands the workspace name is written
    by whichever studio saved last, since each still edits its own project
    name. Invisible while nothing displays it, and wrong the moment anything
    does. Each studio adopts the workspace name on load and writes it back on
@@ -159,8 +159,12 @@ git if the choice turns out wrong.
    "Brand" and a scale called "My type scale" become one name, and the
    migration has already chosen which.
 
-5. **Cross-tab safety.** The two-tab test, and whichever of the mitigations
-   above it proves necessary.
+5. ✅ **Cross-tab safety.** Slice-only writes turned out to be enough for the
+   slices — the re-read before every write covers them — but not for the name,
+   which is not a slice. A tab adopts the name at load, so its copy goes stale
+   the moment the other tab renames, and it was writing that copy back. A
+   studio now sends a name only when it is the one that changed it. The
+   `storage` listener was not needed and was not added.
 6. **File format.** `{ kind: "blueprint-workspace", version: 1, project }`,
    with `blueprint-palette` files still importable into the palette slice.
 7. **Then Stage 4** of the preview plan, which is now a small feature.
@@ -203,8 +207,5 @@ Starting a new project in one studio must not clear the other's slice. Today
 These change the shape of the work and are not mine to settle. The name
 question was settled: unified, taking the palette's when both exist.
 
-- **Which cross-tab mitigation?** Slice-only writes are worth doing regardless;
-  whether to add `storage` reconciliation or fall back to two keys can wait for
-  the test in stage 4 to show how bad the window actually is.
 - **When do the legacy keys get deleted?** The plan says a later release, which
   needs a release to point at.

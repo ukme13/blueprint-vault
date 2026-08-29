@@ -99,9 +99,15 @@ function readStorageKeys(): WorkspaceLoadInput {
   };
 }
 
+/* The workspace name as this tab last saw it. A studio may only write the name
+   when it is the one that changed it — another tab may have renamed since, and
+   re-reading cannot tell whose name is newer, only that ours is a copy. */
+let adoptedName: string | null = null;
+
 function readStoredProject(): PaletteProject | null {
   try {
     const workspace = loadWorkspace(readStorageKeys()).project;
+    adoptedName = workspace?.name ?? null;
     /* Adopt the workspace name: it is one name, and the other studio may
        have set it. */
     return workspace ? withSharedName(workspace).palette : null;
@@ -120,7 +126,17 @@ function readStoredProject(): PaletteProject | null {
 function writeStoredProject(project: PaletteProject | null): void {
   try {
     const current = loadWorkspace(readStorageKeys()).project;
-    const next = withPaletteSlice(current, project, project?.name);
+    const renamedHere = !!project && project.name !== adoptedName;
+    /* withSharedName after the patch, so a name someone else set reaches this
+       slice too rather than leaving storage disagreeing with itself. */
+    const next = withSharedName(
+      withPaletteSlice(
+        current,
+        project,
+        renamedHere ? project.name : undefined,
+      ),
+    );
+    adoptedName = next.name;
     window.localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(next));
   } catch {
     /* A storage that will not take a write is not something the studio can

@@ -41,9 +41,14 @@ function readStorageKeys(): WorkspaceLoadInput {
   };
 }
 
+/* The workspace name as this tab last saw it. See the note in PaletteStudio:
+   only the tab that changed the name may write it. */
+let adoptedName: string | null = null;
+
 export function readStoredProject(): TypographyProject | null {
   try {
     const workspace = loadWorkspace(readStorageKeys()).project;
+    adoptedName = workspace?.name ?? null;
     /* Adopt the workspace name: it is one name, and the other studio may have
        set it. */
     return narrowTemplate(
@@ -79,7 +84,15 @@ function narrowTemplate(
 export function writeStoredProject(project: TypographyProject | null): void {
   try {
     const current = loadWorkspace(readStorageKeys()).project;
-    const next = withTypographySlice(current, project, project?.system.name);
+    const renamedHere = !!project && project.system.name !== adoptedName;
+    const next = withSharedName(
+      withTypographySlice(
+        current,
+        project,
+        renamedHere ? project.system.name : undefined,
+      ),
+    );
+    adoptedName = next.name;
     window.localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(next));
   } catch {
     /* A storage that will not take a write is not something the studio can
