@@ -28,18 +28,11 @@ import {
   formatLength,
   defaultSystem,
   splitFontFamily,
-  reindexGroup,
-  renameGroup,
-  addFont,
   canAddRole,
-  removeFont,
-  renameFont,
-  moveGroup,
   resolveRoleSizePx,
   TYPE_SCALE_UNITS,
   TYPE_SCALE_RATIO_PRESETS,
   type TypeRole,
-  type TypeGroup,
   type TypeScaleUnit,
   type TypeSystem,
 } from "@blueprint/ui";
@@ -59,6 +52,7 @@ import {
   type TypographyProject,
 } from "./typography-project";
 import { useGoogleFontsLink } from "./use-google-fonts";
+import { useTypographySystem } from "./use-typography-system";
 import styles from "./typography-workspace.module.css";
 import type { TypographySection } from "./types";
 
@@ -128,186 +122,27 @@ export function TypographyStudio() {
     ? { ...system, roles: resolvedRoles }
     : null;
 
-  const updateSystem = (patch: Partial<TypeSystem>) =>
-    setProject((current) =>
-      current
-        ? { ...current, system: { ...current.system, ...patch } }
-        : current,
-    );
+  const {
+    addFont,
+    addGroup,
+    addRole,
+    removeFont,
+    removeGroup,
+    removeRole,
+    renameFont,
+    renameGroupById,
+    setFontFamilies,
+    shiftGroup,
+    updateGroup,
+    updateRole,
+    updateRoleValue,
+    updateSystem,
+  } = useTypographySystem(setProject);
 
-  const updateRole = (id: string, patch: Partial<TypeRole>) =>
-    setProject((current) =>
-      current
-        ? {
-            ...current,
-            system: {
-              ...current.system,
-              roles: current.system.roles.map((role) =>
-                role.id === id ? { ...role, ...patch } : role,
-              ),
-            },
-          }
-        : current,
-    );
-
-  /* Editing a size by hand unlinks the role from the scale, so the ratio stops
-     driving it. Line height and spacing are always per-role and never linked. */
-  const updateRoleValue = (
-    id: string,
-    patch: Partial<{ lineHeight: number; letterSpacingPx: number }>,
-  ) =>
-    setProject((current) =>
-      current
-        ? {
-            ...current,
-            system: {
-              ...current.system,
-              roles: current.system.roles.map((role) =>
-                role.id === id
-                  ? {
-                      ...role,
-                      desktop: { ...role.desktop, ...patch },
-                      mobile: { ...role.mobile, ...patch },
-                    }
-                  : role,
-              ),
-            },
-          }
-        : current,
-    );
-
-  const addRole = (group: TypeGroup) =>
-    setProject((current) => {
-      if (!current) return current;
-      if (!canAddRole(current.system, group)) return current;
-
-      const template =
-        current.system.roles.find((role) => role.groupId === group.id) ??
-        current.system.roles.find((role) => role.id === "body") ??
-        current.system.roles[0];
-      if (!template) return current;
-
-      /* Placeholder id: reindexGroup gives every role in the group its real
-         name, which is how a lone `caption` becomes `caption-1` once a second
-         one joins it. */
-      const placeholder = `${group.id}-new-${current.system.roles.length}`;
-      const withRole: TypeSystem = {
-        ...current.system,
-        roles: [
-          ...current.system.roles,
-          {
-            ...template,
-            id: placeholder,
-            name: placeholder,
-            groupId: group.id,
-            /* A new role reuses its sibling's step rather than claiming one of
-               its own. Adding roles must never force the ramp to grow. */
-            stepOffset: template.stepOffset,
-            sameAsRoleId: null,
-          },
-        ],
-      };
-
-      return { ...current, system: reindexGroup(withRole, group.id) };
-    });
-
-  const removeRole = (id: string) =>
-    setProject((current) => {
-      if (!current) return current;
-      const groupId = current.system.roles.find(
-        (role) => role.id === id,
-      )?.groupId;
-
-      const without: TypeSystem = {
-        ...current.system,
-        roles: current.system.roles
-          .filter((role) => role.id !== id)
-          /* Anything following the removed role keeps its size rather than
-             silently falling back to whatever it stored. */
-          .map((role) =>
-            role.sameAsRoleId === id ? { ...role, sameAsRoleId: null } : role,
-          ),
-      };
-
-      return {
-        ...current,
-        system: groupId ? reindexGroup(without, groupId) : without,
-      };
-    });
-
-  /* Renaming a group renames its roles: ids are built from the group id, so
-     the label and the exported token names would otherwise drift apart. */
-  const renameGroupById = (groupId: string, label: string) =>
-    setProject((current) =>
-      current
-        ? { ...current, system: renameGroup(current.system, groupId, label) }
-        : current,
-    );
-
-  const updateGroup = (groupId: string, patch: Partial<TypeGroup>) =>
-    setProject((current) => {
-      if (!current) return current;
-      const updated: TypeSystem = {
-        ...current.system,
-        groups: current.system.groups.map((group) =>
-          group.id === groupId ? { ...group, ...patch } : group,
-        ),
-      };
-      /* Switching a group between number and size renames its roles, so the
-         ids follow the mode rather than whatever they were created under. */
-      return { ...current, system: reindexGroup(updated, groupId) };
-    });
-
-  const shiftGroup = (groupId: string, direction: -1 | 1) =>
-    setProject((current) =>
-      current
-        ? {
-            ...current,
-            system: {
-              ...current.system,
-              groups: moveGroup(current.system, groupId, direction),
-            },
-          }
-        : current,
-    );
-
-  const addGroup = () =>
-    setProject((current) => {
-      if (!current) return current;
-      let index = current.system.groups.length + 1;
-      while (current.system.groups.some((g) => g.id === `group-${index}`)) {
-        index += 1;
-      }
-      const id = `group-${index}`;
-      return {
-        ...current,
-        system: {
-          ...current.system,
-          groups: [
-            ...current.system.groups,
-            { id, label: `Group ${index}`, indexing: "number" },
-          ],
-        },
-      };
-    });
-
-  const removeGroup = (groupId: string) =>
-    setProject((current) =>
-      current
-        ? {
-            ...current,
-            system: {
-              ...current.system,
-              groups: current.system.groups.filter(
-                (group) => group.id !== groupId,
-              ),
-              roles: current.system.roles.filter(
-                (role) => role.groupId !== groupId,
-              ),
-            },
-          }
-        : current,
-    );
+  /* Unit, specimen and template sit beside the system rather than in it, so
+     they do not go through the hook. This is the same guard it keeps, once. */
+  const setPreference = (patch: Partial<Omit<TypographyProject, "system">>) =>
+    setProject((current) => (current ? { ...current, ...patch } : current));
 
   /* Defaults to whatever body uses, since that is the size people read most,
      and falls through if the chosen entry has since been removed. */
@@ -495,11 +330,7 @@ export function TypographyStudio() {
                 size="sm"
                 value={project.unit}
                 onChange={(value) =>
-                  setProject((current) =>
-                    current
-                      ? { ...current, unit: value as TypeScaleUnit }
-                      : current,
-                  )
+                  setPreference({ unit: value as TypeScaleUnit })
                 }
               >
                 {TYPE_SCALE_UNITS.map((unit) => (
@@ -567,11 +398,7 @@ export function TypographyStudio() {
                       }}
                       value={project.specimenText}
                       onChange={(event) =>
-                        setProject((current) =>
-                          current
-                            ? { ...current, specimenText: event.target.value }
-                            : current,
-                        )
+                        setPreference({ specimenText: event.target.value })
                       }
                     />
                     <span className={styles.stepMeta}>
@@ -629,48 +456,16 @@ export function TypographyStudio() {
                   key={font.id}
                   canRemove={system.fonts.length > 1}
                   font={font}
-                  onChange={(families) =>
-                    updateSystem({
-                      fonts: system.fonts.map((candidate) =>
-                        candidate.id === font.id
-                          ? { ...candidate, families, source: "google" }
-                          : candidate,
-                      ),
-                    })
-                  }
-                  onRemove={() =>
-                    setProject((current) =>
-                      current
-                        ? {
-                            ...current,
-                            system: removeFont(current.system, font.id),
-                          }
-                        : current,
-                    )
-                  }
-                  onRename={(name) =>
-                    setProject((current) =>
-                      current
-                        ? {
-                            ...current,
-                            system: renameFont(current.system, font.id, name),
-                          }
-                        : current,
-                    )
-                  }
+                  onChange={(families) => setFontFamilies(font.id, families)}
+                  onRemove={() => removeFont(font.id)}
+                  onRename={(name) => renameFont(font.id, name)}
                 />
               ))}
               <Button
                 scheme="neutral"
                 size="xs"
                 variant="outlined"
-                onClick={() =>
-                  setProject((current) =>
-                    current
-                      ? { ...current, system: addFont(current.system) }
-                      : current,
-                  )
-                }
+                onClick={addFont}
               >
                 Add font
               </Button>
@@ -778,11 +573,7 @@ export function TypographyStudio() {
           unit={project.unit}
           width={previewWidth}
           onLangChange={setPreviewLang}
-          onTemplateChange={(template) =>
-            setProject((current) =>
-              current ? { ...current, template } : current,
-            )
-          }
+          onTemplateChange={(template) => setPreference({ template })}
           onWidthChange={setPreviewWidth}
         />
       )}
@@ -793,9 +584,7 @@ export function TypographyStudio() {
         system={resolvedSystem}
         unit={project.unit}
         onOpenChange={setIsExportDialogOpen}
-        onUnitChange={(unit) =>
-          setProject((current) => (current ? { ...current, unit } : current))
-        }
+        onUnitChange={(unit) => setPreference({ unit })}
       />
 
       <AlertDialog
