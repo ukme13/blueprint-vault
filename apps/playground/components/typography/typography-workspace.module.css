@@ -232,6 +232,9 @@
   overflow-y: auto;
   overscroll-behavior: contain;
   background: var(--color-neutral-900);
+  /* Named so the add buttons below can size against this panel rather than
+     the viewport: it is resizable, so the two are not the same question. */
+  container: inspector / inline-size;
 }
 
 .inspectorHeader {
@@ -246,6 +249,10 @@
 
 .settingGroup {
   display: grid;
+  /* minmax(0, 1fr) rather than the implicit auto column: auto sizes to the
+     widest child, so one control that will not shrink pushed the whole column
+     past the panel and everything measured against it went with it. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   padding: 17px 18px;
   border-bottom: 1px solid var(--color-neutral-800);
@@ -700,4 +707,21 @@
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
   line-height: 1.4;
+}
+
+/* "Add font" and "Add group" are siblings in the reader's mind, so they are one
+   size and one width wherever they appear. Left to a grid child's default
+   stretch they ran the full width of a panel that opens to 900px. */
+.addEntryButton {
+  justify-self: start;
+  width: 9rem;
+}
+
+@container inspector (max-width: 360px) {
+  /* Below this the panel is narrower than a comfortable row, so the button
+     takes the width rather than leaving a stranded gap beside it. */
+  .addEntryButton {
+    justify-self: stretch;
+    width: 100%;
+  }
 }
