@@ -1,4 +1,4 @@
-import { test as base, type Page } from "@playwright/test";
+import { expect, test as base, type Page } from "@playwright/test";
 
 export const TYPOGRAPHY_STORAGE_KEY = "blueprint.typography-project.v1";
 
@@ -44,8 +44,16 @@ export async function seedTypographyProject(
 export const test = base.extend<{ seededPage: Page }>({
   seededPage: async ({ page }, runTest) => {
     await seedTypographyProject(page);
+    /* The studio shows a loading placeholder until the effect that reads
+       localStorage has run, so the settings are not in the DOM when goto()
+       resolves. Locator assertions retry and would not notice, but count()
+       does not, and a test that measures a baseline before acting reads a
+       zero that is never true of a seeded project. */
+    await expect(
+      page.getByRole("region", { name: "Type scale settings" }),
+    ).toBeVisible();
     await runTest(page);
   },
 });
 
-export { expect } from "@playwright/test";
+export { expect };

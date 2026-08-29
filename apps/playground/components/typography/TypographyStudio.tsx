@@ -10,7 +10,6 @@ import {
 } from "@astryxdesign/core/SegmentedControl";
 import { Selector } from "@astryxdesign/core/Selector";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
-import { TextInput } from "@astryxdesign/core/TextInput";
 import {
   assessBodyFontSize,
   assessLineHeight,
@@ -27,12 +26,8 @@ import {
   findGoogleFont,
   fontFamilyValue,
   formatLength,
-  googleFontsHref,
   defaultSystem,
-  migrateLegacyProject,
-  normalizeStoredSystem,
   splitFontFamily,
-  elementForRole,
   reindexGroup,
   renameGroup,
   addFont,
@@ -41,136 +36,31 @@ import {
   renameFont,
   moveGroup,
   resolveRoleSizePx,
-  TYPE_INDEXING_LABELS,
   TYPE_SCALE_UNITS,
   TYPE_SCALE_RATIO_PRESETS,
-  type SemanticRole,
-  type LegacyTypographyProject,
   type TypeRole,
   type TypeGroup,
-  type TypeIndexing,
   type TypeScaleUnit,
   type TypeSystem,
 } from "@blueprint/ui";
 import { TypographyCreation } from "./TypographyCreation";
 import { TypographyExportDialog } from "./TypographyExportDialog";
 import { WorkspaceNav } from "../WorkspaceNav";
-import {
-  ArticleTemplate,
-  MarketingTemplate,
-  PREVIEW_TEMPLATES,
-  PREVIEW_WIDTH_OPTIONS,
-  PREVIEW_WIDTHS,
-  type PreviewLanguage,
-  type PreviewTemplateId,
-  type PreviewWidth,
-} from "./preview-templates";
+import { type PreviewLanguage, type PreviewWidth } from "./preview-templates";
 import { FontStackEditor } from "./FontStackEditor";
+import { RoleGroupEditor } from "./RoleGroupEditor";
+import { TypographyPreview } from "./TypographyPreview";
+import {
+  DEFAULT_SPECIMEN_TEXT,
+  DEFAULT_TEMPLATE,
+  DEFAULT_UNIT,
+  readStoredProject,
+  writeStoredProject,
+  type TypographyProject,
+} from "./typography-project";
+import { useGoogleFontsLink } from "./use-google-fonts";
 import styles from "./typography-workspace.module.css";
 import type { TypographySection } from "./types";
-
-const TYPOGRAPHY_STORAGE_KEY = "blueprint.typography-project.v1";
-
-interface TypographyProject {
-  /** The typography system itself. Everything else here is a preference. */
-  system: TypeSystem;
-  /** Output unit. Optional in storage: projects saved before units existed. */
-  unit: TypeScaleUnit;
-  /** Text shown at every step so a scale can be judged in real copy. */
-  specimenText: string;
-  /** Which preview template the Preview section shows. */
-  template: PreviewTemplateId;
-}
-
-const DEFAULT_UNIT: TypeScaleUnit = "rem";
-const DEFAULT_SPECIMEN_TEXT = "How vexingly quick daft zebras jump";
-const DEFAULT_TEMPLATE: PreviewTemplateId = "specimen";
-
-/** Sentinel for a role that carries its own size rather than following a step. */
-const CUSTOM_STEP = "custom";
-
-const PREVIEW_TEXT: Record<SemanticRole, { en: string; th: string }> = {
-  display: { en: "Design with clarity", th: "ออกแบบด้วยความชัดเจน" },
-  heading: {
-    en: "Build a stable type scale",
-    th: "สร้างสเกลตัวอักษรที่มั่นคง",
-  },
-  title: {
-    en: "Semantic roles, not raw sizes",
-    th: "บทบาทเชิงความหมาย ไม่ใช่ขนาดดิบ",
-  },
-  body: {
-    en: "Blueprint generates a modular scale from a base size and ratio, then maps each step to a semantic role so components stay consistent.",
-    th: "Blueprint สร้างสเกลตัวอักษรจากขนาดฐานและอัตราส่วน แล้วจับคู่แต่ละขั้นกับบทบาทเชิงความหมาย เพื่อให้คอมโพเนนต์มีความสม่ำเสมอ",
-  },
-  label: { en: "Field label", th: "ป้ายกำกับฟิลด์" },
-  caption: { en: "Last updated a moment ago", th: "อัปเดตล่าสุดเมื่อสักครู่" },
-};
-
-function readStoredProject(): TypographyProject | null {
-  try {
-    const stored = window.localStorage.getItem(TYPOGRAPHY_STORAGE_KEY);
-    if (!stored) return null;
-
-    const parsed: unknown = JSON.parse(stored);
-    if (!parsed || typeof parsed !== "object") return null;
-
-    const prefs = readPreferences(parsed);
-
-    /* Two shapes live under this key. The pre-merge one has roleStyles and a
-       flat fontFamily; the merged one has a system. Detect rather than version,
-       so nobody's saved work is orphaned by the rename. */
-    if ("roleStyles" in parsed && !("system" in parsed)) {
-      const legacy = parsed as unknown as LegacyTypographyProject;
-      if (
-        typeof legacy.name !== "string" ||
-        typeof legacy.fontFamily !== "string" ||
-        typeof legacy.baseFontSizePx !== "number" ||
-        typeof legacy.ratio !== "number" ||
-        typeof legacy.stepCount !== "number" ||
-        !legacy.roleStyles
-      ) {
-        return null;
-      }
-      return { system: migrateLegacyProject(legacy), ...prefs };
-    }
-
-    if (!("system" in parsed)) return null;
-
-    /* Normalise rather than trust: an earlier release stored a system with no
-       groups, roles keyed by `group`, and absolute steps. Reading one of those
-       as-is crashed on system.groups.map. */
-    const system = normalizeStoredSystem(parsed.system);
-    if (!system) return null;
-
-    return { system, ...prefs };
-  } catch {
-    return null;
-  }
-}
-
-function readPreferences(parsed: object): {
-  unit: TypeScaleUnit;
-  specimenText: string;
-  template: PreviewTemplateId;
-} {
-  return {
-    unit:
-      "unit" in parsed &&
-      TYPE_SCALE_UNITS.includes(parsed.unit as TypeScaleUnit)
-        ? (parsed.unit as TypeScaleUnit)
-        : DEFAULT_UNIT,
-    specimenText:
-      "specimenText" in parsed && typeof parsed.specimenText === "string"
-        ? parsed.specimenText
-        : DEFAULT_SPECIMEN_TEXT,
-    template:
-      "template" in parsed &&
-      PREVIEW_TEMPLATES.some((entry) => entry.id === parsed.template)
-        ? (parsed.template as PreviewTemplateId)
-        : DEFAULT_TEMPLATE,
-  };
-}
 
 export function TypographyStudio() {
   const [project, setProject] = useState<TypographyProject | null>(null);
@@ -206,14 +96,7 @@ export function TypographyStudio() {
   useEffect(() => {
     if (!hasLoadedProject) return;
 
-    if (project) {
-      window.localStorage.setItem(
-        TYPOGRAPHY_STORAGE_KEY,
-        JSON.stringify(project),
-      );
-    } else {
-      window.localStorage.removeItem(TYPOGRAPHY_STORAGE_KEY);
-    }
+    writeStoredProject(project);
   }, [hasLoadedProject, project]);
 
   const system = project?.system ?? null;
@@ -448,56 +331,7 @@ export function TypographyStudio() {
         previewWeights[0] ??
         400);
 
-  /* Load whatever Google families the system names, in one request.
-     next/font cannot do this: it downloads at build time and needs the family
-     known then, which a picker over the whole catalogue rules out. The cost is
-     that the browser now talks to fonts.googleapis.com. */
-  /* Built every render rather than memoised: it is a handful of array walks,
-     and the effect below depends on the resulting string, so value equality
-     already stops the stylesheet being replaced when nothing changed. */
-  const googleHref = ((): string | null => {
-    if (!system) return null;
-    const weightsByFamily = new Map<string, Set<number>>();
-    system.roles.forEach((role) => {
-      const font = system.fonts.find(
-        (candidate) => candidate.id === role.fontId,
-      );
-      /* Every family in the stack, not just the first. A fallback that is never
-         downloaded cannot be fallen back to: the browser skips it and lands on
-         the generic, which reads as the fallback being ignored. */
-      font?.families.forEach((family) => {
-        const weights = weightsByFamily.get(family) ?? new Set<number>();
-        weights.add(role.fontWeight);
-        weightsByFamily.set(family, weights);
-      });
-    });
-
-    /* The previewed weight too. Without it the step list renders a weight that
-       was never downloaded, and the browser draws a synthetic one. */
-    previewFont?.families.forEach((family) => {
-      const weights = weightsByFamily.get(family) ?? new Set<number>();
-      weights.add(resolvedPreviewWeight);
-      weightsByFamily.set(family, weights);
-    });
-
-    return googleFontsHref(
-      [...weightsByFamily].map(([family, weights]) => ({
-        family,
-        weights: [...weights],
-      })),
-    );
-  })();
-
-  useEffect(() => {
-    if (!googleHref) return;
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = googleHref;
-    document.head.append(link);
-    /* Removed on change so switching fonts does not leave a stack of dead
-       stylesheets behind. */
-    return () => link.remove();
-  }, [googleHref]);
+  useGoogleFontsLink(system, previewFont, resolvedPreviewWeight);
 
   const bodyRole =
     resolvedRoles.find((role) => role.id === "body") ??
@@ -655,7 +489,7 @@ export function TypographyStudio() {
           <section aria-label="Generated type steps" className={styles.canvas}>
             {/* Sits above the steps so the unit is chosen where the sizes are
                 read, not buried in the export dialog. */}
-            <div className="flex flex-wrap items-center gap-4 pb-3">
+            <div className="flex flex-wrap items-center gap-2 pb-3">
               <SegmentedControl
                 label="Size unit"
                 size="sm"
@@ -872,256 +706,32 @@ export function TypographyStudio() {
               />
             </div>
 
-            {system.groups.map((group, groupIndex) => {
-              const groupRoles = resolvedRoles.filter(
-                (role) => role.groupId === group.id,
-              );
-
-              return (
-                <div
-                  key={group.id}
-                  aria-label={group.label}
-                  className={styles.settingGroup}
-                  role="group"
-                >
-                  <header className={styles.roleGroupHeader}>
-                    <div className={styles.roleGroupActions}>
-                      {
-                        <>
-                          <Button
-                            aria-label={`Move ${group.label} up`}
-                            disabled={groupIndex === 0}
-                            scheme="neutral"
-                            size="xs"
-                            variant="text"
-                            onClick={() => shiftGroup(group.id, -1)}
-                          >
-                            ↑
-                          </Button>
-                          <Button
-                            aria-label={`Move ${group.label} down`}
-                            disabled={groupIndex === system.groups.length - 1}
-                            scheme="neutral"
-                            size="xs"
-                            variant="text"
-                            onClick={() => shiftGroup(group.id, 1)}
-                          >
-                            ↓
-                          </Button>
-                        </>
-                      }
-                      <Button
-                        disabled={!canAddRole(system, group)}
-                        scheme="neutral"
-                        size="xs"
-                        variant="text"
-                        onClick={() => addRole(group)}
-                      >
-                        Add
-                      </Button>
-                      {
-                        <Button
-                          aria-label={`Remove ${group.label} group`}
-                          scheme="neutral"
-                          size="xs"
-                          variant="text"
-                          onClick={() => removeGroup(group.id)}
-                        >
-                          Remove group
-                        </Button>
-                      }
-                    </div>
-                  </header>
-
-                  {
-                    <div className={styles.roleGroupMeta}>
-                      <TextInput
-                        label={`${group.id} name`}
-                        isLabelHidden
-                        value={group.label}
-                        /* Typing changes the label only. Renaming re-slugs the
-                           group id, which is this row's React key, so doing it
-                           per keystroke remounted the field and dropped focus
-                           after one character. It also renamed every role in
-                           the group on each letter typed. */
-                        onChange={(value) =>
-                          updateGroup(group.id, { label: value })
-                        }
-                        onBlur={() => renameGroupById(group.id, group.label)}
-                        /* Enter blurs rather than renaming directly, so both
-                           paths commit through the same handler. */
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            event.currentTarget.blur();
-                          }
-                        }}
-                      />
-                      <Selector
-                        label={`${group.id} indexing`}
-                        isLabelHidden
-                        options={(["number", "size"] as TypeIndexing[]).map(
-                          (mode) => ({
-                            label: TYPE_INDEXING_LABELS[mode],
-                            value: mode,
-                          }),
-                        )}
-                        value={group.indexing}
-                        onChange={(value) =>
-                          updateGroup(group.id, {
-                            indexing: value as TypeIndexing,
-                          })
-                        }
-                      />
-                    </div>
-                  }
-
-                  {groupRoles.length === 0 ? (
-                    <p className={styles.roleGroupEmpty}>No roles yet.</p>
-                  ) : (
-                    <div className={styles.roleTable}>
-                      {/* Column headers once per group, so each role is one
-                          readable row instead of repeating its own name on
-                          every control. */}
-                      <div className={styles.roleTableHead} aria-hidden="true">
-                        <span>Role</span>
-                        <span>Size</span>
-                        <span>Font</span>
-                        <span>Weight</span>
-                        <span>Line height</span>
-                        <span>Spacing</span>
-                        <span />
-                      </div>
-
-                      {groupRoles.map((role) => (
-                        <div key={role.id} className={styles.roleTableRow}>
-                          <span className={styles.roleSettingLabel}>
-                            {role.id}
-                          </span>
-
-                          {/* Value first, preset second — the same shape as
-                              binding a variable in Figma. Type any size, or
-                              pick a step off the ramp. */}
-                          <div className={styles.sizeCell}>
-                            <NumberInput
-                              isLabelHidden
-                              label={`${role.id} size`}
-                              min={1}
-                              max={400}
-                              units="px"
-                              value={role.desktop.fontSizePx}
-                              onChange={(value) =>
-                                /* Typing a size unlinks the role from the ramp,
-                                   so changing the ratio never overwrites a
-                                   number someone set deliberately. */
-                                updateRole(role.id, {
-                                  stepOffset: null,
-                                  sameAsRoleId: null,
-                                  desktop: {
-                                    ...role.desktop,
-                                    fontSizePx: value,
-                                  },
-                                  mobile: { ...role.mobile, fontSizePx: value },
-                                })
-                              }
-                            />
-                            <Selector
-                              label={`${role.id} step`}
-                              isLabelHidden
-                              options={[
-                                { label: "Custom", value: CUSTOM_STEP },
-                                /* Largest first, matching the step list. */
-                                ...[...steps]
-                                  .sort((a, b) => b.fontSizePx - a.fontSizePx)
-                                  .map((step) => ({
-                                    label: `${step.offset >= 0 ? "+" : ""}${step.offset} · ${formatLength(step.fontSizePx, project.unit)}`,
-                                    value: String(step.offset),
-                                  })),
-                              ]}
-                              value={
-                                role.stepOffset === null
-                                  ? CUSTOM_STEP
-                                  : String(role.stepOffset)
-                              }
-                              onChange={(value) =>
-                                updateRole(
-                                  role.id,
-                                  value === CUSTOM_STEP
-                                    ? { stepOffset: null, sameAsRoleId: null }
-                                    : {
-                                        stepOffset: Number(value),
-                                        sameAsRoleId: null,
-                                      },
-                                )
-                              }
-                            />
-                          </div>
-
-                          <Selector
-                            label={`${role.id} font`}
-                            isLabelHidden
-                            options={system.fonts.map((font) => ({
-                              label: font.name,
-                              value: font.id,
-                            }))}
-                            value={role.fontId}
-                            onChange={(value) =>
-                              updateRole(role.id, { fontId: value })
-                            }
-                          />
-                          <NumberInput
-                            isIntegerOnly
-                            isLabelHidden
-                            label={`${role.id} font weight`}
-                            min={100}
-                            max={900}
-                            step={100}
-                            value={role.fontWeight}
-                            onChange={(value) =>
-                              updateRole(role.id, { fontWeight: value })
-                            }
-                          />
-                          <NumberInput
-                            isLabelHidden
-                            label={`${role.id} line height`}
-                            min={1}
-                            max={2.5}
-                            step={0.05}
-                            value={role.desktop.lineHeight}
-                            onChange={(value) =>
-                              updateRoleValue(role.id, { lineHeight: value })
-                            }
-                          />
-                          <NumberInput
-                            isLabelHidden
-                            label={`${role.id} letter spacing`}
-                            min={-2}
-                            max={2}
-                            step={0.05}
-                            units="px"
-                            value={role.desktop.letterSpacingPx}
-                            onChange={(value) =>
-                              updateRoleValue(role.id, {
-                                letterSpacingPx: value,
-                              })
-                            }
-                          />
-                          <Button
-                            aria-label={`Remove ${role.id}`}
-                            scheme="neutral"
-                            size="xs"
-                            variant="text"
-                            onClick={() => removeRole(role.id)}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {system.groups.map((group, groupIndex) => (
+              <RoleGroupEditor
+                key={group.id}
+                canAddRole={canAddRole(system, group)}
+                fonts={system.fonts}
+                group={group}
+                groupCount={system.groups.length}
+                index={groupIndex}
+                roles={resolvedRoles.filter(
+                  (role) => role.groupId === group.id,
+                )}
+                steps={sortedSteps}
+                unit={project.unit}
+                onAddRole={() => addRole(group)}
+                onIndexingChange={(indexing) =>
+                  updateGroup(group.id, { indexing })
+                }
+                onLabelChange={(label) => updateGroup(group.id, { label })}
+                onLabelCommit={() => renameGroupById(group.id, group.label)}
+                onMove={(direction) => shiftGroup(group.id, direction)}
+                onRemove={() => removeGroup(group.id)}
+                onRoleChange={updateRole}
+                onRoleRemove={removeRole}
+                onRoleValueChange={updateRoleValue}
+              />
+            ))}
 
             <div className={styles.settingGroup}>
               <Button
@@ -1158,113 +768,23 @@ export function TypographyStudio() {
       )}
 
       {activeSection === "preview" && (
-        <section aria-label="Type scale preview" className={styles.previewPage}>
-          <div
-            className={styles.previewControls}
-            role="group"
-            aria-label="Preview options"
-          >
-            <div
-              className={styles.previewControlGroup}
-              role="group"
-              aria-label="Template"
-            >
-              {PREVIEW_TEMPLATES.map((entry) => (
-                <Button
-                  key={entry.id}
-                  aria-pressed={project.template === entry.id}
-                  scheme="neutral"
-                  size="xs"
-                  variant={
-                    project.template === entry.id ? "contained" : "outlined"
-                  }
-                  onClick={() =>
-                    setProject((current) =>
-                      current ? { ...current, template: entry.id } : current,
-                    )
-                  }
-                >
-                  {entry.label}
-                </Button>
-              ))}
-            </div>
-            <div
-              className={styles.previewControlGroup}
-              role="group"
-              aria-label="Preview width"
-            >
-              {PREVIEW_WIDTH_OPTIONS.map((entry) => (
-                <Button
-                  key={entry.id}
-                  aria-pressed={previewWidth === entry.id}
-                  scheme="neutral"
-                  size="xs"
-                  variant={previewWidth === entry.id ? "contained" : "outlined"}
-                  onClick={() => setPreviewWidth(entry.id)}
-                >
-                  {entry.label}
-                </Button>
-              ))}
-            </div>
-            <div
-              className={styles.previewControlGroup}
-              role="group"
-              aria-label="Preview language"
-            >
-              {(["en", "th"] as PreviewLanguage[]).map((code) => (
-                <Button
-                  key={code}
-                  aria-pressed={previewLang === code}
-                  scheme="neutral"
-                  size="xs"
-                  variant={previewLang === code ? "contained" : "outlined"}
-                  onClick={() => setPreviewLang(code)}
-                >
-                  {code === "en" ? "English" : "ไทย"}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          <div
-            className={styles.previewStage}
-            style={{ maxWidth: `${PREVIEW_WIDTHS[previewWidth]}px` }}
-          >
-            {project.template === "article" && (
-              <ArticleTemplate lang={previewLang} styleFor={styleForRole} />
-            )}
-            {project.template === "marketing" && (
-              <MarketingTemplate lang={previewLang} styleFor={styleForRole} />
-            )}
-            {project.template === "specimen" &&
-              rolesLargeToSmall.map((role) => {
-                /* Sample copy exists for the six original roles. An arbitrary
-                   role falls back to the specimen text, which is always set. */
-                const sample = PREVIEW_TEXT[role.id as SemanticRole];
-                const text = sample
-                  ? previewLang === "th"
-                    ? sample.th
-                    : sample.en
-                  : project.specimenText || role.name;
-                const Tag = elementForRole(resolvedSystem, role) as "p";
-
-                return (
-                  <article key={role.id} className={styles.previewRole}>
-                    <header>
-                      <h3>{role.id}</h3>
-                      <p>
-                        {formatLength(role.desktop.fontSizePx, project.unit)} ·
-                        weight {role.fontWeight} · line height{" "}
-                        {role.desktop.lineHeight} ·{" "}
-                        {elementForRole(resolvedSystem, role)}
-                      </p>
-                    </header>
-                    <Tag style={styleForRole(role.id)}>{text}</Tag>
-                  </article>
-                );
-              })}
-          </div>
-        </section>
+        <TypographyPreview
+          lang={previewLang}
+          roles={rolesLargeToSmall}
+          specimenText={project.specimenText}
+          styleFor={styleForRole}
+          system={resolvedSystem}
+          template={project.template}
+          unit={project.unit}
+          width={previewWidth}
+          onLangChange={setPreviewLang}
+          onTemplateChange={(template) =>
+            setProject((current) =>
+              current ? { ...current, template } : current,
+            )
+          }
+          onWidthChange={setPreviewWidth}
+        />
       )}
 
       <TypographyExportDialog
