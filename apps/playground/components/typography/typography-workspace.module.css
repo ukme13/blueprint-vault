@@ -624,7 +624,12 @@
 
 .roleGroupMeta {
   display: grid;
-  grid-template-columns: 1fr auto;
+  /* minmax(0, 1fr) rather than 1fr: a bare 1fr keeps an automatic minimum of
+     min-content, so the name field refused to shrink and the row ran a few
+     pixels past the panel. Invisible at the widths this was built at, and not
+     at 320 — where how wide "min-content" is depends on the fonts installed,
+     so it showed on CI and not here. */
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: var(--spacing-2);
   /* Both controls hide their label and share a size, so they line up on their
      centres rather than needing a shared baseline. */
