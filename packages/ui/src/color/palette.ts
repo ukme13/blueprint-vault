@@ -1,4 +1,5 @@
 import { hexToRgb, normalizeHex, oklchToHex, rgbToOklch } from "./conversion";
+import { BLUEPRINT_20_PRESET } from "./presets";
 import type {
   ColorTrack,
   ColorTrackInput,
@@ -420,6 +421,38 @@ export function generatePaletteFromPreset(
   preset: PalettePreset,
 ): ColorTrack {
   return generatePalette(track, preset.lightnessValues, preset.weights);
+}
+
+/**
+ * Every track of a project, generated.
+ *
+ * The weight scale is the Blueprint 20 when the shade count matches it and a
+ * stable generated one otherwise, which is the rule both studios need and
+ * neither should be restating.
+ */
+export function generatePalettes(project: {
+  tracks: ColorTrackInput[];
+  lightnessValues: number[];
+}): ColorTrack[] {
+  const shadeCount = project.lightnessValues.length;
+  if (shadeCount === 0) return [];
+  const weights =
+    shadeCount === BLUEPRINT_20_PRESET.weights.length
+      ? [...BLUEPRINT_20_PRESET.weights]
+      : generateStableWeights(shadeCount);
+  return project.tracks.map((track) =>
+    generatePalette(track, project.lightnessValues, weights),
+  );
+}
+
+/** One shade by track and weight, or null when the palette no longer has it. */
+export function findShade(
+  tracks: ColorTrack[],
+  trackId: string,
+  weight: number,
+): ShadeItem | null {
+  const track = tracks.find((candidate) => candidate.id === trackId);
+  return track?.shades.find((shade) => shade.weight === weight) ?? null;
 }
 
 export function formatPaletteCss(palettes: ColorTrack[]): string {

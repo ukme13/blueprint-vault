@@ -20,12 +20,18 @@ import { useToast } from "@astryxdesign/core/Toast";
 import {
   BLUEPRINT_20_PRESET,
   Button,
+  LEGACY_PALETTE_STORAGE_KEY,
+  LEGACY_TYPOGRAPHY_STORAGE_KEY,
   MAX_SHADE_COUNT,
+  WORKSPACE_STORAGE_KEY,
+  loadWorkspace,
+  withPaletteSlice,
+  withSharedName,
+  type WorkspaceLoadInput,
+  defaultLightnessValues,
   clampLightnessValue,
-  generateLightnessArray,
-  generatePalette,
+  generatePalettes,
   generateStableWeights,
-  isValidLightnessSequence,
   normalizeHex,
   normalizeTrackAdjustments,
   normalizeTrackName,
@@ -33,7 +39,6 @@ import {
   resizeLightnessArray,
   type ColorTrackInput,
   type PaletteProjectData,
-  type TrackAdjustments,
 } from "@blueprint/ui";
 import { WorkspaceNav } from "../WorkspaceNav";
 import { PaletteCreation } from "./PaletteCreation";
@@ -64,48 +69,9 @@ const SEMANTIC_TRACKS: ColorTrackInput[] = [
 
 type ContrastTarget = "white" | "black" | "custom";
 
-const PROJECT_STORAGE_KEY = "blueprint.palette-project.v1";
 type PlaygroundSection = "overview" | "shade-generator" | "preview";
 
 type PaletteProject = PaletteProjectData;
-
-function readAdjustmentRecord(value: unknown): Record<number, string> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-
-  return Object.fromEntries(
-    Object.entries(value).flatMap(([weight, hex]) => {
-      const numericWeight = Number(weight);
-      if (!Number.isInteger(numericWeight) || typeof hex !== "string") {
-        return [];
-      }
-
-      try {
-        return [[numericWeight, normalizeHex(hex)]];
-      } catch {
-        return [];
-      }
-    }),
-  );
-}
-
-function readTrackAdjustments(value: unknown): TrackAdjustments {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return { anchors: {}, manualOverrides: {} };
-  }
-
-  return {
-    anchors: readAdjustmentRecord(
-      "anchors" in value ? value.anchors : undefined,
-    ),
-    manualOverrides: readAdjustmentRecord(
-      "manualOverrides" in value ? value.manualOverrides : undefined,
-    ),
-  };
-}
-
-function isLightnessPattern(value: unknown): value is LightnessPattern {
-  return value === "linear" || value === "ease-in-out" || value === "custom";
-}
 
 function createPatternValues(
   pattern: LightnessPattern,
@@ -113,104 +79,70 @@ function createPatternValues(
   maxLightness = BLUEPRINT_20_PRESET.lightnessValues[0]!,
   minLightness = BLUEPRINT_20_PRESET.lightnessValues.at(-1)!,
 ): number[] {
-  if (
-    pattern === "custom" &&
-    shadeCount === BLUEPRINT_20_PRESET.weights.length
-  ) {
-    return [...BLUEPRINT_20_PRESET.lightnessValues];
-  }
-
-  return generateLightnessArray(
+  return defaultLightnessValues(
+    pattern,
     shadeCount,
     maxLightness,
     minLightness,
-    pattern,
   );
 }
 
+/* Read every key the workspace can come from, so loadWorkspace decides which
+   one wins rather than this component guessing. */
+function readStorageKeys(): WorkspaceLoadInput {
+  return {
+    workspace: window.localStorage.getItem(WORKSPACE_STORAGE_KEY),
+    legacyPalette: window.localStorage.getItem(LEGACY_PALETTE_STORAGE_KEY),
+    legacyTypography: window.localStorage.getItem(
+      LEGACY_TYPOGRAPHY_STORAGE_KEY,
+    ),
+  };
+}
+
+/* The workspace name as this tab last saw it. A studio may only write the name
+   when it is the one that changed it — another tab may have renamed since, and
+   re-reading cannot tell whose name is newer, only that ours is a copy. */
+let adoptedName: string | null = null;
+
 function readStoredProject(): PaletteProject | null {
   try {
-    const stored = window.localStorage.getItem(PROJECT_STORAGE_KEY);
-    if (!stored) return null;
-
-    const parsed: unknown = JSON.parse(stored);
-    if (
-      !parsed ||
-      typeof parsed !== "object" ||
-      !("name" in parsed) ||
-      typeof parsed.name !== "string" ||
-      !("tracks" in parsed) ||
-      !Array.isArray(parsed.tracks)
-    ) {
-      return null;
-    }
-
-    const tracks = parsed.tracks.flatMap((track): ColorTrackInput[] => {
-      if (
-        !track ||
-        typeof track !== "object" ||
-        !("id" in track) ||
-        typeof track.id !== "string" ||
-        !("name" in track) ||
-        typeof track.name !== "string" ||
-        !("seedHex" in track) ||
-        typeof track.seedHex !== "string"
-      ) {
-        return [];
-      }
-
-      try {
-        return [
-          {
-            id: track.id,
-            name: normalizeTrackName(track.name),
-            seedHex: normalizeHex(track.seedHex),
-            adjustments: readTrackAdjustments(
-              "adjustments" in track ? track.adjustments : undefined,
-            ),
-          },
-        ];
-      } catch {
-        return [];
-      }
-    });
-
-    if (tracks.length === 0) return null;
-
-    let lightnessPattern: LightnessPattern = "custom";
-    let lightnessValues = createPatternValues("custom");
-
-    if (
-      "lightnessValues" in parsed &&
-      Array.isArray(parsed.lightnessValues) &&
-      parsed.lightnessValues.every(
-        (value): value is number => typeof value === "number",
-      ) &&
-      parsed.lightnessValues.length >= MIN_SHADE_COUNT &&
-      parsed.lightnessValues.length <= MAX_SHADE_COUNT &&
-      isValidLightnessSequence(parsed.lightnessValues)
-    ) {
-      lightnessValues = [...parsed.lightnessValues];
-
-      if (
-        "lightnessPattern" in parsed &&
-        isLightnessPattern(parsed.lightnessPattern)
-      ) {
-        lightnessPattern = parsed.lightnessPattern;
-      }
-    }
-
-    return {
-      name: parsed.name,
-      tracks,
-      lightnessPattern,
-      lightnessValues,
-    };
+    const workspace = loadWorkspace(readStorageKeys()).project;
+    adoptedName = workspace?.name ?? null;
+    /* Adopt the workspace name: it is one name, and the other studio may
+       have set it. */
+    return workspace ? withSharedName(workspace).palette : null;
   } catch {
     return null;
   }
 }
 
+/**
+ * Persist the palette half, and only that half.
+ *
+ * The stored workspace is re-read here rather than reused from state: the
+ * typography studio owns the other slice and may have written it since this
+ * page loaded. Writing the copy we loaded would take its work with us.
+ */
+function writeStoredProject(project: PaletteProject | null): void {
+  try {
+    const current = loadWorkspace(readStorageKeys()).project;
+    const renamedHere = !!project && project.name !== adoptedName;
+    /* withSharedName after the patch, so a name someone else set reaches this
+       slice too rather than leaving storage disagreeing with itself. */
+    const next = withSharedName(
+      withPaletteSlice(
+        current,
+        project,
+        renamedHere ? project.name : undefined,
+      ),
+    );
+    adoptedName = next.name;
+    window.localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    /* A storage that will not take a write is not something the studio can
+       resolve, and losing the session is worse than losing the save. */
+  }
+}
 function createDefaultTracks(primarySeed: string): ColorTrackInput[] {
   return SEMANTIC_TRACKS.map((track) =>
     track.id === "primary" ? { ...track, seedHex: primarySeed } : { ...track },
@@ -261,11 +193,7 @@ function PaletteStudioContent() {
   useEffect(() => {
     if (!hasLoadedProject) return;
 
-    if (project) {
-      window.localStorage.setItem(PROJECT_STORAGE_KEY, JSON.stringify(project));
-    } else {
-      window.localStorage.removeItem(PROJECT_STORAGE_KEY);
-    }
+    writeStoredProject(project);
   }, [hasLoadedProject, project]);
 
   const weights = useMemo(() => {
@@ -277,11 +205,8 @@ function PaletteStudioContent() {
   }, [project?.lightnessValues.length]);
 
   const palettes = useMemo(
-    () =>
-      project?.tracks.map((track) =>
-        generatePalette(track, project.lightnessValues, weights),
-      ) ?? [],
-    [project, weights],
+    () => (project ? generatePalettes(project) : []),
+    [project],
   );
   const activeTrack =
     palettes.find((palette) => palette.id === activeTrackId) ?? null;

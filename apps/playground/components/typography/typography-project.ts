@@ -1,17 +1,22 @@
 import {
-  migrateLegacyProject,
-  normalizeStoredSystem,
-  TYPE_SCALE_UNITS,
-  type LegacyTypographyProject,
+  DEFAULT_SPECIMEN_TEXT as PACKAGE_SPECIMEN_TEXT,
+  DEFAULT_TYPE_SCALE_UNIT,
+  LEGACY_PALETTE_STORAGE_KEY,
+  LEGACY_TYPOGRAPHY_STORAGE_KEY,
+  WORKSPACE_STORAGE_KEY,
+  loadWorkspace,
+  withSharedName,
+  withTypographySlice,
+  type WorkspaceLoadInput,
+  type PaletteProjectData,
   type TypeScaleUnit,
   type TypeSystem,
+  type TypographyProjectData,
 } from "@blueprint/ui";
 import { PREVIEW_TEMPLATES, type PreviewTemplateId } from "./preview-templates";
 
-const TYPOGRAPHY_STORAGE_KEY = "blueprint.typography-project.v1";
-
-export const DEFAULT_UNIT: TypeScaleUnit = "rem";
-export const DEFAULT_SPECIMEN_TEXT = "How vexingly quick daft zebras jump";
+export const DEFAULT_UNIT: TypeScaleUnit = DEFAULT_TYPE_SCALE_UNIT;
+export const DEFAULT_SPECIMEN_TEXT = PACKAGE_SPECIMEN_TEXT;
 export const DEFAULT_TEMPLATE: PreviewTemplateId = "specimen";
 
 export interface TypographyProject {
@@ -25,79 +30,83 @@ export interface TypographyProject {
   template: PreviewTemplateId;
 }
 
-export function readStoredProject(): TypographyProject | null {
+/* Every key the workspace can come from, so loadWorkspace decides which one
+   wins rather than this module guessing. */
+function readStorageKeys(): WorkspaceLoadInput {
+  return {
+    workspace: window.localStorage.getItem(WORKSPACE_STORAGE_KEY),
+    legacyPalette: window.localStorage.getItem(LEGACY_PALETTE_STORAGE_KEY),
+    legacyTypography: window.localStorage.getItem(
+      LEGACY_TYPOGRAPHY_STORAGE_KEY,
+    ),
+  };
+}
+
+/* The workspace name as this tab last saw it. See the note in PaletteStudio:
+   only the tab that changed the name may write it. */
+let adoptedName: string | null = null;
+
+/** The palette half of the workspace, for previewing type on real colours. */
+export function readStoredPalette(): PaletteProjectData | null {
   try {
-    const stored = window.localStorage.getItem(TYPOGRAPHY_STORAGE_KEY);
-    if (!stored) return null;
-
-    const parsed: unknown = JSON.parse(stored);
-    if (!parsed || typeof parsed !== "object") return null;
-
-    const prefs = readPreferences(parsed);
-
-    /* Two shapes live under this key. The pre-merge one has roleStyles and a
-       flat fontFamily; the merged one has a system. Detect rather than version,
-       so nobody's saved work is orphaned by the rename. */
-    if ("roleStyles" in parsed && !("system" in parsed)) {
-      const legacy = parsed as unknown as LegacyTypographyProject;
-      if (
-        typeof legacy.name !== "string" ||
-        typeof legacy.fontFamily !== "string" ||
-        typeof legacy.baseFontSizePx !== "number" ||
-        typeof legacy.ratio !== "number" ||
-        typeof legacy.stepCount !== "number" ||
-        !legacy.roleStyles
-      ) {
-        return null;
-      }
-      return { system: migrateLegacyProject(legacy), ...prefs };
-    }
-
-    if (!("system" in parsed)) return null;
-
-    /* Normalise rather than trust: an earlier release stored a system with no
-       groups, roles keyed by `group`, and absolute steps. Reading one of those
-       as-is crashed on system.groups.map. */
-    const system = normalizeStoredSystem(parsed.system);
-    if (!system) return null;
-
-    return { system, ...prefs };
+    const workspace = loadWorkspace(readStorageKeys()).project;
+    return workspace ? withSharedName(workspace).palette : null;
   } catch {
     return null;
   }
 }
 
-/** Clearing the project removes the key, so a reload lands on creation. */
-export function writeStoredProject(project: TypographyProject | null): void {
-  if (project) {
-    window.localStorage.setItem(
-      TYPOGRAPHY_STORAGE_KEY,
-      JSON.stringify(project),
+export function readStoredProject(): TypographyProject | null {
+  try {
+    const workspace = loadWorkspace(readStorageKeys()).project;
+    adoptedName = workspace?.name ?? null;
+    /* Adopt the workspace name: it is one name, and the other studio may have
+       set it. */
+    return narrowTemplate(
+      workspace ? withSharedName(workspace).typography : null,
     );
-  } else {
-    window.localStorage.removeItem(TYPOGRAPHY_STORAGE_KEY);
+  } catch {
+    return null;
   }
 }
 
-function readPreferences(parsed: object): {
-  unit: TypeScaleUnit;
-  specimenText: string;
-  template: PreviewTemplateId;
-} {
+/* The package reads `template` as a string, since it does not know which
+   templates exist. This is where that becomes one of ours. */
+function narrowTemplate(
+  data: TypographyProjectData | null,
+): TypographyProject | null {
+  if (!data) return null;
   return {
-    unit:
-      "unit" in parsed &&
-      TYPE_SCALE_UNITS.includes(parsed.unit as TypeScaleUnit)
-        ? (parsed.unit as TypeScaleUnit)
-        : DEFAULT_UNIT,
-    specimenText:
-      "specimenText" in parsed && typeof parsed.specimenText === "string"
-        ? parsed.specimenText
-        : DEFAULT_SPECIMEN_TEXT,
-    template:
-      "template" in parsed &&
-      PREVIEW_TEMPLATES.some((entry) => entry.id === parsed.template)
-        ? (parsed.template as PreviewTemplateId)
-        : DEFAULT_TEMPLATE,
+    ...data,
+    template: PREVIEW_TEMPLATES.some((entry) => entry.id === data.template)
+      ? (data.template as PreviewTemplateId)
+      : DEFAULT_TEMPLATE,
   };
+}
+
+/**
+ * Persist the typography half, and only that half.
+ *
+ * The stored workspace is re-read rather than reused from state: the palette
+ * studio owns the other slice and may have written it since this page loaded.
+ * Clearing the project nulls this slice rather than removing the key, so a
+ * new type scale never costs someone their palette.
+ */
+export function writeStoredProject(project: TypographyProject | null): void {
+  try {
+    const current = loadWorkspace(readStorageKeys()).project;
+    const renamedHere = !!project && project.system.name !== adoptedName;
+    const next = withSharedName(
+      withTypographySlice(
+        current,
+        project,
+        renamedHere ? project.system.name : undefined,
+      ),
+    );
+    adoptedName = next.name;
+    window.localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    /* A storage that will not take a write is not something the studio can
+       resolve, and losing the session is worse than losing the save. */
+  }
 }
