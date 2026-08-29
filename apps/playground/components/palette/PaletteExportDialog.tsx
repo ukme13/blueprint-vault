@@ -10,14 +10,15 @@ import {
   Button,
   COLOUR_FORMAT_LABELS,
   COLOUR_FORMATS,
-  formatBlueprintPaletteProject,
+  formatBlueprintWorkspace,
   formatPaletteCssExport,
   formatPaletteDesignTokens,
   formatPaletteTailwindExport,
-  parseBlueprintPaletteProject,
+  parseBlueprintWorkspace,
   type ColorTrack,
   type ColourFormat,
   type PaletteProjectData,
+  type WorkspaceProject,
 } from "@blueprint/ui";
 import { useColourFormat } from "./ColourFormatContext";
 import styles from "./palette-workspace.module.css";
@@ -28,14 +29,16 @@ const FORMATS: Array<{ value: ExportFormat; label: string }> = [
   { value: "css", label: "CSS" },
   { value: "tailwind", label: "Tailwind CSS" },
   { value: "tokens", label: "Design Tokens" },
-  { value: "project", label: "Blueprint Project" },
+  { value: "project", label: "Blueprint Workspace" },
 ];
 
 interface PaletteExportDialogProps {
   isOpen: boolean;
   palettes: ColorTrack[];
   project: PaletteProjectData;
-  onImportRequest: (project: PaletteProjectData) => void;
+  /** Both halves, since a project file that carried one lost the other. */
+  workspace: WorkspaceProject;
+  onImportRequest: (project: WorkspaceProject) => void;
   onOpenChange: (isOpen: boolean) => void;
 }
 
@@ -43,6 +46,7 @@ export function PaletteExportDialog({
   isOpen,
   palettes,
   project,
+  workspace,
   onImportRequest,
   onOpenChange,
 }: PaletteExportDialogProps) {
@@ -66,10 +70,10 @@ export function PaletteExportDialog({
       return formatPaletteDesignTokens(palettes, colourFormat);
     }
     if (exportFormat === "project") {
-      return formatBlueprintPaletteProject(project);
+      return formatBlueprintWorkspace(workspace);
     }
     return formatPaletteCssExport(palettes, colourFormat);
-  }, [colourFormat, exportFormat, palettes, project]);
+  }, [colourFormat, exportFormat, palettes, workspace]);
 
   const extension =
     exportFormat === "project" || exportFormat === "tokens" ? "json" : "css";
@@ -77,7 +81,7 @@ export function PaletteExportDialog({
     project.name
       .trim()
       .replace(/[^a-z0-9]+/gi, "-")
-      .toLowerCase() || "blueprint-palette"
+      .toLowerCase() || "blueprint-workspace"
   }.${exportFormat === "project" ? "blueprint." : ""}${extension}`;
 
   const downloadOutput = () => {
@@ -99,7 +103,7 @@ export function PaletteExportDialog({
     if (!file) return;
 
     try {
-      const importedProject = parseBlueprintPaletteProject(await file.text());
+      const importedProject = parseBlueprintWorkspace(await file.text());
       setImportError("");
       onOpenChange(false);
       onImportRequest(importedProject);

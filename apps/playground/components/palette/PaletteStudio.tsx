@@ -27,6 +27,7 @@ import {
   loadWorkspace,
   withPaletteSlice,
   withSharedName,
+  type WorkspaceProject,
   type WorkspaceLoadInput,
   defaultLightnessValues,
   clampLightnessValue,
@@ -35,7 +36,7 @@ import {
   normalizeHex,
   normalizeTrackAdjustments,
   normalizeTrackName,
-  parseBlueprintPaletteProject,
+  parseBlueprintWorkspace,
   resizeLightnessArray,
   type ColorTrackInput,
   type PaletteProjectData,
@@ -123,6 +124,33 @@ function readStoredProject(): PaletteProject | null {
  * typography studio owns the other slice and may have written it since this
  * page loaded. Writing the copy we loaded would take its work with us.
  */
+/** The typography half, so an exported file carries the whole workspace. */
+function readStoredTypography() {
+  try {
+    return loadWorkspace(readStorageKeys()).project?.typography ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Replace the whole document.
+ *
+ * The one place this studio writes the other half, and it is not the rule
+ * being broken: an import is the user deliberately replacing everything,
+ * rather than one studio persisting a stale copy of a slice it does not own.
+ */
+function writeImportedWorkspace(imported: WorkspaceProject): void {
+  try {
+    window.localStorage.setItem(
+      WORKSPACE_STORAGE_KEY,
+      JSON.stringify(withSharedName(imported)),
+    );
+  } catch {
+    /* Storage refused it. The studio still shows the imported palette. */
+  }
+}
+
 function writeStoredProject(project: PaletteProject | null): void {
   try {
     const current = loadWorkspace(readStorageKeys()).project;
@@ -169,7 +197,11 @@ function PaletteStudioContent() {
   const [customContrastColour, setCustomContrastColour] = useState("#7646ab");
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
-  const [pendingImport, setPendingImport] = useState<PaletteProjectData | null>(
+  /* Read once on load, so an export carries the type scale without this
+     component reading storage while it renders. */
+  const [typographySlice, setTypographySlice] =
+    useState<WorkspaceProject["typography"]>(null);
+  const [pendingImport, setPendingImport] = useState<WorkspaceProject | null>(
     null,
   );
   const [activeSection, setActiveSection] =
@@ -187,6 +219,7 @@ function PaletteStudioContent() {
        hydration. */
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setProject(readStoredProject());
+    setTypographySlice(readStoredTypography());
     setHasLoadedProject(true);
   }, []);
 
@@ -217,7 +250,7 @@ function PaletteStudioContent() {
     if (!file) return;
 
     try {
-      setPendingImport(parseBlueprintPaletteProject(await file.text()));
+      setPendingImport(parseBlueprintWorkspace(await file.text()));
     } catch {
       toast({
         autoHideDuration: 2400,
@@ -262,7 +295,11 @@ function PaletteStudioContent() {
   if (!project) {
     return (
       <PaletteCreation
-        onImport={setProject}
+        onImport={(imported) => {
+          writeImportedWorkspace(imported);
+          setTypographySlice(imported.typography);
+          setProject(imported.palette);
+        }}
         onCreate={({ name, seedHex, method }) => {
           const primarySeed =
             method === "generated" ? "#3b66f5" : normalizeHex(seedHex);
@@ -834,6 +871,11 @@ function PaletteStudioContent() {
         palettes={palettes}
         project={project}
         onImportRequest={setPendingImport}
+        workspace={{
+          name: project.name,
+          palette: project,
+          typography: typographySlice,
+        }}
         onOpenChange={setIsExportDialogOpen}
       />
 
@@ -844,7 +886,11 @@ function PaletteStudioContent() {
         title="Replace current project?"
         onAction={() => {
           if (!pendingImport) return;
-          setProject(pendingImport);
+          /* Both halves, before the palette state lands — the persist effect
+             below only ever writes its own slice. */
+          writeImportedWorkspace(pendingImport);
+          setTypographySlice(pendingImport.typography);
+          setProject(pendingImport.palette);
           setPendingImport(null);
           setActiveShade(null);
           setActiveTrackId(null);

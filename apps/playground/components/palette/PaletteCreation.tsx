@@ -6,8 +6,8 @@ import { TextInput } from "@astryxdesign/core/TextInput";
 import {
   Button,
   normalizeHex,
-  parseBlueprintPaletteProject,
-  type PaletteProjectData,
+  parseBlueprintWorkspace,
+  type WorkspaceProject,
 } from "@blueprint/ui";
 import { WorkspaceNav } from "../WorkspaceNav";
 import { ColourPicker } from "./ColourPicker";
@@ -21,7 +21,9 @@ interface PaletteCreationProps {
     seedHex: string;
     method: CreationMethod;
   }) => void;
-  onImport: (project: PaletteProjectData) => void;
+  /* A workspace, not a palette: someone landing here has usually just cleared
+     storage and is restoring a whole project file. */
+  onImport: (project: WorkspaceProject) => void;
 }
 
 export function PaletteCreation({ onCreate, onImport }: PaletteCreationProps) {
@@ -37,7 +39,7 @@ export function PaletteCreation({ onCreate, onImport }: PaletteCreationProps) {
     if (!file) return;
 
     try {
-      onImport(parseBlueprintPaletteProject(await file.text()));
+      onImport(parseBlueprintWorkspace(await file.text()));
     } catch {
       setError("Choose a valid Blueprint project file.");
     }
