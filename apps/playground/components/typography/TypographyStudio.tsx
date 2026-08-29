@@ -488,8 +488,9 @@ export function TypographyStudio() {
                 />
               ))}
               <Button
+                className={styles.addEntryButton}
                 scheme="neutral"
-                size="xs"
+                size="small"
                 variant="outlined"
                 onClick={addFont}
               >
@@ -556,6 +557,7 @@ export function TypographyStudio() {
 
             <div className={styles.settingGroup}>
               <Button
+                className={styles.addEntryButton}
                 scheme="neutral"
                 size="small"
                 variant="outlined"
