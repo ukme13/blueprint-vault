@@ -2,12 +2,14 @@
 
 import type { CSSProperties } from "react";
 import {
+  assessTextContrastAtSize,
   Button,
   elementForRole,
   formatLength,
   type SemanticRole,
   type TypeRole,
   type TypeScaleUnit,
+  type ColorTrack,
   type TypeSystem,
 } from "@blueprint/ui";
 import {
@@ -20,6 +22,11 @@ import {
   type PreviewTemplateId,
   type PreviewWidth,
 } from "./preview-templates";
+import {
+  PreviewColourControls,
+  resolveShadeHex,
+  type ShadeRef,
+} from "./PreviewColourControls";
 import styles from "./typography-workspace.module.css";
 
 const PREVIEW_TEXT: Record<SemanticRole, { en: string; th: string }> = {
@@ -57,6 +64,12 @@ export interface TypographyPreviewProps {
   onTemplateChange: (template: PreviewTemplateId) => void;
   onWidthChange: (width: PreviewWidth) => void;
   onLangChange: (lang: PreviewLanguage) => void;
+  /** The palette half of the workspace, generated. Empty when there is none. */
+  tracks: ColorTrack[];
+  textShade: ShadeRef | null;
+  backgroundShade: ShadeRef | null;
+  onTextShadeChange: (ref: ShadeRef | null) => void;
+  onBackgroundShadeChange: (ref: ShadeRef | null) => void;
 }
 
 export function TypographyPreview({
@@ -71,7 +84,14 @@ export function TypographyPreview({
   onTemplateChange,
   onWidthChange,
   onLangChange,
+  tracks,
+  textShade,
+  backgroundShade,
+  onTextShadeChange,
+  onBackgroundShadeChange,
 }: TypographyPreviewProps) {
+  const textHex = resolveShadeHex(tracks, textShade);
+  const backgroundHex = resolveShadeHex(tracks, backgroundShade);
   return (
     <section aria-label="Type scale preview" className={styles.previewPage}>
       <div
@@ -135,9 +155,24 @@ export function TypographyPreview({
         </div>
       </div>
 
+      <PreviewColourControls
+        background={backgroundShade}
+        text={textShade}
+        tracks={tracks}
+        onBackgroundChange={onBackgroundShadeChange}
+        onTextChange={onTextShadeChange}
+      />
+
       <div
         className={styles.previewStage}
-        style={{ maxWidth: `${PREVIEW_WIDTHS[width]}px` }}
+        data-preview-colours={textHex && backgroundHex ? "true" : undefined}
+        style={{
+          maxWidth: `${PREVIEW_WIDTHS[width]}px`,
+          /* Only set when chosen, so an unpicked colour keeps inheriting the
+             studio chrome rather than being forced to a default. */
+          ...(backgroundHex ? { background: backgroundHex } : {}),
+          ...(textHex ? { color: textHex } : {}),
+        }}
       >
         {template === "article" && (
           <ArticleTemplate lang={lang} styleFor={styleFor} />
@@ -156,6 +191,17 @@ export function TypographyPreview({
                 : sample.en
               : specimenText || role.name;
             const Tag = elementForRole(system, role);
+            /* Judged at this role's own size and weight: the same pair of
+               colours passes at a heading and fails at a caption. */
+            const contrast =
+              textHex && backgroundHex
+                ? assessTextContrastAtSize(
+                    textHex,
+                    backgroundHex,
+                    role.desktop.fontSizePx,
+                    role.fontWeight,
+                  )
+                : null;
 
             return (
               <article key={role.id} className={styles.previewRole}>
@@ -166,6 +212,14 @@ export function TypographyPreview({
                     {role.fontWeight} · line height {role.desktop.lineHeight} ·{" "}
                     {elementForRole(system, role)}
                   </p>
+                  {contrast && (
+                    <p
+                      className={styles.previewContrast}
+                      data-status={contrast.status}
+                    >
+                      {contrast.ratio.toFixed(2)}:1 · {contrast.summary}
+                    </p>
+                  )}
                 </header>
                 <Tag style={styleFor(role.id)}>{text}</Tag>
               </article>

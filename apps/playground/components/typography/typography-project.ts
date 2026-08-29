@@ -8,6 +8,7 @@ import {
   withSharedName,
   withTypographySlice,
   type WorkspaceLoadInput,
+  type PaletteProjectData,
   type TypeScaleUnit,
   type TypeSystem,
   type TypographyProjectData,
@@ -44,6 +45,16 @@ function readStorageKeys(): WorkspaceLoadInput {
 /* The workspace name as this tab last saw it. See the note in PaletteStudio:
    only the tab that changed the name may write it. */
 let adoptedName: string | null = null;
+
+/** The palette half of the workspace, for previewing type on real colours. */
+export function readStoredPalette(): PaletteProjectData | null {
+  try {
+    const workspace = loadWorkspace(readStorageKeys()).project;
+    return workspace ? withSharedName(workspace).palette : null;
+  } catch {
+    return null;
+  }
+}
 
 export function readStoredProject(): TypographyProject | null {
   try {

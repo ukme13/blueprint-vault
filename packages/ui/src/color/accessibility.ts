@@ -6,6 +6,12 @@ export const WCAG_CONTRAST = {
   largeTextAA: 3,
   largeTextAAA: 4.5,
   nonText: 3,
+  /* WCAG large text: 18pt, or 14pt when bold. Converted at the 4/3 ratio the
+     guideline itself uses, which is why these are 24 and 18.66 rather than
+     round pixel numbers. */
+  largeTextPx: 24,
+  largeTextBoldPx: 18.66,
+  boldFontWeight: 700,
   focusIndicator: 3,
 } as const;
 
@@ -124,6 +130,60 @@ export function assessTextContrast(
     status,
     summary,
   };
+}
+
+export interface SizedTextContrastResult extends TextContrastResult {
+  /** Whether WCAG counts text at this size and weight as large. */
+  isLargeText: boolean;
+  /** The threshold that actually applies, AA. */
+  requiredAA: number;
+}
+
+/** Whether WCAG counts text at this size and weight as large. */
+export function isLargeText(fontSizePx: number, fontWeight: number): boolean {
+  return fontWeight >= WCAG_CONTRAST.boldFontWeight
+    ? fontSizePx >= WCAG_CONTRAST.largeTextBoldPx
+    : fontSizePx >= WCAG_CONTRAST.largeTextPx;
+}
+
+/**
+ * The contrast verdict for text at a known size and weight.
+ *
+ * assessTextContrast reports normal and large separately and leaves the
+ * choosing to the caller, which is right when the size is unknown. Once a type
+ * scale has generated one, the size is known and only one of those two answers
+ * is the truth — the same pair of colours passes at a heading and fails at a
+ * caption, and a reader is not helped by being told both.
+ */
+export function assessTextContrastAtSize(
+  foreground: string,
+  background: string,
+  fontSizePx: number,
+  fontWeight: number,
+): SizedTextContrastResult {
+  const base = assessTextContrast(foreground, background);
+  const large = isLargeText(fontSizePx, fontWeight);
+  const level = large ? base.largeText : base.normalText;
+  const requiredAA = large
+    ? WCAG_CONTRAST.largeTextAA
+    : WCAG_CONTRAST.normalTextAA;
+
+  const size = large ? "large" : "normal";
+  let status: AccessibilityStatus;
+  let summary: string;
+
+  if (level.aaa) {
+    status = "pass";
+    summary = `Passes AAA at ${fontSizePx}px ${fontWeight}, which WCAG counts as ${size} text.`;
+  } else if (level.aa) {
+    status = "pass";
+    summary = `Passes AA at ${fontSizePx}px ${fontWeight}, which WCAG counts as ${size} text.`;
+  } else {
+    status = "fail";
+    summary = `Fails at ${fontSizePx}px ${fontWeight}: ${size} text needs ${requiredAA}:1 and this pair is ${base.ratio.toFixed(2)}:1.`;
+  }
+
+  return { ...base, isLargeText: large, requiredAA, status, summary };
 }
 
 export function assessNonTextContrast(

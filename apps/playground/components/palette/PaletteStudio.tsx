@@ -30,7 +30,7 @@ import {
   type WorkspaceLoadInput,
   defaultLightnessValues,
   clampLightnessValue,
-  generatePalette,
+  generatePalettes,
   generateStableWeights,
   normalizeHex,
   normalizeTrackAdjustments,
@@ -205,11 +205,8 @@ function PaletteStudioContent() {
   }, [project?.lightnessValues.length]);
 
   const palettes = useMemo(
-    () =>
-      project?.tracks.map((track) =>
-        generatePalette(track, project.lightnessValues, weights),
-      ) ?? [],
-    [project, weights],
+    () => (project ? generatePalettes(project) : []),
+    [project],
   );
   const activeTrack =
     palettes.find((palette) => palette.id === activeTrackId) ?? null;

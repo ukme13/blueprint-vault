@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  findShade,
+  generatePalettes,
   clampLightnessValue,
   formatPaletteCss,
   generateLightnessArray,
@@ -232,5 +234,39 @@ describe("palette generation", () => {
     expect(css).toContain("/* Palette: INFO */");
     expect(css).toContain("--color-info-50: oklch(");
     expect(css).toContain("--color-info-950: oklch(");
+  });
+});
+
+describe("generatePalettes and findShade", () => {
+  const project = {
+    tracks: [
+      { id: "primary", name: "primary", seedHex: "#7646ab" },
+      { id: "neutral", name: "neutral", seedHex: "#737373" },
+    ],
+    lightnessValues: [97.5, 90, 80, 70, 60, 50, 40, 30, 20, 5],
+  };
+
+  it("generates every track of a project", () => {
+    const palettes = generatePalettes(project);
+    expect(palettes.map((track) => track.id)).toEqual(["primary", "neutral"]);
+    expect(palettes[0]!.shades).toHaveLength(10);
+  });
+
+  it("has nothing to generate without a lightness ramp", () => {
+    expect(generatePalettes({ ...project, lightnessValues: [] })).toEqual([]);
+  });
+
+  it("finds a shade by track and weight", () => {
+    const palettes = generatePalettes(project);
+    const weight = palettes[0]!.shades[3]!.weight;
+    expect(findShade(palettes, "primary", weight)?.hex).toBe(
+      palettes[0]!.shades[3]!.hex,
+    );
+  });
+
+  it("returns null for a track or weight the palette no longer has", () => {
+    const palettes = generatePalettes(project);
+    expect(findShade(palettes, "gone", 500)).toBeNull();
+    expect(findShade(palettes, "primary", 12345)).toBeNull();
   });
 });

@@ -128,7 +128,7 @@ persists with the project, because it is part of what you are designing. Preview
 width and language do not: they are ways of looking at the project, not part of
 it, so they reset on reload.
 
-## Stage 4 — Preview against the real palette
+## Stage 4 — Preview against the real palette ✅ done
 
 The reference offers two hex inputs for text and background. Blueprint can do
 better, and its own rules forbid raw hex in components.

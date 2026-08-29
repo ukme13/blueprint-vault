@@ -17,6 +17,7 @@ import {
   assessScaleGrowth,
   assessStepCount,
   Button,
+  generatePalettes,
   generateTypeSteps,
   MAX_BASE_FONT_SIZE_PX,
   MAX_STEP_COUNT,
@@ -32,6 +33,7 @@ import {
   resolveRoleSizePx,
   TYPE_SCALE_UNITS,
   TYPE_SCALE_RATIO_PRESETS,
+  type PaletteProjectData,
   type TypeRole,
   type TypeScaleUnit,
   type TypeSystem,
@@ -43,10 +45,12 @@ import { type PreviewLanguage, type PreviewWidth } from "./preview-templates";
 import { FontStackEditor } from "./FontStackEditor";
 import { RoleGroupEditor } from "./RoleGroupEditor";
 import { TypographyPreview } from "./TypographyPreview";
+import type { ShadeRef } from "./PreviewColourControls";
 import {
   DEFAULT_SPECIMEN_TEXT,
   DEFAULT_TEMPLATE,
   DEFAULT_UNIT,
+  readStoredPalette,
   readStoredProject,
   writeStoredProject,
   type TypographyProject,
@@ -70,6 +74,11 @@ export function TypographyStudio() {
   /* Which font entry the step list renders in. The steps are sizes shared by
      several roles, so they have no font of their own to follow. */
   const [previewFontId, setPreviewFontId] = useState<string | null>(null);
+  /* The palette half of the same workspace, read once on load. Preview colours
+     are a way of looking at the scale, so the chosen pair is view state. */
+  const [palette, setPalette] = useState<PaletteProjectData | null>(null);
+  const [textShade, setTextShade] = useState<ShadeRef | null>(null);
+  const [backgroundShade, setBackgroundShade] = useState<ShadeRef | null>(null);
   const [previewWeight, setPreviewWeight] = useState<number | null>(null);
   const inspectorPanel = useResizable({
     autoSaveId: "blueprint-typography-inspector",
@@ -84,6 +93,7 @@ export function TypographyStudio() {
        hydration. */
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setProject(readStoredProject());
+    setPalette(readStoredPalette());
     setHasLoadedProject(true);
   }, []);
 
@@ -117,6 +127,11 @@ export function TypographyStudio() {
       };
     });
   }, [system, steps]);
+
+  const paletteTracks = useMemo(
+    () => (palette ? generatePalettes(palette) : []),
+    [palette],
+  );
 
   const resolvedSystem: TypeSystem | null = system
     ? { ...system, roles: resolvedRoles }
@@ -585,6 +600,11 @@ export function TypographyStudio() {
           width={previewWidth}
           onLangChange={setPreviewLang}
           onTemplateChange={(template) => setPreference({ template })}
+          backgroundShade={backgroundShade}
+          textShade={textShade}
+          tracks={paletteTracks}
+          onBackgroundShadeChange={setBackgroundShade}
+          onTextShadeChange={setTextShade}
           onWidthChange={setPreviewWidth}
         />
       )}
