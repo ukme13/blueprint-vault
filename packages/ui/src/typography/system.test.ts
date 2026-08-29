@@ -16,6 +16,7 @@ import {
   removeRole,
   renameGroup,
   setFontFamilies,
+  setLocalFont,
   slugify,
   updateGroup,
   updateRole,
@@ -547,5 +548,40 @@ describe("setFontFamilies", () => {
     const after = setFontFamilies(before, "base", ["Sarabun"]);
     expect(after.fonts[1]!.families).toEqual(["Lora"]);
     expect(after.fonts[1]!.source).toBe("system");
+  });
+});
+
+describe("setLocalFont", () => {
+  it("points the entry at the uploaded family and marks it local", () => {
+    const before = system();
+    const after = setLocalFont(before, "base", "Brand-Regular");
+    expect(after.fonts[0]!.families[0]).toBe("Brand-Regular");
+    expect(after.fonts[0]!.source).toBe("local");
+  });
+
+  it("keeps a generic on the end, so a missing file still renders", () => {
+    const after = setLocalFont(system(), "base", "Brand-Regular");
+    // The file can be absent in another browser; the entry must still resolve.
+    expect(after.fonts[0]!.families.at(-1)).toBe("sans-serif");
+  });
+
+  it("leaves the other entries alone", () => {
+    const before = system({
+      fonts: [
+        { id: "base", name: "Base", families: ["Inter"], source: "system" },
+        { id: "alt", name: "Alt", families: ["Lora"], source: "google" },
+      ],
+    });
+    const after = setLocalFont(before, "base", "Brand");
+    expect(after.fonts[1]!.families).toEqual(["Lora"]);
+    expect(after.fonts[1]!.source).toBe("google");
+  });
+
+  it("takes an entry back off local when a Google family is picked", () => {
+    // setFontFamilies is the other direction, so an upload is recoverable.
+    const local = setLocalFont(system(), "base", "Brand");
+    const back = setFontFamilies(local, "base", ["Inter", "sans-serif"]);
+    expect(back.fonts[0]!.source).toBe("google");
+    expect(back.fonts[0]!.families[0]).toBe("Inter");
   });
 });

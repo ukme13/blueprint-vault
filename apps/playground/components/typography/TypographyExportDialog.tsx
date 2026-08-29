@@ -47,6 +47,13 @@ export function TypographyExportDialog({
 }: TypographyExportDialogProps) {
   const [exportFormat, setExportFormat] = useState<ExportFormat>("css");
 
+  /* Only the entries actually backed by a file. A Google or system family is
+     the reader's to load and carries no licence question of ours. */
+  const localFamilies = system.fonts
+    .filter((font) => font.source === "local")
+    .map((font) => font.families[0])
+    .filter((family): family is string => !!family);
+
   const output = useMemo(
     () =>
       exportFormat === "tailwind"
@@ -132,6 +139,16 @@ export function TypographyExportDialog({
             rem scales with the reader&rsquo;s browser font-size setting. px and
             pt do not.
           </p>
+          {localFamilies.length > 0 && (
+            /* Said here as well as where the file was added, because this is
+               the moment someone is about to ship it. */
+            <p className={styles.exportLicenceNote}>
+              This export names {localFamilies.join(", ")} and does not include
+              {localFamilies.length > 1 ? " those files" : " the file"}. Whoever
+              uses it needs the font too — check your licence covers the web,
+              which a desktop one often does not.
+            </p>
+          )}
         </section>
         <section className={styles.exportPreview} aria-label="Export preview">
           <CodeBlock

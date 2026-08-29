@@ -11,6 +11,7 @@ import {
   type TypeFont,
 } from "@blueprint/ui";
 import { GoogleFontPicker } from "./GoogleFontPicker";
+import type { LocalFontStatus } from "./use-local-fonts";
 import styles from "./typography-workspace.module.css";
 
 /**
@@ -73,6 +74,12 @@ interface FontStackEditorProps {
   onChange: (families: string[]) => void;
   onRename: (name: string) => void;
   onRemove: () => void;
+  /** Hands the picked file up; the studio stores it and names the family. */
+  onUpload: (file: File) => void;
+  /** Why the last picked file was refused, or empty when it was not. */
+  uploadError: string;
+  /** Whether the uploaded file has been found yet. Local entries only. */
+  fileStatus: LocalFontStatus;
 }
 
 export function FontStackEditor({
@@ -81,6 +88,9 @@ export function FontStackEditor({
   onChange,
   onRename,
   onRemove,
+  onUpload,
+  fileStatus,
+  uploadError,
 }: FontStackEditorProps) {
   const [script, setScript] = useState(DEFAULT_SCRIPT);
 
@@ -103,6 +113,11 @@ export function FontStackEditor({
   };
 
   const covered = primaryFont?.scripts.includes(script) ?? false;
+  /* Both notes below reason from the Google catalogue, which an uploaded file
+     is not in. "Not loaded here" would contradict the upload note directly,
+     and script coverage is not something we can read off a file we were
+     handed. */
+  const isLocal = font.source === "local";
 
   return (
     <div className={styles.fontStack}>
@@ -161,7 +176,47 @@ export function FontStackEditor({
         </div>
       </div>
 
-      {primary && !primaryFont && (
+      <div className={styles.fontStackUpload}>
+        <label className={styles.fontStackUploadLabel}>
+          {/* "Replace" would be wrong where there is nothing to replace, which
+              is the whole state this has to be honest about. */}
+          <span>
+            {!isLocal
+              ? "Upload a font file"
+              : fileStatus === "missing"
+                ? "Add the missing file"
+                : "Replace file"}
+          </span>
+          <input
+            accept=".woff2,.woff,.ttf,.otf,font/woff2,font/woff,font/ttf,font/otf"
+            type="file"
+            onChange={(event) => {
+              const picked = event.target.files?.[0];
+              /* Cleared so the same file can be picked again after a
+                 removal, which otherwise fires no change event. */
+              event.target.value = "";
+              if (picked) onUpload(picked);
+            }}
+          />
+        </label>
+        {uploadError && (
+          <p className={styles.fontStackHint} data-missing="true">
+            {uploadError}
+          </p>
+        )}
+        {isLocal && fileStatus !== "checking" && (
+          <p
+            className={styles.fontStackHint}
+            data-missing={fileStatus === "missing"}
+          >
+            {fileStatus === "loaded"
+              ? `Rendering ${primary} from your file. It stays in this browser and is never included in exports — check the licence before shipping it on the web.`
+              : `${primary} has no file in this browser, so it falls back to ${generic}. The name still applies wherever it is installed. Add the file to see it here.`}
+          </p>
+        )}
+      </div>
+
+      {primary && !primaryFont && !isLocal && (
         <p className={styles.fontStackHint}>
           {primary} is not a Google font, so it is not loaded here. It still
           applies wherever it is installed.
@@ -172,7 +227,7 @@ export function FontStackEditor({
           {primary} already covers {label(script)}, so a fallback is optional.
         </p>
       )}
-      {primary && !covered && !fallback && (
+      {primary && !covered && !fallback && !isLocal && (
         <p className={styles.fontStackHint}>
           {primary} has no {label(script)} glyphs. Without a fallback the
           browser substitutes a system font.

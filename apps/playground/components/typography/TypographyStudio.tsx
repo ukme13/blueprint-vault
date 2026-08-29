@@ -56,6 +56,12 @@ import {
   type TypographyProject,
 } from "./typography-project";
 import { useGoogleFontsLink } from "./use-google-fonts";
+import {
+  forgetLocalFonts,
+  localFontIds,
+  storeLocalFont,
+  useLocalFonts,
+} from "./use-local-fonts";
 import { useTypographySystem } from "./use-typography-system";
 import styles from "./typography-workspace.module.css";
 import type { TypographySection } from "./types";
@@ -147,6 +153,7 @@ export function TypographyStudio() {
     renameFont,
     renameGroupById,
     setFontFamilies,
+    setLocalFont,
     shiftGroup,
     updateGroup,
     updateRole,
@@ -182,6 +189,13 @@ export function TypographyStudio() {
         400);
 
   useGoogleFontsLink(system, previewFont, resolvedPreviewWeight);
+  /* Bumped after every upload, so re-adding a file that keeps its name still
+     makes the hook look again. */
+  const [fontFileRevision, setFontFileRevision] = useState(0);
+  /* Why the last picked file was refused, per entry, so the message appears
+     beside the input that refused it. */
+  const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
+  const localFontStatus = useLocalFonts(system, fontFileRevision);
 
   const bodyRole =
     resolvedRoles.find((role) => role.id === "body") ??
@@ -487,9 +501,33 @@ export function TypographyStudio() {
                   key={font.id}
                   canRemove={system.fonts.length > 1}
                   font={font}
-                  onChange={(families) => setFontFamilies(font.id, families)}
-                  onRemove={() => removeFont(font.id)}
+                  onChange={(families) => {
+                    /* Switching to a Google family leaves the uploaded file
+                       referenced by nothing. */
+                    if (font.source === "local") {
+                      void forgetLocalFonts([font.id]);
+                      setFontFileRevision((current) => current + 1);
+                    }
+                    setFontFamilies(font.id, families);
+                  }}
+                  onRemove={() => {
+                    void forgetLocalFonts([font.id]);
+                    removeFont(font.id);
+                  }}
+                  fileStatus={localFontStatus.get(font.id) ?? "checking"}
+                  uploadError={uploadErrors[font.id] ?? ""}
                   onRename={(name) => renameFont(font.id, name)}
+                  onUpload={(file) => {
+                    void storeLocalFont(font.id, file).then((result) => {
+                      setUploadErrors((current) => ({
+                        ...current,
+                        [font.id]: result.rejected ?? "",
+                      }));
+                      if (!result.family) return;
+                      setLocalFont(font.id, result.family);
+                      setFontFileRevision((current) => current + 1);
+                    });
+                  }}
                 />
               ))}
               <Button
@@ -632,6 +670,8 @@ export function TypographyStudio() {
         title="Start a new project?"
         onAction={() => {
           setIsNewProjectDialogOpen(false);
+          /* The whole scale goes, so every file it named goes with it. */
+          void forgetLocalFonts(localFontIds(system));
           setProject(null);
         }}
         onOpenChange={setIsNewProjectDialogOpen}

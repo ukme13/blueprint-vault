@@ -782,3 +782,37 @@
     width: 100%;
   }
 }
+
+.fontStackUpload {
+  display: grid;
+  gap: var(--spacing-1);
+}
+
+.fontStackUploadLabel {
+  display: grid;
+  gap: var(--spacing-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.fontStackUploadLabel input {
+  /* min-width: 0 so the file name a browser puts beside the button cannot
+     push the row past a narrow panel. */
+  min-width: 0;
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+/* A local font with no file behind it is expected, not broken — it reads as a
+   warning rather than an error for that reason. */
+.fontStackHint[data-missing="true"] {
+  color: var(--color-warning-300);
+}
+
+/* The one place the studio talks about licensing at the point of shipping. */
+.exportLicenceNote {
+  margin: 0;
+  color: var(--color-warning-300);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}

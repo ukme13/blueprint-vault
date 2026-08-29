@@ -642,6 +642,29 @@ export function removeGroup(system: TypeSystem, groupId: string): TypeSystem {
   };
 }
 
+/**
+ * Point a font entry at an uploaded file.
+ *
+ * The generic stays on the end so the entry still renders when the file is
+ * not there — another browser, or storage cleared. That is a normal state for
+ * a local font rather than an error, and the family name is what the export
+ * carries either way.
+ */
+export function setLocalFont(
+  system: TypeSystem,
+  fontId: string,
+  family: string,
+): TypeSystem {
+  return {
+    ...system,
+    fonts: system.fonts.map((font) =>
+      font.id === fontId
+        ? { ...font, families: [family, "sans-serif"], source: "local" }
+        : font,
+    ),
+  };
+}
+
 /* The picker writes a stack, so the entry becomes a Google one by definition. */
 export function setFontFamilies(
   system: TypeSystem,
