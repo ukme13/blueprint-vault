@@ -759,6 +759,8 @@
 .previewStage[data-preview-colours="true"] .previewRole > *:not(header) {
   /* The heading is near-white by default and would vanish on a light pick. */
   color: inherit;
+}
+
 /* "Add font" and "Add group" are siblings in the reader's mind, so they are one
    size and one width wherever they appear. Left to a grid child's default
    stretch they ran the full width of a panel that opens to 900px. */
