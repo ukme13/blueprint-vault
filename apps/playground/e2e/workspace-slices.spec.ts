@@ -124,3 +124,47 @@ test.describe("Workspace slices", () => {
     expect(workspace.typography).not.toBeNull();
   });
 });
+
+test.describe("One workspace name", () => {
+  test("a rename in one studio shows in the other", async ({ page }) => {
+    await seedBoth(page);
+    await page.goto("/typography");
+    await expect(
+      page.getByRole("region", { name: "Type scale settings" }),
+    ).toBeVisible();
+
+    // Migration took the palette name, so the scale opens under it.
+    const typographyName = page.getByLabel("Project name");
+    await expect(typographyName).toHaveValue("My colour system");
+
+    await typographyName.fill("Brand system");
+    await typographyName.blur();
+
+    await page.goto("/");
+    await expect(page.getByLabel("Project name")).toHaveValue("Brand system");
+  });
+
+  test("the renamed workspace reaches both slices, not just the topbar", async ({
+    page,
+  }) => {
+    await seedBoth(page);
+    await page.goto("/");
+    await expect(
+      page.getByRole("region", { name: "Palette toolbar" }),
+    ).toBeVisible();
+
+    await page.getByLabel("Project name").fill("Renamed");
+    await page.getByLabel("Project name").blur();
+    // Visit the other studio so it adopts and writes the name back down.
+    await page.goto("/typography");
+    await expect(
+      page.getByRole("region", { name: "Type scale settings" }),
+    ).toBeVisible();
+
+    const workspace = await readWorkspace(page);
+    expect(workspace.name).toBe("Renamed");
+    // The slices carry it too, since the exports read them.
+    expect(workspace.palette.name).toBe("Renamed");
+    expect(workspace.typography.system.name).toBe("Renamed");
+  });
+});

@@ -10,6 +10,7 @@ import {
   loadWorkspace,
   readWorkspaceProject,
   withPaletteSlice,
+  withSharedName,
   withTypographySlice,
   workspaceFromLegacy,
 } from "./workspace";
@@ -265,5 +266,28 @@ describe("slice writes", () => {
     expect(withPaletteSlice(both, both.palette, "Renamed").name).toBe(
       "Renamed",
     );
+  });
+});
+
+describe("withSharedName", () => {
+  const both = workspaceFromLegacy(legacyPalette(), legacyTypography())!;
+
+  it("gives both slices the workspace name", () => {
+    // Migration took the palette name; the scale adopts it rather than
+    // keeping "My type scale" and overwriting on its next save.
+    const named = withSharedName(both);
+    expect(named.palette?.name).toBe("My colour system");
+    expect(named.typography?.system.name).toBe("My colour system");
+  });
+
+  it("leaves an unopened studio unopened", () => {
+    const named = withSharedName({ ...both, typography: null });
+    expect(named.typography).toBeNull();
+  });
+
+  it("changes nothing else about a slice", () => {
+    const named = withSharedName(both);
+    expect(named.typography?.unit).toBe(both.typography?.unit);
+    expect(named.palette?.tracks).toEqual(both.palette?.tracks);
   });
 });

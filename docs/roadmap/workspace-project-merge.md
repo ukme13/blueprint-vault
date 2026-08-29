@@ -139,19 +139,31 @@ git if the choice turns out wrong.
 
 ## Stages
 
-1. **Schema and migration, no UI.** `workspace-project.ts` in `packages/ui`:
+1. ✅ **Schema and migration, no UI.** `workspace-project.ts` in `packages/ui`:
    the type, a reader that composes the two existing validators, a writer, and
    the legacy-to-workspace migration. Unit tested against every combination —
    neither key, palette only, typography only, both, and each legacy typography
    shape. Nothing consumes it yet.
-2. **Palette studio onto the workspace,** writing its slice only.
-3. **Typography studio onto the workspace,** same. After this the legacy keys
+2. ✅ **Palette studio onto the workspace,** writing its slice only.
+3. ✅ **Typography studio onto the workspace,** same. After this the legacy keys
    are written by nobody.
-4. **Cross-tab safety.** The two-context test, and whichever of the mitigations
+4. **One name, both topbars.** Until this lands the workspace name is written
+   by whichever studio saved last, since each still edits its own project
+   name. Invisible while nothing displays it, and wrong the moment anything
+   does. Each studio adopts the workspace name on load and writes it back on
+   rename, so the two converge rather than taking turns. The slice names stay
+   — the palette file format and the typography export both read them — but
+   they follow the workspace name rather than diverging from it.
+
+   This is the one user-visible regression in the plan: a palette called
+   "Brand" and a scale called "My type scale" become one name, and the
+   migration has already chosen which.
+
+5. **Cross-tab safety.** The two-tab test, and whichever of the mitigations
    above it proves necessary.
-5. **File format.** `{ kind: "blueprint-workspace", version: 1, project }`,
+6. **File format.** `{ kind: "blueprint-workspace", version: 1, project }`,
    with `blueprint-palette` files still importable into the palette slice.
-6. **Then Stage 4** of the preview plan, which is now a small feature.
+7. **Then Stage 4** of the preview plan, which is now a small feature.
 
 Stage 1 is the whole risk. It is pure, testable, and lands with no user-visible
 change, which is the point.
@@ -188,11 +200,9 @@ Starting a new project in one studio must not clear the other's slice. Today
 
 ## Open decisions
 
-These change the shape of the work and are not mine to settle.
+These change the shape of the work and are not mine to settle. The name
+question was settled: unified, taking the palette's when both exist.
 
-- **Unified `name`, or a workspace name plus two slice names?** Written above as
-  unified. It is the one user-visible regression in an otherwise invisible
-  change.
 - **Which cross-tab mitigation?** Slice-only writes are worth doing regardless;
   whether to add `storage` reconciliation or fall back to two keys can wait for
   the test in stage 4 to show how bad the window actually is.

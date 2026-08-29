@@ -26,6 +26,7 @@ import {
   WORKSPACE_STORAGE_KEY,
   loadWorkspace,
   withPaletteSlice,
+  withSharedName,
   type WorkspaceLoadInput,
   defaultLightnessValues,
   clampLightnessValue,
@@ -100,7 +101,10 @@ function readStorageKeys(): WorkspaceLoadInput {
 
 function readStoredProject(): PaletteProject | null {
   try {
-    return loadWorkspace(readStorageKeys()).project?.palette ?? null;
+    const workspace = loadWorkspace(readStorageKeys()).project;
+    /* Adopt the workspace name: it is one name, and the other studio may
+       have set it. */
+    return workspace ? withSharedName(workspace).palette : null;
   } catch {
     return null;
   }

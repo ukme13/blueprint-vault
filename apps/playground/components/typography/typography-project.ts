@@ -5,6 +5,7 @@ import {
   LEGACY_TYPOGRAPHY_STORAGE_KEY,
   WORKSPACE_STORAGE_KEY,
   loadWorkspace,
+  withSharedName,
   withTypographySlice,
   type WorkspaceLoadInput,
   type TypeScaleUnit,
@@ -42,8 +43,11 @@ function readStorageKeys(): WorkspaceLoadInput {
 
 export function readStoredProject(): TypographyProject | null {
   try {
+    const workspace = loadWorkspace(readStorageKeys()).project;
+    /* Adopt the workspace name: it is one name, and the other studio may have
+       set it. */
     return narrowTemplate(
-      loadWorkspace(readStorageKeys()).project?.typography ?? null,
+      workspace ? withSharedName(workspace).typography : null,
     );
   } catch {
     return null;

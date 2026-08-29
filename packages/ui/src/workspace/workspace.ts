@@ -155,3 +155,27 @@ export function withTypographySlice(
   const next = name?.trim() || base.name;
   return { ...base, name: next, typography };
 }
+
+/**
+ * Push the workspace name down into both slices.
+ *
+ * The name belongs to the workspace, but the slices keep their own copy
+ * because things outside the topbar read it — the palette file format, and the
+ * typography export. Applying it on load is what makes the two topbars edit
+ * one name: whichever studio renamed last, the other adopts it rather than
+ * quietly disagreeing and overwriting on its next save.
+ */
+export function withSharedName(project: WorkspaceProject): WorkspaceProject {
+  return {
+    ...project,
+    palette: project.palette
+      ? { ...project.palette, name: project.name }
+      : null,
+    typography: project.typography
+      ? {
+          ...project.typography,
+          system: { ...project.typography.system, name: project.name },
+        }
+      : null,
+  };
+}
