@@ -21,11 +21,11 @@ import {
   BLUEPRINT_20_PRESET,
   Button,
   MAX_SHADE_COUNT,
+  defaultLightnessValues,
+  readPaletteProjectData,
   clampLightnessValue,
-  generateLightnessArray,
   generatePalette,
   generateStableWeights,
-  isValidLightnessSequence,
   normalizeHex,
   normalizeTrackAdjustments,
   normalizeTrackName,
@@ -33,7 +33,6 @@ import {
   resizeLightnessArray,
   type ColorTrackInput,
   type PaletteProjectData,
-  type TrackAdjustments,
 } from "@blueprint/ui";
 import { WorkspaceNav } from "../WorkspaceNav";
 import { PaletteCreation } from "./PaletteCreation";
@@ -69,148 +68,28 @@ type PlaygroundSection = "overview" | "shade-generator" | "preview";
 
 type PaletteProject = PaletteProjectData;
 
-function readAdjustmentRecord(value: unknown): Record<number, string> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-
-  return Object.fromEntries(
-    Object.entries(value).flatMap(([weight, hex]) => {
-      const numericWeight = Number(weight);
-      if (!Number.isInteger(numericWeight) || typeof hex !== "string") {
-        return [];
-      }
-
-      try {
-        return [[numericWeight, normalizeHex(hex)]];
-      } catch {
-        return [];
-      }
-    }),
-  );
-}
-
-function readTrackAdjustments(value: unknown): TrackAdjustments {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return { anchors: {}, manualOverrides: {} };
-  }
-
-  return {
-    anchors: readAdjustmentRecord(
-      "anchors" in value ? value.anchors : undefined,
-    ),
-    manualOverrides: readAdjustmentRecord(
-      "manualOverrides" in value ? value.manualOverrides : undefined,
-    ),
-  };
-}
-
-function isLightnessPattern(value: unknown): value is LightnessPattern {
-  return value === "linear" || value === "ease-in-out" || value === "custom";
-}
-
 function createPatternValues(
   pattern: LightnessPattern,
   shadeCount = BLUEPRINT_20_PRESET.weights.length,
   maxLightness = BLUEPRINT_20_PRESET.lightnessValues[0]!,
   minLightness = BLUEPRINT_20_PRESET.lightnessValues.at(-1)!,
 ): number[] {
-  if (
-    pattern === "custom" &&
-    shadeCount === BLUEPRINT_20_PRESET.weights.length
-  ) {
-    return [...BLUEPRINT_20_PRESET.lightnessValues];
-  }
-
-  return generateLightnessArray(
+  return defaultLightnessValues(
+    pattern,
     shadeCount,
     maxLightness,
     minLightness,
-    pattern,
   );
 }
 
 function readStoredProject(): PaletteProject | null {
   try {
     const stored = window.localStorage.getItem(PROJECT_STORAGE_KEY);
-    if (!stored) return null;
-
-    const parsed: unknown = JSON.parse(stored);
-    if (
-      !parsed ||
-      typeof parsed !== "object" ||
-      !("name" in parsed) ||
-      typeof parsed.name !== "string" ||
-      !("tracks" in parsed) ||
-      !Array.isArray(parsed.tracks)
-    ) {
-      return null;
-    }
-
-    const tracks = parsed.tracks.flatMap((track): ColorTrackInput[] => {
-      if (
-        !track ||
-        typeof track !== "object" ||
-        !("id" in track) ||
-        typeof track.id !== "string" ||
-        !("name" in track) ||
-        typeof track.name !== "string" ||
-        !("seedHex" in track) ||
-        typeof track.seedHex !== "string"
-      ) {
-        return [];
-      }
-
-      try {
-        return [
-          {
-            id: track.id,
-            name: normalizeTrackName(track.name),
-            seedHex: normalizeHex(track.seedHex),
-            adjustments: readTrackAdjustments(
-              "adjustments" in track ? track.adjustments : undefined,
-            ),
-          },
-        ];
-      } catch {
-        return [];
-      }
-    });
-
-    if (tracks.length === 0) return null;
-
-    let lightnessPattern: LightnessPattern = "custom";
-    let lightnessValues = createPatternValues("custom");
-
-    if (
-      "lightnessValues" in parsed &&
-      Array.isArray(parsed.lightnessValues) &&
-      parsed.lightnessValues.every(
-        (value): value is number => typeof value === "number",
-      ) &&
-      parsed.lightnessValues.length >= MIN_SHADE_COUNT &&
-      parsed.lightnessValues.length <= MAX_SHADE_COUNT &&
-      isValidLightnessSequence(parsed.lightnessValues)
-    ) {
-      lightnessValues = [...parsed.lightnessValues];
-
-      if (
-        "lightnessPattern" in parsed &&
-        isLightnessPattern(parsed.lightnessPattern)
-      ) {
-        lightnessPattern = parsed.lightnessPattern;
-      }
-    }
-
-    return {
-      name: parsed.name,
-      tracks,
-      lightnessPattern,
-      lightnessValues,
-    };
+    return stored ? readPaletteProjectData(JSON.parse(stored)) : null;
   } catch {
     return null;
   }
 }
-
 function createDefaultTracks(primarySeed: string): ColorTrackInput[] {
   return SEMANTIC_TRACKS.map((track) =>
     track.id === "primary" ? { ...track, seedHex: primarySeed } : { ...track },
