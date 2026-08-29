@@ -53,16 +53,12 @@ const LEGACY_GROUPS: Record<SemanticRole, string> = {
 
 /** Groups a migrated legacy project needs: the two fixed ones plus two free. */
 function legacyGroups(): TypeGroup[] {
+  /* Display comes from defaultGroups now; adding it here as well gave a
+     migrated project two groups with the same id. */
   return [
-    {
-      id: DISPLAY_GROUP_ID,
-      label: "Display",
-      isFixed: false,
-      indexing: "number",
-    },
     ...defaultGroups(),
-    { id: "label", label: "Label", isFixed: false, indexing: "number" },
-    { id: "caption", label: "Caption", isFixed: false, indexing: "number" },
+    { id: "label", label: "Label", indexing: "number" },
+    { id: "caption", label: "Caption", indexing: "number" },
   ];
 }
 
@@ -275,10 +271,6 @@ function normalizeGroups(value: unknown, roles: TypeRole[]): TypeGroup[] {
         id: group.id as string,
         label:
           typeof group.label === "string" ? group.label : (group.id as string),
-        isFixed:
-          group.id === HEADING_GROUP_ID || group.id === BODY_GROUP_ID
-            ? true
-            : Boolean(group.isFixed),
         /* "none" was a mode in an earlier release; a single role now simply
            drops its index, so it collapses to number. */
         indexing: group.indexing === "size" ? "size" : "number",
@@ -296,8 +288,6 @@ function normalizeGroups(value: unknown, roles: TypeRole[]): TypeGroup[] {
     derived.push({
       id: role.groupId,
       label: role.groupId.charAt(0).toUpperCase() + role.groupId.slice(1),
-      isFixed:
-        role.groupId === HEADING_GROUP_ID || role.groupId === BODY_GROUP_ID,
       indexing: "number",
     });
   });

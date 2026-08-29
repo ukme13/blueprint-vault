@@ -1,4 +1,5 @@
 import { formatLength } from "./export";
+import { findGoogleFont } from "./google-fonts";
 import { generateTypeSteps } from "./scale";
 import type { TypeRole, TypeSystem } from "./system";
 import type { TypeScaleUnit } from "./types";
@@ -79,8 +80,34 @@ function sharedLines(system: TypeSystem, unit: TypeScaleUnit): string[] {
   return [...fonts, ...steps, ...perRole];
 }
 
+/**
+ * Google families the system names.
+ *
+ * Exported tokens can name a family but cannot load it, so the consuming app
+ * has to. Listing them in a comment is the only way that requirement travels
+ * with the tokens.
+ */
+function googleFontNotice(system: TypeSystem): string[] {
+  const families = [
+    ...new Set(
+      system.fonts
+        .flatMap((font) => font.families)
+        .filter((family) => findGoogleFont(family) !== undefined),
+    ),
+  ].sort();
+
+  if (families.length === 0) return [];
+  return [
+    "/* Loads from Google Fonts. These tokens name the families but do not",
+    "   load them — the consuming app must:",
+    ...families.map((family) => `     - ${family}`),
+    "*/",
+  ];
+}
+
 function body(system: TypeSystem, unit: TypeScaleUnit, open: string): string {
   const lines = [
+    ...googleFontNotice(system),
     open,
     ...sharedLines(system, unit),
     ...viewportLines(system.roles, "mobile", unit, "  "),

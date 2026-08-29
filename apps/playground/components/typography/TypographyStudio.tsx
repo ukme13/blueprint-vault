@@ -17,28 +17,33 @@ import {
   assessRoleWeights,
   assessScaleGrowth,
   assessStepCount,
-  assignDefaultRoles,
   Button,
   generateTypeSteps,
   MAX_BASE_FONT_SIZE_PX,
   MAX_STEP_COUNT,
   MIN_BASE_FONT_SIZE_PX,
   MIN_STEP_COUNT,
+  familiesToCss,
+  findGoogleFont,
   fontFamilyValue,
   formatLength,
+  googleFontsHref,
+  defaultSystem,
   migrateLegacyProject,
   normalizeStoredSystem,
   splitFontFamily,
   elementForRole,
   reindexGroup,
   renameGroup,
+  addFont,
   canAddRole,
+  removeFont,
+  renameFont,
   moveGroup,
   resolveRoleSizePx,
   TYPE_INDEXING_LABELS,
   TYPE_SCALE_UNITS,
   TYPE_SCALE_RATIO_PRESETS,
-  type RoleAssignment,
   type SemanticRole,
   type LegacyTypographyProject,
   type TypeRole,
@@ -60,8 +65,9 @@ import {
   type PreviewTemplateId,
   type PreviewWidth,
 } from "./preview-templates";
+import { FontStackEditor } from "./FontStackEditor";
 import styles from "./typography-workspace.module.css";
-import type { RoleStyleMap, TypographySection } from "./types";
+import type { TypographySection } from "./types";
 
 const TYPOGRAPHY_STORAGE_KEY = "blueprint.typography-project.v1";
 
@@ -100,19 +106,6 @@ const PREVIEW_TEXT: Record<SemanticRole, { en: string; th: string }> = {
   label: { en: "Field label", th: "ป้ายกำกับฟิลด์" },
   caption: { en: "Last updated a moment ago", th: "อัปเดตล่าสุดเมื่อสักครู่" },
 };
-
-function defaultRoleStyles(roles: RoleAssignment[]): RoleStyleMap {
-  return Object.fromEntries(
-    roles.map((role) => [
-      role.role,
-      {
-        fontWeight: role.fontWeight,
-        lineHeight: role.lineHeight,
-        letterSpacingPx: role.letterSpacingPx,
-      },
-    ]),
-  ) as RoleStyleMap;
-}
 
 function readStoredProject(): TypographyProject | null {
   try {
@@ -190,6 +183,10 @@ export function TypographyStudio() {
      they are view state rather than persisted fields. */
   const [previewWidth, setPreviewWidth] = useState<PreviewWidth>("desktop");
   const [previewLang, setPreviewLang] = useState<PreviewLanguage>("en");
+  /* Which font entry the step list renders in. The steps are sizes shared by
+     several roles, so they have no font of their own to follow. */
+  const [previewFontId, setPreviewFontId] = useState<string | null>(null);
+  const [previewWeight, setPreviewWeight] = useState<number | null>(null);
   const inspectorPanel = useResizable({
     autoSaveId: "blueprint-typography-inspector",
     defaultSize: 560,
@@ -405,7 +402,7 @@ export function TypographyStudio() {
           ...current.system,
           groups: [
             ...current.system.groups,
-            { id, label: `Group ${index}`, isFixed: false, indexing: "number" },
+            { id, label: `Group ${index}`, indexing: "number" },
           ],
         },
       };
@@ -428,6 +425,79 @@ export function TypographyStudio() {
           }
         : current,
     );
+
+  /* Defaults to whatever body uses, since that is the size people read most,
+     and falls through if the chosen entry has since been removed. */
+  const previewFont =
+    system?.fonts.find((font) => font.id === previewFontId) ??
+    system?.fonts.find(
+      (font) =>
+        font.id === system.roles.find((role) => role.id === "body")?.fontId,
+    ) ??
+    system?.fonts[0];
+
+  /* Only the weights this family actually ships. More than half the catalogue
+     ships exactly one, so a fixed 100-900 control would offer eight weights the
+     browser could only fake. */
+  const previewWeights =
+    findGoogleFont(previewFont?.families[0] ?? "")?.weights ?? [];
+  const resolvedPreviewWeight =
+    previewWeight !== null && previewWeights.includes(previewWeight)
+      ? previewWeight
+      : (previewWeights.find((weight) => weight === 400) ??
+        previewWeights[0] ??
+        400);
+
+  /* Load whatever Google families the system names, in one request.
+     next/font cannot do this: it downloads at build time and needs the family
+     known then, which a picker over the whole catalogue rules out. The cost is
+     that the browser now talks to fonts.googleapis.com. */
+  /* Built every render rather than memoised: it is a handful of array walks,
+     and the effect below depends on the resulting string, so value equality
+     already stops the stylesheet being replaced when nothing changed. */
+  const googleHref = ((): string | null => {
+    if (!system) return null;
+    const weightsByFamily = new Map<string, Set<number>>();
+    system.roles.forEach((role) => {
+      const font = system.fonts.find(
+        (candidate) => candidate.id === role.fontId,
+      );
+      /* Every family in the stack, not just the first. A fallback that is never
+         downloaded cannot be fallen back to: the browser skips it and lands on
+         the generic, which reads as the fallback being ignored. */
+      font?.families.forEach((family) => {
+        const weights = weightsByFamily.get(family) ?? new Set<number>();
+        weights.add(role.fontWeight);
+        weightsByFamily.set(family, weights);
+      });
+    });
+
+    /* The previewed weight too. Without it the step list renders a weight that
+       was never downloaded, and the browser draws a synthetic one. */
+    previewFont?.families.forEach((family) => {
+      const weights = weightsByFamily.get(family) ?? new Set<number>();
+      weights.add(resolvedPreviewWeight);
+      weightsByFamily.set(family, weights);
+    });
+
+    return googleFontsHref(
+      [...weightsByFamily].map(([family, weights]) => ({
+        family,
+        weights: [...weights],
+      })),
+    );
+  })();
+
+  useEffect(() => {
+    if (!googleHref) return;
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = googleHref;
+    document.head.append(link);
+    /* Removed on change so switching fonts does not leave a stack of dead
+       stylesheets behind. */
+    return () => link.remove();
+  }, [googleHref]);
 
   const bodyRole =
     resolvedRoles.find((role) => role.id === "body") ??
@@ -470,20 +540,16 @@ export function TypographyStudio() {
     return (
       <TypographyCreation
         onCreate={({ name, fontFamily, baseFontSizePx, ratio, stepCount }) => {
-          const initialSteps = generateTypeSteps(
-            baseFontSizePx,
-            ratio,
-            stepCount,
-          );
           setProject({
-            system: migrateLegacyProject({
+            /* A new scale starts with six headings and one body. Neither group
+               is special afterwards. */
+            system: defaultSystem(
               name,
-              fontFamily,
+              splitFontFamily(fontFamily),
               baseFontSizePx,
               ratio,
               stepCount,
-              roleStyles: defaultRoleStyles(assignDefaultRoles(initialSteps)),
-            }),
+            ),
             unit: DEFAULT_UNIT,
             specimenText: DEFAULT_SPECIMEN_TEXT,
             template: DEFAULT_TEMPLATE,
@@ -589,7 +655,7 @@ export function TypographyStudio() {
           <section aria-label="Generated type steps" className={styles.canvas}>
             {/* Sits above the steps so the unit is chosen where the sizes are
                 read, not buried in the export dialog. */}
-            <div className={styles.unitChips}>
+            <div className="flex flex-wrap items-center gap-4 pb-3">
               <SegmentedControl
                 label="Size unit"
                 size="sm"
@@ -610,6 +676,40 @@ export function TypographyStudio() {
                   />
                 ))}
               </SegmentedControl>
+
+              {/* Only worth showing once there is a choice to make. */}
+              {system.fonts.length > 1 && (
+                <SegmentedControl
+                  label="Preview font"
+                  size="sm"
+                  value={previewFont?.id ?? ""}
+                  onChange={setPreviewFontId}
+                >
+                  {system.fonts.map((font) => (
+                    <SegmentedControlItem
+                      key={font.id}
+                      label={font.name}
+                      value={font.id}
+                    />
+                  ))}
+                </SegmentedControl>
+              )}
+
+              {previewWeights.length > 1 && (
+                <div className="w-28">
+                  <Selector
+                    isLabelHidden
+                    label="Preview weight"
+                    options={previewWeights.map((weight) => ({
+                      label: String(weight),
+                      value: String(weight),
+                    }))}
+                    size="sm"
+                    value={String(resolvedPreviewWeight)}
+                    onChange={(value) => setPreviewWeight(Number(value))}
+                  />
+                </div>
+              )}
             </div>
             <ul className={styles.stepList}>
               {sortedSteps.map((step) => {
@@ -627,11 +727,9 @@ export function TypographyStudio() {
                       placeholder={DEFAULT_SPECIMEN_TEXT}
                       spellCheck={false}
                       style={{
-                        fontFamily: fontFamilyValue(
-                          resolvedSystem,
-                          bodyRole ?? resolvedRoles[0]!,
-                        ),
+                        fontFamily: familiesToCss(previewFont?.families ?? []),
                         fontSize: `${step.fontSizePx}px`,
+                        fontWeight: resolvedPreviewWeight,
                       }}
                       value={project.specimenText}
                       onChange={(event) =>
@@ -692,27 +790,57 @@ export function TypographyStudio() {
 
             <div className={styles.settingGroup}>
               <h2>Base settings</h2>
-              {system.fonts.map((font, index) => (
-                <TextInput
+              {system.fonts.map((font) => (
+                <FontStackEditor
                   key={font.id}
-                  description={
-                    index === 0
-                      ? "Comma separated. Later families cover glyphs the first lacks."
-                      : undefined
-                  }
-                  label={`${font.name} font stack`}
-                  value={font.families.join(", ")}
-                  onChange={(value) =>
+                  canRemove={system.fonts.length > 1}
+                  font={font}
+                  onChange={(families) =>
                     updateSystem({
                       fonts: system.fonts.map((candidate) =>
                         candidate.id === font.id
-                          ? { ...candidate, families: splitFontFamily(value) }
+                          ? { ...candidate, families, source: "google" }
                           : candidate,
                       ),
                     })
                   }
+                  onRemove={() =>
+                    setProject((current) =>
+                      current
+                        ? {
+                            ...current,
+                            system: removeFont(current.system, font.id),
+                          }
+                        : current,
+                    )
+                  }
+                  onRename={(name) =>
+                    setProject((current) =>
+                      current
+                        ? {
+                            ...current,
+                            system: renameFont(current.system, font.id, name),
+                          }
+                        : current,
+                    )
+                  }
                 />
               ))}
+              <Button
+                scheme="neutral"
+                size="xs"
+                variant="outlined"
+                onClick={() =>
+                  setProject((current) =>
+                    current
+                      ? { ...current, system: addFont(current.system) }
+                      : current,
+                  )
+                }
+              >
+                Add font
+              </Button>
+
               <NumberInput
                 description="Even numbers only."
                 label="Base font size"
@@ -750,11 +878,15 @@ export function TypographyStudio() {
               );
 
               return (
-                <div key={group.id} className={styles.settingGroup}>
+                <div
+                  key={group.id}
+                  aria-label={group.label}
+                  className={styles.settingGroup}
+                  role="group"
+                >
                   <header className={styles.roleGroupHeader}>
-                    <h2>{group.label}</h2>
                     <div className={styles.roleGroupActions}>
-                      {!group.isFixed && (
+                      {
                         <>
                           <Button
                             aria-label={`Move ${group.label} up`}
@@ -777,7 +909,7 @@ export function TypographyStudio() {
                             ↓
                           </Button>
                         </>
-                      )}
+                      }
                       <Button
                         disabled={!canAddRole(system, group)}
                         scheme="neutral"
@@ -787,7 +919,7 @@ export function TypographyStudio() {
                       >
                         Add
                       </Button>
-                      {!group.isFixed && (
+                      {
                         <Button
                           aria-label={`Remove ${group.label} group`}
                           scheme="neutral"
@@ -797,20 +929,36 @@ export function TypographyStudio() {
                         >
                           Remove group
                         </Button>
-                      )}
+                      }
                     </div>
                   </header>
 
-                  {!group.isFixed && (
+                  {
                     <div className={styles.roleGroupMeta}>
                       <TextInput
-                        label={`${group.label} name`}
+                        label={`${group.id} name`}
                         isLabelHidden
                         value={group.label}
-                        onChange={(value) => renameGroupById(group.id, value)}
+                        /* Typing changes the label only. Renaming re-slugs the
+                           group id, which is this row's React key, so doing it
+                           per keystroke remounted the field and dropped focus
+                           after one character. It also renamed every role in
+                           the group on each letter typed. */
+                        onChange={(value) =>
+                          updateGroup(group.id, { label: value })
+                        }
+                        onBlur={() => renameGroupById(group.id, group.label)}
+                        /* Enter blurs rather than renaming directly, so both
+                           paths commit through the same handler. */
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            event.currentTarget.blur();
+                          }
+                        }}
                       />
                       <Selector
-                        label={`${group.label} indexing`}
+                        label={`${group.id} indexing`}
                         isLabelHidden
                         options={(["number", "size"] as TypeIndexing[]).map(
                           (mode) => ({
@@ -826,7 +974,7 @@ export function TypographyStudio() {
                         }
                       />
                     </div>
-                  )}
+                  }
 
                   {groupRoles.length === 0 ? (
                     <p className={styles.roleGroupEmpty}>No roles yet.</p>

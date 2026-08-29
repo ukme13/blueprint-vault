@@ -11,3 +11,4 @@ apps/*/CLAUDE.md
 apps/*/AGENTS.md
 
 pnpm-lock.yaml
+packages/ui/src/typography/google-fonts.json

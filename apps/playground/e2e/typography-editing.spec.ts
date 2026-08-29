@@ -1,4 +1,24 @@
 import { expect, test } from "./typography-fixtures";
+import type { Locator } from "@playwright/test";
+
+/**
+ * Type a query into a font picker.
+ *
+ * Astryx collapses the Typeahead's input to zero width while a value token is
+ * shown, so a picker that already holds a font cannot be filled directly.
+ * Clearing the token is what the widget offers to get back to an editable
+ * field, and it is what a person does too.
+ */
+async function searchFont(scope: Locator, label: string, query: string) {
+  const input = scope.getByLabel(label, { exact: true });
+  if (!(await input.isVisible())) {
+    await input
+      .locator("xpath=..")
+      .getByRole("button", { name: "Clear selection" })
+      .click();
+  }
+  await input.fill(query);
+}
 
 test.describe("Typography scale editing", () => {
   test("switches between Editor and Preview sections", async ({
@@ -146,10 +166,14 @@ test.describe("Typography scale editing", () => {
     // The fixture seeds the pre-merge shape: roleStyles and a flat fontFamily.
     // Reaching the editor at all means the migration ran.
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await expect(settings.getByRole("heading", { name: "Body" })).toBeVisible();
-    await expect(settings.getByLabel("Base font stack")).toHaveValue(
-      /Geist Sans/,
-    );
+    await expect(settings.getByRole("group", { name: "Body" })).toBeVisible();
+    /* Geist Sans is a local face, not a Google one. It still has to show, or
+       the field reads as empty and the font looks lost. Typeahead presents a
+       selection as a token, not as the input's value. */
+    await expect(
+      settings.getByRole("button", { name: "Geist Sans" }),
+    ).toBeVisible();
+    await expect(settings.getByText(/is not a Google font/)).toBeVisible();
   });
 
   test("groups roles and adds one to a group", async ({ seededPage: page }) => {
@@ -157,14 +181,13 @@ test.describe("Typography scale editing", () => {
 
     for (const group of ["Display", "H", "Body", "Label", "Caption"]) {
       await expect(
-        settings.getByRole("heading", { name: group, exact: true }),
+        settings.getByRole("group", { name: group, exact: true }),
       ).toBeVisible();
     }
 
     const before = await settings.getByLabel(/ font weight$/).count();
     await settings
-      .getByRole("heading", { name: "Body", exact: true })
-      .locator("..")
+      .getByRole("group", { name: "Body", exact: true })
       .getByRole("button", { name: "Add" })
       .click();
 
@@ -213,28 +236,48 @@ test.describe("Typography scale editing", () => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await settings.getByRole("button", { name: "Add group" }).click();
 
-    const nameField = settings.getByLabel(/^Group \d+ name$/);
+    const nameField = settings.getByLabel(/^group-\d+ name$/);
     await expect(nameField).toBeVisible();
     await nameField.fill("Overline");
 
     await expect(
-      settings.getByRole("heading", { name: "Overline" }),
+      settings.getByRole("group", { name: "Overline" }),
     ).toBeVisible();
     await expect(
       settings.getByRole("button", { name: "Move Overline up" }),
     ).toBeVisible();
   });
 
-  test("fixed groups cannot be removed or reordered", async ({
+  test("every group can be renamed, moved and removed", async ({
+    seededPage: page,
+  }) => {
+    // H and Body are only defaults now, not locked.
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    for (const group of ["H", "Body"]) {
+      await expect(
+        settings.getByLabel(`${group.toLowerCase()} name`),
+      ).toBeVisible();
+      await expect(
+        settings.getByRole("button", { name: `Move ${group} up` }),
+      ).toBeVisible();
+      await expect(
+        settings.getByRole("button", { name: `Remove ${group} group` }),
+      ).toBeVisible();
+    }
+  });
+
+  test("a group named h numbers its roles without a dash", async ({
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await expect(
-      settings.getByRole("button", { name: "Remove Heading group" }),
-    ).toBeHidden();
-    await expect(
-      settings.getByRole("button", { name: "Move Body up" }),
-    ).toBeHidden();
+    await settings
+      .getByRole("group", { name: "H", exact: true })
+      .getByRole("button", { name: "Add" })
+      .click();
+
+    // h1, h2 — not h-1, h-2.
+    await expect(settings.getByLabel("h2 size")).toBeVisible();
+    await expect(settings.getByLabel("h-2 size")).toBeHidden();
   });
 
   test("a new role reuses its sibling's step rather than growing the ramp", async ({
@@ -242,8 +285,7 @@ test.describe("Typography scale editing", () => {
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await settings
-      .getByRole("heading", { name: "Body", exact: true })
-      .locator("..")
+      .getByRole("group", { name: "Body", exact: true })
       .getByRole("button", { name: "Add" })
       .click();
 
@@ -331,18 +373,45 @@ test.describe("Typography scale editing", () => {
     await page.goto("/typography");
 
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await expect(settings.getByRole("heading", { name: "Body" })).toBeVisible();
+    await expect(settings.getByRole("group", { name: "Body" })).toBeVisible();
     await expect(settings.getByLabel("body font weight")).toHaveValue("400");
     await expect(page.getByLabel("Project name")).toHaveValue("Saved earlier");
   });
 
   test("renaming a group renames its roles", async ({ seededPage: page }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("Caption name").fill("Overline");
+    await settings.getByLabel("caption name").fill("Overline");
+    await settings.getByLabel("caption name").blur();
 
     await expect(
       settings.getByRole("button", { name: "Remove overline", exact: true }),
     ).toBeVisible();
+  });
+
+  test("applies a group rename on Enter", async ({ seededPage: page }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings.getByLabel("caption name").fill("Overline");
+    await settings.getByLabel("caption name").press("Enter");
+
+    // No need to click elsewhere for it to take effect.
+    await expect(
+      settings.getByRole("button", { name: "Remove overline", exact: true }),
+    ).toBeVisible();
+  });
+
+  test("keeps focus while a group name is typed", async ({
+    seededPage: page,
+  }) => {
+    /* The group id is this row's React key, so renaming per keystroke remounted
+       the field and focus was lost after one character. */
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const field = settings.getByLabel("caption name");
+
+    await field.click();
+    await page.keyboard.type("Overline");
+
+    await expect(field).toBeFocused();
+    await expect(field).toHaveValue("CaptionOverline");
   });
 
   test("the size menu lists the largest step first", async ({
@@ -376,5 +445,199 @@ test.describe("Typography scale editing", () => {
         .evaluate((el) => getComputedStyle(el).overflowY);
       expect(overflow).toBe("auto");
     }
+  });
+
+  test("picks a Google font and loads it at runtime", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await searchFont(settings, "Base font", "Sarabun");
+    await page.getByRole("option", { name: "Sarabun" }).first().click();
+
+    /* Asserting the outcome rather than the widget: next/font cannot load a
+       runtime choice, so the studio injects the stylesheet itself, and the
+       chosen family reaching that URL is what proves the pick took effect. */
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          [...document.querySelectorAll('link[href*="fonts.googleapis.com"]')]
+            .map((link) => link.getAttribute("href") ?? "")
+            .join(" "),
+        ),
+      )
+      .toMatch(/Sarabun/);
+  });
+
+  test("warns when a chosen family has no Thai glyphs", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await searchFont(settings, "Base font", "Inter");
+    await page.getByRole("option", { name: "Inter" }).first().click();
+
+    // Otherwise Thai silently falls back to a system font.
+    await expect(settings.getByText(/no Thai glyphs/).first()).toBeVisible();
+  });
+
+  test("a new scale ships a Display group and two fonts", async ({ page }) => {
+    /* Display is the expressive brand face used big; headings and body use the
+       readable one, because a blog still needs a legible h1. */
+    await page.goto("/typography");
+    await page.getByLabel("Project name").fill("Pairing");
+    await page.getByRole("button", { name: "Create type scale" }).click();
+
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await expect(
+      settings.getByRole("group", { name: "Display" }),
+    ).toBeVisible();
+    await expect(
+      settings.getByLabel("display-1 font", { exact: true }),
+    ).toContainText("Display");
+    await expect(settings.getByLabel("h1 font", { exact: true })).toContainText(
+      "Main",
+    );
+  });
+
+  test("offers a bilingual fallback filtered by script", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const fallback = settings.getByLabel("Base bilingual fallback");
+
+    await fallback.click();
+    // Thai is the default script, so every option covers it.
+    await expect(page.getByRole("option", { name: "Sarabun" })).toBeVisible();
+  });
+
+  test("loads the bilingual fallback, not only the primary", async ({
+    seededPage: page,
+  }) => {
+    /* A fallback that is never downloaded cannot be fallen back to: the browser
+       skips it and lands on the generic, which reads as the fallback being
+       ignored. */
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+
+    await searchFont(settings, "Base font", "Orbitron");
+    await page.getByRole("option", { name: "Orbitron" }).first().click();
+    await searchFont(settings, "Base bilingual fallback", "Kanit");
+    await page.getByRole("option", { name: "Kanit" }).first().click();
+
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          [...document.querySelectorAll("link[href*='fonts.googleapis.com']")]
+            .map((link) => link.getAttribute("href") ?? "")
+            .join(" "),
+        ),
+      )
+      .toMatch(/Kanit/);
+  });
+
+  test("adds a font entry and assigns a role to it", async ({
+    seededPage: page,
+  }) => {
+    /* Without a second entry the per-role Font dropdown has one option, so a
+       display face and a readable one cannot coexist. */
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings.getByRole("button", { name: "Add font" }).click();
+
+    const name = settings.getByLabel("font-2 name");
+    await expect(name).toBeVisible();
+    await name.fill("Display");
+
+    // The name is what the role dropdown offers.
+    await settings.getByLabel("h1 font", { exact: true }).click();
+    await expect(page.getByRole("option", { name: "Display" })).toBeVisible();
+  });
+
+  test("moves roles off a font entry that is removed", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings.getByRole("button", { name: "Add font" }).click();
+    await settings.getByLabel("font-2 name").fill("Display");
+
+    await settings.getByLabel("h1 font", { exact: true }).click();
+    await page.getByRole("option", { name: "Display" }).click();
+
+    await settings.getByRole("button", { name: "Remove Display font" }).click();
+
+    // A role pointing at a deleted font would have nothing to render with.
+    await expect(settings.getByLabel("h1 font", { exact: true })).toContainText(
+      "Base",
+    );
+  });
+
+  test("keeps the last font entry", async ({ seededPage: page }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await expect(
+      settings.getByRole("button", { name: /^Remove .* font$/ }),
+    ).toHaveCount(0);
+  });
+
+  test("previews the step list in the chosen font entry", async ({
+    seededPage: page,
+  }) => {
+    /* Steps are sizes shared by several roles, so they have no font of their
+       own. Without this you cannot see a display face in the step list at all. */
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const steps = page.getByRole("region", { name: "Generated type steps" });
+
+    // One entry means no choice to make, so the control stays hidden.
+    await expect(
+      steps.getByRole("radiogroup", { name: "Preview font" }),
+    ).toHaveCount(0);
+
+    await settings.getByRole("button", { name: "Add font" }).click();
+    await settings.getByLabel("font-2 name").fill("Display");
+    await searchFont(settings, "Display font", "Orbitron");
+    await page.getByRole("option", { name: "Orbitron" }).first().click();
+
+    await steps.getByRole("radio", { name: "Display" }).click();
+    await expect(steps.getByLabel("Specimen text").first()).toHaveCSS(
+      "font-family",
+      /Orbitron/,
+    );
+  });
+
+  test("offers only the weights a family actually ships", async ({
+    seededPage: page,
+  }) => {
+    /* More than half the catalogue ships one weight, so a fixed 100-900 control
+       would offer weights the browser could only fake. */
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const steps = page.getByRole("region", { name: "Generated type steps" });
+
+    await searchFont(settings, "Base font", "Orbitron");
+    await page.getByRole("option", { name: "Orbitron" }).first().click();
+
+    await steps.getByLabel("Preview weight").click();
+    const options = await page.getByRole("option").allTextContents();
+    // Orbitron ships 400-900. There is no 100.
+    expect(options).toContain("400");
+    expect(options).toContain("900");
+    expect(options).not.toContain("100");
+  });
+
+  test("requests the weight it previews", async ({ seededPage: page }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const steps = page.getByRole("region", { name: "Generated type steps" });
+
+    await searchFont(settings, "Base font", "Orbitron");
+    await page.getByRole("option", { name: "Orbitron" }).first().click();
+    await steps.getByLabel("Preview weight").click();
+    await page.getByRole("option", { name: "900", exact: true }).click();
+
+    /* Otherwise the step list renders a weight that was never downloaded and
+       the browser draws a synthetic one. */
+    await expect
+      .poll(() =>
+        page.evaluate(() =>
+          [...document.querySelectorAll("link[href*='fonts.googleapis.com']")]
+            .map((link) => link.getAttribute("href") ?? "")
+            .join(" "),
+        ),
+      )
+      .toMatch(/Orbitron[^&]*900/);
   });
 });

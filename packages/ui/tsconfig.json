@@ -1,6 +1,10 @@
 {
   "extends": "@repo/typescript-config/react-library.json",
   "compilerOptions": {
+    // TypeScript 6 defaults `types` to [] instead of auto-enumerating @types,
+    // so Node globals have to be asked for. The css-token check reads the file
+    // system; nothing shipped from this package does.
+    "types": ["node"],
     "rootDir": "./src",
     "outDir": "dist",
     "strictNullChecks": true

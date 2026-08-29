@@ -6,6 +6,9 @@ import {
   defaultGroups,
   moveGroup,
   groupCapacity,
+  addFont,
+  removeFont,
+  renameFont,
   reindexGroup,
   renameGroup,
   slugify,
@@ -52,7 +55,6 @@ function system(over: Partial<TypeSystem> = {}): TypeSystem {
 const free = (id: string, indexing: TypeGroup["indexing"]): TypeGroup => ({
   id,
   label: id,
-  isFixed: false,
   indexing,
 });
 
@@ -82,13 +84,17 @@ describe("roleIdsForGroup", () => {
   });
 
   it("names headings h1 upward and never drops the number", () => {
-    const heading = defaultGroups()[0]!;
+    const heading = defaultGroups().find((g) => g.id === "h")!;
     expect(roleIdsForGroup(heading, 1)).toEqual(["h1"]);
     expect(roleIdsForGroup(heading, 3)).toEqual(["h1", "h2", "h3"]);
+    // No dash: h1, not h-1.
+    expect(roleIdsForGroup(heading, 2).every((id) => !id.includes("-"))).toBe(
+      true,
+    );
   });
 
   it("caps each group at what its indexing can name", () => {
-    expect(groupCapacity(defaultGroups()[0]!)).toBe(6);
+    expect(groupCapacity(defaultGroups().find((g) => g.id === "h")!)).toBe(6);
     expect(groupCapacity(free("s", "size"))).toBe(5);
     expect(canAddRole(system({ roles: [] }), free("s", "size"))).toBe(true);
   });
@@ -122,16 +128,20 @@ describe("reindexGroup", () => {
     );
   });
 
-  it("keeps heading elements in step with their level", () => {
-    const s = system({
-      roles: [role("h1", "heading"), role("hx", "heading")],
-    });
-    const next = reindexGroup(s, "heading");
-    // Element is derived from position, so it follows the rename for free.
+  it("numbers headings without a dash, and the element follows the id", () => {
+    const s = system({ roles: [role("h1", "h"), role("hx", "h")] });
+    const next = reindexGroup(s, "h");
+    expect(next.roles.map((r) => r.id)).toEqual(["h1", "h2"]);
     expect(next.roles.map((r) => elementForRole(next, r))).toEqual([
       "h1",
       "h2",
     ]);
+  });
+
+  it("keeps a lone heading numbered rather than a bare h", () => {
+    // h1 is the name; a bare "h" is not a role anyone means.
+    const s = system({ roles: [role("hx", "h")] });
+    expect(reindexGroup(s, "h").roles[0]!.id).toBe("h1");
   });
 
   it("derives p for everything outside the heading group", () => {
@@ -153,16 +163,18 @@ describe("moveGroup", () => {
     expect(moveGroup(s, "b", -1).map((g) => g.id)).toEqual([
       "b",
       "a",
-      "heading",
+      "display",
+      "h",
       "body",
     ]);
   });
 
-  it("refuses to move a fixed group", () => {
+  it("moves a default group like any other, since none are locked", () => {
     const s = system({ groups: [...defaultGroups(), free("a", "number")] });
-    expect(moveGroup(s, "heading", 1).map((g) => g.id)).toEqual([
-      "heading",
+    expect(moveGroup(s, "h", 1).map((g) => g.id)).toEqual([
+      "display",
       "body",
+      "h",
       "a",
     ]);
   });
@@ -240,12 +252,10 @@ describe("renameGroup", () => {
     expect(next.roles.map((r) => r.id)).toEqual(["overline-1", "overline-2"]);
   });
 
-  it("does not change a fixed group's id", () => {
-    // Heading and body are referred to by id elsewhere.
+  it("renames a default group like any other", () => {
     const s = system();
-    const next = renameGroup(s, "heading", "Titles");
-    const heading = next.groups.find((g) => g.label === "Titles")!;
-    expect(heading.id).toBe("heading");
+    const next = renameGroup(s, "h", "Titles");
+    expect(next.groups.find((g) => g.label === "Titles")!.id).toBe("titles");
   });
 
   it("avoids colliding with an existing group", () => {
@@ -265,5 +275,51 @@ describe("renameGroup", () => {
 describe("slugify", () => {
   it("lowercases and joins words with a dash", () => {
     expect(slugify("  Small  Print ")).toBe("small-print");
+  });
+});
+
+describe("font entries", () => {
+  it("adds one starting from the first entry's stack", () => {
+    /* Not empty: a new font should render something immediately rather than
+       showing nothing until a family is picked. */
+    const s = system();
+    const next = addFont(s, "Display");
+    expect(next.fonts).toHaveLength(2);
+    expect(next.fonts[1]!.name).toBe("Display");
+    expect(next.fonts[1]!.families).toEqual(s.fonts[0]!.families);
+  });
+
+  it("gives each new entry its own id", () => {
+    const s = addFont(addFont(system()));
+    expect(new Set(s.fonts.map((font) => font.id)).size).toBe(s.fonts.length);
+  });
+
+  it("moves roles onto a survivor when an entry goes", () => {
+    // A role pointing at a deleted font would have nothing to render with.
+    const s = addFont(system(), "Display");
+    const assigned = {
+      ...s,
+      roles: [role("body", "body", { fontId: s.fonts[1]!.id })],
+    };
+    const next = removeFont(assigned, s.fonts[1]!.id);
+    expect(next.fonts).toHaveLength(1);
+    expect(next.roles[0]!.fontId).toBe(next.fonts[0]!.id);
+  });
+
+  it("refuses to remove the last entry", () => {
+    const s = system();
+    expect(removeFont(s, s.fonts[0]!.id)).toBe(s);
+  });
+
+  it("ignores an entry that is not there", () => {
+    const s = addFont(system());
+    expect(removeFont(s, "nope").fonts).toHaveLength(2);
+  });
+
+  it("renames without moving the id, so exported tokens stay put", () => {
+    const s = system();
+    const next = renameFont(s, s.fonts[0]!.id, "Primary");
+    expect(next.fonts[0]!.name).toBe("Primary");
+    expect(next.fonts[0]!.id).toBe(s.fonts[0]!.id);
   });
 });

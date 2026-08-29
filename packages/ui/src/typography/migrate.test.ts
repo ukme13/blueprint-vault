@@ -105,9 +105,16 @@ describe("migrateLegacyProject", () => {
     expect(widerBody.stepOffset).toBe(body.stepOffset);
   });
 
-  it("gives every system the two fixed groups", () => {
-    const fixed = system.groups.filter((group) => group.isFixed);
-    expect(fixed.map((group) => group.id).sort()).toEqual(["body", "heading"]);
+  it("never repeats a group id", () => {
+    // Display was added twice once: by legacyGroups and by defaultGroups.
+    const ids = system.groups.map((group) => group.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("gives every system the default groups", () => {
+    const ids = system.groups.map((group) => group.id);
+    expect(ids).toContain("h");
+    expect(ids).toContain("body");
   });
 
   it("starts mobile equal to desktop rather than inventing smaller sizes", () => {
@@ -166,11 +173,10 @@ describe("normalizeStoredSystem", () => {
     ],
   };
 
-  it("gives a system with no groups the fixed ones", () => {
+  it("gives a system with no groups the default ones", () => {
     // This is the crash: system.groups was undefined and the editor mapped it.
     const system = normalizeStoredSystem(previousRelease)!;
     expect(Array.isArray(system.groups)).toBe(true);
-    expect(system.groups.some((group) => group.id === "heading")).toBe(true);
     expect(system.groups.some((group) => group.id === "body")).toBe(true);
   });
 
@@ -208,9 +214,7 @@ describe("normalizeStoredSystem", () => {
   it("adopts a role whose group no longer exists rather than losing it", () => {
     const orphaned = {
       ...previousRelease,
-      groups: [
-        { id: "heading", label: "Heading", isFixed: true, indexing: "number" },
-      ],
+      groups: [{ id: "heading", label: "Heading", indexing: "number" }],
       roles: [{ ...previousRelease.roles[0], group: "gone" }],
     };
     const system = normalizeStoredSystem(orphaned)!;
@@ -237,9 +241,7 @@ describe("normalizeStoredSystem repairs stale ids", () => {
       ratio: 1.25,
       stepCount: 9,
       breakpointPx: 768,
-      groups: [
-        { id: "body", label: "Body", isFixed: true, indexing: "number" },
-      ],
+      groups: [{ id: "body", label: "Body", indexing: "number" }],
       fonts: [
         { id: "base", name: "Base", families: ["Inter"], source: "system" },
       ],
