@@ -191,7 +191,7 @@ test.describe("Typography scale editing", () => {
       .getByRole("button", { name: "Add" })
       .click();
 
-    expect(await settings.getByLabel(/ font weight$/).count()).toBe(before + 1);
+    await expect(settings.getByLabel(/ font weight$/)).toHaveCount(before + 1);
   });
 
   test("removes a role", async ({ seededPage: page }) => {
@@ -203,7 +203,7 @@ test.describe("Typography scale editing", () => {
       .getByRole("button", { name: "Remove caption", exact: true })
       .click();
 
-    expect(await settings.getByLabel(/ font weight$/).count()).toBe(before - 1);
+    await expect(settings.getByLabel(/ font weight$/)).toHaveCount(before - 1);
     await expect(
       settings.getByRole("button", { name: "Remove caption", exact: true }),
     ).toBeHidden();
