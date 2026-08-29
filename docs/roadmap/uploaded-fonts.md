@@ -79,7 +79,7 @@ Four ideas, and the first two are the ones that keep the rest honest.
 
 ## Stages
 
-1. **The store, no UI.** An IndexedDB wrapper in `packages/ui` — put, get,
+1. ✅ **The store, no UI.** An IndexedDB wrapper in `packages/ui` — put, get,
    delete, list — keyed by font id, holding the file and its metadata. Pure
    enough to test, and nothing consumes it yet.
 2. **Add and render.** A file input on the font entry, `FontFace` to register
