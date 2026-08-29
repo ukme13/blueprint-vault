@@ -201,7 +201,12 @@ export function TypographyStudio() {
         {
           id: "line-height",
           result: bodyRole
-            ? assessLineHeight(bodyRole.desktop.lineHeight)
+            ? /* The specimen decides the threshold: Thai marks need more room
+                 than Latin, and this is the copy being judged. */
+              assessLineHeight(
+                bodyRole.desktop.lineHeight,
+                project?.specimenText ?? "",
+              )
             : null,
         },
         { id: "scale-growth", result: assessScaleGrowth(system.ratio) },
