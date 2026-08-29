@@ -27,10 +27,7 @@ import {
   findGoogleFont,
   fontFamilyValue,
   formatLength,
-  googleFontsHref,
   defaultSystem,
-  migrateLegacyProject,
-  normalizeStoredSystem,
   splitFontFamily,
   elementForRole,
   reindexGroup,
@@ -45,7 +42,6 @@ import {
   TYPE_SCALE_UNITS,
   TYPE_SCALE_RATIO_PRESETS,
   type SemanticRole,
-  type LegacyTypographyProject,
   type TypeRole,
   type TypeGroup,
   type TypeIndexing,
@@ -62,29 +58,20 @@ import {
   PREVIEW_WIDTH_OPTIONS,
   PREVIEW_WIDTHS,
   type PreviewLanguage,
-  type PreviewTemplateId,
   type PreviewWidth,
 } from "./preview-templates";
 import { FontStackEditor } from "./FontStackEditor";
+import {
+  DEFAULT_SPECIMEN_TEXT,
+  DEFAULT_TEMPLATE,
+  DEFAULT_UNIT,
+  readStoredProject,
+  writeStoredProject,
+  type TypographyProject,
+} from "./typography-project";
+import { useGoogleFontsLink } from "./use-google-fonts";
 import styles from "./typography-workspace.module.css";
 import type { TypographySection } from "./types";
-
-const TYPOGRAPHY_STORAGE_KEY = "blueprint.typography-project.v1";
-
-interface TypographyProject {
-  /** The typography system itself. Everything else here is a preference. */
-  system: TypeSystem;
-  /** Output unit. Optional in storage: projects saved before units existed. */
-  unit: TypeScaleUnit;
-  /** Text shown at every step so a scale can be judged in real copy. */
-  specimenText: string;
-  /** Which preview template the Preview section shows. */
-  template: PreviewTemplateId;
-}
-
-const DEFAULT_UNIT: TypeScaleUnit = "rem";
-const DEFAULT_SPECIMEN_TEXT = "How vexingly quick daft zebras jump";
-const DEFAULT_TEMPLATE: PreviewTemplateId = "specimen";
 
 /** Sentinel for a role that carries its own size rather than following a step. */
 const CUSTOM_STEP = "custom";
@@ -106,71 +93,6 @@ const PREVIEW_TEXT: Record<SemanticRole, { en: string; th: string }> = {
   label: { en: "Field label", th: "ป้ายกำกับฟิลด์" },
   caption: { en: "Last updated a moment ago", th: "อัปเดตล่าสุดเมื่อสักครู่" },
 };
-
-function readStoredProject(): TypographyProject | null {
-  try {
-    const stored = window.localStorage.getItem(TYPOGRAPHY_STORAGE_KEY);
-    if (!stored) return null;
-
-    const parsed: unknown = JSON.parse(stored);
-    if (!parsed || typeof parsed !== "object") return null;
-
-    const prefs = readPreferences(parsed);
-
-    /* Two shapes live under this key. The pre-merge one has roleStyles and a
-       flat fontFamily; the merged one has a system. Detect rather than version,
-       so nobody's saved work is orphaned by the rename. */
-    if ("roleStyles" in parsed && !("system" in parsed)) {
-      const legacy = parsed as unknown as LegacyTypographyProject;
-      if (
-        typeof legacy.name !== "string" ||
-        typeof legacy.fontFamily !== "string" ||
-        typeof legacy.baseFontSizePx !== "number" ||
-        typeof legacy.ratio !== "number" ||
-        typeof legacy.stepCount !== "number" ||
-        !legacy.roleStyles
-      ) {
-        return null;
-      }
-      return { system: migrateLegacyProject(legacy), ...prefs };
-    }
-
-    if (!("system" in parsed)) return null;
-
-    /* Normalise rather than trust: an earlier release stored a system with no
-       groups, roles keyed by `group`, and absolute steps. Reading one of those
-       as-is crashed on system.groups.map. */
-    const system = normalizeStoredSystem(parsed.system);
-    if (!system) return null;
-
-    return { system, ...prefs };
-  } catch {
-    return null;
-  }
-}
-
-function readPreferences(parsed: object): {
-  unit: TypeScaleUnit;
-  specimenText: string;
-  template: PreviewTemplateId;
-} {
-  return {
-    unit:
-      "unit" in parsed &&
-      TYPE_SCALE_UNITS.includes(parsed.unit as TypeScaleUnit)
-        ? (parsed.unit as TypeScaleUnit)
-        : DEFAULT_UNIT,
-    specimenText:
-      "specimenText" in parsed && typeof parsed.specimenText === "string"
-        ? parsed.specimenText
-        : DEFAULT_SPECIMEN_TEXT,
-    template:
-      "template" in parsed &&
-      PREVIEW_TEMPLATES.some((entry) => entry.id === parsed.template)
-        ? (parsed.template as PreviewTemplateId)
-        : DEFAULT_TEMPLATE,
-  };
-}
 
 export function TypographyStudio() {
   const [project, setProject] = useState<TypographyProject | null>(null);
@@ -206,14 +128,7 @@ export function TypographyStudio() {
   useEffect(() => {
     if (!hasLoadedProject) return;
 
-    if (project) {
-      window.localStorage.setItem(
-        TYPOGRAPHY_STORAGE_KEY,
-        JSON.stringify(project),
-      );
-    } else {
-      window.localStorage.removeItem(TYPOGRAPHY_STORAGE_KEY);
-    }
+    writeStoredProject(project);
   }, [hasLoadedProject, project]);
 
   const system = project?.system ?? null;
@@ -448,56 +363,7 @@ export function TypographyStudio() {
         previewWeights[0] ??
         400);
 
-  /* Load whatever Google families the system names, in one request.
-     next/font cannot do this: it downloads at build time and needs the family
-     known then, which a picker over the whole catalogue rules out. The cost is
-     that the browser now talks to fonts.googleapis.com. */
-  /* Built every render rather than memoised: it is a handful of array walks,
-     and the effect below depends on the resulting string, so value equality
-     already stops the stylesheet being replaced when nothing changed. */
-  const googleHref = ((): string | null => {
-    if (!system) return null;
-    const weightsByFamily = new Map<string, Set<number>>();
-    system.roles.forEach((role) => {
-      const font = system.fonts.find(
-        (candidate) => candidate.id === role.fontId,
-      );
-      /* Every family in the stack, not just the first. A fallback that is never
-         downloaded cannot be fallen back to: the browser skips it and lands on
-         the generic, which reads as the fallback being ignored. */
-      font?.families.forEach((family) => {
-        const weights = weightsByFamily.get(family) ?? new Set<number>();
-        weights.add(role.fontWeight);
-        weightsByFamily.set(family, weights);
-      });
-    });
-
-    /* The previewed weight too. Without it the step list renders a weight that
-       was never downloaded, and the browser draws a synthetic one. */
-    previewFont?.families.forEach((family) => {
-      const weights = weightsByFamily.get(family) ?? new Set<number>();
-      weights.add(resolvedPreviewWeight);
-      weightsByFamily.set(family, weights);
-    });
-
-    return googleFontsHref(
-      [...weightsByFamily].map(([family, weights]) => ({
-        family,
-        weights: [...weights],
-      })),
-    );
-  })();
-
-  useEffect(() => {
-    if (!googleHref) return;
-    const link = document.createElement("link");
-    link.rel = "stylesheet";
-    link.href = googleHref;
-    document.head.append(link);
-    /* Removed on change so switching fonts does not leave a stack of dead
-       stylesheets behind. */
-    return () => link.remove();
-  }, [googleHref]);
+  useGoogleFontsLink(system, previewFont, resolvedPreviewWeight);
 
   const bodyRole =
     resolvedRoles.find((role) => role.id === "body") ??
