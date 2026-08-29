@@ -258,13 +258,6 @@
   font-weight: 650;
 }
 
-.roleSetting {
-  display: grid;
-  grid-template-columns: 70px repeat(3, minmax(0, 1fr));
-  align-items: center;
-  gap: 8px;
-}
-
 .roleSettingLabel {
   color: var(--color-neutral-300);
   /* --font-size-base is 0.875rem, 14px at a 16px root. */
@@ -479,37 +472,6 @@
   color: var(--color-neutral-300);
 }
 
-.presetCallout {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  margin-top: 18px;
-  padding: 16px;
-  border: 1px solid var(--color-neutral-750);
-  border-radius: 12px;
-  background: var(--color-neutral-850);
-}
-
-.presetCallout span {
-  display: grid;
-  gap: 4px;
-  color: var(--color-neutral-500);
-  font-size: 11px;
-}
-
-.presetCallout strong {
-  color: var(--color-neutral-200);
-  font-size: 12px;
-}
-
-.presetCallout a {
-  flex: none;
-  margin-left: auto;
-  color: var(--color-primary-300);
-  font-size: 11px;
-  text-decoration: none;
-}
-
 .visuallyHidden {
   position: absolute;
   width: 1px;
@@ -571,10 +533,6 @@
   }
 
   .creationGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .roleSetting {
     grid-template-columns: 1fr;
   }
 }
@@ -651,13 +609,6 @@
   color: var(--color-text-secondary);
 }
 
-.roleSettingTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-2);
-}
-
 .roleGroupActions {
   display: flex;
   gap: var(--spacing-1);
@@ -697,12 +648,6 @@
   color: var(--color-text-secondary);
 }
 
-.unitChips {
-  display: flex;
-  justify-content: flex-start;
-  padding-bottom: var(--spacing-3);
-}
-
 .stepExact {
   opacity: 0.55;
   font-variant-numeric: tabular-nums;
@@ -714,4 +659,45 @@
   gap: var(--spacing-1);
   align-items: center;
   min-width: 0;
+}
+
+/* One font entry in the inspector: a name row, the two pickers, and whatever
+   hint the chosen family earns. Entries stack, so every one but the first
+   carries its own separator. */
+.fontStack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding-top: var(--spacing-3);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.fontStack:first-child {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.fontStackRow {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-2);
+}
+
+.fontStackField {
+  /* min-width: 0 so a long family name shrinks rather than pushing the
+     control beside it out of the row. */
+  min-width: 0;
+  flex: 1;
+}
+
+.fontStackScript {
+  width: 8rem;
+  flex: none;
+}
+
+.fontStackHint {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
 }

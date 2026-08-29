@@ -11,6 +11,7 @@ import {
   type TypeFont,
 } from "@blueprint/ui";
 import { GoogleFontPicker } from "./GoogleFontPicker";
+import styles from "./typography-workspace.module.css";
 
 /**
  * Edit one font as a primary family plus a bilingual fallback.
@@ -104,9 +105,9 @@ export function FontStackEditor({
   const covered = primaryFont?.scripts.includes(script) ?? false;
 
   return (
-    <div className="flex flex-col gap-2 border-t border-[var(--color-border)] pt-3 first:border-t-0 first:pt-0">
-      <div className="flex items-end gap-2">
-        <div className="min-w-0 flex-1">
+    <div className={styles.fontStack}>
+      <div className={styles.fontStackRow}>
+        <div className={styles.fontStackField}>
           <TextInput
             /* The name is what the per-role Font dropdown shows, so "Display"
                beats "Font 2". Ids are stable, so renaming moves no tokens. */
@@ -136,8 +137,8 @@ export function FontStackEditor({
         onPick={(picked) => write(picked?.family ?? "", fallback)}
       />
 
-      <div className="flex items-end gap-2">
-        <div className="min-w-0 flex-1">
+      <div className={styles.fontStackRow}>
+        <div className={styles.fontStackField}>
           <GoogleFontPicker
             family={fallback}
             label={`${font.name} bilingual fallback`}
@@ -146,7 +147,7 @@ export function FontStackEditor({
             onPick={(picked) => write(primary, picked?.family ?? "")}
           />
         </div>
-        <div className="w-32 shrink-0">
+        <div className={styles.fontStackScript}>
           <Selector
             isLabelHidden
             label={`${font.name} fallback script`}
@@ -161,18 +162,18 @@ export function FontStackEditor({
       </div>
 
       {primary && !primaryFont && (
-        <p className="text-xs text-[var(--color-text-secondary)]">
+        <p className={styles.fontStackHint}>
           {primary} is not a Google font, so it is not loaded here. It still
           applies wherever it is installed.
         </p>
       )}
       {primary && primaryFont && covered && (
-        <p className="text-xs text-[var(--color-text-secondary)]">
+        <p className={styles.fontStackHint}>
           {primary} already covers {label(script)}, so a fallback is optional.
         </p>
       )}
       {primary && !covered && !fallback && (
-        <p className="text-xs text-[var(--color-text-secondary)]">
+        <p className={styles.fontStackHint}>
           {primary} has no {label(script)} glyphs. Without a fallback the
           browser substitutes a system font.
         </p>
