@@ -155,7 +155,7 @@ export function TypographyPreview({
                 ? sample.th
                 : sample.en
               : specimenText || role.name;
-            const Tag = elementForRole(system, role) as "p";
+            const Tag = elementForRole(system, role);
 
             return (
               <article key={role.id} className={styles.previewRole}>

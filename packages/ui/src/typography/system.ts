@@ -291,8 +291,15 @@ export interface TypeSystem {
   roles: TypeRole[];
 }
 
+const HEADING_ELEMENTS = ["h1", "h2", "h3", "h4", "h5", "h6"] as const;
+
+/** The elements a role can render as: a heading level, or a paragraph. */
+export type RoleElement = (typeof HEADING_ELEMENTS)[number] | "p";
+
 /** A role id that names an HTML heading level. */
-const HEADING_ID = /^h[1-6]$/;
+function isHeadingElement(id: string): id is (typeof HEADING_ELEMENTS)[number] {
+  return (HEADING_ELEMENTS as readonly string[]).includes(id);
+}
 
 /**
  * Semantic element for a role, derived rather than stored.
@@ -301,10 +308,15 @@ const HEADING_ID = /^h[1-6]$/;
  * A stored, editable element was a control nobody needed: headings already know
  * their level, and every other role is a visual style applied to body copy.
  */
-export function elementForRole(_system: TypeSystem, role: TypeRole): string {
+export function elementForRole(
+  _system: TypeSystem,
+  role: TypeRole,
+): RoleElement {
   /* Read from the id rather than the group, so renaming or moving a group
-     never changes what a role renders as. */
-  return HEADING_ID.test(role.id) ? role.id : "p";
+     never changes what a role renders as. A predicate rather than a regex, so
+     the narrowing is something the compiler checked instead of a cast at every
+     place the result is used as a tag name. */
+  return isHeadingElement(role.id) ? role.id : "p";
 }
 
 /** Roles in a group, in insertion order. */
