@@ -73,6 +73,10 @@ interface FontStackEditorProps {
   onChange: (families: string[]) => void;
   onRename: (name: string) => void;
   onRemove: () => void;
+  /** Hands the picked file up; the studio stores it and names the family. */
+  onUpload: (file: File) => void;
+  /** True once the uploaded file is registered and actually rendering. */
+  isFileLoaded: boolean;
 }
 
 export function FontStackEditor({
@@ -81,6 +85,8 @@ export function FontStackEditor({
   onChange,
   onRename,
   onRemove,
+  onUpload,
+  isFileLoaded,
 }: FontStackEditorProps) {
   const [script, setScript] = useState(DEFAULT_SCRIPT);
 
@@ -103,6 +109,11 @@ export function FontStackEditor({
   };
 
   const covered = primaryFont?.scripts.includes(script) ?? false;
+  /* Both notes below reason from the Google catalogue, which an uploaded file
+     is not in. "Not loaded here" would contradict the upload note directly,
+     and script coverage is not something we can read off a file we were
+     handed. */
+  const isLocal = font.source === "local";
 
   return (
     <div className={styles.fontStack}>
@@ -161,7 +172,33 @@ export function FontStackEditor({
         </div>
       </div>
 
-      {primary && !primaryFont && (
+      <div className={styles.fontStackUpload}>
+        <label className={styles.fontStackUploadLabel}>
+          <span>
+            {font.source === "local" ? "Replace file" : "Upload a font file"}
+          </span>
+          <input
+            accept=".woff2,.woff,.ttf,.otf,font/woff2,font/woff,font/ttf,font/otf"
+            type="file"
+            onChange={(event) => {
+              const picked = event.target.files?.[0];
+              /* Cleared so the same file can be picked again after a
+                 removal, which otherwise fires no change event. */
+              event.target.value = "";
+              if (picked) onUpload(picked);
+            }}
+          />
+        </label>
+        {font.source === "local" && (
+          <p className={styles.fontStackHint} data-missing={!isFileLoaded}>
+            {isFileLoaded
+              ? `Rendering ${primary} from your file. It stays in this browser and is never included in exports — check the licence before shipping it on the web.`
+              : `${primary} has no file in this browser, so it falls back. Upload it again to see it here.`}
+          </p>
+        )}
+      </div>
+
+      {primary && !primaryFont && !isLocal && (
         <p className={styles.fontStackHint}>
           {primary} is not a Google font, so it is not loaded here. It still
           applies wherever it is installed.
@@ -172,7 +209,7 @@ export function FontStackEditor({
           {primary} already covers {label(script)}, so a fallback is optional.
         </p>
       )}
-      {primary && !covered && !fallback && (
+      {primary && !covered && !fallback && !isLocal && (
         <p className={styles.fontStackHint}>
           {primary} has no {label(script)} glyphs. Without a fallback the
           browser substitutes a system font.

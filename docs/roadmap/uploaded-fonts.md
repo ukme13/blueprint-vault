@@ -82,7 +82,7 @@ Four ideas, and the first two are the ones that keep the rest honest.
 1. ✅ **The store, no UI.** An IndexedDB wrapper in `packages/ui` — put, get,
    delete, list — keyed by font id, holding the file and its metadata. Pure
    enough to test, and nothing consumes it yet.
-2. **Add and render.** A file input on the font entry, `FontFace` to register
+2. ✅ **Add and render.** A file input on the font entry, `FontFace` to register
    it, and the preview rendering in it. `source` becomes `local`.
 3. **Missing files.** The project opens without the store having the file: name
    still applied, honest message, re-add offered.

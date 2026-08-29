@@ -10,6 +10,7 @@ import {
   renameFont,
   renameGroup,
   setFontFamilies,
+  setLocalFont,
   updateGroup,
   updateRole,
   updateRoleValue,
@@ -36,6 +37,7 @@ export interface TypographySystemActions {
   removeFont: (id: string) => void;
   renameFont: (id: string, name: string) => void;
   setFontFamilies: (id: string, families: string[]) => void;
+  setLocalFont: (id: string, family: string) => void;
   removeGroup: (groupId: string) => void;
 }
 
@@ -88,6 +90,8 @@ export function useTypographySystem(
         editSystem((system) => renameFont(system, id, name)),
       setFontFamilies: (id, families) =>
         editSystem((system) => setFontFamilies(system, id, families)),
+      setLocalFont: (id, family) =>
+        editSystem((system) => setLocalFont(system, id, family)),
       removeGroup: (groupId) =>
         editSystem((system) => removeGroup(system, groupId)),
     };

@@ -56,6 +56,7 @@ import {
   type TypographyProject,
 } from "./typography-project";
 import { useGoogleFontsLink } from "./use-google-fonts";
+import { storeLocalFont, useLocalFonts } from "./use-local-fonts";
 import { useTypographySystem } from "./use-typography-system";
 import styles from "./typography-workspace.module.css";
 import type { TypographySection } from "./types";
@@ -147,6 +148,7 @@ export function TypographyStudio() {
     renameFont,
     renameGroupById,
     setFontFamilies,
+    setLocalFont,
     shiftGroup,
     updateGroup,
     updateRole,
@@ -182,6 +184,7 @@ export function TypographyStudio() {
         400);
 
   useGoogleFontsLink(system, previewFont, resolvedPreviewWeight);
+  const loadedLocalFonts = useLocalFonts(system);
 
   const bodyRole =
     resolvedRoles.find((role) => role.id === "body") ??
@@ -489,7 +492,13 @@ export function TypographyStudio() {
                   font={font}
                   onChange={(families) => setFontFamilies(font.id, families)}
                   onRemove={() => removeFont(font.id)}
+                  isFileLoaded={loadedLocalFonts.has(font.id)}
                   onRename={(name) => renameFont(font.id, name)}
+                  onUpload={(file) => {
+                    void storeLocalFont(font.id, file).then((family) =>
+                      setLocalFont(font.id, family),
+                    );
+                  }}
                 />
               ))}
               <Button
