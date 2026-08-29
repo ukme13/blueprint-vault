@@ -11,6 +11,7 @@ import {
   formatTypeSystemTailwindExport,
 } from "../typography/system-export";
 import { defaultSystem, setLocalFont } from "../typography/system";
+import { formatBlueprintWorkspace } from "../workspace/workspace-file";
 
 /*
  * Bytes in, names out.
@@ -28,6 +29,7 @@ import { defaultSystem, setLocalFont } from "../typography/system";
 /** Formatters that produce something a person can save and ship. */
 const DOCUMENT_FORMATTERS = [
   "formatBlueprintPaletteProject",
+  "formatBlueprintWorkspace",
   "formatPaletteCss",
   "formatPaletteCssExport",
   "formatPaletteDesignTokens",
@@ -144,6 +146,25 @@ describe("no export carries font data", () => {
     assertNamesOnly("a serialised workspace", serialised);
     // A 28KB file would be unmissable next to a project this size.
     expect(serialised.length).toBeLessThan(20_000);
+  });
+
+  it("keeps no bytes in a workspace file", () => {
+    /* The format that carries both halves of a project. It names an uploaded
+       family and must not travel with the file behind it. */
+    const file = formatBlueprintWorkspace({
+      name: "Uploaded",
+      palette: null,
+      typography: {
+        system: systemWithLocalFont(),
+        unit: "rem",
+        specimenText: "",
+        template: "specimen",
+      },
+    });
+
+    expect(file).toContain(FAMILY);
+    expect(file).toContain(`"source": "local"`);
+    assertNamesOnly("a workspace file", file);
   });
 
   it("catches a face if one is ever added", () => {

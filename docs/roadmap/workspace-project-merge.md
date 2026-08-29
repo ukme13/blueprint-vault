@@ -165,7 +165,7 @@ git if the choice turns out wrong.
    the moment the other tab renames, and it was writing that copy back. A
    studio now sends a name only when it is the one that changed it. The
    `storage` listener was not needed and was not added.
-6. **File format.** `{ kind: "blueprint-workspace", version: 1, project }`,
+6. ✅ **File format.** `{ kind: "blueprint-workspace", version: 1, project }`,
    with `blueprint-palette` files still importable into the palette slice.
 7. **Then Stage 4** of the preview plan, which is now a small feature.
 
