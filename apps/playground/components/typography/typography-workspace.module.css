@@ -808,3 +808,11 @@
 .fontStackHint[data-missing="true"] {
   color: var(--color-warning-300);
 }
+
+/* The one place the studio talks about licensing at the point of shipping. */
+.exportLicenceNote {
+  margin: 0;
+  color: var(--color-warning-300);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}

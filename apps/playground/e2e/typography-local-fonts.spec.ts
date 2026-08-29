@@ -192,3 +192,50 @@ test.describe("A local font with no file", () => {
     await expect(page.getByText(/Rendering Brand-Regular/)).toBeVisible();
   });
 });
+
+test.describe("Exporting a scale that uses an uploaded font", () => {
+  test("emits the family name and no font data", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings.getByLabel("Upload a font file").setInputFiles(FILE);
+    await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
+
+    await page.getByRole("button", { name: "Export type scale" }).click();
+    const preview = page.getByRole("region", { name: "Export preview" });
+    await expect(preview).toBeVisible();
+
+    const css = (await preview.textContent()) ?? "";
+    expect(css).toContain("Brand-Regular");
+    /* Bytes in, names out. A desktop licence commonly does not cover webfont
+       embedding, so the file must not travel with the stylesheet. */
+    expect(css).not.toContain("@font-face");
+    expect(css).not.toContain("base64");
+    expect(css).not.toContain("data:font");
+  });
+
+  test("says the file is not included and the licence is the user's to check", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings.getByLabel("Upload a font file").setInputFiles(FILE);
+    await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
+
+    await page.getByRole("button", { name: "Export type scale" }).click();
+    await expect(page.getByText(/does not include the file/)).toBeVisible();
+    await expect(
+      page.getByText(/check your licence covers the web/),
+    ).toBeVisible();
+  });
+
+  test("says nothing about licences when no font was uploaded", async ({
+    seededPage: page,
+  }) => {
+    await page.getByRole("button", { name: "Export type scale" }).click();
+    await expect(
+      page.getByRole("region", { name: "Export preview" }),
+    ).toBeVisible();
+    // A Google or system family is the reader's to load; not our question.
+    await expect(page.getByText(/check your licence/)).toHaveCount(0);
+  });
+});

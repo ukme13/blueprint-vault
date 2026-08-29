@@ -88,11 +88,12 @@ Four ideas, and the first two are the ones that keep the rest honest.
    still applied, honest message, re-add offered.
 4. **Remove, and size limits.** Deleting an entry deletes its bytes. A cap and a
    format allowlist, with a message that says why rather than failing silently.
-5. **The export guard.** The test that asserts no export path can emit font
+5. ✅ **The export guard.** The test that asserts no export path can emit font
    data, and the licence note in the UI.
 
-Stage 5 is written last and should be reviewed first. It is the one that decides
-whether the rest is safe.
+Stage 5 was written last and built before stage 4, because it is the one that
+decides whether the rest is safe and three stages of feature were already
+sitting on top of it holding true by accident.
 
 ## Not doing
 
