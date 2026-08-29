@@ -514,6 +514,148 @@ export function resolveRoleSizePx(
  * Families that are not valid CSS identifiers are quoted, which is what makes a
  * stack like `Noto Sans Thai` valid rather than three bare identifiers.
  */
+/* The edits a studio makes to a system, as TypeSystem -> TypeSystem. They sit
+   here rather than in the app because they are the same species as addFont and
+   reindexGroup beside them, and several call those directly. */
+
+export function updateRole(
+  system: TypeSystem,
+  id: string,
+  patch: Partial<TypeRole>,
+): TypeSystem {
+  return {
+    ...system,
+    roles: system.roles.map((role) =>
+      role.id === id ? { ...role, ...patch } : role,
+    ),
+  };
+}
+
+/** Line height and letter spacing are always per-role and never linked. */
+export function updateRoleValue(
+  system: TypeSystem,
+  id: string,
+  patch: Partial<{ lineHeight: number; letterSpacingPx: number }>,
+): TypeSystem {
+  return {
+    ...system,
+    roles: system.roles.map((role) =>
+      role.id === id
+        ? {
+            ...role,
+            desktop: { ...role.desktop, ...patch },
+            mobile: { ...role.mobile, ...patch },
+          }
+        : role,
+    ),
+  };
+}
+
+/** A group at capacity is returned unchanged, so callers need no guard. */
+export function addRole(system: TypeSystem, group: TypeGroup): TypeSystem {
+  if (!canAddRole(system, group)) return system;
+
+  const template =
+    system.roles.find((role) => role.groupId === group.id) ??
+    system.roles.find((role) => role.id === BODY_GROUP_ID) ??
+    system.roles[0];
+  if (!template) return system;
+
+  /* Placeholder id: reindexGroup gives every role in the group its real name,
+     which is how a lone `caption` becomes `caption-1` once a second one joins
+     it. */
+  const placeholder = `${group.id}-new-${system.roles.length}`;
+  const withRole: TypeSystem = {
+    ...system,
+    roles: [
+      ...system.roles,
+      {
+        ...template,
+        id: placeholder,
+        name: placeholder,
+        groupId: group.id,
+        /* A new role reuses its sibling's step rather than claiming one of its
+           own. Adding roles must never force the ramp to grow. */
+        stepOffset: template.stepOffset,
+        sameAsRoleId: null,
+      },
+    ],
+  };
+
+  return reindexGroup(withRole, group.id);
+}
+
+export function removeRole(system: TypeSystem, id: string): TypeSystem {
+  const groupId = system.roles.find((role) => role.id === id)?.groupId;
+
+  const without: TypeSystem = {
+    ...system,
+    roles: system.roles
+      .filter((role) => role.id !== id)
+      /* Anything following the removed role keeps its size rather than silently
+         falling back to whatever it stored. */
+      .map((role) =>
+        role.sameAsRoleId === id ? { ...role, sameAsRoleId: null } : role,
+      ),
+  };
+
+  return groupId ? reindexGroup(without, groupId) : without;
+}
+
+export function updateGroup(
+  system: TypeSystem,
+  groupId: string,
+  patch: Partial<TypeGroup>,
+): TypeSystem {
+  const updated: TypeSystem = {
+    ...system,
+    groups: system.groups.map((group) =>
+      group.id === groupId ? { ...group, ...patch } : group,
+    ),
+  };
+  /* Switching a group between number and size renames its roles, so the ids
+     follow the mode rather than whatever they were created under. */
+  return reindexGroup(updated, groupId);
+}
+
+/** Skips any number already taken, so ids stay unique however groups were made. */
+export function addGroup(system: TypeSystem): TypeSystem {
+  let index = system.groups.length + 1;
+  while (system.groups.some((group) => group.id === `group-${index}`)) {
+    index += 1;
+  }
+  return {
+    ...system,
+    groups: [
+      ...system.groups,
+      { id: `group-${index}`, label: `Group ${index}`, indexing: "number" },
+    ],
+  };
+}
+
+/** Removes the group and the roles that belonged to it. */
+export function removeGroup(system: TypeSystem, groupId: string): TypeSystem {
+  return {
+    ...system,
+    groups: system.groups.filter((group) => group.id !== groupId),
+    roles: system.roles.filter((role) => role.groupId !== groupId),
+  };
+}
+
+/* The picker writes a stack, so the entry becomes a Google one by definition. */
+export function setFontFamilies(
+  system: TypeSystem,
+  fontId: string,
+  families: string[],
+): TypeSystem {
+  return {
+    ...system,
+    fonts: system.fonts.map((font) =>
+      font.id === fontId ? { ...font, families, source: "google" } : font,
+    ),
+  };
+}
+
 export function fontFamilyValue(system: TypeSystem, role: TypeRole): string {
   const font = system.fonts.find((candidate) => candidate.id === role.fontId);
   return font ? familiesToCss(font.families) : "inherit";
