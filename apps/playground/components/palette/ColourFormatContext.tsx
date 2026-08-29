@@ -22,6 +22,7 @@ const ColourFormatContext = createContext<ColourFormatContextValue | null>(
 
 export function ColourFormatProvider({ children }: { children: ReactNode }) {
   const [colourFormat, setColourFormat] = useState<ColourFormat>("hex");
+  const [hasLoadedFormat, setHasLoadedFormat] = useState(false);
 
   useEffect(() => {
     const stored = window.localStorage.getItem(STORAGE_KEY);
@@ -30,11 +31,18 @@ export function ColourFormatProvider({ children }: { children: ReactNode }) {
        hydration. */
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isColourFormat(stored)) setColourFormat(stored);
+    setHasLoadedFormat(true);
   }, []);
 
   useEffect(() => {
+    /* Nothing is written until the read above has run, or the write below it
+       persists the "hex" default over whatever was stored. In production that
+       self-corrects on the next render, but under StrictMode the effects run
+       twice and the second read sees the clobbered "hex" — so a chosen format
+       never survived a reload in dev. Same guard as PaletteStudio. */
+    if (!hasLoadedFormat) return;
     window.localStorage.setItem(STORAGE_KEY, colourFormat);
-  }, [colourFormat]);
+  }, [hasLoadedFormat, colourFormat]);
 
   return (
     <ColourFormatContext.Provider value={{ colourFormat, setColourFormat }}>
