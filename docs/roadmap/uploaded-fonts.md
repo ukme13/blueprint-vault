@@ -86,7 +86,7 @@ Four ideas, and the first two are the ones that keep the rest honest.
    it, and the preview rendering in it. `source` becomes `local`.
 3. ✅ **Missing files.** The project opens without the store having the file: name
    still applied, honest message, re-add offered.
-4. **Remove, and size limits.** Deleting an entry deletes its bytes. A cap and a
+4. ✅ **Remove, and size limits.** Deleting an entry deletes its bytes. A cap and a
    format allowlist, with a message that says why rather than failing silently.
 5. ✅ **The export guard.** The test that asserts no export path can emit font
    data, and the licence note in the UI.
@@ -151,6 +151,11 @@ uploaded font must keep loading where the file is absent.
   becomes tier 3. Worth deciding now which way that goes, because the answer
   might be "the font is the one thing that does not sync", and that is easier to
   build for than to retrofit.
+- ~~**The size cap and the allowlist.**~~ Settled: all four of woff2, woff, ttf
+  and otf, capped at 32MB. The person this feature exists for holds a desktop
+  licence and what they have is a ttf or an otf, and a CJK otf runs to sixteen
+  megabytes — so a tight cap would refuse real fonts, and refusing someone's
+  actual typeface is worse than storing a large one. The original note read:
 - **The size cap and the allowlist.** `woff2` alone is the safest and covers
   anything modern; accepting `ttf` and `otf` is friendlier to someone holding a
   desktop licence, which is exactly the person this feature is for. That tension

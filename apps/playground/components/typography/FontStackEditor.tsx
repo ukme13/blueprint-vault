@@ -76,6 +76,8 @@ interface FontStackEditorProps {
   onRemove: () => void;
   /** Hands the picked file up; the studio stores it and names the family. */
   onUpload: (file: File) => void;
+  /** Why the last picked file was refused, or empty when it was not. */
+  uploadError: string;
   /** Whether the uploaded file has been found yet. Local entries only. */
   fileStatus: LocalFontStatus;
 }
@@ -88,6 +90,7 @@ export function FontStackEditor({
   onRemove,
   onUpload,
   fileStatus,
+  uploadError,
 }: FontStackEditorProps) {
   const [script, setScript] = useState(DEFAULT_SCRIPT);
 
@@ -196,6 +199,11 @@ export function FontStackEditor({
             }}
           />
         </label>
+        {uploadError && (
+          <p className={styles.fontStackHint} data-missing="true">
+            {uploadError}
+          </p>
+        )}
         {isLocal && fileStatus !== "checking" && (
           <p
             className={styles.fontStackHint}

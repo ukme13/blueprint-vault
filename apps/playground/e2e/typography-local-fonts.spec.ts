@@ -239,3 +239,118 @@ test.describe("Exporting a scale that uses an uploaded font", () => {
     await expect(page.getByText(/check your licence/)).toHaveCount(0);
   });
 });
+
+test.describe("A file nothing references", () => {
+  /* Read the store directly. Nothing in the UI can see an orphan — the entry
+     is gone, so every screen reports the font as absent whether or not its
+     bytes are still sitting there. */
+  const storedFontIds = (page: import("@playwright/test").Page) =>
+    page.evaluate(
+      () =>
+        new Promise<string[]>((resolve) => {
+          const open = indexedDB.open("blueprint-fonts", 1);
+          open.onsuccess = () => {
+            const db = open.result;
+            if (!db.objectStoreNames.contains("font-data")) {
+              db.close();
+              resolve([]);
+              return;
+            }
+            const keys = db
+              .transaction("font-data", "readonly")
+              .objectStore("font-data")
+              .getAllKeys();
+            keys.onsuccess = () => {
+              resolve(keys.result as string[]);
+              db.close();
+            };
+          };
+          open.onerror = () => resolve([]);
+        }),
+    );
+
+  const upload = async (page: import("@playwright/test").Page) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings.getByLabel("Upload a font file").setInputFiles(FILE);
+    await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
+    await expect.poll(() => storedFontIds(page)).toContain("base");
+  };
+
+  test("goes when its font entry is removed", async ({ seededPage: page }) => {
+    await upload(page);
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+
+    /* Removal is refused for the last entry, so there has to be a second one
+     before the first can go. */
+    await settings.getByRole("button", { name: "Add font" }).click();
+    await settings.getByRole("button", { name: "Remove Base font" }).click();
+
+    await expect.poll(() => storedFontIds(page)).not.toContain("base");
+  });
+
+  test("goes when the entry switches to a Google family", async ({
+    seededPage: page,
+  }) => {
+    await upload(page);
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+
+    await settings
+      .getByLabel("Base font", { exact: true })
+      .locator("xpath=..")
+      .getByRole("button", { name: "Clear selection" })
+      .click();
+    await settings.getByLabel("Base font", { exact: true }).fill("Lora");
+    await page.getByRole("option", { name: "Lora", exact: true }).click();
+
+    await expect.poll(() => storedFontIds(page)).not.toContain("base");
+  });
+
+  test("goes when the whole project is started again", async ({
+    seededPage: page,
+  }) => {
+    await upload(page);
+    await page.getByRole("button", { name: "New project" }).click();
+    await page.getByRole("button", { name: "Start new project" }).click();
+
+    await expect.poll(() => storedFontIds(page)).toEqual([]);
+  });
+});
+
+test.describe("A file that is not a font", () => {
+  test("is refused, and says why rather than failing silently", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings.getByLabel("Upload a font file").setInputFiles({
+      name: "holiday.mp4",
+      mimeType: "video/mp4",
+      buffer: Buffer.from([0, 1, 2, 3]),
+    });
+
+    await expect(
+      settings.getByText(/holiday\.mp4 is not a font file/),
+    ).toBeVisible();
+    // And nothing was stored or applied.
+    await expect(settings.getByText(/Rendering/)).toHaveCount(0);
+  });
+
+  test("leaves an existing font alone when the replacement is refused", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings.getByLabel("Upload a font file").setInputFiles(FILE);
+    await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
+
+    await settings.getByLabel("Replace file").setInputFiles({
+      name: "notes.txt",
+      mimeType: "text/plain",
+      buffer: Buffer.from("not a font"),
+    });
+
+    await expect(
+      settings.getByText(/notes\.txt is not a font file/),
+    ).toBeVisible();
+    /* The refusal must not cost the font that was already working. */
+    await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
+  });
+});

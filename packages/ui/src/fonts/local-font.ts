@@ -10,6 +10,23 @@
 
 const FONT_FILE_EXTENSION = /\.(woff2?|[ot]tf)$/i;
 
+/**
+ * The formats accepted.
+ *
+ * woff2 alone would be safest and covers anything modern, but the person this
+ * feature exists for is holding a desktop licence, and what they have is a ttf
+ * or an otf. Refusing those would turn away the case the plan was written for.
+ */
+export const ALLOWED_FONT_EXTENSIONS = ["woff2", "woff", "ttf", "otf"] as const;
+
+/**
+ * Deliberately generous. A Latin woff2 is tens of kilobytes and a CJK otf can
+ * be sixteen megabytes, so a tight cap would reject real fonts — and rejecting
+ * someone's actual typeface is worse than storing a large one. What this
+ * catches is a file that was never a font.
+ */
+export const MAX_FONT_FILE_BYTES = 32 * 1024 * 1024;
+
 /** What a font with no usable file name is called. */
 export const FALLBACK_LOCAL_FONT_FAMILY = "Uploaded font";
 
@@ -32,6 +49,31 @@ export function localFontFamilyName(fileName: string): string {
     .replace(/\s+/g, " ")
     .trim();
   return cleaned || FALLBACK_LOCAL_FONT_FAMILY;
+}
+
+/**
+ * Why a picked file cannot be used, or null when it can.
+ *
+ * Extension rather than MIME type: browsers disagree about what to report for
+ * a font, and an empty string is common for otf and ttf. The name is what the
+ * person chose and what they will recognise in the message.
+ */
+export function rejectFontFile(file: {
+  name: string;
+  size: number;
+}): string | null {
+  const extension = file.name.trim().split(".").pop()?.toLowerCase() ?? "";
+  if (!(ALLOWED_FONT_EXTENSIONS as readonly string[]).includes(extension)) {
+    return `${file.name} is not a font file. Choose a ${ALLOWED_FONT_EXTENSIONS.join(", ")} file.`;
+  }
+  if (file.size <= 0) {
+    return `${file.name} is empty.`;
+  }
+  if (file.size > MAX_FONT_FILE_BYTES) {
+    const megabytes = Math.round(MAX_FONT_FILE_BYTES / 1024 / 1024);
+    return `${file.name} is larger than ${megabytes}MB. That is bigger than any font needs to be, so this is probably not one.`;
+  }
+  return null;
 }
 
 /**

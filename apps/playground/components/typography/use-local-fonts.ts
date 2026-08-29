@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   fontFileStore,
   localFontFamilyName,
+  rejectFontFile,
   registerLocalFont,
   type TypeSystem,
 } from "@blueprint/ui";
@@ -12,10 +13,21 @@ import {
  * Outside the component on purpose: it reads the clock and touches storage,
  * neither of which belongs anywhere React might call twice.
  */
+export interface StoreLocalFontResult {
+  family?: string;
+  /** Why the file was refused, said in a way that names the file. */
+  rejected?: string;
+}
+
 export async function storeLocalFont(
   fontId: string,
   file: File,
-): Promise<string> {
+): Promise<StoreLocalFontResult> {
+  /* Checked before anything is read or written: refusing a file after storing
+     it would leave the very orphan the plan forbids. */
+  const rejected = rejectFontFile(file);
+  if (rejected) return { rejected };
+
   const family = localFontFamilyName(file.name);
   const data = await file.arrayBuffer();
 
@@ -36,7 +48,31 @@ export async function storeLocalFont(
   /* Not registered here. Pointing the entry at this family re-runs the hook
      below, which reads the file back and registers it once — doing it in both
      places added a second FontFace for the same family on every upload. */
-  return family;
+  return { family };
+}
+
+/**
+ * Forget the files for these entries.
+ *
+ * Called wherever an entry stops pointing at one: removed, switched to a
+ * Google family, or taken away with the whole project. A file nothing
+ * references is a copy of someone's licensed font that nobody chose to keep.
+ */
+export async function forgetLocalFonts(fontIds: string[]): Promise<void> {
+  if (fontIds.length === 0) return;
+  try {
+    const store = fontFileStore();
+    for (const id of fontIds) await store.remove(id);
+  } catch {
+    /* Storage unavailable. Nothing was stored either, in that case. */
+  }
+}
+
+/** The entries of a system that are backed by a stored file. */
+export function localFontIds(system: TypeSystem | null): string[] {
+  return (system?.fonts ?? [])
+    .filter((font) => font.source === "local")
+    .map((font) => font.id);
 }
 
 /**
