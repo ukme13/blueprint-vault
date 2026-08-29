@@ -1,6 +1,10 @@
-import { test as base, type Page } from "@playwright/test";
+import { expect, test as base, type Page } from "@playwright/test";
 
 export const PROJECT_STORAGE_KEY = "blueprint.palette-project.v1";
+
+/* Declared rather than imported from @blueprint/ui: the package entry is a
+   .tsx the Playwright loader will not resolve. Kept in step by hand. */
+export const WORKSPACE_STORAGE_KEY = "blueprint.workspace.v1";
 
 const SEED_GUARD_KEY = "blueprint.e2e-seeded.palette";
 
@@ -60,8 +64,14 @@ export async function seedProject(
 export const test = base.extend<{ seededPage: Page }>({
   seededPage: async ({ page }, runTest) => {
     await seedProject(page);
+    /* goto resolves before the effects that read storage and persist have
+       run, so a test that inspects storage or counts anything sees the page
+       mid-flight. Waiting for the toolbar is waiting for hydration. */
+    await expect(
+      page.getByRole("region", { name: "Palette toolbar" }),
+    ).toBeVisible();
     await runTest(page);
   },
 });
 
-export { expect } from "@playwright/test";
+export { expect };

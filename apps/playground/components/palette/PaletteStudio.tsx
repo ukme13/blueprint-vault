@@ -20,9 +20,14 @@ import { useToast } from "@astryxdesign/core/Toast";
 import {
   BLUEPRINT_20_PRESET,
   Button,
+  LEGACY_PALETTE_STORAGE_KEY,
+  LEGACY_TYPOGRAPHY_STORAGE_KEY,
   MAX_SHADE_COUNT,
+  WORKSPACE_STORAGE_KEY,
+  loadWorkspace,
+  withPaletteSlice,
+  type WorkspaceLoadInput,
   defaultLightnessValues,
-  readPaletteProjectData,
   clampLightnessValue,
   generatePalette,
   generateStableWeights,
@@ -63,7 +68,6 @@ const SEMANTIC_TRACKS: ColorTrackInput[] = [
 
 type ContrastTarget = "white" | "black" | "custom";
 
-const PROJECT_STORAGE_KEY = "blueprint.palette-project.v1";
 type PlaygroundSection = "overview" | "shade-generator" | "preview";
 
 type PaletteProject = PaletteProjectData;
@@ -82,12 +86,41 @@ function createPatternValues(
   );
 }
 
+/* Read every key the workspace can come from, so loadWorkspace decides which
+   one wins rather than this component guessing. */
+function readStorageKeys(): WorkspaceLoadInput {
+  return {
+    workspace: window.localStorage.getItem(WORKSPACE_STORAGE_KEY),
+    legacyPalette: window.localStorage.getItem(LEGACY_PALETTE_STORAGE_KEY),
+    legacyTypography: window.localStorage.getItem(
+      LEGACY_TYPOGRAPHY_STORAGE_KEY,
+    ),
+  };
+}
+
 function readStoredProject(): PaletteProject | null {
   try {
-    const stored = window.localStorage.getItem(PROJECT_STORAGE_KEY);
-    return stored ? readPaletteProjectData(JSON.parse(stored)) : null;
+    return loadWorkspace(readStorageKeys()).project?.palette ?? null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Persist the palette half, and only that half.
+ *
+ * The stored workspace is re-read here rather than reused from state: the
+ * typography studio owns the other slice and may have written it since this
+ * page loaded. Writing the copy we loaded would take its work with us.
+ */
+function writeStoredProject(project: PaletteProject | null): void {
+  try {
+    const current = loadWorkspace(readStorageKeys()).project;
+    const next = withPaletteSlice(current, project, project?.name);
+    window.localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    /* A storage that will not take a write is not something the studio can
+       resolve, and losing the session is worse than losing the save. */
   }
 }
 function createDefaultTracks(primarySeed: string): ColorTrackInput[] {
@@ -140,11 +173,7 @@ function PaletteStudioContent() {
   useEffect(() => {
     if (!hasLoadedProject) return;
 
-    if (project) {
-      window.localStorage.setItem(PROJECT_STORAGE_KEY, JSON.stringify(project));
-    } else {
-      window.localStorage.removeItem(PROJECT_STORAGE_KEY);
-    }
+    writeStoredProject(project);
   }, [hasLoadedProject, project]);
 
   const weights = useMemo(() => {

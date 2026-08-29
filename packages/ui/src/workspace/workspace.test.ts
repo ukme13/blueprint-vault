@@ -9,6 +9,8 @@ import {
   DEFAULT_WORKSPACE_NAME,
   loadWorkspace,
   readWorkspaceProject,
+  withPaletteSlice,
+  withTypographySlice,
   workspaceFromLegacy,
 } from "./workspace";
 
@@ -229,5 +231,39 @@ describe("readWorkspaceProject", () => {
     });
     expect(project?.palette).toBeNull();
     expect(project?.typography?.system.name).toBe("My type scale");
+  });
+});
+
+describe("slice writes", () => {
+  const both = workspaceFromLegacy(legacyPalette(), legacyTypography())!;
+
+  it("leaves the other slice alone", () => {
+    const next = withPaletteSlice(both, null);
+    expect(next.palette).toBeNull();
+    // Clearing a palette is not a reason to lose a type scale.
+    expect(next.typography?.system.name).toBe("My type scale");
+  });
+
+  it("keeps the palette when typography is cleared", () => {
+    const next = withTypographySlice(both, null);
+    expect(next.typography).toBeNull();
+    expect(next.palette?.tracks).toHaveLength(1);
+  });
+
+  it("builds a workspace when there is not one yet", () => {
+    const next = withPaletteSlice(null, both.palette, "Fresh");
+    expect(next.name).toBe("Fresh");
+    expect(next.typography).toBeNull();
+  });
+
+  it("keeps the existing name when the new one is blank", () => {
+    // An empty topbar should not rename the workspace to nothing.
+    expect(withPaletteSlice(both, both.palette, "   ").name).toBe(both.name);
+  });
+
+  it("renames the workspace when a studio renames its project", () => {
+    expect(withPaletteSlice(both, both.palette, "Renamed").name).toBe(
+      "Renamed",
+    );
   });
 });

@@ -1,6 +1,7 @@
 import { readPaletteProjectData } from "./palette-project";
 import { readTypographyProjectData } from "./typography-project";
-import type { WorkspaceProject } from "./types";
+import type { TypographyProjectData, WorkspaceProject } from "./types";
+import type { PaletteProjectData } from "../color/export";
 
 export const WORKSPACE_STORAGE_KEY = "blueprint.workspace.v1";
 
@@ -117,4 +118,40 @@ export function loadWorkspace(input: WorkspaceLoadInput): WorkspaceLoadResult {
     parseJson(input.legacyTypography),
   );
   return { project, migrated: project !== null };
+}
+
+/** A workspace with neither studio opened. */
+export function emptyWorkspace(
+  name = DEFAULT_WORKSPACE_NAME,
+): WorkspaceProject {
+  return { name, palette: null, typography: null };
+}
+
+/*
+ * Replacing one slice, keeping whatever the other holds.
+ *
+ * A studio must never write a slice it does not own, and it cannot know what
+ * the other one has been doing. So it re-reads the stored workspace and patches
+ * its own half rather than persisting the copy it loaded — which narrows a
+ * clobber to a single write instead of a whole session.
+ */
+
+export function withPaletteSlice(
+  current: WorkspaceProject | null,
+  palette: PaletteProjectData | null,
+  name?: string,
+): WorkspaceProject {
+  const base = current ?? emptyWorkspace();
+  const next = name?.trim() || base.name;
+  return { ...base, name: next, palette };
+}
+
+export function withTypographySlice(
+  current: WorkspaceProject | null,
+  typography: TypographyProjectData | null,
+  name?: string,
+): WorkspaceProject {
+  const base = current ?? emptyWorkspace();
+  const next = name?.trim() || base.name;
+  return { ...base, name: next, typography };
 }

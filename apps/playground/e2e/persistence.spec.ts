@@ -1,4 +1,9 @@
-import { PROJECT_STORAGE_KEY, expect, test } from "./fixtures";
+import {
+  PROJECT_STORAGE_KEY,
+  WORKSPACE_STORAGE_KEY,
+  expect,
+  test,
+} from "./fixtures";
 
 test.describe("Persistence after reload", () => {
   test("shade count and pattern changes survive a reload", async ({
@@ -51,17 +56,28 @@ test.describe("Persistence after reload", () => {
     ).toBeVisible();
   });
 
-  test("stores the project under the expected localStorage key", async ({
+  test("stores the project in the workspace, migrated off the old key", async ({
     seededPage: page,
   }) => {
+    /* The fixture seeds the legacy key, so asserting against that one would
+       pass on the seed alone and stop testing the app entirely. The workspace
+       key is where the studio now writes. */
     const stored = await page.evaluate(
       (key) => window.localStorage.getItem(key),
-      PROJECT_STORAGE_KEY,
+      WORKSPACE_STORAGE_KEY,
     );
 
     expect(stored).not.toBeNull();
-    const project = JSON.parse(stored!);
-    expect(project.name).toBe("My colour system");
-    expect(project.lightnessValues).toHaveLength(20);
+    const workspace = JSON.parse(stored!);
+    expect(workspace.name).toBe("My colour system");
+    expect(workspace.palette.name).toBe("My colour system");
+    expect(workspace.palette.lightnessValues).toHaveLength(20);
+
+    // The legacy key is left where it was, so a bad migration is recoverable.
+    const legacy = await page.evaluate(
+      (key) => window.localStorage.getItem(key),
+      PROJECT_STORAGE_KEY,
+    );
+    expect(legacy).not.toBeNull();
   });
 });
