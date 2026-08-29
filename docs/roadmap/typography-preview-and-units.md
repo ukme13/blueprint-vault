@@ -144,7 +144,7 @@ better, and its own rules forbid raw hex in components.
 This is the item the reference tool structurally cannot copy, and it connects
 the two halves of the workspace.
 
-## Stage 5 — Thai-aware validation
+## Stage 5 — Thai-aware validation ✅ done
 
 `assessLineHeight(lineHeight: number)` takes a bare number and applies one
 threshold. The safety rules in `typography-studio.md` say Thai marks need more

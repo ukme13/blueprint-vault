@@ -3,6 +3,11 @@ export const TYPOGRAPHY_THRESHOLDS = {
   minBodyFontSizePx: 12,
   minLineHeight: 1.2,
   minLineHeightFail: 1.1,
+  /* Thai stacks vowels and tone marks above the line and vowels below it, so
+     a leading that is comfortable for Latin closes the gap those marks need
+     and they collide with the line above. */
+  minLineHeightThai: 1.4,
+  minLineHeightThaiFail: 1.25,
   maxRecommendedRatio: 1.5,
   maxRecommendedStepCount: 12,
   minFontWeight: 100,
@@ -17,10 +22,17 @@ export interface BodyFontSizeResult {
   summary: string;
 }
 
+/** A writing system whose line-height needs differ from Latin. */
+export type TypographyScript = "thai";
+
 export interface LineHeightResult {
   lineHeight: number;
   status: TypographyStatus;
   summary: string;
+  /** The script that raised the minimum, or null when Latin rules applied. */
+  script: TypographyScript | null;
+  /** The minimum that was actually applied, which the script decides. */
+  minLineHeight: number;
 }
 
 export interface ScaleGrowthResult {
@@ -77,27 +89,66 @@ export function assessBodyFontSize(fontSizePx: number): BodyFontSizeResult {
   };
 }
 
-export function assessLineHeight(lineHeight: number): LineHeightResult {
-  if (lineHeight < TYPOGRAPHY_THRESHOLDS.minLineHeightFail) {
+/** Whether a string contains Thai, by the Unicode block the script occupies. */
+export function hasThaiScript(text: string): boolean {
+  return /[฀-๿]/.test(text);
+}
+
+/**
+ * The line-height check, against the script the specimen is actually written in.
+ *
+ * Latin needs less room than the studio's own guidance assumes of Thai, so one
+ * threshold was never both. The specimen text decides, because that is the copy
+ * the person is judging the scale with — and mixed text takes the stricter of
+ * the two, since the marks still have to fit.
+ */
+export function assessLineHeight(
+  lineHeight: number,
+  specimenText = "",
+): LineHeightResult {
+  const thai = hasThaiScript(specimenText);
+  const script: TypographyScript | null = thai ? "thai" : null;
+  const minLineHeight = thai
+    ? TYPOGRAPHY_THRESHOLDS.minLineHeightThai
+    : TYPOGRAPHY_THRESHOLDS.minLineHeight;
+  const failBelow = thai
+    ? TYPOGRAPHY_THRESHOLDS.minLineHeightThaiFail
+    : TYPOGRAPHY_THRESHOLDS.minLineHeightFail;
+
+  /* The script is named in every message it changed, so the advice can be
+     acted on rather than just obeyed. */
+  if (lineHeight < failBelow) {
     return {
       lineHeight,
+      script,
+      minLineHeight,
       status: "fail",
-      summary: `A line height of ${lineHeight} is too tight and will crowd wrapped lines.`,
+      summary: thai
+        ? `A line height of ${lineHeight} is too tight for Thai, whose tone marks and vowels stack above and below the line.`
+        : `A line height of ${lineHeight} is too tight and will crowd wrapped lines.`,
     };
   }
 
-  if (lineHeight < TYPOGRAPHY_THRESHOLDS.minLineHeight) {
+  if (lineHeight < minLineHeight) {
     return {
       lineHeight,
+      script,
+      minLineHeight,
       status: "warn",
-      summary: `A line height of ${lineHeight} is below the recommended ${TYPOGRAPHY_THRESHOLDS.minLineHeight} minimum.`,
+      summary: thai
+        ? `A line height of ${lineHeight} is below the ${minLineHeight} Thai needs for its marks to clear the line above.`
+        : `A line height of ${lineHeight} is below the recommended ${minLineHeight} minimum.`,
     };
   }
 
   return {
     lineHeight,
+    script,
+    minLineHeight,
     status: "pass",
-    summary: "Line height gives wrapped lines enough room.",
+    summary: thai
+      ? "Line height gives Thai marks room to clear the line above."
+      : "Line height gives wrapped lines enough room.",
   };
 }
 
