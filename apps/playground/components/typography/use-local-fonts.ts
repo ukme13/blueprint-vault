@@ -39,6 +39,17 @@ export async function storeLocalFont(
   return family;
 }
 
+/**
+ * Whether an entry's file has been found yet.
+ *
+ * Three states rather than two, because "not loaded" and "not loaded yet" call
+ * for different things on screen. Reading the store is asynchronous, so a
+ * boolean reports every present file as missing until it resolves — invisible
+ * on a fast machine with a small file, and a false alarm on a slow one with a
+ * large one.
+ */
+export type LocalFontStatus = "checking" | "loaded" | "missing";
+
 /** The local entries of a system, as `id:family` pairs. */
 function localEntries(system: TypeSystem | null): string[] {
   return (system?.fonts ?? [])
@@ -76,11 +87,28 @@ async function registerStored(entries: string[]): Promise<Set<string>> {
  * entry's id. Nothing joins the two until this runs, which is why it runs on
  * every load rather than only after an upload.
  *
- * Returns the ids whose files are present. A local entry missing from that set
- * has a name and no file — a normal state, not an error.
+ * Reports each local entry as checking, loaded, or missing. Missing is a normal
+ * state rather than an error: the project can be opened in another browser, or
+ * storage cleared, and the family name still applies.
  */
-export function useLocalFonts(system: TypeSystem | null): Set<string> {
-  const [loaded, setLoaded] = useState<Set<string>>(new Set());
+export function useLocalFonts(
+  system: TypeSystem | null,
+  /**
+   * Bumped whenever the stored files change.
+   *
+   * Re-adding a missing file usually produces the same family name, so the
+   * system is identical afterwards and nothing here would re-run — the font
+   * would stay reported as missing while its file sat in the store.
+   */
+  revision = 0,
+): Map<string, LocalFontStatus> {
+  /* The answer is stored with the question it answers. Comparing the two is
+     what makes "checking" a derived state rather than one this has to set
+     synchronously at the top of the effect, which cascades renders. */
+  const [answer, setAnswer] = useState<{
+    key: string;
+    present: Set<string>;
+  } | null>(null);
 
   /* Keyed on the local entries rather than the system, so this re-runs when a
      font is uploaded or removed and not on every edit to a line height. */
@@ -91,12 +119,26 @@ export function useLocalFonts(system: TypeSystem | null): Set<string> {
     /* Even the empty case goes through the promise: setting state synchronously
        in an effect body cascades renders. */
     void registerStored(key ? key.split("|") : []).then((present) => {
-      if (!cancelled) setLoaded(present);
+      if (!cancelled) setAnswer({ key: `${revision}:${key}`, present });
     });
     return () => {
       cancelled = true;
     };
-  }, [key]);
+  }, [key, revision]);
 
-  return loaded;
+  /* Stale until the effect has answered this exact key, so a system whose
+     fonts just changed reports checking rather than the previous answer. */
+  const question = `${revision}:${key}`;
+  const current = answer?.key === question ? answer.present : null;
+
+  const statuses = new Map<string, LocalFontStatus>();
+  for (const entry of key ? key.split("|") : []) {
+    const id = entry.slice(0, entry.indexOf(":"));
+    if (!id) continue;
+    statuses.set(
+      id,
+      current === null ? "checking" : current.has(id) ? "loaded" : "missing",
+    );
+  }
+  return statuses;
 }

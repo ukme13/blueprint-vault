@@ -103,3 +103,92 @@ test.describe("Uploaded fonts", () => {
     await expect(settings.getByText(/has no Thai glyphs/)).toHaveCount(0);
   });
 });
+
+test.describe("A local font with no file", () => {
+  /* What another browser sees: the project names a local family, and the store
+     it was uploaded to is not this one. */
+  const seedLocalWithoutFile = async (
+    page: import("@playwright/test").Page,
+  ) => {
+    await page.evaluate(() => {
+      const raw = window.localStorage.getItem("blueprint.workspace.v1");
+      const workspace = JSON.parse(raw!);
+      workspace.typography.system.fonts[0] = {
+        ...workspace.typography.system.fonts[0],
+        families: ["Brand-Regular", "sans-serif"],
+        source: "local",
+      };
+      window.localStorage.setItem(
+        "blueprint.workspace.v1",
+        JSON.stringify(workspace),
+      );
+    });
+    await page.reload();
+    await expect(
+      page.getByRole("region", { name: "Type scale settings" }),
+    ).toBeVisible();
+  };
+
+  test("says the file is missing rather than pretending it rendered", async ({
+    seededPage: page,
+  }) => {
+    await seedLocalWithoutFile(page);
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+
+    await expect(
+      settings.getByText(/Brand-Regular has no file in this browser/),
+    ).toBeVisible();
+    await expect(settings.getByText(/Rendering Brand-Regular/)).toHaveCount(0);
+  });
+
+  test("keeps the family name applied, so the scale is unchanged", async ({
+    seededPage: page,
+  }) => {
+    await seedLocalWithoutFile(page);
+    /* The name still applies wherever the font happens to be installed, and
+       the generic behind it renders where it is not. */
+    const sample = page.getByLabel("Specimen text").first();
+    await expect
+      .poll(() => sample.evaluate((el) => getComputedStyle(el).fontFamily))
+      .toContain("Brand-Regular");
+  });
+
+  test("offers to add the file rather than to replace it", async ({
+    seededPage: page,
+  }) => {
+    await seedLocalWithoutFile(page);
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await expect(settings.getByLabel("Add the missing file")).toBeVisible();
+    await expect(settings.getByLabel("Replace file")).toHaveCount(0);
+  });
+
+  test("renders once the file is added back", async ({ seededPage: page }) => {
+    await seedLocalWithoutFile(page);
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+
+    await settings.getByLabel("Add the missing file").setInputFiles(FILE);
+
+    await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
+    await expect(settings.getByText(/has no file in this browser/)).toHaveCount(
+      0,
+    );
+    await expect(settings.getByLabel("Replace file")).toBeVisible();
+  });
+
+  test("survives the reload after being added back", async ({
+    seededPage: page,
+  }) => {
+    await seedLocalWithoutFile(page);
+    await page
+      .getByRole("region", { name: "Type scale settings" })
+      .getByLabel("Add the missing file")
+      .setInputFiles(FILE);
+    await expect(page.getByText(/Rendering Brand-Regular/)).toBeVisible();
+
+    await page.reload();
+    await expect(
+      page.getByRole("region", { name: "Type scale settings" }),
+    ).toBeVisible();
+    await expect(page.getByText(/Rendering Brand-Regular/)).toBeVisible();
+  });
+});

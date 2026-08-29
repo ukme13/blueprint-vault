@@ -84,7 +84,7 @@ Four ideas, and the first two are the ones that keep the rest honest.
    enough to test, and nothing consumes it yet.
 2. ✅ **Add and render.** A file input on the font entry, `FontFace` to register
    it, and the preview rendering in it. `source` becomes `local`.
-3. **Missing files.** The project opens without the store having the file: name
+3. ✅ **Missing files.** The project opens without the store having the file: name
    still applied, honest message, re-add offered.
 4. **Remove, and size limits.** Deleting an entry deletes its bytes. A cap and a
    format allowlist, with a message that says why rather than failing silently.

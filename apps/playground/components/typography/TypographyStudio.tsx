@@ -184,7 +184,10 @@ export function TypographyStudio() {
         400);
 
   useGoogleFontsLink(system, previewFont, resolvedPreviewWeight);
-  const loadedLocalFonts = useLocalFonts(system);
+  /* Bumped after every upload, so re-adding a file that keeps its name still
+     makes the hook look again. */
+  const [fontFileRevision, setFontFileRevision] = useState(0);
+  const localFontStatus = useLocalFonts(system, fontFileRevision);
 
   const bodyRole =
     resolvedRoles.find((role) => role.id === "body") ??
@@ -492,12 +495,13 @@ export function TypographyStudio() {
                   font={font}
                   onChange={(families) => setFontFamilies(font.id, families)}
                   onRemove={() => removeFont(font.id)}
-                  isFileLoaded={loadedLocalFonts.has(font.id)}
+                  fileStatus={localFontStatus.get(font.id) ?? "checking"}
                   onRename={(name) => renameFont(font.id, name)}
                   onUpload={(file) => {
-                    void storeLocalFont(font.id, file).then((family) =>
-                      setLocalFont(font.id, family),
-                    );
+                    void storeLocalFont(font.id, file).then((family) => {
+                      setLocalFont(font.id, family);
+                      setFontFileRevision((current) => current + 1);
+                    });
                   }}
                 />
               ))}

@@ -11,6 +11,7 @@ import {
   type TypeFont,
 } from "@blueprint/ui";
 import { GoogleFontPicker } from "./GoogleFontPicker";
+import type { LocalFontStatus } from "./use-local-fonts";
 import styles from "./typography-workspace.module.css";
 
 /**
@@ -75,8 +76,8 @@ interface FontStackEditorProps {
   onRemove: () => void;
   /** Hands the picked file up; the studio stores it and names the family. */
   onUpload: (file: File) => void;
-  /** True once the uploaded file is registered and actually rendering. */
-  isFileLoaded: boolean;
+  /** Whether the uploaded file has been found yet. Local entries only. */
+  fileStatus: LocalFontStatus;
 }
 
 export function FontStackEditor({
@@ -86,7 +87,7 @@ export function FontStackEditor({
   onRename,
   onRemove,
   onUpload,
-  isFileLoaded,
+  fileStatus,
 }: FontStackEditorProps) {
   const [script, setScript] = useState(DEFAULT_SCRIPT);
 
@@ -174,8 +175,14 @@ export function FontStackEditor({
 
       <div className={styles.fontStackUpload}>
         <label className={styles.fontStackUploadLabel}>
+          {/* "Replace" would be wrong where there is nothing to replace, which
+              is the whole state this has to be honest about. */}
           <span>
-            {font.source === "local" ? "Replace file" : "Upload a font file"}
+            {!isLocal
+              ? "Upload a font file"
+              : fileStatus === "missing"
+                ? "Add the missing file"
+                : "Replace file"}
           </span>
           <input
             accept=".woff2,.woff,.ttf,.otf,font/woff2,font/woff,font/ttf,font/otf"
@@ -189,11 +196,14 @@ export function FontStackEditor({
             }}
           />
         </label>
-        {font.source === "local" && (
-          <p className={styles.fontStackHint} data-missing={!isFileLoaded}>
-            {isFileLoaded
+        {isLocal && fileStatus !== "checking" && (
+          <p
+            className={styles.fontStackHint}
+            data-missing={fileStatus === "missing"}
+          >
+            {fileStatus === "loaded"
               ? `Rendering ${primary} from your file. It stays in this browser and is never included in exports — check the licence before shipping it on the web.`
-              : `${primary} has no file in this browser, so it falls back. Upload it again to see it here.`}
+              : `${primary} has no file in this browser, so it falls back to ${generic}. The name still applies wherever it is installed. Add the file to see it here.`}
           </p>
         )}
       </div>
