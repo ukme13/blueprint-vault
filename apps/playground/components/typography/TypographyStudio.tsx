@@ -655,7 +655,7 @@ export function TypographyStudio() {
           <section aria-label="Generated type steps" className={styles.canvas}>
             {/* Sits above the steps so the unit is chosen where the sizes are
                 read, not buried in the export dialog. */}
-            <div className="flex flex-wrap items-center gap-4 pb-3">
+            <div className="flex flex-wrap items-center gap-2 pb-3">
               <SegmentedControl
                 label="Size unit"
                 size="sm"
