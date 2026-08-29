@@ -172,24 +172,35 @@ export function TypographyStudio() {
     resolvedRoles.find((role) => role.id === "body") ??
     resolvedRoles.find((role) => role.groupId === "body");
 
+  /* Each assessment is named, so a row keeps its identity as others come and
+     go with the scale. Keying on position reuses whichever row happened to sit
+     there before. */
   const warnings = system
     ? [
-        bodyRole ? assessBodyFontSize(bodyRole.desktop.fontSizePx) : null,
-        bodyRole ? assessLineHeight(bodyRole.desktop.lineHeight) : null,
-        assessScaleGrowth(system.ratio),
-        assessStepCount(system.stepCount),
-        assessRoleWeights(
-          resolvedRoles.map((role) => ({
-            role: role.id as never,
-            step: role.stepOffset ?? 0,
-            fontWeight: role.fontWeight,
-            lineHeight: role.desktop.lineHeight,
-            letterSpacingPx: role.desktop.letterSpacingPx,
-          })),
-        ),
-      ].filter(
-        (result): result is NonNullable<typeof result> => result !== null,
-      )
+        {
+          id: "body-size",
+          result: bodyRole
+            ? assessBodyFontSize(bodyRole.desktop.fontSizePx)
+            : null,
+        },
+        {
+          id: "line-height",
+          result: bodyRole
+            ? assessLineHeight(bodyRole.desktop.lineHeight)
+            : null,
+        },
+        { id: "scale-growth", result: assessScaleGrowth(system.ratio) },
+        { id: "step-count", result: assessStepCount(system.stepCount) },
+        {
+          id: "role-weights",
+          result: assessRoleWeights(
+            resolvedRoles.map((role) => ({
+              role: role.id,
+              fontWeight: role.fontWeight,
+            })),
+          ),
+        },
+      ].flatMap(({ id, result }) => (result ? [{ id, ...result }] : []))
     : [];
 
   if (!hasLoadedProject) {
@@ -545,8 +556,8 @@ export function TypographyStudio() {
                 <ul className={styles.warningList}>
                   {warnings
                     .filter((warning) => warning.status !== "pass")
-                    .map((warning, index) => (
-                      <li key={index} data-status={warning.status}>
+                    .map((warning) => (
+                      <li key={warning.id} data-status={warning.status}>
                         {warning.summary}
                       </li>
                     ))}

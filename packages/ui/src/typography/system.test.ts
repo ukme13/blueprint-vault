@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { generateTypeSteps } from "./scale";
 import {
+  addGroup,
+  addRole,
   canAddRole,
   elementForRole,
   defaultGroups,
@@ -10,8 +12,14 @@ import {
   removeFont,
   renameFont,
   reindexGroup,
+  removeGroup,
+  removeRole,
   renameGroup,
+  setFontFamilies,
   slugify,
+  updateGroup,
+  updateRole,
+  updateRoleValue,
   roleIdsForGroup,
   resolveRoleSizePx,
   type TypeGroup,
@@ -321,5 +329,223 @@ describe("font entries", () => {
     const next = renameFont(s, s.fonts[0]!.id, "Primary");
     expect(next.fonts[0]!.name).toBe("Primary");
     expect(next.fonts[0]!.id).toBe(s.fonts[0]!.id);
+  });
+});
+
+describe("addRole", () => {
+  it("refuses a group that is already full", () => {
+    const group = free("s", "size");
+    const roles = ["a", "b", "c", "d", "e"].map((id) => role(id, "s"));
+    const before = system({ groups: [group], roles });
+    expect(addRole(before, group)).toBe(before);
+  });
+
+  it("reuses a sibling's step, so adding never grows the ramp", () => {
+    const group = free("caption", "number");
+    const before = system({
+      groups: [group],
+      roles: [role("caption", "caption", { stepOffset: -2 })],
+    });
+    const after = addRole(before, group);
+    expect(after.roles.map((r) => r.stepOffset)).toEqual([-2, -2]);
+  });
+
+  it("names both roles through the group once a second joins", () => {
+    const group = free("caption", "number");
+    const before = system({
+      groups: [group],
+      roles: [role("caption", "caption")],
+    });
+    // The lone `caption` becomes `caption-1`; no placeholder id survives.
+    expect(addRole(before, group).roles.map((r) => r.id)).toEqual([
+      "caption-1",
+      "caption-2",
+    ]);
+  });
+
+  it("copies body when the group is empty", () => {
+    const group = free("aside", "number");
+    const before = system({
+      groups: [group],
+      roles: [role("body", "body", { fontWeight: 500, stepOffset: 3 })],
+    });
+    const added = addRole(before, group).roles.find(
+      (r) => r.groupId === "aside",
+    )!;
+    expect(added.fontWeight).toBe(500);
+    expect(added.stepOffset).toBe(3);
+  });
+
+  it("falls back to the first role when there is no body", () => {
+    const group = free("aside", "number");
+    const before = system({
+      groups: [group],
+      roles: [role("lead", "lead", { fontWeight: 700 })],
+    });
+    const added = addRole(before, group).roles.find(
+      (r) => r.groupId === "aside",
+    )!;
+    expect(added.fontWeight).toBe(700);
+  });
+
+  it("clears the copy's sameAsRoleId without unlinking the template", () => {
+    const group = free("caption", "number");
+    const before = system({
+      groups: [group],
+      roles: [role("caption", "caption", { sameAsRoleId: "body" })],
+    });
+    const after = addRole(before, group);
+    // The new role gets its own size; the one it was copied from keeps the
+    // link someone set on it deliberately.
+    expect(after.roles.map((r) => r.sameAsRoleId)).toEqual(["body", null]);
+  });
+});
+
+describe("removeRole", () => {
+  it("unlinks anything that followed the removed role", () => {
+    const before = system({
+      groups: [free("body", "number"), free("lead", "number")],
+      roles: [
+        role("body", "body"),
+        role("lead", "lead", { sameAsRoleId: "body" }),
+      ],
+    });
+    const after = removeRole(before, "body");
+    expect(after.roles.map((r) => r.id)).toEqual(["lead"]);
+    // Kept its own size rather than following an id that is gone.
+    expect(after.roles[0]!.sameAsRoleId).toBeNull();
+  });
+
+  it("unlinks every follower, not just the first", () => {
+    const before = system({
+      groups: [free("body", "number"), free("lead", "number")],
+      roles: [
+        role("body", "body"),
+        role("lead-1", "lead", { sameAsRoleId: "body" }),
+        role("lead-2", "lead", { sameAsRoleId: "body" }),
+      ],
+    });
+    expect(
+      removeRole(before, "body").roles.every((r) => r.sameAsRoleId === null),
+    ).toBe(true);
+  });
+
+  it("renames the survivors of the group it left", () => {
+    const group = free("caption", "number");
+    const before = system({
+      groups: [group],
+      roles: [role("caption-1", "caption"), role("caption-2", "caption")],
+    });
+    // Back to one role, so the index goes away again.
+    expect(removeRole(before, "caption-2").roles.map((r) => r.id)).toEqual([
+      "caption",
+    ]);
+  });
+
+  it("ignores an id that is not there", () => {
+    const before = system();
+    expect(removeRole(before, "nope").roles).toEqual(before.roles);
+  });
+});
+
+describe("updateRole", () => {
+  it("patches the named role only", () => {
+    const before = system({
+      groups: [free("body", "number")],
+      roles: [role("body", "body"), role("lead", "body")],
+    });
+    const after = updateRole(before, "lead", { fontWeight: 700 });
+    expect(after.roles.map((r) => r.fontWeight)).toEqual([400, 700]);
+  });
+
+  it("writes a value to both breakpoints, which are never edited apart", () => {
+    const before = system();
+    const after = updateRoleValue(before, "body", { lineHeight: 1.2 });
+    expect(after.roles[0]!.desktop.lineHeight).toBe(1.2);
+    expect(after.roles[0]!.mobile.lineHeight).toBe(1.2);
+  });
+
+  it("leaves the rest of the value alone", () => {
+    const before = system();
+    const after = updateRoleValue(before, "body", { letterSpacingPx: 0.5 });
+    expect(after.roles[0]!.desktop.fontSizePx).toBe(16);
+    expect(after.roles[0]!.desktop.lineHeight).toBe(1.5);
+  });
+});
+
+describe("updateGroup", () => {
+  it("renames the roles when the indexing changes under them", () => {
+    const before = system({
+      groups: [free("subtitle", "number")],
+      roles: [role("subtitle-1", "subtitle"), role("subtitle-2", "subtitle")],
+    });
+    const after = updateGroup(before, "subtitle", { indexing: "size" });
+    expect(after.roles.map((r) => r.id)).toEqual([
+      "subtitle-xs",
+      "subtitle-sm",
+    ]);
+  });
+
+  it("changes the label without touching the ids", () => {
+    const before = system({
+      groups: [free("caption", "number")],
+      roles: [role("caption", "caption")],
+    });
+    const after = updateGroup(before, "caption", { label: "Overline" });
+    expect(after.groups[0]!.label).toBe("Overline");
+    expect(after.roles[0]!.id).toBe("caption");
+  });
+});
+
+describe("addGroup", () => {
+  it("names the new group after how many there are", () => {
+    const before = system({ groups: [free("a", "number")] });
+    expect(addGroup(before).groups.map((g) => g.id)).toEqual(["a", "group-2"]);
+  });
+
+  it("skips a number already taken", () => {
+    // Two groups, so it tries group-3 first and has to walk past it.
+    const before = system({
+      groups: [free("a", "number"), free("group-3", "number")],
+    });
+    expect(addGroup(before).groups.at(-1)!.id).toBe("group-4");
+  });
+
+  it("adds no roles, so a new group starts empty", () => {
+    const before = system();
+    expect(addGroup(before).roles).toEqual(before.roles);
+  });
+});
+
+describe("removeGroup", () => {
+  it("takes the group's roles with it and leaves the others", () => {
+    const before = system({
+      groups: [free("body", "number"), free("caption", "number")],
+      roles: [role("body", "body"), role("caption", "caption")],
+    });
+    const after = removeGroup(before, "caption");
+    expect(after.groups.map((g) => g.id)).toEqual(["body"]);
+    expect(after.roles.map((r) => r.id)).toEqual(["body"]);
+  });
+});
+
+describe("setFontFamilies", () => {
+  it("marks the entry a Google one, since the picker is what wrote it", () => {
+    const before = system();
+    const after = setFontFamilies(before, "base", ["Sarabun", "sans-serif"]);
+    expect(after.fonts[0]!.families).toEqual(["Sarabun", "sans-serif"]);
+    expect(after.fonts[0]!.source).toBe("google");
+  });
+
+  it("leaves the other entries alone", () => {
+    const before = system({
+      fonts: [
+        { id: "base", name: "Base", families: ["Inter"], source: "system" },
+        { id: "alt", name: "Alt", families: ["Lora"], source: "system" },
+      ],
+    });
+    const after = setFontFamilies(before, "base", ["Sarabun"]);
+    expect(after.fonts[1]!.families).toEqual(["Lora"]);
+    expect(after.fonts[1]!.source).toBe("system");
   });
 });

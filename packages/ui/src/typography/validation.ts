@@ -1,5 +1,3 @@
-import type { RoleAssignment } from "./types";
-
 export const TYPOGRAPHY_THRESHOLDS = {
   minRecommendedBodyFontSizePx: 16,
   minBodyFontSizePx: 12,
@@ -35,6 +33,18 @@ export interface StepCountResult {
   stepCount: number;
   status: TypographyStatus;
   summary: string;
+}
+
+/**
+ * What this check needs of a role, which is less than a role carries.
+ *
+ * Deliberately not RoleAssignment: that types `role` as a SemanticRole, and a
+ * system can name its roles anything since groups arrived — h1, body-2. The
+ * name is only ever read back out into a message, so a string is the truth.
+ */
+export interface RoleWeightCheck {
+  role: string;
+  fontWeight: number;
 }
 
 export interface RoleWeightsResult {
@@ -123,7 +133,7 @@ export function assessStepCount(stepCount: number): StepCountResult {
   };
 }
 
-export function assessRoleWeights(roles: RoleAssignment[]): RoleWeightsResult {
+export function assessRoleWeights(roles: RoleWeightCheck[]): RoleWeightsResult {
   const invalidRoles = roles
     .filter(
       (role) =>
