@@ -28,6 +28,47 @@ export const COLOUR_VISION_DEFICIENCIES: readonly ColourVisionDeficiency[] = [
   "achromatopsia",
 ];
 
+/**
+ * What a preview is currently being shown as, including not simulating at all.
+ *
+ * Separate from `ColourVisionDeficiency` because "normal" is not a deficiency
+ * and must not be one: making it a fifth member would let it reach
+ * `simulateColourVisionRgb`, which has no matrix for it.
+ */
+export type ColourVisionSimulation = "normal" | ColourVisionDeficiency;
+
+export const COLOUR_VISION_SIMULATIONS: readonly ColourVisionSimulation[] = [
+  "normal",
+  ...COLOUR_VISION_DEFICIENCIES,
+];
+
+export function isColourVisionSimulation(
+  value: unknown,
+): value is ColourVisionSimulation {
+  return COLOUR_VISION_SIMULATIONS.includes(value as ColourVisionSimulation);
+}
+
+/**
+ * Apply a simulation to one colour, or return it untouched under normal vision.
+ *
+ * The identity case is here rather than at each call site so that a preview can
+ * map every colour through one function and not grow a conditional per swatch.
+ */
+export function simulateHex(
+  hex: string,
+  simulation: ColourVisionSimulation,
+  severity = 1,
+): string {
+  if (simulation === "normal") return hex;
+  return simulateColourVision(hex, simulation, severity);
+}
+
+/** What to call a simulation on screen. */
+export function colourVisionLabel(simulation: ColourVisionSimulation): string {
+  if (simulation === "normal") return "Normal vision";
+  return describeColourVisionMethod(simulation).name;
+}
+
 /* Machado's three families. Achromatopsia is deliberately absent: the paper
    models anomalous trichromacy of one cone type and does not cover the loss of
    all colour perception, so that case is handled separately below and reported

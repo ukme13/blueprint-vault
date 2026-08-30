@@ -1,16 +1,27 @@
 import { Badge, type BadgeVariant } from "@astryxdesign/core/Badge";
+import { Selector } from "@astryxdesign/core/Selector";
 import {
   Button,
+  COLOUR_VISION_SIMULATIONS,
   assessColourSimilarity,
   assessFocusContrast,
   assessNonTextContrast,
   assessTextContrast,
+  colourVisionLabel,
   recommendTextColour,
+  simulateHex,
   type AccessibilityStatus,
   type ColorTrack,
+  type ColourVisionSimulation,
   type ShadeItem,
 } from "@blueprint/ui";
+import { usePaletteView } from "./PaletteViewContext";
 import styles from "./palette-workspace.module.css";
+
+const SIMULATION_OPTIONS = COLOUR_VISION_SIMULATIONS.map((simulation) => ({
+  value: simulation,
+  label: colourVisionLabel(simulation),
+}));
 
 interface PalettePreviewProps {
   palettes: ColorTrack[];
@@ -80,6 +91,20 @@ function AccessibilityRow({
 }
 
 export function PalettePreview({ palettes }: PalettePreviewProps) {
+  const { simulation, setSimulation } = usePaletteView();
+
+  /* The one place simulation is applied, and only ever on the way to a style
+     attribute. Every colour below is chosen from the real palette — including
+     the recommended text colour, which is the token somebody would ship — and
+     simulated at the last step, so what is on screen is what a person with
+     that deficiency would see of the real design.
+
+     Nothing writes back through this. The tracks this component is handed are
+     never mutated, so no simulation can reach the stored project or an export.
+     There is an end-to-end test that toggles every mode and asserts the stored
+     workspace is byte-identical afterwards. */
+  const seen = (hex: string) => simulateHex(hex, simulation);
+
   if (palettes.length === 0) {
     return (
       <section className={styles.sectionPage} aria-labelledby="preview-title">
@@ -226,13 +251,25 @@ export function PalettePreview({ palettes }: PalettePreviewProps) {
 
   return (
     <section className={styles.sectionPage} aria-labelledby="preview-title">
-      <header className={styles.sectionPageHeader}>
+      <header
+        className={`${styles.sectionPageHeader} ${styles.previewPageHeader}`}
+      >
         <span>
           <Badge label="Live preview" variant="purple" />
           <h1 id="preview-title">Palette in context</h1>
           <p>
             Test common interface patterns before exporting the colour system.
           </p>
+        </span>
+        <span className={styles.simulationControl}>
+          <Selector
+            label="Colour vision"
+            options={SIMULATION_OPTIONS}
+            size="sm"
+            value={simulation}
+            width="100%"
+            onChange={(value) => setSimulation(value as ColourVisionSimulation)}
+          />
         </span>
       </header>
 
@@ -244,8 +281,8 @@ export function PalettePreview({ palettes }: PalettePreviewProps) {
           <section className={styles.buttonPreview}>
             <Button
               style={{
-                backgroundColor: primaryAction.hex,
-                color: readableText(primaryAction.hex),
+                backgroundColor: seen(primaryAction.hex),
+                color: seen(readableText(primaryAction.hex)),
               }}
             >
               Primary action
@@ -254,16 +291,16 @@ export function PalettePreview({ palettes }: PalettePreviewProps) {
               scheme="neutral"
               variant="outlined"
               style={{
-                borderColor: secondaryAction.hex,
-                color: secondaryAction.hex,
+                borderColor: seen(secondaryAction.hex),
+                color: seen(secondaryAction.hex),
               }}
             >
               Secondary action
             </Button>
             <Button
               style={{
-                backgroundColor: errorAction.hex,
-                color: readableText(errorAction.hex),
+                backgroundColor: seen(errorAction.hex),
+                color: seen(readableText(errorAction.hex)),
               }}
             >
               Delete item
@@ -278,17 +315,19 @@ export function PalettePreview({ palettes }: PalettePreviewProps) {
           </header>
           <section
             className={styles.textPreview}
-            style={{ backgroundColor: neutralLight.hex }}
+            style={{ backgroundColor: seen(neutralLight.hex) }}
           >
             <Badge label="New release" variant="purple" />
-            <h3 style={{ color: neutralDark.hex }}>Design with confidence</h3>
-            <p style={{ color: neutralMid.hex }}>
+            <h3 style={{ color: seen(neutralDark.hex) }}>
+              Design with confidence
+            </h3>
+            <p style={{ color: seen(neutralMid.hex) }}>
               Blueprint turns one source colour into stable tokens for product
               interfaces.
             </p>
             <a
               href="#preview-accessibility"
-              style={{ color: primaryAction.hex }}
+              style={{ color: seen(primaryAction.hex) }}
             >
               Review accessibility
             </a>
@@ -301,27 +340,31 @@ export function PalettePreview({ palettes }: PalettePreviewProps) {
           </header>
           <section
             className={styles.surfacePreview}
-            style={{ backgroundColor: neutralDark.hex }}
+            style={{ backgroundColor: seen(neutralDark.hex) }}
           >
             <article
               style={{
-                backgroundColor: neutralLight.hex,
-                color: neutralDark.hex,
+                backgroundColor: seen(neutralLight.hex),
+                color: seen(neutralDark.hex),
               }}
             >
               <small>Account balance</small>
               <strong>$24,860.00</strong>
-              <span style={{ color: successAction.hex }}>+8.4% this month</span>
+              <span style={{ color: seen(successAction.hex) }}>
+                +8.4% this month
+              </span>
             </article>
             <article
               style={{
-                backgroundColor: primarySoft.hex,
-                color: neutralDark.hex,
+                backgroundColor: seen(primarySoft.hex),
+                color: seen(neutralDark.hex),
               }}
             >
               <small>Suggested action</small>
               <strong>Review your colour tokens</strong>
-              <span style={{ color: primaryAction.hex }}>Open details →</span>
+              <span style={{ color: seen(primaryAction.hex) }}>
+                Open details →
+              </span>
             </article>
           </section>
         </article>
@@ -333,7 +376,11 @@ export function PalettePreview({ palettes }: PalettePreviewProps) {
           <header className={styles.accessibilityHeader}>
             <span>
               <h2>Accessibility</h2>
-              <p>WCAG 2.2 contrast checks for important colour pairs.</p>
+              <p>
+                WCAG 2.2 contrast checks for important colour pairs.
+                {simulation !== "normal" &&
+                  " Measured on the real palette, not the simulated one."}
+              </p>
             </span>
             <Badge
               label={

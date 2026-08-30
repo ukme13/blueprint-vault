@@ -58,6 +58,7 @@ import {
   type TrackProperty,
 } from "./types";
 import { ColourFormatProvider } from "./ColourFormatContext";
+import { PaletteViewProvider, usePaletteView } from "./PaletteViewContext";
 
 const SEMANTIC_TRACKS: ColorTrackInput[] = [
   { id: "primary", name: "primary", seedHex: "#7646ab" },
@@ -180,7 +181,9 @@ function createDefaultTracks(primarySeed: string): ColorTrackInput[] {
 export function PaletteStudio() {
   return (
     <ColourFormatProvider>
-      <PaletteStudioContent />
+      <PaletteViewProvider>
+        <PaletteStudioContent />
+      </PaletteViewProvider>
     </ColourFormatProvider>
   );
 }
@@ -192,7 +195,10 @@ function PaletteStudioContent() {
   const [hasLoadedProject, setHasLoadedProject] = useState(false);
   const [activeShade, setActiveShade] = useState<ActiveShade | null>(null);
   const [activeTrackId, setActiveTrackId] = useState<string | null>(null);
-  const [isContrastModeOpen, setIsContrastModeOpen] = useState(false);
+  /* View modes live in context so they persist per device, alongside the
+     colour format. Neither is part of the project. */
+  const { isContrastModeOpen, toggleContrastMode, closeContrastMode } =
+    usePaletteView();
   const [contrastTarget, setContrastTarget] = useState<ContrastTarget>("white");
   const [customContrastColour, setCustomContrastColour] = useState("#7646ab");
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
@@ -710,7 +716,7 @@ function PaletteStudioContent() {
             scheme="neutral"
             size="small"
             variant="outlined"
-            onClick={() => setIsContrastModeOpen((current) => !current)}
+            onClick={toggleContrastMode}
           >
             WCAG 2
           </Button>
@@ -894,7 +900,7 @@ function PaletteStudioContent() {
           setPendingImport(null);
           setActiveShade(null);
           setActiveTrackId(null);
-          setIsContrastModeOpen(false);
+          closeContrastMode();
         }}
         onOpenChange={(isOpen) => {
           if (!isOpen) setPendingImport(null);
@@ -912,7 +918,7 @@ function PaletteStudioContent() {
           setProject(null);
           setActiveShade(null);
           setActiveTrackId(null);
-          setIsContrastModeOpen(false);
+          closeContrastMode();
         }}
         onOpenChange={setIsNewProjectDialogOpen}
       />

@@ -1290,6 +1290,25 @@
   line-height: 1.6;
 }
 
+/* Only the preview header carries a control beside its title. The other two
+   headers share .sectionPageHeader and must keep their block layout. */
+.previewPageHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.previewPageHeader > span:first-child {
+  flex: 1 1 320px;
+}
+
+.simulationControl {
+  flex: 1 1 200px;
+  max-width: 260px;
+}
+
 .projectSummary {
   max-width: 1280px;
   display: grid;

@@ -145,15 +145,28 @@ The first useful version should support:
    interpolating between matrices will smooth it. Worth knowing before anyone
    animates the toggle.
 
-3. **The preview toggle, and persistence for both modes.** Five options — normal
-   vision plus the four types — applied to the rendered swatches only. This is
-   the stage where the rule that simulation never touches a token value becomes
-   a test rather than a habit.
+3. ✅ **The preview toggle, and persistence for both modes.** A five-option
+   `Selector` in the preview header, applied to the rendered swatches only.
 
-   Both view modes persist per device, so this stage also moves
-   `isContrastModeOpen` out of component state. That is a change to existing
-   behaviour, made here deliberately rather than left as a mismatch between two
-   neighbouring toggles.
+   Simulation is applied at one place — a `seen()` helper — and only ever on
+   the way into a style attribute. Every colour is still chosen from the real
+   palette, including the recommended text colour, which is the token somebody
+   would ship; the simulation happens at the last step, so what is on screen is
+   what a person with that deficiency would see of the real design. The rule is
+   now a test: an end-to-end case walks every mode and asserts the stored
+   workspace is byte-identical afterwards.
+
+   The WCAG panel keeps measuring the real palette and says so on screen while
+   a simulation is active. Contrast ratios are defined on actual colours, and a
+   number computed on simulated ones would read as a pass the design does not
+   have. Warning about pairs that collapse is stage 4's job and stays there.
+
+   Both view modes now live in `PaletteViewProvider` under
+   `blueprint.palette-view.v1`, so `isContrastModeOpen` moved out of component
+   state as planned. The parsing is in `packages/ui` and reads tolerantly, per
+   field: an unreadable preference costs a click, so it falls back rather than
+   throwing, and a release that adds a third mode will not reset the two
+   already stored.
 
 4. **Similarity warnings under simulation.** The pairing question is already
    answered in the code: `PalettePreview` picks an action shade per track with
