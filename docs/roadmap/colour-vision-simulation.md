@@ -193,16 +193,27 @@ The first useful version should support:
    really for: the one interesting decision in the plan was living in the file
    least able to test it. `PalettePreview` went from 520 lines to 174.
 
-5. **The report.** One document combining the existing WCAG results with the
-   simulation warnings, as Markdown and JSON, from the export dialog. Both
-   formatters join the export guard's list. The report covers typography as well
-   as colour: the contrast assessment is already size-aware, so a verdict that
-   names the size it was made at is worth more than one that does not, and the
-   workspace already holds the type scale to name.
+5. ✅ **The report.** `packages/ui/src/report/`, offered as Markdown and JSON
+   beside the other export formats. It assembles and computes nothing new:
+   every number comes from a function tested where it lives.
 
-   The report states the WCAG version and the simulation method it used —
-   including the severity — because a report whose method is unstated cannot be
-   checked later.
+   It covers typography, measuring each role at the size the scale gives it
+   against the body-text pair, and naming that pair — a ratio without its two
+   colours cannot be checked later. The same colours pass at a heading and fail
+   at a caption, which is the whole reason a size-aware verdict is worth having.
+
+   It states the WCAG version and cites each simulation method with its
+   severity, and says in the document itself that simulation is guidance rather
+   than a WCAG requirement — the report is the part that leaves this workspace
+   and gets read by somebody who never saw this plan.
+
+   **No timestamp.** The report is built during render, so it has to be a pure
+   function of its inputs or the preview and the downloaded file disagree about
+   a value nobody can see. `generatedAt` is an input a caller may supply; the
+   dialog does not.
+
+   Both formatters failed the export guard on sight, as intended, until they
+   were classified and asserted to carry font names and no font bytes.
 
 Stage 1 carries the risk and lands with nothing consuming it. Stage 3 is where
 the safety rule about token values becomes enforceable, and is worth writing
@@ -236,20 +247,21 @@ so results stay traceable if the underlying formulas change later.
 
 ## Definition of done
 
-The first version is complete when a user can:
+✅ Complete. The first version lets a user:
 
-1. Switch the palette preview between normal vision and each of the four
-   simulated deficiency types.
+1. Switch the palette between normal vision and each of the four simulated
+   deficiency types, from the Vision chip in the toolbar.
 2. See a warning when two semantic colours become too similar under a given
-   deficiency.
-3. Generate a report combining WCAG contrast results and colour-vision
-   warnings for the current project.
+   deficiency — including when simulation is off, since the warning names the
+   deficiencies rather than depending on the current view.
+3. Generate a report combining WCAG contrast results, colour-vision warnings
+   and the type scale for the current project.
 4. Export that report as Markdown or JSON from the export dialog.
-5. Refresh the page without losing the current simulation and report state.
+5. Refresh the page without losing the simulation mode or the contrast panel.
 
-The simulation and report-generation functions must have unit tests. The
-preview toggle, warning display, and report export flows must have Playwright
-coverage.
+Unit tests cover the transform, the invariants, the pair assessment, the
+stored view preferences and both report formatters. Playwright covers the
+chip, the warning and the export flow.
 
 ## Decisions
 

@@ -12,6 +12,12 @@ import {
 } from "../typography/system-export";
 import { defaultSystem, setLocalFont } from "../typography/system";
 import { formatBlueprintWorkspace } from "../workspace/workspace-file";
+import {
+  buildAccessibilityReport,
+  formatAccessibilityReportJson,
+  formatAccessibilityReportMarkdown,
+} from "../report/accessibility-report";
+import { generatePalettes } from "../color/palette";
 
 /*
  * Bytes in, names out.
@@ -28,6 +34,8 @@ import { formatBlueprintWorkspace } from "../workspace/workspace-file";
 
 /** Formatters that produce something a person can save and ship. */
 const DOCUMENT_FORMATTERS = [
+  "formatAccessibilityReportJson",
+  "formatAccessibilityReportMarkdown",
   "formatBlueprintPaletteProject",
   "formatBlueprintWorkspace",
   "formatPaletteCss",
@@ -44,6 +52,17 @@ const DOCUMENT_FORMATTERS = [
 const VALUE_FORMATTERS = ["formatColour", "formatLength"];
 
 const FAMILY = "Brand-Regular";
+
+/* Enough of a palette for the report to have colours to measure. */
+function reportPalette() {
+  return generatePalettes({
+    tracks: [
+      { id: "primary", name: "primary", seedHex: "#7646ab" },
+      { id: "neutral", name: "neutral", seedHex: "#737373" },
+    ],
+    lightnessValues: [95, 80, 65, 50, 35, 20, 5],
+  });
+}
 
 function systemWithLocalFont() {
   return setLocalFont(
@@ -165,6 +184,26 @@ describe("no export carries font data", () => {
     expect(file).toContain(FAMILY);
     expect(file).toContain(`"source": "local"`);
     assertNamesOnly("a workspace file", file);
+  });
+
+  it("keeps no bytes in an accessibility report", () => {
+    /* The report names the families a role uses, because a typography verdict
+       without the font it was made about is not much of a verdict. Names, not
+       the file behind them — and both formats, since Markdown is the one where
+       an @font-face would look most at home. */
+    const report = buildAccessibilityReport({
+      projectName: "Uploaded",
+      palettes: reportPalette(),
+      typography: systemWithLocalFont(),
+    })!;
+
+    const markdown = formatAccessibilityReportMarkdown(report);
+    const json = formatAccessibilityReportJson(report);
+
+    expect(markdown).toContain(FAMILY);
+    expect(json).toContain(FAMILY);
+    assertNamesOnly("the Markdown report", markdown);
+    assertNamesOnly("the JSON report", json);
   });
 
   it("catches a face if one is ever added", () => {
