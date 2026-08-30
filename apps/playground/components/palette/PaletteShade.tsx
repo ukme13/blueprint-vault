@@ -33,13 +33,27 @@ export function PaletteShade({
   onManualChange,
   onSourceChange,
 }: PaletteShadeProps) {
-  const { seen } = usePaletteView();
+  const { seen, simulation } = usePaletteView();
 
+  /* The ratio is measured on the colours being shown, so the number on a
+     simulated swatch is the contrast a person with that deficiency gets rather
+     than the one the tokens have. Both sides are simulated: white and black
+     are unmoved by any of these transforms, but a custom comparison colour is
+     not, and measuring a simulated shade against a real reference would be a
+     ratio between two things nobody sees together.
+
+     The verdict is elsewhere. This is a number on a swatch, not a WCAG pass —
+     the AA and AAA badges live in the preview and stay on the real palette. */
   const ratio = contrastReferenceHex
-    ? contrastRatio(shade.hex, contrastReferenceHex)
+    ? contrastRatio(seen(shade.hex), seen(contrastReferenceHex))
     : null;
   const foreground = recommendTextColour(shade.hex).colour;
   const ratioLabel = ratio?.toFixed(1);
+  const ratioDescription = ratioLabel
+    ? `, contrast ${ratioLabel} to 1${
+        simulation === "normal" ? "" : ` under ${simulation}`
+      }`
+    : "";
 
   return (
     <Popover
@@ -64,7 +78,7 @@ export function PaletteShade({
       onOpenChange={onSelect}
     >
       <button
-        aria-label={`Select ${paletteName} ${shade.weight}, ${shade.hex}${ratioLabel ? `, contrast ${ratioLabel} to 1` : ""}`}
+        aria-label={`Select ${paletteName} ${shade.weight}, ${shade.hex}${ratioDescription}`}
         aria-pressed={isSelected}
         className={styles.shade}
         data-anchor={shade.isAnchor}
