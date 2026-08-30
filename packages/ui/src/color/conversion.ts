@@ -12,6 +12,25 @@ function assertFiniteChannel(value: number, channel: string): void {
   }
 }
 
+/**
+ * The sRGB transfer function and its inverse.
+ *
+ * Exported because three modules need them — OKLCH conversion, WCAG relative
+ * luminance and colour-vision simulation — and a private copy in each is three
+ * places for the same four constants to drift apart.
+ */
+export function srgbToLinear(channel: number): number {
+  return channel <= 0.04045
+    ? channel / 12.92
+    : Math.pow((channel + 0.055) / 1.055, 2.4);
+}
+
+export function linearToSrgb(channel: number): number {
+  return channel <= 0.0031308
+    ? 12.92 * channel
+    : 1.055 * Math.pow(channel, 1 / 2.4) - 0.055;
+}
+
 export function normalizeHex(hex: string): string {
   const match = HEX_COLOR_PATTERN.exec(hex.trim());
 
@@ -46,14 +65,9 @@ export function rgbToOklch(r: number, g: number, b: number): Oklch {
   assertFiniteChannel(g, "Green");
   assertFiniteChannel(b, "Blue");
 
-  const toLinear = (channel: number) =>
-    channel <= 0.04045
-      ? channel / 12.92
-      : Math.pow((channel + 0.055) / 1.055, 2.4);
-
-  const linearRed = toLinear(clamp(r, 0, 1));
-  const linearGreen = toLinear(clamp(g, 0, 1));
-  const linearBlue = toLinear(clamp(b, 0, 1));
+  const linearRed = srgbToLinear(clamp(r, 0, 1));
+  const linearGreen = srgbToLinear(clamp(g, 0, 1));
+  const linearBlue = srgbToLinear(clamp(b, 0, 1));
 
   const l =
     0.4122214708 * linearRed +
@@ -110,12 +124,11 @@ function oklchToUnclampedRgb(
   const linearGreen = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
   const linearBlue = -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s;
 
-  const toSrgb = (channel: number) =>
-    channel <= 0.0031308
-      ? 12.92 * channel
-      : 1.055 * Math.pow(channel, 1 / 2.4) - 0.055;
-
-  return [toSrgb(linearRed), toSrgb(linearGreen), toSrgb(linearBlue)];
+  return [
+    linearToSrgb(linearRed),
+    linearToSrgb(linearGreen),
+    linearToSrgb(linearBlue),
+  ];
 }
 
 export function isOklchInSrgb(

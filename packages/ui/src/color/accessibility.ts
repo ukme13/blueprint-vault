@@ -1,4 +1,4 @@
-import { hexToRgb, normalizeHex, rgbToOklch } from "./conversion";
+import { hexToRgb, normalizeHex, rgbToOklch, srgbToLinear } from "./conversion";
 
 export const WCAG_CONTRAST = {
   normalTextAA: 4.5,
@@ -62,19 +62,13 @@ export interface FocusContrastResult {
   summary: string;
 }
 
-function channelToLinear(channel: number): number {
-  return channel <= 0.04045
-    ? channel / 12.92
-    : Math.pow((channel + 0.055) / 1.055, 2.4);
-}
-
 export function relativeLuminance(hex: string): number {
   const [red, green, blue] = hexToRgb(hex);
 
   return (
-    0.2126 * channelToLinear(red) +
-    0.7152 * channelToLinear(green) +
-    0.0722 * channelToLinear(blue)
+    0.2126 * srgbToLinear(red) +
+    0.7152 * srgbToLinear(green) +
+    0.0722 * srgbToLinear(blue)
   );
 }
 

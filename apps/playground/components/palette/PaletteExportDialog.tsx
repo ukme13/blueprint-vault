@@ -10,6 +10,9 @@ import {
   Button,
   COLOUR_FORMAT_LABELS,
   COLOUR_FORMATS,
+  buildAccessibilityReport,
+  formatAccessibilityReportJson,
+  formatAccessibilityReportMarkdown,
   formatBlueprintWorkspace,
   formatPaletteCssExport,
   formatPaletteDesignTokens,
@@ -23,14 +26,22 @@ import {
 import { useColourFormat } from "./ColourFormatContext";
 import styles from "./palette-workspace.module.css";
 
-type ExportFormat = "css" | "tailwind" | "tokens" | "project";
+type ExportFormat =
+  "css" | "tailwind" | "tokens" | "project" | "report-md" | "report-json";
 
 const FORMATS: Array<{ value: ExportFormat; label: string }> = [
   { value: "css", label: "CSS" },
   { value: "tailwind", label: "Tailwind CSS" },
   { value: "tokens", label: "Design Tokens" },
   { value: "project", label: "Blueprint Workspace" },
+  { value: "report-md", label: "Report (Markdown)" },
+  { value: "report-json", label: "Report (JSON)" },
 ];
+
+/* The report is the only format that is about the project rather than made of
+   it, so it is the only one the colour-format switch does not apply to: every
+   value in it is a measurement, and a ratio has no hex notation. */
+const REPORT_FORMATS: ExportFormat[] = ["report-md", "report-json"];
 
 interface PaletteExportDialogProps {
   isOpen: boolean;
@@ -72,22 +83,50 @@ export function PaletteExportDialog({
     if (exportFormat === "project") {
       return formatBlueprintWorkspace(workspace);
     }
+    if (REPORT_FORMATS.includes(exportFormat)) {
+      /* Built here rather than passed in, so the preview and the downloaded
+         file are the same string by construction. The report carries no
+         timestamp for the same reason: it has to be a pure function of the
+         project, or the two would quietly disagree. */
+      const report = buildAccessibilityReport({
+        projectName: workspace.name,
+        palettes,
+        typography: workspace.typography?.system ?? null,
+      });
+      if (!report) return "";
+      return exportFormat === "report-json"
+        ? formatAccessibilityReportJson(report)
+        : formatAccessibilityReportMarkdown(report);
+    }
     return formatPaletteCssExport(palettes, colourFormat);
   }, [colourFormat, exportFormat, palettes, workspace]);
 
   const extension =
-    exportFormat === "project" || exportFormat === "tokens" ? "json" : "css";
+    exportFormat === "report-md"
+      ? "md"
+      : exportFormat === "project" ||
+          exportFormat === "tokens" ||
+          exportFormat === "report-json"
+        ? "json"
+        : "css";
   const filename = `${
     project.name
       .trim()
       .replace(/[^a-z0-9]+/gi, "-")
       .toLowerCase() || "blueprint-workspace"
-  }.${exportFormat === "project" ? "blueprint." : ""}${extension}`;
+  }${REPORT_FORMATS.includes(exportFormat) ? "-accessibility" : ""}.${
+    exportFormat === "project" ? "blueprint." : ""
+  }${extension}`;
 
   const downloadOutput = () => {
     const url = URL.createObjectURL(
       new Blob([output], {
-        type: extension === "json" ? "application/json" : "text/css",
+        type:
+          extension === "json"
+            ? "application/json"
+            : extension === "md"
+              ? "text/markdown"
+              : "text/css",
       }),
     );
     const link = document.createElement("a");
@@ -152,29 +191,36 @@ export function PaletteExportDialog({
               </Button>
             ))}
           </div>
-          {exportFormat !== "project" && (
-            <label className={styles.exportColourFormat}>
-              <span>Colour format</span>
-              <Selector
-                isLabelHidden
-                label="Export colour format"
-                options={COLOUR_FORMATS.map((format) => ({
-                  label: COLOUR_FORMAT_LABELS[format],
-                  value: format,
-                }))}
-                size="sm"
-                value={colourFormat}
-                width={130}
-                onChange={(value) => setColourFormat(value as ColourFormat)}
-              />
-            </label>
-          )}
+          {exportFormat !== "project" &&
+            !REPORT_FORMATS.includes(exportFormat) && (
+              <label className={styles.exportColourFormat}>
+                <span>Colour format</span>
+                <Selector
+                  isLabelHidden
+                  label="Export colour format"
+                  options={COLOUR_FORMATS.map((format) => ({
+                    label: COLOUR_FORMAT_LABELS[format],
+                    value: format,
+                  }))}
+                  size="sm"
+                  value={colourFormat}
+                  width={130}
+                  onChange={(value) => setColourFormat(value as ColourFormat)}
+                />
+              </label>
+            )}
         </section>
         <section className={styles.exportPreview} aria-label="Export preview">
           <CodeBlock
             code={output}
             container="card"
-            language={extension === "json" ? "json" : "css"}
+            language={
+              extension === "json"
+                ? "json"
+                : extension === "md"
+                  ? "markdown"
+                  : "css"
+            }
             maxHeight="430px"
             hasLineNumbers
             size="sm"

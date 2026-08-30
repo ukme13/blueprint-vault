@@ -5,6 +5,7 @@ export const PROJECT_STORAGE_KEY = "blueprint.palette-project.v1";
 /* Declared rather than imported from @blueprint/ui: the package entry is a
    .tsx the Playwright loader will not resolve. Kept in step by hand. */
 export const WORKSPACE_STORAGE_KEY = "blueprint.workspace.v1";
+export const PALETTE_VIEW_STORAGE_KEY = "blueprint.palette-view.v1";
 
 const SEED_GUARD_KEY = "blueprint.e2e-seeded.palette";
 
