@@ -1747,17 +1747,22 @@
   line-height: 1.5;
 }
 
-/* The simulated ratio, beneath the real one. Muted by default because it is
-   information rather than a verdict, and warned only when the pair stops
-   clearing a threshold it clears on the real palette. */
-.contrastSimulated {
+/* The simulated ratio, beneath the real one.
+
+   Scoped through .contrastList to match .contrastResult above: a bare
+   .contrastSimulated loses to the "contrastList small" rule above, which is
+   how this first shipped at neutral-550 and had somebody asking where the
+   line had gone. */
+.contrastList .contrastSimulated {
   display: block;
-  color: var(--color-neutral-500);
+  margin-top: 2px;
+  color: var(--color-neutral-350);
+  font-family: var(--font-geist-mono), monospace;
   font-size: 11px;
   line-height: 1.5;
 }
 
-.contrastSimulated[data-weakens="true"] {
+.contrastList .contrastSimulated[data-weakens="true"] {
   color: var(--color-warning-300);
 }
 

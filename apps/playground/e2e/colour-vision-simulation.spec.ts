@@ -483,3 +483,81 @@ test.describe("Contrast under simulation", () => {
     expect(await ratio()).not.toBeCloseTo(protan, 2);
   });
 });
+
+test.describe("Where the simulated numbers show", () => {
+  test("puts the simulated ratio on the matrix swatches", async ({
+    seededPage: page,
+  }) => {
+    /* The ratios stamped on the palette under WCAG 2 mode are the ones people
+       read first. They stayed on the real colours while the swatches beneath
+       them were simulated, which is how somebody ends up asking whether the
+       contrast changes at all. */
+    await page.getByRole("button", { name: "WCAG 2" }).click();
+
+    /* The whole error track rather than one shade. The extremes barely move —
+       near-black stays near-black under any deficiency — so picking a single
+       swatch is picking a lucky one. The mid shades are where the luminance
+       goes. */
+    const ratios = async () =>
+      page
+        .getByRole("button", { name: /^Select error / })
+        .evaluateAll((nodes) =>
+          nodes.map((node) =>
+            Number(node.getAttribute("data-contrast-ratio") ?? 0),
+          ),
+        );
+
+    const before = await ratios();
+    await turnVisionOn(page);
+    await chooseDeficiency(page, "Deuteranopia (green-blind)");
+    const after = await ratios();
+
+    expect(after).toHaveLength(before.length);
+    const biggestShift = Math.max(
+      ...after.map((value, index) => Math.abs(value - before[index]!)),
+    );
+    expect(biggestShift).toBeGreaterThan(0.5);
+  });
+
+  test("says which vision a swatch ratio was measured under", async ({
+    seededPage: page,
+  }) => {
+    /* A screen reader gets the same number as a sighted reader, and the same
+       reason for it. */
+    await page.getByRole("button", { name: "WCAG 2" }).click();
+    const shade = page
+      .getByRole("button", { name: /^Select error 950/ })
+      .first();
+
+    expect(await shade.getAttribute("aria-label")).not.toContain("under");
+
+    await turnVisionOn(page);
+    expect(await shade.getAttribute("aria-label")).toContain(
+      "under deuteranopia",
+    );
+  });
+
+  test("renders the simulated line as legibly as the verdict above it", async ({
+    seededPage: page,
+  }) => {
+    /* It shipped at neutral-550 because a bare class loses to the rule on
+       `.contrastList small`, and nothing in the suite could tell the line was
+       there but unreadable. Comparing the two colours is what catches that. */
+    await turnVisionOn(page);
+    await page.getByRole("button", { name: "Preview" }).click();
+
+    const row = page
+      .getByText("Error action text", { exact: true })
+      .locator("../..");
+
+    const [verdict, simulated] = await row.evaluate((node) => {
+      const smalls = Array.from(node.querySelectorAll("small"));
+      const find = (match: string) =>
+        getComputedStyle(smalls.find((el) => el.textContent!.includes(match))!)
+          .color;
+      return [find("Passes"), find("under deuteranopia")];
+    });
+
+    expect(simulated).toBe(verdict);
+  });
+});
