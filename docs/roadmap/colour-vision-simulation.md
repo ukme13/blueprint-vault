@@ -54,7 +54,7 @@ than new UI.
 **Gap: the contrast mode is not persisted.** `isContrastModeOpen` is component
 state, so it resets on reload. The definition of done asks the simulation to
 survive a refresh, which would leave two neighbouring toggles behaving
-differently. See the open decisions.
+differently. Both modes are persisted in stage 3; see the decisions.
 
 **Gap: the export guard will refuse the report formatters.** The guard in
 `packages/ui/src/fonts/export-guard.test.ts` discovers every `format*` the
@@ -83,32 +83,54 @@ The first useful version should support:
 ## Stages
 
 1. **The transform, no UI.** RGB to LMS and back, and the four simulations, in
-   `packages/ui/src/color/vision.ts`. Pure, and the only stage with real risk
-   in it. The matrices must be taken from the published method and cited in the
-   source — not written from memory — and the tests must include reference
-   values from that source rather than only the properties below.
+   `packages/ui/src/color/vision.ts`. Pure, and the only stage with real risk in
+   it. The matrices are taken from Machado, Oliveira and Fernandes (2009) and
+   cited in the source — not written from memory — and the tests include
+   reference values from that source rather than only the properties below.
+
+   Machado gives a matrix per severity from 0.0 to 1.0 in steps of 0.1, so the
+   signature carries severity from the start even while the UI only ever asks
+   for 1.0. Achromatopsia is not part of that paper and is a separate,
+   luminance-preserving greyscale, named as such in the report.
 
 2. **Properties the transform must hold.** Greys stay grey under every
    simulation. Every output stays in sRGB. Protanopia and deuteranopia collapse
-   red and green toward each other while leaving blue largely alone;
-   tritanopia does the reverse. Achromatopsia returns a grey of matching
-   luminance. Simulating twice is the same as simulating once, since the
-   perceived colour is already collapsed.
+   red and green toward each other while leaving blue largely alone; tritanopia
+   does the reverse. Achromatopsia returns a grey of matching luminance.
+   Severity 0.0 is the identity, which is the property the reference values are
+   least likely to catch on their own. Simulating twice at full severity is the
+   same as simulating once, since the perceived colour is already collapsed.
 
-3. **The preview toggle.** Five options — normal vision plus the four types —
-   applied to the rendered swatches only. This is the stage where the rule that
-   simulation never touches a token value becomes a test rather than a habit.
+3. **The preview toggle, and persistence for both modes.** Five options — normal
+   vision plus the four types — applied to the rendered swatches only. This is
+   the stage where the rule that simulation never touches a token value becomes
+   a test rather than a habit.
 
-4. **Similarity warnings under simulation.** Run the existing OKLab check over
-   the semantic pairs at the chosen shade, per deficiency, and surface the pairs
-   that collapse. `success` and `error` under deuteranopia is the case the goal
-   names and the one to build against first.
+   Both view modes persist per device, so this stage also moves
+   `isContrastModeOpen` out of component state. That is a change to existing
+   behaviour, made here deliberately rather than left as a mismatch between two
+   neighbouring toggles.
+
+4. **Similarity warnings under simulation.** The pairing question is already
+   answered in the code: `PalettePreview` picks an action shade per track with
+   `shadeAt(track, progress)` and compares four named pairs — success/warning,
+   success/error, warning/error, primary/info. Simulation reuses exactly those,
+   per deficiency, rather than inventing a second notion of which shades matter.
+
+   Those pairs and the `shadeAt` helper are domain logic living in a component,
+   so this stage moves them into `packages/ui` first and has the app read them.
+   That is the smaller half of the work and the part with tests.
 
 5. **The report.** One document combining the existing WCAG results with the
    simulation warnings, as Markdown and JSON, from the export dialog. Both
-   formatters join the export guard's list. The report states the WCAG version
-   and the simulation method it used, because a report whose method is unstated
-   cannot be checked later.
+   formatters join the export guard's list. The report covers typography as well
+   as colour: the contrast assessment is already size-aware, so a verdict that
+   names the size it was made at is worth more than one that does not, and the
+   workspace already holds the type scale to name.
+
+   The report states the WCAG version and the simulation method it used —
+   including the severity — because a report whose method is unstated cannot be
+   checked later.
 
 Stage 1 carries the risk and lands with nothing consuming it. Stage 3 is where
 the safety rule about token values becomes enforceable, and is worth writing
@@ -157,35 +179,36 @@ The simulation and report-generation functions must have unit tests. The
 preview toggle, warning display, and report export flows must have Playwright
 coverage.
 
-## Open decisions
+## Decisions
 
-These change the shape of the work and are not mine to settle.
+These were open when the plan was drafted and have been settled.
 
-- **Which simulation method.** Viénot, Brettel and Mollon (1999) is the common
-  linear approximation for full dichromacy and is simple to implement and to
-  cite. Machado, Oliveira and Fernandes (2009) gives severity levels, which is
-  what the "anomalous variants" item under later improvements would need — so
-  choosing it now avoids replacing the transform later, at the cost of more
-  matrices up front. Either way the numbers come from the paper, not from
-  recollection, and the report names the method.
+- **Machado, Oliveira and Fernandes (2009).** Chosen over the Viénot, Brettel
+  and Mollon (1999) linear approximation because it is parameterised by
+  severity, which is what the "anomalous variants" item under later improvements
+  needs. Taking it now avoids replacing the transform later, at the cost of more
+  matrices up front. The numbers come from the paper, not from recollection, and
+  the report names the method and the severity.
 
-- **Which shade the similarity check compares.** Two semantic tracks are twenty
-  shades each. Comparing every pair is 190 comparisons per deficiency and mostly
-  noise; comparing one representative shade per track is one number that might
-  be the wrong one. A middle answer — the shades a component would actually put
-  together, such as a surface against its text — is more useful and needs
-  someone to say which those are.
+- **The shades a component actually puts together.** Not every pair, and not one
+  representative shade per track. The existing normal-vision check already makes
+  this choice — four named pairs of action shades in `PalettePreview` — and
+  simulation reuses it rather than inventing a second answer. Stage 4 moves that
+  choice into `packages/ui`, where it can be tested and where the rest of the
+  domain logic lives.
 
-- **Whether the simulation mode persists, and whether contrast mode should
-  too.** The precedent in this workspace is that a way of looking at a project
-  is view state — `previewWidth` and `previewLang` are not persisted — while a
-  display preference is kept per device under its own key, as
-  `blueprint.colour-format.v1` is. Simulation is closer to the second. If it
-  persists, the contrast mode beside it probably should as well, and that is a
-  change to existing behaviour rather than part of this feature.
+- **Both view modes persist, per device.** Simulation is a display preference
+  rather than view state, so it is kept under its own key like
+  `blueprint.colour-format.v1` rather than treated as `previewWidth` is. The
+  contrast mode beside it moves with it, so the two behave alike.
 
-- **Whether the report covers typography.** The workspace now holds a type scale
-  and the contrast assessment is already size-aware, so a report that named the
-  sizes its verdicts were made at would be more useful than one that did not.
-  That is scope growth, and it is the kind that is easier to include from the
-  start than to add afterwards.
+- **The report covers typography.** Included from the start rather than added
+  afterwards, since the contrast assessment already takes a size and the
+  workspace already holds a type scale.
+
+## Still open
+
+- **Which severities the UI eventually offers.** Stage 1 carries severity
+  through the API; the first version only ever passes 1.0. Whether anomalous
+  variants get a slider, a set of steps, or nothing is a question for after the
+  first version is in front of someone.
