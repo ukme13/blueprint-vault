@@ -1,8 +1,10 @@
 import {
+  WCAG_CONTRAST,
   assessColourSimilarity,
   assessFocusContrast,
   assessNonTextContrast,
   assessTextContrast,
+  contrastRatio,
   recommendTextColour,
   type ColourSimilarityResult,
   type FocusContrastResult,
@@ -16,6 +18,7 @@ import {
   colourVisionLabel,
   simulateHex,
   type ColourVisionDeficiency,
+  type ColourVisionSimulation,
 } from "./vision";
 
 /*
@@ -95,11 +98,40 @@ export function readableText(background: string): string {
   return recommendTextColour(background).colour;
 }
 
+/**
+ * What a pair's contrast becomes once a deficiency is simulated.
+ *
+ * Deliberately carries a ratio and no verdict. WCAG defines its thresholds on
+ * the actual colours, so a simulated pair cannot pass or fail AA — claiming it
+ * could would be inventing a conformance result the standard does not grant.
+ *
+ * The ratio itself is still worth knowing, and WCAG 2 not modelling it is a
+ * limitation of the standard rather than a reason to hide it: protanopia takes
+ * most of red's luminance, so a red button that measures 4.8:1 genuinely reads
+ * far weaker to a protanope than that number suggests.
+ */
+export interface SimulatedContrast {
+  deficiency: ColourVisionDeficiency;
+  severity: number;
+  ratio: number;
+  /**
+   * The pair clears its threshold on the real palette and not once simulated.
+   *
+   * The actionable case, and the only one worth a warning: a pair that already
+   * fails is reported by the ordinary verdict beside it.
+   */
+  weakens: boolean;
+}
+
 export interface TextCheck {
   label: string;
   foreground: string;
   background: string;
   result: TextContrastResult;
+  /** The current view, when the Vision chip is on. */
+  simulated: SimulatedContrast | null;
+  /** Every deficiency this pair weakens under, whatever is being previewed. */
+  weakensUnder: ColourVisionDeficiency[];
 }
 
 export interface NonTextCheck {
@@ -108,6 +140,79 @@ export interface NonTextCheck {
   background: string;
   result: NonTextContrastResult;
   countsTowardWarnings: boolean;
+  simulated: SimulatedContrast | null;
+  weakensUnder: ColourVisionDeficiency[];
+}
+
+/** How a view is being looked at, for the checks that depend on it. */
+export interface SimulationView {
+  simulation: ColourVisionSimulation;
+  severity: number;
+}
+
+const NORMAL_VIEW: SimulationView = { simulation: "normal", severity: 1 };
+
+function simulatedRatio(
+  foreground: string,
+  background: string,
+  deficiency: ColourVisionDeficiency,
+  severity: number,
+): number {
+  return contrastRatio(
+    simulateHex(foreground, deficiency, severity),
+    simulateHex(background, deficiency, severity),
+  );
+}
+
+/**
+ * The simulated contrast for one pair under the current view.
+ *
+ * Null under normal vision rather than a ratio equal to the real one, so a
+ * caller cannot render a "simulated" figure that is simply the same number.
+ */
+function simulatedContrast(
+  foreground: string,
+  background: string,
+  view: SimulationView,
+  realRatio: number,
+  threshold: number,
+): SimulatedContrast | null {
+  if (view.simulation === "normal") return null;
+
+  const ratio = simulatedRatio(
+    foreground,
+    background,
+    view.simulation,
+    view.severity,
+  );
+
+  return {
+    deficiency: view.simulation,
+    severity: view.severity,
+    ratio,
+    weakens: realRatio >= threshold && ratio < threshold,
+  };
+}
+
+/**
+ * Every deficiency that takes this pair below its threshold.
+ *
+ * Measured at full severity and independently of what is being previewed, the
+ * same way semantic pairs are: a warning that only appears once you have
+ * already chosen the right mode is one nobody finds.
+ */
+function weakensUnder(
+  foreground: string,
+  background: string,
+  realRatio: number,
+  threshold: number,
+): ColourVisionDeficiency[] {
+  if (realRatio < threshold) return [];
+
+  return COLOUR_VISION_DEFICIENCIES.filter(
+    (deficiency) =>
+      simulatedRatio(foreground, background, deficiency, 1) < threshold,
+  );
 }
 
 export interface TextColourCheck {
@@ -116,7 +221,10 @@ export interface TextColourCheck {
   recommendation: TextColourRecommendation;
 }
 
-export function assessTextChecks(shades: PreviewShades): TextCheck[] {
+export function assessTextChecks(
+  shades: PreviewShades,
+  view: SimulationView = NORMAL_VIEW,
+): TextCheck[] {
   const {
     primaryAction,
     neutralLight,
@@ -163,10 +271,31 @@ export function assessTextChecks(shades: PreviewShades): TextCheck[] {
       foreground: readableText(errorAction.hex),
       background: errorAction.hex,
     },
-  ].map((check) => ({
-    ...check,
-    result: assessTextContrast(check.foreground, check.background),
-  }));
+  ].map((check) => {
+    const result = assessTextContrast(check.foreground, check.background);
+    /* Normal-text AA throughout. These samples have no size of their own — the
+       report is where a size-aware verdict lives, because that is where the
+       type scale is. */
+    const threshold = WCAG_CONTRAST.normalTextAA;
+
+    return {
+      ...check,
+      result,
+      simulated: simulatedContrast(
+        check.foreground,
+        check.background,
+        view,
+        result.ratio,
+        threshold,
+      ),
+      weakensUnder: weakensUnder(
+        check.foreground,
+        check.background,
+        result.ratio,
+        threshold,
+      ),
+    };
+  });
 }
 
 export function assessTextColourChoices(
@@ -183,7 +312,10 @@ export function assessTextColourChoices(
   }));
 }
 
-export function assessNonTextChecks(shades: PreviewShades): NonTextCheck[] {
+export function assessNonTextChecks(
+  shades: PreviewShades,
+  view: SimulationView = NORMAL_VIEW,
+): NonTextCheck[] {
   const { secondaryAction, primarySoft, neutralLight } = shades;
 
   return [
@@ -191,17 +323,40 @@ export function assessNonTextChecks(shades: PreviewShades): NonTextCheck[] {
       label: "Secondary button border",
       foreground: secondaryAction.hex,
       background: neutralLight.hex,
-      result: assessNonTextContrast(secondaryAction.hex, neutralLight.hex),
       countsTowardWarnings: true,
     },
     {
       label: "Soft surface boundary",
       foreground: primarySoft.hex,
       background: neutralLight.hex,
-      result: assessNonTextContrast(primarySoft.hex, neutralLight.hex),
       countsTowardWarnings: false,
     },
-  ];
+  ].map((check) => {
+    const result = assessNonTextContrast(check.foreground, check.background);
+    const threshold = WCAG_CONTRAST.nonText;
+
+    return {
+      ...check,
+      result,
+      simulated: simulatedContrast(
+        check.foreground,
+        check.background,
+        view,
+        result.ratio,
+        threshold,
+      ),
+      /* Only where the boundary carries meaning. A decorative surface that
+         weakens under simulation is not something to go and fix. */
+      weakensUnder: check.countsTowardWarnings
+        ? weakensUnder(
+            check.foreground,
+            check.background,
+            result.ratio,
+            threshold,
+          )
+        : [],
+    };
+  });
 }
 
 export function assessFocusCheck(shades: PreviewShades): FocusContrastResult {
@@ -325,9 +480,12 @@ export interface PreviewAssessment {
 }
 
 /** Everything the preview reports, for one palette. */
-export function assessPreview(shades: PreviewShades): PreviewAssessment {
-  const textChecks = assessTextChecks(shades);
-  const nonTextChecks = assessNonTextChecks(shades);
+export function assessPreview(
+  shades: PreviewShades,
+  view: SimulationView = NORMAL_VIEW,
+): PreviewAssessment {
+  const textChecks = assessTextChecks(shades, view);
+  const nonTextChecks = assessNonTextChecks(shades, view);
   const focusCheck = assessFocusCheck(shades);
   const semanticPairs = assessSemanticPairs(shades);
 
@@ -338,9 +496,11 @@ export function assessPreview(shades: PreviewShades): PreviewAssessment {
     ).length +
     (focusCheck.status === "fail" ? 1 : 0) +
     semanticPairs.filter((check) => check.result.isTooSimilar).length +
-    /* A pair that only collapses under simulation counts once, however many
-       deficiencies it collapses under — it is one thing to go and fix. */
-    semanticPairs.filter((check) => check.collapsesUnder.length > 0).length;
+    /* Each of these counts once, however many deficiencies it applies to — a
+       pair is one thing to go and fix, not four. */
+    semanticPairs.filter((check) => check.collapsesUnder.length > 0).length +
+    textChecks.filter((check) => check.weakensUnder.length > 0).length +
+    nonTextChecks.filter((check) => check.weakensUnder.length > 0).length;
 
   return {
     shades,

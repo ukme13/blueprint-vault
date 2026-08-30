@@ -290,9 +290,39 @@ These were open when the plan was drafted and have been settled.
   afterwards, since the contrast assessment already takes a size and the
   workspace already holds a type scale.
 
+## Settled after the first version
+
+- **Which severities the UI offers: Machado's own, and no others.** A slider
+  from 0.1 to 1.0 in steps of 0.1, which is exactly the table the paper
+  publishes — so every position is a matrix read from the source rather than an
+  interpolation between two of them. It stops at 0.1 because 0.0 is not a
+  severity, it is the Vision chip being off, and having two ways to express
+  that would let them disagree.
+
+  Below full strength the condition is the anomalous trichromacy of the same
+  cone, so the picker renames itself: "Deuteranopia (green-blind)" at 1.0 and
+  "Deuteranomaly (green-weak)" below it. Naming the dichromacy while showing an
+  anomaly would describe something the studio was not doing.
+
+- **Contrast ratios follow the simulated colours.** The original decision — the
+  WCAG panel measures the real palette and only the real palette — was half
+  right. The _verdict_ has to stay on the real colours, because WCAG defines AA
+  and AAA on them and a simulated pass would be a conformance claim the
+  standard does not grant. The _ratio_ is another matter: it is a real
+  measurement of what the pair becomes, and WCAG 2 not modelling it is a
+  limitation of the standard rather than a reason to withhold it.
+
+  So both, separated. The verdict above, the simulated ratio beneath it with no
+  pass or fail attached, and a warning when a pair clears its threshold on the
+  real palette and stops clearing it once simulated.
+
+  Worth knowing before reading those numbers: the shifts are usually small, and
+  they go up as often as down. Machado's matrices largely preserve luminance —
+  their rows sum to 1 — and WCAG contrast depends on nothing else. Darkening
+  red under protanopia _raises_ the contrast of white text on a red button,
+  from 6.55:1 to 8.77:1 on the default palette. Crossing a threshold takes a
+  pair that was already close to it.
+
 ## Still open
 
-- **Which severities the UI eventually offers.** Stage 1 carries severity
-  through the API; the first version only ever passes 1.0. Whether anomalous
-  variants get a slider, a set of steps, or nothing is a question for after the
-  first version is in front of someone.
+- Nothing. The roadmap is complete.

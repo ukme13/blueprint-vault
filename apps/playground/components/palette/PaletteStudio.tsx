@@ -15,6 +15,7 @@ import {
   SegmentedControlItem,
 } from "@astryxdesign/core/SegmentedControl";
 import { Selector } from "@astryxdesign/core/Selector";
+import { Slider } from "@astryxdesign/core/Slider";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { useToast } from "@astryxdesign/core/Toast";
@@ -22,6 +23,7 @@ import {
   BLUEPRINT_20_PRESET,
   Button,
   COLOUR_VISION_DEFICIENCIES,
+  MIN_COLOUR_VISION_SEVERITY,
   LEGACY_PALETTE_STORAGE_KEY,
   LEGACY_TYPOGRAPHY_STORAGE_KEY,
   MAX_SHADE_COUNT,
@@ -207,11 +209,17 @@ function VisionIcon() {
 
 /* Only the deficiencies. "Normal vision" is not an option here because the
    chip itself is the on/off — offering both would give two ways to say the
-   same thing and let them disagree. */
-const VISION_OPTIONS = COLOUR_VISION_DEFICIENCIES.map((deficiency) => ({
-  value: deficiency,
-  label: colourVisionOptionLabel(deficiency),
-}));
+   same thing and let them disagree.
+
+   The labels depend on severity: below full strength these are the anomalous
+   trichromacies, which have different names, and a picker that said
+   "Deuteranopia" while simulating 0.6 would be naming something else. */
+function visionOptions(severity: number) {
+  return COLOUR_VISION_DEFICIENCIES.map((deficiency) => ({
+    value: deficiency,
+    label: colourVisionOptionLabel(deficiency, severity),
+  }));
+}
 
 export function PaletteStudio() {
   return (
@@ -234,6 +242,8 @@ function PaletteStudioContent() {
      colour format. Neither is part of the project. */
   const {
     deficiency,
+    severity,
+    setSeverity,
     isSimulationOn,
     isContrastModeOpen,
     setDeficiency,
@@ -817,12 +827,34 @@ function PaletteStudioContent() {
               <Selector
                 isLabelHidden
                 label="Vision type"
-                options={VISION_OPTIONS}
+                options={visionOptions(severity)}
                 size="sm"
                 value={deficiency}
                 variant="ghost"
                 onChange={(value) =>
                   setDeficiency(value as ColourVisionDeficiency)
+                }
+              />
+            </span>
+          )}
+          {isSimulationOn && (
+            <span className={styles.visionSeverity}>
+              {/* Stepped at 0.1, which is exactly what Machado tabulates — so
+                  every position on this slider is a matrix read from the paper
+                  rather than an interpolation between two of them. It stops at
+                  0.1 because 0.0 is not a severity, it is the chip being
+                  off. */}
+              <Slider
+                isLabelHidden
+                label="Vision severity"
+                formatValue={(value) => `${Math.round(value * 100)}%`}
+                max={1}
+                min={MIN_COLOUR_VISION_SEVERITY}
+                step={0.1}
+                value={severity}
+                valueDisplay="text"
+                onChange={(value: number | [number, number]) =>
+                  setSeverity(value as number)
                 }
               />
             </span>

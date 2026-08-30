@@ -25,7 +25,7 @@ export function PalettePreview({ palettes }: PalettePreviewProps) {
      never mutated, so no simulation can reach the stored project or an export.
      There is an end-to-end test that turns the Vision chip through every mode
      and asserts the stored workspace is byte-identical afterwards. */
-  const { seen, simulation } = usePaletteView();
+  const { seen, simulation, view } = usePaletteView();
   const shades = selectPreviewShades(palettes);
 
   if (!shades) {
@@ -44,7 +44,9 @@ export function PalettePreview({ palettes }: PalettePreviewProps) {
     );
   }
 
-  const assessment = assessPreview(shades);
+  /* The assessment follows the view, so every ratio on screen is the one for
+     the colours on screen. */
+  const assessment = assessPreview(shades, view);
   const {
     primaryAction,
     primarySoft,

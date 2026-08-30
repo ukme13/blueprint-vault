@@ -348,3 +348,138 @@ test.describe("Semantic pairs under simulation", () => {
     await expect(badge).not.toContainText("No warnings");
   });
 });
+
+test.describe("Severity", () => {
+  const slider = (page: Page) =>
+    page.getByRole("slider", { name: "Vision severity" });
+
+  /** Step the slider down from full strength, one published matrix at a time. */
+  async function lowerSeverity(page: Page, steps: number) {
+    await slider(page).focus();
+    for (let step = 0; step < steps; step += 1) {
+      await page.keyboard.press("ArrowLeft");
+    }
+  }
+
+  test("appears with the chip and not before", async ({ seededPage: page }) => {
+    await expect(slider(page)).toBeHidden();
+    await turnVisionOn(page);
+    await expect(slider(page)).toBeVisible();
+  });
+
+  test("renames the condition below full strength", async ({
+    seededPage: page,
+  }) => {
+    /* At 1.0 this is deuteranopia; below it, it is deuteranomaly, which is a
+       different condition. A picker that kept saying "Deuteranopia" while
+       simulating 0.6 would be naming something it was not showing. */
+    await turnVisionOn(page);
+    await expect(page.getByLabel("Vision type")).toContainText(
+      "Deuteranopia (green-blind)",
+    );
+
+    await lowerSeverity(page, 4);
+    await expect(page.getByLabel("Vision type")).toContainText(
+      "Deuteranomaly (green-weak)",
+    );
+  });
+
+  test("moves the palette by degrees", async ({ seededPage: page }) => {
+    await turnVisionOn(page);
+    await chooseDeficiency(page, "Protanopia (red-blind)");
+    const full = await shadeBackground(page);
+
+    await lowerSeverity(page, 5);
+    const half = await shadeBackground(page);
+
+    await expect(slider(page)).toHaveAttribute("aria-valuenow", "0.5");
+    expect(half).not.toBe(full);
+  });
+
+  test("survives a reload", async ({ seededPage: page }) => {
+    await turnVisionOn(page);
+    await lowerSeverity(page, 7);
+    await expect(slider(page)).toHaveAttribute("aria-valuenow", "0.3");
+
+    await page.reload();
+    await expect(
+      page.getByRole("region", { name: "Palette toolbar" }),
+    ).toBeVisible();
+
+    await expect(slider(page)).toHaveAttribute("aria-valuenow", "0.3");
+  });
+
+  test("never reaches zero, because that is the chip being off", async ({
+    seededPage: page,
+  }) => {
+    await turnVisionOn(page);
+    await lowerSeverity(page, 20);
+
+    await expect(slider(page)).toHaveAttribute("aria-valuenow", "0.1");
+  });
+});
+
+test.describe("Contrast under simulation", () => {
+  const errorRow = (page: Page) =>
+    page.getByText("Error action text", { exact: true }).locator("../..");
+
+  test("shows no simulated ratio while the chip is off", async ({
+    seededPage: page,
+  }) => {
+    await page.getByRole("button", { name: "Preview" }).click();
+    await expect(errorRow(page)).toContainText("Passes AA");
+    await expect(errorRow(page)).not.toContainText("under deuteranopia");
+  });
+
+  test("reports the ratio for the colours actually on screen", async ({
+    seededPage: page,
+  }) => {
+    /* What was asked for: the number follows the colour. */
+    await turnVisionOn(page);
+    await page.getByRole("button", { name: "Preview" }).click();
+
+    await expect(errorRow(page)).toContainText("under deuteranopia");
+    await expect(errorRow(page)).toContainText(/\d+\.\d\d:1 under/);
+  });
+
+  test("attaches no WCAG verdict to a simulated ratio", async ({
+    seededPage: page,
+  }) => {
+    /* WCAG defines AA on the actual colours. The simulated line is a
+       measurement and must never read as a pass or a fail — the verdict above
+       it belongs to the real palette and stays there. */
+    await turnVisionOn(page);
+    await page.getByRole("button", { name: "Preview" }).click();
+
+    const simulated = errorRow(page).getByText(/under deuteranopia/);
+    await expect(simulated).toBeVisible();
+    await expect(simulated).not.toContainText("AA");
+    await expect(simulated).not.toContainText("AAA");
+    await expect(simulated).not.toContainText("Pass");
+    await expect(simulated).not.toContainText("Fail");
+  });
+
+  test("changes with the deficiency and with the severity", async ({
+    seededPage: page,
+  }) => {
+    await turnVisionOn(page);
+    await page.getByRole("button", { name: "Preview" }).click();
+
+    const ratio = async () => {
+      const text = await errorRow(page).innerText();
+      return Number(/(\d+\.\d\d):1 under/.exec(text)![1]);
+    };
+
+    const deutan = await ratio();
+    await chooseDeficiency(page, "Protanopia (red-blind)");
+    const protan = await ratio();
+    expect(protan).not.toBeCloseTo(deutan, 2);
+
+    await page.getByRole("slider", { name: "Vision severity" }).focus();
+    for (let step = 0; step < 5; step += 1) {
+      await page.keyboard.press("ArrowLeft");
+    }
+    await expect(errorRow(page)).toContainText("at 50%");
+    expect(await ratio()).not.toBeCloseTo(protan, 2);
+  });
+});

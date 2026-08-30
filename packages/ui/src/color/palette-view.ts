@@ -1,5 +1,6 @@
 import {
   isColourVisionDeficiency,
+  isColourVisionSeverity,
   type ColourVisionDeficiency,
   type ColourVisionSimulation,
 } from "./vision";
@@ -28,6 +29,16 @@ export interface PaletteViewPreferences {
    * state, not a fifth thing to choose from a list.
    */
   deficiency: ColourVisionDeficiency;
+  /**
+   * How far the deficiency is simulated, as Machado's parameter.
+   *
+   * 1.0 is dichromacy; below it is the anomalous trichromacy of the same cone,
+   * which is both more common and the case the plan wanted this parameterised
+   * for. Kept alongside the deficiency rather than per deficiency: it is one
+   * dial, and remembering four of them would be answering a question nobody
+   * asked.
+   */
+  severity: number;
   /** Whether the Vision chip is active. */
   isSimulationOn: boolean;
   /** Whether the WCAG contrast comparison panel is open. */
@@ -38,6 +49,7 @@ export const DEFAULT_PALETTE_VIEW: PaletteViewPreferences = {
   /* Deuteranopia is the most common deficiency, so it is the one worth landing
      on when somebody turns this on without a preference. */
   deficiency: "deuteranopia",
+  severity: 1,
   isSimulationOn: false,
   isContrastModeOpen: false,
 };
@@ -80,6 +92,9 @@ export function readPaletteView(raw: string | null): PaletteViewPreferences {
     deficiency: isColourVisionDeficiency(value.deficiency)
       ? value.deficiency
       : DEFAULT_PALETTE_VIEW.deficiency,
+    severity: isColourVisionSeverity(value.severity)
+      ? value.severity
+      : DEFAULT_PALETTE_VIEW.severity,
     isSimulationOn: readBoolean(
       value.isSimulationOn,
       DEFAULT_PALETTE_VIEW.isSimulationOn,

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { generatePalettes } from "./palette";
 import {
+  assessNonTextChecks,
   assessPreview,
   assessSemanticPairs,
+  assessTextChecks,
   selectPreviewShades,
 } from "./preview-assessment";
 import type { ColorTrack } from "./types";
@@ -143,6 +145,177 @@ describe("assessSemanticPairs", () => {
     )!;
 
     expect(tritanopia.result.isTooSimilar).toBe(false);
+  });
+});
+
+/**
+ * A palette whose success track sits just above AA and drops below it once
+ * simulated.
+ *
+ * Deep reds are where this happens: they clear 4.5:1 on the light neutral by a
+ * small margin, and deuteranopia takes enough luminance out of them to cross
+ * the line. Found by sweeping seeds rather than guessed, because the first
+ * three colours tried all moved the ratio the wrong way.
+ */
+function weakeningPalette(): ColorTrack[] {
+  return palette([
+    { id: "primary", name: "primary", seedHex: "#7646ab" },
+    { id: "neutral", name: "neutral", seedHex: "#737373" },
+    { id: "success", name: "success", seedHex: "#802020" },
+  ]);
+}
+
+describe("contrast under simulation", () => {
+  it("reports no simulated ratio under normal vision", () => {
+    /* Null rather than a ratio equal to the real one, so nothing can render a
+       "simulated" figure that is simply the same number twice. */
+    for (const check of assessTextChecks(shadesOf(distinctPalette()))) {
+      expect(check.simulated, check.label).toBeNull();
+    }
+  });
+
+  it("reports the ratio for the deficiency being previewed", () => {
+    const checks = assessTextChecks(shadesOf(distinctPalette()), {
+      simulation: "protanopia",
+      severity: 1,
+    });
+
+    for (const check of checks) {
+      expect(check.simulated, check.label).not.toBeNull();
+      expect(check.simulated!.deficiency).toBe("protanopia");
+      expect(check.simulated!.severity).toBe(1);
+      expect(check.simulated!.ratio).toBeGreaterThan(0);
+    }
+  });
+
+  it("carries no verdict with the simulated ratio", () => {
+    /* WCAG defines its thresholds on the actual colours. A simulated pair
+       cannot pass or fail AA, and offering a field that said it could would
+       invite exactly that claim. */
+    const [check] = assessTextChecks(shadesOf(distinctPalette()), {
+      simulation: "protanopia",
+      severity: 1,
+    });
+
+    expect(Object.keys(check!.simulated!).sort()).toEqual([
+      "deficiency",
+      "ratio",
+      "severity",
+      "weakens",
+    ]);
+  });
+
+  it("moves contrast up as readily as down", () => {
+    /* White on red gains contrast under protanopia — the red darkens and the
+       white does not — while green text on a light surface loses a little.
+       Both are pinned because the intuition that simulation only ever makes
+       things worse is wrong, and a test written from that intuition fails
+       against correct code. */
+    const checks = assessTextChecks(shadesOf(distinctPalette()), {
+      simulation: "protanopia",
+      severity: 1,
+    });
+    const errorText = checks.find(
+      (check) => check.label === "Error action text",
+    )!;
+    const successText = checks.find(
+      (check) => check.label === "Success status text",
+    )!;
+
+    expect(errorText.simulated!.ratio).toBeGreaterThan(
+      errorText.result.ratio + 1,
+    );
+    expect(successText.simulated!.ratio).toBeLessThan(successText.result.ratio);
+  });
+
+  it("leaves achromatopsia's ratios where they were", () => {
+    /* The greyscale preserves relative luminance exactly, so every ratio is
+       unchanged but for 8-bit rounding on the way to a hex. It is the one mode
+       that can neither invent nor hide a contrast problem. */
+    const checks = assessTextChecks(shadesOf(distinctPalette()), {
+      simulation: "achromatopsia",
+      severity: 1,
+    });
+
+    for (const check of checks) {
+      expect(
+        Math.abs(check.simulated!.ratio - check.result.ratio),
+        check.label,
+      ).toBeLessThan(0.2);
+      expect(check.simulated!.weakens, check.label).toBe(false);
+    }
+  });
+
+  it("moves further as severity rises", () => {
+    const at = (severity: number) =>
+      assessTextChecks(shadesOf(distinctPalette()), {
+        simulation: "protanopia",
+        severity,
+      }).find((check) => check.label === "Success status text")!.simulated!
+        .ratio;
+
+    expect(at(0.2)).toBeGreaterThan(at(0.6));
+    expect(at(0.6)).toBeGreaterThan(at(1));
+  });
+
+  it("flags a pair that clears AA and stops clearing it", () => {
+    /* The actionable case: 4.73:1 on the real palette, 4.29:1 once the red is
+       simulated. Nothing on screen would tell you without this. */
+    const check = assessTextChecks(shadesOf(weakeningPalette()), {
+      simulation: "deuteranopia",
+      severity: 1,
+    }).find((entry) => entry.label === "Success status text")!;
+
+    expect(check.result.ratio).toBeGreaterThanOrEqual(4.5);
+    expect(check.simulated!.ratio).toBeLessThan(4.5);
+    expect(check.simulated!.weakens).toBe(true);
+  });
+
+  it("says nothing about a pair that was already failing", () => {
+    /* Reported by the ordinary verdict beside it. Repeating it as a simulation
+       warning would bury the ones only some people cannot read. */
+    for (const deficiency of ["protanopia", "deuteranopia"] as const) {
+      const checks = assessTextChecks(shadesOf(distinctPalette()), {
+        simulation: deficiency,
+        severity: 1,
+      });
+
+      for (const check of checks) {
+        if (check.result.ratio < 4.5) {
+          expect(check.simulated!.weakens, check.label).toBe(false);
+          expect(check.weakensUnder, check.label).toEqual([]);
+        }
+      }
+    }
+  });
+
+  it("names every deficiency a pair weakens under, whatever is previewed", () => {
+    /* Independent of the current view, the same way collapsing pairs are: a
+       warning that only appears once you have chosen the right mode is one
+       nobody finds. */
+    const off = assessTextChecks(shadesOf(weakeningPalette()));
+    const on = assessTextChecks(shadesOf(weakeningPalette()), {
+      simulation: "tritanopia",
+      severity: 1,
+    });
+
+    expect(off.map((check) => check.weakensUnder)).toEqual(
+      on.map((check) => check.weakensUnder),
+    );
+    expect(
+      off.find((check) => check.label === "Success status text")!.weakensUnder,
+    ).toContain("deuteranopia");
+  });
+
+  it("says nothing about a decorative boundary", () => {
+    /* The soft surface is advisory, so it does not count toward warnings and
+       has nothing to go and fix under simulation either. */
+    const soft = assessNonTextChecks(shadesOf(distinctPalette())).find(
+      (check) => check.label === "Soft surface boundary",
+    )!;
+
+    expect(soft.countsTowardWarnings).toBe(false);
+    expect(soft.weakensUnder).toEqual([]);
   });
 });
 

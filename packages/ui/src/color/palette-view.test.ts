@@ -9,6 +9,7 @@ import {
 
 const CUSTOM: PaletteViewPreferences = {
   deficiency: "tritanopia",
+  severity: 0.6,
   isSimulationOn: true,
   isContrastModeOpen: true,
 };
@@ -58,11 +59,13 @@ describe("readPaletteView", () => {
        mode does not reset the three already stored. */
     expect(readPaletteView('{"deficiency":"protanopia"}')).toEqual({
       deficiency: "protanopia",
+      severity: 1,
       isSimulationOn: false,
       isContrastModeOpen: false,
     });
     expect(readPaletteView('{"isContrastModeOpen":true}')).toEqual({
       deficiency: "deuteranopia",
+      severity: 1,
       isSimulationOn: false,
       isContrastModeOpen: true,
     });
@@ -93,6 +96,27 @@ describe("readPaletteView", () => {
       );
       expect(view.isSimulationOn, String(value)).toBe(false);
       expect(view.isContrastModeOpen, String(value)).toBe(false);
+    }
+  });
+
+  it("accepts every severity the slider can reach", () => {
+    /* Exactly Machado's tabulated steps, so every value the studio can produce
+       is a published matrix rather than an interpolation. */
+    for (const severity of [1, 0.9, 0.5, 0.2, 0.1]) {
+      expect(readPaletteView(JSON.stringify({ severity })).severity).toBe(
+        severity,
+      );
+    }
+  });
+
+  it("rejects a severity the studio cannot produce", () => {
+    /* 0.0 among them: that is the chip being off, not a severity, and storing
+       it would make the off state expressible two ways. */
+    for (const severity of [0, 0.15, 1.5, -1, "0.5", null, Number.NaN]) {
+      expect(
+        readPaletteView(JSON.stringify({ severity })).severity,
+        String(severity),
+      ).toBe(1);
     }
   });
 
