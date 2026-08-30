@@ -5,6 +5,7 @@ import {
   type ShadeItem,
 } from "@blueprint/ui";
 import { ShadeDetailPopover } from "./ShadeDetailPopover";
+import { usePaletteView } from "./PaletteViewContext";
 import styles from "./palette-workspace.module.css";
 
 interface PaletteShadeProps {
@@ -32,6 +33,8 @@ export function PaletteShade({
   onManualChange,
   onSourceChange,
 }: PaletteShadeProps) {
+  const { seen } = usePaletteView();
+
   const ratio = contrastReferenceHex
     ? contrastRatio(shade.hex, contrastReferenceHex)
     : null;
@@ -68,7 +71,10 @@ export function PaletteShade({
         data-contrast-ratio={ratioLabel}
         data-has-contrast={ratio !== null}
         data-selected={isSelected}
-        style={{ backgroundColor: shade.hex, color: foreground }}
+        /* Simulated for the eye only. The label, the title and the contrast
+           ratio above all keep the real hex, because that is the token this
+           swatch stands for and the value somebody copies out of it. */
+        style={{ backgroundColor: seen(shade.hex), color: seen(foreground) }}
         title={`${shade.weight} · ${shade.hex}`}
         type="button"
       >

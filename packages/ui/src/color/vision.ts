@@ -42,6 +42,12 @@ export const COLOUR_VISION_SIMULATIONS: readonly ColourVisionSimulation[] = [
   ...COLOUR_VISION_DEFICIENCIES,
 ];
 
+export function isColourVisionDeficiency(
+  value: unknown,
+): value is ColourVisionDeficiency {
+  return COLOUR_VISION_DEFICIENCIES.includes(value as ColourVisionDeficiency);
+}
+
 export function isColourVisionSimulation(
   value: unknown,
 ): value is ColourVisionSimulation {
@@ -67,6 +73,22 @@ export function simulateHex(
 export function colourVisionLabel(simulation: ColourVisionSimulation): string {
   if (simulation === "normal") return "Normal vision";
   return describeColourVisionMethod(simulation).name;
+}
+
+/* The everyday name beside the clinical one. Somebody scanning a control
+   should not have to know which cone "deuteranopia" refers to. */
+const PLAIN_NAMES: Record<ColourVisionDeficiency, string> = {
+  protanopia: "red-blind",
+  deuteranopia: "green-blind",
+  tritanopia: "blue-blind",
+  achromatopsia: "no colour",
+};
+
+/** The clinical name with its everyday gloss, for a picker. */
+export function colourVisionOptionLabel(
+  deficiency: ColourVisionDeficiency,
+): string {
+  return `${colourVisionLabel(deficiency)} (${PLAIN_NAMES[deficiency]})`;
 }
 
 /* Machado's three families. Achromatopsia is deliberately absent: the paper

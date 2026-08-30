@@ -1,5 +1,6 @@
 import {
-  isColourVisionSimulation,
+  isColourVisionDeficiency,
+  type ColourVisionDeficiency,
   type ColourVisionSimulation,
 } from "./vision";
 
@@ -18,16 +19,35 @@ import {
 export const PALETTE_VIEW_STORAGE_KEY = "blueprint.palette-view.v1";
 
 export interface PaletteViewPreferences {
-  /** Which colour-vision simulation the preview is rendered through. */
-  simulation: ColourVisionSimulation;
+  /**
+   * Which deficiency the Vision chip shows while it is on.
+   *
+   * Kept even when the chip is off, so turning it back on returns to the mode
+   * that was being used rather than making the choice again. That is why this
+   * is a deficiency and not a `ColourVisionSimulation`: "off" is the chip's
+   * state, not a fifth thing to choose from a list.
+   */
+  deficiency: ColourVisionDeficiency;
+  /** Whether the Vision chip is active. */
+  isSimulationOn: boolean;
   /** Whether the WCAG contrast comparison panel is open. */
   isContrastModeOpen: boolean;
 }
 
 export const DEFAULT_PALETTE_VIEW: PaletteViewPreferences = {
-  simulation: "normal",
+  /* Deuteranopia is the most common deficiency, so it is the one worth landing
+     on when somebody turns this on without a preference. */
+  deficiency: "deuteranopia",
+  isSimulationOn: false,
   isContrastModeOpen: false,
 };
+
+/** What to render through, given the chip's state. */
+export function activeSimulation(
+  view: PaletteViewPreferences,
+): ColourVisionSimulation {
+  return view.isSimulationOn ? view.deficiency : "normal";
+}
 
 /**
  * Read stored preferences, falling back per field rather than wholesale.
@@ -37,8 +57,8 @@ export const DEFAULT_PALETTE_VIEW: PaletteViewPreferences = {
  * project file is read, and deliberately so — losing a view mode costs a click,
  * losing a project costs someone's work.
  *
- * Per field rather than all-or-nothing because the two are independent. A
- * release that adds a third mode should not reset the two already stored.
+ * Per field rather than all-or-nothing because the fields are independent. A
+ * release that adds a fourth mode should not reset the three already stored.
  */
 export function readPaletteView(raw: string | null): PaletteViewPreferences {
   if (!raw) return DEFAULT_PALETTE_VIEW;
@@ -57,14 +77,22 @@ export function readPaletteView(raw: string | null): PaletteViewPreferences {
   const value = parsed as Record<string, unknown>;
 
   return {
-    simulation: isColourVisionSimulation(value.simulation)
-      ? value.simulation
-      : DEFAULT_PALETTE_VIEW.simulation,
-    isContrastModeOpen:
-      typeof value.isContrastModeOpen === "boolean"
-        ? value.isContrastModeOpen
-        : DEFAULT_PALETTE_VIEW.isContrastModeOpen,
+    deficiency: isColourVisionDeficiency(value.deficiency)
+      ? value.deficiency
+      : DEFAULT_PALETTE_VIEW.deficiency,
+    isSimulationOn: readBoolean(
+      value.isSimulationOn,
+      DEFAULT_PALETTE_VIEW.isSimulationOn,
+    ),
+    isContrastModeOpen: readBoolean(
+      value.isContrastModeOpen,
+      DEFAULT_PALETTE_VIEW.isContrastModeOpen,
+    ),
   };
+}
+
+function readBoolean(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
 }
 
 export function writePaletteView(view: PaletteViewPreferences): string {

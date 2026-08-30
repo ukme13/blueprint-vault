@@ -10,14 +10,22 @@ import {
 import {
   DEFAULT_PALETTE_VIEW,
   PALETTE_VIEW_STORAGE_KEY,
+  activeSimulation,
   readPaletteView,
+  simulateHex,
   writePaletteView,
+  type ColourVisionDeficiency,
   type ColourVisionSimulation,
   type PaletteViewPreferences,
 } from "@blueprint/ui";
 
 interface PaletteViewContextValue extends PaletteViewPreferences {
-  setSimulation: (simulation: ColourVisionSimulation) => void;
+  /** What to render through: the chosen deficiency, or "normal" when off. */
+  simulation: ColourVisionSimulation;
+  /** A colour as it should be shown. The identity while simulation is off. */
+  seen: (hex: string) => string;
+  setDeficiency: (deficiency: ColourVisionDeficiency) => void;
+  toggleSimulation: () => void;
   toggleContrastMode: () => void;
   closeContrastMode: () => void;
 }
@@ -62,12 +70,28 @@ export function PaletteViewProvider({ children }: { children: ReactNode }) {
     );
   }, [hasLoadedView, view]);
 
+  const simulation = activeSimulation(view);
+
   return (
     <PaletteViewContext.Provider
       value={{
         ...view,
-        setSimulation: (simulation) =>
-          setView((current) => ({ ...current, simulation })),
+        simulation,
+        seen: (hex) => simulateHex(hex, simulation),
+        setDeficiency: (deficiency) =>
+          /* Choosing a mode turns the chip on. Picking from a list you had to
+             open the chip to reach and having nothing happen would be its own
+             small bug. */
+          setView((current) => ({
+            ...current,
+            deficiency,
+            isSimulationOn: true,
+          })),
+        toggleSimulation: () =>
+          setView((current) => ({
+            ...current,
+            isSimulationOn: !current.isSimulationOn,
+          })),
         toggleContrastMode: () =>
           setView((current) => ({
             ...current,

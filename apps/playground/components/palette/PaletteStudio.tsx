@@ -14,12 +14,14 @@ import {
   SegmentedControl,
   SegmentedControlItem,
 } from "@astryxdesign/core/SegmentedControl";
+import { Selector } from "@astryxdesign/core/Selector";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { useToast } from "@astryxdesign/core/Toast";
 import {
   BLUEPRINT_20_PRESET,
   Button,
+  COLOUR_VISION_DEFICIENCIES,
   LEGACY_PALETTE_STORAGE_KEY,
   LEGACY_TYPOGRAPHY_STORAGE_KEY,
   MAX_SHADE_COUNT,
@@ -29,6 +31,7 @@ import {
   withSharedName,
   type WorkspaceProject,
   type WorkspaceLoadInput,
+  colourVisionOptionLabel,
   defaultLightnessValues,
   clampLightnessValue,
   generatePalettes,
@@ -39,6 +42,7 @@ import {
   parseBlueprintWorkspace,
   resizeLightnessArray,
   type ColorTrackInput,
+  type ColourVisionDeficiency,
   type PaletteProjectData,
 } from "@blueprint/ui";
 import { WorkspaceNav } from "../WorkspaceNav";
@@ -178,6 +182,37 @@ function createDefaultTracks(primarySeed: string): ColorTrackInput[] {
   );
 }
 
+/* The glasses mark from the toolbar design. Inline rather than an icon
+   import: it is two circles and a bridge, and it belongs to this one chip. */
+function VisionIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height="12"
+      viewBox="0 0 18 12"
+      width="18"
+    >
+      <circle cx="4" cy="7" r="3.2" stroke="currentColor" strokeWidth="1.4" />
+      <circle cx="14" cy="7" r="3.2" stroke="currentColor" strokeWidth="1.4" />
+      <path
+        d="M7.2 7h3.6M1 3.5C1.6 2 2.6 1.4 4 1.4M17 3.5c-.6-1.5-1.6-2.1-3-2.1"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.4"
+      />
+    </svg>
+  );
+}
+
+/* Only the deficiencies. "Normal vision" is not an option here because the
+   chip itself is the on/off — offering both would give two ways to say the
+   same thing and let them disagree. */
+const VISION_OPTIONS = COLOUR_VISION_DEFICIENCIES.map((deficiency) => ({
+  value: deficiency,
+  label: colourVisionOptionLabel(deficiency),
+}));
+
 export function PaletteStudio() {
   return (
     <ColourFormatProvider>
@@ -197,8 +232,15 @@ function PaletteStudioContent() {
   const [activeTrackId, setActiveTrackId] = useState<string | null>(null);
   /* View modes live in context so they persist per device, alongside the
      colour format. Neither is part of the project. */
-  const { isContrastModeOpen, toggleContrastMode, closeContrastMode } =
-    usePaletteView();
+  const {
+    deficiency,
+    isSimulationOn,
+    isContrastModeOpen,
+    setDeficiency,
+    toggleSimulation,
+    toggleContrastMode,
+    closeContrastMode,
+  } = usePaletteView();
   const [contrastTarget, setContrastTarget] = useState<ContrastTarget>("white");
   const [customContrastColour, setCustomContrastColour] = useState("#7646ab");
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
@@ -751,6 +793,41 @@ function PaletteStudioContent() {
             )}
           </section>
         )}
+        <span className={styles.visionGroup} data-open={isSimulationOn}>
+          <Tooltip
+            content="Preview the palette as someone with a colour vision deficiency sees it. Press again to turn it off."
+            hasHoverIndication={false}
+            placement="below"
+          >
+            <Button
+              aria-pressed={isSimulationOn}
+              className={styles.visionModeButton}
+              data-active={isSimulationOn}
+              scheme="neutral"
+              size="small"
+              variant="outlined"
+              leftIcon={<VisionIcon />}
+              onClick={toggleSimulation}
+            >
+              Vision
+            </Button>
+          </Tooltip>
+          {isSimulationOn && (
+            <span className={styles.visionOptions}>
+              <Selector
+                isLabelHidden
+                label="Vision type"
+                options={VISION_OPTIONS}
+                size="sm"
+                value={deficiency}
+                variant="ghost"
+                onChange={(value) =>
+                  setDeficiency(value as ColourVisionDeficiency)
+                }
+              />
+            </span>
+          )}
+        </span>
         <span className={styles.toolbarDivider} />
         <Button
           className={styles.resetButton}

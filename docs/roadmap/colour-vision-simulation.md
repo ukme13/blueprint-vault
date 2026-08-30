@@ -145,8 +145,12 @@ The first useful version should support:
    interpolating between matrices will smooth it. Worth knowing before anyone
    animates the toggle.
 
-3. ✅ **The preview toggle, and persistence for both modes.** A five-option
-   `Selector` in the preview header, applied to the rendered swatches only.
+3. ✅ **The preview toggle, and persistence for both modes.** A Vision chip in
+   the toolbar beside WCAG 2, which expands into a selector when pressed. The
+   chip is the on/off, so the list holds the deficiencies only — offering
+   "normal vision" as a fifth entry would give two ways to say the same thing
+   and let them disagree. The chosen mode is kept while the chip is off, so
+   turning it back on does not make somebody choose again.
 
    Simulation is applied at one place — a `seen()` helper — and only ever on
    the way into a style attribute. Every colour is still chosen from the real
@@ -168,15 +172,26 @@ The first useful version should support:
    throwing, and a release that adds a third mode will not reset the two
    already stored.
 
-4. **Similarity warnings under simulation.** The pairing question is already
-   answered in the code: `PalettePreview` picks an action shade per track with
-   `shadeAt(track, progress)` and compares four named pairs — success/warning,
-   success/error, warning/error, primary/info. Simulation reuses exactly those,
-   per deficiency, rather than inventing a second notion of which shades matter.
+4. ✅ **Similarity warnings under simulation.** The four named pairs the
+   normal-vision check already used — success/warning, success/error,
+   warning/error, primary/info, at each track's action shade — now run through
+   the OKLab check under every deficiency as well.
 
-   Those pairs and the `shadeAt` helper are domain logic living in a component,
-   so this stage moves them into `packages/ui` first and has the app read them.
-   That is the smaller half of the work and the part with tests.
+   Under **every** deficiency rather than the one being previewed, so the
+   warning is there with the Vision chip off. A warning only visible to
+   somebody who already went looking is not a warning.
+
+   The actionable set is the pairs that are distinct to normal vision and
+   collapse under simulation. A pair that is already too similar is reported by
+   the ordinary warning and says nothing extra here, because repeating it once
+   per deficiency would bury the ones only some people cannot tell apart. Each
+   counts once toward the total however many deficiencies it collapses under —
+   it is one thing to go and fix.
+
+   `shadeAt`, the pair list and every check moved into
+   `packages/ui/src/color/preview-assessment.ts`, which is what this stage was
+   really for: the one interesting decision in the plan was living in the file
+   least able to test it. `PalettePreview` went from 520 lines to 174.
 
 5. **The report.** One document combining the existing WCAG results with the
    simulation warnings, as Markdown and JSON, from the export dialog. Both

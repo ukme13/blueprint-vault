@@ -6,49 +6,50 @@ import {
 } from "./fixtures";
 import type { Page } from "@playwright/test";
 
-const SIMULATIONS = [
-  "Normal vision",
-  "Protanopia",
-  "Deuteranopia",
-  "Tritanopia",
-  "Achromatopsia",
+const DEFICIENCIES = [
+  "Protanopia (red-blind)",
+  "Deuteranopia (green-blind)",
+  "Tritanopia (blue-blind)",
+  "Achromatopsia (no colour)",
 ];
 
-async function openPreview(page: Page) {
-  await page.getByRole("button", { name: "Preview" }).click();
-  await expect(page.getByLabel("Colour vision")).toBeVisible();
+function visionChip(page: Page) {
+  return page.getByRole("button", { name: "Vision", exact: true });
 }
 
-async function chooseSimulation(page: Page, name: string) {
-  await page.getByLabel("Colour vision").click();
+async function turnVisionOn(page: Page) {
+  await visionChip(page).click();
+  await expect(visionChip(page)).toHaveAttribute("aria-pressed", "true");
+}
+
+async function chooseDeficiency(page: Page, name: string) {
+  await page.getByLabel("Vision type").click();
   await page.getByRole("option", { name, exact: true }).click();
 
   /* Wait for the trigger to show the new mode before returning. Clicking the
      option resolves as soon as the click is dispatched, which is before React
-     has re-rendered the preview — so a swatch read straight afterwards gets
-     the previous colour and reads as a transform that did not apply. It is the
-     only assertion here that retries, and everything below depends on it. */
-  await expect(page.getByLabel("Colour vision")).toContainText(name);
+     has re-rendered — so a swatch read straight afterwards gets the previous
+     colour and reads as a transform that did not apply. */
+  await expect(page.getByLabel("Vision type")).toContainText(name);
 }
 
 /**
- * The rendered background of a preview button, once it has settled.
+ * The rendered background of a shade in the matrix, once it has settled.
  *
- * The buttons carry a 200ms colour transition, so for a fifth of a second
- * after a mode changes the computed background is still somewhere between the
- * old colour and the new one. Reading it straight away returns the previous
- * mode's colour and looks exactly like a transform that never applied — which
- * is how this was first misread.
- *
- * Polling until the computed value matches the inline one is the definitive
- * "the transition has finished" condition, rather than a sleep.
+ * Swatches carry a colour transition, so for a fraction of a second after a
+ * mode changes the computed background is still somewhere between the old
+ * colour and the new one. Polling until the computed value matches the inline
+ * one is the definitive "the transition has finished" condition, rather than a
+ * sleep.
  */
-async function backgroundOf(page: Page, buttonName: string) {
-  const button = page.getByRole("button", { name: buttonName, exact: true });
+async function shadeBackground(page: Page) {
+  const shade = page
+    .getByRole("button", { name: /^Select primary 500/ })
+    .first();
 
   await expect
     .poll(() =>
-      button.evaluate(
+      shade.evaluate(
         (node) =>
           (node as HTMLElement).style.backgroundColor ===
           getComputedStyle(node).backgroundColor,
@@ -56,7 +57,7 @@ async function backgroundOf(page: Page, buttonName: string) {
     )
     .toBe(true);
 
-  return button.evaluate((node) => getComputedStyle(node).backgroundColor);
+  return shade.evaluate((node) => getComputedStyle(node).backgroundColor);
 }
 
 function channels(colour: string): number[] {
@@ -65,30 +66,51 @@ function channels(colour: string): number[] {
   return found.slice(0, 3).map(Number);
 }
 
-test.describe("Colour vision simulation", () => {
-  test("offers every mode and applies it to the rendered swatches", async ({
+test.describe("The Vision chip", () => {
+  test("is off until pressed, and turns itself off again", async ({
     seededPage: page,
   }) => {
-    await openPreview(page);
+    /* No separate on/off switch: the chip is the switch. Pressing it again is
+       how the feature is turned off, which is why "normal vision" is not in
+       the list. */
+    await expect(visionChip(page)).toHaveAttribute("aria-pressed", "false");
+    await expect(page.getByLabel("Vision type")).toBeHidden();
 
-    await page.getByLabel("Colour vision").click();
-    for (const name of SIMULATIONS) {
+    await turnVisionOn(page);
+    await expect(page.getByLabel("Vision type")).toBeVisible();
+
+    await visionChip(page).click();
+    await expect(visionChip(page)).toHaveAttribute("aria-pressed", "false");
+    await expect(page.getByLabel("Vision type")).toBeHidden();
+  });
+
+  test("offers the deficiencies only, never normal vision", async ({
+    seededPage: page,
+  }) => {
+    await turnVisionOn(page);
+    await page.getByLabel("Vision type").click();
+
+    for (const name of DEFICIENCIES) {
       await expect(
         page.getByRole("option", { name, exact: true }),
       ).toBeVisible();
     }
-    await page.keyboard.press("Escape");
-    await expect(
-      page.getByRole("option", { name: "Normal vision", exact: true }),
-    ).toBeHidden();
+    await expect(page.getByRole("option")).toHaveCount(DEFICIENCIES.length);
+    await expect(page.getByRole("option", { name: /Normal/ })).toHaveCount(0);
+  });
 
-    const normal = await backgroundOf(page, "Primary action");
+  test("applies the simulation to the palette swatches", async ({
+    seededPage: page,
+  }) => {
+    const normal = await shadeBackground(page);
+
+    await turnVisionOn(page);
 
     /* Achromatopsia is the one mode whose result can be checked without
        reimplementing the transform in the test: a luminance-preserving
        greyscale must come out neutral, whatever the palette. */
-    await chooseSimulation(page, "Achromatopsia");
-    const grey = await backgroundOf(page, "Primary action");
+    await chooseDeficiency(page, "Achromatopsia (no colour)");
+    const grey = await shadeBackground(page);
     const [red, green, blue] = channels(grey);
     expect(Math.abs(red! - green!)).toBeLessThanOrEqual(1);
     expect(Math.abs(green! - blue!)).toBeLessThanOrEqual(1);
@@ -96,33 +118,46 @@ test.describe("Colour vision simulation", () => {
 
     /* Deuteranopia must move the colour without flattening it, which is what
        separates a working transform from one that greys everything out. */
-    await chooseSimulation(page, "Deuteranopia");
-    const deutan = await backgroundOf(page, "Primary action");
+    await chooseDeficiency(page, "Deuteranopia (green-blind)");
+    const deutan = await shadeBackground(page);
     expect(deutan).not.toBe(normal);
     expect(deutan).not.toBe(grey);
-    const [deutanRed, deutanGreen, deutanBlue] = channels(deutan);
-    expect(
-      Math.max(deutanRed!, deutanGreen!, deutanBlue!) -
-        Math.min(deutanRed!, deutanGreen!, deutanBlue!),
-    ).toBeGreaterThan(2);
+    const spread =
+      Math.max(...channels(deutan)) - Math.min(...channels(deutan));
+    expect(spread).toBeGreaterThan(2);
 
-    await chooseSimulation(page, "Normal vision");
-    expect(await backgroundOf(page, "Primary action")).toBe(normal);
+    await visionChip(page).click();
+    expect(await shadeBackground(page)).toBe(normal);
+  });
+
+  test("keeps the real hex in the label while the swatch is simulated", async ({
+    seededPage: page,
+  }) => {
+    /* The value somebody copies out of a swatch is the token, not what it
+       looks like through the simulation. */
+    const shade = page
+      .getByRole("button", { name: /^Select primary 500/ })
+      .first();
+    const label = await shade.getAttribute("aria-label");
+
+    await turnVisionOn(page);
+    await chooseDeficiency(page, "Protanopia (red-blind)");
+
+    expect(await shade.getAttribute("aria-label")).toBe(label);
   });
 
   test("never writes a simulated colour into the project", async ({
     seededPage: page,
   }) => {
-    await openPreview(page);
-
     const before = await page.evaluate(
       (key) => window.localStorage.getItem(key),
       WORKSPACE_STORAGE_KEY,
     );
     expect(before).toBeTruthy();
 
-    for (const name of SIMULATIONS.slice(1)) {
-      await chooseSimulation(page, name);
+    await turnVisionOn(page);
+    for (const name of DEFICIENCIES) {
+      await chooseDeficiency(page, name);
     }
 
     const after = await page.evaluate(
@@ -135,14 +170,14 @@ test.describe("Colour vision simulation", () => {
        would show up here, and so would a stray write of the view mode into
        the document. */
     expect(after).toBe(before);
-    expect(after).not.toContain("simulation");
+    expect(after).not.toContain("deficiency");
   });
 
-  test("keeps the simulation and the contrast panel across a reload", async ({
+  test("keeps the mode and the contrast panel across a reload", async ({
     seededPage: page,
   }) => {
-    await openPreview(page);
-    await chooseSimulation(page, "Tritanopia");
+    await turnVisionOn(page);
+    await chooseDeficiency(page, "Tritanopia (blue-blind)");
 
     const contrastMode = page.getByRole("button", { name: "WCAG 2" });
     await contrastMode.click();
@@ -160,25 +195,24 @@ test.describe("Colour vision simulation", () => {
       "aria-pressed",
       "true",
     );
-    await page.getByRole("button", { name: "Preview" }).click();
-    await expect(page.getByLabel("Colour vision")).toContainText("Tritanopia");
+    await expect(visionChip(page)).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByLabel("Vision type")).toContainText("Tritanopia");
   });
 
-  test("keeps the view mode out of the project and in its own store", async ({
+  test("remembers the chosen mode after being switched off", async ({
     seededPage: page,
   }) => {
-    await openPreview(page);
-    await chooseSimulation(page, "Protanopia");
+    /* Turning the chip off is not the same as forgetting the choice. */
+    await turnVisionOn(page);
+    await chooseDeficiency(page, "Protanopia (red-blind)");
+    await visionChip(page).click();
+    await expect(visionChip(page)).toHaveAttribute("aria-pressed", "false");
 
-    const stored = await page.evaluate(
-      (key) => window.localStorage.getItem(key),
-      PALETTE_VIEW_STORAGE_KEY,
-    );
-    expect(stored).toBeTruthy();
-    expect(JSON.parse(stored!)).toMatchObject({ simulation: "protanopia" });
+    await turnVisionOn(page);
+    await expect(page.getByLabel("Vision type")).toContainText("Protanopia");
   });
 
-  test("falls back to normal vision when the stored mode is unreadable", async ({
+  test("falls back to the default when the stored mode is unreadable", async ({
     seededPage: page,
   }) => {
     /* Stored preferences are read tolerantly: a value nobody can parse costs a
@@ -192,9 +226,47 @@ test.describe("Colour vision simulation", () => {
       page.getByRole("region", { name: "Palette toolbar" }),
     ).toBeVisible();
 
-    await openPreview(page);
-    await expect(page.getByLabel("Colour vision")).toContainText(
-      "Normal vision",
+    await expect(visionChip(page)).toHaveAttribute("aria-pressed", "false");
+  });
+});
+
+test.describe("Semantic pairs under simulation", () => {
+  test("warns about a pair that only collapses for some people", async ({
+    seededPage: page,
+  }) => {
+    /* The case the goal names: success and error are a comfortable distance
+       apart to normal vision and collide under the most common deficiency.
+       The warning is present with the chip off, because otherwise it is only
+       found by somebody who already went looking. */
+    await page.getByRole("button", { name: "Preview" }).click();
+
+    const successError = page
+      .getByText("Success and error", { exact: true })
+      .locator("../..");
+
+    await expect(successError).toContainText(
+      "Distinct to normal colour vision",
     );
+    await expect(successError).toContainText("Deuteranopia");
+    await expect(successError).toContainText("Pair these with text or an icon");
+    /* Exact, because the summary sentence beside it also contains the words
+       "colour vision" — this is the badge, not the prose. */
+    await expect(
+      successError.getByText("Colour vision", { exact: true }),
+    ).toBeVisible();
+  });
+
+  test("counts a collapsing pair in the warning total", async ({
+    seededPage: page,
+  }) => {
+    await page.getByRole("button", { name: "Preview" }).click();
+
+    const badge = page
+      .getByRole("heading", { name: "Accessibility" })
+      .locator("../..")
+      .getByText(/warnings|No warnings/);
+
+    await expect(badge).toBeVisible();
+    await expect(badge).not.toContainText("No warnings");
   });
 });
