@@ -184,6 +184,27 @@ describe("formatAccessibilityReportMarkdown", () => {
     expect(markdown).toMatch(/Deuteranopia/);
   });
 
+  it("names the deficiencies a contrast pair weakens under", () => {
+    /* A column, not a verdict. WCAG defines AA on the actual colours, so the
+       report says which people a passing pair stops working for and leaves the
+       pass where it belongs — on the real palette. */
+    const weakening = buildAccessibilityReport({
+      projectName: "Weak",
+      palettes: generatePalettes({
+        tracks: [
+          { id: "primary", name: "primary", seedHex: "#7646ab" },
+          { id: "neutral", name: "neutral", seedHex: "#737373" },
+          { id: "success", name: "success", seedHex: "#802020" },
+        ],
+        lightnessValues: LIGHTNESS,
+      }),
+    })!;
+
+    const markdown = formatAccessibilityReportMarkdown(weakening);
+    expect(markdown).toContain("Weakens under");
+    expect(markdown).toMatch(/Success status text \|.*\| Deuteranopia \|/);
+  });
+
   it("cites the method at the bottom", () => {
     const markdown = formatAccessibilityReportMarkdown(report());
 

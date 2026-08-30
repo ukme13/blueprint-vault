@@ -84,11 +84,52 @@ const PLAIN_NAMES: Record<ColourVisionDeficiency, string> = {
   achromatopsia: "no colour",
 };
 
+/* Below full severity the condition is not blindness to a colour but reduced
+   sensitivity to it, and calling it "red-blind" at severity 0.3 would be as
+   wrong in plain words as calling it protanopia is in clinical ones. */
+const PLAIN_ANOMALOUS_NAMES: Record<ColourVisionDeficiency, string> = {
+  protanopia: "red-weak",
+  deuteranopia: "green-weak",
+  tritanopia: "blue-weak",
+  achromatopsia: "reduced colour",
+};
+
+/**
+ * The severities the studio offers, strongest first.
+ *
+ * Exactly the ones Machado tabulates, minus 0.0 — which is not a severity but
+ * the Vision chip being off. Every value here is therefore a published matrix
+ * read straight from the paper: the interpolation in `machadoMatrix` stays for
+ * callers that want a value in between, but nothing in the UI ever needs it.
+ */
+export const COLOUR_VISION_SEVERITIES: readonly number[] = [
+  1, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1,
+];
+
+export const MIN_COLOUR_VISION_SEVERITY = 0.1;
+
+/** Whether a severity is one the studio offers, allowing for float drift. */
+export function isColourVisionSeverity(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isFinite(value) &&
+    COLOUR_VISION_SEVERITIES.some(
+      (severity) => Math.abs(severity - value) < 1e-9,
+    )
+  );
+}
+
 /** The clinical name with its everyday gloss, for a picker. */
 export function colourVisionOptionLabel(
   deficiency: ColourVisionDeficiency,
+  severity = 1,
 ): string {
-  return `${colourVisionLabel(deficiency)} (${PLAIN_NAMES[deficiency]})`;
+  const full = severity >= 1;
+  const plain = full
+    ? PLAIN_NAMES[deficiency]
+    : PLAIN_ANOMALOUS_NAMES[deficiency];
+
+  return `${describeColourVisionMethod(deficiency, severity).name} (${plain})`;
 }
 
 /* Machado's three families. Achromatopsia is deliberately absent: the paper

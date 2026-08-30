@@ -14,6 +14,7 @@ import {
   COLOUR_VISION_DEFICIENCIES,
   colourVisionLabel,
   describeColourVisionMethod,
+  type ColourVisionDeficiency,
 } from "../color/vision";
 import { generateTypeSteps } from "../typography/scale";
 import { resolveRoleSizePx, type TypeSystem } from "../typography/system";
@@ -210,6 +211,19 @@ function verdict(status: AccessibilityStatus): string {
   return "Fail";
 }
 
+/**
+ * The deficiencies that take a pair below its threshold.
+ *
+ * A list and no verdict: WCAG defines AA on the actual colours, so a simulated
+ * ratio can report a measurement but never a pass or a fail. The column says
+ * which people the pair stops working for, which is the part that can be acted
+ * on.
+ */
+function weakensList(deficiencies: ColourVisionDeficiency[]): string {
+  if (deficiencies.length === 0) return "—";
+  return deficiencies.map(colourVisionLabel).join(", ");
+}
+
 function pairRow(check: SemanticPairCheck): string {
   const under =
     check.collapsesUnder.length === 0
@@ -242,26 +256,30 @@ export function formatAccessibilityReportMarkdown(
 
   lines.push("## Text contrast");
   lines.push("");
-  lines.push("| Pair | Foreground | Background | Ratio | Result |");
-  lines.push("| --- | --- | --- | --- | --- |");
+  lines.push(
+    "| Pair | Foreground | Background | Ratio | Result | Weakens under |",
+  );
+  lines.push("| --- | --- | --- | --- | --- | --- |");
   for (const check of colour.textChecks) {
     lines.push(
-      `| ${check.label} | ${check.foreground} | ${check.background} | ${check.result.ratio.toFixed(2)}:1 | ${verdict(check.result.status)} |`,
+      `| ${check.label} | ${check.foreground} | ${check.background} | ${check.result.ratio.toFixed(2)}:1 | ${verdict(check.result.status)} | ${weakensList(check.weakensUnder)} |`,
     );
   }
   lines.push("");
 
   lines.push("## Controls and focus");
   lines.push("");
-  lines.push("| Element | Colours | Ratio | Required | Result |");
-  lines.push("| --- | --- | --- | --- | --- |");
+  lines.push(
+    "| Element | Colours | Ratio | Required | Result | Weakens under |",
+  );
+  lines.push("| --- | --- | --- | --- | --- | --- |");
   for (const check of colour.nonTextChecks) {
     lines.push(
-      `| ${check.label} | ${check.foreground} on ${check.background} | ${check.result.ratio.toFixed(2)}:1 | ${WCAG_CONTRAST.nonText}:1 | ${check.countsTowardWarnings ? verdict(check.result.status) : "Advisory"} |`,
+      `| ${check.label} | ${check.foreground} on ${check.background} | ${check.result.ratio.toFixed(2)}:1 | ${WCAG_CONTRAST.nonText}:1 | ${check.countsTowardWarnings ? verdict(check.result.status) : "Advisory"} | ${weakensList(check.weakensUnder)} |`,
     );
   }
   lines.push(
-    `| Keyboard focus | ${colour.shades.primaryFocus.hex} on ${colour.shades.neutralDark.hex} | ${colour.focusCheck.adjacentContrast.toFixed(2)}:1 | ${WCAG_CONTRAST.focusIndicator}:1 | ${verdict(colour.focusCheck.status)} |`,
+    `| Keyboard focus | ${colour.shades.primaryFocus.hex} on ${colour.shades.neutralDark.hex} | ${colour.focusCheck.adjacentContrast.toFixed(2)}:1 | ${WCAG_CONTRAST.focusIndicator}:1 | ${verdict(colour.focusCheck.status)} | — |`,
   );
   lines.push("");
 

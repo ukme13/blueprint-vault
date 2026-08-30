@@ -82,6 +82,8 @@ export function PreviewAccessibility({
                 ratioLabel={`${check.result.ratio.toFixed(1)}:1`}
                 status={check.result.status}
                 summary={check.result.summary}
+                simulated={check.simulated}
+                weakensUnder={check.weakensUnder}
               />
             ))}
           </section>
@@ -151,6 +153,8 @@ export function PreviewAccessibility({
                     ? check.result.summary
                     : "Optional design check; increase contrast only when this boundary communicates meaning."
                 }
+                simulated={check.countsTowardWarnings ? check.simulated : null}
+                weakensUnder={check.weakensUnder}
                 swatchType="border"
               />
             ))}

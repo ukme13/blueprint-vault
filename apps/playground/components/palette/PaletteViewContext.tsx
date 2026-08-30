@@ -9,6 +9,7 @@ import {
 } from "react";
 import {
   DEFAULT_PALETTE_VIEW,
+  type SimulationView,
   PALETTE_VIEW_STORAGE_KEY,
   activeSimulation,
   readPaletteView,
@@ -24,7 +25,10 @@ interface PaletteViewContextValue extends PaletteViewPreferences {
   simulation: ColourVisionSimulation;
   /** A colour as it should be shown. The identity while simulation is off. */
   seen: (hex: string) => string;
+  /** The current view, for the assessments that depend on it. */
+  view: SimulationView;
   setDeficiency: (deficiency: ColourVisionDeficiency) => void;
+  setSeverity: (severity: number) => void;
   toggleSimulation: () => void;
   toggleContrastMode: () => void;
   closeContrastMode: () => void;
@@ -77,7 +81,14 @@ export function PaletteViewProvider({ children }: { children: ReactNode }) {
       value={{
         ...view,
         simulation,
-        seen: (hex) => simulateHex(hex, simulation),
+        seen: (hex) => simulateHex(hex, simulation, view.severity),
+        view: { simulation, severity: view.severity },
+        setSeverity: (severity) =>
+          setView((current) => ({
+            ...current,
+            severity,
+            isSimulationOn: true,
+          })),
         setDeficiency: (deficiency) =>
           /* Choosing a mode turns the chip on. Picking from a list you had to
              open the chip to reach and having nothing happen would be its own

@@ -315,6 +315,20 @@
   border-radius: 0 7px 7px 0;
 }
 
+/* The severity dial sits outside the joined pair rather than inside it: it
+   changes how much, not which, and squeezing a slider into the same outline
+   made the group read as one very wide control. */
+.visionSeverity {
+  display: flex;
+  align-items: center;
+  width: 120px;
+  margin-left: 10px;
+}
+
+.visionSeverity > * {
+  width: 100%;
+}
+
 .customContrastPicker {
   width: 22px;
   height: 22px;
@@ -1731,6 +1745,20 @@
   font-family: var(--font-geist-sans), sans-serif;
   font-size: 11px;
   line-height: 1.5;
+}
+
+/* The simulated ratio, beneath the real one. Muted by default because it is
+   information rather than a verdict, and warned only when the pair stops
+   clearing a threshold it clears on the real palette. */
+.contrastSimulated {
+  display: block;
+  color: var(--color-neutral-500);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.contrastSimulated[data-weakens="true"] {
+  color: var(--color-warning-300);
 }
 
 .creationPage {
