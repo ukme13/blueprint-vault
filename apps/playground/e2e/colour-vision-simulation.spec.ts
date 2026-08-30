@@ -99,6 +99,40 @@ test.describe("The Vision chip", () => {
     await expect(page.getByRole("option", { name: /Normal/ })).toHaveCount(0);
   });
 
+  test("lines up with the other toolbar controls", async ({
+    seededPage: page,
+  }) => {
+    /* The chip and its selector are one control, so the outline has to be one
+       box: same top edge and same height as Add colour and WCAG 2 beside them.
+
+       This started 4px low and 8px short, because the ghost selector inside
+       set the height and it is 20px. Nothing in the suite could see that — a
+       control can be misaligned and every behavioural test still passes. */
+    await turnVisionOn(page);
+
+    const boxes = await Promise.all(
+      [
+        page.getByRole("button", { name: "Add colour" }),
+        page.getByRole("button", { name: "WCAG 2" }),
+        visionChip(page),
+        page
+          .getByLabel("Vision type")
+          .locator("xpath=ancestor::span[contains(@class,'visionOptions')][1]"),
+      ].map((locator) => locator.boundingBox()),
+    );
+
+    const [reference, ...rest] = boxes;
+    for (const box of rest) {
+      expect(box!.y).toBeCloseTo(reference!.y, 1);
+      expect(box!.height).toBeCloseTo(reference!.height, 1);
+    }
+
+    // And joined, rather than two boxes with a gap between them.
+    const chip = boxes[2]!;
+    const options = boxes[3]!;
+    expect(options.x).toBeCloseTo(chip.x + chip.width, 0);
+  });
+
   test("applies the simulation to the palette swatches", async ({
     seededPage: page,
   }) => {
@@ -144,6 +178,50 @@ test.describe("The Vision chip", () => {
     await chooseDeficiency(page, "Protanopia (red-blind)");
 
     expect(await shade.getAttribute("aria-label")).toBe(label);
+  });
+
+  test("simulates the swatch in the shade details, not the value", async ({
+    seededPage: page,
+  }) => {
+    /* Clicking a shade opens its details, and the swatch there has to agree
+       with the swatch that was clicked — two views of one colour showing two
+       different colours is worse than not simulating at all.
+
+       The hex beside it stays real, because that is the token being inspected
+       and the value somebody copies. Achromatopsia makes both halves checkable
+       at once without reimplementing the transform: the swatch must be neutral
+       and the text must not be. */
+    await turnVisionOn(page);
+    await chooseDeficiency(page, "Achromatopsia (no colour)");
+
+    await page
+      .getByRole("button", { name: /^Select primary 500/ })
+      .first()
+      .click();
+
+    const heading = page.getByText("primary · 500", { exact: true });
+    await expect(heading).toBeVisible();
+
+    const swatch = heading.locator("xpath=..").locator("i").first();
+    const [red, green, blue] = channels(
+      await swatch.evaluate((node) => getComputedStyle(node).backgroundColor),
+    );
+    expect(Math.abs(red! - green!)).toBeLessThanOrEqual(1);
+    expect(Math.abs(green! - blue!)).toBeLessThanOrEqual(1);
+
+    /* The value is untouched: a real palette hex is not a grey. */
+    const shown = await page
+      .getByRole("button", { name: /^Select primary 500/ })
+      .first()
+      .getAttribute("title");
+    const hex = shown!.split("·")[1]!.trim();
+    const [hexRed, hexGreen, hexBlue] = [1, 3, 5].map((at) =>
+      Number.parseInt(hex.slice(at, at + 2), 16),
+    );
+    expect(
+      Math.max(hexRed!, hexGreen!, hexBlue!) -
+        Math.min(hexRed!, hexGreen!, hexBlue!),
+    ).toBeGreaterThan(2);
   });
 
   test("never writes a simulated colour into the project", async ({

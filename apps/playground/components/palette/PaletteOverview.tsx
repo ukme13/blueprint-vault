@@ -1,6 +1,7 @@
 import { Badge } from "@astryxdesign/core/Badge";
 import type { ColorTrack } from "@blueprint/ui";
 import { ColourPicker } from "./ColourPicker";
+import { usePaletteView } from "./PaletteViewContext";
 import styles from "./palette-workspace.module.css";
 import type { LightnessPattern } from "./types";
 
@@ -23,6 +24,7 @@ export function PaletteOverview({
   lightnessPattern,
   onSourceColourChange,
 }: PaletteOverviewProps) {
+  const { seen } = usePaletteView();
   const shadeCount = palettes[0]?.shades.length ?? 0;
 
   return (
@@ -73,7 +75,7 @@ export function PaletteOverview({
                 <span
                   aria-hidden="true"
                   className={styles.sourceCardSwatch}
-                  style={{ backgroundColor: palette.seedHex }}
+                  style={{ backgroundColor: seen(palette.seedHex) }}
                 />
                 <span>
                   <h3>{palette.name}</h3>
@@ -93,7 +95,7 @@ export function PaletteOverview({
                 {palette.shades.map((shade) => (
                   <i
                     key={shade.weight}
-                    style={{ backgroundColor: shade.hex }}
+                    style={{ backgroundColor: seen(shade.hex) }}
                   />
                 ))}
               </span>
