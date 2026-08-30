@@ -124,6 +124,27 @@ The first useful version should support:
    channel. It is asserted in the negative now, so replacing the transform with
    a projection fails rather than quietly changing what the report cites.
 
+   Every invariant then moved off a dozen hand-picked colours and onto a grid
+   through the whole cube, 4096 colours per deficiency, which is what turned up
+   two more things the plan would have got wrong:
+
+   **Severity does not move a colour monotonically.** Under tritanopia
+   `#00ffdd` is furthest from its original at a severity near 0.2, comes back
+   almost to where it started by 0.5, then diverges again — a mid-severity
+   tritanomaly displaces it further than full tritanopia does. That is the
+   tritan family rather than a defect: the authors derive it over a different
+   shift range from protan and deutan and describe it as an approximation. It
+   matters for stage 3 if a severity control is ever offered, because dragging
+   such a slider right does not always make things worse.
+
+   **The transform is smooth in severity except against the black wall.** A
+   mid-tone moves a fraction of a level per 0.01 of severity; a colour with a
+   channel pinned at zero moves up to 25 levels over the same step, because the
+   sRGB encoding is steep near black and the matrix lifts that channel off zero
+   at once. The jump is in the encoding, not the interpolation, so no amount of
+   interpolating between matrices will smooth it. Worth knowing before anyone
+   animates the toggle.
+
 3. **The preview toggle, and persistence for both modes.** Five options — normal
    vision plus the four types — applied to the rendered swatches only. This is
    the stage where the rule that simulation never touches a token value becomes

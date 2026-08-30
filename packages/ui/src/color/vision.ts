@@ -111,8 +111,15 @@ export function simulateColourVisionRgb(
       LUMINANCE_WEIGHTS[0] * linear[0] +
       LUMINANCE_WEIGHTS[1] * linear[1] +
       LUMINANCE_WEIGHTS[2] * linear[2];
+
+    /* Written as `luminance * strength + channel * (1 - strength)` rather than
+       the equivalent `channel + (luminance - channel) * strength`, because only
+       this form is exact at both ends: it returns the channel untouched at 0
+       and the luminance untouched at 1. The other leaves an error of about
+       2e-16 at full severity, which is enough to make the three channels
+       differ and the result not quite neutral. */
     return linear.map((channel) =>
-      clampUnit(linearToSrgb(channel + (luminance - channel) * strength)),
+      clampUnit(linearToSrgb(luminance * strength + channel * (1 - strength))),
     ) as unknown as Rgb;
   }
 

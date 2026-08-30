@@ -18,6 +18,7 @@ import {
   simulateColourVision,
   simulateColourVisionRgb,
 } from "./vision";
+import type { Rgb } from "./types";
 
 const FAMILIES: MachadoFamily[] = ["protan", "deutan", "tritan"];
 
@@ -49,22 +50,21 @@ function hueGap(first: string, second: string): number {
   return gap > 180 ? 360 - gap : gap;
 }
 
-/* Spread through the cube rather than sitting on the corners: the corners are
-   where a matrix is most likely to clamp and least likely to expose an error. */
-const SAMPLES = [
-  "#ff0000",
-  "#00ff00",
-  "#0000ff",
-  "#ffff00",
-  "#00ffff",
-  "#ff00ff",
-  "#cc3355",
-  "#3399aa",
-  "#7f7f7f",
-  "#1a6b2f",
-  "#e8a317",
-  "#4b0082",
-];
+/**
+ * A grid through the RGB cube: 16 levels per channel, 4096 colours.
+ *
+ * Coarse enough to run in milliseconds and fine enough that an invariant which
+ * fails anywhere fails here — the corners alone are where a matrix is most
+ * likely to clamp and least likely to expose an error.
+ */
+const CUBE: Rgb[] = [];
+for (let red = 0; red <= 255; red += 17) {
+  for (let green = 0; green <= 255; green += 17) {
+    for (let blue = 0; blue <= 255; blue += 17) {
+      CUBE.push([red / 255, green / 255, blue / 255]);
+    }
+  }
+}
 
 describe("the published Machado 2009 table", () => {
   it("holds eleven severities per family", () => {
@@ -147,50 +147,187 @@ describe("the published Machado 2009 table", () => {
   });
 });
 
-describe("simulateColourVision", () => {
-  it("leaves a colour alone at severity zero", () => {
-    for (const deficiency of COLOUR_VISION_DEFICIENCIES) {
-      for (const hex of SAMPLES) {
-        expect(simulateColourVision(hex, deficiency, 0), deficiency).toBe(hex);
-      }
-    }
-  });
+describe("invariants over the whole RGB cube", () => {
+  /* These started life asserted over a dozen hand-picked colours, which is not
+     an invariant, it is a dozen examples. Every case below runs over a grid
+     through the cube — cheap enough that there is no reason to sample. */
 
-  it("keeps greys grey", () => {
-    for (const deficiency of COLOUR_VISION_DEFICIENCIES) {
-      for (const hex of ["#000000", "#3c3c3c", "#808080", "#ffffff"]) {
-        expect(
-          simulateColourVision(hex, deficiency),
-          `${deficiency} ${hex}`,
-        ).toBe(hex);
-      }
-    }
-  });
-
-  it("returns a colour a screen can show", () => {
+  it("never puts a colour outside the sRGB cube", () => {
     /* Asserted on the Rgb result, not on the hex. rgbToHex clamps on its way
-       out, so checking the hex proves only that rgbToHex works — this test
-       passed with the clamp removed from the transform until it was pointed at
-       the unrounded channels.
+       out, so checking the hex proves only that rgbToHex works — this passed
+       with the clamp removed from the transform until it was pointed at the
+       unrounded channels.
 
        The clamp is load-bearing: these matrices map onto a plane the sRGB gamut
-       does not fully contain, so saturated inputs genuinely land outside the
-       cube and a caller working in Rgb would otherwise get an impossible
-       colour. */
+       does not fully contain, so saturated inputs genuinely land outside and a
+       caller working in Rgb would otherwise get an impossible colour. */
     for (const deficiency of COLOUR_VISION_DEFICIENCIES) {
-      for (const hex of SAMPLES) {
-        for (const channel of simulateColourVisionRgb(
-          hexToRgb(hex),
-          deficiency,
-        )) {
-          expect(channel, `${deficiency} ${hex}`).toBeGreaterThanOrEqual(0);
-          expect(channel, `${deficiency} ${hex}`).toBeLessThanOrEqual(1);
+      for (const rgb of CUBE) {
+        for (const channel of simulateColourVisionRgb(rgb, deficiency)) {
+          expect(
+            channel,
+            `${deficiency} ${rgbToHex(...rgb)}`,
+          ).toBeGreaterThanOrEqual(0);
+          expect(
+            channel,
+            `${deficiency} ${rgbToHex(...rgb)}`,
+          ).toBeLessThanOrEqual(1);
         }
-        expect(simulateColourVision(hex, deficiency)).toMatch(/^#[0-9a-f]{6}$/);
       }
     }
   });
 
+  it("never mutates the colour it was given", () => {
+    for (const deficiency of COLOUR_VISION_DEFICIENCIES) {
+      for (const rgb of CUBE) {
+        const input: Rgb = [...rgb];
+        simulateColourVisionRgb(input, deficiency);
+        expect(input, deficiency).toEqual(rgb);
+      }
+    }
+  });
+
+  it("is the identity at severity zero", () => {
+    /* Not "close to" the identity: the published severity-0.0 matrix is exactly
+       the identity, so the only drift permitted here is floating point. */
+    for (const deficiency of COLOUR_VISION_DEFICIENCIES) {
+      for (const rgb of CUBE) {
+        const simulated = simulateColourVisionRgb(rgb, deficiency, 0);
+        for (const [index, channel] of simulated.entries()) {
+          expect(channel, `${deficiency} ${rgbToHex(...rgb)}`).toBeCloseTo(
+            rgb[index]!,
+            12,
+          );
+        }
+      }
+    }
+  });
+
+  it("gives the same answer through the hex path and the Rgb path", () => {
+    for (const deficiency of COLOUR_VISION_DEFICIENCIES) {
+      for (const rgb of CUBE) {
+        const hex = rgbToHex(...rgb);
+        expect(simulateColourVision(hex, deficiency), deficiency).toBe(
+          rgbToHex(...simulateColourVisionRgb(rgb, deficiency)),
+        );
+      }
+    }
+  });
+
+  it("holds every one of the 256 greys fixed", () => {
+    /* Every grey, not a handful. This is the visible face of the rows summing
+       to one, and it has to be exact — a preview that tinted the neutral track
+       would be reporting a problem the palette does not have. */
+    for (const deficiency of COLOUR_VISION_DEFICIENCIES) {
+      for (let value = 0; value <= 255; value += 1) {
+        const hex = rgbToHex(value / 255, value / 255, value / 255);
+        expect(simulateColourVision(hex, deficiency), deficiency).toBe(hex);
+      }
+    }
+  });
+
+  it("makes achromatopsia exactly neutral, at the original luminance", () => {
+    /* Exactly neutral, and luminance-preserving to within 8-bit rounding. Both
+       halves matter: the first is what makes it a greyscale at all, and the
+       second is what lets a WCAG ratio measured under simulation equal the one
+       measured on the real palette, so this mode can neither invent nor hide a
+       contrast failure. */
+    for (const rgb of CUBE) {
+      const simulated = simulateColourVisionRgb(rgb, "achromatopsia");
+      expect(simulated[0]).toBe(simulated[1]);
+      expect(simulated[1]).toBe(simulated[2]);
+
+      const hex = rgbToHex(...rgb);
+      expect(
+        relativeLuminance(simulateColourVision(hex, "achromatopsia")),
+        hex,
+      ).toBeCloseTo(relativeLuminance(hex), 2);
+    }
+  });
+
+  it("converges reds and greens onto one hue across both families", () => {
+    /* The pure primaries are the easy case. This sweeps a family of reds
+       against a family of greens, light through dark, and takes the worst
+       pair. */
+    const reds: string[] = [];
+    const greens: string[] = [];
+    for (let value = 60; value <= 255; value += 25) {
+      reds.push(rgbToHex(value / 255, 0.05, 0.05));
+      greens.push(rgbToHex(0.05, value / 255, 0.05));
+    }
+
+    for (const deficiency of ["protanopia", "deuteranopia"] as const) {
+      for (const red of reds) {
+        for (const green of greens) {
+          expect(
+            hueGap(
+              simulateColourVision(red, deficiency),
+              simulateColourVision(green, deficiency),
+            ),
+            `${deficiency} ${red}/${green}`,
+          ).toBeLessThan(10);
+        }
+      }
+    }
+  });
+});
+
+describe("what the transform deliberately does not promise", () => {
+  it("does not move a colour monotonically as severity rises", () => {
+    /* Tempting to assume and false. Under tritanopia #00ffdd moves furthest
+       from its original at a severity around 0.2, comes back almost to where
+       it started by 0.5, then diverges again — so a mid-severity tritanomaly
+       displaces this cyan further than full tritanopia does.
+
+       That is the tritan family, not a bug: the authors derive it over a
+       different shift range from protan and deutan, and warn that it
+       approximates the phenomenon rather than modelling tritanopia directly.
+       Pinned here so that nobody builds a severity slider on the assumption
+       that dragging it right always makes things worse. */
+    const rgb = hexToRgb("#00ffdd");
+    const distanceAt = (severity: number) => {
+      const simulated = simulateColourVisionRgb(rgb, "tritanopia", severity);
+      return Math.max(
+        ...simulated.map((channel, index) => Math.abs(channel - rgb[index]!)),
+      );
+    };
+
+    expect(distanceAt(0.2)).toBeGreaterThan(distanceAt(0.5) + 0.1);
+    expect(distanceAt(1)).toBeGreaterThan(distanceAt(0.5));
+  });
+
+  it("is smooth in severity except against the black wall", () => {
+    /* A mid-tone changes by a fraction of a level per 0.01 of severity. A
+       colour with a channel pinned at zero changes by up to 25 levels over the
+       same step, because the sRGB encoding is steep near black and the matrix
+       lifts that channel off zero immediately.
+
+       Worth knowing before anyone animates this: the visible jump is in the
+       encoding, not in the transform, and no amount of interpolation between
+       matrices will smooth it. */
+    const step = (hex: string, severity: number) => {
+      const rgb = hexToRgb(hex);
+      const before = simulateColourVisionRgb(
+        rgb,
+        "protanopia",
+        severity - 0.01,
+      );
+      const after = simulateColourVisionRgb(rgb, "protanopia", severity);
+      return Math.max(
+        ...after.map((channel, index) => Math.abs(channel - before[index]!)),
+      );
+    };
+
+    for (const severity of [0.01, 0.5, 1]) {
+      expect(step("#8899aa", severity), `mid-tone at ${severity}`).toBeLessThan(
+        0.002,
+      );
+    }
+    expect(step("#00ddee", 0.01)).toBeGreaterThan(0.05);
+  });
+});
+
+describe("simulateColourVision", () => {
   it("applies the matrix to linear light, not to the encoded value", () => {
     /* The mistake this guards against is the common one with these matrices:
        multiplying the gamma-encoded channels directly. It does not throw or
@@ -282,23 +419,6 @@ describe("simulateColourVision", () => {
     ).difference;
 
     expect(blueMoved).toBeGreaterThan(redMoved * 10);
-  });
-
-  it("preserves luminance under achromatopsia", () => {
-    /* The point of a luminance-preserving greyscale: every WCAG contrast ratio
-       measured on the simulated palette equals the one measured on the real
-       palette, so achromatopsia can neither invent nor hide a contrast
-       failure. */
-    for (const hex of SAMPLES) {
-      const simulated = simulateColourVision(hex, "achromatopsia");
-      const [red, green, blue] = hexToRgb(simulated);
-      expect(red).toBeCloseTo(green!, 2);
-      expect(green).toBeCloseTo(blue!, 2);
-      expect(relativeLuminance(simulated), hex).toBeCloseTo(
-        relativeLuminance(hex),
-        2,
-      );
-    }
   });
 
   it("is not idempotent, and is not meant to be", () => {
