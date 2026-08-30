@@ -15,6 +15,7 @@ import {
 } from "@blueprint/ui";
 import { ColourPicker } from "./ColourPicker";
 import { useColourFormat } from "./ColourFormatContext";
+import { usePaletteView } from "./PaletteViewContext";
 import styles from "./palette-workspace.module.css";
 
 interface TrackDetailDialogProps {
@@ -42,6 +43,7 @@ export function TrackDetailDialog({
   onSave,
   weights,
 }: TrackDetailDialogProps) {
+  const { seen } = usePaletteView();
   const { colourFormat } = useColourFormat();
   const [nameDraft, setNameDraft] = useState("");
   const [seedDraft, setSeedDraft] = useState("#000000");
@@ -182,7 +184,7 @@ export function TrackDetailDialog({
               {previewShades.map((shade) => (
                 <span
                   key={shade.weight}
-                  style={{ backgroundColor: shade.hex }}
+                  style={{ backgroundColor: seen(shade.hex) }}
                   title={`${shade.weight} · ${shade.hex}`}
                 />
               ))}

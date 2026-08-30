@@ -17,6 +17,7 @@ import {
 import { useColourFormat } from "./ColourFormatContext";
 import { ColourFormatSelector } from "./ColourFormatSelector";
 import { ColourPicker } from "./ColourPicker";
+import { usePaletteView } from "./PaletteViewContext";
 import styles from "./palette-workspace.module.css";
 import { useCopyFeedback } from "../useCopyFeedback";
 
@@ -69,6 +70,7 @@ export function ShadeDetailPopover({
   onSourceChange,
   onClose,
 }: ShadeDetailPopoverProps) {
+  const { seen } = usePaletteView();
   const { colourFormat } = useColourFormat();
   const { copyText } = useCopyFeedback(1200);
   const toast = useToast();
@@ -166,7 +168,10 @@ export function ShadeDetailPopover({
     <section className={styles.shadePopoverContent}>
       <header>
         <p>
-          <i style={{ backgroundColor: shade.hex }} />
+          {/* The shade as it is being looked at. The hex below, the picker
+              and the contrast demonstration all stay on the real colour: those
+              are the value, not the view of it. */}
+          <i style={{ backgroundColor: seen(shade.hex) }} />
           <strong>
             {paletteName} · {shade.weight}
           </strong>
