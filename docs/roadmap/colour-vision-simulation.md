@@ -28,6 +28,40 @@ Simulation logic belongs in `packages/ui/src/color`, next to the existing
 `accessibility.ts` and `conversion.ts` modules. It must stay independent of the
 playground interface so other applications can reuse it.
 
+## What exists today
+
+Four things this can be built on, and two gaps worth knowing before starting.
+
+**`assessColourSimilarity(first, second)` takes two hex strings** and compares
+them in OKLab. Simulation returns a hex, so a simulated pair feeds straight into
+the check that already warns about semantic colours being too close under normal
+vision. The reuse the goal asks for is a one-line call, not a rewrite.
+
+**The conversions stop short of where this needs to go.** `conversion.ts` has
+`hexToRgb`, `rgbToHex`, `rgbToOklch`, `oklchToRgb` and `oklchToHex`. There is no
+LMS space, which is where dichromacy simulation happens. That is the one piece
+of genuinely new colour maths in this plan.
+
+**The WCAG side is already there.** `assessTextContrast`,
+`assessTextContrastAtSize`, `assessNonTextContrast`, `assessFocusContrast` and
+`contrastRatio` all exist and are tested. The report assembles them rather than
+computing anything new.
+
+**The export dialog already has a format switch** — CSS, Tailwind, Design
+Tokens, Blueprint Workspace — so the report is another entry beside them rather
+than new UI.
+
+**Gap: the contrast mode is not persisted.** `isContrastModeOpen` is component
+state, so it resets on reload. The definition of done asks the simulation to
+survive a refresh, which would leave two neighbouring toggles behaving
+differently. Both modes are persisted in stage 3; see the decisions.
+
+**Gap: the export guard will refuse the report formatters.** The guard in
+`packages/ui/src/fonts/export-guard.test.ts` discovers every `format*` the
+package exports and fails until each is classified. That is by design and the
+new formatters simply have to be added — worth expecting rather than being
+surprised by.
+
 ## First version
 
 The first useful version should support:
@@ -45,6 +79,62 @@ The first useful version should support:
     borders, focus).
   - The colour-vision similarity warnings for each deficiency type.
 - Report export as Markdown and JSON from the existing export dialog.
+
+## Stages
+
+1. **The transform, no UI.** RGB to LMS and back, and the four simulations, in
+   `packages/ui/src/color/vision.ts`. Pure, and the only stage with real risk in
+   it. The matrices are taken from Machado, Oliveira and Fernandes (2009) and
+   cited in the source — not written from memory — and the tests include
+   reference values from that source rather than only the properties below.
+
+   Machado gives a matrix per severity from 0.0 to 1.0 in steps of 0.1, so the
+   signature carries severity from the start even while the UI only ever asks
+   for 1.0. Achromatopsia is not part of that paper and is a separate,
+   luminance-preserving greyscale, named as such in the report.
+
+2. **Properties the transform must hold.** Greys stay grey under every
+   simulation. Every output stays in sRGB. Protanopia and deuteranopia collapse
+   red and green toward each other while leaving blue largely alone; tritanopia
+   does the reverse. Achromatopsia returns a grey of matching luminance.
+   Severity 0.0 is the identity, which is the property the reference values are
+   least likely to catch on their own. Simulating twice at full severity is the
+   same as simulating once, since the perceived colour is already collapsed.
+
+3. **The preview toggle, and persistence for both modes.** Five options — normal
+   vision plus the four types — applied to the rendered swatches only. This is
+   the stage where the rule that simulation never touches a token value becomes
+   a test rather than a habit.
+
+   Both view modes persist per device, so this stage also moves
+   `isContrastModeOpen` out of component state. That is a change to existing
+   behaviour, made here deliberately rather than left as a mismatch between two
+   neighbouring toggles.
+
+4. **Similarity warnings under simulation.** The pairing question is already
+   answered in the code: `PalettePreview` picks an action shade per track with
+   `shadeAt(track, progress)` and compares four named pairs — success/warning,
+   success/error, warning/error, primary/info. Simulation reuses exactly those,
+   per deficiency, rather than inventing a second notion of which shades matter.
+
+   Those pairs and the `shadeAt` helper are domain logic living in a component,
+   so this stage moves them into `packages/ui` first and has the app read them.
+   That is the smaller half of the work and the part with tests.
+
+5. **The report.** One document combining the existing WCAG results with the
+   simulation warnings, as Markdown and JSON, from the export dialog. Both
+   formatters join the export guard's list. The report covers typography as well
+   as colour: the contrast assessment is already size-aware, so a verdict that
+   names the size it was made at is worth more than one that does not, and the
+   workspace already holds the type scale to name.
+
+   The report states the WCAG version and the simulation method it used —
+   including the severity — because a report whose method is unstated cannot be
+   checked later.
+
+Stage 1 carries the risk and lands with nothing consuming it. Stage 3 is where
+the safety rule about token values becomes enforceable, and is worth writing
+before stages 4 and 5 rather than after.
 
 ## Later improvements
 
@@ -88,3 +178,37 @@ The first version is complete when a user can:
 The simulation and report-generation functions must have unit tests. The
 preview toggle, warning display, and report export flows must have Playwright
 coverage.
+
+## Decisions
+
+These were open when the plan was drafted and have been settled.
+
+- **Machado, Oliveira and Fernandes (2009).** Chosen over the Viénot, Brettel
+  and Mollon (1999) linear approximation because it is parameterised by
+  severity, which is what the "anomalous variants" item under later improvements
+  needs. Taking it now avoids replacing the transform later, at the cost of more
+  matrices up front. The numbers come from the paper, not from recollection, and
+  the report names the method and the severity.
+
+- **The shades a component actually puts together.** Not every pair, and not one
+  representative shade per track. The existing normal-vision check already makes
+  this choice — four named pairs of action shades in `PalettePreview` — and
+  simulation reuses it rather than inventing a second answer. Stage 4 moves that
+  choice into `packages/ui`, where it can be tested and where the rest of the
+  domain logic lives.
+
+- **Both view modes persist, per device.** Simulation is a display preference
+  rather than view state, so it is kept under its own key like
+  `blueprint.colour-format.v1` rather than treated as `previewWidth` is. The
+  contrast mode beside it moves with it, so the two behave alike.
+
+- **The report covers typography.** Included from the start rather than added
+  afterwards, since the contrast assessment already takes a size and the
+  workspace already holds a type scale.
+
+## Still open
+
+- **Which severities the UI eventually offers.** Stage 1 carries severity
+  through the API; the first version only ever passes 1.0. Whether anomalous
+  variants get a slider, a set of steps, or nothing is a question for after the
+  first version is in front of someone.
