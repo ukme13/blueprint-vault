@@ -38,9 +38,10 @@ the check that already warns about semantic colours being too close under normal
 vision. The reuse the goal asks for is a one-line call, not a rewrite.
 
 **The conversions stop short of where this needs to go.** `conversion.ts` has
-`hexToRgb`, `rgbToHex`, `rgbToOklch`, `oklchToRgb` and `oklchToHex`. There is no
-LMS space, which is where dichromacy simulation happens. That is the one piece
-of genuinely new colour maths in this plan.
+`hexToRgb`, `rgbToHex`, `rgbToOklch`, `oklchToRgb` and `oklchToHex`, and no LMS
+space — which was expected to be the one piece of genuinely new colour maths
+here. It was not needed: Machado's published matrices fold the cone-space round
+trip in and act on linear RGB directly. See stage 1.
 
 **The WCAG side is already there.** `assessTextContrast`,
 `assessTextContrastAtSize`, `assessNonTextContrast`, `assessFocusContrast` and
@@ -82,24 +83,46 @@ The first useful version should support:
 
 ## Stages
 
-1. **The transform, no UI.** RGB to LMS and back, and the four simulations, in
-   `packages/ui/src/color/vision.ts`. Pure, and the only stage with real risk in
-   it. The matrices are taken from Machado, Oliveira and Fernandes (2009) and
-   cited in the source — not written from memory — and the tests include
-   reference values from that source rather than only the properties below.
+1. ✅ **The transform, no UI.** The four simulations in
+   `packages/ui/src/color/vision.ts`, over a table extracted from Machado,
+   Oliveira and Fernandes (2009) into `machado2009.ts` by script rather than
+   typed. No LMS space was needed: the published matrices act directly on
+   linear RGB, so the only conversion required was the sRGB transfer function,
+   which already existed in two private copies and is now exported once from
+   `conversion.ts`.
 
-   Machado gives a matrix per severity from 0.0 to 1.0 in steps of 0.1, so the
-   signature carries severity from the start even while the UI only ever asks
-   for 1.0. Achromatopsia is not part of that paper and is a separate,
-   luminance-preserving greyscale, named as such in the report.
+   The extraction is checked three ways. Severity 0.0 is exactly the identity,
+   every row of every matrix sums to 1, and reproducing colour-science's
+   published doctest from our table reaches their numbers to nine decimal
+   places — a source that never saw our parser.
 
-2. **Properties the transform must hold.** Greys stay grey under every
-   simulation. Every output stays in sRGB. Protanopia and deuteranopia collapse
-   red and green toward each other while leaving blue largely alone; tritanopia
-   does the reverse. Achromatopsia returns a grey of matching luminance.
-   Severity 0.0 is the identity, which is the property the reference values are
-   least likely to catch on their own. Simulating twice at full severity is the
-   same as simulating once, since the perceived colour is already collapsed.
+   Severity is carried through the API as planned, tabulated at 0.1 and
+   interpolated between neighbours as the authors direct. Achromatopsia is not
+   in that paper and is a separate luminance-preserving greyscale, named as
+   such by `describeColourVisionMethod` so a report never attributes it to
+   Machado.
+
+2. ✅ **Properties the transform must hold.** Landed with stage 1, because the
+   properties are how the matrices were checked rather than a pass over them
+   afterwards. Greys stay grey. Every output stays in sRGB. Severity 0.0 is the
+   identity. Achromatopsia returns a grey of exactly matching luminance, so it
+   can neither invent nor hide a contrast failure.
+
+   Two properties this plan asserted were wrong, and the code was right both
+   times:
+
+   **Red and green collapse in _hue_, not in overall difference.** Under
+   protanopia they land within two degrees of the same yellow, but their
+   lightness stays far apart, because protanopia costs red most of its
+   luminance. A check on OKLab distance fails on that surviving gap and reads
+   as a broken transform, when what it is measuring is the thing protanopia is
+   known for. Hue convergence and the red-darkening are separate tests now.
+
+   **Simulating twice is not the same as simulating once.** That holds for the
+   projection models — Viénot 1999 collapses onto a plane — but Machado shifts
+   cone sensitivities, so a second pass shifts again, by up to 44 levels per
+   channel. It is asserted in the negative now, so replacing the transform with
+   a projection fails rather than quietly changing what the report cites.
 
 3. **The preview toggle, and persistence for both modes.** Five options — normal
    vision plus the four types — applied to the rendered swatches only. This is
