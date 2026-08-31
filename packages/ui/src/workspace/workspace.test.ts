@@ -10,7 +10,11 @@ import {
 } from "./typography-project";
 import {
   DEFAULT_WORKSPACE_NAME,
+  LEGACY_PALETTE_STORAGE_KEY,
+  LEGACY_TYPOGRAPHY_STORAGE_KEY,
+  WORKSPACE_STORAGE_KEY,
   loadWorkspace,
+  retireLegacyKeys,
   readWorkspaceProject,
   withPaletteSlice,
   withRadiusSlice,
@@ -513,5 +517,112 @@ describe("the radius slice", () => {
     expect(next.radius.multiplier).toBe(0);
     expect(next.spacing).toBe(base.spacing);
     expect(next.palette).toBe(base.palette);
+  });
+});
+
+/** Just enough of Storage for `retireLegacyKeys`, and a record of the removals. */
+function fakeStorage(entries: Record<string, string>) {
+  const held = { ...entries };
+  const removed: string[] = [];
+  return {
+    removed,
+    held,
+    getItem: (key: string) => held[key] ?? null,
+    removeItem: (key: string) => {
+      removed.push(key);
+      delete held[key];
+    },
+  };
+}
+
+describe("retiring the keys the workspace grew out of", () => {
+  const workspace = () =>
+    json(withPaletteSlice(null, legacyPalette() as never));
+
+  it("removes them once the workspace reads back", () => {
+    const storage = fakeStorage({
+      [WORKSPACE_STORAGE_KEY]: workspace(),
+      [LEGACY_PALETTE_STORAGE_KEY]: json(legacyPalette()),
+      [LEGACY_TYPOGRAPHY_STORAGE_KEY]: json(legacyTypography()),
+    });
+
+    expect(retireLegacyKeys(storage)).toBe(true);
+    expect(storage.removed.sort()).toEqual(
+      [LEGACY_PALETTE_STORAGE_KEY, LEGACY_TYPOGRAPHY_STORAGE_KEY].sort(),
+    );
+    expect(storage.held[WORKSPACE_STORAGE_KEY]).toBeTruthy();
+  });
+
+  it("keeps them while there is no workspace to keep them for", () => {
+    /* The migration has not been persisted yet, so the legacy keys are still
+       the only copy of the project. Removing them here would be removing the
+       thing the workspace is about to be built from. */
+    const storage = fakeStorage({
+      [LEGACY_PALETTE_STORAGE_KEY]: json(legacyPalette()),
+      [LEGACY_TYPOGRAPHY_STORAGE_KEY]: json(legacyTypography()),
+    });
+
+    expect(retireLegacyKeys(storage)).toBe(false);
+    expect(storage.removed).toEqual([]);
+  });
+
+  it("keeps them when the workspace key holds something unreadable", () => {
+    /* A half-written or corrupted workspace is exactly the case the keys were
+       kept for, so this is the one time the old behaviour still applies. */
+    for (const broken of ["{ not json", "null", "[]", json({ nope: true })]) {
+      const storage = fakeStorage({
+        [WORKSPACE_STORAGE_KEY]: broken,
+        [LEGACY_PALETTE_STORAGE_KEY]: json(legacyPalette()),
+      });
+
+      expect(retireLegacyKeys(storage), broken).toBe(false);
+      expect(storage.removed, broken).toEqual([]);
+    }
+  });
+
+  it("keeps them when the workspace key holds a legacy palette", () => {
+    /* A legacy palette project also carries a name, and mistaking one for a
+       workspace here would drop the only copy of it. */
+    const storage = fakeStorage({
+      [WORKSPACE_STORAGE_KEY]: json(legacyPalette()),
+      [LEGACY_PALETTE_STORAGE_KEY]: json(legacyPalette()),
+    });
+
+    expect(retireLegacyKeys(storage)).toBe(false);
+    expect(storage.removed).toEqual([]);
+  });
+
+  it("touches nothing when they are already gone", () => {
+    /* Called on every load, so the second call and every one after it has to
+       be free of side effects. */
+    const storage = fakeStorage({ [WORKSPACE_STORAGE_KEY]: workspace() });
+
+    expect(retireLegacyKeys(storage)).toBe(false);
+    expect(storage.removed).toEqual([]);
+  });
+
+  it("is idempotent", () => {
+    const storage = fakeStorage({
+      [WORKSPACE_STORAGE_KEY]: workspace(),
+      [LEGACY_PALETTE_STORAGE_KEY]: json(legacyPalette()),
+    });
+
+    expect(retireLegacyKeys(storage)).toBe(true);
+    expect(retireLegacyKeys(storage)).toBe(false);
+    expect(storage.removed).toEqual([LEGACY_PALETTE_STORAGE_KEY]);
+  });
+
+  it("leaves every other key alone", () => {
+    const storage = fakeStorage({
+      [WORKSPACE_STORAGE_KEY]: workspace(),
+      [LEGACY_PALETTE_STORAGE_KEY]: json(legacyPalette()),
+      "blueprint.colour-format.v1": "hex",
+      "blueprint.palette-view.v1": json({ deficiency: "protanopia" }),
+    });
+
+    retireLegacyKeys(storage);
+
+    expect(storage.held["blueprint.colour-format.v1"]).toBe("hex");
+    expect(storage.held["blueprint.palette-view.v1"]).toBeTruthy();
   });
 });

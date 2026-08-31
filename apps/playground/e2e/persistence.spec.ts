@@ -73,11 +73,20 @@ test.describe("Persistence after reload", () => {
     expect(workspace.palette.name).toBe("My colour system");
     expect(workspace.palette.lightnessValues).toHaveLength(20);
 
-    // The legacy key is left where it was, so a bad migration is recoverable.
-    const legacy = await page.evaluate(
-      (key) => window.localStorage.getItem(key),
-      PROJECT_STORAGE_KEY,
-    );
-    expect(legacy).not.toBeNull();
+    /* And the key it was migrated from is gone. It was kept so a bad
+       migration could be recovered by clearing one key; a project file does
+       that better now, and what these keys hold is a snapshot from the
+       migration that carries none of the slices a workspace has grown since.
+
+       Dropped only once the workspace reads back on its own, which by this
+       point it does. */
+    await expect
+      .poll(() =>
+        page.evaluate(
+          (key) => window.localStorage.getItem(key),
+          PROJECT_STORAGE_KEY,
+        ),
+      )
+      .toBeNull();
   });
 });

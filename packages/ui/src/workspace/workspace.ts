@@ -18,11 +18,17 @@ import type { SpacingScale } from "../scale/spacing";
 
 export const WORKSPACE_STORAGE_KEY = "blueprint.workspace.v1";
 
-/* The keys the two studios wrote before they shared a document. Still read, and
-   still left in place after a migration, so a browser that hits a bug can be
-   recovered by clearing one key rather than losing the work. */
+/* The keys the two studios wrote before they shared a document. Read to
+   migrate from, and retired once the workspace they became reads back — see
+   `retireLegacyKeys`. Nothing has written them since the studios moved onto the
+   workspace. */
 export const LEGACY_PALETTE_STORAGE_KEY = "blueprint.palette-project.v1";
 export const LEGACY_TYPOGRAPHY_STORAGE_KEY = "blueprint.typography-project.v1";
+
+export const LEGACY_STORAGE_KEYS: readonly string[] = [
+  LEGACY_PALETTE_STORAGE_KEY,
+  LEGACY_TYPOGRAPHY_STORAGE_KEY,
+];
 
 /** The name a workspace takes when neither half carried one. */
 export const DEFAULT_WORKSPACE_NAME = "Untitled workspace";
@@ -136,6 +142,49 @@ export function workspaceFromLegacy(
  * over the same input gives the same workspace, since a migration leaves the
  * legacy keys where they were.
  */
+/** The part of Storage this needs, so a test can pass a plain object. */
+export type LegacyKeyStore = Pick<Storage, "getItem" | "removeItem">;
+
+/**
+ * Remove the pre-workspace keys, once the workspace has taken over.
+ *
+ * Safe to call on every load: it removes nothing until the workspace key holds
+ * something that reads back as a workspace, so a migration that has not been
+ * persisted yet still has its source to fall back on.
+ *
+ * They were kept "for one release" so a browser that hit a bug could be
+ * recovered by clearing one key. Two things have happened since that make
+ * keeping them worse than dropping them.
+ *
+ * A project file exists now. Stage 6 shipped `.blueprint-workspace`, which is
+ * an explicit, current, portable backup — better than a snapshot the user
+ * cannot see, cannot refresh and did not ask for.
+ *
+ * And the snapshot has gone stale in a way that makes the recovery a lie. The
+ * legacy keys carry a palette and a type scale, and a workspace now carries
+ * semantics, spacing, radius and elevation as well. Rebuilding from them
+ * restores two slices and silently resets four to defaults, while looking like
+ * it worked. Nothing has written them since the studios moved across, so the
+ * palette in them is from whenever the migration ran rather than from the last
+ * edit.
+ *
+ * Returns whether anything was removed, which is only useful to a test.
+ */
+export function retireLegacyKeys(storage: LegacyKeyStore): boolean {
+  const workspace = readWorkspaceProject(
+    parseJson(storage.getItem(WORKSPACE_STORAGE_KEY)),
+  );
+  if (!workspace) return false;
+
+  let removed = false;
+  for (const key of LEGACY_STORAGE_KEYS) {
+    if (storage.getItem(key) === null) continue;
+    storage.removeItem(key);
+    removed = true;
+  }
+  return removed;
+}
+
 export function loadWorkspace(input: WorkspaceLoadInput): WorkspaceLoadResult {
   const stored = readWorkspaceProject(parseJson(input.workspace));
   if (stored) return { project: stored, migrated: false };
