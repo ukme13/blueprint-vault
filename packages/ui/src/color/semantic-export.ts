@@ -1,10 +1,4 @@
-import {
-  formatPaletteCssExport,
-  formatPaletteTailwindExport,
-  paletteDesignTokenGroup,
-  paletteTokenName,
-} from "./export";
-import type { ColourFormat } from "./format";
+import { paletteTokenName } from "./export";
 import {
   resolveSemantics,
   semanticVariableName,
@@ -170,59 +164,6 @@ export function formatSemanticDesignTokens(
           "Semantic colours exported from Blueprint. Each one references a palette shade rather than repeating its value.",
         ...modes,
       },
-    },
-    null,
-    2,
-  );
-}
-
-/**
- * Both layers in one file.
- *
- * A semantic export on its own is a list of references to variables nothing
- * declares, which a browser drops in silence: the rule does nothing and the
- * element keeps whatever it inherited. Handing over one file rather than two
- * that must be remembered together is the difference between a system somebody
- * installs and one they debug.
- */
-export function formatColourSystemCss(
-  palettes: ColorTrack[],
-  tokens: SemanticToken[],
-  colourFormat: ColourFormat,
-): string {
-  const primitives = formatPaletteCssExport(palettes, colourFormat);
-  if (tokens.length === 0) return primitives;
-  return `${primitives}\n\n${formatSemanticCssExport(tokens, palettes)}`;
-}
-
-export function formatColourSystemTailwind(
-  palettes: ColorTrack[],
-  tokens: SemanticToken[],
-  colourFormat: ColourFormat,
-): string {
-  const primitives = formatPaletteTailwindExport(palettes, colourFormat);
-  if (tokens.length === 0) return primitives;
-  return `${primitives}\n\n${formatSemanticTailwindExport(tokens, palettes)}`;
-}
-
-/**
- * Both groups in one document, so an alias resolves inside the file it arrives
- * in rather than against a second one somebody has to be told about.
- */
-export function formatColourSystemDesignTokens(
-  palettes: ColorTrack[],
-  tokens: SemanticToken[],
-  colourFormat: ColourFormat,
-): string {
-  return JSON.stringify(
-    {
-      palette: paletteDesignTokenGroup(palettes, colourFormat),
-      ...(tokens.length === 0
-        ? {}
-        : {
-            semantic: JSON.parse(formatSemanticDesignTokens(tokens, palettes))
-              .semantic,
-          }),
     },
     null,
     2,

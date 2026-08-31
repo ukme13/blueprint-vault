@@ -144,9 +144,43 @@ The first useful version should let somebody:
 4. ✅ **Elevation.** Last because a shadow layer references a semantic colour
    token, so it needs the colour layer to point at.
 
-5. **Export and report.** The three families beside the colour ones in every
+5. ✅ **Export and report.** The three families beside the colour ones in every
    format, and the preview page proving all of it. A rename of
    `formatColourSystem*` if the export is no longer only colour.
+
+### Notes from the stages
+
+**The page argued for a step, which is what it is for.** Its section padding is
+64px and the default list stopped at 48, so step 16 is seeded. The same
+mechanism that argued the colour names into shape.
+
+**Both scanners were only stripping single-line comments.** A doc comment
+spanning five lines was read as code, and the first thing the measurement check
+caught was its own documentation naming the patterns it looks for. Comments are
+blanked across lines now, with the line count preserved so a failure still
+points at the real line.
+
+**Radius kept the multiplier away from `none` and `full`.** Zero scaled is still
+zero and half a pill is still a pill, so the editor prints "fixed" beside them
+rather than offering a control that appears not to work.
+
+**Elevation needed the opposite of what this plan assumed.** The colour does not
+follow the mode — a shadow is the absence of light, and flipping it pale draws a
+halo — so the colour is one reference and the _opacity_ is per mode. It is a
+primitive rather than a semantic token, because the semantic names say where a
+colour goes and a shadow is cast rather than placed.
+
+**The export renamed itself.** `formatColourSystem*` became
+`formatDesignSystem*` once it carried more than colour. Spacing and radius
+appear once and elevation in all three blocks, because only elevation changes
+with the mode — repeating spacing in a dark block would say it might. Shadows
+carry a structured Design Tokens value rather than the CSS string, so a tool can
+change one offset without parsing a sentence.
+
+**A type the compiler checks beat a habit.** `ForeignSlices` was added in stage
+3 after the studio had grown a state per slice; adding elevation in stage 4
+failed the build until it was carried, which is the silent drop it was
+introduced to prevent.
 
 ## Later improvements
 
@@ -211,8 +245,6 @@ from. Generate, then edit, and store the result as data.
 
 - Whether `1px` is the only exemption, or whether the scanner needs a general
   escape for a value that genuinely is not a token.
-- Whether `formatColourSystemCss` and its siblings are renamed once the export
-  is no longer only colour, or whether a separate set of formatters is clearer.
 - Nothing on elevation. It needed the opposite of what the plan assumed: a
   mode-aware **opacity** and a colour that does **not** change. A shadow is the
   absence of light rather than a surface, so flipping it pale in dark mode draws

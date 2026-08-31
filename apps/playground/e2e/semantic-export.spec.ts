@@ -24,7 +24,7 @@ async function download(page: Page, format: string) {
   return readFileSync(await file.path(), "utf8");
 }
 
-test.describe("The colour export", () => {
+test.describe("The design system export", () => {
   test("carries the primitives and the semantics in one CSS file", async ({
     seededPage: page,
   }) => {
@@ -66,5 +66,51 @@ test.describe("The colour export", () => {
     expect(markdown).toMatch(/neutral \d+ on neutral \d+/);
     expect(markdown).toMatch(/\|\s*light\s*\|/);
     expect(markdown).toMatch(/\|\s*dark\s*\|/);
+  });
+});
+
+test.describe("The scales in the export", () => {
+  test("carries spacing, radius and elevation beside the colours", async ({
+    seededPage: page,
+  }) => {
+    /* One file. A semantic alias without its primitive, or a shadow without
+       the spacing around it, is half a system. */
+    const css = await download(page, "CSS");
+
+    expect(css).toMatch(/--color-primary-550:\s*#/);
+    expect(css).toContain("--color-action-primary: var(--color-primary-");
+    expect(css).toContain("--spacing-4: 1rem;");
+    expect(css).toContain("--radius-element: 8px;");
+    expect(css).toMatch(/--shadow-low: .*rgba\(/);
+  });
+
+  test("writes spacing once and elevation per mode", async ({
+    seededPage: page,
+  }) => {
+    /* Repeating spacing in a dark block would say it changes with the mode.
+       Elevation's strength does. */
+    const css = await download(page, "CSS");
+    expect(css.match(/--spacing-4:/g)).toHaveLength(1);
+    expect(css.match(/--shadow-low:/g)).toHaveLength(3);
+  });
+
+  test("gives a shadow a structured Design Tokens value", async ({
+    seededPage: page,
+  }) => {
+    const tokens = JSON.parse(await download(page, "Design Tokens")) as {
+      spacing: { $type: string };
+      radius: { $type: string };
+      shadow: {
+        $type: string;
+        light: Record<string, { $value: Array<{ color: string }> }>;
+      };
+    };
+
+    expect(tokens.spacing.$type).toBe("dimension");
+    expect(tokens.radius.$type).toBe("dimension");
+    expect(tokens.shadow.$type).toBe("shadow");
+    expect(tokens.shadow.light.low!.$value[0]!.color).toMatch(
+      /^#[0-9a-f]{8}$/i,
+    );
   });
 });

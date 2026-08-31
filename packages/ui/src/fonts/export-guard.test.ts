@@ -38,9 +38,9 @@ import { generatePalettes } from "../color/palette";
 /** Formatters that produce something a person can save and ship. */
 const DOCUMENT_FORMATTERS = [
   "formatAccessibilityReportJson",
-  "formatColourSystemCss",
-  "formatColourSystemDesignTokens",
-  "formatColourSystemTailwind",
+  "formatDesignSystemCss",
+  "formatDesignSystemDesignTokens",
+  "formatDesignSystemTailwind",
   "formatAccessibilityReportMarkdown",
   "formatBlueprintPaletteProject",
   "formatBlueprintWorkspace",
@@ -48,6 +48,8 @@ const DOCUMENT_FORMATTERS = [
   "formatPaletteCssExport",
   "formatPaletteDesignTokens",
   "formatPaletteTailwindExport",
+  "formatScaleCss",
+  "formatScaleTailwind",
   "formatSemanticCssExport",
   "formatSemanticDesignTokens",
   "formatSemanticTailwindExport",
