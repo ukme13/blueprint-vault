@@ -126,11 +126,12 @@ Read order, on either studio's load:
    (`readStoredProject` for palette, `normalizeStoredSystem` and
    `migrateLegacyProject` for typography). Both of those already handle their
    own historical shapes, so this composes rather than replaces them.
-3. Write the result to the new key. **Leave the legacy keys in place.**
+3. Write the result to the new key. **Leave the legacy keys in place**, until
+   the workspace they became reads back on its own — see the decision below.
 
-Step 3 is deliberate. Keeping the old keys for one release means a user who hits
-a bug can be told to clear one key rather than losing their work, and it makes
-the migration reversible without a backup step. A later release deletes them.
+Step 3 was deliberate. Keeping the old keys meant a user who hit a bug could be
+told to clear one key rather than losing their work, and it made the migration
+reversible without a backup step.
 
 Name resolution when both exist: take the palette's, since that studio is the
 default route and more likely to be the one someone named. Record the
@@ -181,8 +182,10 @@ worth a test per case rather than a test per stage.
 No storage-key version gate. Detection by shape, as the typography reader
 already does.
 
-The migration runs at most once per browser and is idempotent — running it twice
-must produce the same workspace, since step 3 leaves the legacy keys readable.
+The migration runs at most once per browser, and now runs once in the stronger
+sense: the keys it read are retired as soon as the workspace it produced reads
+back, so there is nothing left to migrate a second time. It stays idempotent
+while they are still there, which is the window a failed migration lives in.
 
 A studio must never write a slice it does not own.
 
@@ -199,13 +202,37 @@ Starting a new project in one studio must not clear the other's slice. Today
 5. A user with nothing saved gets the creation screen in both studios.
 6. Two open tabs cannot destroy each other's slice.
 7. A `blueprint-palette` file still imports.
-8. Clearing `blueprint.workspace.v1` and reloading rebuilds it from the legacy
-   keys, unchanged.
+8. Clearing `blueprint.workspace.v1` and reloading starts over, rather than
+   rebuilding from keys nothing has written since the migration. This read the
+   other way round while the legacy keys were kept; see the decision below.
 
-## Open decisions
+## Decisions
 
-These change the shape of the work and are not mine to settle. The name
-question was settled: unified, taking the palette's when both exist.
+These were open while the plan was being built, and are settled.
 
-- **When do the legacy keys get deleted?** The plan says a later release, which
-  needs a release to point at.
+- **The name is unified,** taking the palette's when both exist.
+
+- **The legacy keys are retired once the workspace reads back.** Not on a
+  release — this is a browser key in a continuously deployed app, and "a later
+  release" was never going to arrive as an event to point at. `retireLegacyKeys`
+  runs on load and removes them only when the workspace key holds something
+  that parses as a workspace, so a migration that has not been persisted yet
+  still has its source.
+
+  Two things changed the answer from "keep them" to "drop them".
+
+  A project file exists now. Stage 6 shipped `.blueprint-workspace`, which is
+  an explicit, current, portable backup — better in every way than a snapshot
+  the user cannot see, cannot refresh, and did not ask for. That was the whole
+  argument for keeping the keys.
+
+  And the snapshot went stale in a way that made the recovery a lie. Nothing has
+  written these keys since the studios moved onto the workspace, and a workspace
+  has since grown semantics, spacing, radius and elevation. Rebuilding from them
+  restored two slices and silently reset four to defaults, while looking like it
+  had worked. The end-to-end test asserting that rebuild was checking migration
+  idempotency when it was written; by the time it was replaced it was pinning a
+  data-loss path.
+
+  What replaces the recovery: export the project. It is one click, it is
+  current, and it carries every slice.

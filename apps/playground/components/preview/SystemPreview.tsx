@@ -10,6 +10,7 @@ import {
   defaultSpacingScale,
   generatePalettes,
   loadWorkspace,
+  retireLegacyKeys,
   semanticCssVariables,
   elevationCssVariables,
   radiusCssVariables,
@@ -35,13 +36,17 @@ import { PreviewChrome } from "../PreviewChrome";
 
 function readWorkspace(): WorkspaceProject | null {
   try {
-    return loadWorkspace({
+    const input = {
       workspace: window.localStorage.getItem(WORKSPACE_STORAGE_KEY),
       legacyPalette: window.localStorage.getItem(LEGACY_PALETTE_STORAGE_KEY),
       legacyTypography: window.localStorage.getItem(
         LEGACY_TYPOGRAPHY_STORAGE_KEY,
       ),
-    }).project;
+    };
+    /* Gathered before the removal, so this load still sees whatever it needed.
+       Nothing is removed until the workspace key reads back on its own. */
+    retireLegacyKeys(window.localStorage);
+    return loadWorkspace(input).project;
   } catch {
     return null;
   }

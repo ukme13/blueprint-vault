@@ -5,6 +5,7 @@ import {
   LEGACY_TYPOGRAPHY_STORAGE_KEY,
   WORKSPACE_STORAGE_KEY,
   loadWorkspace,
+  retireLegacyKeys,
   withSharedName,
   withTypographySlice,
   type WorkspaceLoadInput,
@@ -42,6 +43,21 @@ function readStorageKeys(): WorkspaceLoadInput {
   };
 }
 
+/**
+ * Load the workspace, and retire the keys it grew out of.
+ *
+ * The retirement is here rather than at each read because every read comes
+ * through this. It removes nothing until the workspace key holds something that
+ * reads back, so a migration that has not been persisted yet keeps its source;
+ * and the input above is gathered before the removal, so the load this call is
+ * part of still sees whatever it needed.
+ */
+function loadStoredWorkspace() {
+  const input = readStorageKeys();
+  retireLegacyKeys(window.localStorage);
+  return loadWorkspace(input);
+}
+
 /* The workspace name as this tab last saw it. See the note in PaletteStudio:
    only the tab that changed the name may write it. */
 let adoptedName: string | null = null;
@@ -49,7 +65,7 @@ let adoptedName: string | null = null;
 /** The palette half of the workspace, for previewing type on real colours. */
 export function readStoredPalette(): PaletteProjectData | null {
   try {
-    const workspace = loadWorkspace(readStorageKeys()).project;
+    const workspace = loadStoredWorkspace().project;
     return workspace ? withSharedName(workspace).palette : null;
   } catch {
     return null;
@@ -58,7 +74,7 @@ export function readStoredPalette(): PaletteProjectData | null {
 
 export function readStoredProject(): TypographyProject | null {
   try {
-    const workspace = loadWorkspace(readStorageKeys()).project;
+    const workspace = loadStoredWorkspace().project;
     adoptedName = workspace?.name ?? null;
     /* Adopt the workspace name: it is one name, and the other studio may have
        set it. */
@@ -94,7 +110,7 @@ function narrowTemplate(
  */
 export function writeStoredProject(project: TypographyProject | null): void {
   try {
-    const current = loadWorkspace(readStorageKeys()).project;
+    const current = loadStoredWorkspace().project;
     const renamedHere = !!project && project.system.name !== adoptedName;
     const next = withSharedName(
       withTypographySlice(

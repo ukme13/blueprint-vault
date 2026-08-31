@@ -100,28 +100,70 @@ test.describe("Workspace slices", () => {
     ).toBeVisible();
   });
 
-  test("rebuilds the workspace from the legacy keys if it is cleared", async ({
+  test("retires the legacy keys once the workspace has taken over", async ({
     page,
   }) => {
+    /* They were kept so a browser that hit a bug could be recovered by
+       clearing one key. A project file does that better now, and the snapshot
+       they hold has gone stale in a way that made the recovery a lie: a
+       workspace carries semantics, spacing, radius and elevation, and these two
+       keys carry none of them.
+
+       Removed only once the workspace reads back on its own, so a migration
+       that has not been persisted yet still has its source. */
     await seedBoth(page);
     await page.goto("/");
     await expect(
       page.getByRole("region", { name: "Palette toolbar" }),
     ).toBeVisible();
 
-    // The legacy keys are deliberately left in place, so this is recoverable.
+    const remaining = async () =>
+      page.evaluate(
+        (keys) =>
+          keys.filter((key) => window.localStorage.getItem(key) !== null),
+        [PROJECT_STORAGE_KEY, TYPOGRAPHY_STORAGE_KEY],
+      );
+
+    /* The first load migrates and persists; the next one finds a workspace and
+       drops what it was built from. */
+    await page.reload();
+    await expect(
+      page.getByRole("region", { name: "Palette toolbar" }),
+    ).toBeVisible();
+
+    await expect.poll(remaining).toEqual([]);
+
+    const workspace = await readWorkspace(page);
+    expect(workspace.palette).not.toBeNull();
+    expect(workspace.typography).not.toBeNull();
+  });
+
+  test("does not resurrect a stale snapshot when the workspace is cleared", async ({
+    page,
+  }) => {
+    /* The behaviour this replaces. Clearing the workspace used to rebuild it
+       from keys nothing had written since the migration, restoring two slices
+       and silently resetting four — which looked like it had worked. Starting
+       over is now starting over. */
+    await seedBoth(page);
+    await page.goto("/");
+    await expect(
+      page.getByRole("region", { name: "Palette toolbar" }),
+    ).toBeVisible();
+    await page.reload();
+    await expect(
+      page.getByRole("region", { name: "Palette toolbar" }),
+    ).toBeVisible();
+
     await page.evaluate(
       (key) => window.localStorage.removeItem(key),
       WORKSPACE_STORAGE_KEY,
     );
     await page.reload();
-    await expect(page.getByLabel("Project name")).toHaveValue(
-      "My colour system",
-    );
 
-    const workspace = await readWorkspace(page);
-    expect(workspace.palette).not.toBeNull();
-    expect(workspace.typography).not.toBeNull();
+    await expect(
+      page.getByRole("heading", { name: /Start|Create|New/ }).first(),
+    ).toBeVisible();
   });
 });
 

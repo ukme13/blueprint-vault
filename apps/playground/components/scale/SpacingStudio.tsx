@@ -14,6 +14,7 @@ import {
   defaultSpacingScale,
   generateSpacingSteps,
   loadWorkspace,
+  retireLegacyKeys,
   resolveSpacing,
   spacingStepName,
   generatePalettes,
@@ -54,9 +55,24 @@ function readStorageKeys() {
   };
 }
 
+/**
+ * Load the workspace, and retire the keys it grew out of.
+ *
+ * The retirement is here rather than at each read because every read comes
+ * through this. It removes nothing until the workspace key holds something that
+ * reads back, so a migration that has not been persisted yet keeps its source;
+ * and the input above is gathered before the removal, so the load this call is
+ * part of still sees whatever it needed.
+ */
+function loadStoredWorkspace() {
+  const input = readStorageKeys();
+  retireLegacyKeys(window.localStorage);
+  return loadWorkspace(input);
+}
+
 function readStoredWorkspace(): WorkspaceProject | null {
   try {
-    return loadWorkspace(readStorageKeys()).project;
+    return loadStoredWorkspace().project;
   } catch {
     return null;
   }
