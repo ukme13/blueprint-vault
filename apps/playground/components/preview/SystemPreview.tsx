@@ -13,10 +13,12 @@ import {
   LEGACY_TYPOGRAPHY_STORAGE_KEY,
   WORKSPACE_STORAGE_KEY,
   colourVisionOptionLabel,
+  defaultRadiusScale,
   defaultSpacingScale,
   generatePalettes,
   loadWorkspace,
   semanticCssVariables,
+  radiusCssVariables,
   spacingCssVariables,
   type ColourMode,
   type ColourVisionDeficiency,
@@ -75,6 +77,9 @@ const INFO = "var(--color-status-info)";
  */
 const space = (step: string) => `var(--spacing-${step})`;
 
+/** A corner radius by the name of what it goes on, not by its size. */
+const radius = (id: string) => `var(--radius-${id})`;
+
 export function SystemPreview() {
   const { seen, view, setDeficiency } = usePaletteView();
   const [project, setProject] = useState<WorkspaceProject | null>(null);
@@ -95,6 +100,7 @@ export function SystemPreview() {
   const variables = {
     ...semanticCssVariables(tokens, mode, palettes, seen),
     ...spacingCssVariables(project?.spacing ?? defaultSpacingScale()),
+    ...radiusCssVariables(project?.radius ?? defaultRadiusScale()),
   };
 
   if (hasLoaded && tokens.length === 0) {
@@ -187,8 +193,9 @@ export function SystemPreview() {
             </p>
             <div className="flex flex-wrap" style={{ gap: space("3") }}>
               <button
-                className="rounded text-sm font-medium"
+                className="text-sm font-medium"
                 style={{
+                  borderRadius: radius("element"),
                   background: ACTION,
                   color: SURFACE,
                   paddingInline: space("4"),
@@ -199,8 +206,9 @@ export function SystemPreview() {
                 Primary action
               </button>
               <button
-                className="rounded text-sm font-medium"
+                className="text-sm font-medium"
                 style={{
+                  borderRadius: radius("element"),
                   background: ACTION_SECONDARY,
                   color: SURFACE,
                   paddingInline: space("4"),
@@ -211,8 +219,9 @@ export function SystemPreview() {
                 Secondary
               </button>
               <button
-                className="rounded border text-sm font-medium"
+                className="border text-sm font-medium"
                 style={{
+                  borderRadius: radius("element"),
                   borderColor: BORDER,
                   color: TEXT,
                   paddingInline: space("4"),
@@ -246,8 +255,9 @@ export function SystemPreview() {
             ].map((item) => (
               <article
                 key={item.title}
-                className="flex rounded border"
+                className="flex border"
                 style={{
+                  borderRadius: radius("container"),
                   borderColor: BORDER,
                   background: RAISED,
                   gap: space("3"),
@@ -256,8 +266,12 @@ export function SystemPreview() {
               >
                 <span
                   aria-hidden="true"
-                  className="size-3 shrink-0 rounded-full"
-                  style={{ background: item.tone, marginTop: space("1") }}
+                  className="size-3 shrink-0"
+                  style={{
+                    borderRadius: radius("full"),
+                    background: item.tone,
+                    marginTop: space("1"),
+                  }}
                 />
                 <div>
                   <h2 className="text-sm font-semibold">{item.title}</h2>
@@ -271,8 +285,9 @@ export function SystemPreview() {
 
           <section
             aria-label="Sign up"
-            className="rounded border"
+            className="border"
             style={{
+              borderRadius: radius("container"),
               borderColor: BORDER,
               background: RAISED,
               padding: space("6"),
@@ -285,13 +300,14 @@ export function SystemPreview() {
             >
               <input
                 aria-label="Email address"
-                className="min-w-0 flex-1 rounded border text-sm outline-none focus:ring-2"
+                className="min-w-0 flex-1 border text-sm outline-none focus:ring-2"
                 placeholder="you@example.com"
                 style={
                   {
                     borderColor: BORDER,
                     background: SURFACE,
                     color: TEXT,
+                    borderRadius: radius("element"),
                     paddingInline: space("3"),
                     paddingBlock: space("2"),
                     "--tw-ring-color": FOCUS,
@@ -300,8 +316,9 @@ export function SystemPreview() {
                 type="email"
               />
               <button
-                className="rounded text-sm font-medium"
+                className="text-sm font-medium"
                 style={{
+                  borderRadius: radius("element"),
                   background: ACTION,
                   color: SURFACE,
                   paddingInline: space("4"),

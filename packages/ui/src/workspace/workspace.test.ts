@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { defaultSystem } from "../typography/system";
 import {
@@ -11,6 +12,7 @@ import {
   loadWorkspace,
   readWorkspaceProject,
   withPaletteSlice,
+  withRadiusSlice,
   withSemanticsSlice,
   withSpacingSlice,
   withSharedName,
@@ -230,6 +232,7 @@ describe("readWorkspaceProject", () => {
       typography: null,
       semantics: null,
       spacing: defaultSpacingScale(),
+      radius: defaultRadiusScale(),
     });
   });
 
@@ -473,5 +476,40 @@ describe("the spacing slice", () => {
     expect(next.palette).toBe(base.palette);
     expect(next.semantics).toBe(base.semantics);
     expect(next.typography).toBe(base.typography);
+  });
+});
+
+describe("the radius slice", () => {
+  it("gives a workspace stored without one the default scale", () => {
+    const stored = readWorkspaceProject({
+      name: "Brand",
+      palette: legacyPalette(),
+      typography: null,
+    })!;
+
+    expect(stored.radius).toEqual(defaultRadiusScale());
+  });
+
+  it("keeps a stored multiplier", () => {
+    const stored = readWorkspaceProject({
+      name: "Brand",
+      palette: null,
+      typography: legacyTypography(),
+      radius: { multiplier: 2, tokens: defaultRadiusScale().tokens },
+    })!;
+
+    expect(stored.radius.multiplier).toBe(2);
+  });
+
+  it("replaces only its own slice", () => {
+    const base = withPaletteSlice(null, legacyPalette() as never);
+    const next = withRadiusSlice(base, {
+      ...defaultRadiusScale(),
+      multiplier: 0,
+    });
+
+    expect(next.radius.multiplier).toBe(0);
+    expect(next.spacing).toBe(base.spacing);
+    expect(next.palette).toBe(base.palette);
   });
 });

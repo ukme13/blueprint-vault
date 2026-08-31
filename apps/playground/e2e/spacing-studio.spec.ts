@@ -70,3 +70,49 @@ test.describe("The spacing studio", () => {
     await expect(steps.getByText("20px", { exact: true })).toBeVisible();
   });
 });
+
+test.describe("The radius editor", () => {
+  test("moves the named sizes and leaves the fixed ones", async ({ page }) => {
+    /* Zero scaled is still zero and half a pill is still a pill, so the
+       multiplier says nothing useful about either. */
+    await seedProject(page);
+    await page.goto("/scale");
+
+    const radius = page.getByRole("region", { name: "Radius" });
+    await expect(radius.getByText("8px", { exact: true })).toBeVisible();
+    await expect(radius.getByText(/9999px/)).toBeVisible();
+
+    const slider = page.getByRole("slider", { name: /Roundness/ });
+    await slider.focus();
+    await slider.press("ArrowRight");
+
+    // 0.25 up from 1: element goes 8 -> 10, and the pill does not move.
+    await expect(radius.getByText("10px", { exact: true })).toBeVisible();
+    await expect(radius.getByText(/9999px/)).toBeVisible();
+  });
+
+  test("keeps the roundness across a reload", async ({ page }) => {
+    await seedProject(page);
+    await page.goto("/scale");
+
+    const slider = page.getByRole("slider", { name: /Roundness/ });
+    await slider.focus();
+    await slider.press("ArrowRight");
+
+    await expect
+      .poll(() =>
+        page.evaluate((key) => {
+          const raw = window.localStorage.getItem(key);
+          if (!raw) return null;
+          return (JSON.parse(raw) as { radius?: { multiplier: number } }).radius
+            ?.multiplier;
+        }, WORKSPACE_STORAGE_KEY),
+      )
+      .toBe(1.25);
+
+    await page.reload();
+    await expect(
+      page.getByRole("slider", { name: /Roundness: 1.25/ }),
+    ).toBeVisible();
+  });
+});

@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   findHardcodedMeasurements,
+  findHardcodedRadius,
   findPrimitiveColourUse,
 } from "./primitive-usage";
 
@@ -41,6 +42,57 @@ describe("the preview page uses spacing tokens only", () => {
     expect(
       uses,
       uses.map((use) => `${use.file}:${use.line} uses ${use.found}`).join("\n"),
+    ).toEqual([]);
+  });
+});
+
+describe("the preview page uses radius tokens only", () => {
+  it("reaches for no rounded utility anywhere", () => {
+    const uses = PREVIEW_SOURCES.flatMap(findHardcodedRadius);
+
+    expect(
+      uses,
+      uses.map((use) => `${use.file}:${use.line} uses ${use.found}`).join("\n"),
+    ).toEqual([]);
+  });
+});
+
+describe("the radius check catches a mistake", () => {
+  function fixture(source: string): string {
+    const root = mkdtempSync(join(tmpdir(), "radius-usage-"));
+    writeFileSync(join(root, "Page.tsx"), source);
+    return root;
+  }
+
+  it("catches the bare utility, which is the common one", () => {
+    expect(
+      findHardcodedRadius(
+        fixture(`export const c = <p className="rounded" />;`),
+      ).length,
+    ).toBe(1);
+  });
+
+  it("catches a pill", () => {
+    /* radius.full is a token in this system, so Tailwind's version of it is
+       the same mistake as its 4px. */
+    expect(
+      findHardcodedRadius(
+        fixture(`export const c = <p className="rounded-full rounded-lg" />;`),
+      ).map((use) => use.found),
+    ).toEqual(["rounded-full", "rounded-lg"]);
+  });
+
+  it("catches an arbitrary value", () => {
+    expect(
+      findHardcodedRadius(
+        fixture(`export const c = <p className="rounded-[7px]" />;`),
+      ).map((use) => use.found),
+    ).toEqual(["rounded-[7px]"]);
+  });
+
+  it("allows a radius token", () => {
+    expect(
+      findHardcodedRadius(fixture(`const a = "var(--radius-element)";`)),
     ).toEqual([]);
   });
 });

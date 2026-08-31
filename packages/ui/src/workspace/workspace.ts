@@ -1,11 +1,13 @@
 import { readPaletteProjectData } from "./palette-project";
 import { readSemanticTokens, semanticsForPalette } from "./semantics";
-import { spacingOrDefault } from "./spacing-slice";
+import { radiusOrDefault, spacingOrDefault } from "./scale-slices";
+import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { readTypographyProjectData } from "./typography-project";
 import type { TypographyProjectData, WorkspaceProject } from "./types";
 import type { PaletteProjectData } from "../color/export";
 import type { SemanticToken } from "../color/semantic";
+import type { RadiusScale } from "../scale/radius";
 import type { SpacingScale } from "../scale/spacing";
 
 export const WORKSPACE_STORAGE_KEY = "blueprint.workspace.v1";
@@ -79,6 +81,7 @@ export function readWorkspaceProject(value: unknown): WorkspaceProject | null {
     semantics:
       readSemanticTokens(value.semantics) ?? semanticsForPalette(palette),
     spacing: spacingOrDefault(value.spacing),
+    radius: radiusOrDefault(value.radius),
   };
 }
 
@@ -112,6 +115,7 @@ export function workspaceFromLegacy(
     typography,
     semantics: semanticsForPalette(palette),
     spacing: defaultSpacingScale(),
+    radius: defaultRadiusScale(),
   };
 }
 
@@ -145,6 +149,7 @@ export function emptyWorkspace(
     typography: null,
     semantics: null,
     spacing: defaultSpacingScale(),
+    radius: defaultRadiusScale(),
   };
 }
 
@@ -190,6 +195,14 @@ export function withSpacingSlice(
   spacing: SpacingScale,
 ): WorkspaceProject {
   return { ...(current ?? emptyWorkspace()), spacing };
+}
+
+/** Replace the radius scale, keeping the other slices. */
+export function withRadiusSlice(
+  current: WorkspaceProject | null,
+  radius: RadiusScale,
+): WorkspaceProject {
+  return { ...(current ?? emptyWorkspace()), radius };
 }
 
 export function withSemanticsSlice(

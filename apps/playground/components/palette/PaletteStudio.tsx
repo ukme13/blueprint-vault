@@ -29,7 +29,7 @@ import {
   MAX_SHADE_COUNT,
   WORKSPACE_STORAGE_KEY,
   loadWorkspace,
-  defaultSpacingScale,
+  emptyWorkspace,
   withPaletteSlice,
   withSemanticsSlice,
   withSharedName,
@@ -136,23 +136,37 @@ function readStoredProject(): PaletteProject | null {
  * typography studio owns the other slice and may have written it since this
  * page loaded. Writing the copy we loaded would take its work with us.
  */
-/** The typography half, so an exported file carries the whole workspace. */
-function readStoredTypography(): WorkspaceProject["typography"] {
-  try {
-    return loadWorkspace(readStorageKeys()).project?.typography ?? null;
-  } catch {
-    return null;
-  }
+/**
+ * Every slice this studio does not own, so an exported file carries them.
+ *
+ * Read as a group rather than one state per slice. The workspace has grown a
+ * slice per stage, and a studio that named each one had to be edited every
+ * time — which is how one gets forgotten and an export quietly drops it.
+ */
+type ForeignSlices = Omit<WorkspaceProject, "name" | "palette" | "semantics">;
+
+function emptyForeignSlices(): ForeignSlices {
+  const empty = emptyWorkspace();
+  return {
+    typography: empty.typography,
+    spacing: empty.spacing,
+    radius: empty.radius,
+  };
 }
 
-/** The spacing scale, so an exported file carries it. Not edited here yet. */
-function readStoredSpacing(): WorkspaceProject["spacing"] {
+function readForeignSlices(): ForeignSlices {
   try {
-    return (
-      loadWorkspace(readStorageKeys()).project?.spacing ?? defaultSpacingScale()
-    );
+    const project = loadWorkspace(readStorageKeys()).project;
+    if (!project) return emptyForeignSlices();
+    /* Named rather than spread: ForeignSlices is what makes this safe, because
+       a slice added to the workspace and forgotten here fails to compile. */
+    return {
+      typography: project.typography,
+      spacing: project.spacing,
+      radius: project.radius,
+    };
   } catch {
-    return defaultSpacingScale();
+    return emptyForeignSlices();
   }
 }
 
@@ -302,13 +316,9 @@ function PaletteStudioContent() {
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   /* Read once on load, so an export carries the type scale without this
      component reading storage while it renders. */
-  const [typographySlice, setTypographySlice] =
-    useState<WorkspaceProject["typography"]>(null);
+  const [foreign, setForeign] = useState<ForeignSlices>(emptyForeignSlices);
   const [semantics, setSemantics] =
     useState<WorkspaceProject["semantics"]>(null);
-  const [spacing, setSpacing] = useState<WorkspaceProject["spacing"]>(
-    defaultSpacingScale(),
-  );
   const [hasLoadedSemantics, setHasLoadedSemantics] = useState(false);
   const [pendingImport, setPendingImport] = useState<WorkspaceProject | null>(
     null,
@@ -328,9 +338,8 @@ function PaletteStudioContent() {
        hydration. */
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setProject(readStoredProject());
-    setTypographySlice(readStoredTypography());
+    setForeign(readForeignSlices());
     setSemantics(readStoredSemantics());
-    setSpacing(readStoredSpacing());
     setHasLoadedSemantics(true);
     setHasLoadedProject(true);
   }, []);
@@ -417,9 +426,8 @@ function PaletteStudioContent() {
       <PaletteCreation
         onImport={(imported) => {
           writeImportedWorkspace(imported);
-          setTypographySlice(imported.typography);
+          setForeign(imported);
           setSemantics(imported.semantics);
-          setSpacing(imported.spacing);
           setProject(imported.palette);
         }}
         onCreate={({ name, seedHex, method }) => {
@@ -1060,11 +1068,10 @@ function PaletteStudioContent() {
         project={project}
         onImportRequest={setPendingImport}
         workspace={{
+          ...foreign,
           name: project.name,
           palette: project,
-          typography: typographySlice,
           semantics,
-          spacing,
         }}
         onOpenChange={setIsExportDialogOpen}
       />
@@ -1079,9 +1086,8 @@ function PaletteStudioContent() {
           /* Both halves, before the palette state lands — the persist effect
              below only ever writes its own slice. */
           writeImportedWorkspace(pendingImport);
-          setTypographySlice(pendingImport.typography);
+          setForeign(pendingImport);
           setSemantics(pendingImport.semantics);
-          setSpacing(pendingImport.spacing);
           setProject(pendingImport.palette);
           setPendingImport(null);
           setActiveShade(null);

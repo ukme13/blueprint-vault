@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { formatBlueprintPaletteProject } from "../color/export";
 import { defaultSystem } from "../typography/system";
@@ -38,6 +39,7 @@ const workspace = (over: Partial<WorkspaceProject> = {}): WorkspaceProject => ({
   },
   semantics: null,
   spacing: defaultSpacingScale(),
+  radius: defaultRadiusScale(),
   ...over,
 });
 
@@ -188,7 +190,7 @@ describe("a version 1 file still opens", () => {
 
   it("writes the current version", () => {
     const file = JSON.parse(formatBlueprintWorkspace(workspace()));
-    expect(file.version).toBe(3);
+    expect(file.version).toBe(4);
   });
 
   it("round-trips a chosen layer rather than reseeding it", () => {
@@ -211,7 +213,7 @@ describe("a version 1 file still opens", () => {
   it("still refuses a version it does not know", () => {
     const future = JSON.stringify({
       kind: "blueprint-workspace",
-      version: 4,
+      version: 5,
       project: workspace(),
     });
     expect(() => parseBlueprintWorkspace(future)).toThrow(/not supported/);
@@ -260,5 +262,26 @@ describe("a version 2 file still opens", () => {
       ),
     );
     expect(after.spacing).toEqual({ baseUnitPx: 8, steps: [1, 2, 4] });
+  });
+});
+
+describe("a version 3 file still opens", () => {
+  it("reads a file written before radius existed", () => {
+    const before = workspace();
+    const v3 = JSON.stringify({
+      kind: "blueprint-workspace",
+      version: 3,
+      project: {
+        name: before.name,
+        palette: before.palette,
+        typography: before.typography,
+        semantics: before.semantics,
+        spacing: before.spacing,
+      },
+    });
+
+    const after = parseBlueprintWorkspace(v3);
+    expect(after.spacing).toEqual(defaultSpacingScale());
+    expect(after.radius).toEqual(defaultRadiusScale());
   });
 });
