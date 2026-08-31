@@ -9,6 +9,12 @@ import {
   type PreviewAssessment,
   type SemanticPairCheck,
 } from "../color/preview-assessment";
+import {
+  assessSemanticContrastReport,
+  type SemanticContrastCheck,
+  type SemanticContrastReport,
+} from "../color/semantic-contrast";
+import type { SemanticToken } from "../color/semantic";
 import type { ColorTrack } from "../color/types";
 import {
   COLOUR_VISION_DEFICIENCIES,
@@ -90,12 +96,24 @@ export interface AccessibilityReport {
   generatedAt?: string;
   method: ReportMethod;
   colour: PreviewAssessment;
+  /**
+   * The pairs the semantic layer defines, in both modes.
+   *
+   * Null when a workspace has no layer. The section above measures a fixed set
+   * of shades, which was the best answer before the layer existed; this one
+   * measures what the page is actually built from, including a token that was
+   * repointed for dark and would otherwise be assumed to behave like its light
+   * counterpart.
+   */
+  semantic: SemanticContrastReport | null;
   typography: ReportTypography | null;
 }
 
 export interface AccessibilityReportInput {
   projectName: string;
   palettes: ColorTrack[];
+  /** The semantic layer, when the workspace has one. */
+  semantics?: SemanticToken[] | null;
   typography?: TypeSystem | null;
   /**
    * When the report was made, if the caller wants it recorded.
@@ -184,11 +202,17 @@ export function buildAccessibilityReport(
 
   const colour = assessPreview(shades);
 
+  const semantics = input.semantics ?? [];
+
   return {
     projectName: input.projectName,
     ...(input.generatedAt ? { generatedAt: input.generatedAt } : {}),
     method: reportMethod(),
     colour,
+    semantic:
+      semantics.length === 0
+        ? null
+        : assessSemanticContrastReport(semantics, input.palettes),
     typography: input.typography
       ? reportTypography(
           input.typography,
@@ -238,10 +262,26 @@ function pairRow(check: SemanticPairCheck): string {
   return `| ${check.label} | ${check.first.hex} / ${check.second.hex} | ${(check.result.difference * 100).toFixed(1)} | ${state} | ${under} |`;
 }
 
+/**
+ * One semantic pair as a row.
+ *
+ * The resolved primitives are named alongside the token ids. "text.primary on
+ * surface.base fails" is not actionable on its own — somebody reading this has
+ * to know which shades to go and change.
+ */
+function semanticRow(check: SemanticContrastCheck): string {
+  const required = check.isText
+    ? WCAG_CONTRAST.normalTextAA
+    : WCAG_CONTRAST.nonText;
+  const resolved = `${check.foreground.trackName} ${check.foreground.weight} on ${check.background.trackName} ${check.background.weight}`;
+
+  return `| ${check.mode} | ${check.foreground.id} | ${check.background.id} | ${resolved} | ${check.ratio.toFixed(2)}:1 | ${required}:1 | ${check.passes ? "Pass" : "Fail"} |`;
+}
+
 export function formatAccessibilityReportMarkdown(
   report: AccessibilityReport,
 ): string {
-  const { colour, typography, method } = report;
+  const { colour, semantic, typography, method } = report;
   const lines: string[] = [];
 
   lines.push(`# Accessibility report — ${report.projectName}`);
@@ -282,6 +322,23 @@ export function formatAccessibilityReportMarkdown(
     `| Keyboard focus | ${colour.shades.primaryFocus.hex} on ${colour.shades.neutralDark.hex} | ${colour.focusCheck.adjacentContrast.toFixed(2)}:1 | ${WCAG_CONTRAST.focusIndicator}:1 | ${verdict(colour.focusCheck.status)} | — |`,
   );
   lines.push("");
+
+  if (semantic) {
+    lines.push("## Semantic tokens");
+    lines.push("");
+    lines.push(
+      `Every foreground token against every surface, in both modes. ${semantic.failureCount === 0 ? "All pairs clear their threshold." : `${semantic.failureCount} pair${semantic.failureCount === 1 ? "" : "s"} below threshold.`}`,
+    );
+    lines.push("");
+    lines.push(
+      "| Mode | Foreground | Background | Resolved | Ratio | Required | Result |",
+    );
+    lines.push("| --- | --- | --- | --- | --- | --- | --- |");
+    for (const check of [...semantic.light, ...semantic.dark]) {
+      lines.push(semanticRow(check));
+    }
+    lines.push("");
+  }
 
   lines.push("## Colour vision");
   lines.push("");
