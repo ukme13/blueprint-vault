@@ -41,7 +41,7 @@ export interface SemanticToken {
 }
 
 /**
- * The eleven roles, and where each one sits.
+ * The roles, and where each one sits.
  *
  * Which track each reaches for, and how far along it, still comes from
  * `selectPreviewShades` — that choice predates this layer and is only moved
@@ -120,6 +120,16 @@ const SEED_ROLES: readonly SeedRole[] = [
     description: "Body text and headings.",
     track: "neutral",
     position: 0.9,
+  },
+  {
+    id: "text.secondary",
+    /* The page asked for this one. Muted text was being faked with opacity,
+       which the primitive check cannot see and which mixes a colour nobody
+       chose out of whatever happens to be behind it. */
+    name: "Text secondary",
+    description: "Supporting text, captions and help.",
+    track: "neutral",
+    position: 0.68,
   },
   {
     id: "focus.ring",
@@ -460,7 +470,7 @@ export function semanticCssVariables(
  * The first pass took the preview helper's labels, which describe a position on
  * a ramp rather than a use. Anything already saved under them is renamed on the
  * way in, so a project made before this keeps its layer instead of silently
- * gaining a second set of eleven beside the ones it has.
+ * gaining a second set beside the ones it has.
  */
 const RENAMED_IDS: Readonly<Record<string, string>> = {
   "primary.action": "action.primary",

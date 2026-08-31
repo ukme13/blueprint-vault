@@ -57,14 +57,14 @@ function tokenById(tokens: SemanticToken[], id: string): SemanticToken {
 }
 
 describe("seedSemanticTokens", () => {
-  it("seeds the eleven roles already in use", () => {
+  it("seeds the twelve roles the page needs", () => {
     const tokens = seedSemanticTokens(fullPalette());
-    expect(tokens).toHaveLength(11);
-    expect(new Set(tokens.map((token) => token.id)).size).toBe(11);
+    expect(tokens).toHaveLength(12);
+    expect(new Set(tokens.map((token) => token.id)).size).toBe(12);
   });
 
   /* The guard against the layer drifting away from the preview it came from.
-     Both still choose a shade for the same eleven roles, in two files, until
+     Both still choose a shade for the same roles, in two files, until
      stage 5 collapses them. If somebody moves one and not the other, this
      fails rather than the studio quietly showing two answers. */
   it.each([10, 13, 17, 20, 21])(
@@ -111,7 +111,7 @@ describe("seedSemanticTokens", () => {
     ]);
     const tokens = seedSemanticTokens(tracks);
 
-    expect(tokens).toHaveLength(11);
+    expect(tokens).toHaveLength(12);
     for (const token of tokens) {
       expect(token.light.trackId).toBe("only");
     }
@@ -220,7 +220,7 @@ describe("resolveSemantic", () => {
   it("resolves every token in a mode", () => {
     const tracks = fullPalette();
     const tokens = seedSemanticTokens(tracks);
-    expect(resolveSemantics(tokens, "dark", tracks)).toHaveLength(11);
+    expect(resolveSemantics(tokens, "dark", tracks)).toHaveLength(12);
     expect(resolveSemantics(tokens, "dark", [])).toEqual([]);
   });
 });
@@ -281,7 +281,7 @@ describe("editing a layer", () => {
     const tracks = fullPalette();
     const tokens = addSemanticToken(seedSemanticTokens(tracks), tracks, "Chip");
 
-    expect(tokens).toHaveLength(12);
+    expect(tokens).toHaveLength(13);
     const added = tokenById(tokens, "chip");
     expect(resolveSemantic(added, "light", tracks)!.hex).toMatch(
       /^#[0-9a-f]{6}$/i,
@@ -307,7 +307,7 @@ describe("editing a layer", () => {
     const tokens = seedSemanticTokens(fullPalette());
     const next = removeSemanticToken(tokens, "status.info");
 
-    expect(next).toHaveLength(10);
+    expect(next).toHaveLength(11);
     expect(next.some((token) => token.id === "status.info")).toBe(false);
   });
 
@@ -329,7 +329,7 @@ describe("the first names, carried forward", () => {
 
   it("renames a layer saved under the ramp-position names", () => {
     /* Without this a project made before the rename gains a second set of
-       eleven beside the ones it has, and the page draws from neither. */
+       twelve beside the ones it has, and the page draws from neither. */
     const migrated = migrateSemanticIds([
       oldToken("primary.action", "Primary action"),
       oldToken("neutral.dark", "Neutral dark"),
@@ -378,6 +378,7 @@ describe("the first names, carried forward", () => {
       "surface.raised",
       "border.default",
       "text.primary",
+      "text.secondary",
       "focus.ring",
       "status.success",
       "status.warning",

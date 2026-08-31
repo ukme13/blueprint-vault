@@ -55,6 +55,7 @@ const SURFACE = "var(--color-surface-base)";
 const RAISED = "var(--color-surface-raised)";
 const BORDER = "var(--color-border-default)";
 const TEXT = "var(--color-text-primary)";
+const TEXT_MUTED = "var(--color-text-secondary)";
 const ACTION = "var(--color-action-primary)";
 const ACTION_SECONDARY = "var(--color-action-secondary)";
 const FOCUS = "var(--color-focus-ring)";
@@ -85,7 +86,7 @@ export function SystemPreview() {
     return (
       <main className="mx-auto max-w-2xl px-6 py-16">
         <h1 className="text-xl font-semibold">Nothing to preview yet</h1>
-        <p className="mt-2 text-sm opacity-70">
+        <p className="mt-2 text-sm" style={{ color: TEXT_MUTED }}>
           This page is drawn entirely from the semantic layer. Build a palette,
           then open the Semantics tab to see it here.
         </p>
@@ -146,7 +147,7 @@ export function SystemPreview() {
             <h1 className="text-4xl font-semibold tracking-tight">
               A system you can hand over
             </h1>
-            <p className="max-w-2xl text-base opacity-80">
+            <p className="max-w-2xl text-base" style={{ color: TEXT_MUTED }}>
               Every colour on this page comes from a semantic token. Change what
               a token points at and this page follows, in both modes.
             </p>
@@ -205,7 +206,9 @@ export function SystemPreview() {
                 />
                 <div>
                   <h2 className="text-sm font-semibold">{item.title}</h2>
-                  <p className="text-sm opacity-75">{item.body}</p>
+                  <p className="text-sm" style={{ color: TEXT_MUTED }}>
+                    {item.body}
+                  </p>
                 </div>
               </article>
             ))}
@@ -244,8 +247,8 @@ export function SystemPreview() {
         </main>
 
         <footer
-          className="border-t px-6 py-6 text-sm opacity-70"
-          style={{ borderColor: BORDER }}
+          className="border-t px-6 py-6 text-sm"
+          style={{ borderColor: BORDER, color: TEXT_MUTED }}
         >
           Drawn from {tokens.length} semantic tokens, in {mode} mode.
         </footer>

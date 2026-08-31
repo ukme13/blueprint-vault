@@ -181,7 +181,7 @@ describe("a version 1 file still opens", () => {
     expect(after.palette?.tracks).toHaveLength(1);
     expect(after.typography?.system.name).toBe("Brand");
     // The upgrade: it arrives with the layer it never had.
-    expect(after.semantics).toHaveLength(11);
+    expect(after.semantics).toHaveLength(12);
   });
 
   it("writes the current version", () => {
@@ -224,6 +224,6 @@ describe("a version 1 file still opens", () => {
 
     const after = parseBlueprintWorkspace(paletteFile);
     expect(after.typography).toBeNull();
-    expect(after.semantics).toHaveLength(11);
+    expect(after.semantics).toHaveLength(12);
   });
 });

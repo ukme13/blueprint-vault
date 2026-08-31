@@ -308,7 +308,7 @@ describe("the semantic slice", () => {
       typography: null,
     })!;
 
-    expect(stored.semantics).toHaveLength(11);
+    expect(stored.semantics).toHaveLength(12);
     expect(stored.semantics!.every((token) => token.light && token.dark)).toBe(
       true,
     );
@@ -374,12 +374,12 @@ describe("the semantic slice", () => {
 
   it("seeds a layer when the workspace is rebuilt from the old keys", () => {
     const project = workspaceFromLegacy(legacyPalette(), legacyTypography())!;
-    expect(project.semantics).toHaveLength(11);
+    expect(project.semantics).toHaveLength(12);
   });
 
   it("gives a first palette a layer, and leaves an edited one alone", () => {
     const first = withPaletteSlice(null, legacyPalette() as never);
-    expect(first.semantics).toHaveLength(11);
+    expect(first.semantics).toHaveLength(12);
 
     const edited = withPaletteSlice(
       { ...first, semantics: [] },
