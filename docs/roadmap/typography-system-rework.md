@@ -269,9 +269,11 @@ system.
 3. ✅ **Rounding.** Even-pixel sizes, floored at 11, exact value kept alongside.
 4. ✅ **Google font picker.** Runtime loading, script-filtered bilingual fallback,
    display/main font pairing, preview weight.
-5. **Uploaded fonts.** Storage is settled now, so this is unblocked. Planned
-   separately in [uploaded-fonts.md](uploaded-fonts.md), because where the file
-   is allowed to go is a licensing question before it is a storage one.
+5. ✅ **Uploaded fonts.** Planned and delivered separately in
+   [uploaded-fonts.md](uploaded-fonts.md), because where the file is allowed to
+   go is a licensing question before it is a storage one. All five of its stages
+   are done: bytes live in IndexedDB, the project stores names only, a missing
+   file is a normal state, and an export can never emit a face.
 
 ### Notes from stages 1 and 2
 
