@@ -173,6 +173,7 @@ describe("no export carries font data", () => {
     const file = formatBlueprintWorkspace({
       name: "Uploaded",
       palette: null,
+      semantics: null,
       typography: {
         system: systemWithLocalFont(),
         unit: "rem",

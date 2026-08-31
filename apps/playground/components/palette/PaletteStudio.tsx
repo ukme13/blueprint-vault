@@ -131,12 +131,19 @@ function readStoredProject(): PaletteProject | null {
  * typography studio owns the other slice and may have written it since this
  * page loaded. Writing the copy we loaded would take its work with us.
  */
-/** The typography half, so an exported file carries the whole workspace. */
-function readStoredTypography() {
+/** The slices this studio does not own, so an exported file carries them. */
+function readForeignSlices(): Pick<
+  WorkspaceProject,
+  "typography" | "semantics"
+> {
   try {
-    return loadWorkspace(readStorageKeys()).project?.typography ?? null;
+    const project = loadWorkspace(readStorageKeys()).project;
+    return {
+      typography: project?.typography ?? null,
+      semantics: project?.semantics ?? null,
+    };
   } catch {
-    return null;
+    return { typography: null, semantics: null };
   }
 }
 
@@ -257,8 +264,9 @@ function PaletteStudioContent() {
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   /* Read once on load, so an export carries the type scale without this
      component reading storage while it renders. */
-  const [typographySlice, setTypographySlice] =
-    useState<WorkspaceProject["typography"]>(null);
+  const [foreignSlices, setForeignSlices] = useState<
+    Pick<WorkspaceProject, "typography" | "semantics">
+  >({ typography: null, semantics: null });
   const [pendingImport, setPendingImport] = useState<WorkspaceProject | null>(
     null,
   );
@@ -277,7 +285,7 @@ function PaletteStudioContent() {
        hydration. */
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setProject(readStoredProject());
-    setTypographySlice(readStoredTypography());
+    setForeignSlices(readForeignSlices());
     setHasLoadedProject(true);
   }, []);
 
@@ -355,7 +363,10 @@ function PaletteStudioContent() {
       <PaletteCreation
         onImport={(imported) => {
           writeImportedWorkspace(imported);
-          setTypographySlice(imported.typography);
+          setForeignSlices({
+            typography: imported.typography,
+            semantics: imported.semantics,
+          });
           setProject(imported.palette);
         }}
         onCreate={({ name, seedHex, method }) => {
@@ -989,7 +1000,7 @@ function PaletteStudioContent() {
         workspace={{
           name: project.name,
           palette: project,
-          typography: typographySlice,
+          ...foreignSlices,
         }}
         onOpenChange={setIsExportDialogOpen}
       />
@@ -1004,7 +1015,10 @@ function PaletteStudioContent() {
           /* Both halves, before the palette state lands — the persist effect
              below only ever writes its own slice. */
           writeImportedWorkspace(pendingImport);
-          setTypographySlice(pendingImport.typography);
+          setForeignSlices({
+            typography: pendingImport.typography,
+            semantics: pendingImport.semantics,
+          });
           setProject(pendingImport.palette);
           setPendingImport(null);
           setActiveShade(null);

@@ -1,7 +1,9 @@
 import { readPaletteProjectData } from "./palette-project";
+import { readSemanticTokens, semanticsForPalette } from "./semantics";
 import { readTypographyProjectData } from "./typography-project";
 import type { TypographyProjectData, WorkspaceProject } from "./types";
 import type { PaletteProjectData } from "../color/export";
+import type { SemanticToken } from "../color/semantic";
 
 export const WORKSPACE_STORAGE_KEY = "blueprint.workspace.v1";
 
@@ -66,10 +68,13 @@ export function readWorkspaceProject(value: unknown): WorkspaceProject | null {
 
   /* Slices are read independently: a corrupt palette must not cost someone
      their type scale, and the reverse. */
+  const palette = readPaletteProjectData(value.palette);
   return {
     name: value.name as string,
-    palette: readPaletteProjectData(value.palette),
+    palette,
     typography: readTypographyProjectData(value.typography),
+    semantics:
+      readSemanticTokens(value.semantics) ?? semanticsForPalette(palette),
   };
 }
 
@@ -97,7 +102,7 @@ export function workspaceFromLegacy(
       .map((candidate) => candidate?.trim())
       .find((candidate) => candidate) ?? DEFAULT_WORKSPACE_NAME;
 
-  return { name, palette, typography };
+  return { name, palette, typography, semantics: semanticsForPalette(palette) };
 }
 
 /**
@@ -124,7 +129,7 @@ export function loadWorkspace(input: WorkspaceLoadInput): WorkspaceLoadResult {
 export function emptyWorkspace(
   name = DEFAULT_WORKSPACE_NAME,
 ): WorkspaceProject {
-  return { name, palette: null, typography: null };
+  return { name, palette: null, typography: null, semantics: null };
 }
 
 /*
@@ -143,7 +148,25 @@ export function withPaletteSlice(
 ): WorkspaceProject {
   const base = current ?? emptyWorkspace();
   const next = name?.trim() || base.name;
-  return { ...base, name: next, palette };
+  /* A workspace that gains its first palette gains a layer with it. An edit to
+     a palette that already has one changes nothing here: the references follow
+     the primitives on their own, which is the point of storing a reference. */
+  const semantics = base.semantics ?? semanticsForPalette(palette);
+  return { ...base, name: next, palette, semantics };
+}
+
+/**
+ * Replace the semantic layer, keeping the other slices.
+ *
+ * Its own writer for the same reason the other two have one: the editor owns
+ * this slice and must not carry a stale copy of a palette somebody edited in
+ * another tab back over the top of it.
+ */
+export function withSemanticsSlice(
+  current: WorkspaceProject | null,
+  semantics: SemanticToken[] | null,
+): WorkspaceProject {
+  return { ...(current ?? emptyWorkspace()), semantics };
 }
 
 export function withTypographySlice(
