@@ -7,6 +7,7 @@ export * from "./machado2009";
 export * from "./palette-view";
 export * from "./palette";
 export * from "./presets";
+export * from "./semantic";
 export * from "./preview-assessment";
 export * from "./transitions";
 export * from "./types";
