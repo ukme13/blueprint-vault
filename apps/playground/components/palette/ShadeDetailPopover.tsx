@@ -11,7 +11,10 @@ import {
   assessTextContrast,
   COLOUR_FORMAT_LABELS,
   Button,
+  colourVisionLabel,
   formatColour,
+  simulatedContrast,
+  WCAG_CONTRAST,
   type ShadeItem,
 } from "@blueprint/ui";
 import { useColourFormat } from "./ColourFormatContext";
@@ -70,7 +73,7 @@ export function ShadeDetailPopover({
   onSourceChange,
   onClose,
 }: ShadeDetailPopoverProps) {
-  const { seen } = usePaletteView();
+  const { seen, view } = usePaletteView();
   const { colourFormat } = useColourFormat();
   const { copyText } = useCopyFeedback(1200);
   const toast = useToast();
@@ -83,6 +86,15 @@ export function ShadeDetailPopover({
   const smallTextGrade = contrastGrade(
     textContrast.normalText.aaa,
     textContrast.normalText.aa,
+  );
+  /* Normal-text AA, the same threshold the preview checks use, so "weakens"
+     means the same thing in both places. */
+  const simulated = simulatedContrast(
+    shade.hex,
+    comparisonHex,
+    view,
+    textContrast.ratio,
+    WCAG_CONTRAST.normalTextAA,
   );
   const colourValue = formatColour(shade.hex, colourFormat);
   const formatLabel = COLOUR_FORMAT_LABELS[colourFormat];
@@ -168,9 +180,9 @@ export function ShadeDetailPopover({
     <section className={styles.shadePopoverContent}>
       <header>
         <p>
-          {/* The shade as it is being looked at. The hex below, the picker
-              and the contrast demonstration all stay on the real colour: those
-              are the value, not the view of it. */}
+          {/* The shade as it is being looked at. The hex below and the picker
+              stay on the real colour: those are the value, not the view of it.
+              The contrast demonstration is a view, so it simulates. */}
           <i style={{ backgroundColor: seen(shade.hex) }} />
           <strong>
             {paletteName} · {shade.weight}
@@ -277,12 +289,30 @@ export function ShadeDetailPopover({
         <p className={styles.popoverContrastScore}>
           <span
             aria-hidden="true"
-            style={{ backgroundColor: comparisonHex, color: shade.hex }}
+            style={{
+              backgroundColor: seen(comparisonHex),
+              color: seen(shade.hex),
+            }}
           >
             Aa
           </span>
           <strong>{textContrast.ratio.toFixed(2)}:1</strong>
         </p>
+        {simulated && (
+          /* A ratio and no verdict, as everywhere else: WCAG defines AA on the
+             real colours, so this is what the pair measures once simulated and
+             never a pass or a fail. */
+          <small
+            className={styles.contrastSimulated}
+            data-weakens={simulated.weakens}
+          >
+            {simulated.ratio.toFixed(2)}:1 under{" "}
+            {colourVisionLabel(simulated.deficiency).toLowerCase()}
+            {simulated.severity < 1 &&
+              ` at ${Math.round(simulated.severity * 100)}%`}
+            {simulated.weakens && " — below the threshold it clears normally"}
+          </small>
+        )}
         <dl className={styles.popoverContrastGrades}>
           <dt>Large text</dt>
           <dd data-pass={largeTextGrade !== "Fail"}>

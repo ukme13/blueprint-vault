@@ -224,6 +224,41 @@ test.describe("The Vision chip", () => {
     ).toBeGreaterThan(2);
   });
 
+  test("simulates the contrast sample in the shade details, and states the ratio", async ({
+    seededPage: page,
+  }) => {
+    /* The popover's own swatch simulated while the pair beneath it did not, so
+       the contrast block demonstrated a colour nobody on that screen could
+       see. Both are views of the palette, so both simulate, and the simulated
+       ratio gets its own line with no verdict attached — the same shape the
+       preview panel already uses. */
+    await turnVisionOn(page);
+    await chooseDeficiency(page, "Achromatopsia (no colour)");
+
+    await page
+      .getByRole("button", { name: /^Select primary 500/ })
+      .first()
+      .click();
+
+    /* Every shade keeps a popover in the DOM, so the label alone matches 120
+       of them. Scope to the one that was opened, as the test above does. */
+    const popover = page
+      .getByText("primary · 500", { exact: true })
+      .locator("xpath=ancestor::section[1]");
+    const contrast = popover.getByLabel("WCAG 2 contrast result");
+    await expect(contrast).toBeVisible();
+
+    /* The Aa sample is a view, so achromatopsia leaves it grey. */
+    const sample = contrast.locator("span").first();
+    const [red, green, blue] = channels(
+      await sample.evaluate((node) => getComputedStyle(node).color),
+    );
+    expect(Math.abs(red! - green!)).toBeLessThanOrEqual(1);
+    expect(Math.abs(green! - blue!)).toBeLessThanOrEqual(1);
+
+    await expect(contrast.getByText(/:1 under achromatopsia/)).toBeVisible();
+  });
+
   test("never writes a simulated colour into the project", async ({
     seededPage: page,
   }) => {

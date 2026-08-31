@@ -169,8 +169,12 @@ function simulatedRatio(
  *
  * Null under normal vision rather than a ratio equal to the real one, so a
  * caller cannot render a "simulated" figure that is simply the same number.
+ *
+ * Exported because the shade popover measures a pair the preview checks do not
+ * cover — one shade against whatever it is being compared with. Computing it
+ * there would give the studio two notions of what a simulated ratio is.
  */
-function simulatedContrast(
+export function simulatedContrast(
   foreground: string,
   background: string,
   view: SimulationView,
