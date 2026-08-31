@@ -13,11 +13,13 @@ import {
   LEGACY_TYPOGRAPHY_STORAGE_KEY,
   WORKSPACE_STORAGE_KEY,
   colourVisionOptionLabel,
+  defaultElevationScale,
   defaultRadiusScale,
   defaultSpacingScale,
   generatePalettes,
   loadWorkspace,
   semanticCssVariables,
+  elevationCssVariables,
   radiusCssVariables,
   spacingCssVariables,
   type ColourMode,
@@ -80,6 +82,9 @@ const space = (step: string) => `var(--spacing-${step})`;
 /** A corner radius by the name of what it goes on, not by its size. */
 const radius = (id: string) => `var(--radius-${id})`;
 
+/** A shadow level, which is a whole box-shadow rather than one colour. */
+const shadow = (id: string) => `var(--shadow-${id})`;
+
 export function SystemPreview() {
   const { seen, view, setDeficiency } = usePaletteView();
   const [project, setProject] = useState<WorkspaceProject | null>(null);
@@ -101,6 +106,11 @@ export function SystemPreview() {
     ...semanticCssVariables(tokens, mode, palettes, seen),
     ...spacingCssVariables(project?.spacing ?? defaultSpacingScale()),
     ...radiusCssVariables(project?.radius ?? defaultRadiusScale()),
+    ...elevationCssVariables(
+      project?.elevation ?? defaultElevationScale(),
+      palettes,
+      mode,
+    ),
   };
 
   if (hasLoaded && tokens.length === 0) {
@@ -260,6 +270,7 @@ export function SystemPreview() {
                   borderRadius: radius("container"),
                   borderColor: BORDER,
                   background: RAISED,
+                  boxShadow: shadow("low"),
                   gap: space("3"),
                   padding: space("4"),
                 }}
@@ -290,6 +301,7 @@ export function SystemPreview() {
               borderRadius: radius("container"),
               borderColor: BORDER,
               background: RAISED,
+              boxShadow: shadow("med"),
               padding: space("6"),
             }}
           >
