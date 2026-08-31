@@ -10,6 +10,7 @@ import {
   loadWorkspace,
   readWorkspaceProject,
   withPaletteSlice,
+  withSemanticsSlice,
   withSharedName,
   withTypographySlice,
   workspaceFromLegacy,
@@ -221,7 +222,12 @@ describe("readWorkspaceProject", () => {
       palette: null,
       typography: null,
     });
-    expect(project).toEqual({ name: "Empty", palette: null, typography: null });
+    expect(project).toEqual({
+      name: "Empty",
+      palette: null,
+      typography: null,
+      semantics: null,
+    });
   });
 
   it("keeps one slice when the other is unreadable", () => {
@@ -289,5 +295,108 @@ describe("withSharedName", () => {
     const named = withSharedName(both);
     expect(named.typography?.unit).toBe(both.typography?.unit);
     expect(named.palette?.tracks).toEqual(both.palette?.tracks);
+  });
+});
+
+describe("the semantic slice", () => {
+  /* The upgrade this stage exists for. A workspace saved before semantics
+     existed has a palette and every reason to have a layer over it. */
+  it("seeds a layer for a workspace stored without one", () => {
+    const stored = readWorkspaceProject({
+      name: "Brand",
+      palette: legacyPalette(),
+      typography: null,
+    })!;
+
+    expect(stored.semantics).toHaveLength(11);
+    expect(stored.semantics!.every((token) => token.light && token.dark)).toBe(
+      true,
+    );
+  });
+
+  it("seeds nothing when there is no palette to point at", () => {
+    const stored = readWorkspaceProject({
+      name: "Brand",
+      palette: null,
+      typography: legacyTypography(),
+    })!;
+
+    expect(stored.semantics).toBeNull();
+  });
+
+  it("keeps a stored layer rather than reseeding it", () => {
+    const chosen = [
+      {
+        id: "primary.action",
+        name: "Primary action",
+        description: "",
+        light: { trackId: "primary", weight: 100 },
+        dark: { trackId: "primary", weight: 900 },
+      },
+    ];
+    const stored = readWorkspaceProject({
+      name: "Brand",
+      palette: legacyPalette(),
+      typography: null,
+      semantics: chosen,
+    })!;
+
+    expect(stored.semantics).toHaveLength(1);
+    expect(stored.semantics![0]!.light.weight).toBe(100);
+  });
+
+  it("drops a damaged token without losing the rest", () => {
+    const stored = readWorkspaceProject({
+      name: "Brand",
+      palette: legacyPalette(),
+      typography: null,
+      semantics: [
+        {
+          id: "primary.action",
+          name: "Primary action",
+          description: "",
+          light: { trackId: "primary", weight: 550 },
+          dark: { trackId: "primary", weight: 400 },
+        },
+        /* One mode only. Guessing the other would put a colour nobody chose
+           into an export. */
+        {
+          id: "primary.soft",
+          light: { trackId: "primary", weight: 100 },
+        },
+        "not a token",
+      ],
+    })!;
+
+    expect(stored.semantics).toHaveLength(1);
+    expect(stored.semantics![0]!.id).toBe("primary.action");
+  });
+
+  it("seeds a layer when the workspace is rebuilt from the old keys", () => {
+    const project = workspaceFromLegacy(legacyPalette(), legacyTypography())!;
+    expect(project.semantics).toHaveLength(11);
+  });
+
+  it("gives a first palette a layer, and leaves an edited one alone", () => {
+    const first = withPaletteSlice(null, legacyPalette() as never);
+    expect(first.semantics).toHaveLength(11);
+
+    const edited = withPaletteSlice(
+      { ...first, semantics: [] },
+      legacyPalette({ name: "Renamed" }) as never,
+    );
+    /* An edit must not reseed: the references follow the primitives on their
+       own, and reseeding would silently discard what somebody chose. */
+    expect(edited.semantics).toEqual([]);
+  });
+
+  it("replaces only its own slice", () => {
+    const base = withPaletteSlice(null, legacyPalette() as never);
+    const next = withSemanticsSlice(base, []);
+
+    expect(next.semantics).toEqual([]);
+    expect(next.palette).toBe(base.palette);
+    expect(next.typography).toBe(base.typography);
+    expect(next.name).toBe(base.name);
   });
 });

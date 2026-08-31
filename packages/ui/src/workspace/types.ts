@@ -1,4 +1,5 @@
 import type { PaletteProjectData } from "../color/export";
+import type { SemanticToken } from "../color/semantic";
 import type { TypeScaleUnit } from "../typography/types";
 import type { TypeSystem } from "../typography/system";
 
@@ -29,4 +30,13 @@ export interface WorkspaceProject {
   name: string;
   palette: PaletteProjectData | null;
   typography: TypographyProjectData | null;
+  /**
+   * The semantic colour layer, or null when there is no palette to point at.
+   *
+   * Unlike the other two, this slice is seeded rather than left null when it is
+   * missing: a workspace saved before semantics existed has a palette and every
+   * reason to have a layer over it, and asking somebody to build eleven tokens
+   * by hand to get back to where they were is not an upgrade.
+   */
+  semantics: SemanticToken[] | null;
 }

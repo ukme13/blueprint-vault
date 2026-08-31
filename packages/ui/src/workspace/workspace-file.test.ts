@@ -35,6 +35,7 @@ const workspace = (over: Partial<WorkspaceProject> = {}): WorkspaceProject => ({
     specimenText: "Sphinx",
     template: "article",
   },
+  semantics: null,
   ...over,
 });
 
@@ -155,5 +156,74 @@ describe("a file that is not one of ours", () => {
     );
     expect(after.palette?.tracks).toHaveLength(1);
     expect(after.typography).toBeNull();
+  });
+});
+
+describe("a version 1 file still opens", () => {
+  /* The check that shipped was a strict equality on the current version, so
+     adding the semantic slice would have refused every file anybody had
+     already saved. A version says what a file contains, not which build wrote
+     it. */
+  it("reads a file written before semantics existed", () => {
+    const before = workspace();
+    const v1 = JSON.stringify({
+      kind: "blueprint-workspace",
+      version: 1,
+      project: {
+        name: before.name,
+        palette: before.palette,
+        typography: before.typography,
+      },
+    });
+
+    const after = parseBlueprintWorkspace(v1);
+    expect(after.name).toBe("Brand");
+    expect(after.palette?.tracks).toHaveLength(1);
+    expect(after.typography?.system.name).toBe("Brand");
+    // The upgrade: it arrives with the layer it never had.
+    expect(after.semantics).toHaveLength(11);
+  });
+
+  it("writes the current version", () => {
+    const file = JSON.parse(formatBlueprintWorkspace(workspace()));
+    expect(file.version).toBe(2);
+  });
+
+  it("round-trips a chosen layer rather than reseeding it", () => {
+    const chosen = [
+      {
+        id: "primary.action",
+        name: "Primary action",
+        description: "",
+        light: { trackId: "primary", weight: 100 },
+        dark: { trackId: "primary", weight: 900 },
+      },
+    ];
+    const after = parseBlueprintWorkspace(
+      formatBlueprintWorkspace(workspace({ semantics: chosen })),
+    );
+
+    expect(after.semantics).toEqual(chosen);
+  });
+
+  it("still refuses a version it does not know", () => {
+    const future = JSON.stringify({
+      kind: "blueprint-workspace",
+      version: 3,
+      project: workspace(),
+    });
+    expect(() => parseBlueprintWorkspace(future)).toThrow(/not supported/);
+  });
+
+  it("gives a palette-only file a layer too", () => {
+    const paletteFile = JSON.stringify({
+      kind: "blueprint-palette",
+      version: 1,
+      project: palette(),
+    });
+
+    const after = parseBlueprintWorkspace(paletteFile);
+    expect(after.typography).toBeNull();
+    expect(after.semantics).toHaveLength(11);
   });
 });

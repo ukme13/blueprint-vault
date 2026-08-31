@@ -3,11 +3,23 @@ import {
   type PaletteProjectData,
 } from "../color/export";
 import { readPaletteProjectData } from "./palette-project";
+import { readSemanticTokens, semanticsForPalette } from "./semantics";
 import { readTypographyProjectData } from "./typography-project";
 import { DEFAULT_WORKSPACE_NAME } from "./workspace";
 import type { WorkspaceProject } from "./types";
 
-export const BLUEPRINT_WORKSPACE_FILE_VERSION = 1;
+export const BLUEPRINT_WORKSPACE_FILE_VERSION = 2;
+
+/**
+ * Versions this build can open.
+ *
+ * A strict equality on the current version is what shipped, and it would have
+ * refused every file anybody had already saved the moment the semantic slice
+ * was added. A version is a statement about what a file contains, not a
+ * demand that it was written by this exact build: 1 differs from 2 only by
+ * lacking semantics, which are seeded on the way in.
+ */
+export const SUPPORTED_WORKSPACE_FILE_VERSIONS: readonly number[] = [1, 2];
 
 export interface BlueprintWorkspaceFile {
   kind: "blueprint-workspace";
@@ -43,6 +55,7 @@ function paletteOnlyWorkspace(project: PaletteProjectData): WorkspaceProject {
     name: project.name.trim() || DEFAULT_WORKSPACE_NAME,
     palette: project,
     typography: null,
+    semantics: semanticsForPalette(project),
   };
 }
 
@@ -76,7 +89,8 @@ export function parseBlueprintWorkspace(source: string): WorkspaceProject {
   if (parsed.kind === "blueprint-workspace") {
     if (
       !("version" in parsed) ||
-      parsed.version !== BLUEPRINT_WORKSPACE_FILE_VERSION
+      typeof parsed.version !== "number" ||
+      !SUPPORTED_WORKSPACE_FILE_VERSIONS.includes(parsed.version)
     ) {
       throw new TypeError("This Blueprint project file is not supported.");
     }
@@ -120,5 +134,13 @@ function readWorkspaceFileProject(value: unknown): WorkspaceProject {
     throw new TypeError("The Blueprint project data is incomplete or invalid.");
   }
 
-  return { name: raw.name, palette, typography };
+  /* A version 1 file has no semantics and gains the seeded layer here, which is
+     the whole of the upgrade: nothing else about the shape changed. */
+  return {
+    name: raw.name,
+    palette,
+    typography,
+    semantics:
+      readSemanticTokens(raw.semantics) ?? semanticsForPalette(palette),
+  };
 }
