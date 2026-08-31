@@ -1,18 +1,10 @@
 "use client";
 
 import { useEffect, useState, type CSSProperties } from "react";
-import { Selector } from "@astryxdesign/core/Selector";
 import {
-  SegmentedControl,
-  SegmentedControlItem,
-} from "@astryxdesign/core/SegmentedControl";
-import {
-  COLOUR_MODES,
-  COLOUR_VISION_DEFICIENCIES,
   LEGACY_PALETTE_STORAGE_KEY,
   LEGACY_TYPOGRAPHY_STORAGE_KEY,
   WORKSPACE_STORAGE_KEY,
-  colourVisionOptionLabel,
   defaultElevationScale,
   defaultRadiusScale,
   defaultSpacingScale,
@@ -23,12 +15,11 @@ import {
   radiusCssVariables,
   spacingCssVariables,
   type ColourMode,
-  type ColourVisionDeficiency,
   type SemanticToken,
   type WorkspaceProject,
 } from "@blueprint/ui";
 import { usePaletteView } from "../palette/PaletteViewContext";
-import { WorkspaceNav } from "../WorkspaceNav";
+import { PreviewChrome } from "../PreviewChrome";
 
 /**
  * The whole system on one page.
@@ -132,59 +123,25 @@ export function SystemPreview() {
   }
 
   return (
-    /* The variables are declared on the same element that uses them. Declaring
-       them on a child left this one resolving --color-neutral-light against
-       nothing, so the page background fell back to transparent. */
-    <div
-      className="min-h-dvh"
-      style={
-        { ...variables, background: SURFACE, color: TEXT } as CSSProperties
-      }
+    <PreviewChrome
+      mode={mode}
+      name={project?.name ?? "Workspace"}
+      severity={view.severity}
+      simulation={view.simulation}
+      tokenCount={tokens.length}
+      onDeficiencyChange={setDeficiency}
+      onModeChange={setMode}
     >
-      <>
-        <header
-          className="flex flex-wrap items-center border-b"
-          style={{
-            borderColor: BORDER,
-            background: SURFACE,
-            gap: space("3"),
-            paddingInline: space("6"),
-            paddingBlock: space("3"),
-          }}
-        >
-          <strong className="mr-auto text-sm">
-            {project?.name ?? "Workspace"}
-          </strong>
-          <SegmentedControl
-            label="Colour mode"
-            size="sm"
-            value={mode}
-            onChange={(next) => setMode(next as ColourMode)}
-          >
-            {COLOUR_MODES.map((each) => (
-              <SegmentedControlItem
-                key={each}
-                label={each === "light" ? "Light" : "Dark"}
-                value={each}
-              />
-            ))}
-          </SegmentedControl>
-          <div className="w-56">
-            <Selector
-              label="Vision"
-              isLabelHidden
-              options={COLOUR_VISION_DEFICIENCIES.map((deficiency) => ({
-                label: colourVisionOptionLabel(deficiency, view.severity),
-                value: deficiency,
-              }))}
-              value={view.simulation === "normal" ? undefined : view.simulation}
-              placeholder="Normal vision"
-              onChange={(next) => setDeficiency(next as ColourVisionDeficiency)}
-            />
-          </div>
-          <WorkspaceNav active="preview" />
-        </header>
-
+      {/* The variables are declared on the same element that uses them.
+          Declaring them on a child left this one resolving
+          --color-surface-base against nothing, so the background fell back to
+          transparent. */}
+      <div
+        className="flex-1"
+        style={
+          { ...variables, background: SURFACE, color: TEXT } as CSSProperties
+        }
+      >
         <main
           className="mx-auto flex max-w-4xl flex-col"
           style={{
@@ -343,19 +300,7 @@ export function SystemPreview() {
             </div>
           </section>
         </main>
-
-        <footer
-          className="border-t text-sm"
-          style={{
-            borderColor: BORDER,
-            color: TEXT_MUTED,
-            paddingInline: space("6"),
-            paddingBlock: space("6"),
-          }}
-        >
-          Drawn from {tokens.length} semantic tokens, in {mode} mode.
-        </footer>
-      </>
-    </div>
+      </div>
+    </PreviewChrome>
   );
 }
