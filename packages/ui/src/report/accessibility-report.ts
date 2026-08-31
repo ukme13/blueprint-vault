@@ -5,7 +5,7 @@ import {
 } from "../color/accessibility";
 import {
   assessPreview,
-  selectPreviewShades,
+  previewShadesFor,
   type PreviewAssessment,
   type SemanticPairCheck,
 } from "../color/preview-assessment";
@@ -197,12 +197,14 @@ function reportTypography(
 export function buildAccessibilityReport(
   input: AccessibilityReportInput,
 ): AccessibilityReport | null {
-  const shades = selectPreviewShades(input.palettes);
+  const semantics = input.semantics ?? [];
+  const shades = previewShadesFor(semantics, input.palettes);
+  /* No layer, or one missing what every check needs, means no report. The
+     shades used to come from a table here and could always be produced; now
+     they come from the workspace, and a workspace can be missing them. */
   if (!shades) return null;
 
   const colour = assessPreview(shades);
-
-  const semantics = input.semantics ?? [];
 
   return {
     projectName: input.projectName,
@@ -216,8 +218,8 @@ export function buildAccessibilityReport(
     typography: input.typography
       ? reportTypography(
           input.typography,
-          shades.neutralDark.hex,
-          shades.neutralLight.hex,
+          shades["text.primary"]!.hex,
+          shades["surface.base"]!.hex,
         )
       : null,
   };
@@ -319,7 +321,7 @@ export function formatAccessibilityReportMarkdown(
     );
   }
   lines.push(
-    `| Keyboard focus | ${colour.shades.primaryFocus.hex} on ${colour.shades.neutralDark.hex} | ${colour.focusCheck.adjacentContrast.toFixed(2)}:1 | ${WCAG_CONTRAST.focusIndicator}:1 | ${verdict(colour.focusCheck.status)} | — |`,
+    `| Keyboard focus | ${colour.shades["focus.ring"]!.hex} on ${colour.shades["text.primary"]!.hex} | ${colour.focusCheck.adjacentContrast.toFixed(2)}:1 | ${WCAG_CONTRAST.focusIndicator}:1 | ${verdict(colour.focusCheck.status)} | — |`,
   );
   lines.push("");
 

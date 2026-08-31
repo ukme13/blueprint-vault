@@ -195,11 +195,13 @@ remount and the test passed against a deliberately broken build. The model's
 unit test does catch a real copying implementation; the e2e asserts instead
 that what reaches storage is a reference and nothing else.
 
-**What is still hand-written.** `selectPreviewShades` keeps its own copy of the
-roles for the live preview panel, and `SEMANTIC_PAIRS` still names four pairs
-by hand for the colour-vision similarity check. Both are held to the layer by
-the cross-check test from stage 1. Deriving them means threading tokens into
-`PalettePreview`, which is its own change.
+**Both hand-written lists are gone.** `selectPreviewShades` held its own copy of
+the roles and `SEMANTIC_PAIRS` named four pairs, kept honest by a cross-check
+test. `previewShadesFor` resolves the layer instead, keyed by token id, and the
+pairs are derived by a rule: every two tokens in the groups that signal by
+colour — `status` and `action`. The rule found five pairs the list had missed,
+including `status.success` against `status.info`, which is green against blue
+and exactly what tritanopia brings together.
 
 ## Later improvements
 
@@ -275,5 +277,3 @@ to that studio's toolbar.
 
 - Whether the demo page is also the export target for a client-facing PDF or
   static handoff, or stays a live preview only.
-- Deriving `selectPreviewShades` and `SEMANTIC_PAIRS` from the layer, so the
-  live preview panel and the report stop answering to two lists.

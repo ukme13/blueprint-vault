@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { seedSemanticTokens } from "../color/semantic";
 import { generatePalettes } from "../color/palette";
 import { defaultSystem } from "../typography/system";
 import {
@@ -31,11 +32,15 @@ function report(
   overrides: {
     typography?: ReturnType<typeof defaultSystem> | null;
     generatedAt?: string;
+    semantics?: ReturnType<typeof seedSemanticTokens>;
   } = {},
 ) {
   const built = buildAccessibilityReport({
     projectName: "Brand",
     palettes: palettes(),
+    /* Seeded, because the report is now drawn from the layer rather than from
+       a table of its own — and a workspace with a palette always has one. */
+    semantics: overrides.semantics ?? seedSemanticTokens(palettes()),
     typography: overrides.typography ?? null,
     ...(overrides.generatedAt ? { generatedAt: overrides.generatedAt } : {}),
   });
@@ -61,7 +66,8 @@ describe("buildAccessibilityReport", () => {
     const built = report();
 
     expect(built.colour.textChecks).toHaveLength(7);
-    expect(built.colour.semanticPairs).toHaveLength(4);
+    /* Fifteen: every pair among the six tokens that signal by colour. */
+    expect(built.colour.semanticPairs).toHaveLength(15);
     expect(built.colour.issueCount).toBeGreaterThanOrEqual(0);
   });
 
@@ -188,16 +194,18 @@ describe("formatAccessibilityReportMarkdown", () => {
     /* A column, not a verdict. WCAG defines AA on the actual colours, so the
        report says which people a passing pair stops working for and leaves the
        pass where it belongs — on the real palette. */
+    const weakPalette = generatePalettes({
+      tracks: [
+        { id: "primary", name: "primary", seedHex: "#7646ab" },
+        { id: "neutral", name: "neutral", seedHex: "#737373" },
+        { id: "success", name: "success", seedHex: "#802020" },
+      ],
+      lightnessValues: LIGHTNESS,
+    });
     const weakening = buildAccessibilityReport({
       projectName: "Weak",
-      palettes: generatePalettes({
-        tracks: [
-          { id: "primary", name: "primary", seedHex: "#7646ab" },
-          { id: "neutral", name: "neutral", seedHex: "#737373" },
-          { id: "success", name: "success", seedHex: "#802020" },
-        ],
-        lightnessValues: LIGHTNESS,
-      }),
+      palettes: weakPalette,
+      semantics: seedSemanticTokens(weakPalette),
     })!;
 
     const markdown = formatAccessibilityReportMarkdown(weakening);
@@ -252,7 +260,7 @@ describe("formatAccessibilityReportJson", () => {
     );
 
     expect(parsed.method.wcagVersion).toBe(REPORT_WCAG_VERSION);
-    expect(parsed.colour.semanticPairs).toHaveLength(4);
+    expect(parsed.colour.semanticPairs).toHaveLength(15);
     expect(parsed.typography.roles.length).toBeGreaterThan(0);
 
     const successError = parsed.colour.semanticPairs.find(

@@ -97,22 +97,6 @@
   gap: 14px;
 }
 
-.headerActions nav {
-  display: flex;
-  gap: 10px;
-}
-
-.headerActions nav a {
-  color: var(--color-neutral-400);
-  font-size: 12px;
-  text-decoration: none;
-}
-
-.headerActions nav a:hover,
-.headerActions nav a[aria-current="page"] {
-  color: var(--color-neutral-100);
-}
-
 .creationHeaderActions {
   display: flex;
   align-items: center;

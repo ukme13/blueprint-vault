@@ -975,7 +975,9 @@ function PaletteStudioContent() {
         />
       )}
 
-      {activeSection === "preview" && <PalettePreview palettes={palettes} />}
+      {activeSection === "preview" && (
+        <PalettePreview palettes={palettes} semantics={semantics ?? []} />
+      )}
 
       {activeSection === "shade-generator" && (
         <section

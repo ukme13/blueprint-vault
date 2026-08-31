@@ -2,9 +2,10 @@ import { Badge } from "@astryxdesign/core/Badge";
 import {
   Button,
   assessPreview,
+  previewShadesFor,
   readableText,
-  selectPreviewShades,
   type ColorTrack,
+  type SemanticToken,
 } from "@blueprint/ui";
 import { PreviewAccessibility } from "./PreviewAccessibility";
 import { usePaletteView } from "./PaletteViewContext";
@@ -12,9 +13,17 @@ import styles from "./palette-workspace.module.css";
 
 interface PalettePreviewProps {
   palettes: ColorTrack[];
+  /**
+   * The layer the preview is drawn from.
+   *
+   * Passed in rather than read here: this component renders, and the studio
+   * already owns the slice. It also means the preview follows an edit in the
+   * Semantics tab without a reload.
+   */
+  semantics: SemanticToken[];
 }
 
-export function PalettePreview({ palettes }: PalettePreviewProps) {
+export function PalettePreview({ palettes, semantics }: PalettePreviewProps) {
   /* `seen` is the one place simulation is applied, and only ever on the way
      into a style attribute. Every colour below is chosen from the real palette
      — including the recommended text colour, which is the token somebody would
@@ -26,7 +35,7 @@ export function PalettePreview({ palettes }: PalettePreviewProps) {
      There is an end-to-end test that turns the Vision chip through every mode
      and asserts the stored workspace is byte-identical afterwards. */
   const { seen, simulation, view } = usePaletteView();
-  const shades = selectPreviewShades(palettes);
+  const shades = previewShadesFor(semantics, palettes);
 
   if (!shades) {
     return (
@@ -38,7 +47,9 @@ export function PalettePreview({ palettes }: PalettePreviewProps) {
           </span>
         </header>
         <p className={styles.previewEmptyState} role="status">
-          No colours are available. Add a colour track to build the preview.
+          {palettes.length === 0
+            ? "No colours are available. Add a colour track to build the preview."
+            : "The semantic layer is missing a surface, text, an action or a focus ring. Open the Semantics tab to restore them."}
         </p>
       </section>
     );
@@ -47,16 +58,17 @@ export function PalettePreview({ palettes }: PalettePreviewProps) {
   /* The assessment follows the view, so every ratio on screen is the one for
      the colours on screen. */
   const assessment = assessPreview(shades, view);
-  const {
-    primaryAction,
-    primarySoft,
-    secondaryAction,
-    neutralLight,
-    neutralMid,
-    neutralDark,
-    successAction,
-    errorAction,
-  } = shades;
+  /* Named locally so the JSX below reads as it did. The non-null assertions
+     hold for the four required tokens; the rest fall back to a required one, so
+     a layer missing `status.error` previews in primary rather than crashing. */
+  const primaryAction = shades["action.primary"]!;
+  const neutralLight = shades["surface.base"]!;
+  const neutralDark = shades["text.primary"]!;
+  const primarySoft = shades["surface.raised"] ?? primaryAction;
+  const secondaryAction = shades["action.secondary"] ?? primaryAction;
+  const neutralMid = shades["border.default"] ?? neutralDark;
+  const successAction = shades["status.success"] ?? primaryAction;
+  const errorAction = shades["status.error"] ?? primaryAction;
 
   return (
     <section className={styles.sectionPage} aria-labelledby="preview-title">

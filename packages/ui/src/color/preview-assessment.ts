@@ -12,6 +12,11 @@ import {
   type TextColourRecommendation,
   type TextContrastResult,
 } from "./accessibility";
+import {
+  resolveSemantics,
+  type ColourMode,
+  type SemanticToken,
+} from "./semantic";
 import type { ColorTrack, ShadeItem } from "./types";
 import {
   COLOUR_VISION_DEFICIENCIES,
@@ -24,74 +29,95 @@ import {
 /*
  * What the preview measures, and which shades it measures.
  *
- * This lived inside PalettePreview, which made it a component that computed
- * rather than rendered, and put the one interesting decision in the file least
- * able to test it: which shades of two semantic tracks are the ones worth
- * comparing.
+ * The shades come from the semantic layer. They used to come from a table here
+ * that named eleven roles and picked each one by a fraction along a track —
+ * written before the layer existed, and kept afterwards behind a test asserting
+ * the two agreed. Two lists that must agree are one list too many, and the test
+ * only proved they had not diverged yet.
  *
- * See docs/roadmap/colour-vision-simulation.md.
+ * So a check now names the tokens it needs, and is skipped when the layer does
+ * not have them. A workspace whose owner deleted `status.info` gets no info
+ * check rather than a crash or a colour nobody chose.
+ *
+ * See docs/roadmap/semantic-tokens.md and colour-vision-simulation.md.
  */
 
-/** Where along a track a role sits, as a fraction of its length. */
-function shadeAt(track: ColorTrack, progress: number): ShadeItem {
-  const index = Math.round((track.shades.length - 1) * progress);
-  return track.shades[index]!;
-}
-
-export interface PreviewShades {
-  primaryAction: ShadeItem;
-  primarySoft: ShadeItem;
-  primaryFocus: ShadeItem;
-  secondaryAction: ShadeItem;
-  neutralLight: ShadeItem;
-  neutralMid: ShadeItem;
-  neutralDark: ShadeItem;
-  successAction: ShadeItem;
-  warningAction: ShadeItem;
-  errorAction: ShadeItem;
-  infoAction: ShadeItem;
-}
+/** The ids the checks reach for. Named once so a rename is one edit. */
+const TOKENS = {
+  actionPrimary: "action.primary",
+  actionSecondary: "action.secondary",
+  surfaceBase: "surface.base",
+  surfaceRaised: "surface.raised",
+  borderDefault: "border.default",
+  textPrimary: "text.primary",
+  textSecondary: "text.secondary",
+  focusRing: "focus.ring",
+  statusSuccess: "status.success",
+  statusWarning: "status.warning",
+  statusError: "status.error",
+  statusInfo: "status.info",
+} as const;
 
 /**
- * The shades a component would actually put together.
+ * What a preview cannot do without.
  *
- * Every track falls back to primary rather than to nothing, so a project with
- * only one track still previews. That is why this returns null only for an
- * empty palette.
+ * A surface to draw on, text to draw, something to act with, and a focus ring —
+ * every check is built from at least one of these. Anything else is optional
+ * and its check disappears with it.
  */
-export function selectPreviewShades(
+export const PREVIEW_REQUIRED_TOKENS: readonly string[] = [
+  TOKENS.surfaceBase,
+  TOKENS.textPrimary,
+  TOKENS.actionPrimary,
+  TOKENS.focusRing,
+];
+
+/**
+ * The semantic layer resolved to shades, keyed by token id.
+ *
+ * A map rather than named fields, because the layer is editable: somebody can
+ * rename `status.info` or delete it, and a struct with eleven required slots
+ * cannot describe that.
+ */
+export type PreviewShades = Record<string, ShadeItem>;
+
+/**
+ * Resolve the layer against the palette.
+ *
+ * Null when the palette is empty or the layer is missing something every check
+ * needs — see `PREVIEW_REQUIRED_TOKENS`. A caller gets nothing to render rather
+ * than a preview built from whatever happened to resolve.
+ *
+ * Light mode, because this is the palette preview: the studio shows one palette
+ * and the mode toggle belongs to the page that shows a whole system. The
+ * parameter is here so the report can ask for the other one.
+ */
+export function previewShadesFor(
+  tokens: SemanticToken[],
   tracks: ColorTrack[],
+  mode: ColourMode = "light",
 ): PreviewShades | null {
   if (tracks.length === 0) return null;
 
-  const named = (name: string, fallback: ColorTrack) =>
-    tracks.find((track) => track.name === name) ?? fallback;
+  const byWeight = new Map(
+    tracks.flatMap((track) =>
+      track.shades.map(
+        (shade) => [`${track.id}:${shade.weight}`, shade] as const,
+      ),
+    ),
+  );
 
-  const primary = named("primary", tracks[0]!);
-  const neutral = named("neutral", primary);
-  const secondary = named("secondary", neutral);
-  const success = named("success", primary);
-  const warning = named("warning", primary);
-  const error = named("error", primary);
-  const info = named("info", primary);
+  const shades: PreviewShades = {};
+  for (const resolved of resolveSemantics(tokens, mode, tracks)) {
+    /* The resolver already fell back to a real track and weight, so this
+       lookup cannot miss — but a shade the palette does not hold would be a
+       colour nobody chose, so it is skipped rather than invented. */
+    const shade = byWeight.get(`${resolved.trackId}:${resolved.weight}`);
+    if (shade) shades[resolved.id] = shade;
+  }
 
-  return {
-    primaryAction: shadeAt(primary, 0.55),
-    primarySoft: shadeAt(primary, 0.12),
-    /* The focus ring is a named weight where one exists, because 300 is the
-       shade the focus token is documented against. */
-    primaryFocus:
-      primary.shades.find((shade) => shade.weight === 300) ??
-      shadeAt(primary, 0.32),
-    secondaryAction: shadeAt(secondary, 0.48),
-    neutralLight: shadeAt(neutral, 0.08),
-    neutralMid: shadeAt(neutral, 0.48),
-    neutralDark: shadeAt(neutral, 0.9),
-    successAction: shadeAt(success, 0.55),
-    warningAction: shadeAt(warning, 0.45),
-    errorAction: shadeAt(error, 0.55),
-    infoAction: shadeAt(info, 0.55),
-  };
+  const hasEverything = PREVIEW_REQUIRED_TOKENS.every((id) => id in shades);
+  return hasEverything ? shades : null;
 }
 
 export function readableText(background: string): string {
@@ -225,121 +251,170 @@ export interface TextColourCheck {
   recommendation: TextColourRecommendation;
 }
 
+/**
+ * One sample: what is drawn, on what.
+ *
+ * `readable` means the foreground is whichever of black or white reads on the
+ * background — a label on a filled button, where the token is the fill and the
+ * text is chosen for it rather than picked from the layer.
+ */
+interface TextSample {
+  label: string;
+  foreground: string;
+  background: string;
+  readable?: boolean;
+}
+
+const TEXT_SAMPLES: readonly TextSample[] = [
+  {
+    label: "Primary action text",
+    foreground: TOKENS.actionPrimary,
+    background: TOKENS.actionPrimary,
+    readable: true,
+  },
+  {
+    label: "Body text",
+    foreground: TOKENS.textPrimary,
+    background: TOKENS.surfaceBase,
+  },
+  {
+    label: "Supporting text",
+    foreground: TOKENS.textSecondary,
+    background: TOKENS.surfaceBase,
+  },
+  {
+    label: "Primary link",
+    foreground: TOKENS.actionPrimary,
+    background: TOKENS.surfaceBase,
+  },
+  {
+    label: "Success status text",
+    foreground: TOKENS.statusSuccess,
+    background: TOKENS.surfaceBase,
+  },
+  {
+    label: "Warning status text",
+    foreground: TOKENS.statusWarning,
+    background: TOKENS.surfaceBase,
+  },
+  {
+    label: "Error action text",
+    foreground: TOKENS.statusError,
+    background: TOKENS.statusError,
+    readable: true,
+  },
+];
+
 export function assessTextChecks(
   shades: PreviewShades,
   view: SimulationView = NORMAL_VIEW,
 ): TextCheck[] {
-  const {
-    primaryAction,
-    neutralLight,
-    neutralMid,
-    neutralDark,
-    successAction,
-    warningAction,
-    errorAction,
-  } = shades;
+  return TEXT_SAMPLES.flatMap((sample) => {
+    const background = shades[sample.background];
+    const source = shades[sample.foreground];
+    /* A sample whose tokens the layer does not have is left out rather than
+       substituted. A check against a colour nobody chose is worse than one
+       check fewer. */
+    if (!background || !source) return [];
 
-  return [
-    {
-      label: "Primary action text",
-      foreground: readableText(primaryAction.hex),
-      background: primaryAction.hex,
-    },
-    {
-      label: "Body text",
-      foreground: neutralDark.hex,
-      background: neutralLight.hex,
-    },
-    {
-      label: "Supporting text",
-      foreground: neutralMid.hex,
-      background: neutralLight.hex,
-    },
-    {
-      label: "Primary link",
-      foreground: primaryAction.hex,
-      background: neutralLight.hex,
-    },
-    {
-      label: "Success status text",
-      foreground: successAction.hex,
-      background: neutralLight.hex,
-    },
-    {
-      label: "Warning status text",
-      foreground: warningAction.hex,
-      background: neutralLight.hex,
-    },
-    {
-      label: "Error action text",
-      foreground: readableText(errorAction.hex),
-      background: errorAction.hex,
-    },
-  ].map((check) => {
+    const foreground = sample.readable
+      ? readableText(background.hex)
+      : source.hex;
+    const check = {
+      label: sample.label,
+      foreground,
+      background: background.hex,
+    };
+
     const result = assessTextContrast(check.foreground, check.background);
     /* Normal-text AA throughout. These samples have no size of their own — the
        report is where a size-aware verdict lives, because that is where the
        type scale is. */
     const threshold = WCAG_CONTRAST.normalTextAA;
 
-    return {
-      ...check,
-      result,
-      simulated: simulatedContrast(
-        check.foreground,
-        check.background,
-        view,
-        result.ratio,
-        threshold,
-      ),
-      weakensUnder: weakensUnder(
-        check.foreground,
-        check.background,
-        result.ratio,
-        threshold,
-      ),
-    };
+    return [
+      {
+        ...check,
+        result,
+        simulated: simulatedContrast(
+          check.foreground,
+          check.background,
+          view,
+          result.ratio,
+          threshold,
+        ),
+        weakensUnder: weakensUnder(
+          check.foreground,
+          check.background,
+          result.ratio,
+          threshold,
+        ),
+      },
+    ];
   });
 }
+
+/** The filled surfaces a label sits on, and what colour that label should be. */
+const TEXT_COLOUR_CHOICES: ReadonlyArray<{ label: string; token: string }> = [
+  { label: "Primary action", token: TOKENS.actionPrimary },
+  { label: "Success action", token: TOKENS.statusSuccess },
+  { label: "Warning action", token: TOKENS.statusWarning },
+  { label: "Error action", token: TOKENS.statusError },
+];
 
 export function assessTextColourChoices(
   shades: PreviewShades,
 ): TextColourCheck[] {
-  return [
-    { label: "Primary action", background: shades.primaryAction.hex },
-    { label: "Success action", background: shades.successAction.hex },
-    { label: "Warning action", background: shades.warningAction.hex },
-    { label: "Error action", background: shades.errorAction.hex },
-  ].map((check) => ({
-    ...check,
-    recommendation: recommendTextColour(check.background),
-  }));
+  return TEXT_COLOUR_CHOICES.flatMap((choice) => {
+    const shade = shades[choice.token];
+    if (!shade) return [];
+    return [
+      {
+        label: choice.label,
+        background: shade.hex,
+        recommendation: recommendTextColour(shade.hex),
+      },
+    ];
+  });
 }
 
 export function assessNonTextChecks(
   shades: PreviewShades,
   view: SimulationView = NORMAL_VIEW,
 ): NonTextCheck[] {
-  const { secondaryAction, primarySoft, neutralLight } = shades;
-
-  return [
+  const samples: Array<{
+    label: string;
+    foreground: string;
+    background: string;
+    countsTowardWarnings: boolean;
+  }> = [
     {
       label: "Secondary button border",
-      foreground: secondaryAction.hex,
-      background: neutralLight.hex,
+      foreground: TOKENS.actionSecondary,
+      background: TOKENS.surfaceBase,
       countsTowardWarnings: true,
     },
     {
       label: "Soft surface boundary",
-      foreground: primarySoft.hex,
-      background: neutralLight.hex,
+      foreground: TOKENS.surfaceRaised,
+      background: TOKENS.surfaceBase,
       countsTowardWarnings: false,
     },
-  ].map((check) => {
+  ];
+
+  return samples.flatMap((sample) => {
+    const foreground = shades[sample.foreground];
+    const background = shades[sample.background];
+    if (!foreground || !background) return [];
+    const check = {
+      ...sample,
+      foreground: foreground.hex,
+      background: background.hex,
+    };
     const result = assessNonTextContrast(check.foreground, check.background);
     const threshold = WCAG_CONTRAST.nonText;
 
-    return {
+    const assessed = {
       ...check,
       result,
       simulated: simulatedContrast(
@@ -360,41 +435,69 @@ export function assessNonTextChecks(
           )
         : [],
     };
+    return [assessed];
   });
 }
 
 export function assessFocusCheck(shades: PreviewShades): FocusContrastResult {
+  /* Both are required tokens, so this cannot be reached without them. */
   return assessFocusContrast(
-    shades.primaryFocus.hex,
-    shades.neutralDark.hex,
-    shades.neutralDark.hex,
+    shades[TOKENS.focusRing]!.hex,
+    shades[TOKENS.textPrimary]!.hex,
+    shades[TOKENS.textPrimary]!.hex,
   );
 }
 
-/*
- * The semantic pairs, and the shades of them that are compared.
+/**
+ * Which tokens have to be told apart by colour.
  *
- * Two tracks are twenty shades each, so comparing every combination is 190
- * numbers per deficiency and almost all noise. These are the pairs a component
- * actually puts together — a success badge beside an error one — at the action
- * shade each would use. The choice was already being made here before
- * simulation existed; simulation reuses it rather than inventing a second
- * notion of which shades matter.
+ * A rule rather than a list. The one that was here named four pairs by hand and
+ * missed `status.success` against `status.info` — green against blue, which is
+ * exactly what tritanopia brings together. Hand-written lists miss the case
+ * nobody thought of, which is the case worth checking.
+ *
+ * The groups are the ones that signal by colour: a status badge says what it
+ * means with its fill, and an action says which of two buttons to press. Any
+ * two of those can appear side by side, so every pair among them is measured.
+ * Everything else — a surface, a border, body text — is told apart by position
+ * or by the words on it.
  */
-const SEMANTIC_PAIRS: Array<{
-  label: string;
-  first: keyof PreviewShades;
-  second: keyof PreviewShades;
-}> = [
-  {
-    label: "Success and warning",
-    first: "successAction",
-    second: "warningAction",
-  },
-  { label: "Success and error", first: "successAction", second: "errorAction" },
-  { label: "Warning and error", first: "warningAction", second: "errorAction" },
-  { label: "Primary and info", first: "primaryAction", second: "infoAction" },
-];
+const SIGNALLING_GROUPS = ["status", "action"];
+
+function group(id: string): string {
+  return id.split(".")[0] ?? id;
+}
+
+/** `status.success` reads as `success` once its group has been said. */
+function shortName(id: string): string {
+  const parts = id.split(".");
+  return parts[parts.length - 1] ?? id;
+}
+
+function pairLabel(first: string, second: string): string {
+  const lead = shortName(first);
+  return `${lead.charAt(0).toUpperCase()}${lead.slice(1)} and ${shortName(second)}`;
+}
+
+/**
+ * Every pair of signalling tokens present in the layer.
+ *
+ * Ordered by the layer rather than alphabetically, so the report reads in the
+ * order somebody arranged their tokens.
+ */
+export function semanticPairIds(
+  shades: PreviewShades,
+): Array<[string, string]> {
+  const signalling = Object.keys(shades).filter((id) =>
+    SIGNALLING_GROUPS.includes(group(id)),
+  );
+
+  return signalling.flatMap((first, at) =>
+    signalling
+      .slice(at + 1)
+      .map((second) => [first, second] as [string, string]),
+  );
+}
 
 export interface SimulatedSimilarity {
   deficiency: ColourVisionDeficiency;
@@ -423,9 +526,10 @@ export interface SemanticPairCheck {
 export function assessSemanticPairs(
   shades: PreviewShades,
 ): SemanticPairCheck[] {
-  return SEMANTIC_PAIRS.map(({ label, first, second }) => {
-    const firstShade = shades[first];
-    const secondShade = shades[second];
+  return semanticPairIds(shades).map(([first, second]) => {
+    const label = pairLabel(first, second);
+    const firstShade = shades[first]!;
+    const secondShade = shades[second]!;
     const result = assessColourSimilarity(firstShade.hex, secondShade.hex);
 
     const simulated = COLOUR_VISION_DEFICIENCIES.map((deficiency) => ({
