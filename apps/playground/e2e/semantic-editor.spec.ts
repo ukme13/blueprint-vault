@@ -39,12 +39,12 @@ async function swatch(
 }
 
 test.describe("The semantic editor", () => {
-  test("seeds the eleven roles already in use", async ({
+  test("seeds the twelve roles the page needs", async ({
     seededPage: page,
   }) => {
     const editor = await openSemantics(page);
-    await expect(editor.getByRole("listitem")).toHaveCount(11);
-    await expect(editor.getByText("--color-primary-action")).toBeVisible();
+    await expect(editor.getByRole("listitem")).toHaveCount(12);
+    await expect(editor.getByText("--color-action-primary")).toBeVisible();
   });
 
   test("shows both modes at once", async ({ seededPage: page }) => {
@@ -52,8 +52,8 @@ test.describe("The semantic editor", () => {
        decided. Choosing them one at a time is how a layer ends up with dark
        text on a dark page. */
     const editor = await openSemantics(page);
-    await expect(editor.getByLabel("Primary action light track")).toBeVisible();
-    await expect(editor.getByLabel("Primary action dark track")).toBeVisible();
+    await expect(editor.getByLabel("Action primary light track")).toBeVisible();
+    await expect(editor.getByLabel("Action primary dark track")).toBeVisible();
   });
 
   test("moves every token pointing at a track when that track changes", async ({
@@ -62,7 +62,7 @@ test.describe("The semantic editor", () => {
     /* The rule the whole layer rests on, and the one thing no unit test can
        show: no reload, no re-seed, just the reference resolving again. */
     const editor = await openSemantics(page);
-    const before = await swatch(editor, "Primary action", "light");
+    const before = await swatch(editor, "Action primary", "light");
 
     await page.getByRole("button", { name: "Overview" }).click();
     await page
@@ -81,7 +81,7 @@ test.describe("The semantic editor", () => {
 
     await page.getByRole("button", { name: "Semantics" }).click();
     await expect
-      .poll(() => swatch(editor, "Primary action", "light"))
+      .poll(() => swatch(editor, "Action primary", "light"))
       .not.toBe(before);
 
     /* And the stored token still holds only a reference. Switching tabs
@@ -98,7 +98,7 @@ test.describe("The semantic editor", () => {
             semantics?: Array<{ id: string; light: Record<string, unknown> }>;
           };
           const token = stored.semantics?.find(
-            (each) => each.id === "primary.action",
+            (each) => each.id === "action.primary",
           );
           return token ? Object.keys(token.light).sort() : null;
         }, WORKSPACE_STORAGE_KEY),
@@ -110,13 +110,13 @@ test.describe("The semantic editor", () => {
     seededPage: page,
   }) => {
     const editor = await openSemantics(page);
-    const darkBefore = await swatch(editor, "Primary action", "dark");
+    const darkBefore = await swatch(editor, "Action primary", "dark");
 
-    await editor.getByLabel("Primary action light weight").click();
+    await editor.getByLabel("Action primary light weight").click();
     await page.getByRole("option", { name: "100", exact: true }).click();
 
     await expect
-      .poll(() => swatch(editor, "Primary action", "dark"))
+      .poll(() => swatch(editor, "Action primary", "dark"))
       .toBe(darkBefore);
   });
 
@@ -126,28 +126,28 @@ test.describe("The semantic editor", () => {
     /* The id is the exported name, so a rename that left it alone would let
        the label and the variable a developer writes drift apart. */
     const editor = await openSemantics(page);
-    const field = editor.getByLabel("primary.soft name");
+    const field = editor.getByLabel("surface.raised name");
 
     await field.fill("Brand wash");
     await field.press("Enter");
 
     await expect(editor.getByText("--color-brand-wash")).toBeVisible();
-    await expect(editor.getByText("--color-primary-soft")).toHaveCount(0);
+    await expect(editor.getByText("--color-surface-raised")).toHaveCount(0);
   });
 
   test("adds and removes a token", async ({ seededPage: page }) => {
     const editor = await openSemantics(page);
 
     await editor.getByRole("button", { name: "Add token" }).click();
-    await expect(editor.getByRole("listitem")).toHaveCount(12);
+    await expect(editor.getByRole("listitem")).toHaveCount(13);
 
     await editor.getByRole("button", { name: "Remove New token" }).click();
-    await expect(editor.getByRole("listitem")).toHaveCount(11);
+    await expect(editor.getByRole("listitem")).toHaveCount(12);
   });
 
   test("keeps the layer across a reload", async ({ seededPage: page }) => {
     const editor = await openSemantics(page);
-    await editor.getByLabel("Primary action light weight").click();
+    await editor.getByLabel("Action primary light weight").click();
     await page.getByRole("option", { name: "100", exact: true }).click();
 
     await expect
@@ -159,7 +159,7 @@ test.describe("The semantic editor", () => {
             semantics?: Array<{ id: string; light: { weight: number } }>;
           };
           return (
-            stored.semantics?.find((token) => token.id === "primary.action")
+            stored.semantics?.find((token) => token.id === "action.primary")
               ?.light.weight ?? null
           );
         }, WORKSPACE_STORAGE_KEY),
@@ -169,7 +169,7 @@ test.describe("The semantic editor", () => {
     await page.reload();
     const reopened = await openSemantics(page);
     await expect(
-      reopened.getByLabel("Primary action light weight"),
+      reopened.getByLabel("Action primary light weight"),
     ).toContainText("100");
   });
 });

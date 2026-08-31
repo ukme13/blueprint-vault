@@ -308,7 +308,7 @@ describe("the semantic slice", () => {
       typography: null,
     })!;
 
-    expect(stored.semantics).toHaveLength(11);
+    expect(stored.semantics).toHaveLength(12);
     expect(stored.semantics!.every((token) => token.light && token.dark)).toBe(
       true,
     );
@@ -327,8 +327,8 @@ describe("the semantic slice", () => {
   it("keeps a stored layer rather than reseeding it", () => {
     const chosen = [
       {
-        id: "primary.action",
-        name: "Primary action",
+        id: "action.primary",
+        name: "Action primary",
         description: "",
         light: { trackId: "primary", weight: 100 },
         dark: { trackId: "primary", weight: 900 },
@@ -352,8 +352,8 @@ describe("the semantic slice", () => {
       typography: null,
       semantics: [
         {
-          id: "primary.action",
-          name: "Primary action",
+          id: "action.primary",
+          name: "Action primary",
           description: "",
           light: { trackId: "primary", weight: 550 },
           dark: { trackId: "primary", weight: 400 },
@@ -361,7 +361,7 @@ describe("the semantic slice", () => {
         /* One mode only. Guessing the other would put a colour nobody chose
            into an export. */
         {
-          id: "primary.soft",
+          id: "surface.raised",
           light: { trackId: "primary", weight: 100 },
         },
         "not a token",
@@ -369,17 +369,17 @@ describe("the semantic slice", () => {
     })!;
 
     expect(stored.semantics).toHaveLength(1);
-    expect(stored.semantics![0]!.id).toBe("primary.action");
+    expect(stored.semantics![0]!.id).toBe("action.primary");
   });
 
   it("seeds a layer when the workspace is rebuilt from the old keys", () => {
     const project = workspaceFromLegacy(legacyPalette(), legacyTypography())!;
-    expect(project.semantics).toHaveLength(11);
+    expect(project.semantics).toHaveLength(12);
   });
 
   it("gives a first palette a layer, and leaves an edited one alone", () => {
     const first = withPaletteSlice(null, legacyPalette() as never);
-    expect(first.semantics).toHaveLength(11);
+    expect(first.semantics).toHaveLength(12);
 
     const edited = withPaletteSlice(
       { ...first, semantics: [] },
@@ -398,5 +398,30 @@ describe("the semantic slice", () => {
     expect(next.palette).toBe(base.palette);
     expect(next.typography).toBe(base.typography);
     expect(next.name).toBe(base.name);
+  });
+});
+
+describe("a layer stored under the first names", () => {
+  it("comes back on the usage-based ones", () => {
+    /* End to end through the reader, because the rename is only useful if it
+       happens on the path the studio actually loads through. */
+    const stored = readWorkspaceProject({
+      name: "Brand",
+      palette: legacyPalette(),
+      typography: null,
+      semantics: [
+        {
+          id: "neutral.dark",
+          name: "Neutral dark",
+          description: "",
+          light: { trackId: "primary", weight: 950 },
+          dark: { trackId: "primary", weight: 25 },
+        },
+      ],
+    })!;
+
+    expect(stored.semantics).toHaveLength(1);
+    expect(stored.semantics![0]!.id).toBe("text.primary");
+    expect(stored.semantics![0]!.light.weight).toBe(950);
   });
 });

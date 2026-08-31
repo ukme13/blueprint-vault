@@ -41,16 +41,21 @@ export interface SemanticToken {
 }
 
 /**
- * The eleven roles, and where each one sits.
+ * The roles, and where each one sits.
  *
- * These are not invented here. `selectPreviewShades` has been making exactly
- * this choice since before the semantic layer existed — which track a role
- * reaches for, and how far along it — and this table is that choice moved
- * somewhere it can be edited and exported. The ids are a mechanical
- * translation of the names it already used, so no role means anything new.
+ * Which track each reaches for, and how far along it, still comes from
+ * `selectPreviewShades` — that choice predates this layer and is only moved
+ * here so it can be edited and exported.
  *
- * Naming them better is a later job, and one the demo page is meant to drive:
- * a set argued from what a real page needs beats a set invented up front.
+ * The names are the demo page's answer. The first pass translated the preview
+ * helper's own labels, which described a position on a ramp: `neutral.light`,
+ * `neutral.dark`, `primary.soft`. Building a real page out of them showed what
+ * they were actually for — a canvas, body text, a raised card — so they now say
+ * that instead. A developer reading `--color-surface-base` knows where it goes;
+ * `--color-neutral-light` only says how light it is.
+ *
+ * Old ids are carried forward by `migrateSemanticIds`, so a layer saved under
+ * the first names keeps working.
  */
 interface SeedRole {
   id: string;
@@ -75,23 +80,61 @@ type TrackRole =
 
 const SEED_ROLES: readonly SeedRole[] = [
   {
-    id: "primary.action",
-    name: "Primary action",
+    id: "action.primary",
+    name: "Action primary",
     description: "The fill of a primary button or an active control.",
     track: "primary",
     position: 0.55,
   },
   {
-    id: "primary.soft",
-    name: "Primary soft",
-    description: "A tinted background that still reads as primary.",
+    id: "action.secondary",
+    name: "Action secondary",
+    description: "The fill of a secondary button or control.",
+    track: "secondary",
+    position: 0.48,
+  },
+  {
+    id: "surface.base",
+    name: "Surface base",
+    description: "The page canvas, behind everything else.",
+    track: "neutral",
+    position: 0.08,
+  },
+  {
+    id: "surface.raised",
+    name: "Surface raised",
+    description: "A card or panel lifted off the canvas.",
     track: "primary",
     position: 0.12,
   },
   {
-    id: "primary.focus",
-    name: "Primary focus",
-    description: "The focus ring.",
+    id: "border.default",
+    name: "Border default",
+    description: "Borders and dividers.",
+    track: "neutral",
+    position: 0.48,
+  },
+  {
+    id: "text.primary",
+    name: "Text primary",
+    description: "Body text and headings.",
+    track: "neutral",
+    position: 0.9,
+  },
+  {
+    id: "text.secondary",
+    /* The page asked for this one. Muted text was being faked with opacity,
+       which the primitive check cannot see and which mixes a colour nobody
+       chose out of whatever happens to be behind it. */
+    name: "Text secondary",
+    description: "Supporting text, captions and help.",
+    track: "neutral",
+    position: 0.68,
+  },
+  {
+    id: "focus.ring",
+    name: "Focus ring",
+    description: "The focus indicator.",
     track: "primary",
     position: 0.32,
     /* 300 is the weight the focus token is documented against, so it is taken
@@ -99,58 +142,30 @@ const SEED_ROLES: readonly SeedRole[] = [
     preferWeight: 300,
   },
   {
-    id: "secondary.action",
-    name: "Secondary action",
-    description: "The fill of a secondary button or control.",
-    track: "secondary",
-    position: 0.48,
-  },
-  {
-    id: "neutral.light",
-    name: "Neutral light",
-    description: "The lightest neutral, for canvas and page background.",
-    track: "neutral",
-    position: 0.08,
-  },
-  {
-    id: "neutral.mid",
-    name: "Neutral mid",
-    description: "A mid neutral, for borders and dividers.",
-    track: "neutral",
-    position: 0.48,
-  },
-  {
-    id: "neutral.dark",
-    name: "Neutral dark",
-    description: "The darkest neutral, for body text and headings.",
-    track: "neutral",
-    position: 0.9,
-  },
-  {
-    id: "success.action",
-    name: "Success action",
-    description: "The fill of a success badge or message.",
+    id: "status.success",
+    name: "Status success",
+    description: "A success badge or message.",
     track: "success",
     position: 0.55,
   },
   {
-    id: "warning.action",
-    name: "Warning action",
-    description: "The fill of a warning badge or message.",
+    id: "status.warning",
+    name: "Status warning",
+    description: "A warning badge or message.",
     track: "warning",
     position: 0.45,
   },
   {
-    id: "error.action",
-    name: "Error action",
-    description: "The fill of an error badge or message.",
+    id: "status.error",
+    name: "Status error",
+    description: "An error badge or message.",
     track: "error",
     position: 0.55,
   },
   {
-    id: "info.action",
-    name: "Info action",
-    description: "The fill of an informational badge or message.",
+    id: "status.info",
+    name: "Status info",
+    description: "An informational badge or message.",
     track: "info",
     position: 0.55,
   },
@@ -413,4 +428,85 @@ export function removeSemanticToken(
   id: string,
 ): SemanticToken[] {
   return tokens.filter((token) => token.id !== id);
+}
+/**
+ * The CSS custom-property name a token exports under.
+ *
+ * `primary.action` becomes `--color-primary-action`. Dots are the layer's own
+ * separator and mean nothing to CSS.
+ */
+export function semanticVariableName(id: string): string {
+  return `--color-${id.replace(/\./g, "-")}`;
+}
+
+/**
+ * A layer as custom properties, resolved for one mode.
+ *
+ * Values, not aliases. A preview has to be able to simulate what it shows, and
+ * a colour-vision transform needs a colour rather than a reference to one. The
+ * export in stage 5 emits aliases instead, from the same tokens — which is the
+ * point of resolution living in one place.
+ *
+ * `transform` is where simulation hooks in; it defaults to the identity so a
+ * caller that does not simulate passes nothing.
+ */
+export function semanticCssVariables(
+  tokens: SemanticToken[],
+  mode: ColourMode,
+  tracks: ColorTrack[],
+  transform: (hex: string) => string = (hex) => hex,
+): Record<string, string> {
+  return Object.fromEntries(
+    resolveSemantics(tokens, mode, tracks).map((resolved) => [
+      semanticVariableName(resolved.id),
+      transform(resolved.hex),
+    ]),
+  );
+}
+
+/**
+ * The first names, and what they became.
+ *
+ * The first pass took the preview helper's labels, which describe a position on
+ * a ramp rather than a use. Anything already saved under them is renamed on the
+ * way in, so a project made before this keeps its layer instead of silently
+ * gaining a second set beside the ones it has.
+ */
+const RENAMED_IDS: Readonly<Record<string, string>> = {
+  "primary.action": "action.primary",
+  "secondary.action": "action.secondary",
+  "neutral.light": "surface.base",
+  "primary.soft": "surface.raised",
+  "neutral.mid": "border.default",
+  "neutral.dark": "text.primary",
+  "primary.focus": "focus.ring",
+  "success.action": "status.success",
+  "warning.action": "status.warning",
+  "error.action": "status.error",
+  "info.action": "status.info",
+};
+
+/**
+ * Carry a stored layer onto the current names.
+ *
+ * A token is renamed only when its id is untouched from the first seed set: a
+ * rename moves the id with the label, so an id still matching one of these is
+ * one nobody has edited. And never onto a name already taken — two tokens
+ * sharing an id would export one variable twice and the later would win.
+ */
+export function migrateSemanticIds(tokens: SemanticToken[]): SemanticToken[] {
+  const taken = new Set(tokens.map((token) => token.id));
+
+  return tokens.map((token) => {
+    const renamed = RENAMED_IDS[token.id];
+    if (!renamed || taken.has(renamed)) return token;
+
+    const role = SEED_ROLES.find((each) => each.id === renamed);
+    return {
+      ...token,
+      id: renamed,
+      name: role?.name ?? token.name,
+      description: role?.description ?? token.description,
+    };
+  });
 }
