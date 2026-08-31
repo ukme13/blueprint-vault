@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 interface WorkspaceNavProps {
-  active: "colour" | "typography";
+  active: "colour" | "typography" | "preview";
 }
 
 export function WorkspaceNav({ active }: WorkspaceNavProps) {
@@ -17,6 +17,12 @@ export function WorkspaceNav({ active }: WorkspaceNavProps) {
         href="/typography"
       >
         Typography
+      </Link>
+      <Link
+        aria-current={active === "preview" ? "page" : undefined}
+        href="/preview"
+      >
+        Preview
       </Link>
     </nav>
   );
