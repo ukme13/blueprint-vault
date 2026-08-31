@@ -414,3 +414,37 @@ export function removeSemanticToken(
 ): SemanticToken[] {
   return tokens.filter((token) => token.id !== id);
 }
+/**
+ * The CSS custom-property name a token exports under.
+ *
+ * `primary.action` becomes `--color-primary-action`. Dots are the layer's own
+ * separator and mean nothing to CSS.
+ */
+export function semanticVariableName(id: string): string {
+  return `--color-${id.replace(/\./g, "-")}`;
+}
+
+/**
+ * A layer as custom properties, resolved for one mode.
+ *
+ * Values, not aliases. A preview has to be able to simulate what it shows, and
+ * a colour-vision transform needs a colour rather than a reference to one. The
+ * export in stage 5 emits aliases instead, from the same tokens — which is the
+ * point of resolution living in one place.
+ *
+ * `transform` is where simulation hooks in; it defaults to the identity so a
+ * caller that does not simulate passes nothing.
+ */
+export function semanticCssVariables(
+  tokens: SemanticToken[],
+  mode: ColourMode,
+  tracks: ColorTrack[],
+  transform: (hex: string) => string = (hex) => hex,
+): Record<string, string> {
+  return Object.fromEntries(
+    resolveSemantics(tokens, mode, tracks).map((resolved) => [
+      semanticVariableName(resolved.id),
+      transform(resolved.hex),
+    ]),
+  );
+}
