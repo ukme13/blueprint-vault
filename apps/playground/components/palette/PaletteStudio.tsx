@@ -30,6 +30,7 @@ import {
   WORKSPACE_STORAGE_KEY,
   loadWorkspace,
   withPaletteSlice,
+  withSemanticsSlice,
   withSharedName,
   type WorkspaceProject,
   type WorkspaceLoadInput,
@@ -46,6 +47,7 @@ import {
   type ColorTrackInput,
   type ColourVisionDeficiency,
   type PaletteProjectData,
+  type SemanticToken,
 } from "@blueprint/ui";
 import { WorkspaceNav } from "../WorkspaceNav";
 import { PaletteCreation } from "./PaletteCreation";
@@ -55,6 +57,7 @@ import { PaletteMatrix } from "./PaletteMatrix";
 import { PaletteOverview } from "./PaletteOverview";
 import { PaletteExportDialog } from "./PaletteExportDialog";
 import { PalettePreview } from "./PalettePreview";
+import { SemanticEditor } from "./SemanticEditor";
 import { TrackDetailDialog } from "./TrackDetailDialog";
 import styles from "./palette-workspace.module.css";
 import {
@@ -77,7 +80,8 @@ const SEMANTIC_TRACKS: ColorTrackInput[] = [
 
 type ContrastTarget = "white" | "black" | "custom";
 
-type PlaygroundSection = "overview" | "shade-generator" | "preview";
+type PlaygroundSection =
+  "overview" | "shade-generator" | "semantics" | "preview";
 
 type PaletteProject = PaletteProjectData;
 
@@ -131,19 +135,41 @@ function readStoredProject(): PaletteProject | null {
  * typography studio owns the other slice and may have written it since this
  * page loaded. Writing the copy we loaded would take its work with us.
  */
-/** The slices this studio does not own, so an exported file carries them. */
-function readForeignSlices(): Pick<
-  WorkspaceProject,
-  "typography" | "semantics"
-> {
+/** The typography half, so an exported file carries the whole workspace. */
+function readStoredTypography(): WorkspaceProject["typography"] {
   try {
-    const project = loadWorkspace(readStorageKeys()).project;
-    return {
-      typography: project?.typography ?? null,
-      semantics: project?.semantics ?? null,
-    };
+    return loadWorkspace(readStorageKeys()).project?.typography ?? null;
   } catch {
-    return { typography: null, semantics: null };
+    return null;
+  }
+}
+
+/** The semantic layer, which this studio owns now that it can edit it. */
+function readStoredSemantics(): WorkspaceProject["semantics"] {
+  try {
+    return loadWorkspace(readStorageKeys()).project?.semantics ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Persist the semantic layer, and only that slice.
+ *
+ * The stored workspace is re-read for the same reason the palette write does
+ * it: another tab may have moved on since this page loaded, and writing the
+ * copy we hold would take its work with us.
+ */
+function writeStoredSemantics(semantics: SemanticToken[] | null): void {
+  try {
+    const current = loadWorkspace(readStorageKeys()).project;
+    window.localStorage.setItem(
+      WORKSPACE_STORAGE_KEY,
+      JSON.stringify(withSemanticsSlice(current, semantics)),
+    );
+  } catch {
+    /* As with the palette: a storage that refuses a write is not something the
+       studio can resolve, and losing the session is worse. */
   }
 }
 
@@ -264,9 +290,11 @@ function PaletteStudioContent() {
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   /* Read once on load, so an export carries the type scale without this
      component reading storage while it renders. */
-  const [foreignSlices, setForeignSlices] = useState<
-    Pick<WorkspaceProject, "typography" | "semantics">
-  >({ typography: null, semantics: null });
+  const [typographySlice, setTypographySlice] =
+    useState<WorkspaceProject["typography"]>(null);
+  const [semantics, setSemantics] =
+    useState<WorkspaceProject["semantics"]>(null);
+  const [hasLoadedSemantics, setHasLoadedSemantics] = useState(false);
   const [pendingImport, setPendingImport] = useState<WorkspaceProject | null>(
     null,
   );
@@ -285,7 +313,9 @@ function PaletteStudioContent() {
        hydration. */
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setProject(readStoredProject());
-    setForeignSlices(readForeignSlices());
+    setTypographySlice(readStoredTypography());
+    setSemantics(readStoredSemantics());
+    setHasLoadedSemantics(true);
     setHasLoadedProject(true);
   }, []);
 
@@ -294,6 +324,14 @@ function PaletteStudioContent() {
 
     writeStoredProject(project);
   }, [hasLoadedProject, project]);
+
+  useEffect(() => {
+    /* Guarded separately from the palette: writing before the load has run
+       would persist a null layer over a stored one. */
+    if (!hasLoadedSemantics) return;
+
+    writeStoredSemantics(semantics);
+  }, [hasLoadedSemantics, semantics]);
 
   const weights = useMemo(() => {
     const shadeCount = project?.lightnessValues.length ?? 0;
@@ -363,10 +401,8 @@ function PaletteStudioContent() {
       <PaletteCreation
         onImport={(imported) => {
           writeImportedWorkspace(imported);
-          setForeignSlices({
-            typography: imported.typography,
-            semantics: imported.semantics,
-          });
+          setTypographySlice(imported.typography);
+          setSemantics(imported.semantics);
           setProject(imported.palette);
         }}
         onCreate={({ name, seedHex, method }) => {
@@ -706,6 +742,7 @@ function PaletteStudioContent() {
           >
             <Tab label="Overview" value="overview" />
             <Tab label="Shade generator" value="shade-generator" />
+            <Tab label="Semantics" value="semantics" />
             <Tab label="Preview" value="preview" />
           </TabList>
         </nav>
@@ -903,6 +940,14 @@ function PaletteStudioContent() {
         />
       )}
 
+      {activeSection === "semantics" && (
+        <SemanticEditor
+          palettes={palettes}
+          tokens={semantics ?? []}
+          onChange={setSemantics}
+        />
+      )}
+
       {activeSection === "preview" && <PalettePreview palettes={palettes} />}
 
       {activeSection === "shade-generator" && (
@@ -1000,7 +1045,8 @@ function PaletteStudioContent() {
         workspace={{
           name: project.name,
           palette: project,
-          ...foreignSlices,
+          typography: typographySlice,
+          semantics,
         }}
         onOpenChange={setIsExportDialogOpen}
       />
@@ -1015,10 +1061,8 @@ function PaletteStudioContent() {
           /* Both halves, before the palette state lands — the persist effect
              below only ever writes its own slice. */
           writeImportedWorkspace(pendingImport);
-          setForeignSlices({
-            typography: pendingImport.typography,
-            semantics: pendingImport.semantics,
-          });
+          setTypographySlice(pendingImport.typography);
+          setSemantics(pendingImport.semantics);
           setProject(pendingImport.palette);
           setPendingImport(null);
           setActiveShade(null);

@@ -304,3 +304,113 @@ export function resolveSemantics(
     .map((token) => resolveSemantic(token, mode, tracks))
     .filter((resolved): resolved is ResolvedSemantic => resolved !== null);
 }
+
+/**
+ * Editing a layer.
+ *
+ * Pure `SemanticToken[] -> SemanticToken[]`, so the editor is a rendering
+ * concern and every rule about ids and uniqueness is testable without a DOM.
+ */
+
+/** Turn a label into a token id: lowercase, words joined by a single dot. */
+export function semanticId(label: string): string {
+  return label
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ".")
+    .replace(/^\.|\.$/g, "");
+}
+
+/**
+ * Rename a token, and its id with it.
+ *
+ * The id is the exported name — `primary.action` becomes
+ * `--color-primary-action` — so a rename that left it alone would let the
+ * label and the token a developer writes drift apart. The typography groups
+ * made exactly that mistake and had to be fixed.
+ *
+ * A blank or duplicate label keeps the existing id rather than colliding: two
+ * tokens sharing an id would export one variable twice, and the later one
+ * would silently win.
+ */
+export function renameSemanticToken(
+  tokens: SemanticToken[],
+  id: string,
+  label: string,
+): SemanticToken[] {
+  if (!tokens.some((token) => token.id === id)) return tokens;
+
+  const wanted = semanticId(label);
+  let nextId = wanted || id;
+  let suffix = 2;
+  while (nextId !== id && tokens.some((candidate) => candidate.id === nextId)) {
+    nextId = `${wanted}.${suffix}`;
+    suffix += 1;
+  }
+
+  return tokens.map((token) =>
+    token.id === id
+      ? { ...token, id: nextId, name: label.trim() || token.name }
+      : token,
+  );
+}
+
+/** Point one mode of one token somewhere else. */
+export function repointSemanticToken(
+  tokens: SemanticToken[],
+  id: string,
+  mode: ColourMode,
+  reference: SemanticReference,
+): SemanticToken[] {
+  return tokens.map((token) =>
+    token.id === id ? { ...token, [mode]: reference } : token,
+  );
+}
+
+/**
+ * Add a token.
+ *
+ * It starts pointing at the middle of the first track in both modes rather
+ * than at nothing: a token with no reference cannot be previewed, and the
+ * first thing anybody does is repoint it anyway.
+ */
+export function addSemanticToken(
+  tokens: SemanticToken[],
+  tracks: ColorTrack[],
+  label = "New token",
+): SemanticToken[] {
+  if (tracks.length === 0) return tokens;
+
+  const track = tracks[0]!;
+  const middle = shadeAt(track, 0.5);
+  const reference = { trackId: track.id, weight: middle.weight };
+
+  const wanted = semanticId(label) || "token";
+  let id = wanted;
+  let suffix = 2;
+  while (tokens.some((token) => token.id === id)) {
+    id = `${wanted}.${suffix}`;
+    suffix += 1;
+  }
+
+  return [
+    ...tokens,
+    {
+      id,
+      name: label,
+      description: "",
+      light: reference,
+      dark: {
+        trackId: track.id,
+        weight: mirrored(track, middle.weight).weight,
+      },
+    },
+  ];
+}
+
+export function removeSemanticToken(
+  tokens: SemanticToken[],
+  id: string,
+): SemanticToken[] {
+  return tokens.filter((token) => token.id !== id);
+}
