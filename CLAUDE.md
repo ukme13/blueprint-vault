@@ -44,6 +44,35 @@ We absolutely DO NOT use standard Tailwind raw utility colors (e.g., `bg-orange-
 1. **NO `tailwind.config.js`:** We use CSS-first configuration. All theme utilities are declared inside `packages/ui/src/theme.css` under the `@theme` directive.
 2. **Dynamic Utility Classes:** To add custom colors dynamically at runtime, leverage theme tokens variables (`bg-primary-600`, `text-neutral-950`) rather than arbitrary values like `bg-[var(--...)]`.
 
+## 🖼️ Icon Guidelines
+
+1. **Primary library: `lucide-react`** for standard UI icons. Import each icon
+   individually so the bundle tree-shakes:
+   `import { ChevronDown } from "lucide-react";` — never a namespace import.
+
+   Not yet a direct dependency. It resolves today only as a transitive
+   dependency of `@astryxdesign/theme-neutral` (1.23.0 in the lockfile; 1.37.0
+   is current). Add it explicitly to the workspace that imports it before
+   writing the first icon, rather than relying on another package's tree.
+
+2. **Custom icons live in**
+   `packages/ui/src/components/icons/[category]/[IconName].tsx`, re-exported
+   through an `index.ts` in that folder.
+
+3. **Custom SVG standard.** Type the props as `SVGProps<SVGSVGElement>` and
+   spread them, so a caller can pass `className`, `aria-hidden` or a size
+   override. Use `stroke="currentColor"` or `fill="currentColor"` — never a
+   literal colour — so an icon follows whatever Tailwind text utility is on its
+   parent.
+
+   Defaults: `width="24"`, `height="24"`, `viewBox="0 0 24 24"`, `fill="none"`,
+   `strokeWidth="2"`, `strokeLinecap="round"`, `strokeLinejoin="round"`.
+
+4. **Check the metaphor before drawing it.** When asked for a new custom icon,
+   evaluate the concept first. If it is a cliché or reads ambiguously at 24px,
+   propose two or three alternative visual concepts and let the user choose
+   before writing any code.
+
 ## 🏛️ Architecture Constraints
 
 1. **Domain logic lives in `packages/ui`.** Pure data transformations, state
