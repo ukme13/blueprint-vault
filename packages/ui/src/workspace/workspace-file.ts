@@ -4,11 +4,12 @@ import {
 } from "../color/export";
 import { readPaletteProjectData } from "./palette-project";
 import { readSemanticTokens, semanticsForPalette } from "./semantics";
+import { spacingOrDefault } from "./spacing-slice";
 import { readTypographyProjectData } from "./typography-project";
 import { DEFAULT_WORKSPACE_NAME } from "./workspace";
 import type { WorkspaceProject } from "./types";
 
-export const BLUEPRINT_WORKSPACE_FILE_VERSION = 2;
+export const BLUEPRINT_WORKSPACE_FILE_VERSION = 3;
 
 /**
  * Versions this build can open.
@@ -16,10 +17,11 @@ export const BLUEPRINT_WORKSPACE_FILE_VERSION = 2;
  * A strict equality on the current version is what shipped, and it would have
  * refused every file anybody had already saved the moment the semantic slice
  * was added. A version is a statement about what a file contains, not a
- * demand that it was written by this exact build: 1 differs from 2 only by
- * lacking semantics, which are seeded on the way in.
+ * demand that it was written by this exact build: each earlier version differs
+ * only by lacking a slice that is filled on the way in — semantics at 2, the
+ * spacing scale at 3.
  */
-export const SUPPORTED_WORKSPACE_FILE_VERSIONS: readonly number[] = [1, 2];
+export const SUPPORTED_WORKSPACE_FILE_VERSIONS: readonly number[] = [1, 2, 3];
 
 export interface BlueprintWorkspaceFile {
   kind: "blueprint-workspace";
@@ -56,6 +58,7 @@ function paletteOnlyWorkspace(project: PaletteProjectData): WorkspaceProject {
     palette: project,
     typography: null,
     semantics: semanticsForPalette(project),
+    spacing: spacingOrDefault(undefined),
   };
 }
 
@@ -134,13 +137,14 @@ function readWorkspaceFileProject(value: unknown): WorkspaceProject {
     throw new TypeError("The Blueprint project data is incomplete or invalid.");
   }
 
-  /* A version 1 file has no semantics and gains the seeded layer here, which is
-     the whole of the upgrade: nothing else about the shape changed. */
+  /* Each earlier version is missing a slice and gains it here. Nothing else
+     about the shape has changed across the three. */
   return {
     name: raw.name,
     palette,
     typography,
     semantics:
       readSemanticTokens(raw.semantics) ?? semanticsForPalette(palette),
+    spacing: spacingOrDefault(raw.spacing),
   };
 }

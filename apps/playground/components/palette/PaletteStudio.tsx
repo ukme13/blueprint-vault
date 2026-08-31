@@ -29,6 +29,7 @@ import {
   MAX_SHADE_COUNT,
   WORKSPACE_STORAGE_KEY,
   loadWorkspace,
+  defaultSpacingScale,
   withPaletteSlice,
   withSemanticsSlice,
   withSharedName,
@@ -141,6 +142,17 @@ function readStoredTypography(): WorkspaceProject["typography"] {
     return loadWorkspace(readStorageKeys()).project?.typography ?? null;
   } catch {
     return null;
+  }
+}
+
+/** The spacing scale, so an exported file carries it. Not edited here yet. */
+function readStoredSpacing(): WorkspaceProject["spacing"] {
+  try {
+    return (
+      loadWorkspace(readStorageKeys()).project?.spacing ?? defaultSpacingScale()
+    );
+  } catch {
+    return defaultSpacingScale();
   }
 }
 
@@ -294,6 +306,9 @@ function PaletteStudioContent() {
     useState<WorkspaceProject["typography"]>(null);
   const [semantics, setSemantics] =
     useState<WorkspaceProject["semantics"]>(null);
+  const [spacing, setSpacing] = useState<WorkspaceProject["spacing"]>(
+    defaultSpacingScale(),
+  );
   const [hasLoadedSemantics, setHasLoadedSemantics] = useState(false);
   const [pendingImport, setPendingImport] = useState<WorkspaceProject | null>(
     null,
@@ -315,6 +330,7 @@ function PaletteStudioContent() {
     setProject(readStoredProject());
     setTypographySlice(readStoredTypography());
     setSemantics(readStoredSemantics());
+    setSpacing(readStoredSpacing());
     setHasLoadedSemantics(true);
     setHasLoadedProject(true);
   }, []);
@@ -403,6 +419,7 @@ function PaletteStudioContent() {
           writeImportedWorkspace(imported);
           setTypographySlice(imported.typography);
           setSemantics(imported.semantics);
+          setSpacing(imported.spacing);
           setProject(imported.palette);
         }}
         onCreate={({ name, seedHex, method }) => {
@@ -1047,6 +1064,7 @@ function PaletteStudioContent() {
           palette: project,
           typography: typographySlice,
           semantics,
+          spacing,
         }}
         onOpenChange={setIsExportDialogOpen}
       />
@@ -1063,6 +1081,7 @@ function PaletteStudioContent() {
           writeImportedWorkspace(pendingImport);
           setTypographySlice(pendingImport.typography);
           setSemantics(pendingImport.semantics);
+          setSpacing(pendingImport.spacing);
           setProject(pendingImport.palette);
           setPendingImport(null);
           setActiveShade(null);

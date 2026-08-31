@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { defaultSpacingScale } from "../scale/spacing";
 import { formatBlueprintPaletteProject } from "../color/export";
 import { defaultSystem } from "../typography/system";
 import {
@@ -36,6 +37,7 @@ const workspace = (over: Partial<WorkspaceProject> = {}): WorkspaceProject => ({
     template: "article",
   },
   semantics: null,
+  spacing: defaultSpacingScale(),
   ...over,
 });
 
@@ -186,7 +188,7 @@ describe("a version 1 file still opens", () => {
 
   it("writes the current version", () => {
     const file = JSON.parse(formatBlueprintWorkspace(workspace()));
-    expect(file.version).toBe(2);
+    expect(file.version).toBe(3);
   });
 
   it("round-trips a chosen layer rather than reseeding it", () => {
@@ -209,7 +211,7 @@ describe("a version 1 file still opens", () => {
   it("still refuses a version it does not know", () => {
     const future = JSON.stringify({
       kind: "blueprint-workspace",
-      version: 3,
+      version: 4,
       project: workspace(),
     });
     expect(() => parseBlueprintWorkspace(future)).toThrow(/not supported/);
@@ -225,5 +227,38 @@ describe("a version 1 file still opens", () => {
     const after = parseBlueprintWorkspace(paletteFile);
     expect(after.typography).toBeNull();
     expect(after.semantics).toHaveLength(12);
+  });
+});
+
+describe("a version 2 file still opens", () => {
+  it("reads a file written before the spacing scale existed", () => {
+    /* The check that shipped was a strict equality on the current version and
+       would have refused every saved file. Each earlier version differs only by
+       lacking a slice that is filled on the way in. */
+    const before = workspace();
+    const v2 = JSON.stringify({
+      kind: "blueprint-workspace",
+      version: 2,
+      project: {
+        name: before.name,
+        palette: before.palette,
+        typography: before.typography,
+        semantics: before.semantics,
+      },
+    });
+
+    const after = parseBlueprintWorkspace(v2);
+    expect(after.name).toBe("Brand");
+    expect(after.palette?.tracks).toHaveLength(1);
+    expect(after.spacing).toEqual(defaultSpacingScale());
+  });
+
+  it("round-trips an edited scale rather than defaulting it", () => {
+    const after = parseBlueprintWorkspace(
+      formatBlueprintWorkspace(
+        workspace({ spacing: { baseUnitPx: 8, steps: [1, 2, 4] } }),
+      ),
+    );
+    expect(after.spacing).toEqual({ baseUnitPx: 8, steps: [1, 2, 4] });
   });
 });

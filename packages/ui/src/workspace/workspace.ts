@@ -1,9 +1,12 @@
 import { readPaletteProjectData } from "./palette-project";
 import { readSemanticTokens, semanticsForPalette } from "./semantics";
+import { spacingOrDefault } from "./spacing-slice";
+import { defaultSpacingScale } from "../scale/spacing";
 import { readTypographyProjectData } from "./typography-project";
 import type { TypographyProjectData, WorkspaceProject } from "./types";
 import type { PaletteProjectData } from "../color/export";
 import type { SemanticToken } from "../color/semantic";
+import type { SpacingScale } from "../scale/spacing";
 
 export const WORKSPACE_STORAGE_KEY = "blueprint.workspace.v1";
 
@@ -75,6 +78,7 @@ export function readWorkspaceProject(value: unknown): WorkspaceProject | null {
     typography: readTypographyProjectData(value.typography),
     semantics:
       readSemanticTokens(value.semantics) ?? semanticsForPalette(palette),
+    spacing: spacingOrDefault(value.spacing),
   };
 }
 
@@ -102,7 +106,13 @@ export function workspaceFromLegacy(
       .map((candidate) => candidate?.trim())
       .find((candidate) => candidate) ?? DEFAULT_WORKSPACE_NAME;
 
-  return { name, palette, typography, semantics: semanticsForPalette(palette) };
+  return {
+    name,
+    palette,
+    typography,
+    semantics: semanticsForPalette(palette),
+    spacing: defaultSpacingScale(),
+  };
 }
 
 /**
@@ -129,7 +139,13 @@ export function loadWorkspace(input: WorkspaceLoadInput): WorkspaceLoadResult {
 export function emptyWorkspace(
   name = DEFAULT_WORKSPACE_NAME,
 ): WorkspaceProject {
-  return { name, palette: null, typography: null, semantics: null };
+  return {
+    name,
+    palette: null,
+    typography: null,
+    semantics: null,
+    spacing: defaultSpacingScale(),
+  };
 }
 
 /*
@@ -162,6 +178,20 @@ export function withPaletteSlice(
  * this slice and must not carry a stale copy of a palette somebody edited in
  * another tab back over the top of it.
  */
+/**
+ * Replace the spacing scale, keeping the other slices.
+ *
+ * Its own writer for the same reason the others have one: whoever edits this
+ * must not carry a stale copy of a palette somebody changed in another tab
+ * back over the top of it.
+ */
+export function withSpacingSlice(
+  current: WorkspaceProject | null,
+  spacing: SpacingScale,
+): WorkspaceProject {
+  return { ...(current ?? emptyWorkspace()), spacing };
+}
+
 export function withSemanticsSlice(
   current: WorkspaceProject | null,
   semantics: SemanticToken[] | null,
