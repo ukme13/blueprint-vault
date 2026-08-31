@@ -19,7 +19,7 @@ describe("the default scale", () => {
     const tokens = resolveSpacing(defaultSpacingScale());
     const pixels = tokens.map((token) => token.px);
 
-    expect(pixels).toEqual([0, 2, 4, 6, 8, 12, 16, 20, 24, 32, 40, 48]);
+    expect(pixels).toEqual([0, 2, 4, 6, 8, 12, 16, 20, 24, 32, 40, 48, 64]);
     for (const px of pixels) {
       expect(px % 2).toBe(0);
     }

@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 /**
- * Finding primitive colours where only semantic ones belong.
+ * Finding raw values where only tokens belong.
  *
  * The demo page is meant to be built from the semantic layer and nothing else,
  * because that is what makes it useful: every place it has to reach for a
@@ -45,6 +45,23 @@ const TAILWIND_PRIMITIVE =
 const LITERAL_COLOUR =
   /#[0-9a-fA-F]{3,8}\b|\b(?:rgb|rgba|hsl|hsla|oklch|oklab|lab|lch)\(/g;
 
+/**
+ * A file's lines with its comments blanked out.
+ *
+ * Comments are prose: a note explaining why a primitive is wrong here would
+ * otherwise fail the check it describes. Blanked rather than removed so the
+ * line numbers in a failure still point at the real line — and across lines,
+ * because a doc comment spanning five of them is where the explanation
+ * actually lives. Stripping only `//` and a single-line `/* … *\/` missed
+ * exactly that, and this file's own documentation was the thing it missed.
+ */
+function strippedLines(path: string): string[] {
+  return readFileSync(path, "utf8")
+    .replace(/\/\*[\s\S]*?\*\//g, (comment) => comment.replace(/[^\n]/g, " "))
+    .split("\n")
+    .map((line) => line.replace(/\/\/.*$/, ""));
+}
+
 function sourceFiles(directory: string): string[] {
   const found: string[] = [];
   for (const entry of readdirSync(directory)) {
@@ -69,16 +86,64 @@ export function findPrimitiveColourUse(directory: string): PrimitiveUse[] {
   const uses: PrimitiveUse[] = [];
 
   for (const path of sourceFiles(directory)) {
-    const lines = readFileSync(path, "utf8").split("\n");
-    lines.forEach((text, index) => {
-      /* Comments are prose. A note explaining why a primitive is wrong here
-         would otherwise fail the check that the note is about. */
-      const code = text.replace(/\/\/.*$/, "").replace(/\/\*.*?\*\//g, "");
+    strippedLines(path).forEach((code, index) => {
       for (const pattern of [
         CSS_PRIMITIVE,
         TAILWIND_PRIMITIVE,
         LITERAL_COLOUR,
       ]) {
+        for (const match of code.matchAll(pattern)) {
+          uses.push({
+            file: relative(directory, path),
+            line: index + 1,
+            found: match[0],
+          });
+        }
+      }
+    });
+  }
+
+  return uses;
+}
+
+/**
+ * A measurement written out rather than taken from the spacing scale.
+ *
+ * The same idea as the colour check, and it has to catch Tailwind for the same
+ * reason: `p-4` reaches a measurement without ever writing `px`, exactly as
+ * `bg-primary-500` reached a colour without writing `var`.
+ *
+ * **Padding, margin, gap and space only.** Widths and heights are sizes rather
+ * than spacing — `w-56` on a control is a component dimension, and the plan
+ * defers size tokens to their own family. Flagging them here would push the
+ * page into inventing tokens this stage has not designed.
+ *
+ * `1px` is exempt, and so is any line carrying a media query. A hairline border
+ * is not a token anybody wants, and a breakpoint is not spacing. A check that
+ * flagged them would be switched off within a week, so it states what it does
+ * not cover.
+ */
+const CSS_LENGTH = /\b(?!1px\b)\d*\.?\d+(?:px|rem)\b/g;
+
+/** Tailwind utilities whose value comes from the spacing scale. */
+const TAILWIND_SPACING =
+  /\b(?:p|px|py|pt|pr|pb|pl|ps|pe|m|mx|my|mt|mr|mb|ml|ms|me|gap|gap-x|gap-y|space-x|space-y)-\d+(?:\.\d+)?(?![\d./a-z-])/g;
+
+export interface MeasurementUse {
+  file: string;
+  line: number;
+  found: string;
+}
+
+export function findHardcodedMeasurements(directory: string): MeasurementUse[] {
+  const uses: MeasurementUse[] = [];
+
+  for (const path of sourceFiles(directory)) {
+    strippedLines(path).forEach((code, index) => {
+      /* A breakpoint is not spacing. */
+      if (code.includes("@media")) return;
+
+      for (const pattern of [CSS_LENGTH, TAILWIND_SPACING]) {
         for (const match of code.matchAll(pattern)) {
           uses.push({
             file: relative(directory, path),

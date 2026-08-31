@@ -38,9 +38,13 @@ export const MAX_SPACING_STEP = 64;
  * border or an icon gap; whole numbers to 6 where most layout sits; then 8, 10
  * and 12 for section spacing, which is where a step of 1 stops being a
  * distinction anybody makes.
+ *
+ * 16 is here because the preview page asked for it — 64px of vertical padding
+ * around a page section, which the list stopped short of. That is the whole
+ * point of building the page against the scale rather than beside it.
  */
 export const DEFAULT_SPACING_STEPS: readonly number[] = [
-  0, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 8, 10, 12,
+  0, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 8, 10, 12, 16,
 ];
 
 export interface SpacingScale {
@@ -151,4 +155,19 @@ export function normalizeSpacingScale(scale: SpacingScale): SpacingScale {
     baseUnitPx,
     steps: steps.length > 0 ? steps : [...DEFAULT_SPACING_STEPS],
   };
+}
+
+/**
+ * The scale as custom properties.
+ *
+ * In rem, per the plan: spacing should grow when somebody raises their browser
+ * font size, while a 4px corner should not. The px value is kept on the token
+ * for anything that has to measure rather than render.
+ */
+export function spacingCssVariables(
+  scale: SpacingScale,
+): Record<string, string> {
+  return Object.fromEntries(
+    resolveSpacing(scale).map((token) => [token.variable, `${token.rem}rem`]),
+  );
 }

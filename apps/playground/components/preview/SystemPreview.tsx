@@ -13,9 +13,11 @@ import {
   LEGACY_TYPOGRAPHY_STORAGE_KEY,
   WORKSPACE_STORAGE_KEY,
   colourVisionOptionLabel,
+  defaultSpacingScale,
   generatePalettes,
   loadWorkspace,
   semanticCssVariables,
+  spacingCssVariables,
   type ColourMode,
   type ColourVisionDeficiency,
   type SemanticToken,
@@ -64,6 +66,15 @@ const WARNING = "var(--color-status-warning)";
 const ERROR = "var(--color-status-error)";
 const INFO = "var(--color-status-info)";
 
+/**
+ * A spacing step as a length.
+ *
+ * Inline like the colours rather than through a Tailwind utility, for the same
+ * reason: `p-4` reaches a measurement the scale did not give it, and the check
+ * that keeps this page honest cannot tell that from a token.
+ */
+const space = (step: string) => `var(--spacing-${step})`;
+
 export function SystemPreview() {
   const { seen, view, setDeficiency } = usePaletteView();
   const [project, setProject] = useState<WorkspaceProject | null>(null);
@@ -80,13 +91,23 @@ export function SystemPreview() {
 
   const tokens: SemanticToken[] = project?.semantics ?? [];
   const palettes = project?.palette ? generatePalettes(project.palette) : [];
-  const variables = semanticCssVariables(tokens, mode, palettes, seen);
+  /* Both families on the same element that uses them, for the reason below. */
+  const variables = {
+    ...semanticCssVariables(tokens, mode, palettes, seen),
+    ...spacingCssVariables(project?.spacing ?? defaultSpacingScale()),
+  };
 
   if (hasLoaded && tokens.length === 0) {
     return (
-      <main className="mx-auto max-w-2xl px-6 py-16">
+      <main
+        className="mx-auto max-w-2xl"
+        style={{ paddingInline: space("6"), paddingBlock: space("16") }}
+      >
         <h1 className="text-xl font-semibold">Nothing to preview yet</h1>
-        <p className="mt-2 text-sm" style={{ color: TEXT_MUTED }}>
+        <p
+          className="text-sm"
+          style={{ color: TEXT_MUTED, marginTop: space("2") }}
+        >
           This page is drawn entirely from the semantic layer. Build a palette,
           then open the Semantics tab to see it here.
         </p>
@@ -106,8 +127,14 @@ export function SystemPreview() {
     >
       <>
         <header
-          className="flex flex-wrap items-center gap-3 border-b px-6 py-3"
-          style={{ borderColor: BORDER, background: SURFACE }}
+          className="flex flex-wrap items-center border-b"
+          style={{
+            borderColor: BORDER,
+            background: SURFACE,
+            gap: space("3"),
+            paddingInline: space("6"),
+            paddingBlock: space("3"),
+          }}
         >
           <strong className="mr-auto text-sm">
             {project?.name ?? "Workspace"}
@@ -142,8 +169,15 @@ export function SystemPreview() {
           <WorkspaceNav active="preview" />
         </header>
 
-        <main className="mx-auto flex max-w-4xl flex-col gap-10 px-6 py-12">
-          <section className="flex flex-col gap-4">
+        <main
+          className="mx-auto flex max-w-4xl flex-col"
+          style={{
+            gap: space("10"),
+            paddingInline: space("6"),
+            paddingBlock: space("12"),
+          }}
+        >
+          <section className="flex flex-col" style={{ gap: space("4") }}>
             <h1 className="text-4xl font-semibold tracking-tight">
               A system you can hand over
             </h1>
@@ -151,24 +185,39 @@ export function SystemPreview() {
               Every colour on this page comes from a semantic token. Change what
               a token points at and this page follows, in both modes.
             </p>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap" style={{ gap: space("3") }}>
               <button
-                className="rounded px-4 py-2 text-sm font-medium"
-                style={{ background: ACTION, color: SURFACE }}
+                className="rounded text-sm font-medium"
+                style={{
+                  background: ACTION,
+                  color: SURFACE,
+                  paddingInline: space("4"),
+                  paddingBlock: space("2"),
+                }}
                 type="button"
               >
                 Primary action
               </button>
               <button
-                className="rounded px-4 py-2 text-sm font-medium"
-                style={{ background: ACTION_SECONDARY, color: SURFACE }}
+                className="rounded text-sm font-medium"
+                style={{
+                  background: ACTION_SECONDARY,
+                  color: SURFACE,
+                  paddingInline: space("4"),
+                  paddingBlock: space("2"),
+                }}
                 type="button"
               >
                 Secondary
               </button>
               <button
-                className="rounded border px-4 py-2 text-sm font-medium"
-                style={{ borderColor: BORDER, color: TEXT }}
+                className="rounded border text-sm font-medium"
+                style={{
+                  borderColor: BORDER,
+                  color: TEXT,
+                  paddingInline: space("4"),
+                  paddingBlock: space("2"),
+                }}
                 type="button"
               >
                 Tertiary
@@ -178,7 +227,8 @@ export function SystemPreview() {
 
           <section
             aria-label="Status messages"
-            className="grid gap-3 sm:grid-cols-2"
+            className="grid sm:grid-cols-2"
+            style={{ gap: space("3") }}
           >
             {[
               {
@@ -196,13 +246,18 @@ export function SystemPreview() {
             ].map((item) => (
               <article
                 key={item.title}
-                className="flex gap-3 rounded border p-4"
-                style={{ borderColor: BORDER, background: RAISED }}
+                className="flex rounded border"
+                style={{
+                  borderColor: BORDER,
+                  background: RAISED,
+                  gap: space("3"),
+                  padding: space("4"),
+                }}
               >
                 <span
                   aria-hidden="true"
-                  className="mt-1 size-3 shrink-0 rounded-full"
-                  style={{ background: item.tone }}
+                  className="size-3 shrink-0 rounded-full"
+                  style={{ background: item.tone, marginTop: space("1") }}
                 />
                 <div>
                   <h2 className="text-sm font-semibold">{item.title}</h2>
@@ -216,28 +271,42 @@ export function SystemPreview() {
 
           <section
             aria-label="Sign up"
-            className="rounded border p-6"
-            style={{ borderColor: BORDER, background: RAISED }}
+            className="rounded border"
+            style={{
+              borderColor: BORDER,
+              background: RAISED,
+              padding: space("6"),
+            }}
           >
             <h2 className="text-lg font-semibold">Stay in the loop</h2>
-            <div className="mt-4 flex flex-wrap gap-3">
+            <div
+              className="flex flex-wrap"
+              style={{ marginTop: space("4"), gap: space("3") }}
+            >
               <input
                 aria-label="Email address"
-                className="min-w-0 flex-1 rounded border px-3 py-2 text-sm outline-none focus:ring-2"
+                className="min-w-0 flex-1 rounded border text-sm outline-none focus:ring-2"
                 placeholder="you@example.com"
                 style={
                   {
                     borderColor: BORDER,
                     background: SURFACE,
                     color: TEXT,
+                    paddingInline: space("3"),
+                    paddingBlock: space("2"),
                     "--tw-ring-color": FOCUS,
                   } as CSSProperties
                 }
                 type="email"
               />
               <button
-                className="rounded px-4 py-2 text-sm font-medium"
-                style={{ background: ACTION, color: SURFACE }}
+                className="rounded text-sm font-medium"
+                style={{
+                  background: ACTION,
+                  color: SURFACE,
+                  paddingInline: space("4"),
+                  paddingBlock: space("2"),
+                }}
                 type="button"
               >
                 Subscribe
@@ -247,8 +316,13 @@ export function SystemPreview() {
         </main>
 
         <footer
-          className="border-t px-6 py-6 text-sm"
-          style={{ borderColor: BORDER, color: TEXT_MUTED }}
+          className="border-t text-sm"
+          style={{
+            borderColor: BORDER,
+            color: TEXT_MUTED,
+            paddingInline: space("6"),
+            paddingBlock: space("6"),
+          }}
         >
           Drawn from {tokens.length} semantic tokens, in {mode} mode.
         </footer>
