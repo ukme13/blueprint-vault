@@ -40,6 +40,7 @@ import {
 } from "@blueprint/ui";
 import { TypographyCreation } from "./TypographyCreation";
 import { TypographyExportDialog } from "./TypographyExportDialog";
+import { WorkspaceBrand } from "../WorkspaceBrand";
 import { WorkspaceNav } from "../WorkspaceNav";
 import { type PreviewLanguage, type PreviewWidth } from "./preview-templates";
 import { FontStackEditor } from "./FontStackEditor";
@@ -306,21 +307,10 @@ export function TypographyStudio() {
   return (
     <main className={styles.workspace}>
       <header className={styles.topbar}>
-        <p className={styles.brand}>
-          <span aria-hidden="true" className={styles.brandMark}>
-            B
-          </span>
-          Blueprint
-          <span className={styles.breadcrumb}>/</span>
-          <input
-            aria-label="Project name"
-            className={styles.projectNameInput}
-            maxLength={80}
-            spellCheck={false}
-            value={system.name}
-            onChange={(event) => updateSystem({ name: event.target.value })}
-          />
-        </p>
+        <WorkspaceBrand
+          name={system.name}
+          onChange={(name) => updateSystem({ name })}
+        />
         <nav aria-label="Playground sections" className={styles.navigation}>
           <TabList
             size="sm"

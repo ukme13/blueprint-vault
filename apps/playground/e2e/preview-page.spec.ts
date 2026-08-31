@@ -53,3 +53,42 @@ test.describe("The system preview", () => {
     ).toBeVisible();
   });
 });
+
+test.describe("The preview's vision control", () => {
+  test("turns simulation on and back off again", async ({ page }) => {
+    /* A selector alone had no way back: it offered the four deficiencies and
+       nothing that meant normal vision. The chip is the on/off, the same shape
+       the shade generator uses. */
+    await seedProject(page);
+    await page.goto("/preview");
+
+    const primary = page.getByRole("button", { name: "Primary action" });
+    const fill = () =>
+      primary.evaluate((node) => getComputedStyle(node).backgroundColor);
+    const normal = await fill();
+
+    const chip = page.getByRole("button", { name: "Vision" });
+    await chip.click();
+    await expect(page.getByLabel("Vision type")).toBeVisible();
+    await expect.poll(fill).not.toBe(normal);
+
+    await chip.click();
+    await expect(page.getByLabel("Vision type")).toBeHidden();
+    await expect.poll(fill).toBe(normal);
+  });
+
+  test("shares the choice with the shade generator", async ({ page }) => {
+    /* One preference for the workspace: both pages read the same provider, so
+       turning it on here has it on there. */
+    await seedProject(page);
+    await page.goto("/preview");
+    await page.getByRole("button", { name: "Vision" }).click();
+    await expect(page.getByLabel("Vision type")).toBeVisible();
+
+    await page.goto("/");
+    await expect(page.getByRole("button", { name: "Vision" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+});

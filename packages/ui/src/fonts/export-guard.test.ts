@@ -4,6 +4,7 @@ import {
   formatTypeScaleCssExport,
   formatTypeScaleTailwindExport,
 } from "../typography/export";
+import { seedSemanticTokens } from "../color/semantic";
 import { defaultElevationScale } from "../scale/elevation";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
@@ -209,6 +210,7 @@ describe("no export carries font data", () => {
     const report = buildAccessibilityReport({
       projectName: "Uploaded",
       palettes: reportPalette(),
+      semantics: seedSemanticTokens(reportPalette()),
       typography: systemWithLocalFont(),
     })!;
 

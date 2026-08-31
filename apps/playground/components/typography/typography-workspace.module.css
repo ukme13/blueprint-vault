@@ -42,51 +42,6 @@
   grid-template-columns: 1fr auto;
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0;
-  color: var(--color-neutral-400);
-  font-size: 14px;
-}
-
-.brandMark {
-  width: 28px;
-  height: 28px;
-  display: inline-grid;
-  place-items: center;
-  border-radius: 8px;
-  background: var(--color-primary-500);
-  color: var(--color-neutral-950);
-  font-weight: 900;
-}
-
-.breadcrumb {
-  color: var(--color-neutral-650);
-}
-
-.projectNameInput {
-  width: min(240px, 24vw);
-  padding: 4px 6px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--color-neutral-100);
-  font: inherit;
-  font-weight: 700;
-}
-
-.projectNameInput:hover {
-  border-color: var(--color-neutral-700);
-}
-
-.projectNameInput:focus-visible {
-  border-color: var(--color-primary-400);
-  outline: 2px solid var(--color-primary-700);
-  outline-offset: 1px;
-}
-
 .navigation {
   align-self: center;
 }
@@ -96,22 +51,6 @@
   display: flex;
   align-items: center;
   gap: 14px;
-}
-
-.headerActions nav {
-  display: flex;
-  gap: 10px;
-}
-
-.headerActions nav a {
-  color: var(--color-neutral-400);
-  font-size: 12px;
-  text-decoration: none;
-}
-
-.headerActions nav a:hover,
-.headerActions nav a[aria-current="page"] {
-  color: var(--color-neutral-100);
 }
 
 .creationHeader nav {

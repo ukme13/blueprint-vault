@@ -26,55 +26,6 @@
   background: var(--color-neutral-900);
 }
 
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0;
-  color: var(--color-neutral-400);
-  font-size: 14px;
-}
-
-.brand strong,
-.projectNameInput {
-  color: var(--color-neutral-100);
-}
-
-.projectNameInput {
-  width: min(240px, 24vw);
-  padding: 4px 6px;
-  border: 1px solid transparent;
-  border-radius: 6px;
-  background: transparent;
-  font: inherit;
-  font-weight: 700;
-}
-
-.projectNameInput:hover {
-  border-color: var(--color-neutral-700);
-}
-
-.projectNameInput:focus-visible {
-  border-color: var(--color-primary-400);
-  outline: 2px solid var(--color-primary-700);
-  outline-offset: 1px;
-}
-
-.brandMark {
-  width: 28px;
-  height: 28px;
-  display: inline-grid;
-  place-items: center;
-  border-radius: 8px;
-  background: var(--color-primary-500);
-  color: var(--color-neutral-950);
-  font-weight: 900;
-}
-
-.breadcrumb {
-  color: var(--color-neutral-650);
-}
-
 .navigation {
   align-self: center;
   /* The tab strip scrolls rather than widening the page. A fourth tab pushed
@@ -97,22 +48,6 @@
   gap: 14px;
 }
 
-.headerActions nav {
-  display: flex;
-  gap: 10px;
-}
-
-.headerActions nav a {
-  color: var(--color-neutral-400);
-  font-size: 12px;
-  text-decoration: none;
-}
-
-.headerActions nav a:hover,
-.headerActions nav a[aria-current="page"] {
-  color: var(--color-neutral-100);
-}
-
 .creationHeaderActions {
   display: flex;
   align-items: center;
@@ -133,86 +68,6 @@
 .creationHeaderActions nav a:hover,
 .creationHeaderActions nav a[aria-current="page"] {
   color: var(--color-neutral-100);
-}
-
-.exportDialogHeader,
-.exportDialogFooter {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 18px;
-}
-
-.exportDialogHeader {
-  border-bottom: 1px solid var(--color-neutral-700);
-}
-
-.exportDialogHeader h2 {
-  margin: 0;
-  font-size: 16px;
-}
-
-.exportDialogHeader > button {
-  margin-left: auto;
-}
-
-.exportDialogBody {
-  min-height: 430px;
-  display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
-}
-
-.exportSettings {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 18px;
-  border-right: 1px solid var(--color-neutral-700);
-}
-
-.exportSettings h3 {
-  margin: 0;
-  font-size: 12px;
-}
-
-.exportFormatGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.exportFormatGrid > button {
-  min-width: 0;
-}
-
-.exportColourFormat {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 10px;
-  color: var(--color-neutral-400);
-  font-size: 11px;
-}
-
-.exportPreview {
-  overflow: auto;
-  padding: 16px;
-  background: var(--color-neutral-900);
-  border-right: 1px solid var(--color-neutral-700);
-}
-
-.exportDialogFooter {
-  border-top: 1px solid var(--color-neutral-700);
-}
-
-.exportDialogFooterSpacer {
-  flex: 1;
-}
-
-.exportImportError {
-  color: var(--color-error-300);
-  font-size: 11px;
 }
 
 @media (max-width: 720px) {
@@ -273,73 +128,6 @@
    on/off, and choosing a mode is a second step inside the same unit rather
    than a separate switch beside it. Joined by squaring the facing corners so
    the pair looks like a segmented button once open. */
-.visionGroup {
-  display: inline-flex;
-  align-items: center;
-}
-
-.visionModeButton {
-  flex: none;
-  white-space: nowrap;
-}
-
-.visionModeButton svg {
-  flex: none;
-}
-
-.visionModeButton[data-active="true"] {
-  border-color: var(--color-primary-500);
-  background: var(--color-primary-900);
-  color: var(--color-primary-200);
-}
-
-.visionGroup[data-open="true"] .visionModeButton {
-  border-top-right-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-.visionOptions {
-  display: flex;
-  align-items: center;
-  box-sizing: border-box;
-  /* The same 28px, 1px border and 8px radius the outlined toolbar buttons
-     have. Without the explicit height the ghost selector inside sets it, and
-     it is 20px — which is what left this sitting 4px below Add colour and
-     WCAG 2 beside it. */
-  height: 28px;
-  width: 232px;
-  border: 1px solid var(--color-primary-500);
-  border-left: none;
-  border-radius: 0 8px 8px 0;
-  background: var(--color-primary-900);
-}
-
-.visionOptions > * {
-  width: 100%;
-}
-
-/* The selector fills the group rather than floating inside it, so the two
-   halves share one outline instead of showing two. */
-.visionOptions button {
-  height: 26px;
-  min-height: 0;
-  border-radius: 0 7px 7px 0;
-}
-
-/* The severity dial sits outside the joined pair rather than inside it: it
-   changes how much, not which, and squeezing a slider into the same outline
-   made the group read as one very wide control. */
-.visionSeverity {
-  display: flex;
-  align-items: center;
-  width: 120px;
-  margin-left: 10px;
-}
-
-.visionSeverity > * {
-  width: 100%;
-}
-
 .customContrastPicker {
   width: 22px;
   height: 22px;
@@ -2030,11 +1818,6 @@
   .topbar,
   .creationHeader {
     padding: 0 14px;
-  }
-
-  .breadcrumb,
-  .brand strong {
-    display: none;
   }
 
   .headerActions nav,

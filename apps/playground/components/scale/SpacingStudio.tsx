@@ -17,8 +17,10 @@ import {
   resolveSpacing,
   spacingStepName,
   generatePalettes,
+  emptyWorkspace,
   withElevationSlice,
   withRadiusSlice,
+  withSharedName,
   withSpacingSlice,
   type ElevationScale,
   type RadiusScale,
@@ -27,6 +29,8 @@ import {
   type WorkspaceProject,
 } from "@blueprint/ui";
 import { ElevationEditor } from "./ElevationEditor";
+import { SystemExportDialog } from "../SystemExportDialog";
+import { WorkspaceBrand } from "../WorkspaceBrand";
 import { RadiusEditor } from "./RadiusEditor";
 import { WorkspaceNav } from "../WorkspaceNav";
 
@@ -99,6 +103,28 @@ function writeStoredElevation(elevation: ElevationScale): void {
   }
 }
 
+/**
+ * Rename the workspace.
+ *
+ * Through withSharedName, because the name lives on the workspace and each
+ * slice keeps its own copy for the things that read it — the palette file
+ * format and the typography export. Writing only the top-level one leaves
+ * storage disagreeing with itself.
+ */
+function writeStoredName(name: string): void {
+  try {
+    const current = readStoredWorkspace() ?? emptyWorkspace();
+    window.localStorage.setItem(
+      WORKSPACE_STORAGE_KEY,
+      JSON.stringify(
+        withSharedName({ ...current, name: name.trim() || current.name }),
+      ),
+    );
+  } catch {
+    /* As above. */
+  }
+}
+
 /** Every step the ramp offers, whether or not this scale keeps it. */
 const OFFERED_STEPS = generateSpacingSteps(16);
 
@@ -111,6 +137,8 @@ export function SpacingStudio() {
   /* The shadow colour is drawn from the palette, so the levels need it. */
   const [palettes, setPalettes] = useState<ColorTrack[]>([]);
   const [name, setName] = useState("Workspace");
+  const [isExportOpen, setIsExportOpen] = useState(false);
+  const [workspace, setWorkspace] = useState<WorkspaceProject | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
 
   useEffect(() => {
@@ -123,6 +151,7 @@ export function SpacingStudio() {
     setElevation(project?.elevation ?? defaultElevationScale());
     setPalettes(project?.palette ? generatePalettes(project.palette) : []);
     setName(project?.name ?? "Workspace");
+    setWorkspace(project);
     setHasLoaded(true);
   }, []);
 
@@ -154,9 +183,23 @@ export function SpacingStudio() {
 
   return (
     <div className="min-h-dvh">
-      <header className="flex flex-wrap items-center gap-3 border-b border-[var(--color-border)] px-6 py-3">
-        <strong className="mr-auto text-sm">{name}</strong>
-        <WorkspaceNav active="scale" />
+      <header className="flex flex-wrap items-center gap-3 border-b border-[var(--color-neutral-800)] bg-[var(--color-neutral-900)] px-6 py-3">
+        <WorkspaceBrand
+          name={name}
+          onChange={setName}
+          onCommit={() => writeStoredName(name)}
+        />
+        <span className="ml-auto flex items-center gap-3">
+          <WorkspaceNav active="scale" />
+          <Button
+            scheme="neutral"
+            size="small"
+            variant="outlined"
+            onClick={() => setIsExportOpen(true)}
+          >
+            Export
+          </Button>
+        </span>
       </header>
 
       <main className="mx-auto flex max-w-4xl flex-col gap-8 px-6 py-10">
@@ -243,6 +286,21 @@ export function SpacingStudio() {
           onChange={setElevation}
         />
       </main>
+
+      {/* The same dialog Colour opens, carrying the whole system. Without an
+          import handler it offers export only: importing replaces the entire
+          workspace, which needs a confirmation this page does not own. */}
+      <SystemExportDialog
+        isOpen={isExportOpen}
+        workspace={{
+          ...(workspace ?? emptyWorkspace(name)),
+          name,
+          spacing: scale,
+          radius,
+          elevation,
+        }}
+        onOpenChange={setIsExportOpen}
+      />
     </div>
   );
 }

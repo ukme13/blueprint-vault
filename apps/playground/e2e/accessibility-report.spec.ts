@@ -105,7 +105,17 @@ test.describe("The accessibility report", () => {
 
     const parsed = JSON.parse(text);
     expect(parsed.method.wcagVersion).toBe("WCAG 2.2");
-    expect(parsed.colour.semanticPairs).toHaveLength(4);
+    /* Every pair among the tokens that signal by colour, derived from the
+       workspace's own layer rather than from a list in the package. */
+    const signalling = Object.keys(parsed.colour.shades).filter((id: string) =>
+      /^(status|action)\./.test(id),
+    ).length;
+    expect(parsed.colour.semanticPairs).toHaveLength(
+      (signalling * (signalling - 1)) / 2,
+    );
+    expect(
+      parsed.colour.semanticPairs.map((pair: { label: string }) => pair.label),
+    ).toContain("Success and error");
     expect(parsed.colour.textChecks.length).toBeGreaterThan(0);
   });
 

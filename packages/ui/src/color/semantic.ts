@@ -43,9 +43,10 @@ export interface SemanticToken {
 /**
  * The roles, and where each one sits.
  *
- * Which track each reaches for, and how far along it, still comes from
- * `selectPreviewShades` — that choice predates this layer and is only moved
- * here so it can be edited and exported.
+ * Which track each reaches for, and how far along it, came from the palette
+ * preview's own table — a choice that predated this layer and was moved here so
+ * it could be edited and exported. That table is gone now: the preview resolves
+ * these tokens instead, so this is the only place the choice is made.
  *
  * The names are the demo page's answer. The first pass translated the preview
  * helper's own labels, which described a position on a ramp: `neutral.light`,
@@ -181,8 +182,7 @@ function shadeAt(track: ColorTrack, position: number): ShadeItem {
  * The track a role reaches for.
  *
  * Every track falls back towards primary rather than to nothing, so a project
- * with a single track still seeds a complete layer. The chain is the one
- * `selectPreviewShades` already used.
+ * with a single track still seeds a complete layer.
  */
 function trackFor(tracks: ColorTrack[], role: TrackRole): ColorTrack {
   const named = (name: string, fallback: ColorTrack) =>
@@ -220,9 +220,9 @@ function mirrored(track: ColorTrack, weight: number): ShadeItem {
  * for the rest. It is a seed and not a rule: every reference is editable, and
  * the point of holding two is that they can disagree.
  *
- * Returns an empty layer for an empty palette rather than throwing, matching
- * `selectPreviewShades`: there is nothing to point at, which is a state the
- * studio reaches whenever the last track is deleted.
+ * Returns an empty layer for an empty palette rather than throwing: there is
+ * nothing to point at, which is a state the studio reaches whenever the last
+ * track is deleted.
  */
 export function seedSemanticTokens(tracks: ColorTrack[]): SemanticToken[] {
   if (tracks.length === 0) return [];

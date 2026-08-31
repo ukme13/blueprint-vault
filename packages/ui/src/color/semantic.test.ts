@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { generatePalettes } from "./palette";
-import { selectPreviewShades } from "./preview-assessment";
 import {
   addSemanticToken,
   migrateSemanticIds,
@@ -68,35 +67,25 @@ describe("seedSemanticTokens", () => {
      stage 5 collapses them. If somebody moves one and not the other, this
      fails rather than the studio quietly showing two answers. */
   it.each([10, 13, 17, 20, 21])(
-    "agrees with the preview shades it was taken from, over %i shades",
+    "resolves every seeded role to a shade the palette holds, over %i shades",
     (count) => {
-      /* Several shade counts, because a position that moves a little still
-         rounds to the same index on a long ramp: checking one palette let a
-         0.55 become a 0.5 unnoticed. */
+      /* This replaces a cross-check against `selectPreviewShades`, which held
+         its own copy of these roles behind a test asserting the two agreed.
+         There is one list now, so the thing worth checking is that every role
+         lands on a real shade at any ramp length — the rounding bug the old
+         test was written for. */
       const tracks = fullPalette(ramp(count));
       const tokens = seedSemanticTokens(tracks);
-      const preview = selectPreviewShades(tracks)!;
 
-      const sameAs = (id: string, hex: string) => {
-        const resolved = resolveSemantic(
-          tokenById(tokens, id),
-          "light",
-          tracks,
-        )!;
-        expect(resolved.hex, id).toBe(hex);
-      };
-
-      sameAs("action.primary", preview.primaryAction.hex);
-      sameAs("surface.raised", preview.primarySoft.hex);
-      sameAs("focus.ring", preview.primaryFocus.hex);
-      sameAs("action.secondary", preview.secondaryAction.hex);
-      sameAs("surface.base", preview.neutralLight.hex);
-      sameAs("border.default", preview.neutralMid.hex);
-      sameAs("text.primary", preview.neutralDark.hex);
-      sameAs("status.success", preview.successAction.hex);
-      sameAs("status.warning", preview.warningAction.hex);
-      sameAs("status.error", preview.errorAction.hex);
-      sameAs("status.info", preview.infoAction.hex);
+      for (const token of tokens) {
+        const resolved = resolveSemantic(token, "light", tracks)!;
+        const track = tracks.find((each) => each.id === resolved.trackId)!;
+        expect(
+          track.shades.some((shade) => shade.weight === resolved.weight),
+          `${token.id} at ${count} shades`,
+        ).toBe(true);
+        expect(resolved.missing, token.id).toBeNull();
+      }
     },
   );
 

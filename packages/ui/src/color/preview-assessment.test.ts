@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { generatePalettes } from "./palette";
+import { seedSemanticTokens } from "./semantic";
 import {
   assessNonTextChecks,
   assessPreview,
   assessSemanticPairs,
   assessTextChecks,
-  selectPreviewShades,
+  previewShadesFor,
 } from "./preview-assessment";
 import type { ColorTrack } from "./types";
 
@@ -30,54 +31,105 @@ function distinctPalette(): ColorTrack[] {
   ]);
 }
 
-function shadesOf(tracks: ColorTrack[]) {
-  const shades = selectPreviewShades(tracks);
+/**
+ * The layer resolved against a palette.
+ *
+ * Seeded rather than hand-written, because the seed is what a workspace
+ * actually starts with — a test built on a bespoke layer would pass while the
+ * real one was broken.
+ */
+function shadesOf(tracks: ColorTrack[], tokens = seedSemanticTokens(tracks)) {
+  const shades = previewShadesFor(tokens, tracks);
   if (!shades) throw new Error("expected shades");
   return shades;
 }
 
-describe("selectPreviewShades", () => {
+describe("previewShadesFor", () => {
   it("returns nothing for an empty palette", () => {
-    expect(selectPreviewShades([])).toBeNull();
+    expect(previewShadesFor([], [])).toBeNull();
+  });
+
+  it("returns nothing when the layer is missing what every check needs", () => {
+    /* Nothing to render beats a preview built from whatever happened to
+       resolve. */
+    const tracks = distinctPalette();
+    const withoutSurface = seedSemanticTokens(tracks).filter(
+      (token) => token.id !== "surface.base",
+    );
+    expect(previewShadesFor(withoutSurface, tracks)).toBeNull();
   });
 
   it("falls back to primary for every track a project has not got", () => {
     /* A project with one track still previews rather than crashing, which is
-       what the fallback chain is for. */
+       what the seed's fallback chain is for. */
     const only = palette([
       { id: "primary", name: "primary", seedHex: "#7646ab" },
     ]);
     const shades = shadesOf(only);
 
-    expect(shades.successAction.hex).toBe(shades.primaryAction.hex);
-    expect(shades.infoAction.hex).toBe(shades.primaryAction.hex);
+    expect(shades["status.success"]!.hex).toBe(shades["action.primary"]!.hex);
+    expect(shades["status.info"]!.hex).toBe(shades["action.primary"]!.hex);
   });
 
   it("uses the first track when nothing is named primary", () => {
     const shades = shadesOf(
       palette([{ id: "brand", name: "brand", seedHex: "#118844" }]),
     );
-    expect(shades.primaryAction.hex).toBeTruthy();
+    expect(shades["action.primary"]!.hex).toBeTruthy();
   });
 
   it("prefers the named focus weight over a position", () => {
     /* 300 is the weight the focus token is documented against, so it is taken
        by name where it exists rather than by where it falls in the track. */
-    const shades = shadesOf(distinctPalette());
-    expect(shades.primaryFocus.weight).toBe(300);
+    expect(shadesOf(distinctPalette())["focus.ring"]!.weight).toBe(300);
+  });
+
+  it("keys the shades by token id, so a renamed token follows", () => {
+    const tracks = distinctPalette();
+    const renamed = seedSemanticTokens(tracks).map((token) =>
+      token.id === "status.info" ? { ...token, id: "status.notice" } : token,
+    );
+    const shades = previewShadesFor(renamed, tracks)!;
+
+    expect(shades["status.notice"]).toBeDefined();
+    expect(shades["status.info"]).toBeUndefined();
   });
 });
 
 describe("assessSemanticPairs", () => {
-  it("compares the four pairs a component actually puts together", () => {
-    const pairs = assessSemanticPairs(shadesOf(distinctPalette()));
+  it("compares every pair of tokens that signal by colour", () => {
+    /* A rule rather than a list. The four that were named by hand are all
+       here, and so is Success and info — green against blue, which is what
+       tritanopia brings together and what a hand-written list missed. */
+    const labels = assessSemanticPairs(shadesOf(distinctPalette())).map(
+      (pair) => pair.label,
+    );
 
-    expect(pairs.map((pair) => pair.label)).toEqual([
-      "Success and warning",
-      "Success and error",
-      "Warning and error",
-      "Primary and info",
-    ]);
+    expect(labels).toContain("Success and warning");
+    expect(labels).toContain("Success and error");
+    expect(labels).toContain("Warning and error");
+    expect(labels).toContain("Primary and info");
+    expect(labels).toContain("Success and info");
+  });
+
+  it("leaves out a token that is told apart by position", () => {
+    /* A surface, a border and body text are not signals: nobody reads meaning
+       out of the colour of a divider. */
+    const labels = assessSemanticPairs(shadesOf(distinctPalette())).map(
+      (pair) => pair.label,
+    );
+    expect(labels.join(" ")).not.toMatch(/surface|border|Text/i);
+  });
+
+  it("shrinks with the layer", () => {
+    const tracks = distinctPalette();
+    const fewer = seedSemanticTokens(tracks).filter(
+      (token) => !token.id.startsWith("status."),
+    );
+    const shades = previewShadesFor(fewer, tracks)!;
+
+    /* Only the two actions are left, so there is one pair. */
+    expect(assessSemanticPairs(shades)).toHaveLength(1);
   });
 
   it("checks every deficiency, not only the one being previewed", () => {
@@ -365,7 +417,15 @@ describe("assessPreview", () => {
     expect(assessment.textChecks).toHaveLength(7);
     expect(assessment.textColourChoices).toHaveLength(4);
     expect(assessment.nonTextChecks).toHaveLength(2);
-    expect(assessment.semanticPairs).toHaveLength(4);
+    /* Every pair among the six tokens that signal by colour — two actions and
+       four statuses. The list that was here named four of the fifteen. */
+    const signalling = Object.keys(assessment.shades).filter((id) =>
+      /^(status|action)\./.test(id),
+    ).length;
+    expect(signalling).toBe(6);
+    expect(assessment.semanticPairs).toHaveLength(
+      (signalling * (signalling - 1)) / 2,
+    );
     expect(assessment.focusCheck.adjacentContrast).toBeGreaterThan(0);
   });
 });

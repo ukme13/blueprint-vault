@@ -14,16 +14,12 @@ import {
   SegmentedControl,
   SegmentedControlItem,
 } from "@astryxdesign/core/SegmentedControl";
-import { Selector } from "@astryxdesign/core/Selector";
-import { Slider } from "@astryxdesign/core/Slider";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { useToast } from "@astryxdesign/core/Toast";
 import {
   BLUEPRINT_20_PRESET,
   Button,
-  COLOUR_VISION_DEFICIENCIES,
-  MIN_COLOUR_VISION_SEVERITY,
   LEGACY_PALETTE_STORAGE_KEY,
   LEGACY_TYPOGRAPHY_STORAGE_KEY,
   MAX_SHADE_COUNT,
@@ -35,7 +31,6 @@ import {
   withSharedName,
   type WorkspaceProject,
   type WorkspaceLoadInput,
-  colourVisionOptionLabel,
   defaultLightnessValues,
   clampLightnessValue,
   generatePalettes,
@@ -46,17 +41,18 @@ import {
   parseBlueprintWorkspace,
   resizeLightnessArray,
   type ColorTrackInput,
-  type ColourVisionDeficiency,
   type PaletteProjectData,
   type SemanticToken,
 } from "@blueprint/ui";
+import { SystemExportDialog } from "../SystemExportDialog";
+import { VisionControl } from "../VisionControl";
+import { WorkspaceBrand } from "../WorkspaceBrand";
 import { WorkspaceNav } from "../WorkspaceNav";
 import { PaletteCreation } from "./PaletteCreation";
 import { PaletteControls } from "./PaletteControls";
 import { ColourPicker } from "./ColourPicker";
 import { PaletteMatrix } from "./PaletteMatrix";
 import { PaletteOverview } from "./PaletteOverview";
-import { PaletteExportDialog } from "./PaletteExportDialog";
 import { PalettePreview } from "./PalettePreview";
 import { SemanticEditor } from "./SemanticEditor";
 import { TrackDetailDialog } from "./TrackDetailDialog";
@@ -247,40 +243,6 @@ function createDefaultTracks(primarySeed: string): ColorTrackInput[] {
 
 /* The glasses mark from the toolbar design. Inline rather than an icon
    import: it is two circles and a bridge, and it belongs to this one chip. */
-function VisionIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      fill="none"
-      height="12"
-      viewBox="0 0 18 12"
-      width="18"
-    >
-      <circle cx="4" cy="7" r="3.2" stroke="currentColor" strokeWidth="1.4" />
-      <circle cx="14" cy="7" r="3.2" stroke="currentColor" strokeWidth="1.4" />
-      <path
-        d="M7.2 7h3.6M1 3.5C1.6 2 2.6 1.4 4 1.4M17 3.5c-.6-1.5-1.6-2.1-3-2.1"
-        stroke="currentColor"
-        strokeLinecap="round"
-        strokeWidth="1.4"
-      />
-    </svg>
-  );
-}
-
-/* Only the deficiencies. "Normal vision" is not an option here because the
-   chip itself is the on/off — offering both would give two ways to say the
-   same thing and let them disagree.
-
-   The labels depend on severity: below full strength these are the anomalous
-   trichromacies, which have different names, and a picker that said
-   "Deuteranopia" while simulating 0.6 would be naming something else. */
-function visionOptions(severity: number) {
-  return COLOUR_VISION_DEFICIENCIES.map((deficiency) => ({
-    value: deficiency,
-    label: colourVisionOptionLabel(deficiency, severity),
-  }));
-}
 
 export function PaletteStudio() {
   return (
@@ -301,17 +263,8 @@ function PaletteStudioContent() {
   const [activeTrackId, setActiveTrackId] = useState<string | null>(null);
   /* View modes live in context so they persist per device, alongside the
      colour format. Neither is part of the project. */
-  const {
-    deficiency,
-    severity,
-    setSeverity,
-    isSimulationOn,
-    isContrastModeOpen,
-    setDeficiency,
-    toggleSimulation,
-    toggleContrastMode,
-    closeContrastMode,
-  } = usePaletteView();
+  const { isContrastModeOpen, toggleContrastMode, closeContrastMode } =
+    usePaletteView();
   const [contrastTarget, setContrastTarget] = useState<ContrastTarget>("white");
   const [customContrastColour, setCustomContrastColour] = useState("#7646ab");
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
@@ -745,22 +698,11 @@ function PaletteStudioContent() {
   return (
     <main className={styles.workspace}>
       <header className={styles.topbar}>
-        <p className={styles.brand}>
-          <span aria-hidden="true" className={styles.brandMark}>
-            B
-          </span>
-          Blueprint
-          <span className={styles.breadcrumb}>/</span>
-          <input
-            aria-label="Project name"
-            className={styles.projectNameInput}
-            maxLength={80}
-            spellCheck={false}
-            value={project.name}
-            onBlur={commitProjectName}
-            onChange={(event) => updateProjectName(event.target.value)}
-          />
-        </p>
+        <WorkspaceBrand
+          name={project.name}
+          onChange={updateProjectName}
+          onCommit={commitProjectName}
+        />
         <nav aria-label="Playground sections" className={styles.navigation}>
           <TabList
             size="sm"
@@ -878,63 +820,7 @@ function PaletteStudioContent() {
             )}
           </section>
         )}
-        <span className={styles.visionGroup} data-open={isSimulationOn}>
-          <Tooltip
-            content="Preview the palette as someone with a colour vision deficiency sees it. Press again to turn it off."
-            hasHoverIndication={false}
-            placement="below"
-          >
-            <Button
-              aria-pressed={isSimulationOn}
-              className={styles.visionModeButton}
-              data-active={isSimulationOn}
-              scheme="neutral"
-              size="small"
-              variant="outlined"
-              leftIcon={<VisionIcon />}
-              onClick={toggleSimulation}
-            >
-              Vision
-            </Button>
-          </Tooltip>
-          {isSimulationOn && (
-            <span className={styles.visionOptions}>
-              <Selector
-                isLabelHidden
-                label="Vision type"
-                options={visionOptions(severity)}
-                size="sm"
-                value={deficiency}
-                variant="ghost"
-                onChange={(value) =>
-                  setDeficiency(value as ColourVisionDeficiency)
-                }
-              />
-            </span>
-          )}
-          {isSimulationOn && (
-            <span className={styles.visionSeverity}>
-              {/* Stepped at 0.1, which is exactly what Machado tabulates — so
-                  every position on this slider is a matrix read from the paper
-                  rather than an interpolation between two of them. It stops at
-                  0.1 because 0.0 is not a severity, it is the chip being
-                  off. */}
-              <Slider
-                isLabelHidden
-                label="Vision severity"
-                formatValue={(value) => `${Math.round(value * 100)}%`}
-                max={1}
-                min={MIN_COLOUR_VISION_SEVERITY}
-                step={0.1}
-                value={severity}
-                valueDisplay="text"
-                onChange={(value: number | [number, number]) =>
-                  setSeverity(value as number)
-                }
-              />
-            </span>
-          )}
-        </span>
+        <VisionControl />
         <span className={styles.toolbarDivider} />
         <Button
           className={styles.resetButton}
@@ -975,7 +861,9 @@ function PaletteStudioContent() {
         />
       )}
 
-      {activeSection === "preview" && <PalettePreview palettes={palettes} />}
+      {activeSection === "preview" && (
+        <PalettePreview palettes={palettes} semantics={semantics ?? []} />
+      )}
 
       {activeSection === "shade-generator" && (
         <section
@@ -1064,10 +952,8 @@ function PaletteStudioContent() {
         weights={weights}
       />
 
-      <PaletteExportDialog
+      <SystemExportDialog
         isOpen={isExportDialogOpen}
-        palettes={palettes}
-        project={project}
         onImportRequest={setPendingImport}
         workspace={{
           ...foreign,
