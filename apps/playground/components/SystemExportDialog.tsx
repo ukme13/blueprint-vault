@@ -17,14 +17,13 @@ import {
   formatDesignSystemCss,
   formatDesignSystemDesignTokens,
   formatDesignSystemTailwind,
+  generatePalettes,
   parseBlueprintWorkspace,
-  type ColorTrack,
   type ColourFormat,
-  type PaletteProjectData,
   type WorkspaceProject,
 } from "@blueprint/ui";
-import { useColourFormat } from "./ColourFormatContext";
-import styles from "./palette-workspace.module.css";
+import { useColourFormat } from "./palette/ColourFormatContext";
+import styles from "./system-export-dialog.module.css";
 
 type ExportFormat =
   "css" | "tailwind" | "tokens" | "project" | "report-md" | "report-json";
@@ -43,24 +42,33 @@ const FORMATS: Array<{ value: ExportFormat; label: string }> = [
    value in it is a measurement, and a ratio has no hex notation. */
 const REPORT_FORMATS: ExportFormat[] = ["report-md", "report-json"];
 
-interface PaletteExportDialogProps {
+interface SystemExportDialogProps {
   isOpen: boolean;
-  palettes: ColorTrack[];
-  project: PaletteProjectData;
-  /** Both halves, since a project file that carried one lost the other. */
+  /** Every slice, since a project file that carried one lost the others. */
   workspace: WorkspaceProject;
-  onImportRequest: (project: WorkspaceProject) => void;
+  /**
+   * Offered only where a studio can act on it.
+   *
+   * Importing replaces the whole workspace, which needs a confirmation and a
+   * write the importing page owns. A studio that cannot do that gets an export
+   * dialog without an import button rather than one whose button does nothing.
+   */
+  onImportRequest?: (project: WorkspaceProject) => void;
   onOpenChange: (isOpen: boolean) => void;
 }
 
-export function PaletteExportDialog({
+export function SystemExportDialog({
   isOpen,
-  palettes,
-  project,
   workspace,
   onImportRequest,
   onOpenChange,
-}: PaletteExportDialogProps) {
+}: SystemExportDialogProps) {
+  /* Derived rather than passed. The palette is already in the workspace, and a
+     second copy of it in the props is one more thing that can disagree. */
+  const palettes = useMemo(
+    () => (workspace.palette ? generatePalettes(workspace.palette) : []),
+    [workspace.palette],
+  );
   const { colourFormat: sharedColourFormat } = useColourFormat();
   const [exportFormat, setExportFormat] = useState<ExportFormat>("css");
   const [colourFormat, setColourFormat] =
@@ -123,7 +131,7 @@ export function PaletteExportDialog({
         ? "json"
         : "css";
   const filename = `${
-    project.name
+    workspace.name
       .trim()
       .replace(/[^a-z0-9]+/gi, "-")
       .toLowerCase() || "blueprint-workspace"
@@ -158,7 +166,7 @@ export function PaletteExportDialog({
       const importedProject = parseBlueprintWorkspace(await file.text());
       setImportError("");
       onOpenChange(false);
-      onImportRequest(importedProject);
+      onImportRequest?.(importedProject);
     } catch {
       setImportError("Choose a valid Blueprint project file.");
     }
@@ -242,25 +250,29 @@ export function PaletteExportDialog({
         </section>
       </div>
       <footer className={styles.exportDialogFooter}>
-        <input
-          ref={importInputRef}
-          className={styles.visuallyHidden}
-          type="file"
-          accept=".json,.blueprint.json,application/json"
-          onChange={importProject}
-        />
-        <Button
-          scheme="neutral"
-          size="medium"
-          variant="text"
-          onClick={() => importInputRef.current?.click()}
-        >
-          Import project
-        </Button>
-        {importError && (
-          <span className={styles.exportImportError} role="alert">
-            {importError}
-          </span>
+        {onImportRequest && (
+          <>
+            <input
+              ref={importInputRef}
+              className={styles.visuallyHidden}
+              type="file"
+              accept=".json,.blueprint.json,application/json"
+              onChange={importProject}
+            />
+            <Button
+              scheme="neutral"
+              size="medium"
+              variant="text"
+              onClick={() => importInputRef.current?.click()}
+            >
+              Import project
+            </Button>
+            {importError && (
+              <span className={styles.exportImportError} role="alert">
+                {importError}
+              </span>
+            )}
+          </>
         )}
         <span className={styles.exportDialogFooterSpacer} />
         <Button

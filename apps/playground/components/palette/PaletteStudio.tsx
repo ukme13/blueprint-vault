@@ -44,14 +44,15 @@ import {
   type PaletteProjectData,
   type SemanticToken,
 } from "@blueprint/ui";
+import { SystemExportDialog } from "../SystemExportDialog";
 import { VisionControl } from "../VisionControl";
+import { WorkspaceBrand } from "../WorkspaceBrand";
 import { WorkspaceNav } from "../WorkspaceNav";
 import { PaletteCreation } from "./PaletteCreation";
 import { PaletteControls } from "./PaletteControls";
 import { ColourPicker } from "./ColourPicker";
 import { PaletteMatrix } from "./PaletteMatrix";
 import { PaletteOverview } from "./PaletteOverview";
-import { PaletteExportDialog } from "./PaletteExportDialog";
 import { PalettePreview } from "./PalettePreview";
 import { SemanticEditor } from "./SemanticEditor";
 import { TrackDetailDialog } from "./TrackDetailDialog";
@@ -697,22 +698,11 @@ function PaletteStudioContent() {
   return (
     <main className={styles.workspace}>
       <header className={styles.topbar}>
-        <p className={styles.brand}>
-          <span aria-hidden="true" className={styles.brandMark}>
-            B
-          </span>
-          Blueprint
-          <span className={styles.breadcrumb}>/</span>
-          <input
-            aria-label="Project name"
-            className={styles.projectNameInput}
-            maxLength={80}
-            spellCheck={false}
-            value={project.name}
-            onBlur={commitProjectName}
-            onChange={(event) => updateProjectName(event.target.value)}
-          />
-        </p>
+        <WorkspaceBrand
+          name={project.name}
+          onChange={updateProjectName}
+          onCommit={commitProjectName}
+        />
         <nav aria-label="Playground sections" className={styles.navigation}>
           <TabList
             size="sm"
@@ -962,10 +952,8 @@ function PaletteStudioContent() {
         weights={weights}
       />
 
-      <PaletteExportDialog
+      <SystemExportDialog
         isOpen={isExportDialogOpen}
-        palettes={palettes}
-        project={project}
         onImportRequest={setPendingImport}
         workspace={{
           ...foreign,

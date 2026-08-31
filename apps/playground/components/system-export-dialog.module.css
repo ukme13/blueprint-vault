@@ -1,0 +1,105 @@
+/*
+ * The export dialog's own styles, moved from the palette workspace module.
+ *
+ * The dialog is shared now — Colour and Scale open the same one — so its styles
+ * live beside it rather than inside one studio's stylesheet.
+ *
+ * The typography studio still has its own copy of most of these. Six of the
+ * eight rules are byte-identical to these; two differ in sizing. Folding that
+ * one in as well is worth doing and is not this change.
+ */
+
+/* Hidden from sight, not from a screen reader. Duplicated rather than moved:
+   the palette studio still uses its own for a file input. */
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.exportDialogHeader,
+.exportDialogFooter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 18px;
+}
+
+.exportDialogHeader {
+  border-bottom: 1px solid var(--color-neutral-700);
+}
+
+.exportDialogHeader h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.exportDialogHeader > button {
+  margin-left: auto;
+}
+
+.exportDialogBody {
+  min-height: 430px;
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+}
+
+.exportSettings {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px;
+  border-right: 1px solid var(--color-neutral-700);
+}
+
+.exportSettings h3 {
+  margin: 0;
+  font-size: 12px;
+}
+
+.exportFormatGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.exportFormatGrid > button {
+  min-width: 0;
+}
+
+.exportColourFormat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 10px;
+  color: var(--color-neutral-400);
+  font-size: 11px;
+}
+
+.exportPreview {
+  overflow: auto;
+  padding: 16px;
+  background: var(--color-neutral-900);
+  border-right: 1px solid var(--color-neutral-700);
+}
+
+.exportDialogFooter {
+  border-top: 1px solid var(--color-neutral-700);
+}
+
+.exportDialogFooterSpacer {
+  flex: 1;
+}
+
+.exportImportError {
+  color: var(--color-error-300);
+  font-size: 11px;
+}
+

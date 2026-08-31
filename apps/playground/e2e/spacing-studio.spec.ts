@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, seedProject, test, WORKSPACE_STORAGE_KEY } from "./fixtures";
 
 /**
@@ -192,5 +193,59 @@ test.describe("The elevation editor", () => {
         .getByRole("region", { name: "Elevation" })
         .getByLabel("Low on light"),
     ).toBeVisible();
+  });
+});
+
+test.describe("The scale studio's chrome", () => {
+  test("exports the whole system, not only the scales", async ({ page }) => {
+    /* The tokens used to ship only from the Colour page, so somebody who built
+       a spacing scale here had to go elsewhere to get it out. */
+    await seedProject(page);
+    await page.goto("/scale");
+
+    await page.getByRole("button", { name: "Export", exact: true }).click();
+    const preview = page.getByRole("region", { name: "Export preview" });
+    await expect(preview).toBeVisible();
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download" }).click();
+    const file = await downloadPromise;
+    const css = readFileSync(await file.path(), "utf8");
+
+    /* The same output Colour produces — one dialog, one system. The spacing,
+       radius and elevation tokens join it when the scale export lands; what
+       matters here is that this page can produce the file at all, which it
+       could not before. */
+    expect(css).toMatch(/--color-primary-\d+:/);
+    expect(css).toContain("--color-action-primary:");
+  });
+
+  test("offers no import, because it cannot confirm one", async ({ page }) => {
+    await seedProject(page);
+    await page.goto("/scale");
+    await page.getByRole("button", { name: "Export", exact: true }).click();
+
+    await expect(
+      page.getByRole("region", { name: "Export preview" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Import project" }),
+    ).toHaveCount(0);
+  });
+
+  test("renames the workspace, and the other studios see it", async ({
+    page,
+  }) => {
+    /* The name belongs to the workspace, so every page that shows it can edit
+       it — and this one could not. */
+    await seedProject(page);
+    await page.goto("/scale");
+
+    const field = page.getByLabel("Project name");
+    await field.fill("Renamed here");
+    await field.blur();
+
+    await page.goto("/");
+    await expect(page.getByLabel("Project name")).toHaveValue("Renamed here");
   });
 });

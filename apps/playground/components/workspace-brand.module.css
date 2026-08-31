@@ -1,0 +1,62 @@
+/*
+ * The brand, the breadcrumb and the workspace name.
+ *
+ * Moved here from the palette and typography workspace modules, which held
+ * byte-identical copies of every rule but one — and that one differed only by
+ * being split across two declarations in the palette's copy. A third studio was
+ * about to inherit the same duplication.
+ */
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  color: var(--color-neutral-400);
+  font-size: 14px;
+}
+
+.brandMark {
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 8px;
+  background: var(--color-primary-500);
+  color: var(--color-neutral-950);
+  font-weight: 900;
+}
+
+.breadcrumb {
+  color: var(--color-neutral-650);
+}
+
+.name {
+  width: min(240px, 24vw);
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-neutral-100);
+  font: inherit;
+  font-weight: 700;
+}
+
+.name:hover {
+  border-color: var(--color-neutral-700);
+}
+
+.name:focus-visible {
+  border-color: var(--color-primary-400);
+  outline: 2px solid var(--color-primary-700);
+  outline-offset: 1px;
+}
+
+/* On a narrow screen the wordmark and the slash go and the name stays: the
+   name is the thing somebody is looking at, the branding is not. */
+@media (max-width: 640px) {
+  .word,
+  .breadcrumb {
+    display: none;
+  }
+}
