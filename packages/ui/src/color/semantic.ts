@@ -1,0 +1,306 @@
+import type { ColorTrack, ShadeItem } from "./types";
+
+/**
+ * The semantic layer: names that say when to use a colour, not what it is.
+ *
+ * A primitive says `primary 500`. A semantic token says `primary action`, and
+ * points at a primitive to get its value. That indirection is the whole layer:
+ * it is what lets one name carry a different colour in light and dark, and what
+ * makes an export something a developer codes against rather than a list of
+ * swatches.
+ *
+ * See docs/roadmap/semantic-tokens.md.
+ */
+
+/** Light or dark. A token holds one reference per mode. */
+export type ColourMode = "light" | "dark";
+
+export const COLOUR_MODES: readonly ColourMode[] = ["light", "dark"];
+
+/**
+ * Where a semantic token points.
+ *
+ * A weight rather than a position along the ramp, because the export has to
+ * emit an alias — `var(--color-primary-500)` — and a position cannot be
+ * written as one. Resolving a position at export time would mean the alias
+ * silently changed the day somebody altered the shade count, which is the
+ * failure this layer exists to prevent.
+ */
+export interface SemanticReference {
+  trackId: string;
+  weight: number;
+}
+
+export interface SemanticToken {
+  /** The exported name, e.g. `primary.action` becomes `--color-primary-action`. */
+  id: string;
+  name: string;
+  description: string;
+  light: SemanticReference;
+  dark: SemanticReference;
+}
+
+/**
+ * The eleven roles, and where each one sits.
+ *
+ * These are not invented here. `selectPreviewShades` has been making exactly
+ * this choice since before the semantic layer existed — which track a role
+ * reaches for, and how far along it — and this table is that choice moved
+ * somewhere it can be edited and exported. The ids are a mechanical
+ * translation of the names it already used, so no role means anything new.
+ *
+ * Naming them better is a later job, and one the demo page is meant to drive:
+ * a set argued from what a real page needs beats a set invented up front.
+ */
+interface SeedRole {
+  id: string;
+  name: string;
+  description: string;
+  /** Preferred track by name; falls back down the chain in `trackFor`. */
+  track: TrackRole;
+  /** How far along the track, as a fraction of its length. */
+  position: number;
+  /** Taken when the track has it, whatever `position` would give. */
+  preferWeight?: number;
+}
+
+type TrackRole =
+  | "primary"
+  | "secondary"
+  | "neutral"
+  | "success"
+  | "warning"
+  | "error"
+  | "info";
+
+const SEED_ROLES: readonly SeedRole[] = [
+  {
+    id: "primary.action",
+    name: "Primary action",
+    description: "The fill of a primary button or an active control.",
+    track: "primary",
+    position: 0.55,
+  },
+  {
+    id: "primary.soft",
+    name: "Primary soft",
+    description: "A tinted background that still reads as primary.",
+    track: "primary",
+    position: 0.12,
+  },
+  {
+    id: "primary.focus",
+    name: "Primary focus",
+    description: "The focus ring.",
+    track: "primary",
+    position: 0.32,
+    /* 300 is the weight the focus token is documented against, so it is taken
+       when the track has it rather than whatever the position rounds to. */
+    preferWeight: 300,
+  },
+  {
+    id: "secondary.action",
+    name: "Secondary action",
+    description: "The fill of a secondary button or control.",
+    track: "secondary",
+    position: 0.48,
+  },
+  {
+    id: "neutral.light",
+    name: "Neutral light",
+    description: "The lightest neutral, for canvas and page background.",
+    track: "neutral",
+    position: 0.08,
+  },
+  {
+    id: "neutral.mid",
+    name: "Neutral mid",
+    description: "A mid neutral, for borders and dividers.",
+    track: "neutral",
+    position: 0.48,
+  },
+  {
+    id: "neutral.dark",
+    name: "Neutral dark",
+    description: "The darkest neutral, for body text and headings.",
+    track: "neutral",
+    position: 0.9,
+  },
+  {
+    id: "success.action",
+    name: "Success action",
+    description: "The fill of a success badge or message.",
+    track: "success",
+    position: 0.55,
+  },
+  {
+    id: "warning.action",
+    name: "Warning action",
+    description: "The fill of a warning badge or message.",
+    track: "warning",
+    position: 0.45,
+  },
+  {
+    id: "error.action",
+    name: "Error action",
+    description: "The fill of an error badge or message.",
+    track: "error",
+    position: 0.55,
+  },
+  {
+    id: "info.action",
+    name: "Info action",
+    description: "The fill of an informational badge or message.",
+    track: "info",
+    position: 0.55,
+  },
+];
+
+/** Where along a track a role sits, as a fraction of its length. */
+function shadeAt(track: ColorTrack, position: number): ShadeItem {
+  const index = Math.round((track.shades.length - 1) * position);
+  return track.shades[index]!;
+}
+
+/**
+ * The track a role reaches for.
+ *
+ * Every track falls back towards primary rather than to nothing, so a project
+ * with a single track still seeds a complete layer. The chain is the one
+ * `selectPreviewShades` already used.
+ */
+function trackFor(tracks: ColorTrack[], role: TrackRole): ColorTrack {
+  const named = (name: string, fallback: ColorTrack) =>
+    tracks.find((track) => track.name === name) ?? fallback;
+
+  const primary = named("primary", tracks[0]!);
+  if (role === "primary") return primary;
+
+  const neutral = named("neutral", primary);
+  if (role === "neutral") return neutral;
+  if (role === "secondary") return named("secondary", neutral);
+  return named(role, primary);
+}
+
+/**
+ * The shade at the same distance from the other end of the track.
+ *
+ * Mirroring the index rather than the weight number. The weights are not
+ * symmetric — the ramp runs 25, 50, 100 … 950, so 1000 minus a weight lands on
+ * one the track does not have — and a track may hold any number of shades. The
+ * index is the only expression of "as far from the dark end as this is from the
+ * light one" that holds for every palette.
+ */
+function mirrored(track: ColorTrack, weight: number): ShadeItem {
+  const index = track.shades.findIndex((shade) => shade.weight === weight);
+  if (index < 0) return track.shades[track.shades.length - 1]!;
+  return track.shades[track.shades.length - 1 - index]!;
+}
+
+/**
+ * A complete semantic layer for a palette.
+ *
+ * Dark is seeded by mirroring, which is right for the roles that carry the
+ * page — text on light becomes text on dark — and a defensible starting point
+ * for the rest. It is a seed and not a rule: every reference is editable, and
+ * the point of holding two is that they can disagree.
+ *
+ * Returns an empty layer for an empty palette rather than throwing, matching
+ * `selectPreviewShades`: there is nothing to point at, which is a state the
+ * studio reaches whenever the last track is deleted.
+ */
+export function seedSemanticTokens(tracks: ColorTrack[]): SemanticToken[] {
+  if (tracks.length === 0) return [];
+
+  return SEED_ROLES.map((role) => {
+    const track = trackFor(tracks, role.track);
+    const light =
+      (role.preferWeight === undefined
+        ? undefined
+        : track.shades.find((shade) => shade.weight === role.preferWeight)) ??
+      shadeAt(track, role.position);
+
+    return {
+      id: role.id,
+      name: role.name,
+      description: role.description,
+      light: { trackId: track.id, weight: light.weight },
+      dark: { trackId: track.id, weight: mirrored(track, light.weight).weight },
+    };
+  });
+}
+
+/**
+ * Why a reference could not be honoured.
+ *
+ * A user can delete a track a token points at, or change a shade count so a
+ * weight stops existing. Both are ordinary states rather than corruption — the
+ * same call the uploaded-fonts plan made about a font file that is not in this
+ * browser — so resolution reports them and carries on.
+ */
+export type SemanticMiss = "track" | "weight";
+
+export interface ResolvedSemantic {
+  id: string;
+  mode: ColourMode;
+  /** The track actually used, which is the referenced one unless it is gone. */
+  trackId: string;
+  trackName: string;
+  /** The weight actually used. */
+  weight: number;
+  hex: string;
+  missing: SemanticMiss | null;
+}
+
+/** The shade whose weight is closest to the one asked for. */
+function nearestWeight(track: ColorTrack, weight: number): ShadeItem {
+  return track.shades.reduce((closest, shade) =>
+    Math.abs(shade.weight - weight) < Math.abs(closest.weight - weight)
+      ? shade
+      : closest,
+  );
+}
+
+/**
+ * What a token is worth in one mode.
+ *
+ * The single place a reference becomes a colour. Nothing upstream of this call
+ * knows about modes, which is what keeps preview, contrast and export from each
+ * growing their own idea of what dark means.
+ *
+ * Null only for an empty palette, where there is no colour to fall back to.
+ */
+export function resolveSemantic(
+  token: SemanticToken,
+  mode: ColourMode,
+  tracks: ColorTrack[],
+): ResolvedSemantic | null {
+  if (tracks.length === 0) return null;
+
+  const reference = token[mode];
+  const referenced = tracks.find((track) => track.id === reference.trackId);
+  const track = referenced ?? tracks[0]!;
+  const exact = track.shades.find((shade) => shade.weight === reference.weight);
+  const shade = exact ?? nearestWeight(track, reference.weight);
+
+  return {
+    id: token.id,
+    mode,
+    trackId: track.id,
+    trackName: track.name,
+    weight: shade.weight,
+    hex: shade.hex,
+    missing: referenced ? (exact ? null : "weight") : "track",
+  };
+}
+
+/** Every token resolved in one mode, skipping nothing. */
+export function resolveSemantics(
+  tokens: SemanticToken[],
+  mode: ColourMode,
+  tracks: ColorTrack[],
+): ResolvedSemantic[] {
+  return tokens
+    .map((token) => resolveSemantic(token, mode, tracks))
+    .filter((resolved): resolved is ResolvedSemantic => resolved !== null);
+}
