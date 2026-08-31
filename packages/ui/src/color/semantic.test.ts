@@ -2,9 +2,14 @@ import { describe, expect, it } from "vitest";
 import { generatePalettes } from "./palette";
 import { selectPreviewShades } from "./preview-assessment";
 import {
+  addSemanticToken,
+  removeSemanticToken,
+  renameSemanticToken,
+  repointSemanticToken,
   resolveSemantic,
   resolveSemantics,
   seedSemanticTokens,
+  semanticId,
   type SemanticToken,
 } from "./semantic";
 import type { ColorTrack } from "./types";
@@ -216,5 +221,98 @@ describe("resolveSemantic", () => {
     const tokens = seedSemanticTokens(tracks);
     expect(resolveSemantics(tokens, "dark", tracks)).toHaveLength(11);
     expect(resolveSemantics(tokens, "dark", [])).toEqual([]);
+  });
+});
+
+describe("editing a layer", () => {
+  it("renames the id with the label, because the id is what ships", () => {
+    const tokens = seedSemanticTokens(fullPalette());
+    const renamed = renameSemanticToken(tokens, "primary.action", "Brand fill");
+
+    const token = tokenById(renamed, "brand.fill");
+    expect(token.name).toBe("Brand fill");
+    /* The old id is gone: a rename that kept it would leave the label and the
+       exported variable disagreeing. */
+    expect(renamed.some((each) => each.id === "primary.action")).toBe(false);
+  });
+
+  it("refuses to let two tokens share an id", () => {
+    const tokens = seedSemanticTokens(fullPalette());
+    const renamed = renameSemanticToken(
+      tokens,
+      "primary.soft",
+      "Primary action",
+    );
+
+    expect(
+      renamed.filter((token) => token.id === "primary.action"),
+    ).toHaveLength(1);
+    expect(tokenById(renamed, "primary.action.2").name).toBe("Primary action");
+  });
+
+  it("keeps the id when the label is blank", () => {
+    const tokens = seedSemanticTokens(fullPalette());
+    const renamed = renameSemanticToken(tokens, "primary.action", "   ");
+    expect(tokenById(renamed, "primary.action").name).toBe("Primary action");
+  });
+
+  it("leaves the layer alone when the token is not there", () => {
+    const tokens = seedSemanticTokens(fullPalette());
+    expect(renameSemanticToken(tokens, "nope", "Anything")).toBe(tokens);
+  });
+
+  it("repoints one mode and leaves the other", () => {
+    const tracks = fullPalette();
+    const tokens = seedSemanticTokens(tracks);
+    const before = tokenById(tokens, "primary.action");
+
+    const next = repointSemanticToken(tokens, "primary.action", "dark", {
+      trackId: "t-info",
+      weight: 200,
+    });
+    const after = tokenById(next, "primary.action");
+
+    expect(after.dark).toEqual({ trackId: "t-info", weight: 200 });
+    expect(after.light).toEqual(before.light);
+  });
+
+  it("adds a token that already points somewhere", () => {
+    const tracks = fullPalette();
+    const tokens = addSemanticToken(seedSemanticTokens(tracks), tracks, "Chip");
+
+    expect(tokens).toHaveLength(12);
+    const added = tokenById(tokens, "chip");
+    expect(resolveSemantic(added, "light", tracks)!.hex).toMatch(
+      /^#[0-9a-f]{6}$/i,
+    );
+    expect(resolveSemantic(added, "dark", tracks)!.hex).toMatch(
+      /^#[0-9a-f]{6}$/i,
+    );
+  });
+
+  it("gives a second token of the same name its own id", () => {
+    const tracks = fullPalette();
+    let tokens = addSemanticToken([], tracks, "Chip");
+    tokens = addSemanticToken(tokens, tracks, "Chip");
+
+    expect(tokens.map((token) => token.id)).toEqual(["chip", "chip.2"]);
+  });
+
+  it("adds nothing when there is no palette to point at", () => {
+    expect(addSemanticToken([], [], "Chip")).toEqual([]);
+  });
+
+  it("removes a token", () => {
+    const tokens = seedSemanticTokens(fullPalette());
+    const next = removeSemanticToken(tokens, "info.action");
+
+    expect(next).toHaveLength(10);
+    expect(next.some((token) => token.id === "info.action")).toBe(false);
+  });
+
+  it("makes an id from a label", () => {
+    expect(semanticId("Surface  Raised")).toBe("surface.raised");
+    expect(semanticId("  Text / Primary  ")).toBe("text.primary");
+    expect(semanticId("!!!")).toBe("");
   });
 });

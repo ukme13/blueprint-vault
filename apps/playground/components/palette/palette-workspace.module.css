@@ -77,6 +77,17 @@
 
 .navigation {
   align-self: center;
+  /* The tab strip scrolls rather than widening the page. A fourth tab pushed
+     the document past a 375px viewport, which is how the whole workspace
+     starts scrolling sideways — min-width: 0 is what lets a grid child shrink
+     below its content at all. */
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.navigation::-webkit-scrollbar {
+  display: none;
 }
 
 .headerActions {
@@ -1980,7 +1991,11 @@
   .navigation {
     grid-row: 2;
     grid-column: 1 / -1;
-    justify-self: center;
+    /* Stretch, not centre. justify-self: center sizes the strip to its own
+       content, so a fourth tab made it 404px inside a 375px viewport and took
+       the whole page sideways with it. Stretched, it fills the row and the
+       overflow-x above does the scrolling. */
+    justify-self: stretch;
   }
 
   .headerActions {
