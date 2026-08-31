@@ -212,10 +212,10 @@ test.describe("The scale studio's chrome", () => {
     const file = await downloadPromise;
     const css = readFileSync(await file.path(), "utf8");
 
-    /* The same output Colour produces — one dialog, one system. The spacing,
-       radius and elevation tokens join it when the scale export lands; what
-       matters here is that this page can produce the file at all, which it
-       could not before. */
+    /* The same output Colour produces — one dialog, one system. */
+    expect(css).toContain("--spacing-4:");
+    expect(css).toContain("--radius-element:");
+    expect(css).toMatch(/--shadow-low:/);
     expect(css).toMatch(/--color-primary-\d+:/);
     expect(css).toContain("--color-action-primary:");
   });
