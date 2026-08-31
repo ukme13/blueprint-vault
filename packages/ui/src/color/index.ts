@@ -8,6 +8,8 @@ export * from "./palette-view";
 export * from "./palette";
 export * from "./presets";
 export * from "./semantic";
+export * from "./semantic-contrast";
+export * from "./semantic-export";
 export * from "./preview-assessment";
 export * from "./transitions";
 export * from "./types";

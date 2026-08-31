@@ -119,30 +119,30 @@ The first useful version should let somebody:
 
 ## Stages
 
-1. **The model, no UI.** `semantic.ts`: the token shape, the seed set taken from
+1. ✅ **The model, no UI.** `semantic.ts`: the token shape, the seed set taken from
    `PreviewShades`, `resolveSemantic(token, mode)`, and the rules for a
    reference that no longer exists. A missing reference is a normal state — the
    same call the uploaded-fonts plan made about a missing font file — because a
    user can delete a track a semantic points at. It resolves to a stated
    fallback and is reported, never thrown.
 
-2. **Workspace version 2 and its migration.** Before anything writes a semantic
+2. ✅ **Workspace version 2 and its migration.** Before anything writes a semantic
    token, because of the strict version check above. A version 1 file loads and
    gains the seeded defaults, so an existing project opens with a complete
    semantic layer it never had.
 
-3. **The editor.** Assign a primitive to each semantic name, per mode, with the
+3. ✅ **The editor.** Assign a primitive to each semantic name, per mode, with the
    resolved swatch shown beside the reference. Add and rename tokens. This is
    where the "alias not copy" rule becomes visible: editing a track must move
    every semantic pointing at it, on screen, without a reload.
 
-4. **The demo page, semantics only.** A realistic page rather than a swatch
+4. ✅ **The demo page, semantics only.** A realistic page rather than a swatch
    grid, with a mode toggle, and the vision simulation from the palette studio
    applied over it. The rule that makes it worth building: **the page may not
    reference a primitive token.** Every place it is forced to, name the missing
    semantic and add it. The rule is a test, not an intention — see below.
 
-5. **Export and report move onto semantics.** CSS emits
+5. ✅ **Export and report move onto semantics.** CSS emits
    `--color-text-primary: var(--color-neutral-950)` so the alias survives into
    the client's stylesheet. DTCG emits `{palette.neutral.950}`. The contrast
    report stops reporting arbitrary pairs and reports the pairs the semantic
@@ -151,6 +151,55 @@ The first useful version should let somebody:
 Stage 2 carries the risk of breaking saved work and lands with nothing
 consuming it. Stage 4 is what tells you whether stage 1's seed set was right,
 so it is worth doing before stage 5 fixes the export shape around it.
+
+### Notes from the stages
+
+**The names changed after stage 4, which is what stage 4 was for.** The first
+pass translated `selectPreviewShades`' own labels — `neutral.light`,
+`neutral.dark`, `primary.soft` — which say where on a ramp a colour sits.
+Building a page from them showed what they were for, so they became
+`surface.base`, `text.primary`, `surface.raised`, and `migrateSemanticIds`
+carries a stored layer forward. `text.secondary` was added at the same time:
+the page had been faking muted text with `opacity`, which the primitive check
+cannot see and which mixes whatever is behind the element into a shade nobody
+chose. Twelve tokens, not eleven.
+
+**An export carries both layers.** A semantic file on its own is a set of
+references to variables nothing declares, and a browser drops those in silence.
+`formatColourSystemCss` and its two siblings emit the primitives and the
+semantics together, so a client installs one file rather than remembering two.
+
+**The alias is built from the same rule the primitive export uses.**
+`paletteTokenName` is shared rather than reimplemented: a second copy would
+point at a variable that does not exist the first time the two disagreed. A
+test follows every alias into the primitive output and fails on any that does
+not resolve.
+
+**Dark mode needs three CSS blocks, not two.** `:root` for light, the media
+query guarded by `:not([data-theme="light"])` for a system preference, and
+`[data-theme="dark"]` last for an explicit choice. Only the media query leaves
+a theme switch impossible; only the attribute ignores the system setting until
+somebody clicks.
+
+**The report's pairs come from a rule, not a list.** `surface.*` is a
+background, `text.*` is held to the text threshold, everything else to the
+non-text one — so a layer somebody has renamed or extended still reports
+something. The cost is that it follows a convention: rename `surface.base` and
+the pair leaves the report rather than being silently wrong. Every foreground
+is measured against _every_ surface, because text that clears the page canvas
+can fail on a raised card.
+
+**The e2e that was meant to prove "alias, not copy" did not.** Switching tabs
+unmounts the editor, so a value frozen in component state is refreshed on
+remount and the test passed against a deliberately broken build. The model's
+unit test does catch a real copying implementation; the e2e asserts instead
+that what reaches storage is a reference and nothing else.
+
+**What is still hand-written.** `selectPreviewShades` keeps its own copy of the
+roles for the live preview panel, and `SEMANTIC_PAIRS` still names four pairs
+by hand for the colour-vision similarity check. Both are held to the layer by
+the cross-check test from stage 1. Deriving them means threading tokens into
+`PalettePreview`, which is its own change.
 
 ## Later improvements
 
@@ -226,3 +275,5 @@ to that studio's toolbar.
 
 - Whether the demo page is also the export target for a client-facing PDF or
   static handoff, or stays a live preview only.
+- Deriving `selectPreviewShades` and `SEMANTIC_PAIRS` from the layer, so the
+  live preview panel and the report stop answering to two lists.

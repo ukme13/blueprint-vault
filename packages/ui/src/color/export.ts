@@ -26,7 +26,14 @@ export interface BlueprintPaletteProjectFile {
   project: PaletteProjectData;
 }
 
-function tokenName(name: string): string {
+/**
+ * A track's name as it appears in a token.
+ *
+ * Exported because the semantic layer aliases these — `var(--color-primary-550)`
+ * — and an alias built from a second copy of this rule would point at a
+ * variable that does not exist the first time the two disagreed.
+ */
+export function paletteTokenName(name: string): string {
   return name.trim().replace(/\s+/g, "-").toLowerCase();
 }
 
@@ -38,7 +45,7 @@ function tokenLines(
   return palettes.flatMap((palette) =>
     palette.shades.map(
       (shade) =>
-        `${indentation}--color-${tokenName(palette.name)}-${shade.weight}: ${formatColour(shade.hex, colourFormat)};`,
+        `${indentation}--color-${paletteTokenName(palette.name)}-${shade.weight}: ${formatColour(shade.hex, colourFormat)};`,
     ),
   );
 }
@@ -57,28 +64,40 @@ export function formatPaletteTailwindExport(
   return ["@theme {", ...tokenLines(palettes, colourFormat), "}"].join("\n");
 }
 
+/**
+ * The `palette` group, as an object.
+ *
+ * Split out so the semantic export can put this and its own group in one
+ * document. Aliases point into these names, so a file carrying only semantics
+ * is a set of references to variables nothing declares.
+ */
+export function paletteDesignTokenGroup(
+  palettes: ColorTrack[],
+  colourFormat: ColourFormat,
+): Record<string, unknown> {
+  return {
+    $type: "color",
+    $description: "Colour palette exported from Blueprint",
+    ...Object.fromEntries(
+      palettes.map((palette) => [
+        paletteTokenName(palette.name),
+        Object.fromEntries(
+          palette.shades.map((shade) => [
+            shade.weight,
+            { $value: formatColour(shade.hex, colourFormat) },
+          ]),
+        ),
+      ]),
+    ),
+  };
+}
+
 export function formatPaletteDesignTokens(
   palettes: ColorTrack[],
   colourFormat: ColourFormat,
 ): string {
   return JSON.stringify(
-    {
-      palette: {
-        $type: "color",
-        $description: "Colour palette exported from Blueprint",
-        ...Object.fromEntries(
-          palettes.map((palette) => [
-            tokenName(palette.name),
-            Object.fromEntries(
-              palette.shades.map((shade) => [
-                shade.weight,
-                { $value: formatColour(shade.hex, colourFormat) },
-              ]),
-            ),
-          ]),
-        ),
-      },
-    },
+    { palette: paletteDesignTokenGroup(palettes, colourFormat) },
     null,
     2,
   );
