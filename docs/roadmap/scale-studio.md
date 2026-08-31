@@ -188,25 +188,23 @@ light one.
 
 ## Decisions
 
-Open, with a recommendation for each.
+Settled before stage 1.
 
-**Base unit: 4px. Recommend taking it as the default and making it editable.**
+**Base unit: 4px, editable.**
 It is what Astryx, Tailwind and Material all use, so a client's developer
 already thinks in it. Editable because an 8px system is a real choice and a
 dense product may want 2.
 
-**Units in the export: rem for spacing, px for radius and shadow. Recommend
-this split.** Spacing should grow when somebody raises their browser font size;
+**Units in the export: rem for spacing, px for radius and shadow.** Spacing should grow when somebody raises their browser font size;
 a 4px corner should not become 6px because of it. This is the same argument the
 typography plan made about units being a presentation concern.
 
-**A semantic layer over spacing — `space.gutter` pointing at `space.4`.
-Recommend not in the first version.** It is the right shape eventually, and the
-colour work says the page should argue for it rather than the plan inventing it.
-Building both at once means guessing twice.
+**No semantic layer over spacing in the first version.** `space.gutter`
+pointing at `space.4` is the right shape eventually, and the colour work says
+the page should argue for it rather than the plan inventing it. Building both at
+once means guessing twice.
 
-**Where the step list comes from. Recommend a generated ramp that is then
-pruned.** A pure formula produces 6.25px; a pure hand-list is tedious to start
+**The step list is a generated ramp, then pruned.** A pure formula produces 6.25px; a pure hand-list is tedious to start
 from. Generate, then edit, and store the result as data.
 
 ## Still open
