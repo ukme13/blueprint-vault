@@ -151,6 +151,7 @@ function emptyForeignSlices(): ForeignSlices {
     typography: empty.typography,
     spacing: empty.spacing,
     radius: empty.radius,
+    elevation: empty.elevation,
   };
 }
 
@@ -164,6 +165,7 @@ function readForeignSlices(): ForeignSlices {
       typography: project.typography,
       spacing: project.spacing,
       radius: project.radius,
+      elevation: project.elevation,
     };
   } catch {
     return emptyForeignSlices();

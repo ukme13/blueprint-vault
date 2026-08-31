@@ -9,18 +9,24 @@ import {
   MAX_SPACING_BASE_UNIT_PX,
   MIN_SPACING_BASE_UNIT_PX,
   WORKSPACE_STORAGE_KEY,
+  defaultElevationScale,
   defaultRadiusScale,
   defaultSpacingScale,
   generateSpacingSteps,
   loadWorkspace,
   resolveSpacing,
   spacingStepName,
+  generatePalettes,
+  withElevationSlice,
   withRadiusSlice,
   withSpacingSlice,
+  type ElevationScale,
   type RadiusScale,
+  type ColorTrack,
   type SpacingScale,
   type WorkspaceProject,
 } from "@blueprint/ui";
+import { ElevationEditor } from "./ElevationEditor";
 import { RadiusEditor } from "./RadiusEditor";
 import { WorkspaceNav } from "../WorkspaceNav";
 
@@ -82,12 +88,28 @@ function writeStoredRadius(radius: RadiusScale): void {
   }
 }
 
+function writeStoredElevation(elevation: ElevationScale): void {
+  try {
+    window.localStorage.setItem(
+      WORKSPACE_STORAGE_KEY,
+      JSON.stringify(withElevationSlice(readStoredWorkspace(), elevation)),
+    );
+  } catch {
+    /* As above. */
+  }
+}
+
 /** Every step the ramp offers, whether or not this scale keeps it. */
 const OFFERED_STEPS = generateSpacingSteps(16);
 
 export function SpacingStudio() {
   const [scale, setScale] = useState<SpacingScale>(defaultSpacingScale());
   const [radius, setRadius] = useState<RadiusScale>(defaultRadiusScale());
+  const [elevation, setElevation] = useState<ElevationScale>(
+    defaultElevationScale(),
+  );
+  /* The shadow colour is drawn from the palette, so the levels need it. */
+  const [palettes, setPalettes] = useState<ColorTrack[]>([]);
   const [name, setName] = useState("Workspace");
   const [hasLoaded, setHasLoaded] = useState(false);
 
@@ -98,6 +120,8 @@ export function SpacingStudio() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setScale(project?.spacing ?? defaultSpacingScale());
     setRadius(project?.radius ?? defaultRadiusScale());
+    setElevation(project?.elevation ?? defaultElevationScale());
+    setPalettes(project?.palette ? generatePalettes(project.palette) : []);
     setName(project?.name ?? "Workspace");
     setHasLoaded(true);
   }, []);
@@ -111,6 +135,11 @@ export function SpacingStudio() {
     if (!hasLoaded) return;
     writeStoredRadius(radius);
   }, [hasLoaded, radius]);
+
+  useEffect(() => {
+    if (!hasLoaded) return;
+    writeStoredElevation(elevation);
+  }, [elevation, hasLoaded]);
 
   const tokens = resolveSpacing(scale);
   const kept = new Set(scale.steps);
@@ -207,6 +236,12 @@ export function SpacingStudio() {
         </section>
 
         <RadiusEditor scale={radius} onChange={setRadius} />
+
+        <ElevationEditor
+          palettes={palettes}
+          scale={elevation}
+          onChange={setElevation}
+        />
       </main>
     </div>
   );

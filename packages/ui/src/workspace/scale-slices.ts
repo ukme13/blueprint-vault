@@ -1,4 +1,9 @@
 import {
+  defaultElevationScale,
+  normalizeElevationScale,
+  type ElevationScale,
+} from "../scale/elevation";
+import {
   defaultRadiusScale,
   normalizeRadiusScale,
   type RadiusScale,
@@ -57,4 +62,25 @@ export function readRadiusScale(value: unknown): RadiusScale | null {
 
 export function radiusOrDefault(value: unknown): RadiusScale {
   return readRadiusScale(value) ?? defaultRadiusScale();
+}
+
+/**
+ * The elevation slice.
+ *
+ * Filled like the other two. A workspace without shadows is one where every
+ * card sits flat on the page, which is a choice nobody made.
+ */
+export function readElevationScale(value: unknown): ElevationScale | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const raw = value as Record<string, unknown>;
+  if (!Array.isArray(raw.levels)) return null;
+
+  return normalizeElevationScale({
+    colour: raw.colour as ElevationScale["colour"],
+    levels: raw.levels as ElevationScale["levels"],
+  });
+}
+
+export function elevationOrDefault(value: unknown): ElevationScale {
+  return readElevationScale(value) ?? defaultElevationScale();
 }

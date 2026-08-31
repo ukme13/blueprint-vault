@@ -4,12 +4,16 @@ import {
 } from "../color/export";
 import { readPaletteProjectData } from "./palette-project";
 import { readSemanticTokens, semanticsForPalette } from "./semantics";
-import { radiusOrDefault, spacingOrDefault } from "./scale-slices";
+import {
+  elevationOrDefault,
+  radiusOrDefault,
+  spacingOrDefault,
+} from "./scale-slices";
 import { readTypographyProjectData } from "./typography-project";
 import { DEFAULT_WORKSPACE_NAME } from "./workspace";
 import type { WorkspaceProject } from "./types";
 
-export const BLUEPRINT_WORKSPACE_FILE_VERSION = 4;
+export const BLUEPRINT_WORKSPACE_FILE_VERSION = 5;
 
 /**
  * Versions this build can open.
@@ -19,10 +23,10 @@ export const BLUEPRINT_WORKSPACE_FILE_VERSION = 4;
  * was added. A version is a statement about what a file contains, not a
  * demand that it was written by this exact build: each earlier version differs
  * only by lacking a slice that is filled on the way in — semantics at 2, the
- * spacing scale at 3, radius at 4.
+ * spacing scale at 3, radius at 4, elevation at 5.
  */
 export const SUPPORTED_WORKSPACE_FILE_VERSIONS: readonly number[] = [
-  1, 2, 3, 4,
+  1, 2, 3, 4, 5,
 ];
 
 export interface BlueprintWorkspaceFile {
@@ -62,6 +66,7 @@ function paletteOnlyWorkspace(project: PaletteProjectData): WorkspaceProject {
     semantics: semanticsForPalette(project),
     spacing: spacingOrDefault(undefined),
     radius: radiusOrDefault(undefined),
+    elevation: elevationOrDefault(undefined),
   };
 }
 
@@ -150,5 +155,6 @@ function readWorkspaceFileProject(value: unknown): WorkspaceProject {
       readSemanticTokens(raw.semantics) ?? semanticsForPalette(palette),
     spacing: spacingOrDefault(raw.spacing),
     radius: radiusOrDefault(raw.radius),
+    elevation: elevationOrDefault(raw.elevation),
   };
 }

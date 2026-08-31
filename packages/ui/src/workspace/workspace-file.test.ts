@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { defaultElevationScale } from "../scale/elevation";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { formatBlueprintPaletteProject } from "../color/export";
@@ -40,6 +41,7 @@ const workspace = (over: Partial<WorkspaceProject> = {}): WorkspaceProject => ({
   semantics: null,
   spacing: defaultSpacingScale(),
   radius: defaultRadiusScale(),
+  elevation: defaultElevationScale(),
   ...over,
 });
 
@@ -190,7 +192,7 @@ describe("a version 1 file still opens", () => {
 
   it("writes the current version", () => {
     const file = JSON.parse(formatBlueprintWorkspace(workspace()));
-    expect(file.version).toBe(4);
+    expect(file.version).toBe(5);
   });
 
   it("round-trips a chosen layer rather than reseeding it", () => {
@@ -213,7 +215,7 @@ describe("a version 1 file still opens", () => {
   it("still refuses a version it does not know", () => {
     const future = JSON.stringify({
       kind: "blueprint-workspace",
-      version: 5,
+      version: 6,
       project: workspace(),
     });
     expect(() => parseBlueprintWorkspace(future)).toThrow(/not supported/);

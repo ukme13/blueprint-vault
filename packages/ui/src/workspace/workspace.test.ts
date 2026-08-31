@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { defaultElevationScale } from "../scale/elevation";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { defaultSystem } from "../typography/system";
@@ -233,6 +234,7 @@ describe("readWorkspaceProject", () => {
       semantics: null,
       spacing: defaultSpacingScale(),
       radius: defaultRadiusScale(),
+      elevation: defaultElevationScale(),
     });
   });
 

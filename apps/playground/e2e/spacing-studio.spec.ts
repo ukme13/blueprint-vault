@@ -116,3 +116,81 @@ test.describe("The radius editor", () => {
     ).toBeVisible();
   });
 });
+
+test.describe("The elevation editor", () => {
+  test("shows each level on both grounds", async ({ page }) => {
+    /* The whole reason strength is held per mode: the same black at the same
+       alpha reads as nothing once the background is already dark, and one
+       preview would hide it. */
+    await seedProject(page);
+    await page.goto("/scale");
+
+    const elevation = page.getByRole("region", { name: "Elevation" });
+    await expect(elevation.getByLabel("Low on light")).toBeVisible();
+    await expect(elevation.getByLabel("Low on dark")).toBeVisible();
+    await expect(elevation.getByLabel("High on dark")).toBeVisible();
+  });
+
+  test("casts the same colour in both modes, more strongly in dark", async ({
+    page,
+  }) => {
+    await seedProject(page);
+    await page.goto("/scale");
+
+    const elevation = page.getByRole("region", { name: "Elevation" });
+    const shadowOf = (name: string) =>
+      elevation
+        .getByLabel(name)
+        .evaluate((node) => getComputedStyle(node).boxShadow);
+
+    const light = await shadowOf("Low on light");
+    const dark = await shadowOf("Low on dark");
+
+    const channels = (value: string) =>
+      [...value.matchAll(/rgba?\((\d+, \d+, \d+)/g)].map((m) => m[1]);
+    const alphas = (value: string) =>
+      [...value.matchAll(/rgba\([^)]*?,\s*([\d.]+)\)/g)].map((m) =>
+        Number(m[1]),
+      );
+
+    expect(channels(dark)).toEqual(channels(light));
+    expect(Math.max(...alphas(dark))).toBeGreaterThan(
+      Math.max(...alphas(light)),
+    );
+  });
+
+  test("keeps an edited strength across a reload", async ({ page }) => {
+    await seedProject(page);
+    await page.goto("/scale");
+
+    const slider = page.getByRole("slider", { name: "Low light strength" });
+    await slider.focus();
+    await slider.press("ArrowRight");
+
+    await expect
+      .poll(() =>
+        page.evaluate((key) => {
+          const raw = window.localStorage.getItem(key);
+          if (!raw) return null;
+          const stored = JSON.parse(raw) as {
+            elevation?: {
+              levels: Array<{
+                id: string;
+                layers: Array<{ opacity: { light: number } }>;
+              }>;
+            };
+          };
+          return stored.elevation?.levels.find((level) => level.id === "low")
+            ?.layers[0]?.opacity.light;
+        }, WORKSPACE_STORAGE_KEY),
+      )
+      .toBeCloseTo(0.15, 5);
+
+    await page.reload();
+    await expect(
+      page
+        .getByRole("region", { name: "Elevation" })
+        .getByLabel("Low on light"),
+    ).toBeVisible();
+  });
+});

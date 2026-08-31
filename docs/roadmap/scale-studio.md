@@ -127,21 +127,21 @@ The first useful version should let somebody:
 
 ## Stages
 
-1. **Spacing, no UI.** The model, the seeded default set, resolution to px and
+1. ✅ **Spacing, no UI.** The model, the seeded default set, resolution to px and
    rem, and workspace version 3 with its migration. Landing the migration first
    is the lesson from the last plan, where the version check would have refused
    every saved file.
 
-2. **The spacing editor, and the scanner extended.**
+2. ✅ **The spacing editor, and the scanner extended.**
    `findHardcodedMeasurements` beside the colour one, catching `16px` and
    Tailwind's `p-4`, `gap-3`, `mt-2`. Then `/preview` is rebuilt on spacing
    tokens, and every measurement it cannot express names a step the scale is
    missing — the same mechanism that argued the colour names.
 
-3. **Radius.** Use-named from the start, with the multiplier. Smallest stage,
+3. ✅ **Radius.** Use-named from the start, with the multiplier. Smallest stage,
    and the one most likely to show whether four names are the right four.
 
-4. **Elevation.** Last because a shadow layer references a semantic colour
+4. ✅ **Elevation.** Last because a shadow layer references a semantic colour
    token, so it needs the colour layer to point at.
 
 5. **Export and report.** The three families beside the colour ones in every
@@ -213,6 +213,9 @@ from. Generate, then edit, and store the result as data.
   escape for a value that genuinely is not a token.
 - Whether `formatColourSystemCss` and its siblings are renamed once the export
   is no longer only colour, or whether a separate set of formatters is clearer.
-- Whether elevation needs a mode-aware opacity as well as a mode-aware colour,
-  since a shadow on a dark surface usually wants to be stronger rather than the
-  same colour darkened.
+- Nothing on elevation. It needed the opposite of what the plan assumed: a
+  mode-aware **opacity** and a colour that does **not** change. A shadow is the
+  absence of light rather than a surface, so flipping it pale in dark mode draws
+  a halo — a different effect with a different name. Astryx's own tokens say the
+  same thing plainly, `light-dark(rgba(0,0,0,0.1), rgba(0,0,0,0.2))` being the
+  same black at two strengths. See the note at the top of `scale/elevation.ts`.

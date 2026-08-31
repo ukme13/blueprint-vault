@@ -1,12 +1,18 @@
 import { readPaletteProjectData } from "./palette-project";
 import { readSemanticTokens, semanticsForPalette } from "./semantics";
-import { radiusOrDefault, spacingOrDefault } from "./scale-slices";
+import {
+  elevationOrDefault,
+  radiusOrDefault,
+  spacingOrDefault,
+} from "./scale-slices";
+import { defaultElevationScale } from "../scale/elevation";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { readTypographyProjectData } from "./typography-project";
 import type { TypographyProjectData, WorkspaceProject } from "./types";
 import type { PaletteProjectData } from "../color/export";
 import type { SemanticToken } from "../color/semantic";
+import type { ElevationScale } from "../scale/elevation";
 import type { RadiusScale } from "../scale/radius";
 import type { SpacingScale } from "../scale/spacing";
 
@@ -82,6 +88,7 @@ export function readWorkspaceProject(value: unknown): WorkspaceProject | null {
       readSemanticTokens(value.semantics) ?? semanticsForPalette(palette),
     spacing: spacingOrDefault(value.spacing),
     radius: radiusOrDefault(value.radius),
+    elevation: elevationOrDefault(value.elevation),
   };
 }
 
@@ -116,6 +123,7 @@ export function workspaceFromLegacy(
     semantics: semanticsForPalette(palette),
     spacing: defaultSpacingScale(),
     radius: defaultRadiusScale(),
+    elevation: defaultElevationScale(),
   };
 }
 
@@ -150,6 +158,7 @@ export function emptyWorkspace(
     semantics: null,
     spacing: defaultSpacingScale(),
     radius: defaultRadiusScale(),
+    elevation: defaultElevationScale(),
   };
 }
 
@@ -203,6 +212,14 @@ export function withRadiusSlice(
   radius: RadiusScale,
 ): WorkspaceProject {
   return { ...(current ?? emptyWorkspace()), radius };
+}
+
+/** Replace the elevation scale, keeping the other slices. */
+export function withElevationSlice(
+  current: WorkspaceProject | null,
+  elevation: ElevationScale,
+): WorkspaceProject {
+  return { ...(current ?? emptyWorkspace()), elevation };
 }
 
 export function withSemanticsSlice(

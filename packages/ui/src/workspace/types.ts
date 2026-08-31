@@ -1,5 +1,6 @@
 import type { PaletteProjectData } from "../color/export";
 import type { SemanticToken } from "../color/semantic";
+import type { ElevationScale } from "../scale/elevation";
 import type { RadiusScale } from "../scale/radius";
 import type { SpacingScale } from "../scale/spacing";
 import type { TypeScaleUnit } from "../typography/types";
@@ -51,4 +52,6 @@ export interface WorkspaceProject {
   spacing: SpacingScale;
   /** Corner radii, named for what they go on. Filled like `spacing`. */
   radius: RadiusScale;
+  /** Shadow levels. Filled like the other two scales. */
+  elevation: ElevationScale;
 }
