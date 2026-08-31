@@ -157,3 +157,41 @@ export function findHardcodedMeasurements(directory: string): MeasurementUse[] {
 
   return uses;
 }
+
+/**
+ * A corner radius taken from somewhere other than the scale.
+ *
+ * Its own check rather than part of the measurement one, because what counts is
+ * different: a length in CSS is already caught above, and what is missing is
+ * Tailwind's `rounded` family — which carries a radius while writing neither a
+ * number nor a unit. `rounded` on its own is the most common of them.
+ *
+ * `rounded-full` is included. A pill is a token in this system (`radius.full`),
+ * so reaching for Tailwind's version of it is the same mistake as reaching for
+ * its `4px`.
+ */
+const TAILWIND_RADIUS = /\brounded(?:-(?:[a-z]+|\[[^\]]+\]))?(?![\w-])/g;
+
+export interface RadiusUse {
+  file: string;
+  line: number;
+  found: string;
+}
+
+export function findHardcodedRadius(directory: string): RadiusUse[] {
+  const uses: RadiusUse[] = [];
+
+  for (const path of sourceFiles(directory)) {
+    strippedLines(path).forEach((code, index) => {
+      for (const match of code.matchAll(TAILWIND_RADIUS)) {
+        uses.push({
+          file: relative(directory, path),
+          line: index + 1,
+          found: match[0],
+        });
+      }
+    });
+  }
+
+  return uses;
+}

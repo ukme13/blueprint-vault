@@ -1,5 +1,6 @@
 import type { PaletteProjectData } from "../color/export";
 import type { SemanticToken } from "../color/semantic";
+import type { RadiusScale } from "../scale/radius";
 import type { SpacingScale } from "../scale/spacing";
 import type { TypeScaleUnit } from "../typography/types";
 import type { TypeSystem } from "../typography/system";
@@ -48,4 +49,6 @@ export interface WorkspaceProject {
    * so a project saved before this gains the default rather than a gap.
    */
   spacing: SpacingScale;
+  /** Corner radii, named for what they go on. Filled like `spacing`. */
+  radius: RadiusScale;
 }

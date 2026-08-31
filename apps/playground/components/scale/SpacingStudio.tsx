@@ -9,15 +9,19 @@ import {
   MAX_SPACING_BASE_UNIT_PX,
   MIN_SPACING_BASE_UNIT_PX,
   WORKSPACE_STORAGE_KEY,
+  defaultRadiusScale,
   defaultSpacingScale,
   generateSpacingSteps,
   loadWorkspace,
   resolveSpacing,
   spacingStepName,
+  withRadiusSlice,
   withSpacingSlice,
+  type RadiusScale,
   type SpacingScale,
   type WorkspaceProject,
 } from "@blueprint/ui";
+import { RadiusEditor } from "./RadiusEditor";
 import { WorkspaceNav } from "../WorkspaceNav";
 
 /**
@@ -67,11 +71,23 @@ function writeStoredSpacing(spacing: SpacingScale): void {
   }
 }
 
+function writeStoredRadius(radius: RadiusScale): void {
+  try {
+    window.localStorage.setItem(
+      WORKSPACE_STORAGE_KEY,
+      JSON.stringify(withRadiusSlice(readStoredWorkspace(), radius)),
+    );
+  } catch {
+    /* As above. */
+  }
+}
+
 /** Every step the ramp offers, whether or not this scale keeps it. */
 const OFFERED_STEPS = generateSpacingSteps(16);
 
 export function SpacingStudio() {
   const [scale, setScale] = useState<SpacingScale>(defaultSpacingScale());
+  const [radius, setRadius] = useState<RadiusScale>(defaultRadiusScale());
   const [name, setName] = useState("Workspace");
   const [hasLoaded, setHasLoaded] = useState(false);
 
@@ -81,6 +97,7 @@ export function SpacingStudio() {
     const project = readStoredWorkspace();
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setScale(project?.spacing ?? defaultSpacingScale());
+    setRadius(project?.radius ?? defaultRadiusScale());
     setName(project?.name ?? "Workspace");
     setHasLoaded(true);
   }, []);
@@ -89,6 +106,11 @@ export function SpacingStudio() {
     if (!hasLoaded) return;
     writeStoredSpacing(scale);
   }, [hasLoaded, scale]);
+
+  useEffect(() => {
+    if (!hasLoaded) return;
+    writeStoredRadius(radius);
+  }, [hasLoaded, radius]);
 
   const tokens = resolveSpacing(scale);
   const kept = new Set(scale.steps);
@@ -183,6 +205,8 @@ export function SpacingStudio() {
             ))}
           </ol>
         </section>
+
+        <RadiusEditor scale={radius} onChange={setRadius} />
       </main>
     </div>
   );

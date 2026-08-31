@@ -4,6 +4,7 @@ import {
   formatTypeScaleCssExport,
   formatTypeScaleTailwindExport,
 } from "../typography/export";
+import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { generateTypeSteps } from "../typography/scale";
 import { assignDefaultRoles } from "../typography/scale";
@@ -182,6 +183,7 @@ describe("no export carries font data", () => {
       palette: null,
       semantics: null,
       spacing: defaultSpacingScale(),
+      radius: defaultRadiusScale(),
       typography: {
         system: systemWithLocalFont(),
         unit: "rem",
