@@ -154,11 +154,28 @@ function shadowHex(tracks: ColorTrack[], colour: SemanticReference): string {
   ).hex;
 }
 
+/**
+ * One layer with its colour worked out.
+ *
+ * The channels and the alpha are kept apart rather than pre-joined into
+ * `rgba(...)`, because CSS wants that string and the Design Tokens format wants
+ * the parts. Formatting twice from one resolution beats resolving twice.
+ */
+export interface ResolvedShadowLayer {
+  offsetXPx: number;
+  offsetYPx: number;
+  blurPx: number;
+  spreadPx: number;
+  rgb: [number, number, number];
+  alpha: number;
+}
+
 export interface ResolvedElevation {
   id: string;
   name: string;
   description: string;
   variable: string;
+  layers: ResolvedShadowLayer[];
   /** A complete `box-shadow` value. */
   css: string;
 }
@@ -174,19 +191,31 @@ export function resolveElevation(
     Math.round(channel * 255),
   );
 
-  return scale.levels.map((level) => ({
-    id: level.id,
-    name: level.name,
-    description: level.description,
-    variable: elevationVariableName(level.id),
-    css:
-      level.layers
-        .map((each) => {
-          const alpha = Number(each.opacity[mode].toFixed(3));
-          return `${each.offsetXPx}px ${each.offsetYPx}px ${each.blurPx}px ${each.spreadPx}px rgba(${red}, ${green}, ${blue}, ${alpha})`;
-        })
-        .join(", ") || "none",
-  }));
+  return scale.levels.map((level) => {
+    const layers: ResolvedShadowLayer[] = level.layers.map((each) => ({
+      offsetXPx: each.offsetXPx,
+      offsetYPx: each.offsetYPx,
+      blurPx: each.blurPx,
+      spreadPx: each.spreadPx,
+      rgb: [red!, green!, blue!],
+      alpha: Number(each.opacity[mode].toFixed(3)),
+    }));
+
+    return {
+      id: level.id,
+      name: level.name,
+      description: level.description,
+      variable: elevationVariableName(level.id),
+      layers,
+      css:
+        layers
+          .map(
+            (each) =>
+              `${each.offsetXPx}px ${each.offsetYPx}px ${each.blurPx}px ${each.spreadPx}px rgba(${each.rgb[0]}, ${each.rgb[1]}, ${each.rgb[2]}, ${each.alpha})`,
+          )
+          .join(", ") || "none",
+    };
+  });
 }
 
 /** The scale as custom properties, for one mode. */

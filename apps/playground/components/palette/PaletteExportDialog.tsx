@@ -14,9 +14,9 @@ import {
   formatAccessibilityReportJson,
   formatAccessibilityReportMarkdown,
   formatBlueprintWorkspace,
-  formatColourSystemCss,
-  formatColourSystemDesignTokens,
-  formatColourSystemTailwind,
+  formatDesignSystemCss,
+  formatDesignSystemDesignTokens,
+  formatDesignSystemTailwind,
   parseBlueprintWorkspace,
   type ColorTrack,
   type ColourFormat,
@@ -74,15 +74,23 @@ export function PaletteExportDialog({
   };
 
   const output = useMemo(() => {
-    /* Both layers in every colour format. A semantic alias points at a
-       primitive variable, so a file with only one half is references to
-       nothing — and a browser drops those silently. */
-    const semantics = workspace.semantics ?? [];
+    /* Every family in every format. A semantic alias points at a primitive
+       variable and a shadow sits inside the spacing around it, so a file
+       carrying one of them is half a system — and a browser drops a reference
+       to a variable nothing declares in silence. */
+    const system = {
+      palettes,
+      semantics: workspace.semantics ?? [],
+      spacing: workspace.spacing,
+      radius: workspace.radius,
+      elevation: workspace.elevation,
+      colourFormat,
+    };
     if (exportFormat === "tailwind") {
-      return formatColourSystemTailwind(palettes, semantics, colourFormat);
+      return formatDesignSystemTailwind(system);
     }
     if (exportFormat === "tokens") {
-      return formatColourSystemDesignTokens(palettes, semantics, colourFormat);
+      return formatDesignSystemDesignTokens(system);
     }
     if (exportFormat === "project") {
       return formatBlueprintWorkspace(workspace);
@@ -103,7 +111,7 @@ export function PaletteExportDialog({
         ? formatAccessibilityReportJson(report)
         : formatAccessibilityReportMarkdown(report);
     }
-    return formatColourSystemCss(palettes, semantics, colourFormat);
+    return formatDesignSystemCss(system);
   }, [colourFormat, exportFormat, palettes, workspace]);
 
   const extension =
