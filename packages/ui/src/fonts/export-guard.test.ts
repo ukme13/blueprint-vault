@@ -4,6 +4,7 @@ import {
   formatTypeScaleCssExport,
   formatTypeScaleTailwindExport,
 } from "../typography/export";
+import { defaultSpacingScale } from "../scale/spacing";
 import { generateTypeSteps } from "../typography/scale";
 import { assignDefaultRoles } from "../typography/scale";
 import {
@@ -180,6 +181,7 @@ describe("no export carries font data", () => {
       name: "Uploaded",
       palette: null,
       semantics: null,
+      spacing: defaultSpacingScale(),
       typography: {
         system: systemWithLocalFont(),
         unit: "rem",

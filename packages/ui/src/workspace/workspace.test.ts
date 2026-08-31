@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { defaultSpacingScale } from "../scale/spacing";
 import { defaultSystem } from "../typography/system";
 import {
   DEFAULT_PREVIEW_TEMPLATE,
@@ -11,6 +12,7 @@ import {
   readWorkspaceProject,
   withPaletteSlice,
   withSemanticsSlice,
+  withSpacingSlice,
   withSharedName,
   withTypographySlice,
   workspaceFromLegacy,
@@ -227,6 +229,7 @@ describe("readWorkspaceProject", () => {
       palette: null,
       typography: null,
       semantics: null,
+      spacing: defaultSpacingScale(),
     });
   });
 
@@ -423,5 +426,52 @@ describe("a layer stored under the first names", () => {
     expect(stored.semantics).toHaveLength(1);
     expect(stored.semantics![0]!.id).toBe("text.primary");
     expect(stored.semantics![0]!.light.weight).toBe(950);
+  });
+});
+
+describe("the spacing slice", () => {
+  it("gives a workspace stored without one the default scale", () => {
+    /* Unlike a studio nobody has opened, a workspace with no spacing scale is
+       one laying itself out on numbers nobody chose. */
+    const stored = readWorkspaceProject({
+      name: "Brand",
+      palette: legacyPalette(),
+      typography: null,
+    })!;
+
+    expect(stored.spacing).toEqual(defaultSpacingScale());
+  });
+
+  it("keeps a stored scale, normalised", () => {
+    const stored = readWorkspaceProject({
+      name: "Brand",
+      palette: null,
+      typography: legacyTypography(),
+      spacing: { baseUnitPx: 8, steps: [2, 1, 2, 4] },
+    })!;
+
+    expect(stored.spacing.baseUnitPx).toBe(8);
+    expect(stored.spacing.steps).toEqual([1, 2, 4]);
+  });
+
+  it("falls back when the stored scale is unreadable", () => {
+    const stored = readWorkspaceProject({
+      name: "Brand",
+      palette: legacyPalette(),
+      typography: null,
+      spacing: "not a scale",
+    })!;
+
+    expect(stored.spacing).toEqual(defaultSpacingScale());
+  });
+
+  it("replaces only its own slice", () => {
+    const base = withPaletteSlice(null, legacyPalette() as never);
+    const next = withSpacingSlice(base, { baseUnitPx: 8, steps: [1, 2] });
+
+    expect(next.spacing.baseUnitPx).toBe(8);
+    expect(next.palette).toBe(base.palette);
+    expect(next.semantics).toBe(base.semantics);
+    expect(next.typography).toBe(base.typography);
   });
 });

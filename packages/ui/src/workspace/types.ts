@@ -1,5 +1,6 @@
 import type { PaletteProjectData } from "../color/export";
 import type { SemanticToken } from "../color/semantic";
+import type { SpacingScale } from "../scale/spacing";
 import type { TypeScaleUnit } from "../typography/types";
 import type { TypeSystem } from "../typography/system";
 
@@ -39,4 +40,12 @@ export interface WorkspaceProject {
    * by hand to get back to where they were is not an upgrade.
    */
   semantics: SemanticToken[] | null;
+  /**
+   * The spacing scale.
+   *
+   * Never null once read: unlike a studio somebody has not opened, a workspace
+   * without a spacing scale is one laying itself out on numbers nobody chose,
+   * so a project saved before this gains the default rather than a gap.
+   */
+  spacing: SpacingScale;
 }
