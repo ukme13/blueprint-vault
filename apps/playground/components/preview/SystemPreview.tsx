@@ -77,7 +77,7 @@ const radius = (id: string) => `var(--radius-${id})`;
 const shadow = (id: string) => `var(--shadow-${id})`;
 
 export function SystemPreview() {
-  const { seen, view, setDeficiency } = usePaletteView();
+  const { seen } = usePaletteView();
   const [project, setProject] = useState<WorkspaceProject | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [mode, setMode] = useState<ColourMode>("light");
@@ -126,10 +126,7 @@ export function SystemPreview() {
     <PreviewChrome
       mode={mode}
       name={project?.name ?? "Workspace"}
-      severity={view.severity}
-      simulation={view.simulation}
       tokenCount={tokens.length}
-      onDeficiencyChange={setDeficiency}
       onModeChange={setMode}
     >
       {/* The variables are declared on the same element that uses them.
