@@ -3,6 +3,7 @@ import { generatePalettes } from "./palette";
 import { selectPreviewShades } from "./preview-assessment";
 import {
   addSemanticToken,
+  migrateSemanticIds,
   removeSemanticToken,
   renameSemanticToken,
   repointSemanticToken,
@@ -85,23 +86,23 @@ describe("seedSemanticTokens", () => {
         expect(resolved.hex, id).toBe(hex);
       };
 
-      sameAs("primary.action", preview.primaryAction.hex);
-      sameAs("primary.soft", preview.primarySoft.hex);
-      sameAs("primary.focus", preview.primaryFocus.hex);
-      sameAs("secondary.action", preview.secondaryAction.hex);
-      sameAs("neutral.light", preview.neutralLight.hex);
-      sameAs("neutral.mid", preview.neutralMid.hex);
-      sameAs("neutral.dark", preview.neutralDark.hex);
-      sameAs("success.action", preview.successAction.hex);
-      sameAs("warning.action", preview.warningAction.hex);
-      sameAs("error.action", preview.errorAction.hex);
-      sameAs("info.action", preview.infoAction.hex);
+      sameAs("action.primary", preview.primaryAction.hex);
+      sameAs("surface.raised", preview.primarySoft.hex);
+      sameAs("focus.ring", preview.primaryFocus.hex);
+      sameAs("action.secondary", preview.secondaryAction.hex);
+      sameAs("surface.base", preview.neutralLight.hex);
+      sameAs("border.default", preview.neutralMid.hex);
+      sameAs("text.primary", preview.neutralDark.hex);
+      sameAs("status.success", preview.successAction.hex);
+      sameAs("status.warning", preview.warningAction.hex);
+      sameAs("status.error", preview.errorAction.hex);
+      sameAs("status.info", preview.infoAction.hex);
     },
   );
 
   it("takes weight 300 for the focus ring when the track has it", () => {
     const tokens = seedSemanticTokens(fullPalette());
-    expect(tokenById(tokens, "primary.focus").light.weight).toBe(300);
+    expect(tokenById(tokens, "focus.ring").light.weight).toBe(300);
   });
 
   it("falls back towards primary when a track is missing", () => {
@@ -129,8 +130,8 @@ describe("the dark seed", () => {
     const tokens = seedSemanticTokens(tracks);
     const neutral = tracks.find((track) => track.id === "t-neutral")!;
 
-    const dark = tokenById(tokens, "neutral.dark");
-    const light = tokenById(tokens, "neutral.light");
+    const dark = tokenById(tokens, "text.primary");
+    const light = tokenById(tokens, "surface.base");
 
     const indexOf = (weight: number) =>
       neutral.shades.findIndex((shade) => shade.weight === weight);
@@ -144,8 +145,8 @@ describe("the dark seed", () => {
     const tracks = fullPalette();
     const tokens = seedSemanticTokens(tracks);
 
-    const text = tokenById(tokens, "neutral.dark");
-    const background = tokenById(tokens, "neutral.light");
+    const text = tokenById(tokens, "text.primary");
+    const background = tokenById(tokens, "surface.base");
 
     const lightText = resolveSemantic(text, "light", tracks)!;
     const lightBackground = resolveSemantic(background, "light", tracks)!;
@@ -164,7 +165,7 @@ describe("resolveSemantic", () => {
   it("follows the primitive it points at, rather than copying it", () => {
     const before = fullPalette();
     const tokens = seedSemanticTokens(before);
-    const token = tokenById(tokens, "primary.action");
+    const token = tokenById(tokens, "action.primary");
     const wasHex = resolveSemantic(token, "light", before)!.hex;
 
     const after = palette([
@@ -188,7 +189,7 @@ describe("resolveSemantic", () => {
 
   it("reports a deleted track and still returns a colour", () => {
     const tracks = fullPalette();
-    const token = tokenById(seedSemanticTokens(tracks), "success.action");
+    const token = tokenById(seedSemanticTokens(tracks), "status.success");
     const without = tracks.filter((track) => track.id !== "t-success");
 
     const resolved = resolveSemantic(token, "light", without)!;
@@ -199,7 +200,7 @@ describe("resolveSemantic", () => {
   it("reports a weight that no longer exists and takes the nearest", () => {
     const tracks = fullPalette();
     const token: SemanticToken = {
-      ...tokenById(seedSemanticTokens(tracks), "primary.action"),
+      ...tokenById(seedSemanticTokens(tracks), "action.primary"),
       light: { trackId: "t-primary", weight: 999 },
     };
 
@@ -211,7 +212,7 @@ describe("resolveSemantic", () => {
   it("returns null for an empty palette", () => {
     const token = tokenById(
       seedSemanticTokens(fullPalette()),
-      "primary.action",
+      "action.primary",
     );
     expect(resolveSemantic(token, "light", [])).toBeNull();
   });
@@ -227,33 +228,33 @@ describe("resolveSemantic", () => {
 describe("editing a layer", () => {
   it("renames the id with the label, because the id is what ships", () => {
     const tokens = seedSemanticTokens(fullPalette());
-    const renamed = renameSemanticToken(tokens, "primary.action", "Brand fill");
+    const renamed = renameSemanticToken(tokens, "action.primary", "Brand fill");
 
     const token = tokenById(renamed, "brand.fill");
     expect(token.name).toBe("Brand fill");
     /* The old id is gone: a rename that kept it would leave the label and the
        exported variable disagreeing. */
-    expect(renamed.some((each) => each.id === "primary.action")).toBe(false);
+    expect(renamed.some((each) => each.id === "action.primary")).toBe(false);
   });
 
   it("refuses to let two tokens share an id", () => {
     const tokens = seedSemanticTokens(fullPalette());
     const renamed = renameSemanticToken(
       tokens,
-      "primary.soft",
-      "Primary action",
+      "surface.raised",
+      "Action primary",
     );
 
     expect(
-      renamed.filter((token) => token.id === "primary.action"),
+      renamed.filter((token) => token.id === "action.primary"),
     ).toHaveLength(1);
-    expect(tokenById(renamed, "primary.action.2").name).toBe("Primary action");
+    expect(tokenById(renamed, "action.primary.2").name).toBe("Action primary");
   });
 
   it("keeps the id when the label is blank", () => {
     const tokens = seedSemanticTokens(fullPalette());
-    const renamed = renameSemanticToken(tokens, "primary.action", "   ");
-    expect(tokenById(renamed, "primary.action").name).toBe("Primary action");
+    const renamed = renameSemanticToken(tokens, "action.primary", "   ");
+    expect(tokenById(renamed, "action.primary").name).toBe("Action primary");
   });
 
   it("leaves the layer alone when the token is not there", () => {
@@ -264,13 +265,13 @@ describe("editing a layer", () => {
   it("repoints one mode and leaves the other", () => {
     const tracks = fullPalette();
     const tokens = seedSemanticTokens(tracks);
-    const before = tokenById(tokens, "primary.action");
+    const before = tokenById(tokens, "action.primary");
 
-    const next = repointSemanticToken(tokens, "primary.action", "dark", {
+    const next = repointSemanticToken(tokens, "action.primary", "dark", {
       trackId: "t-info",
       weight: 200,
     });
-    const after = tokenById(next, "primary.action");
+    const after = tokenById(next, "action.primary");
 
     expect(after.dark).toEqual({ trackId: "t-info", weight: 200 });
     expect(after.light).toEqual(before.light);
@@ -304,15 +305,84 @@ describe("editing a layer", () => {
 
   it("removes a token", () => {
     const tokens = seedSemanticTokens(fullPalette());
-    const next = removeSemanticToken(tokens, "info.action");
+    const next = removeSemanticToken(tokens, "status.info");
 
     expect(next).toHaveLength(10);
-    expect(next.some((token) => token.id === "info.action")).toBe(false);
+    expect(next.some((token) => token.id === "status.info")).toBe(false);
   });
 
   it("makes an id from a label", () => {
     expect(semanticId("Surface  Raised")).toBe("surface.raised");
     expect(semanticId("  Text / Primary  ")).toBe("text.primary");
     expect(semanticId("!!!")).toBe("");
+  });
+});
+
+describe("the first names, carried forward", () => {
+  const oldToken = (id: string, name: string): SemanticToken => ({
+    id,
+    name,
+    description: "",
+    light: { trackId: "t-primary", weight: 550 },
+    dark: { trackId: "t-primary", weight: 400 },
+  });
+
+  it("renames a layer saved under the ramp-position names", () => {
+    /* Without this a project made before the rename gains a second set of
+       eleven beside the ones it has, and the page draws from neither. */
+    const migrated = migrateSemanticIds([
+      oldToken("primary.action", "Primary action"),
+      oldToken("neutral.dark", "Neutral dark"),
+      oldToken("neutral.light", "Neutral light"),
+    ]);
+
+    expect(migrated.map((token) => token.id)).toEqual([
+      "action.primary",
+      "text.primary",
+      "surface.base",
+    ]);
+    expect(migrated[0]!.name).toBe("Action primary");
+    // The reference is untouched: this renames names, not what they point at.
+    expect(migrated[0]!.light).toEqual({ trackId: "t-primary", weight: 550 });
+  });
+
+  it("leaves a token somebody named themselves alone", () => {
+    const mine = oldToken("brand.wash", "Brand wash");
+    expect(migrateSemanticIds([mine])).toEqual([mine]);
+  });
+
+  it("will not rename onto an id already taken", () => {
+    /* Two tokens sharing an id export one variable twice and the later one
+       silently wins. Keeping the old id is the lesser harm, and visible. */
+    const migrated = migrateSemanticIds([
+      oldToken("action.primary", "Action primary"),
+      oldToken("primary.action", "Primary action"),
+    ]);
+
+    expect(migrated.map((token) => token.id)).toEqual([
+      "action.primary",
+      "primary.action",
+    ]);
+  });
+
+  it("is idempotent", () => {
+    const once = migrateSemanticIds([oldToken("primary.soft", "Primary soft")]);
+    expect(migrateSemanticIds(once)).toEqual(once);
+  });
+
+  it("seeds the usage-based names", () => {
+    expect(seedSemanticTokens(fullPalette()).map((token) => token.id)).toEqual([
+      "action.primary",
+      "action.secondary",
+      "surface.base",
+      "surface.raised",
+      "border.default",
+      "text.primary",
+      "focus.ring",
+      "status.success",
+      "status.warning",
+      "status.error",
+      "status.info",
+    ]);
   });
 });

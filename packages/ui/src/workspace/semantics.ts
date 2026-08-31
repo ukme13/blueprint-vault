@@ -1,6 +1,10 @@
 import type { PaletteProjectData } from "../color/export";
 import { generatePalettes } from "../color/palette";
-import { seedSemanticTokens, type SemanticToken } from "../color/semantic";
+import {
+  migrateSemanticIds,
+  seedSemanticTokens,
+  type SemanticToken,
+} from "../color/semantic";
 
 /**
  * The semantic slice: reading it back, and seeding it when it is not there.
@@ -56,9 +60,11 @@ function readToken(value: unknown): SemanticToken | null {
  */
 export function readSemanticTokens(value: unknown): SemanticToken[] | null {
   if (!Array.isArray(value)) return null;
-  return value
-    .map(readToken)
-    .filter((token): token is SemanticToken => token !== null);
+  return migrateSemanticIds(
+    value
+      .map(readToken)
+      .filter((token): token is SemanticToken => token !== null),
+  );
 }
 
 /**

@@ -51,17 +51,17 @@ function readWorkspace(): WorkspaceProject | null {
 }
 
 /** The tokens the page draws itself with, named once so the JSX stays honest. */
-const SURFACE = "var(--color-neutral-light)";
-const RAISED = "var(--color-primary-soft)";
-const BORDER = "var(--color-neutral-mid)";
-const TEXT = "var(--color-neutral-dark)";
-const ACTION = "var(--color-primary-action)";
-const ACTION_SECONDARY = "var(--color-secondary-action)";
-const FOCUS = "var(--color-primary-focus)";
-const SUCCESS = "var(--color-success-action)";
-const WARNING = "var(--color-warning-action)";
-const ERROR = "var(--color-error-action)";
-const INFO = "var(--color-info-action)";
+const SURFACE = "var(--color-surface-base)";
+const RAISED = "var(--color-surface-raised)";
+const BORDER = "var(--color-border-default)";
+const TEXT = "var(--color-text-primary)";
+const ACTION = "var(--color-action-primary)";
+const ACTION_SECONDARY = "var(--color-action-secondary)";
+const FOCUS = "var(--color-focus-ring)";
+const SUCCESS = "var(--color-status-success)";
+const WARNING = "var(--color-status-warning)";
+const ERROR = "var(--color-status-error)";
+const INFO = "var(--color-status-info)";
 
 export function SystemPreview() {
   const { seen, view, setDeficiency } = usePaletteView();

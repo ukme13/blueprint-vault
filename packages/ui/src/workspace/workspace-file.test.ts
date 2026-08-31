@@ -192,8 +192,8 @@ describe("a version 1 file still opens", () => {
   it("round-trips a chosen layer rather than reseeding it", () => {
     const chosen = [
       {
-        id: "primary.action",
-        name: "Primary action",
+        id: "action.primary",
+        name: "Action primary",
         description: "",
         light: { trackId: "primary", weight: 100 },
         dark: { trackId: "primary", weight: 900 },
