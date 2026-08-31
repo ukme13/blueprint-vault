@@ -1,5 +1,12 @@
 import { readFileSync } from "node:fs";
-import { expect, seedProject, test, WORKSPACE_STORAGE_KEY } from "./fixtures";
+import {
+  defaultProject,
+  expect,
+  seedProject,
+  test,
+  WORKSPACE_STORAGE_KEY,
+} from "./fixtures";
+import type { Page } from "@playwright/test";
 
 /**
  * The spacing scale, edited.
@@ -9,10 +16,37 @@ import { expect, seedProject, test, WORKSPACE_STORAGE_KEY } from "./fixtures";
  * the scale being editable and surviving a reload.
  */
 
+/**
+ * Seed a workspace, open the scale studio, and wait for it to have read one.
+ *
+ * The wait is the point. `goto` resolves on load, which is before the effect
+ * that reads storage has populated the scales, the palette and the name — and
+ * under StrictMode that effect runs twice, so the window is wider in dev than
+ * in production. Acting inside it fails in ways that look nothing like a race:
+ * `fill` on the name appended to the seeded value instead of replacing it,
+ * because the re-read landed between the clear and the insert, and the
+ * elevation shadow came out a shade off because the palette it is drawn from
+ * had arrived for one swatch and not the other.
+ *
+ * Neither reproduced on CI, which builds for production and has no StrictMode
+ * to double the effect. The same wait is why the `seededPage` fixture exists;
+ * this spec predates using it and needs its own.
+ *
+ * The name is the last thing that effect sets, so seeing it is seeing the load
+ * finish. Reloads mid-test already assert on rendered content and gate
+ * themselves.
+ */
+async function openScaleStudio(page: Page) {
+  await seedProject(page);
+  await page.goto("/scale");
+  await expect(page.getByLabel("Project name")).toHaveValue(
+    defaultProject().name,
+  );
+}
+
 test.describe("The spacing studio", () => {
   test("shows the seeded scale as pixels and rems", async ({ page }) => {
-    await seedProject(page);
-    await page.goto("/scale");
+    await openScaleStudio(page);
 
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     await expect(steps).toBeVisible();
@@ -23,8 +57,7 @@ test.describe("The spacing studio", () => {
   });
 
   test("prunes a step, and keeps it pruned", async ({ page }) => {
-    await seedProject(page);
-    await page.goto("/scale");
+    await openScaleStudio(page);
 
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     const before = await steps.getByRole("listitem").count();
@@ -58,8 +91,7 @@ test.describe("The spacing studio", () => {
   test("moves every step when the base unit changes", async ({ page }) => {
     /* The grid is the model: one number moves the whole scale, which is what
        makes it a scale rather than a list of sizes. */
-    await seedProject(page);
-    await page.goto("/scale");
+    await openScaleStudio(page);
 
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     await expect(steps.getByText("16px", { exact: true })).toBeVisible();
@@ -76,8 +108,7 @@ test.describe("The radius editor", () => {
   test("moves the named sizes and leaves the fixed ones", async ({ page }) => {
     /* Zero scaled is still zero and half a pill is still a pill, so the
        multiplier says nothing useful about either. */
-    await seedProject(page);
-    await page.goto("/scale");
+    await openScaleStudio(page);
 
     const radius = page.getByRole("region", { name: "Radius" });
     await expect(radius.getByText("8px", { exact: true })).toBeVisible();
@@ -93,8 +124,7 @@ test.describe("The radius editor", () => {
   });
 
   test("keeps the roundness across a reload", async ({ page }) => {
-    await seedProject(page);
-    await page.goto("/scale");
+    await openScaleStudio(page);
 
     const slider = page.getByRole("slider", { name: /Roundness/ });
     await slider.focus();
@@ -123,8 +153,7 @@ test.describe("The elevation editor", () => {
     /* The whole reason strength is held per mode: the same black at the same
        alpha reads as nothing once the background is already dark, and one
        preview would hide it. */
-    await seedProject(page);
-    await page.goto("/scale");
+    await openScaleStudio(page);
 
     const elevation = page.getByRole("region", { name: "Elevation" });
     await expect(elevation.getByLabel("Low on light")).toBeVisible();
@@ -135,8 +164,7 @@ test.describe("The elevation editor", () => {
   test("casts the same colour in both modes, more strongly in dark", async ({
     page,
   }) => {
-    await seedProject(page);
-    await page.goto("/scale");
+    await openScaleStudio(page);
 
     const elevation = page.getByRole("region", { name: "Elevation" });
     const shadowOf = (name: string) =>
@@ -161,8 +189,7 @@ test.describe("The elevation editor", () => {
   });
 
   test("keeps an edited strength across a reload", async ({ page }) => {
-    await seedProject(page);
-    await page.goto("/scale");
+    await openScaleStudio(page);
 
     const slider = page.getByRole("slider", { name: "Low light strength" });
     await slider.focus();
@@ -200,8 +227,7 @@ test.describe("The scale studio's chrome", () => {
   test("exports the whole system, not only the scales", async ({ page }) => {
     /* The tokens used to ship only from the Colour page, so somebody who built
        a spacing scale here had to go elsewhere to get it out. */
-    await seedProject(page);
-    await page.goto("/scale");
+    await openScaleStudio(page);
 
     await page.getByRole("button", { name: "Export", exact: true }).click();
     const preview = page.getByRole("region", { name: "Export preview" });
@@ -221,8 +247,7 @@ test.describe("The scale studio's chrome", () => {
   });
 
   test("offers no import, because it cannot confirm one", async ({ page }) => {
-    await seedProject(page);
-    await page.goto("/scale");
+    await openScaleStudio(page);
     await page.getByRole("button", { name: "Export", exact: true }).click();
 
     await expect(
@@ -238,8 +263,7 @@ test.describe("The scale studio's chrome", () => {
   }) => {
     /* The name belongs to the workspace, so every page that shows it can edit
        it — and this one could not. */
-    await seedProject(page);
-    await page.goto("/scale");
+    await openScaleStudio(page);
 
     const field = page.getByLabel("Project name");
     await field.fill("Renamed here");
