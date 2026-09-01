@@ -1,0 +1,31 @@
+#!/bin/sh
+# Refuse a commit that would introduce unformatted files.
+#
+# Checked, not fixed in place. A file can be staged in part, and formatting the
+# working copy and re-adding it would sweep the unstaged half into the commit.
+#
+# Only what is staged, so an unrelated file already out of shape cannot block a
+# commit that does not touch it. --ignore-unknown skips types Prettier has no
+# parser for; .prettierignore still applies, which is what keeps the generated
+# font snapshots out.
+set -eu
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -n "$staged" ] || exit 0
+
+# -z/-0 so a path with a space survives, and `--` so one starting with a dash
+# is read as a file rather than a flag.
+if git diff --cached --name-only --diff-filter=ACMR -z |
+	xargs -0 pnpm exec prettier --check --ignore-unknown --; then
+	exit 0
+fi
+
+cat >&2 <<'MSG'
+
+Commit refused: the files listed above are not formatted.
+
+  pnpm format   format the repository
+  git add -u    restage what it changed
+
+MSG
+exit 1

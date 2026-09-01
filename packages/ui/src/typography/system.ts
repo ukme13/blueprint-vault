@@ -851,7 +851,11 @@ export function setSlotFamily(
          the entry claiming a file that nothing points at. */
       else delete sources[slot];
 
-      return { ...font, families: stackFor(font, slot, family, generic), sources };
+      return {
+        ...font,
+        families: stackFor(font, slot, family, generic),
+        sources,
+      };
     }),
   };
 }

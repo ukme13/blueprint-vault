@@ -57,7 +57,12 @@ function system(over: Partial<TypeSystem> = {}): TypeSystem {
     stepCount: 9,
     breakpointPx: 768,
     fonts: [
-      { id: "base", name: "Base", families: ["Inter"], sources: { primary: "system" } },
+      {
+        id: "base",
+        name: "Base",
+        families: ["Inter"],
+        sources: { primary: "system" },
+      },
     ],
     roles: [role("body", "body")],
     ...over,
@@ -549,8 +554,18 @@ describe("setGoogleFont", () => {
   it("leaves the other entries alone", () => {
     const before = system({
       fonts: [
-        { id: "base", name: "Base", families: ["Inter"], sources: { primary: "system" } },
-        { id: "alt", name: "Alt", families: ["Lora"], sources: { primary: "system" } },
+        {
+          id: "base",
+          name: "Base",
+          families: ["Inter"],
+          sources: { primary: "system" },
+        },
+        {
+          id: "alt",
+          name: "Alt",
+          families: ["Lora"],
+          sources: { primary: "system" },
+        },
       ],
     });
     const after = setGoogleFont(before, "base", "primary", "Sarabun");
@@ -576,8 +591,18 @@ describe("setLocalFont", () => {
   it("leaves the other entries alone", () => {
     const before = system({
       fonts: [
-        { id: "base", name: "Base", families: ["Inter"], sources: { primary: "system" } },
-        { id: "alt", name: "Alt", families: ["Lora"], sources: { primary: "google" } },
+        {
+          id: "base",
+          name: "Base",
+          families: ["Inter"],
+          sources: { primary: "system" },
+        },
+        {
+          id: "alt",
+          name: "Alt",
+          families: ["Lora"],
+          sources: { primary: "google" },
+        },
       ],
     });
     const after = setLocalFont(before, "base", "Brand");
@@ -615,7 +640,12 @@ describe("setLocalFont", () => {
        the only evidence of what was wanted. */
     const before = system({
       fonts: [
-        { id: "base", name: "Base", families: ["Lora", "serif"], sources: { primary: "google" } },
+        {
+          id: "base",
+          name: "Base",
+          families: ["Lora", "serif"],
+          sources: { primary: "google" },
+        },
       ],
     });
     const after = setLocalFont(before, "base", "Brand-Regular");
