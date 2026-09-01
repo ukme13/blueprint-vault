@@ -179,7 +179,7 @@ describe("no export carries font data", () => {
     const serialised = JSON.stringify(workspace);
 
     expect(serialised).toContain(FAMILY);
-    expect(serialised).toContain('"source":"local"');
+    expect(serialised).toContain('"sources":{"primary":"local"}');
     assertNamesOnly("a serialised workspace", serialised);
     // A 28KB file would be unmissable next to a project this size.
     expect(serialised.length).toBeLessThan(20_000);
@@ -204,7 +204,7 @@ describe("no export carries font data", () => {
     });
 
     expect(file).toContain(FAMILY);
-    expect(file).toContain(`"source": "local"`);
+    expect(file).toContain(`"primary": "local"`);
     assertNamesOnly("a workspace file", file);
   });
 

@@ -9,7 +9,7 @@ import {
   removeRole,
   renameFont,
   renameGroup,
-  setFontFamilies,
+  setGoogleFont,
   setLocalFont,
   updateGroup,
   updateRole,
@@ -18,6 +18,7 @@ import {
   type TypeRole,
   type TypeSystem,
   type LineHeightConfig,
+  type FontSlot,
 } from "@blueprint/ui";
 import type { TypographyProject } from "./typography-project";
 
@@ -37,8 +38,8 @@ export interface TypographySystemActions {
   addFont: () => void;
   removeFont: (id: string) => void;
   renameFont: (id: string, name: string) => void;
-  setFontFamilies: (id: string, families: string[]) => void;
-  setLocalFont: (id: string, family: string) => void;
+  setGoogleFont: (id: string, slot: FontSlot, family: string, generic?: string) => void;
+  setLocalFont: (id: string, slot: FontSlot, family: string) => void;
   removeGroup: (groupId: string) => void;
 }
 
@@ -89,10 +90,12 @@ export function useTypographySystem(
       removeFont: (id) => editSystem((system) => removeFont(system, id)),
       renameFont: (id, name) =>
         editSystem((system) => renameFont(system, id, name)),
-      setFontFamilies: (id, families) =>
-        editSystem((system) => setFontFamilies(system, id, families)),
-      setLocalFont: (id, family) =>
-        editSystem((system) => setLocalFont(system, id, family)),
+      setGoogleFont: (id, slot, family, generic) =>
+        editSystem((system) =>
+          setGoogleFont(system, id, slot, family, generic),
+        ),
+      setLocalFont: (id, slot, family) =>
+        editSystem((system) => setLocalFont(system, id, family, slot)),
       removeGroup: (groupId) =>
         editSystem((system) => removeGroup(system, groupId)),
     };

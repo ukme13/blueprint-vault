@@ -46,7 +46,7 @@ const buttonVariants = cva(
         success:
           "[--btn-main:var(--color-success-500)] [--btn-contrast:var(--color-neutral-50)] [--btn-hover:var(--color-success-450)] [--btn-active:var(--color-success-600)] [--btn-border:var(--color-success-400)] [--btn-soft:var(--color-success-50)] [--btn-soft-hover:var(--color-success-100)]",
         neutral:
-          "[--btn-main:var(--color-neutral-500)] [--btn-contrast:var(--color-neutral-50)] [--btn-hover:var(--color-neutral-450)] [--btn-active:var(--color-neutral-600)] [--btn-border:var(--color-neutral-400)] [--btn-soft:var(--color-neutral-50)] [--btn-soft-hover:var(--color-neutral-100)]",
+          "[--btn-main:var(--color-neutral-500)] [--btn-contrast:var(--color-neutral-50)] [--btn-hover:var(--color-neutral-450)] [--btn-active:var(--color-neutral-600)] [--btn-border:var(--color-neutral-700)] [--btn-soft:var(--color-neutral-50)] [--btn-soft-hover:var(--color-neutral-100)]",
       },
 
       /**

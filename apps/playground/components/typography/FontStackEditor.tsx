@@ -1,15 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { Trash2 } from "lucide-react";
 import { Selector } from "@astryxdesign/core/Selector";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import {
   Button,
   FONT_SCRIPTS,
   findGoogleFont,
+  familyForSlot,
   genericForCategory,
+  isLocalSlot,
+  type FontSlot,
   type TypeFont,
 } from "@blueprint/ui";
+import { FontUploadField } from "./FontUploadField";
 import { GoogleFontPicker } from "./GoogleFontPicker";
 import type { LocalFontStatus } from "./use-local-fonts";
 import styles from "./typography-workspace.module.css";
@@ -29,36 +34,15 @@ import styles from "./typography-workspace.module.css";
 
 const DEFAULT_SCRIPT = "thai";
 
-/**
- * CSS keywords rather than families.
+/*
+ * The generic list moved to `@blueprint/ui`. `setLocalFont` needs the same
+ * answer when it keeps a stack's existing generic, and two copies of "is this
+ * a real family" would eventually disagree.
  *
- * They belong at the end of a stack, not in the bilingual slot: a migrated
- * stack of ["Geist Sans", "ui-sans-serif", "system-ui"] has no fallback font,
- * and treating `ui-sans-serif` as one hid the warning that the primary covers
- * no Thai.
+ * Why it matters here: a migrated stack of ["Geist Sans", "ui-sans-serif",
+ * "system-ui"] has no fallback font, and treating `ui-sans-serif` as one hid
+ * the warning that the primary covers no Thai.
  */
-const GENERIC_FAMILIES = new Set([
-  "serif",
-  "sans-serif",
-  "monospace",
-  "cursive",
-  "fantasy",
-  "system-ui",
-  "ui-serif",
-  "ui-sans-serif",
-  "ui-monospace",
-  "ui-rounded",
-  "math",
-  "emoji",
-  "fangsong",
-  "inherit",
-  "initial",
-  "unset",
-]);
-
-function isGeneric(family: string): boolean {
-  return GENERIC_FAMILIES.has(family.trim().toLowerCase());
-}
 
 function label(script: string): string {
   return script
@@ -71,21 +55,22 @@ interface FontStackEditorProps {
   font: TypeFont;
   /** Removal is refused for the last entry: a role needs something to render. */
   canRemove: boolean;
-  onChange: (families: string[]) => void;
+  /** A family chosen for one slot, with the generic the stack should end on. */
+  onPick: (slot: FontSlot, family: string, generic: string) => void;
   onRename: (name: string) => void;
   onRemove: () => void;
   /** Hands the picked file up; the studio stores it and names the family. */
-  onUpload: (file: File) => void;
-  /** Why the last picked file was refused, or empty when it was not. */
-  uploadError: string;
-  /** Whether the uploaded file has been found yet. Local entries only. */
-  fileStatus: LocalFontStatus;
+  onUpload: (slot: FontSlot, file: File) => void;
+  /** Why the last picked file was refused, per slot. */
+  uploadError: (slot: FontSlot) => string;
+  /** Whether a slot's uploaded file has been found yet. */
+  fileStatus: (slot: FontSlot) => LocalFontStatus;
 }
 
 export function FontStackEditor({
   font,
   canRemove,
-  onChange,
+  onPick,
   onRename,
   onRemove,
   onUpload,
@@ -94,30 +79,19 @@ export function FontStackEditor({
 }: FontStackEditorProps) {
   const [script, setScript] = useState(DEFAULT_SCRIPT);
 
-  const named = font.families.filter((family) => !isGeneric(family));
-  const [primary = "", fallback = ""] = named;
+  const primary = familyForSlot(font, "primary");
+  const fallback = familyForSlot(font, "fallback");
   const primaryFont = findGoogleFont(primary);
   const generic = primaryFont
     ? genericForCategory(primaryFont.category)
     : "sans-serif";
-
-  const write = (nextPrimary: string, nextFallback: string) => {
-    /* Rebuilt rather than patched: the stack is only ever these three slots,
-       so writing it whole keeps the order right and the generic last. */
-    onChange(
-      [nextPrimary, nextFallback, generic].filter(
-        (family, index, all) =>
-          family.length > 0 && all.indexOf(family) === index,
-      ),
-    );
-  };
 
   const covered = primaryFont?.scripts.includes(script) ?? false;
   /* Both notes below reason from the Google catalogue, which an uploaded file
      is not in. "Not loaded here" would contradict the upload note directly,
      and script coverage is not something we can read off a file we were
      handed. */
-  const isLocal = font.source === "local";
+  const primaryIsLocal = isLocalSlot(font, "primary");
 
   return (
     <div className={styles.fontStack}>
@@ -135,12 +109,16 @@ export function FontStackEditor({
         {canRemove && (
           <Button
             aria-label={`Remove ${font.name} font`}
+            /* Sized against the name field beside it. See the note on the
+               role row's trash: `cn` is a plain join, so the CVA size stays
+               on the element and only the important suffix beats it. */
+            className="h-8! w-8! [&_svg]:size-4!"
             scheme="neutral"
-            size="xs"
-            variant="text"
+            size="icon"
+            variant="outlined"
             onClick={onRemove}
           >
-            Remove
+            <Trash2 aria-hidden="true" />
           </Button>
         )}
       </div>
@@ -149,7 +127,17 @@ export function FontStackEditor({
         family={primary}
         label={`${font.name} font`}
         placeholder="Search Google Fonts"
-        onPick={(picked) => write(picked?.family ?? "", fallback)}
+        onPick={(picked) => onPick("primary", picked?.family ?? "", generic)}
+      />
+      <FontUploadField
+        slot="primary"
+        name={`${font.name} font`}
+        family={primary}
+        isLocal={primaryIsLocal}
+        fileStatus={fileStatus("primary")}
+        uploadError={uploadError("primary")}
+        generic={generic}
+        onUpload={(file) => onUpload("primary", file)}
       />
 
       <div className={styles.fontStackRow}>
@@ -159,7 +147,7 @@ export function FontStackEditor({
             label={`${font.name} bilingual fallback`}
             placeholder={`Covers ${label(script)}`}
             script={script}
-            onPick={(picked) => write(primary, picked?.family ?? "")}
+            onPick={(picked) => onPick("fallback", picked?.family ?? "", generic)}
           />
         </div>
         <div className={styles.fontStackScript}>
@@ -176,47 +164,18 @@ export function FontStackEditor({
         </div>
       </div>
 
-      <div className={styles.fontStackUpload}>
-        <label className={styles.fontStackUploadLabel}>
-          {/* "Replace" would be wrong where there is nothing to replace, which
-              is the whole state this has to be honest about. */}
-          <span>
-            {!isLocal
-              ? "Upload a font file"
-              : fileStatus === "missing"
-                ? "Add the missing file"
-                : "Replace file"}
-          </span>
-          <input
-            accept=".woff2,.woff,.ttf,.otf,font/woff2,font/woff,font/ttf,font/otf"
-            type="file"
-            onChange={(event) => {
-              const picked = event.target.files?.[0];
-              /* Cleared so the same file can be picked again after a
-                 removal, which otherwise fires no change event. */
-              event.target.value = "";
-              if (picked) onUpload(picked);
-            }}
-          />
-        </label>
-        {uploadError && (
-          <p className={styles.fontStackHint} data-missing="true">
-            {uploadError}
-          </p>
-        )}
-        {isLocal && fileStatus !== "checking" && (
-          <p
-            className={styles.fontStackHint}
-            data-missing={fileStatus === "missing"}
-          >
-            {fileStatus === "loaded"
-              ? `Rendering ${primary} from your file. It stays in this browser and is never included in exports — check the licence before shipping it on the web.`
-              : `${primary} has no file in this browser, so it falls back to ${generic}. The name still applies wherever it is installed. Add the file to see it here.`}
-          </p>
-        )}
-      </div>
+      <FontUploadField
+        slot="fallback"
+        name={`${font.name} ${label(script)} fallback`}
+        family={fallback}
+        isLocal={isLocalSlot(font, "fallback")}
+        fileStatus={fileStatus("fallback")}
+        uploadError={uploadError("fallback")}
+        generic={generic}
+        onUpload={(file) => onUpload("fallback", file)}
+      />
 
-      {primary && !primaryFont && !isLocal && (
+      {primary && !primaryFont && !primaryIsLocal && (
         <p className={styles.fontStackHint}>
           {primary} is not a Google font, so it is not loaded here. It still
           applies wherever it is installed.
@@ -227,7 +186,7 @@ export function FontStackEditor({
           {primary} already covers {label(script)}, so a fallback is optional.
         </p>
       )}
-      {primary && !covered && !fallback && !isLocal && (
+      {primary && !covered && !fallback && !primaryIsLocal && (
         <p className={styles.fontStackHint}>
           {primary} has no {label(script)} glyphs. Without a fallback the
           browser substitutes a system font.

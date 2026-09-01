@@ -5,7 +5,7 @@ import {
   splitFontFamily,
   type LegacyTypographyProject,
 } from "./migrate";
-import { elementForRole, resolveLineHeight } from "./system";
+import { elementForRole, resolveLineHeight, slotSource } from "./system";
 import { generateTypeScale } from "./scale";
 import { SEMANTIC_ROLES } from "./types";
 
@@ -162,7 +162,7 @@ describe("normalizeStoredSystem", () => {
     stepCount: 9,
     breakpointPx: 768,
     fonts: [
-      { id: "base", name: "Base", families: ["Inter"], source: "system" },
+      { id: "base", name: "Base", families: ["Inter"], sources: { primary: "system" } },
     ],
     roles: [
       {
@@ -222,6 +222,81 @@ describe("normalizeStoredSystem", () => {
     expect(system.roles[0]!.mobile.lineHeight).toEqual({ mode: "auto" });
   });
 
+  it("reads a stored entry source as the primary slot's", () => {
+    /* Every project saved before slots carries one `source` for the entry,
+       and it described the primary: an upload could only land there, and the
+       fallback was reachable only through the Google picker. */
+    const system = normalizeStoredSystem({
+      ...previousRelease,
+      fonts: [
+        {
+          id: "base",
+          name: "Base",
+          families: ["Inter"],
+          source: "local",
+        },
+      ],
+    })!;
+
+    expect(system.fonts[0]!.sources).toEqual({ primary: "local" });
+    expect(slotSource(system.fonts[0]!, "primary")).toBe("local");
+  });
+
+  it("calls a stored fallback a Google one, because nothing else could set it", () => {
+    const system = normalizeStoredSystem({
+      ...previousRelease,
+      fonts: [
+        {
+          id: "base",
+          name: "Base",
+          families: ["Inter", "Noto Sans Thai", "sans-serif"],
+          source: "google",
+        },
+      ],
+    })!;
+
+    expect(system.fonts[0]!.sources).toEqual({
+      primary: "google",
+      fallback: "google",
+    });
+  });
+
+  it("does not invent a fallback out of a generic", () => {
+    /* ["Geist Sans", "ui-sans-serif", "system-ui"] is the migrated default
+       and has no fallback font. Counting index 1 would claim Thai coverage
+       that is not there. */
+    const system = normalizeStoredSystem({
+      ...previousRelease,
+      fonts: [
+        {
+          id: "base",
+          name: "Base",
+          families: ["Geist Sans", "ui-sans-serif", "system-ui"],
+          source: "system",
+        },
+      ],
+    })!;
+
+    expect(system.fonts[0]!.sources).toEqual({ primary: "system" });
+  });
+
+  it("keeps per-slot sources that are already there", () => {
+    const sources = { primary: "local", fallback: "google" } as const;
+    const system = normalizeStoredSystem({
+      ...previousRelease,
+      fonts: [
+        {
+          id: "base",
+          name: "Base",
+          families: ["Brand", "Noto Sans Thai", "sans-serif"],
+          sources,
+        },
+      ],
+    })!;
+
+    expect(system.fonts[0]!.sources).toEqual(sources);
+  });
+
   it("clamps an offset that no longer has a step", () => {
     /* The ramp used to be centred, so a saved -4 has no step now that base
        moved up. Clamping keeps the role on the scale instead of freezing it at
@@ -279,7 +354,7 @@ describe("normalizeStoredSystem repairs stale ids", () => {
       breakpointPx: 768,
       groups: [{ id: "body", label: "Body", indexing: "number" }],
       fonts: [
-        { id: "base", name: "Base", families: ["Inter"], source: "system" },
+        { id: "base", name: "Base", families: ["Inter"], sources: { primary: "system" } },
       ],
       roles: ["body", "body-1"].map((id) => ({
         id,

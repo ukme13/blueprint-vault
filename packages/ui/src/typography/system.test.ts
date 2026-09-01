@@ -15,7 +15,10 @@ import {
   removeGroup,
   removeRole,
   renameGroup,
-  setFontFamilies,
+  setGoogleFont,
+  slotSource,
+  familyForSlot,
+  localSlots,
   setLocalFont,
   slugify,
   updateGroup,
@@ -54,7 +57,7 @@ function system(over: Partial<TypeSystem> = {}): TypeSystem {
     stepCount: 9,
     breakpointPx: 768,
     fonts: [
-      { id: "base", name: "Base", families: ["Inter"], source: "system" },
+      { id: "base", name: "Base", families: ["Inter"], sources: { primary: "system" } },
     ],
     roles: [role("body", "body")],
     ...over,
@@ -535,24 +538,24 @@ describe("removeGroup", () => {
   });
 });
 
-describe("setFontFamilies", () => {
-  it("marks the entry a Google one, since the picker is what wrote it", () => {
+describe("setGoogleFont", () => {
+  it("marks the slot a Google one, since the picker is what wrote it", () => {
     const before = system();
-    const after = setFontFamilies(before, "base", ["Sarabun", "sans-serif"]);
+    const after = setGoogleFont(before, "base", "primary", "Sarabun");
     expect(after.fonts[0]!.families).toEqual(["Sarabun", "sans-serif"]);
-    expect(after.fonts[0]!.source).toBe("google");
+    expect(slotSource(after.fonts[0]!, "primary")).toBe("google");
   });
 
   it("leaves the other entries alone", () => {
     const before = system({
       fonts: [
-        { id: "base", name: "Base", families: ["Inter"], source: "system" },
-        { id: "alt", name: "Alt", families: ["Lora"], source: "system" },
+        { id: "base", name: "Base", families: ["Inter"], sources: { primary: "system" } },
+        { id: "alt", name: "Alt", families: ["Lora"], sources: { primary: "system" } },
       ],
     });
-    const after = setFontFamilies(before, "base", ["Sarabun"]);
+    const after = setGoogleFont(before, "base", "primary", "Sarabun");
     expect(after.fonts[1]!.families).toEqual(["Lora"]);
-    expect(after.fonts[1]!.source).toBe("system");
+    expect(slotSource(after.fonts[1]!, "primary")).toBe("system");
   });
 });
 
@@ -561,7 +564,7 @@ describe("setLocalFont", () => {
     const before = system();
     const after = setLocalFont(before, "base", "Brand-Regular");
     expect(after.fonts[0]!.families[0]).toBe("Brand-Regular");
-    expect(after.fonts[0]!.source).toBe("local");
+    expect(slotSource(after.fonts[0]!, "primary")).toBe("local");
   });
 
   it("keeps a generic on the end, so a missing file still renders", () => {
@@ -573,20 +576,132 @@ describe("setLocalFont", () => {
   it("leaves the other entries alone", () => {
     const before = system({
       fonts: [
-        { id: "base", name: "Base", families: ["Inter"], source: "system" },
-        { id: "alt", name: "Alt", families: ["Lora"], source: "google" },
+        { id: "base", name: "Base", families: ["Inter"], sources: { primary: "system" } },
+        { id: "alt", name: "Alt", families: ["Lora"], sources: { primary: "google" } },
       ],
     });
     const after = setLocalFont(before, "base", "Brand");
     expect(after.fonts[1]!.families).toEqual(["Lora"]);
-    expect(after.fonts[1]!.source).toBe("google");
+    expect(slotSource(after.fonts[1]!, "primary")).toBe("google");
   });
 
-  it("takes an entry back off local when a Google family is picked", () => {
-    // setFontFamilies is the other direction, so an upload is recoverable.
+  it("keeps the bilingual fallback the upload sits in front of", () => {
+    /* The bug this replaces. `[family, "sans-serif"]` was written over the
+       whole stack, so uploading a Latin face onto Inter + Noto Sans Thai
+       deleted the Thai — silently, and only for Thai. */
+    const before = system({
+      fonts: [
+        {
+          id: "base",
+          name: "Base",
+          families: ["Inter", "Noto Sans Thai", "sans-serif"],
+          sources: { primary: "google" },
+        },
+      ],
+    });
+    const after = setLocalFont(before, "base", "Brand-Regular");
+
+    expect(after.fonts[0]!.families).toEqual([
+      "Brand-Regular",
+      "Noto Sans Thai",
+      "sans-serif",
+    ]);
+  });
+
+  it("keeps the generic the stack already had, rather than forcing one", () => {
+    /* A serif stack came back sans-serif, because the generic was hardcoded
+       rather than read. `genericForCategory` picks it for a Google family and
+       an uploaded file has no category to read, so the one already there is
+       the only evidence of what was wanted. */
+    const before = system({
+      fonts: [
+        { id: "base", name: "Base", families: ["Lora", "serif"], sources: { primary: "google" } },
+      ],
+    });
+    const after = setLocalFont(before, "base", "Brand-Regular");
+
+    expect(after.fonts[0]!.families).toEqual(["Brand-Regular", "serif"]);
+  });
+
+  it("does not repeat a family the stack already carries", () => {
+    const before = system({
+      fonts: [
+        {
+          id: "base",
+          name: "Base",
+          families: ["Inter", "Brand-Regular", "sans-serif"],
+          sources: { primary: "google" },
+        },
+      ],
+    });
+    const after = setLocalFont(before, "base", "Brand-Regular");
+
+    expect(after.fonts[0]!.families).toEqual(["Brand-Regular", "sans-serif"]);
+  });
+
+  it("takes a slot back off local when a Google family is picked", () => {
+    // setGoogleFont is the other direction, so an upload is recoverable.
     const local = setLocalFont(system(), "base", "Brand");
-    const back = setFontFamilies(local, "base", ["Inter", "sans-serif"]);
-    expect(back.fonts[0]!.source).toBe("google");
+    const back = setGoogleFont(local, "base", "primary", "Inter");
+    expect(slotSource(back.fonts[0]!, "primary")).toBe("google");
     expect(back.fonts[0]!.families[0]).toBe("Inter");
+  });
+
+  it("uploads into each slot without disturbing the other", () => {
+    /* The point of per-slot sources: an uploaded Latin face in front of an
+       uploaded Thai one is the stack this studio exists to build, and one
+       `source` for the entry could not describe it. */
+    const withThai = setLocalFont(
+      setLocalFont(system(), "base", "Brand-Latin", "primary"),
+      "base",
+      "Brand-Thai",
+      "fallback",
+    );
+
+    expect(familyForSlot(withThai.fonts[0]!, "primary")).toBe("Brand-Latin");
+    expect(familyForSlot(withThai.fonts[0]!, "fallback")).toBe("Brand-Thai");
+    expect(slotSource(withThai.fonts[0]!, "primary")).toBe("local");
+    expect(slotSource(withThai.fonts[0]!, "fallback")).toBe("local");
+  });
+
+  it("keeps one slot local while the other is a Google family", () => {
+    const mixed = setGoogleFont(
+      setLocalFont(system(), "base", "Brand-Latin", "primary"),
+      "base",
+      "fallback",
+      "Noto Sans Thai",
+    );
+
+    expect(slotSource(mixed.fonts[0]!, "primary")).toBe("local");
+    expect(slotSource(mixed.fonts[0]!, "fallback")).toBe("google");
+    expect(mixed.fonts[0]!.families).toEqual([
+      "Brand-Latin",
+      "Noto Sans Thai",
+      "sans-serif",
+    ]);
+  });
+
+  it("drops a slot's source when its family is cleared", () => {
+    /* Or the entry claims a file that nothing points at, and the removal
+       path would never be asked to clean it up. */
+    const local = setLocalFont(system(), "base", "Brand-Thai", "fallback");
+    const cleared = setGoogleFont(local, "base", "fallback", "");
+
+    expect(cleared.fonts[0]!.sources.fallback).toBeUndefined();
+    expect(familyForSlot(cleared.fonts[0]!, "fallback")).toBe("");
+  });
+
+  it("lists every local slot, so nothing is left unregistered", () => {
+    const both = setLocalFont(
+      setLocalFont(system(), "base", "Brand-Latin", "primary"),
+      "base",
+      "Brand-Thai",
+      "fallback",
+    );
+
+    expect(localSlots(both)).toEqual([
+      { fontId: "base", slot: "primary", family: "Brand-Latin" },
+      { fontId: "base", slot: "fallback", family: "Brand-Thai" },
+    ]);
   });
 });

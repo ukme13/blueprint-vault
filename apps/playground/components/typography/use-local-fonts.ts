@@ -1,14 +1,19 @@
 import { useEffect, useState } from "react";
 import {
+  FONT_SLOTS,
   fontFileStore,
+  legacyLocalFontKey,
   localFontFamilyName,
+  localFontKey,
+  localSlots,
   rejectFontFile,
   registerLocalFont,
+  type FontSlot,
   type TypeSystem,
 } from "@blueprint/ui";
 
 /**
- * Store a picked file, returning the family name to point the font entry at.
+ * Store a picked file, returning the family name to point the slot at.
  *
  * Outside the component on purpose: it reads the clock and touches storage,
  * neither of which belongs anywhere React might call twice.
@@ -21,6 +26,7 @@ export interface StoreLocalFontResult {
 
 export async function storeLocalFont(
   fontId: string,
+  slot: FontSlot,
   file: File,
 ): Promise<StoreLocalFontResult> {
   /* Checked before anything is read or written: refusing a file after storing
@@ -32,51 +38,64 @@ export async function storeLocalFont(
   const data = await file.arrayBuffer();
 
   try {
-    await fontFileStore().put({
-      id: fontId,
+    const store = fontFileStore();
+    await store.put({
+      id: localFontKey(fontId, slot),
       fileName: file.name,
       mimeType: file.type,
       size: file.size,
       addedAt: Date.now(),
       data,
     });
+    /* The primary's file used to live under the bare entry id. Once the slot
+       key holds one, that copy is referenced by nothing — which is the orphan
+       the plan forbids, so it goes with the write that replaced it. */
+    if (slot === "primary") await store.remove(legacyLocalFontKey(fontId));
   } catch {
     /* Storage refused it. The face still registers below, so the preview works
        for this session and the reload is stage 3's problem. */
   }
 
-  /* Not registered here. Pointing the entry at this family re-runs the hook
+  /* Not registered here. Pointing the slot at this family re-runs the hook
      below, which reads the file back and registers it once — doing it in both
      places added a second FontFace for the same family on every upload. */
   return { family };
 }
 
 /**
- * Forget the files for these entries.
+ * Forget the file behind one slot.
  *
- * Called wherever an entry stops pointing at one: removed, switched to a
- * Google family, or taken away with the whole project. A file nothing
- * references is a copy of someone's licensed font that nobody chose to keep.
+ * Called wherever a slot stops pointing at one: cleared, switched to a Google
+ * family, or removed with its entry. A file nothing references is a copy of
+ * someone's licensed font that nobody chose to keep.
  */
-export async function forgetLocalFonts(fontIds: string[]): Promise<void> {
-  if (fontIds.length === 0) return;
+export async function forgetFontSlot(
+  fontId: string,
+  slot: FontSlot,
+): Promise<void> {
   try {
     const store = fontFileStore();
-    for (const id of fontIds) await store.remove(id);
+    await store.remove(localFontKey(fontId, slot));
+    /* The pre-slot key too, or an upload made before this change outlives the
+       entry that referenced it. */
+    if (slot === "primary") await store.remove(legacyLocalFontKey(fontId));
   } catch {
     /* Storage unavailable. Nothing was stored either, in that case. */
   }
 }
 
-/** The entries of a system that are backed by a stored file. */
-export function localFontIds(system: TypeSystem | null): string[] {
-  return (system?.fonts ?? [])
-    .filter((font) => font.source === "local")
-    .map((font) => font.id);
+/** Forget every file an entry holds, in both slots. */
+export async function forgetFontEntry(fontId: string): Promise<void> {
+  for (const slot of FONT_SLOTS) await forgetFontSlot(fontId, slot);
+}
+
+/** Forget every file these entries hold. */
+export async function forgetLocalFonts(fontIds: string[]): Promise<void> {
+  for (const fontId of fontIds) await forgetFontEntry(fontId);
 }
 
 /**
- * Whether an entry's file has been found yet.
+ * Whether a slot's file has been found yet.
  *
  * Three states rather than two, because "not loaded" and "not loaded yet" call
  * for different things on screen. Reading the store is asynchronous, so a
@@ -86,11 +105,11 @@ export function localFontIds(system: TypeSystem | null): string[] {
  */
 export type LocalFontStatus = "checking" | "loaded" | "missing";
 
-/** The local entries of a system, as `id:family` pairs. */
-function localEntries(system: TypeSystem | null): string[] {
-  return (system?.fonts ?? [])
-    .filter((font) => font.source === "local")
-    .map((font) => `${font.id}:${font.families[0] ?? ""}`);
+/** The local slots of a system, packed so a change of any of them re-runs. */
+function localKeys(system: TypeSystem | null): string[] {
+  return localSlots(system).map(
+    ({ fontId, slot, family }) => `${localFontKey(fontId, slot)}|${family}`,
+  );
 }
 
 async function registerStored(entries: string[]): Promise<Set<string>> {
@@ -99,16 +118,23 @@ async function registerStored(entries: string[]): Promise<Set<string>> {
 
   const store = fontFileStore();
   for (const entry of entries) {
-    const separator = entry.indexOf(":");
-    const id = entry.slice(0, separator);
+    const separator = entry.indexOf("|");
+    const key = entry.slice(0, separator);
     const family = entry.slice(separator + 1);
-    if (!id || !family) continue;
+    if (!key || !family) continue;
     try {
-      const file = await store.get(id);
+      /* The slot key first, then the key the primary used before slots
+         existed, so an upload made before this change still renders rather
+         than reporting itself missing. */
+      const file =
+        (await store.get(key)) ??
+        (key.endsWith("::primary")
+          ? await store.get(key.slice(0, -"::primary".length))
+          : null);
       if (!file) continue;
       /* A file that will not parse is a fallback, not a failure: the family
          name still applies and the generic behind it renders. */
-      if (await registerLocalFont(family, file.data)) present.add(id);
+      if (await registerLocalFont(family, file.data)) present.add(key);
     } catch {
       /* Storage unavailable. Same outcome as a missing file. */
     }
@@ -119,13 +145,14 @@ async function registerStored(entries: string[]): Promise<Set<string>> {
 /**
  * Register the uploaded files this system names, so its local fonts render.
  *
- * The project stores a family name; the bytes live in IndexedDB under the font
- * entry's id. Nothing joins the two until this runs, which is why it runs on
+ * The project stores a family name; the bytes live in IndexedDB under the
+ * slot's key. Nothing joins the two until this runs, which is why it runs on
  * every load rather than only after an upload.
  *
- * Reports each local entry as checking, loaded, or missing. Missing is a normal
- * state rather than an error: the project can be opened in another browser, or
- * storage cleared, and the family name still applies.
+ * Reports each local slot as checking, loaded, or missing, keyed by
+ * `localFontKey`. Missing is a normal state rather than an error: the project
+ * can be opened in another browser, or storage cleared, and the family name
+ * still applies.
  */
 export function useLocalFonts(
   system: TypeSystem | null,
@@ -146,15 +173,15 @@ export function useLocalFonts(
     present: Set<string>;
   } | null>(null);
 
-  /* Keyed on the local entries rather than the system, so this re-runs when a
+  /* Keyed on the local slots rather than the system, so this re-runs when a
      font is uploaded or removed and not on every edit to a line height. */
-  const key = localEntries(system).join("|");
+  const key = localKeys(system).join("§");
 
   useEffect(() => {
     let cancelled = false;
     /* Even the empty case goes through the promise: setting state synchronously
        in an effect body cascades renders. */
-    void registerStored(key ? key.split("|") : []).then((present) => {
+    void registerStored(key ? key.split("§") : []).then((present) => {
       if (!cancelled) setAnswer({ key: `${revision}:${key}`, present });
     });
     return () => {
@@ -168,12 +195,16 @@ export function useLocalFonts(
   const current = answer?.key === question ? answer.present : null;
 
   const statuses = new Map<string, LocalFontStatus>();
-  for (const entry of key ? key.split("|") : []) {
-    const id = entry.slice(0, entry.indexOf(":"));
-    if (!id) continue;
+  for (const entry of key ? key.split("§") : []) {
+    const slotKey = entry.slice(0, entry.indexOf("|"));
+    if (!slotKey) continue;
     statuses.set(
-      id,
-      current === null ? "checking" : current.has(id) ? "loaded" : "missing",
+      slotKey,
+      current === null
+        ? "checking"
+        : current.has(slotKey)
+          ? "loaded"
+          : "missing",
     );
   }
   return statuses;

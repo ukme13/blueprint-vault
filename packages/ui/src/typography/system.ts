@@ -158,13 +158,13 @@ export function defaultSystem(
         id: DISPLAY_FONT_ID,
         name: "Display",
         families: fontFamilies,
-        source: "system",
+        sources: { primary: "system" },
       },
       {
         id: MAIN_FONT_ID,
         name: "Main",
         families: fontFamilies,
-        source: "system",
+        sources: { primary: "system" },
       },
     ],
     roles: [display, ...headings, body],
@@ -200,7 +200,7 @@ export function addFont(system: TypeSystem, name?: string): TypeSystem {
         /* Starts from the first entry's stack rather than empty, so a new font
            renders something immediately and can be changed from there. */
         families: template ? [...template.families] : ["sans-serif"],
-        source: template?.source ?? "system",
+        sources: { ...(template?.sources ?? { primary: "system" }) },
       },
     ],
   };
@@ -245,8 +245,19 @@ export function isHeadingGroup(group: Pick<TypeGroup, "id">): boolean {
   return group.id.trim().toLowerCase() === HEADING_GROUP_ID;
 }
 
-/** Where a font's families come from, which decides how they are loaded. */
+/** Where a family comes from, which decides how it is loaded. */
 export type TypeFontSource = "google" | "local" | "system";
+
+/**
+ * The two named slots in a stack.
+ *
+ * A stack is these two plus a generic. The generic is not a slot: it is
+ * appended from the primary's category rather than chosen, and nobody uploads
+ * a file for `sans-serif`.
+ */
+export type FontSlot = "primary" | "fallback";
+
+export const FONT_SLOTS: readonly FontSlot[] = ["primary", "fallback"];
 
 export interface TypeFont {
   id: string;
@@ -257,7 +268,15 @@ export interface TypeFont {
    * detection of our own.
    */
   families: string[];
-  source: TypeFontSource;
+  /**
+   * Where each named slot's family came from.
+   *
+   * Per slot rather than per entry. One `source` could not describe a stack
+   * with an uploaded Latin face in front of a Google Thai one, which is
+   * exactly the stack this studio exists to build. A slot with no family has
+   * no entry here.
+   */
+  sources: Partial<Record<FontSlot, TypeFontSource>>;
 }
 
 export interface TypeRoleValue {
@@ -700,40 +719,169 @@ export function removeGroup(system: TypeSystem, groupId: string): TypeSystem {
 }
 
 /**
- * Point a font entry at an uploaded file.
+ * The CSS keywords that end a stack rather than name a face.
  *
- * The generic stays on the end so the entry still renders when the file is
- * not there — another browser, or storage cleared. That is a normal state for
- * a local font rather than an error, and the family name is what the export
- * carries either way.
+ * Here rather than in the editor that used to hold them: deciding whether a
+ * family is a real one is a question about the model, and two answers to it
+ * would eventually disagree.
+ */
+const GENERIC_FAMILIES = new Set([
+  "serif",
+  "sans-serif",
+  "monospace",
+  "cursive",
+  "fantasy",
+  "system-ui",
+  "ui-serif",
+  "ui-sans-serif",
+  "ui-monospace",
+  "ui-rounded",
+  "math",
+  "emoji",
+  "fangsong",
+  "inherit",
+  "initial",
+  "unset",
+]);
+
+/** Whether a family is a CSS keyword rather than a face somebody chose. */
+export function isGenericFamily(family: string): boolean {
+  return GENERIC_FAMILIES.has(family.trim().toLowerCase());
+}
+
+/**
+ * The families somebody actually chose, in slot order.
+ *
+ * Generics are filtered out rather than counted, because a migrated stack of
+ * ["Geist Sans", "ui-sans-serif", "system-ui"] has no fallback font — reading
+ * index 1 as one would claim Thai coverage that is not there.
+ */
+export function namedFamilies(font: Pick<TypeFont, "families">): string[] {
+  return font.families.filter((family) => !isGenericFamily(family));
+}
+
+/** The family in one slot, or "" when the slot is empty. */
+export function familyForSlot(
+  font: Pick<TypeFont, "families">,
+  slot: FontSlot,
+): string {
+  const named = namedFamilies(font);
+  return (slot === "primary" ? named[0] : named[1]) ?? "";
+}
+
+/** Where one slot's family came from. */
+export function slotSource(
+  font: Pick<TypeFont, "sources">,
+  slot: FontSlot,
+): TypeFontSource {
+  return font.sources[slot] ?? "system";
+}
+
+/** Whether a slot is rendered from a file in this browser. */
+export function isLocalSlot(
+  font: Pick<TypeFont, "sources">,
+  slot: FontSlot,
+): boolean {
+  return slotSource(font, slot) === "local";
+}
+
+/** Every slot of every entry that is backed by a stored file. */
+export function localSlots(
+  system: TypeSystem | null,
+): { fontId: string; slot: FontSlot; family: string }[] {
+  return (system?.fonts ?? []).flatMap((font) =>
+    FONT_SLOTS.filter(
+      (slot) => isLocalSlot(font, slot) && familyForSlot(font, slot),
+    ).map((slot) => ({
+      fontId: font.id,
+      slot,
+      family: familyForSlot(font, slot),
+    })),
+  );
+}
+
+/**
+ * Rebuild a stack with one slot replaced.
+ *
+ * The whole stack is written, but from the two slots rather than from the
+ * caller — which is what stops setting one of them from dropping the other.
+ * The generic goes last and is kept if the stack already had one, so a serif
+ * stack does not come back sans-serif.
+ */
+function stackFor(
+  font: TypeFont,
+  slot: FontSlot,
+  family: string,
+  generic: string,
+): string[] {
+  const primary = slot === "primary" ? family : familyForSlot(font, "primary");
+  const fallback =
+    slot === "fallback" ? family : familyForSlot(font, "fallback");
+  const existingGeneric = font.families.filter(isGenericFamily);
+  const tail = existingGeneric.length > 0 ? existingGeneric : [generic];
+
+  return [primary, fallback, ...tail].filter(
+    (entry, index, all) => entry.length > 0 && all.indexOf(entry) === index,
+  );
+}
+
+/**
+ * Put a family in one slot, recording where it came from.
+ *
+ * One entry point for both pickers and both uploads. The editor used to
+ * rebuild the array itself and hand it over whole, which meant every write
+ * carried an opinion about the slot it was not editing.
+ */
+export function setSlotFamily(
+  system: TypeSystem,
+  fontId: string,
+  slot: FontSlot,
+  family: string,
+  source: TypeFontSource,
+  generic = "sans-serif",
+): TypeSystem {
+  return {
+    ...system,
+    fonts: system.fonts.map((font) => {
+      if (font.id !== fontId) return font;
+
+      const sources = { ...font.sources };
+      if (family) sources[slot] = source;
+      /* An emptied slot loses its source too, or a cleared upload would leave
+         the entry claiming a file that nothing points at. */
+      else delete sources[slot];
+
+      return { ...font, families: stackFor(font, slot, family, generic), sources };
+    }),
+  };
+}
+
+/**
+ * Point one slot at an uploaded file.
+ *
+ * The slot only. This used to write `[family, "sans-serif"]` over the whole
+ * stack, which deleted the bilingual fallback the user had picked — upload a
+ * Latin face onto Inter + Noto Sans Thai and the Thai was gone, silently, and
+ * only for Thai.
  */
 export function setLocalFont(
   system: TypeSystem,
   fontId: string,
   family: string,
+  slot: FontSlot = "primary",
 ): TypeSystem {
-  return {
-    ...system,
-    fonts: system.fonts.map((font) =>
-      font.id === fontId
-        ? { ...font, families: [family, "sans-serif"], source: "local" }
-        : font,
-    ),
-  };
+  return setSlotFamily(system, fontId, slot, family, "local");
 }
 
-/* The picker writes a stack, so the entry becomes a Google one by definition. */
-export function setFontFamilies(
+/** A family picked from the catalogue, which makes that slot a Google one. */
+export function setGoogleFont(
   system: TypeSystem,
   fontId: string,
-  families: string[],
+  slot: FontSlot,
+  family: string,
+  generic = "sans-serif",
 ): TypeSystem {
-  return {
-    ...system,
-    fonts: system.fonts.map((font) =>
-      font.id === fontId ? { ...font, families, source: "google" } : font,
-    ),
-  };
+  return setSlotFamily(system, fontId, slot, family, "google", generic);
 }
 
 export function fontFamilyValue(system: TypeSystem, role: TypeRole): string {

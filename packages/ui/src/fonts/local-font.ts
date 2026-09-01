@@ -31,6 +31,33 @@ export const MAX_FONT_FILE_BYTES = 32 * 1024 * 1024;
 export const FALLBACK_LOCAL_FONT_FAMILY = "Uploaded font";
 
 /**
+ * The key a slot's file is stored under.
+ *
+ * Compound, because an entry can now hold two files — an uploaded Latin face
+ * in front of an uploaded Thai one. The store was keyed by entry id alone,
+ * which allowed exactly one.
+ *
+ * Two colons rather than one: a single colon is already used to pack an id
+ * and a family together elsewhere, and a separator that appears in one of the
+ * halves stops being a separator.
+ */
+export function localFontKey(fontId: string, slot: string): string {
+  return `${fontId}::${slot}`;
+}
+
+/**
+ * The key the primary's file was stored under before slots existed.
+ *
+ * Reads fall back to it so an upload made before this change still renders,
+ * and both keys are removed together so neither can outlive the entry that
+ * referenced it — an orphaned copy of someone's licensed font is the thing
+ * the uploaded-fonts plan exists to prevent.
+ */
+export function legacyLocalFontKey(fontId: string): string {
+  return fontId;
+}
+
+/**
  * A CSS family name for an uploaded file.
  *
  * Deliberately literal: "Brand-Bold.woff2" stays "Brand-Bold" rather than
