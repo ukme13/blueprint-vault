@@ -12,3 +12,4 @@ apps/*/AGENTS.md
 
 pnpm-lock.yaml
 packages/ui/src/typography/google-fonts.json
+packages/ui/src/typography/google-font-scripts.json

@@ -32,10 +32,12 @@ describe("auto mode", () => {
     /* Headings are 1.2 and body 1.5 in AUTO_LINE_HEIGHT_RATIOS. Passing the
        ratio in is what keeps this function ignorant of groups, which are
        user-editable. */
-    expect(computeLineHeight(32, { mode: "auto" }, 1.2).computedLineHeightPx)
-      .toBe(40);
-    expect(computeLineHeight(32, { mode: "auto" }, 1.5).computedLineHeightPx)
-      .toBe(48);
+    expect(
+      computeLineHeight(32, { mode: "auto" }, 1.2).computedLineHeightPx,
+    ).toBe(40);
+    expect(
+      computeLineHeight(32, { mode: "auto" }, 1.5).computedLineHeightPx,
+    ).toBe(48);
   });
 
   it("never snaps below the ratio it was asked for", () => {
@@ -103,7 +105,8 @@ describe("px mode", () => {
 
   it("ignores the auto ratio", () => {
     expect(
-      computeLineHeight(16, { mode: "px", value: 30 }, 1.1).computedLineHeightPx,
+      computeLineHeight(16, { mode: "px", value: 30 }, 1.1)
+        .computedLineHeightPx,
     ).toBe(30);
   });
 });

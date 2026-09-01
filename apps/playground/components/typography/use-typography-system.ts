@@ -38,7 +38,12 @@ export interface TypographySystemActions {
   addFont: () => void;
   removeFont: (id: string) => void;
   renameFont: (id: string, name: string) => void;
-  setGoogleFont: (id: string, slot: FontSlot, family: string, generic?: string) => void;
+  setGoogleFont: (
+    id: string,
+    slot: FontSlot,
+    family: string,
+    generic?: string,
+  ) => void;
   setLocalFont: (id: string, slot: FontSlot, family: string) => void;
   removeGroup: (groupId: string) => void;
 }

@@ -162,7 +162,12 @@ describe("normalizeStoredSystem", () => {
     stepCount: 9,
     breakpointPx: 768,
     fonts: [
-      { id: "base", name: "Base", families: ["Inter"], sources: { primary: "system" } },
+      {
+        id: "base",
+        name: "Base",
+        families: ["Inter"],
+        sources: { primary: "system" },
+      },
     ],
     roles: [
       {
@@ -354,7 +359,12 @@ describe("normalizeStoredSystem repairs stale ids", () => {
       breakpointPx: 768,
       groups: [{ id: "body", label: "Body", indexing: "number" }],
       fonts: [
-        { id: "base", name: "Base", families: ["Inter"], sources: { primary: "system" } },
+        {
+          id: "base",
+          name: "Base",
+          families: ["Inter"],
+          sources: { primary: "system" },
+        },
       ],
       roles: ["body", "body-1"].map((id) => ({
         id,

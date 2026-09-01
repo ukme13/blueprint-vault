@@ -240,9 +240,7 @@ export function RoleGroupEditor({
               <LineHeightInput
                 label={`${role.id} line height`}
                 config={role.desktop.lineHeight}
-                computedPx={
-                  resolveLineHeight(role).computedLineHeightPx
-                }
+                computedPx={resolveLineHeight(role).computedLineHeightPx}
                 onChange={(lineHeight) =>
                   onRoleValueChange(role.id, { lineHeight })
                 }

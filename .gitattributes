@@ -1,0 +1,18 @@
+# Line endings are the repository's, not the platform's.
+#
+# Git stores text as LF and, with core.autocrlf on, hands Windows checkouts
+# CRLF back. Prettier's endOfLine default is lf, so those checkouts fail
+# `pnpm format:check` on every file and the pre-commit hook would refuse every
+# commit. Pinning the working tree to LF keeps the two in agreement everywhere,
+# and stops a `pnpm format` run from reporting a hundred files as modified when
+# nothing in them changed.
+* text=auto eol=lf
+
+# Fonts and images are bytes. Never touched, never diffed as text.
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.ico binary
+*.png binary
+*.jpg binary

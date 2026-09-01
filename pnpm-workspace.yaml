@@ -6,6 +6,6 @@ allowBuilds:
   # read-only (no writes, no network, no child processes) and stay quiet once a
   # project has the Astryx marker in its agent docs, which this one does. So
   # there is nothing to gain by running them.
-  '@astryxdesign/cli': false
-  '@astryxdesign/core': false
+  "@astryxdesign/cli": false
+  "@astryxdesign/core": false
   sharp: true
