@@ -735,24 +735,95 @@
   }
 }
 
+/* Holds a slot's hidden input and its note. The input is absolutely
+   positioned, so with nothing to say this collapses to no height rather than
+   leaving a gap under the field. */
 .fontStackUpload {
   display: grid;
   gap: var(--spacing-1);
 }
 
-.fontStackUploadLabel {
-  display: grid;
-  gap: var(--spacing-1);
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+/* The row pinned at the top of a font selector's menu: the action, then the
+   formats it accepts, on one line. */
+.fontUploadRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
 }
 
-.fontStackUploadLabel input {
-  /* min-width: 0 so the file name a browser puts beside the button cannot
-     push the row past a narrow panel. */
-  min-width: 0;
-  font-size: var(--font-size-sm);
+.fontUploadRowIcon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* A footnote to the action rather than a second thing to read, so it is set
+   back rather than given a line of its own. */
+.fontUploadRowFormats {
   color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+/* Divides uploading from the catalogue below it.
+   Hung on the row's own marker rather than on `:first-child`, so it cannot
+   end up under a font if the row is ever absent. The dropdown is Astryx's,
+   and `astryx-typeahead-dropdown` is the class its own theming table names —
+   there is no prop for a separator between items. */
+.fontStack
+  :global(.astryx-typeahead-dropdown)
+  > [role="option"]:has([data-upload-row]) {
+  position: relative;
+  /* Room for the stroke below, with the same 4px clear on either side of it. */
+  margin-bottom: calc(var(--spacing-1) * 2 + var(--border-width));
+}
+
+/* Drawn as its own line rather than as the row's bottom border: the row is a
+   rounded box, so a border curves away at both ends and reads as the outline
+   of the item instead of a division between two of them. */
+.fontStack
+  :global(.astryx-typeahead-dropdown)
+  > [role="option"]:has([data-upload-row])::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: calc(-1 * (var(--spacing-1) + var(--border-width)));
+  left: 0;
+  height: var(--border-width);
+  /* A track token rather than `--color-border`, which is oklch(20%) here and
+     so invisible on a menu surface measured at oklch(22%).
+     `--color-border-emphasized` is only 30% and barely better; 600 reads as a
+     line in both themes without becoming a rule. */
+  background: var(--color-neutral-600);
+}
+
+/* What the slot is rendering right now, under the field it belongs to. Compact
+   because there is one per slot and two slots per stack — the upload control
+   that used to sit here moved into the selector's menu, and the note is what
+   the space is for now. */
+.fontStackNote {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--spacing-2);
+  align-items: start;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+}
+
+.fontStackNoteIcon {
+  width: 14px;
+  height: 14px;
+  /* Against the first line of the text rather than the top of its box. */
+  margin-top: 1px;
+  flex: none;
+}
+
+/* A local font with no file behind it is expected, not broken — a warning
+   rather than an error, same as the hint below. */
+.fontStackNote[data-missing="true"] {
+  color: var(--color-warning-300);
 }
 
 /* A local font with no file behind it is expected, not broken — it reads as a
@@ -767,4 +838,11 @@
   color: var(--color-warning-300);
   font-size: var(--font-size-sm);
   line-height: 1.4;
+}
+
+/* Lays out nothing: the picker's wrapper exists only to catch clicks on the
+   field, so it must not become a box between the field and the column that
+   sizes it. */
+.fontPickerField {
+  display: contents;
 }

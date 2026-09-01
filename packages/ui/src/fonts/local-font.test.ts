@@ -3,6 +3,7 @@ import {
   ALLOWED_FONT_EXTENSIONS,
   FALLBACK_LOCAL_FONT_FAMILY,
   MAX_FONT_FILE_BYTES,
+  fontUploadAction,
   localFontFamilyName,
   rejectFontFile,
 } from "./local-font";
@@ -109,5 +110,30 @@ describe("rejectFontFile", () => {
     /* Browsers disagree about the MIME type for a font and often report an
        empty string for otf and ttf, so the name is the only reliable signal. */
     expect(rejectFontFile({ name: "Brand.otf", size: 28_000 })).toBeNull();
+  });
+});
+
+describe("fontUploadAction", () => {
+  it("offers to upload where the slot holds no file", () => {
+    // Nothing to replace, so "Replace" would be a lie about the state.
+    expect(fontUploadAction(false, "missing")).toBe("Upload");
+    expect(fontUploadAction(false, "checking")).toBe("Upload");
+    expect(fontUploadAction(false, "loaded")).toBe("Upload");
+  });
+
+  it("offers to replace a file that is loaded", () => {
+    expect(fontUploadAction(true, "loaded")).toBe("Replace");
+  });
+
+  it("offers to add the file back when the project names one and this browser has none", () => {
+    /* What another browser sees: the project names a local family and the
+       store it was uploaded to is not this one. */
+    expect(fontUploadAction(true, "missing")).toBe("Add the missing");
+  });
+
+  it("does not announce a missing file while the store is still being read", () => {
+    /* The read is asynchronous, so every present file reports missing until it
+       resolves. Saying so would flash a problem that is not there. */
+    expect(fontUploadAction(true, "checking")).toBe("Replace");
   });
 });

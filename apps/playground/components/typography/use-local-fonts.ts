@@ -8,6 +8,7 @@ import {
   localSlots,
   rejectFontFile,
   registerLocalFont,
+  type FontFileStatus,
   type FontSlot,
   type TypeSystem,
 } from "@blueprint/ui";
@@ -103,7 +104,7 @@ export async function forgetLocalFonts(fontIds: string[]): Promise<void> {
  * on a fast machine with a small file, and a false alarm on a slow one with a
  * large one.
  */
-export type LocalFontStatus = "checking" | "loaded" | "missing";
+export type LocalFontStatus = FontFileStatus;
 
 /** The local slots of a system, packed so a change of any of them re-runs. */
 function localKeys(system: TypeSystem | null): string[] {
