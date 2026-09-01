@@ -526,8 +526,8 @@ export function TypographyStudio() {
               <Button
                 className={styles.addEntryButton}
                 scheme="neutral"
-                size="small"
-                variant="outlined"
+                size="medium"
+                variant="contained"
                 onClick={addFont}
               >
                 Add font
@@ -595,8 +595,8 @@ export function TypographyStudio() {
               <Button
                 className={styles.addEntryButton}
                 scheme="neutral"
-                size="small"
-                variant="outlined"
+                size="medium"
+                variant="contained"
                 onClick={addGroup}
               >
                 Add group

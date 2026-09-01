@@ -1,5 +1,6 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
 import { Selector } from "@astryxdesign/core/Selector";
 import { TextInput } from "@astryxdesign/core/TextInput";
@@ -260,12 +261,20 @@ export function RoleGroupEditor({
               />
               <Button
                 aria-label={`Remove ${role.id}`}
+                /* Down from the icon size's 36px to match the inputs beside
+                   it. `cn` here is a plain join rather than tailwind-merge,
+                   so the CVA class is still on the element and only source
+                   order decides — hence the important suffix. */
+                className="h-8! w-8! [&_svg]:size-4!"
                 scheme="neutral"
-                size="xs"
-                variant="text"
+                size="icon"
+                variant="outlined"
                 onClick={() => onRoleRemove(role.id)}
               >
-                Remove
+                {/* The icon is the label. `size="icon"` takes children as the
+                    glyph and the accessible name from aria-label, so the row
+                    keeps naming which role it removes. */}
+                <Trash2 aria-hidden="true" />
               </Button>
             </div>
           ))}
