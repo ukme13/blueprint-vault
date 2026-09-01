@@ -7,16 +7,24 @@ import { parseLineHeightInput, type LineHeightConfig } from "@blueprint/ui";
 /**
  * The line-height field.
  *
- * The same control as the size beside it — a number, with its unit in the
- * slot on the right — because they are the same kind of value, and reading
- * one row should not mean reading two conventions.
+ * The same control as the size beside it — a number with its unit in the slot
+ * on the right — because they are the same kind of value, and reading one row
+ * should not mean reading two conventions.
  *
- * `auto` shows the pixel height it resolved to rather than the word "auto".
- * The word says how the value was chosen and not what it is, which leaves the
- * one number the row exists to communicate off the screen.
+ * `auto` is an empty field showing the pixel height it resolved to as a
+ * placeholder. That does three things at once: the number is on screen, where
+ * the word "auto" said how the value was chosen and never what it is; the
+ * muted text tells a followed default from a pinned number, which two
+ * identical-looking numbers could not; and clearing the field becomes the
+ * obvious way back, which no keyboard shortcut is.
  *
- * Its own component because a field with a draft, a commit point and two
- * possible units is more than the three inputs beside it put together.
+ * It also removes a trap. While `auto` displayed a real value, typing that
+ * same number to pin it was not a change, so nothing committed and the value
+ * stayed on auto. Against an empty field it is an edit like any other.
+ *
+ * The cost is that a resolved value lives in placeholder text, which screen
+ * readers do not reliably announce. The label is real and the field is named;
+ * it is the number that may go unread.
  */
 
 /** Press this to hand the line height back to the group's default. */
@@ -25,7 +33,7 @@ const AUTO_KEY = "a";
 interface LineHeightInputProps {
   label: string;
   config: LineHeightConfig;
-  /** What `auto` and `px` resolve to, which is what the field shows. */
+  /** What `auto` resolves to, shown as the placeholder. */
   computedPx: number;
   onChange: (config: LineHeightConfig) => void;
 }
@@ -37,20 +45,17 @@ export function LineHeightInput({
   onChange,
 }: LineHeightInputProps) {
   /* A ratio is shown as itself and carries no unit, because it has none — it
-     is a multiple of the font size rather than a length. Everything else is a
-     pixel height. */
+     is a multiple of the font size rather than a length. */
   const isRatio = config.mode === "ratio";
-  const committed = isRatio ? config.value : computedPx;
+  const committed = config.mode === "auto" ? null : config.value;
 
-  const [draft, setDraft] = useState<number>(committed);
-  const [seen, setSeen] = useState<number>(committed);
-  /* Whether the number in the field is one the user typed.
+  const [draft, setDraft] = useState<number | null>(committed);
+  const [seen, setSeen] = useState<number | null>(committed);
+  /* Whether the number in the field is one the user put there.
 
-     Without this, blurring writes whatever is on screen straight back — and
-     what is on screen for `auto` is the pixel height it resolved to. Tabbing
-     out of an `auto` field pinned it to that number, so `auto` could not
-     survive being clicked away from. It looked like nothing happened until a
-     size change failed to move it. */
+     Without this, blurring writes whatever is on screen straight back, and
+     tabbing out of a field would pin it. Nothing would look different at the
+     time; it would surface later, when a size change failed to move it. */
   const [isDirty, setIsDirty] = useState(false);
 
   /* Follow the model when it moves underneath — a step change, or an import.
@@ -63,27 +68,14 @@ export function LineHeightInput({
     setIsDirty(false);
   }
 
-  /* Committed on blur and Enter rather than per keystroke. On the way to 24
-     the field passes through 2, which is a valid ratio, so committing every
-     keystroke would swap the unit out from under someone mid-number.
-
-     Through the same parser the engine uses, so the one rule that tells a
-     ratio from a pixel height lives in a single place. */
-  /*
-   * Enter commits whatever is shown; a blur only commits an edit.
-   *
-   * The difference matters for `auto`, which displays the pixel height it
-   * resolved to. Committing on every blur pinned that number the moment
-   * somebody tabbed away, so `auto` could not survive being clicked off.
-   * Committing on no blur at all left the opposite gap: the value `auto`
-   * already shows could never be pinned, because typing the number that is
-   * on screen is not a change.
-   *
-   * Enter is somebody saying "this one". A blur is somebody leaving.
-   */
-  const commit = (isExplicit: boolean) => {
-    if (!isExplicit && !isDirty) return;
+  /* Only what somebody typed. A blur is not an edit. */
+  const commit = () => {
+    if (!isDirty) return;
     setIsDirty(false);
+    if (draft === null) {
+      onChange({ mode: "auto" });
+      return;
+    }
     const parsed = parseLineHeightInput(String(draft));
     if (parsed) onChange(parsed);
   };
@@ -102,18 +94,20 @@ export function LineHeightInput({
       max={400}
       step={1}
       value={draft}
-      placeholder="auto"
+      /* The resolved height, muted, whenever the field is empty. */
+      placeholder={String(computedPx)}
+      hasClear
       onChange={(value) => {
         setDraft(value);
         setIsDirty(true);
       }}
-      onEnter={() => commit(true)}
-      onBlur={() => commit(false)}
+      onEnter={commit}
+      onBlur={commit}
       onKeyDown={(event) => {
         if (event.key.toLowerCase() !== AUTO_KEY) return;
-        /* The input is numeric, so the letter would be swallowed. Taking the
-           key here is what keeps `auto` reachable without adding a control to
-           a row with no room for one. */
+        /* The input is numeric, so the letter would be swallowed. Clearing
+           the field is the discoverable way back to auto; this is the one for
+           whoever would rather not reach for the mouse. */
         event.preventDefault();
         setIsDirty(false);
         onChange({ mode: "auto" });
