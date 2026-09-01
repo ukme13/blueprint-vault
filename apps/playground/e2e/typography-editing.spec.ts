@@ -691,3 +691,85 @@ test.describe("Reopening a font picker", () => {
     await expect(page.getByRole("option")).toHaveCount(0);
   });
 });
+
+test.describe("Where a Selector menu opens", () => {
+  /*
+   * Astryx places its popovers twice — CSS anchor positioning and a
+   * JS-measured margin meant as a fallback for browsers without it. Where a
+   * browser has both, the margin moves a menu that anchor positioning has
+   * already placed, and the script picker opened at the top of the window
+   * instead of against its trigger. globals.css neutralises the margin where
+   * anchor positioning works; this is what says so.
+   */
+  const openMenuBox = (page: import("@playwright/test").Page) =>
+    page.evaluate(() => {
+      const open = [...document.querySelectorAll("[popover]")].find((el) =>
+        (el as HTMLElement).matches(":popover-open"),
+      ) as HTMLElement | undefined;
+      if (!open) return null;
+      const box = open.getBoundingClientRect();
+      return {
+        top: box.top,
+        bottom: box.bottom,
+        viewportHeight: window.innerHeight,
+      };
+    });
+
+  const expectAgainstTrigger = async (
+    page: import("@playwright/test").Page,
+    trigger: Locator,
+  ) => {
+    const menu = await openMenuBox(page);
+    expect(menu).not.toBeNull();
+    const anchor = (await trigger.boundingBox())!;
+
+    /* Adjacent on one side or the other: under the trigger normally, over it
+       where there is no room below. Which one is the browser's call, and not
+       what this is pinning down. */
+    const below = Math.abs(menu!.top - (anchor.y + anchor.height));
+    const above = Math.abs(menu!.bottom - anchor.y);
+    /* 32px rather than a tighter figure: the gap is a spacing token plus the
+       popover's own border, and it differs between opening below and flipping
+       above. Broken, this distance was the height of the menu. */
+    expect(Math.min(below, above)).toBeLessThan(32);
+
+    // And on screen, which is what the bug most visibly broke.
+    expect(menu!.top).toBeGreaterThanOrEqual(0);
+    expect(menu!.bottom).toBeLessThanOrEqual(menu!.viewportHeight + 1);
+  };
+
+  test("sits against its trigger rather than the top of the window", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const trigger = settings.getByLabel("Base fallback script", {
+      exact: true,
+    });
+
+    await trigger.click();
+    await expect(page.getByRole("option").first()).toBeVisible();
+    await expectAgainstTrigger(page, trigger);
+  });
+
+  test("stays against it with no room below, and on every reopen", async ({
+    seededPage: page,
+  }) => {
+    // Short enough that the menu has to flip above the trigger.
+    await page.setViewportSize({ width: 1280, height: 560 });
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const trigger = settings.getByLabel("Base fallback script", {
+      exact: true,
+    });
+    await trigger.scrollIntoViewIfNeeded();
+
+    /* Twice, because the first open was the worst of it: the menu had not been
+       laid out, so the margin was measured against a height it did not have. */
+    for (let open = 1; open <= 2; open += 1) {
+      await trigger.click();
+      await expect(page.getByRole("option").first()).toBeVisible();
+      await expectAgainstTrigger(page, trigger);
+      await page.keyboard.press("Escape");
+      await expect(page.getByRole("option")).toHaveCount(0);
+    }
+  });
+});
