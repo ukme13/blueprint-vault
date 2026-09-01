@@ -43,7 +43,6 @@ const DOCUMENT_FORMATTERS = [
   "formatDesignSystemDesignTokens",
   "formatDesignSystemTailwind",
   "formatAccessibilityReportMarkdown",
-  "formatBlueprintPaletteProject",
   "formatBlueprintWorkspace",
   "formatPaletteCss",
   "formatPaletteCssExport",
@@ -117,9 +116,10 @@ describe("no export carries font data", () => {
   it("knows every formatter the package offers", () => {
     /* Discovered rather than listed, and deliberately every `format*` rather
        than only the ones whose names end in Export — the first version of this
-       filter missed formatBlueprintPaletteProject, which serialises a whole
-       document. Adding any formatter now fails here until somebody decides
-       which of the two lists below it belongs in. */
+       filter matched only that suffix and so missed the project-file writer,
+       which serialises a whole document. `formatBlueprintWorkspace` is that
+       writer today. Adding any formatter now fails here until somebody
+       decides which of the two lists below it belongs in. */
     const discovered = Object.entries(blueprint)
       .filter(
         ([name, value]) => typeof value === "function" && /^format/.test(name),

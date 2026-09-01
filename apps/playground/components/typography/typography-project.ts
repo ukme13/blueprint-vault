@@ -65,8 +65,10 @@ let adoptedName: string | null = null;
 /** The palette half of the workspace, for previewing type on real colours. */
 export function readStoredPalette(): PaletteProjectData | null {
   try {
-    const workspace = loadStoredWorkspace().project;
-    return workspace ? withSharedName(workspace).palette : null;
+    /* No withSharedName here. It exists to push the workspace name into the
+       typography slice, and the palette slice has no name to receive — this
+       call read as though it did. What the preview wants is the colours. */
+    return loadStoredWorkspace().project?.palette ?? null;
   } catch {
     return null;
   }

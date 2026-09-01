@@ -20,6 +20,7 @@ import { useToast } from "@astryxdesign/core/Toast";
 import {
   BLUEPRINT_20_PRESET,
   Button,
+  DEFAULT_WORKSPACE_NAME,
   LEGACY_PALETTE_STORAGE_KEY,
   LEGACY_TYPOGRAPHY_STORAGE_KEY,
   MAX_SHADE_COUNT,
@@ -129,15 +130,30 @@ function loadStoredWorkspace() {
    re-reading cannot tell whose name is newer, only that ours is a copy. */
 let adoptedName: string | null = null;
 
-function readStoredProject(): PaletteProject | null {
+/**
+ * The palette slice and the workspace name, together.
+ *
+ * Two values rather than one because the slice no longer carries a name — the
+ * workspace owns it. They are read in one call so a studio cannot end up
+ * showing a palette from one read and a name from another.
+ */
+interface StoredPalette {
+  name: string;
+  palette: PaletteProject | null;
+}
+
+function readStoredProject(): StoredPalette {
   try {
     const workspace = loadStoredWorkspace().project;
-    adoptedName = workspace?.name ?? null;
     /* Adopt the workspace name: it is one name, and the other studio may
        have set it. */
-    return workspace ? withSharedName(workspace).palette : null;
+    adoptedName = workspace?.name ?? null;
+    return {
+      name: workspace?.name ?? DEFAULT_WORKSPACE_NAME,
+      palette: workspace?.palette ?? null,
+    };
   } catch {
-    return null;
+    return { name: DEFAULT_WORKSPACE_NAME, palette: null };
   }
 }
 
@@ -231,18 +247,17 @@ function writeImportedWorkspace(imported: WorkspaceProject): void {
   }
 }
 
-function writeStoredProject(project: PaletteProject | null): void {
+function writeStoredProject(
+  project: PaletteProject | null,
+  name: string,
+): void {
   try {
     const current = loadStoredWorkspace().project;
-    const renamedHere = !!project && project.name !== adoptedName;
+    const renamedHere = !!project && name !== adoptedName;
     /* withSharedName after the patch, so a name someone else set reaches this
        slice too rather than leaving storage disagreeing with itself. */
     const next = withSharedName(
-      withPaletteSlice(
-        current,
-        project,
-        renamedHere ? project.name : undefined,
-      ),
+      withPaletteSlice(current, project, renamedHere ? name : undefined),
     );
     adoptedName = next.name;
     window.localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(next));
@@ -274,6 +289,10 @@ function PaletteStudioContent() {
   const toast = useToast();
   const headerImportInputRef = useRef<HTMLInputElement>(null);
   const [project, setProject] = useState<PaletteProject | null>(null);
+  /* The workspace name, which the topbar edits. It used to live on the palette
+     slice, which meant renaming the workspace was a palette edit and a studio
+     with no palette had nowhere to keep it. */
+  const [name, setName] = useState(DEFAULT_WORKSPACE_NAME);
   const [hasLoadedProject, setHasLoadedProject] = useState(false);
   const [activeShade, setActiveShade] = useState<ActiveShade | null>(null);
   const [activeTrackId, setActiveTrackId] = useState<string | null>(null);
@@ -307,8 +326,10 @@ function PaletteStudioContent() {
     /* Reading localStorage must happen in an effect: a useState initializer
        would run during SSR, where window does not exist, and desync
        hydration. */
+    const stored = readStoredProject();
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setProject(readStoredProject());
+    setProject(stored.palette);
+    setName(stored.name);
     setForeign(readForeignSlices());
     setSemantics(readStoredSemantics());
     setHasLoadedSemantics(true);
@@ -318,8 +339,8 @@ function PaletteStudioContent() {
   useEffect(() => {
     if (!hasLoadedProject) return;
 
-    writeStoredProject(project);
-  }, [hasLoadedProject, project]);
+    writeStoredProject(project, name);
+  }, [hasLoadedProject, project, name]);
 
   useEffect(() => {
     /* Guarded separately from the palette: writing before the load has run
@@ -399,13 +420,14 @@ function PaletteStudioContent() {
           writeImportedWorkspace(imported);
           setForeign(imported);
           setSemantics(imported.semantics);
+          setName(imported.name);
           setProject(imported.palette);
         }}
-        onCreate={({ name, seedHex, method }) => {
+        onCreate={({ name: chosenName, seedHex, method }) => {
           const primarySeed =
             method === "generated" ? "#3b66f5" : normalizeHex(seedHex);
+          setName(chosenName);
           setProject({
-            name,
             tracks: createDefaultTracks(primarySeed),
             lightnessPattern: "custom",
             lightnessValues: createPatternValues("custom"),
@@ -530,10 +552,6 @@ function PaletteStudioContent() {
     });
   };
 
-  const updateProjectName = (name: string) => {
-    setProject((current) => (current ? { ...current, name } : current));
-  };
-
   const changeTrackAnchor = (
     trackId: string,
     weight: number,
@@ -622,10 +640,7 @@ function PaletteStudioContent() {
   };
 
   const commitProjectName = () => {
-    setProject((current) => {
-      if (!current) return current;
-      return { ...current, name: current.name.trim() || "Untitled project" };
-    });
+    setName((current) => current.trim() || "Untitled project");
   };
 
   const changeLightnessPattern = (pattern: LightnessPattern) => {
@@ -715,8 +730,8 @@ function PaletteStudioContent() {
     <main className={styles.workspace}>
       <header className={styles.topbar}>
         <WorkspaceBrand
-          name={project.name}
-          onChange={updateProjectName}
+          name={name}
+          onChange={setName}
           onCommit={commitProjectName}
         />
         <nav aria-label="Playground sections" className={styles.navigation}>
@@ -860,7 +875,7 @@ function PaletteStudioContent() {
 
       {activeSection === "overview" && (
         <PaletteOverview
-          projectName={project.name}
+          projectName={name}
           palettes={palettes}
           lightnessPattern={project.lightnessPattern}
           onSourceColourChange={(id, value) =>
@@ -973,7 +988,7 @@ function PaletteStudioContent() {
         onImportRequest={setPendingImport}
         workspace={{
           ...foreign,
-          name: project.name,
+          name,
           palette: project,
           semantics,
         }}
@@ -982,7 +997,7 @@ function PaletteStudioContent() {
 
       <AlertDialog
         actionLabel="Import project"
-        description={`This replaces ${project.name} in this browser with ${pendingImport?.name ?? "the imported project"}. Export the current project first if you want to keep it.`}
+        description={`This replaces ${name} in this browser with ${pendingImport?.name ?? "the imported project"}. Export the current project first if you want to keep it.`}
         isOpen={pendingImport !== null}
         title="Replace current project?"
         onAction={() => {
@@ -992,6 +1007,9 @@ function PaletteStudioContent() {
           writeImportedWorkspace(pendingImport);
           setForeign(pendingImport);
           setSemantics(pendingImport.semantics);
+          /* The name comes off the workspace now, not out of the palette
+             slice it used to ride in on. */
+          setName(pendingImport.name);
           setProject(pendingImport.palette);
           setPendingImport(null);
           setActiveShade(null);

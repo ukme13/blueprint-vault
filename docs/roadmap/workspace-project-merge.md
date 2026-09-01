@@ -108,9 +108,11 @@ palette has no typography slice, and must still land on the typography creation
 screen rather than a fabricated default scale. `null` says that; an empty
 `TypeSystem` does not.
 
-`PaletteProjectData` keeps its `name` field for now, since
-`parseBlueprintPaletteProject` and the export file both use it. Removing it is a
-separate cleanup.
+`PaletteProjectData` kept its `name` field through this plan, since
+`parseBlueprintPaletteProject` and the export file both used it. That cleanup
+has since run: the field is gone, and so is the palette file format that was
+the reason to keep it. Pre-workspace data still carries a name and
+`readLegacyPaletteName` still reads it — on the way in only.
 
 `blueprint.colour-format.v1` **stays where it is.** It is a per-device display
 preference, not part of the document — the same reason `previewWidth` and

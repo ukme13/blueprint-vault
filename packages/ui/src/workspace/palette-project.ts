@@ -14,13 +14,17 @@ import { BLUEPRINT_20_PRESET } from "../color/presets";
 import type { ColorTrackInput, TrackAdjustments } from "../color/types";
 
 /*
- * Reading a palette out of storage, as opposed to out of a file.
+ * Reading a palette that is already in a browser, or in an older file.
  *
- * parseBlueprintPaletteProject is the file reader and is deliberately strict —
- * it throws, because a file someone chose is either the thing they meant or a
- * mistake worth reporting. This is the other half: what is already in a
- * browser is not a choice anyone is making now, so it is salvaged field by
- * field and only rejected when there is nothing recognisable left.
+ * What is already stored is not a choice anyone is making now, so it is
+ * salvaged field by field and only rejected when there is nothing
+ * recognisable left. That is the opposite of `parseBlueprintWorkspace`, which
+ * throws: a file someone deliberately chose is either the thing they meant or
+ * a mistake worth reporting.
+ *
+ * Both go through here. The strict palette-file parser this used to be paired
+ * with was deleted with the format it wrote — the workspace file replaced it,
+ * and the legacy import path had already moved onto this reader.
  */
 
 function readAdjustmentRecord(value: unknown): Record<number, string> {
@@ -84,11 +88,32 @@ export function defaultLightnessValues(
 }
 
 /**
+ * The name a pre-workspace palette carried.
+ *
+ * The slice has no name of its own — the workspace owns the one name. This
+ * reads the copy that older data still holds, so a migration or an imported
+ * `blueprint-palette` file can name the workspace it becomes rather than
+ * landing on the default. Input only; nothing writes this field any more.
+ *
+ * Returns null for a blank name as well as a missing one, since a workspace
+ * called "" is a topbar someone has to guess at.
+ */
+export function readLegacyPaletteName(value: unknown): string | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  if (!("name" in value) || typeof value.name !== "string") return null;
+  return value.name.trim() || null;
+}
+
+/**
  * Read a stored palette project, salvaging what is readable.
  *
- * Returns null only when nothing usable is left — no name, or no track that
- * survives validation. A project with one good track and three broken ones
- * keeps the good one.
+ * Returns null only when nothing usable is left — no tracks at all, or no
+ * track that survives validation. A project with one good track and three
+ * broken ones keeps the good one.
+ *
+ * A readable name used to be required here too, back when the slice had one.
+ * Tracks are the palette; a name never was, and rejecting a blob over a field
+ * this type no longer has would discard someone's colours to enforce nothing.
  */
 export function readPaletteProjectData(
   value: unknown,
@@ -97,8 +122,6 @@ export function readPaletteProjectData(
     !value ||
     typeof value !== "object" ||
     Array.isArray(value) ||
-    !("name" in value) ||
-    typeof value.name !== "string" ||
     !("tracks" in value) ||
     !Array.isArray(value.tracks)
   ) {
@@ -160,5 +183,5 @@ export function readPaletteProjectData(
     }
   }
 
-  return { name: value.name, tracks, lightnessPattern, lightnessValues };
+  return { tracks, lightnessPattern, lightnessValues };
 }
