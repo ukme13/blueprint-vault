@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { FileUp } from "lucide-react";
 import { Typeahead, TypeaheadItem } from "@astryxdesign/core/Typeahead";
 import {
@@ -94,6 +94,7 @@ export function GoogleFontPicker({
   onUpload,
 }: GoogleFontPickerProps) {
   const selected = selectedItem(family);
+  const fieldRef = useRef<HTMLSpanElement | null>(null);
 
   const searchSource = useMemo(() => {
     const pinned: FontItem[] = uploadLabel
@@ -117,46 +118,105 @@ export function GoogleFontPicker({
        not here, so a new closure on every render would rebuild the source for nothing. */
   }, [script, uploadLabel]);
 
-  return (
-    <Typeahead<FontItem>
-      hasEntriesOnFocus
-      label={label}
-      /* The default of 10 made 1946 families look like a shortlist. One more
-         when the upload row is pinned, so it costs the catalogue nothing —
-         the menu is sliced to this from the top, where the row sits. */
-      maxMenuItems={uploadLabel ? 31 : 30}
-      placeholder={placeholder}
-      renderItem={(item) =>
-        item.id === UPLOAD_ITEM_ID ? (
-          /* Not a TypeaheadItem: that puts a description on its own line, and
-             the formats are a footnote to the action rather than a second
-             thing to read. `data-upload-row` is what the separator under this
-             row is hung on, so it follows the row instead of whichever item
-             happens to be first. */
-          <span className={styles.fontUploadRow} data-upload-row="true">
-            <FileUp aria-hidden="true" className={styles.fontUploadRowIcon} />
-            {item.label}
-            <span className={styles.fontUploadRowFormats}>
-              {UPLOAD_FORMATS}
-            </span>
-          </span>
-        ) : (
-          <TypeaheadItem item={item} />
-        )
-      }
-      searchSource={searchSource}
-      value={selected}
-      onChange={(item) => {
-        /* An action, not a family. Returning before `onPick` leaves the
-           controlled value alone, so the field still shows what is in the slot
-           while the file dialog is open — and shows it again if the dialog is
-           cancelled, which picks no file and fires no change. */
-        if (item?.id === UPLOAD_ITEM_ID) {
-          onUpload?.();
+  /*
+   * Reopen the menu when the field is clicked while it is already focused.
+   *
+   * Astryx's Typeahead opens on `focus` alone — there is no click handler that
+   * opens it. Meanwhile the dropdown is a native `popover="auto"`, which
+   * light-dismisses on a pointer click anywhere outside itself, the field
+   * included. So a second click closes the menu and leaves nothing to reopen
+   * it: the input is already focused, so no new focus event is coming. You
+   * have to leave the field and come back, which is not how any other picker
+   * behaves.
+   *
+   * On the next frame because the first click's open is asynchronous — the
+   * search source is awaited — so checking synchronously would find the menu
+   * shut and toggle it straight back off.
+   */
+  useEffect(() => {
+    const root = fieldRef.current;
+    if (!root) return;
+
+    const reopenClosedMenu = (event: MouseEvent) => {
+      const target = event.target as HTMLElement | null;
+      const input = target?.closest?.('input[role="combobox"]');
+      if (!input) return;
+      requestAnimationFrame(() => {
+        /* Only when the click found the field already focused. Anything else
+           is the component's own business. */
+        if (document.activeElement !== input) return;
+        /* The popover itself, not `aria-expanded`. Light dismiss is the
+           browser closing the element directly, so React has not re-rendered
+           yet and still reports the menu as expanded on the very click that
+           shut it — the one click this exists to answer. */
+        const controls = input.getAttribute("aria-controls");
+        const listbox = controls ? document.getElementById(controls) : null;
+        const popover = listbox?.closest("[popover]");
+        if (
+          popover instanceof HTMLElement &&
+          popover.matches(":popover-open")
+        ) {
           return;
         }
-        onPick(item?.font ?? null);
-      }}
-    />
+        /* A real focus cycle, not a synthesised `focusin`. Because React's
+           state still says expanded, its focus handler would take the
+           "already showing" path and do nothing. Blurring first drives the
+           component's own blur handler, which settles that state, so the
+           focus that follows opens the menu the way the first one did. */
+        if (!(input instanceof HTMLElement)) return;
+        input.blur();
+        input.focus();
+      });
+    };
+
+    root.addEventListener("click", reopenClosedMenu);
+    return () => root.removeEventListener("click", reopenClosedMenu);
+  }, []);
+
+  return (
+    /* Lays out nothing (`display: contents`) — it exists to catch clicks on
+       the field below it. See the effect above. */
+    <span ref={fieldRef} className={styles.fontPickerField}>
+      <Typeahead<FontItem>
+        hasEntriesOnFocus
+        label={label}
+        /* The default of 10 made 1946 families look like a shortlist. One more
+           when the upload row is pinned, so it costs the catalogue nothing —
+           the menu is sliced to this from the top, where the row sits. */
+        maxMenuItems={uploadLabel ? 31 : 30}
+        placeholder={placeholder}
+        renderItem={(item) =>
+          item.id === UPLOAD_ITEM_ID ? (
+            /* Not a TypeaheadItem: that puts a description on its own line, and
+               the formats are a footnote to the action rather than a second
+               thing to read. `data-upload-row` is what the separator under this
+               row is hung on, so it follows the row instead of whichever item
+               happens to be first. */
+            <span className={styles.fontUploadRow} data-upload-row="true">
+              <FileUp aria-hidden="true" className={styles.fontUploadRowIcon} />
+              {item.label}
+              <span className={styles.fontUploadRowFormats}>
+                {UPLOAD_FORMATS}
+              </span>
+            </span>
+          ) : (
+            <TypeaheadItem item={item} />
+          )
+        }
+        searchSource={searchSource}
+        value={selected}
+        onChange={(item) => {
+          /* An action, not a family. Returning before `onPick` leaves the
+             controlled value alone, so the field still shows what is in the slot
+             while the file dialog is open — and shows it again if the dialog is
+             cancelled, which picks no file and fires no change. */
+          if (item?.id === UPLOAD_ITEM_ID) {
+            onUpload?.();
+            return;
+          }
+          onPick(item?.font ?? null);
+        }}
+      />
+    </span>
   );
 }

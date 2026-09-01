@@ -641,3 +641,53 @@ test.describe("Typography scale editing", () => {
       .toMatch(/Orbitron[^&]*900/);
   });
 });
+
+test.describe("Reopening a font picker", () => {
+  /*
+   * Astryx's Typeahead opens on focus alone, and its dropdown is a native
+   * popover that light-dismisses on any outside pointer click — the field
+   * included. Left alone, a second click on an already-focused picker closes
+   * the menu with nothing able to reopen it, and you have to leave the field
+   * and come back. `GoogleFontPicker` restores the click.
+   */
+  test("opens again when the focused field is clicked", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    // The bilingual fallback starts empty, so the input itself is what is hit.
+    const input = settings.getByLabel("Base bilingual fallback", {
+      exact: true,
+    });
+
+    await input.click();
+    await expect(page.getByRole("option").first()).toBeVisible();
+
+    // The click that used to close the menu and leave it closed.
+    await input.click();
+    await expect(page.getByRole("option").first()).toBeVisible();
+
+    await input.click();
+    await expect(page.getByRole("option").first()).toBeVisible();
+  });
+
+  test("still closes on Escape and on a click outside", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const input = settings.getByLabel("Base bilingual fallback", {
+      exact: true,
+    });
+
+    await input.click();
+    await expect(page.getByRole("option").first()).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("option")).toHaveCount(0);
+
+    /* Reopened rather than assumed: dismissing must not be what stops the
+       click above from working. */
+    await input.click();
+    await expect(page.getByRole("option").first()).toBeVisible();
+    await settings.getByText("Base settings").click();
+    await expect(page.getByRole("option")).toHaveCount(0);
+  });
+});
