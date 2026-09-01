@@ -735,24 +735,41 @@
   }
 }
 
+/* Holds a slot's hidden input and its note. The input is absolutely
+   positioned, so with nothing to say this collapses to no height rather than
+   leaving a gap under the field. */
 .fontStackUpload {
   display: grid;
   gap: var(--spacing-1);
 }
 
-.fontStackUploadLabel {
+/* What the slot is rendering right now, under the field it belongs to. Compact
+   because there is one per slot and two slots per stack — the upload control
+   that used to sit here moved into the selector's menu, and the note is what
+   the space is for now. */
+.fontStackNote {
   display: grid;
-  gap: var(--spacing-1);
-  font-size: var(--font-size-sm);
+  grid-template-columns: auto 1fr;
+  gap: var(--spacing-2);
+  align-items: start;
+  margin: 0;
   color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
 }
 
-.fontStackUploadLabel input {
-  /* min-width: 0 so the file name a browser puts beside the button cannot
-     push the row past a narrow panel. */
-  min-width: 0;
-  font-size: var(--font-size-sm);
-  color: var(--color-text-secondary);
+.fontStackNoteIcon {
+  width: 14px;
+  height: 14px;
+  /* Against the first line of the text rather than the top of its box. */
+  margin-top: 1px;
+  flex: none;
+}
+
+/* A local font with no file behind it is expected, not broken — a warning
+   rather than an error, same as the hint below. */
+.fontStackNote[data-missing="true"] {
+  color: var(--color-warning-300);
 }
 
 /* A local font with no file behind it is expected, not broken — it reads as a

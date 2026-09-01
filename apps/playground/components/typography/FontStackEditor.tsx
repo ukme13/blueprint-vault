@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Trash2 } from "lucide-react";
 import { Selector } from "@astryxdesign/core/Selector";
 import { TextInput } from "@astryxdesign/core/TextInput";
@@ -9,6 +9,7 @@ import {
   FONT_SCRIPTS,
   findGoogleFont,
   familyForSlot,
+  fontUploadAction,
   genericForCategory,
   isLocalSlot,
   type FontSlot,
@@ -78,6 +79,11 @@ export function FontStackEditor({
   uploadError,
 }: FontStackEditorProps) {
   const [script, setScript] = useState(DEFAULT_SCRIPT);
+  /* One per slot, so the row pinned in each picker's menu reaches that slot's
+     input and no other. This is the same separation the inputs themselves
+     have, carried through to what opens them. */
+  const primaryFileRef = useRef<HTMLInputElement | null>(null);
+  const fallbackFileRef = useRef<HTMLInputElement | null>(null);
 
   const primary = familyForSlot(font, "primary");
   const fallback = familyForSlot(font, "fallback");
@@ -92,6 +98,17 @@ export function FontStackEditor({
      and script coverage is not something we can read off a file we were
      handed. */
   const primaryIsLocal = isLocalSlot(font, "primary");
+
+  /* Named once and used twice each: the pinned row someone reads, and the
+     `aria-label` on the input it clicks. Two spellings of the same state would
+     eventually disagree about which one a slot is in. */
+  const primaryName = `${font.name} font`;
+  const fallbackName = `${font.name} ${label(script)} fallback`;
+  const primaryAction = fontUploadAction(primaryIsLocal, fileStatus("primary"));
+  const fallbackAction = fontUploadAction(
+    isLocalSlot(font, "fallback"),
+    fileStatus("fallback"),
+  );
 
   return (
     <div className={styles.fontStack}>
@@ -125,18 +142,21 @@ export function FontStackEditor({
 
       <GoogleFontPicker
         family={primary}
-        label={`${font.name} font`}
+        label={primaryName}
         placeholder="Search Google Fonts"
+        uploadLabel={`${primaryAction} ${primaryName}`}
         onPick={(picked) => onPick("primary", picked?.family ?? "", generic)}
+        onUpload={() => primaryFileRef.current?.click()}
       />
       <FontUploadField
-        slot="primary"
-        name={`${font.name} font`}
+        action={primaryAction}
         family={primary}
-        isLocal={primaryIsLocal}
         fileStatus={fileStatus("primary")}
-        uploadError={uploadError("primary")}
         generic={generic}
+        inputRef={primaryFileRef}
+        isLocal={primaryIsLocal}
+        name={primaryName}
+        uploadError={uploadError("primary")}
         onUpload={(file) => onUpload("primary", file)}
       />
 
@@ -147,7 +167,11 @@ export function FontStackEditor({
             label={`${font.name} bilingual fallback`}
             placeholder={`Covers ${label(script)}`}
             script={script}
-            onPick={(picked) => onPick("fallback", picked?.family ?? "", generic)}
+            uploadLabel={`${fallbackAction} ${fallbackName}`}
+            onPick={(picked) =>
+              onPick("fallback", picked?.family ?? "", generic)
+            }
+            onUpload={() => fallbackFileRef.current?.click()}
           />
         </div>
         <div className={styles.fontStackScript}>
@@ -165,13 +189,14 @@ export function FontStackEditor({
       </div>
 
       <FontUploadField
-        slot="fallback"
-        name={`${font.name} ${label(script)} fallback`}
+        action={fallbackAction}
         family={fallback}
-        isLocal={isLocalSlot(font, "fallback")}
         fileStatus={fileStatus("fallback")}
-        uploadError={uploadError("fallback")}
         generic={generic}
+        inputRef={fallbackFileRef}
+        isLocal={isLocalSlot(font, "fallback")}
+        name={fallbackName}
+        uploadError={uploadError("fallback")}
         onUpload={(file) => onUpload("fallback", file)}
       />
 

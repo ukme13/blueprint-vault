@@ -413,3 +413,83 @@ test.describe("A file that is not a font", () => {
     await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
   });
 });
+
+test.describe("Uploading from the font selector", () => {
+  /*
+   * The upload control lives in the selector's menu now. The Astryx Typeahead
+   * has no header slot, so the row is an item like any other — which is what
+   * makes these worth pinning down: that it sits above the catalogue, that the
+   * search cannot filter it away, and that choosing it uploads rather than
+   * being taken for a family.
+   *
+   * A selected family renders as a token button with the input behind it, so
+   * the menu is opened by clicking the token rather than the field.
+   */
+  const openPicker = async (
+    page: import("@playwright/test").Page,
+    family: string,
+  ) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const input = settings.getByLabel("Base font", { exact: true });
+    await input
+      .locator("xpath=..")
+      .getByRole("button", { name: family, exact: true })
+      .click();
+    return { settings, input };
+  };
+
+  test("pins the upload row above the catalogue", async ({
+    seededPage: page,
+  }) => {
+    const { input } = await openPicker(page, "Geist Sans");
+    /* Cleared to the whole catalogue: the seeded family is not a Google font,
+       so searching for it matches nothing and would prove only that the row
+       survives an empty result — which is the next test. */
+    await input.fill("");
+
+    const options = page.getByRole("option");
+    await expect(options.first()).toHaveText(/Upload Base font/);
+    // Above a catalogue that is actually there, not above an empty menu.
+    await expect(options).not.toHaveCount(1);
+  });
+
+  test("keeps the row when the search matches no family", async ({
+    seededPage: page,
+  }) => {
+    const { input } = await openPicker(page, "Geist Sans");
+    await input.fill("Nothingcalledthis");
+
+    /* Finding out a font is not in the catalogue is exactly the moment someone
+       needs this row, so the search that proves it must not be the search that
+       removes it. */
+    const options = page.getByRole("option");
+    await expect(options).toHaveCount(1);
+    await expect(options.first()).toHaveText(/Upload Base font/);
+  });
+
+  test("uploads the picked file rather than selecting a family", async ({
+    seededPage: page,
+  }) => {
+    const { settings } = await openPicker(page, "Geist Sans");
+
+    const chooser = page.waitForEvent("filechooser");
+    await page.getByRole("option").first().click();
+    await (await chooser).setFiles(FILE);
+
+    await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
+  });
+
+  test("says replace once the slot holds a file", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await settings.getByLabel(PRIMARY_UPLOAD).setInputFiles(FILE);
+    await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
+
+    await openPicker(page, "Brand-Regular");
+    // The row carries the same state the hidden input's label does.
+    await expect(page.getByRole("option").first()).toHaveText(
+      /Replace Base font/,
+    );
+  });
+});

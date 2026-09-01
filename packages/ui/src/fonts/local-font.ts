@@ -127,3 +127,34 @@ export async function registerLocalFont(
     return false;
   }
 }
+
+/**
+ * Whether a slot's uploaded file has been found yet.
+ *
+ * Three states rather than two, because "not loaded" and "not loaded yet" call
+ * for different words on screen. Reading the store is asynchronous, so a
+ * boolean reports every present file as missing until it resolves.
+ */
+export type FontFileStatus = "checking" | "loaded" | "missing";
+
+/**
+ * The verb an upload control should use for one slot.
+ *
+ * "Replace" would be wrong where there is nothing to replace, which is the
+ * whole state this has to be honest about. A local slot that is still being
+ * checked says "Replace" rather than "Add the missing": the file is usually
+ * there, and announcing a missing file for the length of an IndexedDB read
+ * reports a problem that mostly does not exist.
+ *
+ * Here rather than in the component because two places now ask the question —
+ * the row pinned inside the font selector, and the `aria-label` on the hidden
+ * input that row clicks. Two copies would eventually disagree, and the label
+ * is what a screen reader and the end-to-end tests both address a slot by.
+ */
+export function fontUploadAction(
+  isLocal: boolean,
+  status: FontFileStatus,
+): string {
+  if (!isLocal) return "Upload";
+  return status === "missing" ? "Add the missing" : "Replace";
+}
