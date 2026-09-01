@@ -575,15 +575,22 @@
   align-items: center;
 }
 
+/*
+ * One grid for the header and every row, rather than one grid each.
+ *
+ * They carried the same `grid-template-columns` and still drifted apart, with
+ * the gap widening across the row. Separate grids resolve their own tracks:
+ * `minmax(5rem, 0.8fr)` sizes against the content of that grid alone, so the
+ * header — six short words — settled its columns at the container width while
+ * a row of inputs was pushed past it by its minimums. Same template, two
+ * different answers, and the labels landed left of the fields they name.
+ *
+ * `display: contents` on the head and the rows drops their boxes so every
+ * cell is a child of this one grid. Then there is a single set of tracks and
+ * nothing left to disagree about. The rows carry no background or border, so
+ * losing the box costs nothing; inherited type still reaches the header cells.
+ */
 .roleTable {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-  overflow-x: auto;
-}
-
-.roleTableHead,
-.roleTableRow {
   display: grid;
   grid-template-columns:
     minmax(5rem, 0.8fr) minmax(11rem, 1.8fr) minmax(6rem, 1fr)
@@ -591,6 +598,12 @@
   column-gap: var(--spacing-1);
   row-gap: var(--spacing-2);
   align-items: center;
+  overflow-x: auto;
+}
+
+.roleTableHead,
+.roleTableRow {
+  display: contents;
 }
 
 .roleTableHead {

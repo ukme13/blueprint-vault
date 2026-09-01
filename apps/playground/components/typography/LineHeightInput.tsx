@@ -1,31 +1,32 @@
 "use client";
 
 import { useState } from "react";
-import { TextInput } from "@astryxdesign/core/TextInput";
-import {
-  formatLineHeightInput,
-  parseLineHeightInput,
-  type LineHeightConfig,
-} from "@blueprint/ui";
+import { NumberInput } from "@astryxdesign/core/NumberInput";
+import { parseLineHeightInput, type LineHeightConfig } from "@blueprint/ui";
 
 /**
- * The line-height field, which accepts all three ways of saying it.
+ * The line-height field.
  *
- * A text input rather than a number one, because the value is not always a
- * number: `auto` is a mode, and `24px` carries its unit. The parser decides
- * which was meant; this component only owns the draft and when to commit it.
+ * The same control as the size beside it — a number, with its unit in the
+ * slot on the right — because they are the same kind of value, and reading
+ * one row should not mean reading two conventions.
  *
- * Its own component because the editor row is already long, and because a
- * field with a draft, a commit point and an error state is more than the
- * other three inputs in that row put together.
+ * `auto` shows the pixel height it resolved to rather than the word "auto".
+ * The word says how the value was chosen and not what it is, which leaves the
+ * one number the row exists to communicate off the screen.
+ *
+ * Its own component because a field with a draft, a commit point and two
+ * possible units is more than the three inputs beside it put together.
  */
+
+/** Press this to hand the line height back to the group's default. */
+const AUTO_KEY = "a";
 
 interface LineHeightInputProps {
   label: string;
   config: LineHeightConfig;
-  /** Shown beside the field, so the value that ships is never hidden. */
+  /** What `auto` and `px` resolve to, which is what the field shows. */
   computedPx: number;
-  computedRatio: number;
   onChange: (config: LineHeightConfig) => void;
 }
 
@@ -33,70 +34,90 @@ export function LineHeightInput({
   label,
   config,
   computedPx,
-  computedRatio,
   onChange,
 }: LineHeightInputProps) {
-  const committed = formatLineHeightInput(config);
-  const [draft, setDraft] = useState(committed);
-  const [seen, setSeen] = useState(committed);
-  const [isInvalid, setIsInvalid] = useState(false);
+  /* A ratio is shown as itself and carries no unit, because it has none — it
+     is a multiple of the font size rather than a length. Everything else is a
+     pixel height. */
+  const isRatio = config.mode === "ratio";
+  const committed = isRatio ? config.value : computedPx;
+
+  const [draft, setDraft] = useState<number>(committed);
+  const [seen, setSeen] = useState<number>(committed);
+  /* Whether the number in the field is one the user typed.
+
+     Without this, blurring writes whatever is on screen straight back — and
+     what is on screen for `auto` is the pixel height it resolved to. Tabbing
+     out of an `auto` field pinned it to that number, so `auto` could not
+     survive being clicked away from. It looked like nothing happened until a
+     size change failed to move it. */
+  const [isDirty, setIsDirty] = useState(false);
 
   /* Follow the model when it moves underneath — a step change, or an import.
-     Adjusted during render rather than in an effect: React re-renders this
-     component before touching the DOM, so there is no intermediate paint
-     showing the stale value, and no cascading render either.
-
-     Compared on the formatted string, not the config, which is a new object
-     every render and would reset the draft on every keystroke. */
+     Adjusted during render rather than in an effect: React re-renders before
+     painting, so there is no frame showing the stale number, and no cascading
+     render either. */
   if (committed !== seen) {
     setSeen(committed);
     setDraft(committed);
-    setIsInvalid(false);
+    setIsDirty(false);
   }
 
-  /* Commit on blur and on Enter, not on every keystroke: "1" is on the way to
-     "1.5" and is a valid ratio of its own, so committing per character would
-     rewrite the value the user is still typing. */
-  const commit = () => {
-    const parsed = parseLineHeightInput(draft);
-    if (!parsed) {
-      setIsInvalid(true);
-      return;
-    }
-    setIsInvalid(false);
-    onChange(parsed);
+  /* Committed on blur and Enter rather than per keystroke. On the way to 24
+     the field passes through 2, which is a valid ratio, so committing every
+     keystroke would swap the unit out from under someone mid-number.
+
+     Through the same parser the engine uses, so the one rule that tells a
+     ratio from a pixel height lives in a single place. */
+  /*
+   * Enter commits whatever is shown; a blur only commits an edit.
+   *
+   * The difference matters for `auto`, which displays the pixel height it
+   * resolved to. Committing on every blur pinned that number the moment
+   * somebody tabbed away, so `auto` could not survive being clicked off.
+   * Committing on no blur at all left the opposite gap: the value `auto`
+   * already shows could never be pinned, because typing the number that is
+   * on screen is not a change.
+   *
+   * Enter is somebody saying "this one". A blur is somebody leaving.
+   */
+  const commit = (isExplicit: boolean) => {
+    if (!isExplicit && !isDirty) return;
+    setIsDirty(false);
+    const parsed = parseLineHeightInput(String(draft));
+    if (parsed) onChange(parsed);
   };
 
   return (
-    <TextInput
+    <NumberInput
       isLabelHidden
       label={label}
-      size="sm"
+      /* The unit follows the committed value rather than the draft, so it
+         does not flicker while a number is being typed. */
+      units={isRatio ? null : "px"}
+      /* One field, two ranges: a ratio up to 2.5, a pixel height above it.
+         The parser tells them apart by size, so there is no unit control to
+         find first. */
+      min={1}
+      max={400}
+      step={1}
       value={draft}
       placeholder="auto"
-      status={
-        isInvalid
-          ? {
-              type: "error",
-              message: "Type a ratio like 1.5, a height like 24px, or auto.",
-            }
-          : undefined
-      }
-      statusVariant="tooltip"
-      description={
-        /* Both numbers, always. The pixel value is what lands on the grid and
-           the ratio is what the export emits, and hiding either one makes the
-           other look arbitrary. */
-        config.mode === "auto"
-          ? `auto · ${computedPx}px · ${computedRatio}`
-          : `${computedPx}px · ${computedRatio}`
-      }
       onChange={(value) => {
         setDraft(value);
-        if (isInvalid) setIsInvalid(false);
+        setIsDirty(true);
       }}
-      onEnter={commit}
-      onBlur={commit}
+      onEnter={() => commit(true)}
+      onBlur={() => commit(false)}
+      onKeyDown={(event) => {
+        if (event.key.toLowerCase() !== AUTO_KEY) return;
+        /* The input is numeric, so the letter would be swallowed. Taking the
+           key here is what keeps `auto` reachable without adding a control to
+           a row with no room for one. */
+        event.preventDefault();
+        setIsDirty(false);
+        onChange({ mode: "auto" });
+      }}
     />
   );
 }

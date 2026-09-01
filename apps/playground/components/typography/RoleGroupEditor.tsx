@@ -242,9 +242,6 @@ export function RoleGroupEditor({
                 computedPx={
                   resolveLineHeight(role).computedLineHeightPx
                 }
-                computedRatio={
-                  resolveLineHeight(role).computedLineHeightRatio
-                }
                 onChange={(lineHeight) =>
                   onRoleValueChange(role.id, { lineHeight })
                 }
