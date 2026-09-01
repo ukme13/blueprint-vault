@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 import { defaultElevationScale } from "../scale/elevation";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
-import { formatBlueprintPaletteProject } from "../color/export";
 import { defaultSystem } from "../typography/system";
 import {
   formatBlueprintWorkspace,
   parseBlueprintWorkspace,
 } from "./workspace-file";
+import { DEFAULT_WORKSPACE_NAME } from "./workspace";
 import type { WorkspaceProject } from "./types";
 
 const LIGHTNESS = [
@@ -16,7 +16,6 @@ const LIGHTNESS = [
 ];
 
 const palette = () => ({
-  name: "My colour system",
   tracks: [
     {
       id: "primary",
@@ -27,6 +26,37 @@ const palette = () => ({
   ],
   lightnessPattern: "custom" as const,
   lightnessValues: LIGHTNESS,
+});
+
+/*
+ * A `blueprint-palette` file exactly as it was written, spelled out here.
+ *
+ * Hardcoded rather than produced by a formatter. The formatter that wrote
+ * these is gone, and generating the fixture from current code was the reason
+ * to keep it — which would have made this test follow every future change to
+ * the workspace shape and quietly stop proving anything about the old one.
+ * A compatibility test has to hold a copy of what it is compatible with.
+ *
+ * Note the `name` on the project: the palette slice has not had one since it
+ * became a slice, and reading it out of a file like this is the only reason
+ * anything still looks for it.
+ */
+const LEGACY_PALETTE_FILE = JSON.stringify({
+  kind: "blueprint-palette",
+  version: 1,
+  project: {
+    name: "My colour system",
+    tracks: [
+      {
+        id: "primary",
+        name: "primary",
+        seedHex: "#7646ab",
+        adjustments: { anchors: {}, manualOverrides: {} },
+      },
+    ],
+    lightnessPattern: "custom",
+    lightnessValues: LIGHTNESS,
+  },
 });
 
 const workspace = (over: Partial<WorkspaceProject> = {}): WorkspaceProject => ({
@@ -80,19 +110,40 @@ describe("a workspace file carries both halves", () => {
 describe("older palette files still import", () => {
   it("reads a blueprint-palette file into the palette half", () => {
     /* People have these. A format change is not a reason to orphan them. */
-    const older = formatBlueprintPaletteProject(palette());
-    const after = parseBlueprintWorkspace(older);
+    const after = parseBlueprintWorkspace(LEGACY_PALETTE_FILE);
 
+    /* The workspace takes its name from the file, since a palette file is the
+       one input that still carries one. */
     expect(after.name).toBe("My colour system");
     expect(after.palette?.tracks).toHaveLength(1);
     expect(after.typography).toBeNull();
   });
 
+  it("refuses a palette file version it does not know", () => {
+    expect(() =>
+      parseBlueprintWorkspace(
+        JSON.stringify({
+          ...JSON.parse(LEGACY_PALETTE_FILE),
+          version: 2,
+        }),
+      ),
+    ).toThrow("not supported");
+  });
+
+  it("falls back to the default name when the file has none", () => {
+    const nameless = JSON.parse(LEGACY_PALETTE_FILE);
+    delete nameless.project.name;
+    /* The tracks are what make it a palette, so it still imports. Before the
+       slice lost its name this returned null and the file was refused. */
+    const after = parseBlueprintWorkspace(JSON.stringify(nameless));
+
+    expect(after.palette?.tracks).toHaveLength(1);
+    expect(after.name).toBe(DEFAULT_WORKSPACE_NAME);
+  });
+
   it("does not need the caller to know which kind it was handed", () => {
     // One parser, two formats, same return type.
-    const fromPalette = parseBlueprintWorkspace(
-      formatBlueprintPaletteProject(palette()),
-    );
+    const fromPalette = parseBlueprintWorkspace(LEGACY_PALETTE_FILE);
     const fromWorkspace = parseBlueprintWorkspace(
       formatBlueprintWorkspace(workspace({ typography: null })),
     );

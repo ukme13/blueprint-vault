@@ -1,4 +1,7 @@
-import { readPaletteProjectData } from "./palette-project";
+import {
+  readLegacyPaletteName,
+  readPaletteProjectData,
+} from "./palette-project";
 import { readSemanticTokens, semanticsForPalette } from "./semantics";
 import {
   elevationOrDefault,
@@ -115,10 +118,13 @@ export function workspaceFromLegacy(
   /* The palette's name wins when both exist: it is the default route, so it is
      the more likely of the two to be the one someone deliberately named.
 
+     Read off the raw value rather than the parsed slice, which has no name of
+     its own — this is legacy data, so the field is still there to read.
+
      Blank counts as absent rather than as a name. ?? would keep an empty
      string, and a workspace called "" is a topbar someone has to guess at. */
   const name =
-    [palette?.name, typography?.system.name]
+    [readLegacyPaletteName(paletteValue), typography?.system.name]
       .map((candidate) => candidate?.trim())
       .find((candidate) => candidate) ?? DEFAULT_WORKSPACE_NAME;
 
@@ -289,20 +295,20 @@ export function withTypographySlice(
 }
 
 /**
- * Push the workspace name down into both slices.
+ * Push the workspace name down into the typography slice.
  *
- * The name belongs to the workspace, but the slices keep their own copy
- * because things outside the topbar read it — the palette file format, and the
- * typography export. Applying it on load is what makes the two topbars edit
- * one name: whichever studio renamed last, the other adopts it rather than
- * quietly disagreeing and overwriting on its next save.
+ * The name belongs to the workspace. Typography keeps its own copy because
+ * things outside the topbar read it — the type export and the accessibility
+ * report's `systemName`. The palette slice does not, and no longer has the
+ * field: nothing but the topbar ever read that copy, which is why it went.
+ *
+ * Applying this on load is what makes the topbars edit one name: whichever
+ * studio renamed last, the others adopt it rather than quietly disagreeing
+ * and overwriting on the next save.
  */
 export function withSharedName(project: WorkspaceProject): WorkspaceProject {
   return {
     ...project,
-    palette: project.palette
-      ? { ...project.palette, name: project.name }
-      : null,
     typography: project.typography
       ? {
           ...project.typography,

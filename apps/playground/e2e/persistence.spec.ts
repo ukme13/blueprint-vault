@@ -69,8 +69,11 @@ test.describe("Persistence after reload", () => {
 
     expect(stored).not.toBeNull();
     const workspace = JSON.parse(stored!);
+    /* The name is the workspace's, and the palette slice does not keep a
+       second copy of it — the migration reads one off the legacy blob and
+       does not write it back down. */
     expect(workspace.name).toBe("My colour system");
-    expect(workspace.palette.name).toBe("My colour system");
+    expect(workspace.palette).not.toHaveProperty("name");
     expect(workspace.palette.lightnessValues).toHaveLength(20);
 
     /* And the key it was migrated from is gone. It was kept so a bad

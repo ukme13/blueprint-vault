@@ -2,7 +2,10 @@ import {
   BLUEPRINT_PROJECT_FILE_VERSION,
   type PaletteProjectData,
 } from "../color/export";
-import { readPaletteProjectData } from "./palette-project";
+import {
+  readLegacyPaletteName,
+  readPaletteProjectData,
+} from "./palette-project";
 import { readSemanticTokens, semanticsForPalette } from "./semantics";
 import {
   elevationOrDefault,
@@ -55,12 +58,19 @@ export function formatBlueprintWorkspace(project: WorkspaceProject): string {
   return `${JSON.stringify(file, null, 2)}\n`;
 }
 
-function paletteOnlyWorkspace(project: PaletteProjectData): WorkspaceProject {
+function paletteOnlyWorkspace(
+  project: PaletteProjectData,
+  name: string | null,
+): WorkspaceProject {
   /* An older file names a palette and knows nothing of a type scale. Null
      rather than an empty system, so the typography studio still offers to
-     create one instead of opening a scale nobody chose. */
+     create one instead of opening a scale nobody chose.
+
+     The name is read off the raw file rather than the parsed slice, which has
+     none — it is the only thing in one of these files the workspace still
+     takes its name from. */
   return {
-    name: project.name.trim() || DEFAULT_WORKSPACE_NAME,
+    name: name ?? DEFAULT_WORKSPACE_NAME,
     palette: project,
     typography: null,
     semantics: semanticsForPalette(project),
@@ -121,7 +131,7 @@ export function parseBlueprintWorkspace(source: string): WorkspaceProject {
         "The Blueprint project data is incomplete or invalid.",
       );
     }
-    return paletteOnlyWorkspace(palette);
+    return paletteOnlyWorkspace(palette, readLegacyPaletteName(parsed.project));
   }
 
   throw new TypeError("This Blueprint project file is not supported.");

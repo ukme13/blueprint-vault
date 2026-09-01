@@ -9,6 +9,10 @@ import {
   DEFAULT_TYPE_SCALE_UNIT,
 } from "./typography-project";
 import {
+  readLegacyPaletteName,
+  readPaletteProjectData,
+} from "./palette-project";
+import {
   DEFAULT_WORKSPACE_NAME,
   LEGACY_PALETTE_STORAGE_KEY,
   LEGACY_TYPOGRAPHY_STORAGE_KEY,
@@ -290,12 +294,21 @@ describe("slice writes", () => {
 describe("withSharedName", () => {
   const both = workspaceFromLegacy(legacyPalette(), legacyTypography())!;
 
-  it("gives both slices the workspace name", () => {
+  it("gives the typography slice the workspace name", () => {
     // Migration took the palette name; the scale adopts it rather than
     // keeping "My type scale" and overwriting on its next save.
     const named = withSharedName(both);
-    expect(named.palette?.name).toBe("My colour system");
+    expect(named.name).toBe("My colour system");
     expect(named.typography?.system.name).toBe("My colour system");
+  });
+
+  it("puts no name on the palette slice", () => {
+    /* Typography keeps a copy because its export and the accessibility report
+       read one. Nothing outside the topbar ever read the palette's, so the
+       slice does not carry the field at all. */
+    const named = withSharedName(both);
+    expect(named.palette).not.toBeNull();
+    expect(named.palette).not.toHaveProperty("name");
   });
 
   it("leaves an unopened studio unopened", () => {
@@ -307,6 +320,39 @@ describe("withSharedName", () => {
     const named = withSharedName(both);
     expect(named.typography?.unit).toBe(both.typography?.unit);
     expect(named.palette?.tracks).toEqual(both.palette?.tracks);
+  });
+});
+
+describe("the name on pre-workspace palette data", () => {
+  it("is read off the raw value, not off the slice", () => {
+    expect(readLegacyPaletteName(legacyPalette())).toBe("My colour system");
+    expect(readPaletteProjectData(legacyPalette())).not.toHaveProperty("name");
+  });
+
+  it("treats a blank name as no name", () => {
+    /* A workspace called "" is a topbar someone has to guess at, so blank has
+       to fall through to the default rather than win as a name. */
+    expect(readLegacyPaletteName(legacyPalette({ name: "   " }))).toBeNull();
+    expect(readLegacyPaletteName(legacyPalette({ name: 7 }))).toBeNull();
+    expect(readLegacyPaletteName({ tracks: [] })).toBeNull();
+    expect(readLegacyPaletteName(null)).toBeNull();
+  });
+
+  it("migrates a nameless palette rather than discarding it", () => {
+    /* The name used to be part of the "is this a palette?" gate, so a blob
+       without one was thrown away along with its colours. Tracks are what
+       make it a palette; the name never was. */
+    const nameless = legacyPalette();
+    delete (nameless as Record<string, unknown>).name;
+
+    const project = workspaceFromLegacy(nameless, null);
+    expect(project?.palette?.tracks).toHaveLength(1);
+    expect(project?.name).toBe(DEFAULT_WORKSPACE_NAME);
+  });
+
+  it("still prefers the palette name over the type scale name", () => {
+    const project = workspaceFromLegacy(legacyPalette(), legacyTypography());
+    expect(project?.name).toBe("My colour system");
   });
 });
 

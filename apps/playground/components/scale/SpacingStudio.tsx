@@ -122,9 +122,9 @@ function writeStoredElevation(elevation: ElevationScale): void {
 /**
  * Rename the workspace.
  *
- * Through withSharedName, because the name lives on the workspace and each
- * slice keeps its own copy for the things that read it — the palette file
- * format and the typography export. Writing only the top-level one leaves
+ * Through withSharedName, because the name lives on the workspace and the
+ * typography slice keeps its own copy for the things that read it — the type
+ * export and the accessibility report. Writing only the top-level one leaves
  * storage disagreeing with itself.
  */
 function writeStoredName(name: string): void {

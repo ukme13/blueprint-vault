@@ -205,8 +205,9 @@ test.describe("One workspace name", () => {
 
     const workspace = await readWorkspace(page);
     expect(workspace.name).toBe("Renamed");
-    // The slices carry it too, since the exports read them.
-    expect(workspace.palette.name).toBe("Renamed");
+    /* Typography carries it too, since its export and the accessibility
+       report read that copy. The palette slice keeps no name at all. */
     expect(workspace.typography.system.name).toBe("Renamed");
+    expect(workspace.palette).not.toHaveProperty("name");
   });
 });
