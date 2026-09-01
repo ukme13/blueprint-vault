@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Trash2 } from "lucide-react";
 import { Selector } from "@astryxdesign/core/Selector";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import {
@@ -8,6 +9,7 @@ import {
   FONT_SCRIPTS,
   findGoogleFont,
   genericForCategory,
+  isGenericFamily,
   type TypeFont,
 } from "@blueprint/ui";
 import { GoogleFontPicker } from "./GoogleFontPicker";
@@ -29,36 +31,15 @@ import styles from "./typography-workspace.module.css";
 
 const DEFAULT_SCRIPT = "thai";
 
-/**
- * CSS keywords rather than families.
+/*
+ * The generic list moved to `@blueprint/ui`. `setLocalFont` needs the same
+ * answer when it keeps a stack's existing generic, and two copies of "is this
+ * a real family" would eventually disagree.
  *
- * They belong at the end of a stack, not in the bilingual slot: a migrated
- * stack of ["Geist Sans", "ui-sans-serif", "system-ui"] has no fallback font,
- * and treating `ui-sans-serif` as one hid the warning that the primary covers
- * no Thai.
+ * Why it matters here: a migrated stack of ["Geist Sans", "ui-sans-serif",
+ * "system-ui"] has no fallback font, and treating `ui-sans-serif` as one hid
+ * the warning that the primary covers no Thai.
  */
-const GENERIC_FAMILIES = new Set([
-  "serif",
-  "sans-serif",
-  "monospace",
-  "cursive",
-  "fantasy",
-  "system-ui",
-  "ui-serif",
-  "ui-sans-serif",
-  "ui-monospace",
-  "ui-rounded",
-  "math",
-  "emoji",
-  "fangsong",
-  "inherit",
-  "initial",
-  "unset",
-]);
-
-function isGeneric(family: string): boolean {
-  return GENERIC_FAMILIES.has(family.trim().toLowerCase());
-}
 
 function label(script: string): string {
   return script
@@ -94,7 +75,7 @@ export function FontStackEditor({
 }: FontStackEditorProps) {
   const [script, setScript] = useState(DEFAULT_SCRIPT);
 
-  const named = font.families.filter((family) => !isGeneric(family));
+  const named = font.families.filter((family) => !isGenericFamily(family));
   const [primary = "", fallback = ""] = named;
   const primaryFont = findGoogleFont(primary);
   const generic = primaryFont
@@ -135,12 +116,16 @@ export function FontStackEditor({
         {canRemove && (
           <Button
             aria-label={`Remove ${font.name} font`}
+            /* Sized against the name field beside it. See the note on the
+               role row's trash: `cn` is a plain join, so the CVA size stays
+               on the element and only the important suffix beats it. */
+            className="h-8! w-8! [&_svg]:size-4!"
             scheme="neutral"
-            size="xs"
-            variant="text"
+            size="icon"
+            variant="outlined"
             onClick={onRemove}
           >
-            Remove
+            <Trash2 aria-hidden="true" />
           </Button>
         )}
       </div>

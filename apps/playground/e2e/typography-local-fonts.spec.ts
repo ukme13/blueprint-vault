@@ -39,9 +39,19 @@ test.describe("Uploaded fonts", () => {
       return JSON.parse(raw!).typography.system.fonts[0];
     });
     expect(entry.source).toBe("local");
-    expect(entry.families[0]).toBe("Brand-Regular");
-    // A generic stays behind it, so a missing file still renders.
-    expect(entry.families.at(-1)).toBe("sans-serif");
+
+    /* The upload replaces the primary slot and nothing else. The seed is
+       "Geist Sans, ui-sans-serif, system-ui", so the two behind it survive —
+       they used to be thrown away for a hardcoded ["family", "sans-serif"],
+       which is what deleted a bilingual fallback along with them.
+
+       The tail is still a generic, so a missing file renders; it is the
+       project's own generic rather than one this code chose. */
+    expect(entry.families).toEqual([
+      "Brand-Regular",
+      "ui-sans-serif",
+      "system-ui",
+    ]);
   });
 
   test("keeps no font bytes in the project", async ({ seededPage: page }) => {

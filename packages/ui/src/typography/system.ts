@@ -700,12 +700,65 @@ export function removeGroup(system: TypeSystem, groupId: string): TypeSystem {
 }
 
 /**
- * Point a font entry at an uploaded file.
+ * The CSS keywords that end a stack rather than name a face.
  *
- * The generic stays on the end so the entry still renders when the file is
- * not there — another browser, or storage cleared. That is a normal state for
- * a local font rather than an error, and the family name is what the export
- * carries either way.
+ * Here rather than in the editor that used to hold them: deciding whether a
+ * family is a real one is a question about the model, and two answers to it
+ * would eventually disagree.
+ */
+const GENERIC_FAMILIES = new Set([
+  "serif",
+  "sans-serif",
+  "monospace",
+  "cursive",
+  "fantasy",
+  "system-ui",
+  "ui-serif",
+  "ui-sans-serif",
+  "ui-monospace",
+  "ui-rounded",
+  "math",
+  "emoji",
+  "fangsong",
+  "inherit",
+  "initial",
+  "unset",
+]);
+
+/** Whether a family is a CSS keyword rather than a face somebody chose. */
+export function isGenericFamily(family: string): boolean {
+  return GENERIC_FAMILIES.has(family.trim().toLowerCase());
+}
+
+/**
+ * Replace the family at the front of a stack, keeping everything behind it.
+ *
+ * The primary is one slot of three — the face you want, a face covering the
+ * other script, and a generic so something always renders. Writing the whole
+ * stack to set one of them takes the other two with it.
+ */
+function withPrimaryFamily(families: string[], primary: string): string[] {
+  const rest = families
+    .slice(1)
+    .filter((family) => family.trim() && family !== primary);
+  const next = [primary, ...rest];
+
+  /* A generic on the end so the entry still renders when the file is not
+     there — another browser, or storage cleared. That is a normal state for a
+     local font rather than an error. Only appended when the stack has none:
+     a serif stack should not gain a sans-serif tail. */
+  if (!next.some(isGenericFamily)) next.push("sans-serif");
+  return next;
+}
+
+/**
+ * Point a font entry's primary family at an uploaded file.
+ *
+ * The primary only. This used to write `[family, "sans-serif"]` over the whole
+ * stack, which deleted the bilingual fallback the user had picked — upload a
+ * Latin face onto Inter + Noto Sans Thai and the Thai was gone, silently, and
+ * only for Thai. It also replaced a category-derived generic with a hardcoded
+ * one, so a serif stack came back sans-serif.
  */
 export function setLocalFont(
   system: TypeSystem,
@@ -716,7 +769,11 @@ export function setLocalFont(
     ...system,
     fonts: system.fonts.map((font) =>
       font.id === fontId
-        ? { ...font, families: [family, "sans-serif"], source: "local" }
+        ? {
+            ...font,
+            families: withPrimaryFamily(font.families, family),
+            source: "local",
+          }
         : font,
     ),
   };

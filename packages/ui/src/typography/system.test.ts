@@ -582,6 +582,60 @@ describe("setLocalFont", () => {
     expect(after.fonts[1]!.source).toBe("google");
   });
 
+  it("keeps the bilingual fallback the upload sits in front of", () => {
+    /* The bug this replaces. `[family, "sans-serif"]` was written over the
+       whole stack, so uploading a Latin face onto Inter + Noto Sans Thai
+       deleted the Thai — silently, and only for Thai. */
+    const before = system({
+      fonts: [
+        {
+          id: "base",
+          name: "Base",
+          families: ["Inter", "Noto Sans Thai", "sans-serif"],
+          source: "google",
+        },
+      ],
+    });
+    const after = setLocalFont(before, "base", "Brand-Regular");
+
+    expect(after.fonts[0]!.families).toEqual([
+      "Brand-Regular",
+      "Noto Sans Thai",
+      "sans-serif",
+    ]);
+  });
+
+  it("keeps the generic the stack already had, rather than forcing one", () => {
+    /* A serif stack came back sans-serif, because the generic was hardcoded
+       rather than read. `genericForCategory` picks it for a Google family and
+       an uploaded file has no category to read, so the one already there is
+       the only evidence of what was wanted. */
+    const before = system({
+      fonts: [
+        { id: "base", name: "Base", families: ["Lora", "serif"], source: "google" },
+      ],
+    });
+    const after = setLocalFont(before, "base", "Brand-Regular");
+
+    expect(after.fonts[0]!.families).toEqual(["Brand-Regular", "serif"]);
+  });
+
+  it("does not repeat a family the stack already carries", () => {
+    const before = system({
+      fonts: [
+        {
+          id: "base",
+          name: "Base",
+          families: ["Inter", "Brand-Regular", "sans-serif"],
+          source: "google",
+        },
+      ],
+    });
+    const after = setLocalFont(before, "base", "Brand-Regular");
+
+    expect(after.fonts[0]!.families).toEqual(["Brand-Regular", "sans-serif"]);
+  });
+
   it("takes an entry back off local when a Google family is picked", () => {
     // setFontFamilies is the other direction, so an upload is recoverable.
     const local = setLocalFont(system(), "base", "Brand");
