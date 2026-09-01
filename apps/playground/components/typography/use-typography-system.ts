@@ -17,6 +17,7 @@ import {
   type TypeGroup,
   type TypeRole,
   type TypeSystem,
+  type LineHeightConfig,
 } from "@blueprint/ui";
 import type { TypographyProject } from "./typography-project";
 
@@ -25,7 +26,7 @@ export interface TypographySystemActions {
   updateRole: (id: string, patch: Partial<TypeRole>) => void;
   updateRoleValue: (
     id: string,
-    patch: Partial<{ lineHeight: number; letterSpacingPx: number }>,
+    patch: Partial<{ lineHeight: LineHeightConfig; letterSpacingPx: number }>,
   ) => void;
   addRole: (group: TypeGroup) => void;
   removeRole: (id: string) => void;

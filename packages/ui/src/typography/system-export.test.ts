@@ -63,8 +63,16 @@ const authored: TypeSystem = {
       textTransform: "uppercase",
       stepOffset: null,
       sameAsRoleId: null,
-      desktop: { fontSizePx: 56, lineHeight: 1.1, letterSpacingPx: 0 },
-      mobile: { fontSizePx: 24, lineHeight: 1.2, letterSpacingPx: 0 },
+      desktop: {
+        fontSizePx: 56,
+        lineHeight: { mode: "ratio", value: 1.1 },
+        letterSpacingPx: 0,
+      },
+      mobile: {
+        fontSizePx: 24,
+        lineHeight: { mode: "ratio", value: 1.2 },
+        letterSpacingPx: 0,
+      },
     },
     {
       id: "body",
@@ -75,8 +83,16 @@ const authored: TypeSystem = {
       textTransform: "none",
       stepOffset: null,
       sameAsRoleId: null,
-      desktop: { fontSizePx: 16, lineHeight: 1.6, letterSpacingPx: 0 },
-      mobile: { fontSizePx: 16, lineHeight: 1.6, letterSpacingPx: 0 },
+      desktop: {
+        fontSizePx: 16,
+        lineHeight: { mode: "ratio", value: 1.6 },
+        letterSpacingPx: 0,
+      },
+      mobile: {
+        fontSizePx: 16,
+        lineHeight: { mode: "ratio", value: 1.6 },
+        letterSpacingPx: 0,
+      },
     },
   ],
 };

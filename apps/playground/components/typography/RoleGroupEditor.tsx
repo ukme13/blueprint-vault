@@ -1,5 +1,6 @@
 "use client";
 
+import { Trash2 } from "lucide-react";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
 import { Selector } from "@astryxdesign/core/Selector";
 import { TextInput } from "@astryxdesign/core/TextInput";
@@ -13,7 +14,10 @@ import {
   type TypeRole,
   type TypeScaleUnit,
   type TypeStep,
+  resolveLineHeight,
+  type LineHeightConfig,
 } from "@blueprint/ui";
+import { LineHeightInput } from "./LineHeightInput";
 import styles from "./typography-workspace.module.css";
 
 /** Sentinel for a role that carries its own size rather than following a step. */
@@ -40,7 +44,7 @@ export interface RoleGroupEditorProps {
   onRoleChange: (id: string, patch: Partial<TypeRole>) => void;
   onRoleValueChange: (
     id: string,
-    patch: Partial<{ lineHeight: number; letterSpacingPx: number }>,
+    patch: Partial<{ lineHeight: LineHeightConfig; letterSpacingPx: number }>,
   ) => void;
   onRoleRemove: (id: string) => void;
 }
@@ -233,15 +237,14 @@ export function RoleGroupEditor({
                   onRoleChange(role.id, { fontWeight: value })
                 }
               />
-              <NumberInput
-                isLabelHidden
+              <LineHeightInput
                 label={`${role.id} line height`}
-                min={1}
-                max={2.5}
-                step={0.05}
-                value={role.desktop.lineHeight}
-                onChange={(value) =>
-                  onRoleValueChange(role.id, { lineHeight: value })
+                config={role.desktop.lineHeight}
+                computedPx={
+                  resolveLineHeight(role).computedLineHeightPx
+                }
+                onChange={(lineHeight) =>
+                  onRoleValueChange(role.id, { lineHeight })
                 }
               />
               <NumberInput
@@ -258,12 +261,20 @@ export function RoleGroupEditor({
               />
               <Button
                 aria-label={`Remove ${role.id}`}
+                /* Down from the icon size's 36px to match the inputs beside
+                   it. `cn` here is a plain join rather than tailwind-merge,
+                   so the CVA class is still on the element and only source
+                   order decides — hence the important suffix. */
+                className="h-8! w-8! [&_svg]:size-4!"
                 scheme="neutral"
-                size="xs"
-                variant="text"
+                size="icon"
+                variant="outlined"
                 onClick={() => onRoleRemove(role.id)}
               >
-                Remove
+                {/* The icon is the label. `size="icon"` takes children as the
+                    glyph and the accessible name from aria-label, so the row
+                    keeps naming which role it removes. */}
+                <Trash2 aria-hidden="true" />
               </Button>
             </div>
           ))}

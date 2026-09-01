@@ -221,7 +221,11 @@ describe("resolveRoleSizePx", () => {
   it("falls back to the stored size when the role is unlinked", () => {
     const hand = role("hero", "body", {
       stepOffset: null,
-      desktop: { fontSizePx: 91, lineHeight: 1, letterSpacingPx: 0 },
+      desktop: {
+        fontSizePx: 91,
+        lineHeight: { mode: "ratio", value: 1 },
+        letterSpacingPx: 0,
+      },
     });
     expect(resolveRoleSizePx(system({ roles: [hand] }), steps, hand)).toBe(91);
   });
@@ -461,9 +465,10 @@ describe("updateRole", () => {
 
   it("writes a value to both breakpoints, which are never edited apart", () => {
     const before = system();
-    const after = updateRoleValue(before, "body", { lineHeight: 1.2 });
-    expect(after.roles[0]!.desktop.lineHeight).toBe(1.2);
-    expect(after.roles[0]!.mobile.lineHeight).toBe(1.2);
+    const lineHeight = { mode: "ratio", value: 1.2 } as const;
+    const after = updateRoleValue(before, "body", { lineHeight });
+    expect(after.roles[0]!.desktop.lineHeight).toEqual(lineHeight);
+    expect(after.roles[0]!.mobile.lineHeight).toEqual(lineHeight);
   });
 
   it("leaves the rest of the value alone", () => {

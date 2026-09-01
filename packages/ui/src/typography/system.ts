@@ -1,3 +1,9 @@
+import {
+  computeLineHeight,
+  FALLBACK_AUTO_LINE_HEIGHT_RATIO,
+  type ComputedLineHeight,
+  type LineHeightConfig,
+} from "./line-height";
 import type { TypeStep } from "./types";
 /**
  * The merged typography model.
@@ -85,9 +91,13 @@ export function defaultSystem(
   stepCount: number,
 ): TypeSystem {
   const groups = defaultGroups();
-  const value = (fontSizePx: number, lineHeight: number) => ({
+  /* `auto` rather than the ratio each group used to be given literally.
+     AUTO_LINE_HEIGHT_RATIOS holds the same numbers, so a new system renders
+     identically — but the roles now follow their group when the size moves,
+     and land on the 4px grid on the way. */
+  const value = (fontSizePx: number): TypeRoleValue => ({
     fontSizePx,
-    lineHeight,
+    lineHeight: { mode: "auto" },
     letterSpacingPx: 0,
   });
 
@@ -102,8 +112,8 @@ export function defaultSystem(
     textTransform: "none",
     stepOffset: 6,
     sameAsRoleId: null,
-    desktop: value(baseFontSizePx, 1.1),
-    mobile: value(baseFontSizePx, 1.1),
+    desktop: value(baseFontSizePx),
+    mobile: value(baseFontSizePx),
   };
 
   const headings: TypeRole[] = Array.from({ length: 6 }, (_, index) => ({
@@ -118,8 +128,8 @@ export function defaultSystem(
     /* Largest heading at the top of the ramp, stepping down to base. */
     stepOffset: Math.max(6 - index, 0),
     sameAsRoleId: null,
-    desktop: value(baseFontSizePx, 1.2),
-    mobile: value(baseFontSizePx, 1.2),
+    desktop: value(baseFontSizePx),
+    mobile: value(baseFontSizePx),
   }));
 
   const body: TypeRole = {
@@ -131,8 +141,8 @@ export function defaultSystem(
     textTransform: "none",
     stepOffset: 0,
     sameAsRoleId: null,
-    desktop: value(baseFontSizePx, 1.5),
-    mobile: value(baseFontSizePx, 1.5),
+    desktop: value(baseFontSizePx),
+    mobile: value(baseFontSizePx),
   };
 
   return {
@@ -252,8 +262,55 @@ export interface TypeFont {
 
 export interface TypeRoleValue {
   fontSizePx: number;
-  lineHeight: number;
+  /**
+   * How the line height was chosen, not what it works out to.
+   *
+   * A bare number here used to mean a ratio. It still reads as one —
+   * `readLineHeightConfig` detects the old shape — but a role can now pin a
+   * pixel height or follow its group's default instead. Ask
+   * `resolveLineHeight` for the numbers.
+   */
+  lineHeight: LineHeightConfig;
   letterSpacingPx: number;
+}
+
+/**
+ * The ratio `auto` uses, by group.
+ *
+ * The same numbers the default system shipped as hand-set values, which is
+ * what makes `auto` the honest default rather than a new opinion. Groups are
+ * user-editable, so a custom group falls back to body's.
+ */
+export const AUTO_LINE_HEIGHT_RATIOS: Readonly<Record<string, number>> = {
+  [DISPLAY_GROUP_ID]: 1.1,
+  [HEADING_GROUP_ID]: 1.2,
+  [BODY_GROUP_ID]: 1.5,
+};
+
+/** The ratio a role's `auto` resolves against. */
+export function autoRatioForRole(role: Pick<TypeRole, "groupId">): number {
+  return (
+    AUTO_LINE_HEIGHT_RATIOS[role.groupId] ?? FALLBACK_AUTO_LINE_HEIGHT_RATIO
+  );
+}
+
+/**
+ * A role's line height at one breakpoint, in both units.
+ *
+ * The one place anything outside this module should be reading a line height
+ * from. Reading `role.desktop.lineHeight` directly gets the config, which is
+ * an intent rather than a value.
+ */
+export function resolveLineHeight(
+  role: TypeRole,
+  breakpoint: "desktop" | "mobile" = "desktop",
+): ComputedLineHeight {
+  const value = role[breakpoint];
+  return computeLineHeight(
+    value.fontSizePx,
+    value.lineHeight,
+    autoRatioForRole(role),
+  );
 }
 
 export interface TypeRole {
@@ -535,7 +592,7 @@ export function updateRole(
 export function updateRoleValue(
   system: TypeSystem,
   id: string,
-  patch: Partial<{ lineHeight: number; letterSpacingPx: number }>,
+  patch: Partial<{ lineHeight: LineHeightConfig; letterSpacingPx: number }>,
 ): TypeSystem {
   return {
     ...system,

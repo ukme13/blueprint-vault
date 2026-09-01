@@ -10,8 +10,10 @@ import {
   HEADING_GROUP_ID,
   type TypeGroup,
   type TypeRole,
+  type TypeRoleValue,
   type TypeSystem,
 } from "./system";
+import { readLineHeightConfig } from "./line-height";
 import { SEMANTIC_ROLES, type SemanticRole } from "./types";
 
 /**
@@ -107,9 +109,12 @@ export function migrateLegacyProject(
     )!;
     const stepNumber = assignment.step;
     const step = steps.find((candidate) => candidate.step === stepNumber);
-    const value = {
+    /* `ratio`, not `auto`. These were per-role values somebody had set, and
+       adopting the group default instead would change how a saved project
+       renders on the first load after this. */
+    const value: TypeRoleValue = {
       fontSizePx: step?.fontSizePx ?? project.baseFontSizePx,
-      lineHeight: style.lineHeight,
+      lineHeight: { mode: "ratio", value: style.lineHeight },
       letterSpacingPx: style.letterSpacingPx,
     };
 
@@ -167,6 +172,24 @@ export function splitFontFamily(value: string): string[] {
  *
  * Returns null only when the value is not recognisably a system at all.
  */
+/**
+ * One breakpoint's values, out of stored data.
+ *
+ * This was a cast until the line height stopped being a bare number. Every
+ * project saved before then holds one, and `readLineHeightConfig` reads it as
+ * the ratio it meant — detected by shape, like the rest of this file, rather
+ * than gated on a version.
+ */
+function readRoleValue(value: unknown): TypeRoleValue {
+  const raw = (value ?? {}) as Record<string, unknown>;
+  return {
+    fontSizePx: typeof raw.fontSizePx === "number" ? raw.fontSizePx : 16,
+    lineHeight: readLineHeightConfig(raw.lineHeight) ?? { mode: "auto" },
+    letterSpacingPx:
+      typeof raw.letterSpacingPx === "number" ? raw.letterSpacingPx : 0,
+  };
+}
+
 export function normalizeStoredSystem(value: unknown): TypeSystem | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Record<string, unknown>;
@@ -227,8 +250,8 @@ export function normalizeStoredSystem(value: unknown): TypeSystem | null {
         stepOffset,
         sameAsRoleId:
           typeof role.sameAsRoleId === "string" ? role.sameAsRoleId : null,
-        desktop: role.desktop as TypeRole["desktop"],
-        mobile: (role.mobile ?? role.desktop) as TypeRole["mobile"],
+        desktop: readRoleValue(role.desktop),
+        mobile: readRoleValue(role.mobile ?? role.desktop),
       };
     },
   );
