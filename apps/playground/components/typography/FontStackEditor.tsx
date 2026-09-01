@@ -99,9 +99,10 @@ export function FontStackEditor({
      handed. */
   const primaryIsLocal = isLocalSlot(font, "primary");
 
-  /* Named once and used twice each: the pinned row someone reads, and the
-     `aria-label` on the input it clicks. Two spellings of the same state would
-     eventually disagree about which one a slot is in. */
+  /* The verb is shared between the row someone reads and the `aria-label` on
+     the input it clicks, so the two cannot disagree about which state a slot
+     is in. The slot's name stays out of the row: inside a menu opened from
+     this field it would only repeat the field's own label. */
   const primaryName = `${font.name} font`;
   const fallbackName = `${font.name} ${label(script)} fallback`;
   const primaryAction = fontUploadAction(primaryIsLocal, fileStatus("primary"));
@@ -144,7 +145,7 @@ export function FontStackEditor({
         family={primary}
         label={primaryName}
         placeholder="Search Google Fonts"
-        uploadLabel={`${primaryAction} ${primaryName}`}
+        uploadLabel={`${primaryAction} font`}
         onPick={(picked) => onPick("primary", picked?.family ?? "", generic)}
         onUpload={() => primaryFileRef.current?.click()}
       />
@@ -167,7 +168,7 @@ export function FontStackEditor({
             label={`${font.name} bilingual fallback`}
             placeholder={`Covers ${label(script)}`}
             script={script}
-            uploadLabel={`${fallbackAction} ${fallbackName}`}
+            uploadLabel={`${fallbackAction} font`}
             onPick={(picked) =>
               onPick("fallback", picked?.family ?? "", generic)
             }

@@ -9,6 +9,7 @@ import {
   searchGoogleFonts,
   type GoogleFont,
 } from "@blueprint/ui";
+import styles from "./typography-workspace.module.css";
 
 /**
  * The id of the row pinned above the catalogue.
@@ -127,11 +128,18 @@ export function GoogleFontPicker({
       placeholder={placeholder}
       renderItem={(item) =>
         item.id === UPLOAD_ITEM_ID ? (
-          <TypeaheadItem
-            description={UPLOAD_FORMATS}
-            icon={<FileUp aria-hidden="true" size={16} />}
-            item={item}
-          />
+          /* Not a TypeaheadItem: that puts a description on its own line, and
+             the formats are a footnote to the action rather than a second
+             thing to read. `data-upload-row` is what the separator under this
+             row is hung on, so it follows the row instead of whichever item
+             happens to be first. */
+          <span className={styles.fontUploadRow} data-upload-row="true">
+            <FileUp aria-hidden="true" className={styles.fontUploadRowIcon} />
+            {item.label}
+            <span className={styles.fontUploadRowFormats}>
+              {UPLOAD_FORMATS}
+            </span>
+          </span>
         ) : (
           <TypeaheadItem item={item} />
         )

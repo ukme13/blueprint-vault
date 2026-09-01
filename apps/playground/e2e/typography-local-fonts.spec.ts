@@ -448,7 +448,7 @@ test.describe("Uploading from the font selector", () => {
     await input.fill("");
 
     const options = page.getByRole("option");
-    await expect(options.first()).toHaveText(/Upload Base font/);
+    await expect(options.first()).toHaveText(/Upload font/);
     // Above a catalogue that is actually there, not above an empty menu.
     await expect(options).not.toHaveCount(1);
   });
@@ -464,7 +464,7 @@ test.describe("Uploading from the font selector", () => {
        removes it. */
     const options = page.getByRole("option");
     await expect(options).toHaveCount(1);
-    await expect(options.first()).toHaveText(/Upload Base font/);
+    await expect(options.first()).toHaveText(/Upload font/);
   });
 
   test("uploads the picked file rather than selecting a family", async ({
@@ -488,8 +488,6 @@ test.describe("Uploading from the font selector", () => {
 
     await openPicker(page, "Brand-Regular");
     // The row carries the same state the hidden input's label does.
-    await expect(page.getByRole("option").first()).toHaveText(
-      /Replace Base font/,
-    );
+    await expect(page.getByRole("option").first()).toHaveText(/Replace font/);
   });
 });

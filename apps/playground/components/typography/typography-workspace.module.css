@@ -743,6 +743,44 @@
   gap: var(--spacing-1);
 }
 
+/* The row pinned at the top of a font selector's menu: the action, then the
+   formats it accepts, on one line. */
+.fontUploadRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.fontUploadRowIcon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+/* A footnote to the action rather than a second thing to read, so it is set
+   back rather than given a line of its own. */
+.fontUploadRowFormats {
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+/* Divides uploading from the catalogue below it.
+   Hung on the row's own marker rather than on `:first-child`, so it cannot
+   end up under a font if the row is ever absent. The dropdown is Astryx's,
+   and `astryx-typeahead-dropdown` is the class its own theming table names —
+   there is no prop for a separator between items. */
+.fontStack
+  :global(.astryx-typeahead-dropdown)
+  > [role="option"]:has([data-upload-row]) {
+  /* A track token rather than `--color-border`, which is oklch(20%) here and
+     so invisible on a menu surface measured at oklch(22%).
+     `--color-border-emphasized` is only 30% and barely better; 600 reads as a
+     line in both themes without becoming a rule. */
+  border-bottom: var(--border-width) solid var(--color-neutral-600);
+  margin-bottom: var(--spacing-1);
+}
+
 /* What the slot is rendering right now, under the field it belongs to. Compact
    because there is one per slot and two slots per stack — the upload control
    that used to sit here moved into the selector's menu, and the note is what
