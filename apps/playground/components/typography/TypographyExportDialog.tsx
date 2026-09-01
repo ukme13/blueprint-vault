@@ -12,6 +12,7 @@ import {
   TYPE_SCALE_UNITS,
   type TypeSystem,
   type TypeScaleUnit,
+  localSlots,
 } from "@blueprint/ui";
 import styles from "./typography-workspace.module.css";
 
@@ -49,10 +50,7 @@ export function TypographyExportDialog({
 
   /* Only the entries actually backed by a file. A Google or system family is
      the reader's to load and carries no licence question of ours. */
-  const localFamilies = system.fonts
-    .filter((font) => font.source === "local")
-    .map((font) => font.families[0])
-    .filter((family): family is string => !!family);
+  const localFamilies = localSlots(system).map(({ family }) => family);
 
   const output = useMemo(
     () =>

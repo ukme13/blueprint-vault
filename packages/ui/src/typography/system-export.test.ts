@@ -44,13 +44,13 @@ const authored: TypeSystem = {
       id: "display",
       name: "Display",
       families: ["Orbitron", "sans-serif"],
-      source: "system",
+      sources: { primary: "system" },
     },
     {
       id: "content",
       name: "Content",
       families: ["Noto Sans Thai", "sans-serif"],
-      source: "system",
+      sources: { primary: "system" },
     },
   ],
   roles: [
@@ -191,7 +191,7 @@ describe("google font notice", () => {
           id: "content",
           name: "Content",
           families: ["Sarabun", "sans-serif"],
-          source: "google",
+          sources: { primary: "google" },
         },
       ],
     };

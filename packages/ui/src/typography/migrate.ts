@@ -9,6 +9,10 @@ import {
   reindexGroup,
   HEADING_GROUP_ID,
   type TypeGroup,
+  FONT_SLOTS,
+  isGenericFamily,
+  type TypeFont,
+  type TypeFontSource,
   type TypeRole,
   type TypeRoleValue,
   type TypeSystem,
@@ -147,7 +151,7 @@ export function migrateLegacyProject(
         id: LEGACY_FONT_ID,
         name: "Base",
         families: splitFontFamily(project.fontFamily),
-        source: "system",
+        sources: { primary: "system" },
       },
     ],
     roles,
@@ -188,6 +192,63 @@ function readRoleValue(value: unknown): TypeRoleValue {
     letterSpacingPx:
       typeof raw.letterSpacingPx === "number" ? raw.letterSpacingPx : 0,
   };
+}
+
+function isFontSource(value: unknown): value is TypeFontSource {
+  return value === "google" || value === "local" || value === "system";
+}
+
+/**
+ * Font entries out of stored data.
+ *
+ * This was a cast until `source` became per-slot. Every project saved before
+ * then carries one source for the whole entry, and it described the primary:
+ * an upload could only ever land there, and the fallback slot was reachable
+ * only through the Google picker. So the old value becomes the primary's and
+ * a fallback that exists is Google's.
+ *
+ * Detected by shape rather than gated on a version, like the rest of this
+ * file. An entry already carrying `sources` keeps it.
+ */
+function readFonts(value: unknown): TypeFont[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((raw): TypeFont[] => {
+    if (!raw || typeof raw !== "object") return [];
+    const font = raw as Record<string, unknown>;
+    if (typeof font.id !== "string") return [];
+
+    const families = Array.isArray(font.families)
+      ? font.families.filter(
+          (family): family is string =>
+            typeof family === "string" && family.trim().length > 0,
+        )
+      : [];
+
+    let sources: TypeFont["sources"];
+    if (font.sources && typeof font.sources === "object") {
+      const stored = font.sources as Record<string, unknown>;
+      sources = {};
+      for (const slot of FONT_SLOTS) {
+        if (isFontSource(stored[slot])) sources[slot] = stored[slot];
+      }
+    } else {
+      const legacy = isFontSource(font.source) ? font.source : "system";
+      sources = { primary: legacy };
+      /* The only way a fallback could have been set was the picker. */
+      const named = families.filter((family) => !isGenericFamily(family));
+      if (named.length > 1) sources.fallback = "google";
+    }
+
+    return [
+      {
+        id: font.id,
+        name: typeof font.name === "string" ? font.name : font.id,
+        families,
+        sources,
+      },
+    ];
+  });
 }
 
 export function normalizeStoredSystem(value: unknown): TypeSystem | null {
@@ -273,7 +334,7 @@ export function normalizeStoredSystem(value: unknown): TypeSystem | null {
     ratio: raw.ratio,
     stepCount,
     breakpointPx: typeof raw.breakpointPx === "number" ? raw.breakpointPx : 768,
-    fonts: raw.fonts as TypeSystem["fonts"],
+    fonts: readFonts(raw.fonts),
     roles,
   };
 

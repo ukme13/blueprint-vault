@@ -2,6 +2,16 @@ import { expect, test } from "./typography-fixtures";
 
 const FILE = "e2e/fixtures-files/Brand-Regular.woff2";
 
+/*
+ * The upload inputs are named per slot now, so two of them can sit in one
+ * entry without a screen reader hearing "upload, upload". The seeded project
+ * migrates to a single entry called "Base".
+ */
+const PRIMARY_UPLOAD = "Upload Base font file";
+const PRIMARY_REPLACE = "Replace Base font file";
+const PRIMARY_ADD_MISSING = "Add the missing Base font file";
+const FALLBACK_UPLOAD = "Upload Base Thai fallback file";
+
 const registeredFamilies = (page: import("@playwright/test").Page) =>
   page.evaluate(() => {
     const names: string[] = [];
@@ -14,7 +24,7 @@ test.describe("Uploaded fonts", () => {
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("Upload a font file").setInputFiles(FILE);
+    await settings.getByLabel(PRIMARY_UPLOAD).setInputFiles(FILE);
 
     await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
     await expect
@@ -31,14 +41,14 @@ test.describe("Uploaded fonts", () => {
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("Upload a font file").setInputFiles(FILE);
+    await settings.getByLabel(PRIMARY_UPLOAD).setInputFiles(FILE);
     await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
 
     const entry = await page.evaluate(() => {
       const raw = window.localStorage.getItem("blueprint.workspace.v1");
       return JSON.parse(raw!).typography.system.fonts[0];
     });
-    expect(entry.source).toBe("local");
+    expect(entry.sources).toEqual({ primary: "local" });
 
     /* The upload replaces the primary slot and nothing else. The seed is
        "Geist Sans, ui-sans-serif, system-ui", so the two behind it survive —
@@ -56,7 +66,7 @@ test.describe("Uploaded fonts", () => {
 
   test("keeps no font bytes in the project", async ({ seededPage: page }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("Upload a font file").setInputFiles(FILE);
+    await settings.getByLabel(PRIMARY_UPLOAD).setInputFiles(FILE);
     await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
 
     /* The rule the whole plan hangs on. The file is 28KB, so a project holding
@@ -74,7 +84,7 @@ test.describe("Uploaded fonts", () => {
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("Upload a font file").setInputFiles(FILE);
+    await settings.getByLabel(PRIMARY_UPLOAD).setInputFiles(FILE);
     await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
 
     await page.reload();
@@ -93,7 +103,7 @@ test.describe("Uploaded fonts", () => {
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("Upload a font file").setInputFiles(FILE);
+    await settings.getByLabel(PRIMARY_UPLOAD).setInputFiles(FILE);
     await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
 
     const families = await registeredFamilies(page);
@@ -104,13 +114,52 @@ test.describe("Uploaded fonts", () => {
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("Upload a font file").setInputFiles(FILE);
+    await settings.getByLabel(PRIMARY_UPLOAD).setInputFiles(FILE);
     await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
 
     /* Both notes reason from the Google catalogue. "Not loaded here" would
        contradict the line directly above it. */
     await expect(settings.getByText(/is not a Google font/)).toHaveCount(0);
     await expect(settings.getByText(/has no Thai glyphs/)).toHaveCount(0);
+  });
+});
+
+test.describe("An upload in each slot", () => {
+  /* The feature per-slot sources exist for: an uploaded Latin face in front of
+     an uploaded Thai one. One `source` for the entry could not describe it,
+     and one storage key could not hold both files. */
+  test("keeps both files, under a key each", async ({ seededPage: page }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+
+    await settings.getByLabel(PRIMARY_UPLOAD).setInputFiles(FILE);
+    await expect(settings.getByLabel(PRIMARY_REPLACE)).toBeVisible();
+    await settings.getByLabel(FALLBACK_UPLOAD).setInputFiles(FILE);
+
+    const entry = await page.evaluate(async () => {
+      const raw = window.localStorage.getItem("blueprint.workspace.v1");
+      return JSON.parse(raw!).typography.system.fonts[0];
+    });
+
+    expect(entry.sources).toEqual({ primary: "local", fallback: "local" });
+    /* The upload names the family after the file, so both slots land on the
+       same name here — deduped, which is the honest stack for one file used
+       twice. What matters is that neither slot overwrote the other's source. */
+    expect(entry.families[0]).toBe("Brand-Regular");
+  });
+
+  test("a fallback upload leaves the primary alone", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+
+    await settings.getByLabel(PRIMARY_UPLOAD).setInputFiles(FILE);
+    await expect(settings.getByLabel(PRIMARY_REPLACE)).toBeVisible();
+
+    /* The bug this whole change exists to make impossible: before slots, the
+       one upload input rewrote the entire stack. */
+    await settings.getByLabel(FALLBACK_UPLOAD).setInputFiles(FILE);
+
+    await expect(settings.getByLabel(PRIMARY_REPLACE)).toBeVisible();
   });
 });
 
@@ -126,7 +175,7 @@ test.describe("A local font with no file", () => {
       workspace.typography.system.fonts[0] = {
         ...workspace.typography.system.fonts[0],
         families: ["Brand-Regular", "sans-serif"],
-        source: "local",
+        sources: { primary: "local" },
       };
       window.localStorage.setItem(
         "blueprint.workspace.v1",
@@ -168,21 +217,21 @@ test.describe("A local font with no file", () => {
   }) => {
     await seedLocalWithoutFile(page);
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await expect(settings.getByLabel("Add the missing file")).toBeVisible();
-    await expect(settings.getByLabel("Replace file")).toHaveCount(0);
+    await expect(settings.getByLabel(PRIMARY_ADD_MISSING)).toBeVisible();
+    await expect(settings.getByLabel(PRIMARY_REPLACE)).toHaveCount(0);
   });
 
   test("renders once the file is added back", async ({ seededPage: page }) => {
     await seedLocalWithoutFile(page);
     const settings = page.getByRole("region", { name: "Type scale settings" });
 
-    await settings.getByLabel("Add the missing file").setInputFiles(FILE);
+    await settings.getByLabel(PRIMARY_ADD_MISSING).setInputFiles(FILE);
 
     await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
     await expect(settings.getByText(/has no file in this browser/)).toHaveCount(
       0,
     );
-    await expect(settings.getByLabel("Replace file")).toBeVisible();
+    await expect(settings.getByLabel(PRIMARY_REPLACE)).toBeVisible();
   });
 
   test("survives the reload after being added back", async ({
@@ -191,7 +240,7 @@ test.describe("A local font with no file", () => {
     await seedLocalWithoutFile(page);
     await page
       .getByRole("region", { name: "Type scale settings" })
-      .getByLabel("Add the missing file")
+      .getByLabel(PRIMARY_ADD_MISSING)
       .setInputFiles(FILE);
     await expect(page.getByText(/Rendering Brand-Regular/)).toBeVisible();
 
@@ -208,7 +257,7 @@ test.describe("Exporting a scale that uses an uploaded font", () => {
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("Upload a font file").setInputFiles(FILE);
+    await settings.getByLabel(PRIMARY_UPLOAD).setInputFiles(FILE);
     await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
 
     await page.getByRole("button", { name: "Export type scale" }).click();
@@ -228,7 +277,7 @@ test.describe("Exporting a scale that uses an uploaded font", () => {
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("Upload a font file").setInputFiles(FILE);
+    await settings.getByLabel(PRIMARY_UPLOAD).setInputFiles(FILE);
     await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
 
     await page.getByRole("button", { name: "Export type scale" }).click();
@@ -281,9 +330,9 @@ test.describe("A file nothing references", () => {
 
   const upload = async (page: import("@playwright/test").Page) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("Upload a font file").setInputFiles(FILE);
+    await settings.getByLabel(PRIMARY_UPLOAD).setInputFiles(FILE);
     await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
-    await expect.poll(() => storedFontIds(page)).toContain("base");
+    await expect.poll(() => storedFontIds(page)).toContain("base::primary");
   };
 
   test("goes when its font entry is removed", async ({ seededPage: page }) => {
@@ -295,7 +344,7 @@ test.describe("A file nothing references", () => {
     await settings.getByRole("button", { name: "Add font" }).click();
     await settings.getByRole("button", { name: "Remove Base font" }).click();
 
-    await expect.poll(() => storedFontIds(page)).not.toContain("base");
+    await expect.poll(() => storedFontIds(page)).not.toContain("base::primary");
   });
 
   test("goes when the entry switches to a Google family", async ({
@@ -312,7 +361,7 @@ test.describe("A file nothing references", () => {
     await settings.getByLabel("Base font", { exact: true }).fill("Lora");
     await page.getByRole("option", { name: "Lora", exact: true }).click();
 
-    await expect.poll(() => storedFontIds(page)).not.toContain("base");
+    await expect.poll(() => storedFontIds(page)).not.toContain("base::primary");
   });
 
   test("goes when the whole project is started again", async ({
@@ -331,7 +380,7 @@ test.describe("A file that is not a font", () => {
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("Upload a font file").setInputFiles({
+    await settings.getByLabel(PRIMARY_UPLOAD).setInputFiles({
       name: "holiday.mp4",
       mimeType: "video/mp4",
       buffer: Buffer.from([0, 1, 2, 3]),
@@ -348,10 +397,10 @@ test.describe("A file that is not a font", () => {
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("Upload a font file").setInputFiles(FILE);
+    await settings.getByLabel(PRIMARY_UPLOAD).setInputFiles(FILE);
     await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
 
-    await settings.getByLabel("Replace file").setInputFiles({
+    await settings.getByLabel(PRIMARY_REPLACE).setInputFiles({
       name: "notes.txt",
       mimeType: "text/plain",
       buffer: Buffer.from("not a font"),

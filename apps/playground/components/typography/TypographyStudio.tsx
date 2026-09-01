@@ -38,6 +38,8 @@ import {
   type TypeScaleUnit,
   type TypeSystem,
   resolveLineHeight,
+  isLocalSlot,
+  localFontKey,
 } from "@blueprint/ui";
 import { TypographyCreation } from "./TypographyCreation";
 import { TypographyExportDialog } from "./TypographyExportDialog";
@@ -59,8 +61,9 @@ import {
 } from "./typography-project";
 import { useGoogleFontsLink } from "./use-google-fonts";
 import {
+  forgetFontEntry,
+  forgetFontSlot,
   forgetLocalFonts,
-  localFontIds,
   storeLocalFont,
   useLocalFonts,
 } from "./use-local-fonts";
@@ -154,7 +157,7 @@ export function TypographyStudio() {
     removeRole,
     renameFont,
     renameGroupById,
-    setFontFamilies,
+    setGoogleFont,
     setLocalFont,
     shiftGroup,
     updateGroup,
@@ -494,30 +497,37 @@ export function TypographyStudio() {
                   key={font.id}
                   canRemove={system.fonts.length > 1}
                   font={font}
-                  onChange={(families) => {
-                    /* Switching to a Google family leaves the uploaded file
-                       referenced by nothing. */
-                    if (font.source === "local") {
-                      void forgetLocalFonts([font.id]);
+                  onPick={(slot, family, generic) => {
+                    /* Picking a Google family for a slot that held a file
+                       leaves those bytes referenced by nothing — and only
+                       that slot's, since the other one may still point at
+                       its own. */
+                    if (isLocalSlot(font, slot)) {
+                      void forgetFontSlot(font.id, slot);
                       setFontFileRevision((current) => current + 1);
                     }
-                    setFontFamilies(font.id, families);
+                    setGoogleFont(font.id, slot, family, generic);
                   }}
                   onRemove={() => {
-                    void forgetLocalFonts([font.id]);
+                    void forgetFontEntry(font.id);
                     removeFont(font.id);
                   }}
-                  fileStatus={localFontStatus.get(font.id) ?? "checking"}
-                  uploadError={uploadErrors[font.id] ?? ""}
+                  fileStatus={(slot) =>
+                    localFontStatus.get(localFontKey(font.id, slot)) ??
+                    "checking"
+                  }
+                  uploadError={(slot) =>
+                    uploadErrors[localFontKey(font.id, slot)] ?? ""
+                  }
                   onRename={(name) => renameFont(font.id, name)}
-                  onUpload={(file) => {
-                    void storeLocalFont(font.id, file).then((result) => {
+                  onUpload={(slot, file) => {
+                    void storeLocalFont(font.id, slot, file).then((result) => {
                       setUploadErrors((current) => ({
                         ...current,
-                        [font.id]: result.rejected ?? "",
+                        [localFontKey(font.id, slot)]: result.rejected ?? "",
                       }));
                       if (!result.family) return;
-                      setLocalFont(font.id, result.family);
+                      setLocalFont(font.id, slot, result.family);
                       setFontFileRevision((current) => current + 1);
                     });
                   }}
@@ -663,8 +673,9 @@ export function TypographyStudio() {
         title="Start a new project?"
         onAction={() => {
           setIsNewProjectDialogOpen(false);
-          /* The whole scale goes, so every file it named goes with it. */
-          void forgetLocalFonts(localFontIds(system));
+          /* The whole scale goes, so every file it named goes with it — both
+             slots of every entry, not only the ones currently marked local. */
+          void forgetLocalFonts(system.fonts.map((font) => font.id));
           setProject(null);
         }}
         onOpenChange={setIsNewProjectDialogOpen}
