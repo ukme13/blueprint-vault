@@ -59,8 +59,32 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Keyed on the Playwright version rather than the lockfile, because the
+      # browser build is what the version pins. Hashing the lockfile would
+      # throw the browsers away every time an unrelated dependency moved.
+      - name: Resolve Playwright version
+        id: playwright-version
+        run: |
+          version="$(pnpm --filter playground exec playwright --version | awk '{print $2}')"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}-chromium
+
       - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm --filter playground exec playwright install --with-deps chromium
+
+      # The browsers are cached; the OS packages `--with-deps` installs are
+      # not, because apt puts them outside ~/.cache/ms-playwright. A cache hit
+      # therefore still needs this, or Chromium is present and will not start.
+      - name: Install Playwright system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm --filter playground exec playwright install-deps chromium
 
       - name: Run Playwright tests
         run: pnpm --filter playground test:e2e
