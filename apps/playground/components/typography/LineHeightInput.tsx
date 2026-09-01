@@ -97,7 +97,21 @@ export function LineHeightInput({
       /* The resolved height, muted, whenever the field is empty. */
       placeholder={String(computedPx)}
       hasClear
-      onChange={(value) => {
+      onChange={(value: number | null) => {
+        /* Emptying the field is an answer, not a step towards one, so it
+           commits here rather than waiting for a blur.
+
+           Deferring it left the model on the last number while the field
+           looked empty — and since the placeholder is computed from the
+           model, it showed the height that number resolved to rather than
+           the one `auto` was about to give. Clearing 1.53 offered 24.48 until
+           focus left, then corrected itself to 24. */
+        if (value === null || Number.isNaN(value)) {
+          setDraft(null);
+          setIsDirty(false);
+          onChange({ mode: "auto" });
+          return;
+        }
         setDraft(value);
         setIsDirty(true);
       }}

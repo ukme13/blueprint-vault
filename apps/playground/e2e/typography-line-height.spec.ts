@@ -89,6 +89,24 @@ test.describe("The line-height field", () => {
     await expect(field).toHaveAttribute("placeholder", "28");
   });
 
+  test("returns to auto the moment it is cleared, without waiting for a blur", async ({
+    seededPage: page,
+  }) => {
+    const field = lineHeightField(page);
+
+    await field.fill("30");
+    await page.getByRole("button", { name: `Clear ${LINE_HEIGHT}` }).click();
+
+    /* Still focused: clearing is an answer, not a step towards one.
+
+       The placeholder is the tell, because it is computed from the model. 24
+       is what `auto` gives body at 16px; 30 would mean the typed value was
+       committed and the field is only pretending to be empty. */
+    await expect(field).toHaveValue("");
+    await expect(field).toHaveAttribute("placeholder", "24");
+    await expect(field).toBeFocused();
+  });
+
   test("auto follows the font size, and a pinned height does not", async ({
     seededPage: page,
   }) => {
