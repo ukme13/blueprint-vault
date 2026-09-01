@@ -13,16 +13,46 @@ concurrency:
 env:
   TURBO_TELEMETRY_DISABLED: 1
 
+permissions:
+  contents: read
+
 jobs:
+  # A job cannot carry a `paths` filter — `paths` is only valid under `on.<event>`,
+  # where it would gate the whole workflow rather than one job. So the filtering
+  # is a job that reports what changed, and `e2e` runs on its answer.
+  changes:
+    name: What changed
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      # paths-filter reads the PR's file list through the API on pull_request.
+      pull-requests: read
+    outputs:
+      e2e: ${{ steps.filter.outputs.e2e }}
+    steps:
+      # Optional for pull_request, required for push: on a push the filter
+      # compares commits with git rather than calling the API.
+      - uses: actions/checkout@v7
+
+      - id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            e2e:
+              - 'apps/playground/**'
+              - 'packages/ui/**'
+              - 'pnpm-lock.yaml'
+              - '.github/workflows/ci.yml'
+
   checks:
     name: Lint, types, tests, build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -45,13 +75,14 @@ jobs:
   e2e:
     name: Playwright e2e (playground)
     runs-on: ubuntu-latest
-    needs: checks
+    needs: [checks, changes]
+    if: needs.changes.outputs.e2e == 'true'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
@@ -70,7 +101,7 @@ jobs:
 
       - name: Cache Playwright browsers
         id: playwright-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ steps.playwright-version.outputs.version }}-chromium
