@@ -11,6 +11,14 @@ const PRIMARY_UPLOAD = "Upload Base font file";
 const PRIMARY_REPLACE = "Replace Base font file";
 const PRIMARY_ADD_MISSING = "Add the missing Base font file";
 const FALLBACK_UPLOAD = "Upload Base Thai fallback file";
+const FALLBACK_REPLACE = "Replace Base Thai fallback file";
+
+/** The first font entry as the workspace has it stored, not as state has it. */
+const storedEntry = (page: import("@playwright/test").Page) =>
+  page.evaluate(() => {
+    const raw = window.localStorage.getItem("blueprint.workspace.v1");
+    return JSON.parse(raw!).typography.system.fonts[0];
+  });
 
 const registeredFamilies = (page: import("@playwright/test").Page) =>
   page.evaluate(() => {
@@ -134,17 +142,23 @@ test.describe("An upload in each slot", () => {
     await settings.getByLabel(PRIMARY_UPLOAD).setInputFiles(FILE);
     await expect(settings.getByLabel(PRIMARY_REPLACE)).toBeVisible();
     await settings.getByLabel(FALLBACK_UPLOAD).setInputFiles(FILE);
+    /* The same signal the primary is waited on for above: a slot offers to
+       replace its file once it has one. Without it the read below raced the
+       upload it was reading the result of. */
+    await expect(settings.getByLabel(FALLBACK_REPLACE)).toBeVisible();
 
-    const entry = await page.evaluate(async () => {
-      const raw = window.localStorage.getItem("blueprint.workspace.v1");
-      return JSON.parse(raw!).typography.system.fonts[0];
-    });
+    /* Polled rather than read once. Storage is written by an effect, so it
+       lands a beat after the render that changed the label above — near
+       enough to pass alone and to fail under load, which is the worst of
+       both. */
+    await expect
+      .poll(() => storedEntry(page).then((entry) => entry.sources))
+      .toEqual({ primary: "local", fallback: "local" });
 
-    expect(entry.sources).toEqual({ primary: "local", fallback: "local" });
     /* The upload names the family after the file, so both slots land on the
        same name here — deduped, which is the honest stack for one file used
        twice. What matters is that neither slot overwrote the other's source. */
-    expect(entry.families[0]).toBe("Brand-Regular");
+    expect((await storedEntry(page)).families[0]).toBe("Brand-Regular");
   });
 
   test("a fallback upload leaves the primary alone", async ({
