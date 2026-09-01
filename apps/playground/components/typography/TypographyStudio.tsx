@@ -37,6 +37,7 @@ import {
   type TypeRole,
   type TypeScaleUnit,
   type TypeSystem,
+  resolveLineHeight,
 } from "@blueprint/ui";
 import { TypographyCreation } from "./TypographyCreation";
 import { TypographyExportDialog } from "./TypographyExportDialog";
@@ -219,7 +220,9 @@ export function TypographyStudio() {
             ? /* The specimen decides the threshold: Thai marks need more room
                  than Latin, and this is the copy being judged. */
               assessLineHeight(
-                bodyRole.desktop.lineHeight,
+                /* The resolved ratio: the validator's thresholds are ratios,
+                   and the config is an intent rather than a number. */
+                resolveLineHeight(bodyRole).computedLineHeightRatio,
                 project?.specimenText ?? "",
               )
             : null,
@@ -298,7 +301,7 @@ export function TypographyStudio() {
       fontFamily: fontFamilyValue(resolvedSystem, role),
       fontSize: `${role.desktop.fontSizePx}px`,
       fontWeight: role.fontWeight,
-      lineHeight: role.desktop.lineHeight,
+      lineHeight: resolveLineHeight(role).computedLineHeightRatio,
       letterSpacing: `${role.desktop.letterSpacingPx}px`,
       textTransform: role.textTransform,
     };

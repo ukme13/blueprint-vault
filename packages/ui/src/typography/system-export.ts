@@ -1,7 +1,7 @@
 import { formatLength } from "./export";
 import { findGoogleFont } from "./google-fonts";
 import { generateTypeSteps } from "./scale";
-import type { TypeRole, TypeSystem } from "./system";
+import { resolveLineHeight, type TypeRole, type TypeSystem } from "./system";
 import type { TypeScaleUnit } from "./types";
 
 /**
@@ -25,7 +25,12 @@ function hasViewportDifference(system: TypeSystem): boolean {
   return system.roles.some(
     (role) =>
       role.desktop.fontSizePx !== role.mobile.fontSizePx ||
-      role.desktop.lineHeight !== role.mobile.lineHeight ||
+      /* The resolved ratio, not the config. Two roles both on `auto` hold
+         two different objects, so comparing the configs by identity reports
+         a difference for every role in every system — and every export would
+         gain the media query this function exists to withhold. */
+      resolveLineHeight(role, "desktop").computedLineHeightRatio !==
+        resolveLineHeight(role, "mobile").computedLineHeightRatio ||
       role.desktop.letterSpacingPx !== role.mobile.letterSpacingPx,
   );
 }
@@ -39,9 +44,13 @@ function viewportLines(
   return roles.flatMap((role) => {
     const value = role[viewport];
     const id = tokenId(role.id);
+    /* Unitless, as it has always been: a component that changes its font size
+       keeps a line height in proportion. The config is an intent and would
+       interpolate as "[object Object]". */
+    const { computedLineHeightRatio } = resolveLineHeight(role, viewport);
     return [
       `${indentation}--font-${id}-size: ${formatLength(value.fontSizePx, unit)};`,
-      `${indentation}--font-${id}-line-height: ${value.lineHeight};`,
+      `${indentation}--font-${id}-line-height: ${computedLineHeightRatio};`,
       `${indentation}--font-${id}-letter-spacing: ${formatLength(value.letterSpacingPx, unit)};`,
     ];
   });

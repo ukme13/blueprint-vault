@@ -13,7 +13,10 @@ import {
   type TypeRole,
   type TypeScaleUnit,
   type TypeStep,
+  resolveLineHeight,
+  type LineHeightConfig,
 } from "@blueprint/ui";
+import { LineHeightInput } from "./LineHeightInput";
 import styles from "./typography-workspace.module.css";
 
 /** Sentinel for a role that carries its own size rather than following a step. */
@@ -40,7 +43,7 @@ export interface RoleGroupEditorProps {
   onRoleChange: (id: string, patch: Partial<TypeRole>) => void;
   onRoleValueChange: (
     id: string,
-    patch: Partial<{ lineHeight: number; letterSpacingPx: number }>,
+    patch: Partial<{ lineHeight: LineHeightConfig; letterSpacingPx: number }>,
   ) => void;
   onRoleRemove: (id: string) => void;
 }
@@ -233,15 +236,17 @@ export function RoleGroupEditor({
                   onRoleChange(role.id, { fontWeight: value })
                 }
               />
-              <NumberInput
-                isLabelHidden
+              <LineHeightInput
                 label={`${role.id} line height`}
-                min={1}
-                max={2.5}
-                step={0.05}
-                value={role.desktop.lineHeight}
-                onChange={(value) =>
-                  onRoleValueChange(role.id, { lineHeight: value })
+                config={role.desktop.lineHeight}
+                computedPx={
+                  resolveLineHeight(role).computedLineHeightPx
+                }
+                computedRatio={
+                  resolveLineHeight(role).computedLineHeightRatio
+                }
+                onChange={(lineHeight) =>
+                  onRoleValueChange(role.id, { lineHeight })
                 }
               />
               <NumberInput

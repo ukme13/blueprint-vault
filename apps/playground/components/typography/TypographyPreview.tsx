@@ -11,6 +11,7 @@ import {
   type TypeScaleUnit,
   type ColorTrack,
   type TypeSystem,
+  resolveLineHeight,
 } from "@blueprint/ui";
 import {
   ArticleTemplate,
@@ -209,7 +210,8 @@ export function TypographyPreview({
                   <h3>{role.id}</h3>
                   <p>
                     {formatLength(role.desktop.fontSizePx, unit)} · weight{" "}
-                    {role.fontWeight} · line height {role.desktop.lineHeight} ·{" "}
+                    {role.fontWeight} · line height{" "}
+                    {resolveLineHeight(role).computedLineHeightPx}px ·{" "}
                     {elementForRole(system, role)}
                   </p>
                   {contrast && (

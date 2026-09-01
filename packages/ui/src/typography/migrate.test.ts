@@ -5,7 +5,7 @@ import {
   splitFontFamily,
   type LegacyTypographyProject,
 } from "./migrate";
-import { elementForRole } from "./system";
+import { elementForRole, resolveLineHeight } from "./system";
 import { generateTypeScale } from "./scale";
 import { SEMANTIC_ROLES } from "./types";
 
@@ -88,8 +88,14 @@ describe("migrateLegacyProject", () => {
   it("preserves per-role weight, line height and spacing", () => {
     const body = system.roles.find((role) => role.id === "body")!;
     expect(body.fontWeight).toBe(400);
-    expect(body.desktop.lineHeight).toBe(1.5);
     expect(body.desktop.letterSpacingPx).toBe(0);
+
+    /* `ratio`, not `auto`: this was a value somebody set, and adopting the
+       group default instead would change how a saved project renders. The
+       resolved ratio is the claim that matters — it is what the export
+       emits, and it has to be the 1.5 the project had. */
+    expect(body.desktop.lineHeight).toEqual({ mode: "ratio", value: 1.5 });
+    expect(resolveLineHeight(body).computedLineHeightRatio).toBe(1.5);
   });
 
   it("keeps every role linked to a step, because these sizes were generated", () => {
@@ -184,6 +190,36 @@ describe("normalizeStoredSystem", () => {
     // Base sits two steps up from the bottom, so index 4 is offset +2.
     const system = normalizeStoredSystem(previousRelease)!;
     expect(system.roles[0]!.stepOffset).toBe(2);
+  });
+
+  it("reads a stored line height as the ratio the number meant", () => {
+    /* The path a saved workspace actually takes. Without it every role in
+       every existing project silently reverts to the group default — a change
+       nothing on screen would attribute to a load. */
+    const system = normalizeStoredSystem(previousRelease)!;
+    const body = system.roles[0]!;
+
+    expect(body.desktop.lineHeight).toEqual({ mode: "ratio", value: 1.5 });
+    expect(body.mobile.lineHeight).toEqual({ mode: "ratio", value: 1.5 });
+    expect(resolveLineHeight(body).computedLineHeightRatio).toBe(1.5);
+    expect(resolveLineHeight(body).computedLineHeightPx).toBe(24);
+  });
+
+  it("falls back to auto when a stored line height is unreadable", () => {
+    const damaged = {
+      ...previousRelease,
+      roles: [
+        {
+          ...previousRelease.roles[0]!,
+          desktop: { fontSizePx: 16, lineHeight: "tall", letterSpacingPx: 0 },
+          mobile: { fontSizePx: 16, lineHeight: null, letterSpacingPx: 0 },
+        },
+      ],
+    };
+    const system = normalizeStoredSystem(damaged)!;
+
+    expect(system.roles[0]!.desktop.lineHeight).toEqual({ mode: "auto" });
+    expect(system.roles[0]!.mobile.lineHeight).toEqual({ mode: "auto" });
   });
 
   it("clamps an offset that no longer has a step", () => {
