@@ -20,6 +20,17 @@ const storedEntry = (page: import("@playwright/test").Page) =>
     return JSON.parse(raw!).typography.system.fonts[0];
   });
 
+/**
+ * Open the bilingual fallback slot.
+ *
+ * Its picker and upload field are behind a button until somebody asks for
+ * them, so the upload input does not exist until this runs.
+ */
+async function openFallback(scope: import("@playwright/test").Locator) {
+  const add = scope.getByRole("button", { name: /^Add a fallback for / });
+  if ((await add.count()) > 0) await add.click();
+}
+
 const registeredFamilies = (page: import("@playwright/test").Page) =>
   page.evaluate(() => {
     const names: string[] = [];
@@ -141,6 +152,7 @@ test.describe("An upload in each slot", () => {
 
     await settings.getByLabel(PRIMARY_UPLOAD).setInputFiles(FILE);
     await expect(settings.getByLabel(PRIMARY_REPLACE)).toBeVisible();
+    await openFallback(settings);
     await settings.getByLabel(FALLBACK_UPLOAD).setInputFiles(FILE);
     /* The same signal the primary is waited on for above: a slot offers to
        replace its file once it has one. Without it the read below raced the
@@ -171,6 +183,7 @@ test.describe("An upload in each slot", () => {
 
     /* The bug this whole change exists to make impossible: before slots, the
        one upload input rewrote the entire stack. */
+    await openFallback(settings);
     await settings.getByLabel(FALLBACK_UPLOAD).setInputFiles(FILE);
 
     await expect(settings.getByLabel(PRIMARY_REPLACE)).toBeVisible();

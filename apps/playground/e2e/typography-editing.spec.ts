@@ -20,6 +20,33 @@ async function searchFont(scope: Locator, label: string, query: string) {
   await input.fill(query);
 }
 
+/**
+ * Open the bilingual fallback field.
+ *
+ * It is behind a button until it is wanted — three controls a Latin-only
+ * stack never touches. A test that reaches straight for the picker is
+ * reaching for something nobody has asked to see yet.
+ */
+async function openFallback(scope: Locator) {
+  const add = scope.getByRole("button", { name: /^Add a fallback for / });
+  if ((await add.count()) > 0) await add.click();
+}
+
+/**
+ * The info icon at the end of a field's label.
+ *
+ * Astryx renders it as a bare `<svg>` inside the label with `display:
+ * contents`, so there is no role and no accessible name to ask for — and no
+ * tab stop either, which is why only facts are kept here and never an
+ * instruction. `hasText` is anchored because "Base font" is also the start of
+ * "Base font size".
+ */
+const labelInfo = (scope: Locator, label: string) =>
+  scope
+    .locator("label", { hasText: new RegExp(`^${label}$`) })
+    .locator("svg")
+    .first();
+
 test.describe("Typography scale editing", () => {
   test("switches between Editor and Preview sections", async ({
     seededPage: page,
@@ -173,6 +200,11 @@ test.describe("Typography scale editing", () => {
     await expect(
       settings.getByRole("button", { name: "Geist Sans" }),
     ).toBeVisible();
+    /* The note moved into the label's info icon. It is a standing fact about
+       the family rather than something to act on, so it is only read by
+       somebody who asks for it. */
+    await expect(settings.getByText(/is not a Google font/)).toBeHidden();
+    await labelInfo(settings, "Base font").hover();
     await expect(settings.getByText(/is not a Google font/)).toBeVisible();
   });
 
@@ -502,6 +534,7 @@ test.describe("Typography scale editing", () => {
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
+    await openFallback(settings);
     const fallback = settings.getByLabel("Base bilingual fallback");
 
     await fallback.click();
@@ -519,6 +552,7 @@ test.describe("Typography scale editing", () => {
 
     await searchFont(settings, "Base font", "Orbitron");
     await page.getByRole("option", { name: "Orbitron" }).first().click();
+    await openFallback(settings);
     await searchFont(settings, "Base bilingual fallback", "Kanit");
     await page.getByRole("option", { name: "Kanit" }).first().click();
 
@@ -654,6 +688,7 @@ test.describe("Reopening a font picker", () => {
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
+    await openFallback(settings);
     // The bilingual fallback starts empty, so the input itself is what is hit.
     const input = settings.getByLabel("Base bilingual fallback", {
       exact: true,
@@ -674,6 +709,7 @@ test.describe("Reopening a font picker", () => {
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
+    await openFallback(settings);
     const input = settings.getByLabel("Base bilingual fallback", {
       exact: true,
     });
@@ -771,5 +807,116 @@ test.describe("Where a Selector menu opens", () => {
       await page.keyboard.press("Escape");
       await expect(page.getByRole("option")).toHaveCount(0);
     }
+  });
+});
+
+test.describe("The bilingual fallback", () => {
+  const GLYPH_WARNING = /has no Thai glyphs/;
+
+  test("stays closed until somebody asks for it", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+
+    await expect(
+      settings.getByLabel("Base bilingual fallback", { exact: true }),
+    ).toBeHidden();
+    await expect(settings.getByLabel(/Base .* fallback file/)).toBeHidden();
+
+    await settings
+      .getByRole("button", { name: "Add a fallback for Thai" })
+      .click();
+    await expect(
+      settings.getByLabel("Base bilingual fallback", { exact: true }),
+    ).toBeVisible();
+  });
+
+  test("keeps the script in reach while it is closed", async ({
+    seededPage: page,
+  }) => {
+    /* The reason the whole row is not collapsed. Thai is a default nobody
+       chose, and somebody setting up Arabic has to be able to see that the
+       note beside it is about the wrong script. */
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+
+    await expect(
+      settings.getByRole("button", { name: "Add a fallback for Thai" }),
+    ).toBeVisible();
+    await settings.getByLabel("Base fallback script").click();
+    await page.getByRole("option", { name: "Arabic" }).click();
+
+    await expect(
+      settings.getByRole("button", { name: "Add a fallback for Arabic" }),
+    ).toBeVisible();
+  });
+
+  test("is already open when the stack has a fallback", async ({
+    seededPage: page,
+  }) => {
+    /* Reloaded rather than asserted straight after the pick: what should
+       reopen the field is the stored stack, not the click that set it. */
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await openFallback(settings);
+    await searchFont(settings, "Base bilingual fallback", "Sarabun");
+    await page.getByRole("option", { name: "Sarabun" }).first().click();
+
+    await page.reload();
+    const reloaded = page.getByRole("region", { name: "Type scale settings" });
+    await expect(
+      reloaded.getByRole("button", { name: /^Add a fallback for / }),
+    ).toBeHidden();
+    await expect(
+      reloaded.getByRole("button", { name: "Sarabun" }),
+    ).toBeVisible();
+  });
+
+  test("does not claim a family has no glyphs when it cannot know", async ({
+    seededPage: page,
+  }) => {
+    /* Geist Sans is in no catalogue, so its coverage is unknown rather than
+       absent. Reading unknown as "covers nothing" earned it both notes at
+       once, and the second was a statement about a font we have never seen. */
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+
+    await expect(
+      settings.getByRole("button", { name: "Geist Sans" }),
+    ).toBeVisible();
+    await expect(settings.getByText(GLYPH_WARNING)).toHaveCount(0);
+  });
+
+  test("warns in the open when a known family misses the script", async ({
+    seededPage: page,
+  }) => {
+    /* The one note that asks for something, so it is text rather than an
+       icon: on touch there is no hover to find it with. */
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await searchFont(settings, "Base font", "Orbitron");
+    await page.getByRole("option", { name: "Orbitron" }).first().click();
+
+    await expect(settings.getByText(GLYPH_WARNING)).toBeVisible();
+
+    await openFallback(settings);
+    await searchFont(settings, "Base bilingual fallback", "Kanit");
+    await page.getByRole("option", { name: "Kanit" }).first().click();
+
+    /* A fallback is the answer to it, so it stops being worth making. */
+    await expect(settings.getByText(GLYPH_WARNING)).toHaveCount(0);
+  });
+
+  test("keeps the reassurance in the label of the field it is about", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await searchFont(settings, "Base font", "Sarabun");
+    await page.getByRole("option", { name: "Sarabun" }).first().click();
+
+    /* Covered, so there is nothing to warn about and nothing to do. */
+    await expect(settings.getByText(GLYPH_WARNING)).toHaveCount(0);
+
+    await openFallback(settings);
+    await labelInfo(settings, "Base bilingual fallback").hover();
+    await expect(
+      settings.getByText(/already covers Thai, so a fallback is optional/),
+    ).toBeVisible();
   });
 });

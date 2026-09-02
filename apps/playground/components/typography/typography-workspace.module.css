@@ -846,3 +846,11 @@
 .fontPickerField {
   display: contents;
 }
+
+/* Sits where the fallback picker sits, so opening it does not move the script
+   selector beside it. The picker carries a label above the control; this
+   button has none, hence the offset rather than a taller row. */
+.fontStackAdd {
+  width: 100%;
+  margin-top: var(--spacing-5);
+}

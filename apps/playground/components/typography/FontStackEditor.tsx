@@ -9,6 +9,7 @@ import {
   FONT_SCRIPTS,
   findGoogleFont,
   familyForSlot,
+  fontStackNotice,
   fontUploadAction,
   genericForCategory,
   isLocalSlot,
@@ -93,11 +94,27 @@ export function FontStackEditor({
     : "sans-serif";
 
   const covered = primaryFont?.scripts.includes(script) ?? false;
-  /* Both notes below reason from the Google catalogue, which an uploaded file
-     is not in. "Not loaded here" would contradict the upload note directly,
-     and script coverage is not something we can read off a file we were
-     handed. */
   const primaryIsLocal = isLocalSlot(font, "primary");
+
+  /* Which of the three notes applies, decided in @blueprint/ui so that only
+     one of them can. Two used to be able to fire together, and the second was
+     guessing about a family it had never seen. */
+  const notice = fontStackNotice({
+    primary,
+    isPrimaryKnown: !!primaryFont,
+    isPrimaryLocal: primaryIsLocal,
+    coversScript: covered,
+    hasFallback: !!fallback,
+  });
+
+  /* The fallback is three controls that a Latin-only stack never touches, so
+     it opens on demand. A stack that already has one is past the question.
+
+     The script stays out of the collapse. It defaults to Thai, which is a
+     guess, and hiding it would leave somebody who cares about Arabic reading
+     a note about Thai with no way to see it was about the wrong script. */
+  const [wasOpened, setWasOpened] = useState(false);
+  const isFallbackOpen = !!fallback || wasOpened;
 
   /* The verb is shared between the row someone reads and the `aria-label` on
      the input it clicks, so the two cannot disagree about which state a slot
@@ -144,6 +161,14 @@ export function FontStackEditor({
       <GoogleFontPicker
         family={primary}
         label={primaryName}
+        /* An info icon at the end of the label, which is where Astryx puts a
+           note about the field rather than about what was entered. It is a
+           standing fact about the family, not something to fix. */
+        labelTooltip={
+          notice === "not-in-catalogue"
+            ? `${primary} is not a Google font, so it is not loaded here. It still applies wherever it is installed.`
+            : undefined
+        }
         placeholder="Search Google Fonts"
         uploadLabel={`${primaryAction} font`}
         onPick={(picked) => onPick("primary", picked?.family ?? "", generic)}
@@ -163,17 +188,39 @@ export function FontStackEditor({
 
       <div className={styles.fontStackRow}>
         <div className={styles.fontStackField}>
-          <GoogleFontPicker
-            family={fallback}
-            label={`${font.name} bilingual fallback`}
-            placeholder={`Covers ${label(script)}`}
-            script={script}
-            uploadLabel={`${fallbackAction} font`}
-            onPick={(picked) =>
-              onPick("fallback", picked?.family ?? "", generic)
-            }
-            onUpload={() => fallbackFileRef.current?.click()}
-          />
+          {isFallbackOpen ? (
+            <GoogleFontPicker
+              family={fallback}
+              label={`${font.name} bilingual fallback`}
+              /* The reassurance sits here rather than under the row, because
+                 what it explains is why this field may be left alone. */
+              labelTooltip={
+                notice === "covers-script"
+                  ? `${primary} already covers ${label(script)}, so a fallback is optional.`
+                  : undefined
+              }
+              placeholder={`Covers ${label(script)}`}
+              script={script}
+              uploadLabel={`${fallbackAction} font`}
+              onPick={(picked) =>
+                onPick("fallback", picked?.family ?? "", generic)
+              }
+              onUpload={() => fallbackFileRef.current?.click()}
+            />
+          ) : (
+            <Button
+              className={styles.fontStackAdd}
+              scheme="neutral"
+              size="small"
+              variant="outlined"
+              onClick={() => setWasOpened(true)}
+            >
+              {/* "Add a Thai fallback" reads fine and "Add a Arabic
+                  fallback" does not, so the script goes after the noun and
+                  no script needs an article. */}
+              Add a fallback for {label(script)}
+            </Button>
+          )}
         </div>
         <div className={styles.fontStackScript}>
           <Selector
@@ -189,31 +236,25 @@ export function FontStackEditor({
         </div>
       </div>
 
-      <FontUploadField
-        action={fallbackAction}
-        family={fallback}
-        fileStatus={fileStatus("fallback")}
-        generic={generic}
-        inputRef={fallbackFileRef}
-        isLocal={isLocalSlot(font, "fallback")}
-        name={fallbackName}
-        uploadError={uploadError("fallback")}
-        onUpload={(file) => onUpload("fallback", file)}
-      />
+      {isFallbackOpen && (
+        <FontUploadField
+          action={fallbackAction}
+          family={fallback}
+          fileStatus={fileStatus("fallback")}
+          generic={generic}
+          inputRef={fallbackFileRef}
+          isLocal={isLocalSlot(font, "fallback")}
+          name={fallbackName}
+          uploadError={uploadError("fallback")}
+          onUpload={(file) => onUpload("fallback", file)}
+        />
+      )}
 
-      {primary && !primaryFont && !primaryIsLocal && (
-        <p className={styles.fontStackHint}>
-          {primary} is not a Google font, so it is not loaded here. It still
-          applies wherever it is installed.
-        </p>
-      )}
-      {primary && primaryFont && covered && (
-        <p className={styles.fontStackHint}>
-          {primary} already covers {label(script)}, so a fallback is optional.
-        </p>
-      )}
-      {primary && !covered && !fallback && !primaryIsLocal && (
-        <p className={styles.fontStackHint}>
+      {/* The one note that asks for something stays as text, and in both
+          states, because it is the reason to open the field at all. The
+          other two are facts, and sit in their field's label instead. */}
+      {notice === "missing-glyphs" && (
+        <p className={styles.fontStackHint} data-missing="true">
           {primary} has no {label(script)} glyphs. Without a fallback the
           browser substitutes a system font.
         </p>

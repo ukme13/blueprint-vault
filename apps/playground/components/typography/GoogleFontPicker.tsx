@@ -56,6 +56,8 @@ function selectedItem(family: string): FontItem | null {
 
 interface GoogleFontPickerProps {
   label: string;
+  /** A note about the family, shown from an info icon at the end of the label. */
+  labelTooltip?: string;
   /** Family currently in this slot, if it is a Google font. */
   family: string;
   /** Restrict to families covering this writing system, e.g. "thai". */
@@ -86,6 +88,7 @@ interface GoogleFontPickerProps {
  */
 export function GoogleFontPicker({
   label,
+  labelTooltip,
   family,
   script,
   placeholder,
@@ -180,6 +183,7 @@ export function GoogleFontPicker({
       <Typeahead<FontItem>
         hasEntriesOnFocus
         label={label}
+        labelTooltip={labelTooltip}
         /* The default of 10 made 1946 families look like a shortlist. One more
            when the upload row is pinned, so it costs the catalogue nothing —
            the menu is sliced to this from the top, where the row sits. */
