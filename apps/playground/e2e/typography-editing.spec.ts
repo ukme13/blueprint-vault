@@ -283,7 +283,7 @@ test.describe("Typography scale editing", () => {
       settings.getByRole("group", { name: "Overline" }),
     ).toBeVisible();
     await expect(
-      settings.getByRole("button", { name: "Move Overline up" }),
+      settings.getByRole("button", { name: "Reorder Overline group" }),
     ).toBeVisible();
   });
 
@@ -297,7 +297,7 @@ test.describe("Typography scale editing", () => {
         settings.getByLabel(`${group.toLowerCase()} name`),
       ).toBeVisible();
       await expect(
-        settings.getByRole("button", { name: `Move ${group} up` }),
+        settings.getByRole("button", { name: `Reorder ${group} group` }),
       ).toBeVisible();
       await expect(
         settings.getByRole("button", { name: `Remove ${group} group` }),
@@ -919,5 +919,93 @@ test.describe("Fallbacks", () => {
     await expect(
       settings.locator("label", { hasText: /^Base font$/ }).locator("svg"),
     ).toHaveCount(0);
+  });
+});
+
+test.describe("Reordering groups", () => {
+  /** The group cards in the order the inspector renders them. */
+  const order = (page: import("@playwright/test").Page) =>
+    page
+      .getByRole("region", { name: "Type scale settings" })
+      .getByRole("group")
+      .evaluateAll((cards) =>
+        cards.map((card) => card.getAttribute("aria-label")),
+      );
+
+  const stored = (page: import("@playwright/test").Page) =>
+    page.evaluate(() => {
+      const raw = window.localStorage.getItem("blueprint.workspace.v1");
+      return (
+        JSON.parse(raw!).typography.system.groups as { label: string }[]
+      ).map((group) => group.label);
+    });
+
+  /** What dnd-kit last announced, which is how a drag says where it is. */
+  const announcement = (page: import("@playwright/test").Page) =>
+    page.evaluate(
+      () =>
+        [...document.querySelectorAll("[role='status'],[aria-live]")]
+          .map((node) => node.textContent?.trim())
+          .filter(Boolean)
+          .join(" | ") || null,
+    );
+
+  /*
+   * One step of a keyboard drag, waited on rather than slept through.
+   *
+   * Lifting and moving are asynchronous — the sensor has to see the drag
+   * start before an arrow means anything — so three presses in a row lift and
+   * then drop in the same place, which looks exactly like a reorder that does
+   * not work. Each press is settled by watching what the drag announces.
+   */
+  const press = async (page: import("@playwright/test").Page, key: string) => {
+    const before = await announcement(page);
+    await page.keyboard.press(key);
+    await expect.poll(() => announcement(page)).not.toBe(before);
+  };
+
+  const carryDown = async (
+    page: import("@playwright/test").Page,
+    label: string,
+  ) => {
+    await page
+      .getByRole("region", { name: "Type scale settings" })
+      .getByRole("button", { name: `Reorder ${label} group` })
+      .focus();
+    await press(page, "Space");
+    await press(page, "ArrowDown");
+    await press(page, "Space");
+  };
+
+  test("carries a group down the list from the keyboard", async ({
+    seededPage: page,
+  }) => {
+    /* The keyboard path, not a simulated pointer drag. It is the one that has
+       to work — the up and down buttons are gone, so this is the only way to
+       reorder without a mouse, and a pointer drag in a test proves nothing
+       about that. */
+    const before = await order(page);
+    expect(before.length).toBeGreaterThan(1);
+
+    await carryDown(page, before[0]!);
+
+    const expected = [before[1], before[0], ...before.slice(2)];
+    await expect.poll(() => order(page)).toEqual(expected);
+    /* And it is the model that moved, not just the cards on screen. */
+    await expect.poll(() => stored(page)).toEqual(expected);
+  });
+
+  test("keeps the new order across a reload", async ({ seededPage: page }) => {
+    const before = await order(page);
+    await carryDown(page, before[0]!);
+
+    const expected = [before[1], before[0], ...before.slice(2)];
+    await expect.poll(() => stored(page)).toEqual(expected);
+
+    await page.reload();
+    await expect(
+      page.getByRole("region", { name: "Type scale settings" }),
+    ).toBeVisible();
+    await expect.poll(() => order(page)).toEqual(expected);
   });
 });

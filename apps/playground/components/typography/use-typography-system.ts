@@ -6,6 +6,7 @@ import {
   moveGroup,
   removeFont,
   removeFontSlot,
+  reorderGroups,
   removeGroup,
   removeRole,
   renameFont,
@@ -35,6 +36,8 @@ export interface TypographySystemActions {
   renameGroupById: (groupId: string, label: string) => void;
   updateGroup: (groupId: string, patch: Partial<TypeGroup>) => void;
   shiftGroup: (groupId: string, direction: -1 | 1) => void;
+  /** Put one group where another sits, which is what a drag means. */
+  reorderGroups: (activeId: string, overId: string) => void;
   addGroup: () => void;
   addFont: () => void;
   removeFont: (id: string) => void;
@@ -92,6 +95,11 @@ export function useTypographySystem(
         editSystem((system) => ({
           ...system,
           groups: moveGroup(system, groupId, direction),
+        })),
+      reorderGroups: (activeId, overId) =>
+        editSystem((system) => ({
+          ...system,
+          groups: reorderGroups(system, activeId, overId),
         })),
       addGroup: () => editSystem(addGroup),
       addFont: () => editSystem(addFont),

@@ -42,6 +42,19 @@ import {
   isLocalSlot,
   localFontKey,
 } from "@blueprint/ui";
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { TypographyCreation } from "./TypographyCreation";
 import { TypographyExportDialog } from "./TypographyExportDialog";
 import { WorkspaceBrand } from "../WorkspaceBrand";
@@ -162,12 +175,22 @@ export function TypographyStudio() {
     renameGroupById,
     setGoogleFont,
     setLocalFont,
-    shiftGroup,
+    reorderGroups,
     updateGroup,
     updateRole,
     updateRoleValue,
     updateSystem,
   } = useTypographySystem(setProject);
+
+  /* A drag has to start past a few pixels, or every click on a handle is a
+     zero-length drag and the button never reports a press. The keyboard
+     sensor is what replaces the up and down buttons. */
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   /* Unit, specimen and template sit beside the system rather than in it, so
      they do not go through the hook. This is the same guard it keeps, once. */
@@ -600,32 +623,48 @@ export function TypographyStudio() {
               />
             </div>
 
-            {system.groups.map((group, groupIndex) => (
-              <RoleGroupEditor
-                key={group.id}
-                canAddRole={canAddRole(system, group)}
-                fonts={system.fonts}
-                group={group}
-                groupCount={system.groups.length}
-                index={groupIndex}
-                roles={resolvedRoles.filter(
-                  (role) => role.groupId === group.id,
-                )}
-                steps={sortedSteps}
-                unit={project.unit}
-                onAddRole={() => addRole(group)}
-                onIndexingChange={(indexing) =>
-                  updateGroup(group.id, { indexing })
-                }
-                onLabelChange={(label) => updateGroup(group.id, { label })}
-                onLabelCommit={() => renameGroupById(group.id, group.label)}
-                onMove={(direction) => shiftGroup(group.id, direction)}
-                onRemove={() => removeGroup(group.id)}
-                onRoleChange={updateRole}
-                onRoleRemove={removeRole}
-                onRoleValueChange={updateRoleValue}
-              />
-            ))}
+            {/* Groups are an order somebody arranges, so they are dragged
+                rather than stepped. The keyboard sensor is not a nicety here:
+                it is the whole of the keyboard story now that the up and down
+                buttons are gone — focus a handle, space to lift, arrows to
+                move, space to drop. */}
+            <DndContext
+              collisionDetection={closestCenter}
+              sensors={sensors}
+              onDragEnd={({ active, over }) => {
+                if (!over) return;
+                reorderGroups(String(active.id), String(over.id));
+              }}
+            >
+              <SortableContext
+                items={system.groups.map((group) => group.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {system.groups.map((group) => (
+                  <RoleGroupEditor
+                    key={group.id}
+                    canAddRole={canAddRole(system, group)}
+                    fonts={system.fonts}
+                    group={group}
+                    roles={resolvedRoles.filter(
+                      (role) => role.groupId === group.id,
+                    )}
+                    steps={sortedSteps}
+                    unit={project.unit}
+                    onAddRole={() => addRole(group)}
+                    onIndexingChange={(indexing) =>
+                      updateGroup(group.id, { indexing })
+                    }
+                    onLabelChange={(label) => updateGroup(group.id, { label })}
+                    onLabelCommit={() => renameGroupById(group.id, group.label)}
+                    onRemove={() => removeGroup(group.id)}
+                    onRoleChange={updateRole}
+                    onRoleRemove={removeRole}
+                    onRoleValueChange={updateRoleValue}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
 
             <div className={styles.settingGroup}>
               <Button

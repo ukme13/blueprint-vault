@@ -559,6 +559,32 @@ export function renameGroup(
 }
 
 /** Move a group up or down. */
+/**
+ * Put one group where another sits, closing the gap it came from.
+ *
+ * What a drag means, as opposed to what a step means: `moveGroup` swaps with a
+ * neighbour, which is the same thing only when the two are adjacent. Dragging
+ * the first group past the third has to move one and shift two, not trade
+ * places with whatever happens to be under the cursor at the end.
+ *
+ * An unknown id or a drop on itself returns the order unchanged, so a drag
+ * that ends nowhere is not an edit.
+ */
+export function reorderGroups(
+  system: TypeSystem,
+  activeId: string,
+  overId: string,
+): TypeGroup[] {
+  const groups = [...system.groups];
+  const from = groups.findIndex((group) => group.id === activeId);
+  const to = groups.findIndex((group) => group.id === overId);
+  if (from === -1 || to === -1 || from === to) return groups;
+
+  const [moved] = groups.splice(from, 1);
+  groups.splice(to, 0, moved!);
+  return groups;
+}
+
 export function moveGroup(
   system: TypeSystem,
   groupId: string,

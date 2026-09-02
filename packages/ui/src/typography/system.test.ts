@@ -17,6 +17,7 @@ import {
   renameGroup,
   setGoogleFont,
   removeFontSlot,
+  reorderGroups,
   MAX_FALLBACKS,
   slotSource,
   familyForSlot,
@@ -852,5 +853,69 @@ describe("three fallbacks behind a primary", () => {
     });
     const { system: after } = removeFontSlot(before, "base", "fallback");
     expect(after.fonts[0]!.families).toEqual(["Lora", "serif"]);
+  });
+});
+
+describe("reorderGroups", () => {
+  const ordered = () =>
+    system({
+      groups: [
+        { id: "display", label: "Display", indexing: "number" },
+        { id: "h", label: "H", indexing: "number" },
+        { id: "body", label: "Body", indexing: "number" },
+        { id: "caption", label: "Caption", indexing: "number" },
+      ],
+    });
+
+  it("moves a group down past two, rather than swapping with one", () => {
+    /* The difference between a drag and a step. A swap would give
+       display <-> body and leave h where it was. */
+    const after = reorderGroups(ordered(), "display", "body");
+    expect(after.map((group) => group.id)).toEqual([
+      "h",
+      "body",
+      "display",
+      "caption",
+    ]);
+  });
+
+  it("moves a group up, closing the gap behind it", () => {
+    const after = reorderGroups(ordered(), "caption", "h");
+    expect(after.map((group) => group.id)).toEqual([
+      "display",
+      "caption",
+      "h",
+      "body",
+    ]);
+  });
+
+  it("swaps neighbours, which is where it agrees with a step", () => {
+    const after = reorderGroups(ordered(), "h", "body");
+    expect(after.map((group) => group.id)).toEqual([
+      "display",
+      "body",
+      "h",
+      "caption",
+    ]);
+  });
+
+  it("leaves the order alone when a drag ends where it started", () => {
+    expect(reorderGroups(ordered(), "h", "h").map((g) => g.id)).toEqual([
+      "display",
+      "h",
+      "body",
+      "caption",
+    ]);
+  });
+
+  it("leaves the order alone when the drop lands on nothing known", () => {
+    /* A drag released outside the list reports no `over`, and the caller
+       passes what it has. Refusing here means no caller has to guard. */
+    expect(reorderGroups(ordered(), "h", "gone").map((g) => g.id)).toEqual([
+      "display",
+      "h",
+      "body",
+      "caption",
+    ]);
   });
 });

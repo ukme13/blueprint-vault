@@ -2,7 +2,7 @@
 
 import { useRef, useState, type RefObject } from "react";
 import { useToast } from "@astryxdesign/core/Toast";
-import { Plus, Trash2, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import {
   Button,
@@ -198,7 +198,7 @@ export function FontStackEditor({
             variant="outlined"
             onClick={onRemove}
           >
-            <Trash2 aria-hidden="true" />
+            <X aria-hidden="true" />
           </Button>
         )}
       </div>
