@@ -28,6 +28,24 @@ const lineHeightField = (page: import("@playwright/test").Page) =>
 const sizeField = (page: import("@playwright/test").Page) =>
   page.getByRole("spinbutton", { name: SIZE });
 
+/*
+ * Body's line height as the workspace has it stored, not as the field shows it.
+ *
+ * The field shows its own draft, so it reads back correctly whether or not the
+ * edit ever reached the model. A field that committed the edit before last
+ * looked right in every assertion here until this read the other side of it.
+ */
+const storedLineHeight = (page: import("@playwright/test").Page) =>
+  page.evaluate(() => {
+    const raw = window.localStorage.getItem("blueprint.workspace.v1");
+    if (!raw) return null;
+    const roles = JSON.parse(raw).typography.system.roles as {
+      id: string;
+      desktop: { lineHeight: { mode: string; value?: number } };
+    }[];
+    return roles.find((role) => role.id === "body")?.desktop.lineHeight ?? null;
+  });
+
 test.describe("The line-height field", () => {
   test("shows the ratio a migrated project stored", async ({
     seededPage: page,
@@ -47,10 +65,71 @@ test.describe("The line-height field", () => {
     await field.fill("28");
     await field.blur();
     await expect(field).toHaveValue("28");
+    await expect
+      .poll(() => storedLineHeight(page))
+      .toEqual({
+        mode: "px",
+        value: 28,
+      });
 
     await field.fill("1.25");
     await field.blur();
     await expect(field).toHaveValue("1.25");
+    await expect
+      .poll(() => storedLineHeight(page))
+      .toEqual({
+        mode: "ratio",
+        value: 1.25,
+      });
+  });
+
+  test("writes the edit that was just made, not the one before it", async ({
+    seededPage: page,
+  }) => {
+    const field = lineHeightField(page);
+
+    /* Reading the model after every edit, because the field cannot answer
+       this. It shows its own draft, so it read back correctly even while the
+       commit was writing the edit before it — the number on screen was right
+       every time and the stored one was one blur behind.
+
+       Whether that misses is a matter of timing on the pinned NumberInput,
+       which delivers the last keystroke and the blur as separate events. It
+       is what a version delivering both in one event would fail on. */
+    for (const [typed, stored] of [
+      ["28", 28],
+      ["32", 32],
+      ["36", 36],
+    ] as const) {
+      await field.fill(typed);
+      await field.blur();
+      await expect
+        .poll(() => storedLineHeight(page))
+        .toEqual({
+          mode: "px",
+          value: stored,
+        });
+    }
+  });
+
+  test("selects the text when select-all is pressed, rather than emptying", async ({
+    seededPage: page,
+  }) => {
+    const field = lineHeightField(page);
+
+    /* `a` on its own hands the height back to auto. Cmd+A and Ctrl+A carry
+       the same key, so the shortcut swallowed select-all and cleared the
+       field — in the one gesture somebody makes to replace what is in it. */
+    await field.click();
+    await page.keyboard.press("ControlOrMeta+a");
+
+    await expect(field).toHaveValue("1.5");
+    await expect
+      .poll(() => storedLineHeight(page))
+      .toEqual({
+        mode: "ratio",
+        value: 1.5,
+      });
   });
 
   test("shows auto as an empty field over the height it resolved to", async ({

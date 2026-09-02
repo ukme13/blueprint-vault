@@ -1,8 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
-import { parseLineHeightInput, type LineHeightConfig } from "@blueprint/ui";
+import {
+  clearLineHeightEdit,
+  commitLineHeightEdit,
+  resetLineHeightEdit,
+  settleLineHeightEdit,
+  typeLineHeight,
+  type LineHeightConfig,
+  type LineHeightEdit,
+} from "@blueprint/ui";
 
 /**
  * The line-height field.
@@ -25,6 +33,9 @@ import { parseLineHeightInput, type LineHeightConfig } from "@blueprint/ui";
  * The cost is that a resolved value lives in placeholder text, which screen
  * readers do not reliably announce. The label is real and the field is named;
  * it is the number that may go unread.
+ *
+ * The edit itself — what counts as one, and what a blur is allowed to write —
+ * is `line-height-edit` in @blueprint/ui. This binds it to React.
  */
 
 /** Press this to hand the line height back to the group's default. */
@@ -49,14 +60,35 @@ export function LineHeightInput({
   const isRatio = config.mode === "ratio";
   const committed = config.mode === "auto" ? null : config.value;
 
-  const [draft, setDraft] = useState<number | null>(committed);
+  const [edit, setEdit] = useState<LineHeightEdit>(() =>
+    resetLineHeightEdit(committed),
+  );
   const [seen, setSeen] = useState<number | null>(committed);
-  /* Whether the number in the field is one the user put there.
 
-     Without this, blurring writes whatever is on screen straight back, and
-     tabbing out of a field would pin it. Nothing would look different at the
-     time; it would surface later, when a size change failed to move it. */
-  const [isDirty, setIsDirty] = useState(false);
+  /* The same edit, readable from an event rather than from a render.
+     `commit` runs on blur, and the last keystroke can arrive in that same
+     blur: NumberInput holds the text as a draft and calls onChange when it
+     commits it, so onChange and onBlur are two callbacks inside one event.
+     State set in the first is not readable in the second, and `commit`
+     reading `edit` there saw the render before it — writing the edit before
+     last, one blur behind, with the field showing the right number the whole
+     time because the field shows the draft rather than the model. */
+  const editRef = useRef(edit);
+
+  /* An edit made in an event writes both at once, because the blur that reads
+     the ref can be the same event that made it. */
+  const applyEdit = (next: LineHeightEdit) => {
+    editRef.current = next;
+    setEdit(next);
+  };
+
+  /* The reset below cannot do that — a ref written during render belongs to a
+     render React is still free to throw away — so it sets state and this
+     carries it across. Effects flush before the next event, so no blur reads
+     past it. */
+  useEffect(() => {
+    editRef.current = edit;
+  }, [edit]);
 
   /* Follow the model when it moves underneath — a step change, or an import.
      Adjusted during render rather than in an effect: React re-renders before
@@ -64,20 +96,16 @@ export function LineHeightInput({
      render either. */
   if (committed !== seen) {
     setSeen(committed);
-    setDraft(committed);
-    setIsDirty(false);
+    setEdit(resetLineHeightEdit(committed));
   }
 
   /* Only what somebody typed. A blur is not an edit. */
   const commit = () => {
-    if (!isDirty) return;
-    setIsDirty(false);
-    if (draft === null) {
-      onChange({ mode: "auto" });
-      return;
-    }
-    const parsed = parseLineHeightInput(String(draft));
-    if (parsed) onChange(parsed);
+    const { edit: next, config: committedConfig } = commitLineHeightEdit(
+      editRef.current,
+    );
+    applyEdit(next);
+    if (committedConfig) onChange(committedConfig);
   };
 
   return (
@@ -93,7 +121,7 @@ export function LineHeightInput({
       min={1}
       max={400}
       step={1}
-      value={draft}
+      value={edit.draft}
       /* The resolved height, muted, whenever the field is empty. */
       placeholder={String(computedPx)}
       hasClear
@@ -107,23 +135,25 @@ export function LineHeightInput({
            the one `auto` was about to give. Clearing 1.53 offered 24.48 until
            focus left, then corrected itself to 24. */
         if (value === null || Number.isNaN(value)) {
-          setDraft(null);
-          setIsDirty(false);
+          applyEdit(clearLineHeightEdit());
           onChange({ mode: "auto" });
           return;
         }
-        setDraft(value);
-        setIsDirty(true);
+        applyEdit(typeLineHeight(value));
       }}
       onEnter={commit}
       onBlur={commit}
       onKeyDown={(event) => {
         if (event.key.toLowerCase() !== AUTO_KEY) return;
+        /* Select-all carries the same key. Swallowing it emptied the field
+           instead of selecting its text, so the shortcut has to be the
+           unmodified letter and nothing else. */
+        if (event.metaKey || event.ctrlKey || event.altKey) return;
         /* The input is numeric, so the letter would be swallowed. Clearing
            the field is the discoverable way back to auto; this is the one for
            whoever would rather not reach for the mouse. */
         event.preventDefault();
-        setIsDirty(false);
+        applyEdit(settleLineHeightEdit(editRef.current));
         onChange({ mode: "auto" });
       }}
     />
