@@ -135,6 +135,22 @@ export function RoleGroupEditor({
           />
         </div>
 
+        {/* Beside the name rather than on a row of its own: it says how this
+            group's roles are numbered, which is a property of the name next
+            to it. Fixed width so the name keeps the space it gains. */}
+        <div className="w-28 shrink-0">
+          <Selector
+            label={`${group.id} indexing`}
+            isLabelHidden
+            options={(["number", "size"] as TypeIndexing[]).map((mode) => ({
+              label: TYPE_INDEXING_LABELS[mode],
+              value: mode,
+            }))}
+            value={group.indexing}
+            onChange={(value) => onIndexingChange(value as TypeIndexing)}
+          />
+        </div>
+
         <Button
           aria-label={`Add a role to ${group.label}`}
           className="h-8! w-8! [&_svg]:size-4!"
@@ -156,19 +172,6 @@ export function RoleGroupEditor({
         >
           <Trash2 aria-hidden="true" />
         </Button>
-      </div>
-
-      <div className={styles.roleGroupMeta}>
-        <Selector
-          label={`${group.id} indexing`}
-          isLabelHidden
-          options={(["number", "size"] as TypeIndexing[]).map((mode) => ({
-            label: TYPE_INDEXING_LABELS[mode],
-            value: mode,
-          }))}
-          value={group.indexing}
-          onChange={(value) => onIndexingChange(value as TypeIndexing)}
-        />
       </div>
 
       {roles.length === 0 ? (

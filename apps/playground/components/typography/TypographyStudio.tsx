@@ -530,38 +530,48 @@ export function TypographyStudio() {
             aria-label="Type scale settings"
             className={styles.inspector}
           >
-            <TabList
-              hasDivider
-              layout="fill"
-              /* The tabs pattern rather than navigation: these switch panels
+            {/* TabList takes no className, so the tabs are reached through a
+                wrapper.
+
+                Astryx gives a tab a 10px radius, which reads as a pill
+                floating over the panel rather than a strip across the top of
+                it, and pins its height at 32px with a border box — so padding
+                on its own is absorbed rather than added. The height goes up by
+                the 8px the padding asks for. */}
+            <div className="[&_.astryx-tab]:h-10 [&_.astryx-tab]:rounded-none [&_.astryx-tab]:py-1">
+              <TabList
+                hasDivider
+                layout="fill"
+                /* The tabs pattern rather than navigation: these switch panels
                  in place, and `panelId` is how a screen reader gets from a
                  tab to the panel it opened. */
-              role="tablist"
-              value={inspectorTab}
-              onChange={(value) =>
-                setInspectorTab(value as typeof inspectorTab)
-              }
-            >
-              <Tab
-                label="Settings"
-                panelId="inspector-settings"
-                value="settings"
-              />
-              <Tab label="Groups" panelId="inspector-groups" value="groups" />
-              <Tab
-                label="Warnings"
-                panelId="inspector-warnings"
-                value="warnings"
-                /* Counts only, which is what a badge is for. Absent at zero:
+                role="tablist"
+                value={inspectorTab}
+                onChange={(value) =>
+                  setInspectorTab(value as typeof inspectorTab)
+                }
+              >
+                <Tab
+                  label="Settings"
+                  panelId="inspector-settings"
+                  value="settings"
+                />
+                <Tab label="Groups" panelId="inspector-groups" value="groups" />
+                <Tab
+                  label="Warnings"
+                  panelId="inspector-warnings"
+                  value="warnings"
+                  /* Counts only, which is what a badge is for. Absent at zero:
                    a badge reading 0 is a count of nothing taking up the room
                    of a count of something. */
-                endContent={
-                  openWarnings > 0 ? (
-                    <Badge label={String(openWarnings)} variant="warning" />
-                  ) : undefined
-                }
-              />
-            </TabList>
+                  endContent={
+                    openWarnings > 0 ? (
+                      <Badge label={String(openWarnings)} variant="warning" />
+                    ) : undefined
+                  }
+                />
+              </TabList>
+            </div>
 
             <div
               hidden={inspectorTab !== "settings"}
