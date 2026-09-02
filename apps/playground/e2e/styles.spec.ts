@@ -4,6 +4,7 @@ import {
   TYPOGRAPHY_STORAGE_KEY,
   defaultTypographyProject,
 } from "./typography-fixtures";
+import { showInspectorPanel } from "./typography-fixtures";
 
 /**
  * Computed-style coverage for the rules nothing else asserts.
@@ -46,10 +47,13 @@ test.describe("Typography studio styles", () => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await expect(settings).toBeVisible();
 
+    /* One button per panel now, so each is measured where it lives. They are
+       still the same class and the point is still that they match. */
     const addFont = settings.getByRole("button", { name: "Add font" });
     const addGroup = settings.getByRole("button", { name: "Add group" });
 
     const font = await addFont.boundingBox();
+    await showInspectorPanel(page, "Groups");
     const group = await addGroup.boundingBox();
     expect(font).not.toBeNull();
     // Same size as each other, which is the whole point of the shared class.
@@ -74,6 +78,7 @@ test.describe("Typography studio styles", () => {
 
     const panel = (await settings.boundingBox())!;
     const font = (await addFont.boundingBox())!;
+    await showInspectorPanel(page, "Groups");
     const group = (await addGroup.boundingBox())!;
 
     expect(font.width).toBe(group.width);
@@ -153,5 +158,50 @@ test.describe("Typography studio styles", () => {
 
     // Different rules, so a dropped one shows up as the two matching.
     expect(await styleOf(pass, "color")).not.toBe(await styleOf(fail, "color"));
+  });
+});
+
+test.describe("The step specimen", () => {
+  test("shows its glyphs whole, including a fallback's", async ({ page }) => {
+    /* The row is an input, and an input clips at its padding box — its content
+       box is the line box of the primary family alone. A Thai fallback sits
+       taller than that, so the marks above and below were cut off: a preview
+       cropping the thing it exists to show. */
+    await seed(page);
+    const steps = page.getByRole("region", { name: "Generated type steps" });
+    const sample = steps.locator("input").first();
+    await sample.fill("How vexingly zebra ทดสอบ");
+
+    const fits = async () =>
+      sample.evaluate((el: HTMLInputElement) => {
+        const cs = getComputedStyle(el);
+        /* The same text and font in something free to be as tall as it needs,
+           which is what the row has to make room for. */
+        const probe = document.createElement("span");
+        probe.textContent = el.value;
+        probe.style.font = cs.font;
+        probe.style.lineHeight = "normal";
+        probe.style.whiteSpace = "pre";
+        probe.style.position = "absolute";
+        probe.style.visibility = "hidden";
+        document.body.appendChild(probe);
+        const natural = probe.getBoundingClientRect().height;
+        probe.remove();
+        return {
+          box: el.getBoundingClientRect().height,
+          natural,
+        };
+      });
+
+    /* Polled on the measurement rather than on a boolean, so a failure says
+       how much room was short rather than "expected true, received false" —
+       and which fallback a machine picked is exactly what a reader of that
+       failure needs to know. */
+    await expect
+      .poll(async () => {
+        const { box, natural } = await fits();
+        return { short: Math.max(0, Math.round(natural - box)), box, natural };
+      })
+      .toMatchObject({ short: 0 });
   });
 });

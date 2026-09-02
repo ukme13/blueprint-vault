@@ -119,6 +119,39 @@
   background: var(--color-neutral-850);
 }
 
+/*
+ * The specimen, and the thing that measures it.
+ *
+ * One grid cell holding both. The mirror renders the same string and is sized
+ * by every font that ends up drawing it — a fallback covering another script
+ * included — so the cell is as tall as the text really is. The input fills
+ * that cell rather than deciding its own height from the primary family alone,
+ * which is what used to crop the marks a fallback brought.
+ *
+ * A number would have been guesswork: how much room a fallback needs depends
+ * on which family the browser picked, and that differs between machines. This
+ * measures instead, so it is right on all of them.
+ */
+.stepSampleBox {
+  display: grid;
+  /* min-width: 0 on both, or the nowrap mirror sizes the column to the whole
+     string and pushes the row past the panel — the same min-content trap the
+     role table hit. */
+  min-width: 0;
+}
+
+.stepSampleBox > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.stepSampleMirror {
+  visibility: hidden;
+  overflow: hidden;
+  line-height: normal;
+  white-space: nowrap;
+}
+
 .stepSample {
   /* An input styled as text, so the specimen can be typed in place.
 
@@ -130,10 +163,14 @@
   overflow: hidden;
   border: 0;
   padding: 0;
+  /* Fills the cell the mirror sized. The input clips at its own padding box,
+     so being as tall as the text needs is what stops it cropping. */
+  height: 100%;
   background: transparent;
   color: inherit;
   font: inherit;
-  line-height: 1.1;
+  /* Matched to the mirror, so the two agree on where the text sits. */
+  line-height: normal;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -625,22 +662,6 @@
   min-width: 0;
 }
 
-/* One font entry in the inspector: a name row, the two pickers, and whatever
-   hint the chosen family earns. Entries stack, so every one but the first
-   carries its own separator. */
-.fontStack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-  padding-top: var(--spacing-3);
-  border-top: var(--border-width) solid var(--color-border);
-}
-
-.fontStack:first-child {
-  padding-top: 0;
-  border-top: 0;
-}
-
 .fontStackRow {
   display: flex;
   align-items: flex-end;
@@ -652,18 +673,6 @@
      control beside it out of the row. */
   min-width: 0;
   flex: 1;
-}
-
-.fontStackScript {
-  width: 8rem;
-  flex: none;
-}
-
-.fontStackHint {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  line-height: 1.4;
 }
 
 .previewColourControls {
@@ -765,6 +774,9 @@
   white-space: nowrap;
 }
 
+/* Scope only: `.fontStack` carries no layout of its own any more. It is what
+   the two rules below reach inside the Astryx menu through. */
+
 /* Divides uploading from the catalogue below it.
    Hung on the row's own marker rather than on `:first-child`, so it cannot
    end up under a font if the row is ever absent. The dropdown is Astryx's,
@@ -823,12 +835,6 @@
 /* A local font with no file behind it is expected, not broken — a warning
    rather than an error, same as the hint below. */
 .fontStackNote[data-missing="true"] {
-  color: var(--color-warning-300);
-}
-
-/* A local font with no file behind it is expected, not broken — it reads as a
-   warning rather than an error for that reason. */
-.fontStackHint[data-missing="true"] {
   color: var(--color-warning-300);
 }
 

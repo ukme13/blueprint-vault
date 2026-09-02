@@ -56,6 +56,8 @@ function selectedItem(family: string): FontItem | null {
 
 interface GoogleFontPickerProps {
   label: string;
+  /** A note about the family, shown from an info icon at the end of the label. */
+  labelTooltip?: string;
   /** Family currently in this slot, if it is a Google font. */
   family: string;
   /** Restrict to families covering this writing system, e.g. "thai". */
@@ -86,6 +88,7 @@ interface GoogleFontPickerProps {
  */
 export function GoogleFontPicker({
   label,
+  labelTooltip,
   family,
   script,
   placeholder,
@@ -133,11 +136,29 @@ export function GoogleFontPicker({
    * search source is awaited — so checking synchronously would find the menu
    * shut and toggle it straight back off.
    */
+  /* Whether the field holds a family, read from an event rather than a render.
+     The reopen below runs on a listener bound once. */
+  const hasFamily = useRef(!!family);
+  useEffect(() => {
+    hasFamily.current = !!family;
+  }, [family]);
+
   useEffect(() => {
     const root = fieldRef.current;
     if (!root) return;
 
     const reopenClosedMenu = (event: MouseEvent) => {
+      /* Empty fields only.
+
+         A field holding a family shows it as a token, and clicking that token
+         is Astryx entering edit mode: the token goes, the input is filled with
+         the family and its text selected, ready to be typed over. The blur
+         below is what Astryx restores a token on, so running this there
+         turned every second click back into a token nobody could type in, and
+         every click after that into a fresh select-all — you could not put
+         the caret anywhere. Astryx reopens the menu for that case itself. */
+      if (hasFamily.current) return;
+
       const target = event.target as HTMLElement | null;
       const input = target?.closest?.('input[role="combobox"]');
       if (!input) return;
@@ -178,8 +199,16 @@ export function GoogleFontPicker({
        the field below it. See the effect above. */
     <span ref={fieldRef} className={styles.fontPickerField}>
       <Typeahead<FontItem>
+        /* Remounted when the family changes, which is what makes a pick show.
+           Astryx re-enters edit mode after a selection and fills the input
+           from a value captured before the pick, so the field went on showing
+           the family that had just been replaced — the model was already the
+           new one — until focus left. A fresh mount reads the value it is
+           given, shows it as a token, and leaves the menu closed. */
+        key={family || "empty"}
         hasEntriesOnFocus
         label={label}
+        labelTooltip={labelTooltip}
         /* The default of 10 made 1946 families look like a shortlist. One more
            when the upload row is pinned, so it costs the catalogue nothing —
            the menu is sliced to this from the top, where the row sits. */

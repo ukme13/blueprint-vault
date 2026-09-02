@@ -5,6 +5,8 @@ import {
   addRole,
   moveGroup,
   removeFont,
+  removeFontSlot,
+  reorderGroups,
   removeGroup,
   removeRole,
   renameFont,
@@ -34,9 +36,13 @@ export interface TypographySystemActions {
   renameGroupById: (groupId: string, label: string) => void;
   updateGroup: (groupId: string, patch: Partial<TypeGroup>) => void;
   shiftGroup: (groupId: string, direction: -1 | 1) => void;
+  /** Put one group where another sits, which is what a drag means. */
+  reorderGroups: (activeId: string, overId: string) => void;
   addGroup: () => void;
   addFont: () => void;
   removeFont: (id: string) => void;
+  /** Take one fallback out of a stack, closing the gap behind it. */
+  removeFontSlot: (id: string, slot: FontSlot) => void;
   renameFont: (id: string, name: string) => void;
   setGoogleFont: (
     id: string,
@@ -90,9 +96,16 @@ export function useTypographySystem(
           ...system,
           groups: moveGroup(system, groupId, direction),
         })),
+      reorderGroups: (activeId, overId) =>
+        editSystem((system) => ({
+          ...system,
+          groups: reorderGroups(system, activeId, overId),
+        })),
       addGroup: () => editSystem(addGroup),
       addFont: () => editSystem(addFont),
       removeFont: (id) => editSystem((system) => removeFont(system, id)),
+      removeFontSlot: (id, slot) =>
+        editSystem((system) => removeFontSlot(system, id, slot).system),
       renameFont: (id, name) =>
         editSystem((system) => renameFont(system, id, name)),
       setGoogleFont: (id, slot, family, generic) =>

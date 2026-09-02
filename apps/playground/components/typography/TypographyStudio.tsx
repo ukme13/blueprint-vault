@@ -38,9 +38,24 @@ import {
   type TypeScaleUnit,
   type TypeSystem,
   resolveLineHeight,
+  fallbackFileMoves,
   isLocalSlot,
   localFontKey,
 } from "@blueprint/ui";
+import {
+  closestCenter,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { Badge } from "@astryxdesign/core/Badge";
 import { TypographyCreation } from "./TypographyCreation";
 import { TypographyExportDialog } from "./TypographyExportDialog";
 import { WorkspaceBrand } from "../WorkspaceBrand";
@@ -63,6 +78,7 @@ import { useGoogleFontsLink } from "./use-google-fonts";
 import {
   forgetFontEntry,
   forgetFontSlot,
+  moveLocalFont,
   forgetLocalFonts,
   storeLocalFont,
   useLocalFonts,
@@ -153,18 +169,38 @@ export function TypographyStudio() {
     addGroup,
     addRole,
     removeFont,
+    removeFontSlot,
     removeGroup,
     removeRole,
     renameFont,
     renameGroupById,
     setGoogleFont,
     setLocalFont,
-    shiftGroup,
+    reorderGroups,
     updateGroup,
     updateRole,
     updateRoleValue,
     updateSystem,
   } = useTypographySystem(setProject);
+
+  /* Which panel the inspector is showing.
+
+     Three, because the inspector had grown into one column holding the scale,
+     every font, every group and the warnings — a scroll long enough that
+     changing the ratio meant losing sight of what it changed. */
+  const [inspectorTab, setInspectorTab] = useState<
+    "settings" | "groups" | "warnings"
+  >("settings");
+
+  /* A drag has to start past a few pixels, or every click on a handle is a
+     zero-length drag and the button never reports a press. The keyboard
+     sensor is what replaces the up and down buttons. */
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 
   /* Unit, specimen and template sit beside the system rather than in it, so
      they do not go through the hook. This is the same guard it keeps, once. */
@@ -243,6 +279,12 @@ export function TypographyStudio() {
         },
       ].flatMap(({ id, result }) => (result ? [{ id, ...result }] : []))
     : [];
+
+  /* What the badge counts: the warnings worth acting on. A pass is a check
+     that ran and found nothing, which is not news. */
+  const openWarnings = warnings.filter(
+    (warning) => warning.status !== "pass",
+  ).length;
 
   if (!hasLoadedProject) {
     return (
@@ -427,21 +469,39 @@ export function TypographyStudio() {
                     {/* Editable in place: type in any row and every row
                         follows, so the scale is judged in your own copy without
                         a separate field to find. */}
-                    <input
-                      aria-label="Specimen text"
-                      className={styles.stepSample}
-                      placeholder={DEFAULT_SPECIMEN_TEXT}
-                      spellCheck={false}
+                    <span
+                      className={styles.stepSampleBox}
                       style={{
                         fontFamily: familiesToCss(previewFont?.families ?? []),
                         fontSize: `${step.fontSizePx}px`,
                         fontWeight: resolvedPreviewWeight,
                       }}
-                      value={project.specimenText}
-                      onChange={(event) =>
-                        setPreference({ specimenText: event.target.value })
-                      }
-                    />
+                    >
+                      {/* The measurement, not a duplicate.
+
+                          An input's box is the line box of its primary family,
+                          and it clips — so a fallback covering another script
+                          sits taller than the box and loses the marks above
+                          and below. A span is sized by every font that ends up
+                          drawing, which is the height the row actually needs.
+                          It sets the height and the input fills it. */}
+                      <span
+                        aria-hidden="true"
+                        className={styles.stepSampleMirror}
+                      >
+                        {project.specimenText || DEFAULT_SPECIMEN_TEXT}
+                      </span>
+                      <input
+                        aria-label="Specimen text"
+                        className={styles.stepSample}
+                        placeholder={DEFAULT_SPECIMEN_TEXT}
+                        spellCheck={false}
+                        value={project.specimenText}
+                        onChange={(event) =>
+                          setPreference({ specimenText: event.target.value })
+                        }
+                      />
+                    </span>
                     <span className={styles.stepMeta}>
                       <code>{formatLength(step.fontSizePx, project.unit)}</code>
                       {Math.abs(step.exactFontSizePx - step.fontSizePx) >
@@ -488,132 +548,243 @@ export function TypographyStudio() {
             aria-label="Type scale settings"
             className={styles.inspector}
           >
-            <header className={styles.inspectorHeader}>Scale settings</header>
+            {/* TabList takes no className, so the tabs are reached through a
+                wrapper.
 
-            <div className={styles.settingGroup}>
-              <h2>Base settings</h2>
-              {system.fonts.map((font) => (
-                <FontStackEditor
-                  key={font.id}
-                  canRemove={system.fonts.length > 1}
-                  font={font}
-                  onPick={(slot, family, generic) => {
-                    /* Picking a Google family for a slot that held a file
+                Astryx gives a tab a 10px radius, which reads as a pill
+                floating over the panel rather than a strip across the top of
+                it, and pins its height at 32px with a border box — so padding
+                on its own is absorbed rather than added. The height goes up by
+                the 8px the padding asks for.
+
+                The hover and selected background is not the button: it is a
+                span behind the label, sized to the old 32px and rounded to
+                match, so squaring the button alone left a rounded pill
+                floating inside a square tab. */}
+            <div className="[&_.astryx-tab]:h-10 [&_.astryx-tab]:rounded-none [&_.astryx-tab]:py-1 [&_.astryx-tab>span:first-child]:h-full [&_.astryx-tab>span:first-child]:rounded-none">
+              <TabList
+                hasDivider
+                layout="fill"
+                /* The tabs pattern rather than navigation: these switch panels
+                 in place, and `panelId` is how a screen reader gets from a
+                 tab to the panel it opened. */
+                role="tablist"
+                value={inspectorTab}
+                onChange={(value) =>
+                  setInspectorTab(value as typeof inspectorTab)
+                }
+              >
+                <Tab
+                  label="Settings"
+                  panelId="inspector-settings"
+                  value="settings"
+                />
+                <Tab label="Groups" panelId="inspector-groups" value="groups" />
+                <Tab
+                  label="Warnings"
+                  panelId="inspector-warnings"
+                  value="warnings"
+                  /* Counts only, which is what a badge is for. Absent at zero:
+                   a badge reading 0 is a count of nothing taking up the room
+                   of a count of something. */
+                  endContent={
+                    openWarnings > 0 ? (
+                      <Badge label={String(openWarnings)} variant="warning" />
+                    ) : undefined
+                  }
+                />
+              </TabList>
+            </div>
+
+            <div
+              hidden={inspectorTab !== "settings"}
+              id="inspector-settings"
+              role="tabpanel"
+            >
+              <div className={styles.settingGroup}>
+                <h2>Scale</h2>
+                <NumberInput
+                  description="Even numbers only."
+                  label="Base font size"
+                  min={MIN_BASE_FONT_SIZE_PX}
+                  max={MAX_BASE_FONT_SIZE_PX}
+                  step={2}
+                  units="px"
+                  value={system.baseFontSizePx}
+                  onChange={(value) => updateSystem({ baseFontSizePx: value })}
+                />
+                <Selector
+                  label="Scale ratio"
+                  options={[
+                    ...TYPE_SCALE_RATIO_PRESETS.map((preset) => ({
+                      label: `${preset.name} (${preset.ratio})`,
+                      value: String(preset.ratio),
+                    })),
+                  ]}
+                  value={String(system.ratio)}
+                  onChange={(value) => updateSystem({ ratio: Number(value) })}
+                />
+                <NumberInput
+                  isIntegerOnly
+                  label="Number of steps"
+                  min={MIN_STEP_COUNT}
+                  max={MAX_STEP_COUNT}
+                  value={system.stepCount}
+                  onChange={(value) => updateSystem({ stepCount: value })}
+                />
+              </div>
+
+              <div className={styles.settingGroup}>
+                <h2>Fonts</h2>
+                {system.fonts.map((font) => (
+                  <FontStackEditor
+                    key={font.id}
+                    canRemove={system.fonts.length > 1}
+                    font={font}
+                    onPick={(slot, family, generic) => {
+                      /* Picking a Google family for a slot that held a file
                        leaves those bytes referenced by nothing — and only
                        that slot's, since the other one may still point at
                        its own. */
-                    if (isLocalSlot(font, slot)) {
-                      void forgetFontSlot(font.id, slot);
-                      setFontFileRevision((current) => current + 1);
+                      if (isLocalSlot(font, slot)) {
+                        void forgetFontSlot(font.id, slot);
+                        setFontFileRevision((current) => current + 1);
+                      }
+                      setGoogleFont(font.id, slot, family, generic);
+                    }}
+                    onRemove={() => {
+                      void forgetFontEntry(font.id);
+                      removeFont(font.id);
+                    }}
+                    onRemoveSlot={(slot) => {
+                      /* The file goes first, then the ones behind it follow
+                       their family forward a slot. Both before the state
+                       change, so a reload mid-way finds files under the keys
+                       the stored stack names — and in this order, because
+                       moving into the slot being emptied would overwrite the
+                       file that is on its way out. */
+                      const moves = fallbackFileMoves(font, slot);
+                      if (isLocalSlot(font, slot) || moves.length > 0) {
+                        void forgetFontSlot(font.id, slot)
+                          .then(() =>
+                            Promise.all(
+                              moves.map((move) =>
+                                moveLocalFont(font.id, move.from, move.to),
+                              ),
+                            ),
+                          )
+                          .then(() =>
+                            setFontFileRevision((current) => current + 1),
+                          );
+                      }
+                      removeFontSlot(font.id, slot);
+                    }}
+                    fileStatus={(slot) =>
+                      localFontStatus.get(localFontKey(font.id, slot)) ??
+                      "checking"
                     }
-                    setGoogleFont(font.id, slot, family, generic);
-                  }}
-                  onRemove={() => {
-                    void forgetFontEntry(font.id);
-                    removeFont(font.id);
-                  }}
-                  fileStatus={(slot) =>
-                    localFontStatus.get(localFontKey(font.id, slot)) ??
-                    "checking"
-                  }
-                  uploadError={(slot) =>
-                    uploadErrors[localFontKey(font.id, slot)] ?? ""
-                  }
-                  onRename={(name) => renameFont(font.id, name)}
-                  onUpload={(slot, file) => {
-                    void storeLocalFont(font.id, slot, file).then((result) => {
-                      setUploadErrors((current) => ({
-                        ...current,
-                        [localFontKey(font.id, slot)]: result.rejected ?? "",
-                      }));
-                      if (!result.family) return;
-                      setLocalFont(font.id, slot, result.family);
-                      setFontFileRevision((current) => current + 1);
-                    });
-                  }}
-                />
-              ))}
-              <Button
-                className={styles.addEntryButton}
-                scheme="neutral"
-                size="medium"
-                variant="contained"
-                onClick={addFont}
-              >
-                Add font
-              </Button>
-
-              <NumberInput
-                description="Even numbers only."
-                label="Base font size"
-                min={MIN_BASE_FONT_SIZE_PX}
-                max={MAX_BASE_FONT_SIZE_PX}
-                step={2}
-                units="px"
-                value={system.baseFontSizePx}
-                onChange={(value) => updateSystem({ baseFontSizePx: value })}
-              />
-              <Selector
-                label="Scale ratio"
-                options={[
-                  ...TYPE_SCALE_RATIO_PRESETS.map((preset) => ({
-                    label: `${preset.name} (${preset.ratio})`,
-                    value: String(preset.ratio),
-                  })),
-                ]}
-                value={String(system.ratio)}
-                onChange={(value) => updateSystem({ ratio: Number(value) })}
-              />
-              <NumberInput
-                isIntegerOnly
-                label="Number of steps"
-                min={MIN_STEP_COUNT}
-                max={MAX_STEP_COUNT}
-                value={system.stepCount}
-                onChange={(value) => updateSystem({ stepCount: value })}
-              />
+                    uploadError={(slot) =>
+                      uploadErrors[localFontKey(font.id, slot)] ?? ""
+                    }
+                    onRename={(name) => renameFont(font.id, name)}
+                    onUpload={(slot, file) => {
+                      void storeLocalFont(font.id, slot, file).then(
+                        (result) => {
+                          setUploadErrors((current) => ({
+                            ...current,
+                            [localFontKey(font.id, slot)]:
+                              result.rejected ?? "",
+                          }));
+                          if (!result.family) return;
+                          setLocalFont(font.id, slot, result.family);
+                          setFontFileRevision((current) => current + 1);
+                        },
+                      );
+                    }}
+                  />
+                ))}
+                <Button
+                  className={styles.addEntryButton}
+                  scheme="primary"
+                  size="medium"
+                  variant="contained"
+                  onClick={addFont}
+                >
+                  Add font
+                </Button>
+              </div>
             </div>
 
-            {system.groups.map((group, groupIndex) => (
-              <RoleGroupEditor
-                key={group.id}
-                canAddRole={canAddRole(system, group)}
-                fonts={system.fonts}
-                group={group}
-                groupCount={system.groups.length}
-                index={groupIndex}
-                roles={resolvedRoles.filter(
-                  (role) => role.groupId === group.id,
-                )}
-                steps={sortedSteps}
-                unit={project.unit}
-                onAddRole={() => addRole(group)}
-                onIndexingChange={(indexing) =>
-                  updateGroup(group.id, { indexing })
-                }
-                onLabelChange={(label) => updateGroup(group.id, { label })}
-                onLabelCommit={() => renameGroupById(group.id, group.label)}
-                onMove={(direction) => shiftGroup(group.id, direction)}
-                onRemove={() => removeGroup(group.id)}
-                onRoleChange={updateRole}
-                onRoleRemove={removeRole}
-                onRoleValueChange={updateRoleValue}
-              />
-            ))}
-
-            <div className={styles.settingGroup}>
-              <Button
-                className={styles.addEntryButton}
-                scheme="neutral"
-                size="medium"
-                variant="contained"
-                onClick={addGroup}
+            <div
+              hidden={inspectorTab !== "groups"}
+              id="inspector-groups"
+              role="tabpanel"
+            >
+              {/* Groups are an order somebody arranges, so they are dragged
+                rather than stepped. The keyboard sensor is not a nicety here:
+                it is the whole of the keyboard story now that the up and down
+                buttons are gone — focus a handle, space to lift, arrows to
+                move, space to drop. */}
+              <DndContext
+                collisionDetection={closestCenter}
+                sensors={sensors}
+                onDragEnd={({ active, over }) => {
+                  if (!over) return;
+                  reorderGroups(String(active.id), String(over.id));
+                }}
               >
-                Add group
-              </Button>
+                <SortableContext
+                  items={system.groups.map((group) => group.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {system.groups.map((group) => (
+                    <RoleGroupEditor
+                      key={group.id}
+                      canAddRole={canAddRole(system, group)}
+                      fonts={system.fonts}
+                      group={group}
+                      roles={resolvedRoles.filter(
+                        (role) => role.groupId === group.id,
+                      )}
+                      steps={sortedSteps}
+                      unit={project.unit}
+                      onAddRole={() => addRole(group)}
+                      onIndexingChange={(indexing) =>
+                        updateGroup(group.id, { indexing })
+                      }
+                      onLabelChange={(label) =>
+                        updateGroup(group.id, { label })
+                      }
+                      onLabelCommit={() =>
+                        renameGroupById(group.id, group.label)
+                      }
+                      onRemove={() => removeGroup(group.id)}
+                      onRoleChange={updateRole}
+                      onRoleRemove={removeRole}
+                      onRoleValueChange={updateRoleValue}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
+
+              <div className={styles.settingGroup}>
+                <Button
+                  className={styles.addEntryButton}
+                  scheme="primary"
+                  size="medium"
+                  variant="contained"
+                  onClick={addGroup}
+                >
+                  Add group
+                </Button>
+              </div>
             </div>
 
-            {warnings.length > 0 && (
+            <div
+              hidden={inspectorTab !== "warnings"}
+              id="inspector-warnings"
+              role="tabpanel"
+            >
               <div className={styles.settingGroup}>
                 <h2>Warnings</h2>
                 <ul className={styles.warningList}>
@@ -624,14 +795,14 @@ export function TypographyStudio() {
                         {warning.summary}
                       </li>
                     ))}
-                  {warnings.every((warning) => warning.status === "pass") && (
+                  {openWarnings === 0 && (
                     <li data-status="pass">
                       No issues found in this type scale.
                     </li>
                   )}
                 </ul>
               </div>
-            )}
+            </div>
           </section>
         </section>
       )}

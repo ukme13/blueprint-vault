@@ -41,6 +41,22 @@ export async function seedTypographyProject(
   await page.goto("/typography");
 }
 
+/**
+ * Show one of the inspector's panels.
+ *
+ * The inspector is three tabs now — the scale and its fonts, the groups, and
+ * the warnings — so a test reaching for a role row has to say which panel it
+ * expects to find one in, the way a person does.
+ *
+ * Matched on the start of the name: the warnings tab carries a count.
+ */
+export async function showInspectorPanel(
+  page: Page,
+  name: "Settings" | "Groups" | "Warnings",
+): Promise<void> {
+  await page.getByRole("tab", { name: new RegExp(`^${name}`) }).click();
+}
+
 export const test = base.extend<{ seededPage: Page }>({
   seededPage: async ({ page }, runTest) => {
     await seedTypographyProject(page);
