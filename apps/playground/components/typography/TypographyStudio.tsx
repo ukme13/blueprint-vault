@@ -55,6 +55,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { Badge } from "@astryxdesign/core/Badge";
 import { TypographyCreation } from "./TypographyCreation";
 import { TypographyExportDialog } from "./TypographyExportDialog";
 import { WorkspaceBrand } from "../WorkspaceBrand";
@@ -182,6 +183,15 @@ export function TypographyStudio() {
     updateSystem,
   } = useTypographySystem(setProject);
 
+  /* Which panel the inspector is showing.
+
+     Three, because the inspector had grown into one column holding the scale,
+     every font, every group and the warnings — a scroll long enough that
+     changing the ratio meant losing sight of what it changed. */
+  const [inspectorTab, setInspectorTab] = useState<
+    "settings" | "groups" | "warnings"
+  >("settings");
+
   /* A drag has to start past a few pixels, or every click on a handle is a
      zero-length drag and the button never reports a press. The keyboard
      sensor is what replaces the up and down buttons. */
@@ -269,6 +279,12 @@ export function TypographyStudio() {
         },
       ].flatMap(({ id, result }) => (result ? [{ id, ...result }] : []))
     : [];
+
+  /* What the badge counts: the warnings worth acting on. A pass is a check
+     that ran and found nothing, which is not news. */
+  const openWarnings = warnings.filter(
+    (warning) => warning.status !== "pass",
+  ).length;
 
   if (!hasLoadedProject) {
     return (
@@ -514,171 +530,228 @@ export function TypographyStudio() {
             aria-label="Type scale settings"
             className={styles.inspector}
           >
-            <header className={styles.inspectorHeader}>Scale settings</header>
+            <TabList
+              hasDivider
+              layout="fill"
+              /* The tabs pattern rather than navigation: these switch panels
+                 in place, and `panelId` is how a screen reader gets from a
+                 tab to the panel it opened. */
+              role="tablist"
+              value={inspectorTab}
+              onChange={(value) =>
+                setInspectorTab(value as typeof inspectorTab)
+              }
+            >
+              <Tab
+                label="Settings"
+                panelId="inspector-settings"
+                value="settings"
+              />
+              <Tab label="Groups" panelId="inspector-groups" value="groups" />
+              <Tab
+                label="Warnings"
+                panelId="inspector-warnings"
+                value="warnings"
+                /* Counts only, which is what a badge is for. Absent at zero:
+                   a badge reading 0 is a count of nothing taking up the room
+                   of a count of something. */
+                endContent={
+                  openWarnings > 0 ? (
+                    <Badge label={String(openWarnings)} variant="warning" />
+                  ) : undefined
+                }
+              />
+            </TabList>
 
-            <div className={styles.settingGroup}>
-              <h2>Base settings</h2>
-              {system.fonts.map((font) => (
-                <FontStackEditor
-                  key={font.id}
-                  canRemove={system.fonts.length > 1}
-                  font={font}
-                  onPick={(slot, family, generic) => {
-                    /* Picking a Google family for a slot that held a file
+            <div
+              hidden={inspectorTab !== "settings"}
+              id="inspector-settings"
+              role="tabpanel"
+            >
+              <div className={styles.settingGroup}>
+                <h2>Scale</h2>
+                <NumberInput
+                  description="Even numbers only."
+                  label="Base font size"
+                  min={MIN_BASE_FONT_SIZE_PX}
+                  max={MAX_BASE_FONT_SIZE_PX}
+                  step={2}
+                  units="px"
+                  value={system.baseFontSizePx}
+                  onChange={(value) => updateSystem({ baseFontSizePx: value })}
+                />
+                <Selector
+                  label="Scale ratio"
+                  options={[
+                    ...TYPE_SCALE_RATIO_PRESETS.map((preset) => ({
+                      label: `${preset.name} (${preset.ratio})`,
+                      value: String(preset.ratio),
+                    })),
+                  ]}
+                  value={String(system.ratio)}
+                  onChange={(value) => updateSystem({ ratio: Number(value) })}
+                />
+                <NumberInput
+                  isIntegerOnly
+                  label="Number of steps"
+                  min={MIN_STEP_COUNT}
+                  max={MAX_STEP_COUNT}
+                  value={system.stepCount}
+                  onChange={(value) => updateSystem({ stepCount: value })}
+                />
+              </div>
+
+              <div className={styles.settingGroup}>
+                <h2>Fonts</h2>
+                {system.fonts.map((font) => (
+                  <FontStackEditor
+                    key={font.id}
+                    canRemove={system.fonts.length > 1}
+                    font={font}
+                    onPick={(slot, family, generic) => {
+                      /* Picking a Google family for a slot that held a file
                        leaves those bytes referenced by nothing — and only
                        that slot's, since the other one may still point at
                        its own. */
-                    if (isLocalSlot(font, slot)) {
-                      void forgetFontSlot(font.id, slot);
-                      setFontFileRevision((current) => current + 1);
-                    }
-                    setGoogleFont(font.id, slot, family, generic);
-                  }}
-                  onRemove={() => {
-                    void forgetFontEntry(font.id);
-                    removeFont(font.id);
-                  }}
-                  onRemoveSlot={(slot) => {
-                    /* The file goes first, then the ones behind it follow
+                      if (isLocalSlot(font, slot)) {
+                        void forgetFontSlot(font.id, slot);
+                        setFontFileRevision((current) => current + 1);
+                      }
+                      setGoogleFont(font.id, slot, family, generic);
+                    }}
+                    onRemove={() => {
+                      void forgetFontEntry(font.id);
+                      removeFont(font.id);
+                    }}
+                    onRemoveSlot={(slot) => {
+                      /* The file goes first, then the ones behind it follow
                        their family forward a slot. Both before the state
                        change, so a reload mid-way finds files under the keys
                        the stored stack names — and in this order, because
                        moving into the slot being emptied would overwrite the
                        file that is on its way out. */
-                    const moves = fallbackFileMoves(font, slot);
-                    if (isLocalSlot(font, slot) || moves.length > 0) {
-                      void forgetFontSlot(font.id, slot)
-                        .then(() =>
-                          Promise.all(
-                            moves.map((move) =>
-                              moveLocalFont(font.id, move.from, move.to),
+                      const moves = fallbackFileMoves(font, slot);
+                      if (isLocalSlot(font, slot) || moves.length > 0) {
+                        void forgetFontSlot(font.id, slot)
+                          .then(() =>
+                            Promise.all(
+                              moves.map((move) =>
+                                moveLocalFont(font.id, move.from, move.to),
+                              ),
                             ),
-                          ),
-                        )
-                        .then(() =>
-                          setFontFileRevision((current) => current + 1),
-                        );
+                          )
+                          .then(() =>
+                            setFontFileRevision((current) => current + 1),
+                          );
+                      }
+                      removeFontSlot(font.id, slot);
+                    }}
+                    fileStatus={(slot) =>
+                      localFontStatus.get(localFontKey(font.id, slot)) ??
+                      "checking"
                     }
-                    removeFontSlot(font.id, slot);
-                  }}
-                  fileStatus={(slot) =>
-                    localFontStatus.get(localFontKey(font.id, slot)) ??
-                    "checking"
-                  }
-                  uploadError={(slot) =>
-                    uploadErrors[localFontKey(font.id, slot)] ?? ""
-                  }
-                  onRename={(name) => renameFont(font.id, name)}
-                  onUpload={(slot, file) => {
-                    void storeLocalFont(font.id, slot, file).then((result) => {
-                      setUploadErrors((current) => ({
-                        ...current,
-                        [localFontKey(font.id, slot)]: result.rejected ?? "",
-                      }));
-                      if (!result.family) return;
-                      setLocalFont(font.id, slot, result.family);
-                      setFontFileRevision((current) => current + 1);
-                    });
-                  }}
-                />
-              ))}
-              <Button
-                className={styles.addEntryButton}
-                scheme="primary"
-                size="medium"
-                variant="contained"
-                onClick={addFont}
-              >
-                Add font
-              </Button>
-
-              <NumberInput
-                description="Even numbers only."
-                label="Base font size"
-                min={MIN_BASE_FONT_SIZE_PX}
-                max={MAX_BASE_FONT_SIZE_PX}
-                step={2}
-                units="px"
-                value={system.baseFontSizePx}
-                onChange={(value) => updateSystem({ baseFontSizePx: value })}
-              />
-              <Selector
-                label="Scale ratio"
-                options={[
-                  ...TYPE_SCALE_RATIO_PRESETS.map((preset) => ({
-                    label: `${preset.name} (${preset.ratio})`,
-                    value: String(preset.ratio),
-                  })),
-                ]}
-                value={String(system.ratio)}
-                onChange={(value) => updateSystem({ ratio: Number(value) })}
-              />
-              <NumberInput
-                isIntegerOnly
-                label="Number of steps"
-                min={MIN_STEP_COUNT}
-                max={MAX_STEP_COUNT}
-                value={system.stepCount}
-                onChange={(value) => updateSystem({ stepCount: value })}
-              />
+                    uploadError={(slot) =>
+                      uploadErrors[localFontKey(font.id, slot)] ?? ""
+                    }
+                    onRename={(name) => renameFont(font.id, name)}
+                    onUpload={(slot, file) => {
+                      void storeLocalFont(font.id, slot, file).then(
+                        (result) => {
+                          setUploadErrors((current) => ({
+                            ...current,
+                            [localFontKey(font.id, slot)]:
+                              result.rejected ?? "",
+                          }));
+                          if (!result.family) return;
+                          setLocalFont(font.id, slot, result.family);
+                          setFontFileRevision((current) => current + 1);
+                        },
+                      );
+                    }}
+                  />
+                ))}
+                <Button
+                  className={styles.addEntryButton}
+                  scheme="primary"
+                  size="medium"
+                  variant="contained"
+                  onClick={addFont}
+                >
+                  Add font
+                </Button>
+              </div>
             </div>
 
-            {/* Groups are an order somebody arranges, so they are dragged
+            <div
+              hidden={inspectorTab !== "groups"}
+              id="inspector-groups"
+              role="tabpanel"
+            >
+              {/* Groups are an order somebody arranges, so they are dragged
                 rather than stepped. The keyboard sensor is not a nicety here:
                 it is the whole of the keyboard story now that the up and down
                 buttons are gone — focus a handle, space to lift, arrows to
                 move, space to drop. */}
-            <DndContext
-              collisionDetection={closestCenter}
-              sensors={sensors}
-              onDragEnd={({ active, over }) => {
-                if (!over) return;
-                reorderGroups(String(active.id), String(over.id));
-              }}
-            >
-              <SortableContext
-                items={system.groups.map((group) => group.id)}
-                strategy={verticalListSortingStrategy}
+              <DndContext
+                collisionDetection={closestCenter}
+                sensors={sensors}
+                onDragEnd={({ active, over }) => {
+                  if (!over) return;
+                  reorderGroups(String(active.id), String(over.id));
+                }}
               >
-                {system.groups.map((group) => (
-                  <RoleGroupEditor
-                    key={group.id}
-                    canAddRole={canAddRole(system, group)}
-                    fonts={system.fonts}
-                    group={group}
-                    roles={resolvedRoles.filter(
-                      (role) => role.groupId === group.id,
-                    )}
-                    steps={sortedSteps}
-                    unit={project.unit}
-                    onAddRole={() => addRole(group)}
-                    onIndexingChange={(indexing) =>
-                      updateGroup(group.id, { indexing })
-                    }
-                    onLabelChange={(label) => updateGroup(group.id, { label })}
-                    onLabelCommit={() => renameGroupById(group.id, group.label)}
-                    onRemove={() => removeGroup(group.id)}
-                    onRoleChange={updateRole}
-                    onRoleRemove={removeRole}
-                    onRoleValueChange={updateRoleValue}
-                  />
-                ))}
-              </SortableContext>
-            </DndContext>
+                <SortableContext
+                  items={system.groups.map((group) => group.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {system.groups.map((group) => (
+                    <RoleGroupEditor
+                      key={group.id}
+                      canAddRole={canAddRole(system, group)}
+                      fonts={system.fonts}
+                      group={group}
+                      roles={resolvedRoles.filter(
+                        (role) => role.groupId === group.id,
+                      )}
+                      steps={sortedSteps}
+                      unit={project.unit}
+                      onAddRole={() => addRole(group)}
+                      onIndexingChange={(indexing) =>
+                        updateGroup(group.id, { indexing })
+                      }
+                      onLabelChange={(label) =>
+                        updateGroup(group.id, { label })
+                      }
+                      onLabelCommit={() =>
+                        renameGroupById(group.id, group.label)
+                      }
+                      onRemove={() => removeGroup(group.id)}
+                      onRoleChange={updateRole}
+                      onRoleRemove={removeRole}
+                      onRoleValueChange={updateRoleValue}
+                    />
+                  ))}
+                </SortableContext>
+              </DndContext>
 
-            <div className={styles.settingGroup}>
-              <Button
-                className={styles.addEntryButton}
-                scheme="primary"
-                size="medium"
-                variant="contained"
-                onClick={addGroup}
-              >
-                Add group
-              </Button>
+              <div className={styles.settingGroup}>
+                <Button
+                  className={styles.addEntryButton}
+                  scheme="primary"
+                  size="medium"
+                  variant="contained"
+                  onClick={addGroup}
+                >
+                  Add group
+                </Button>
+              </div>
             </div>
 
-            {warnings.length > 0 && (
+            <div
+              hidden={inspectorTab !== "warnings"}
+              id="inspector-warnings"
+              role="tabpanel"
+            >
               <div className={styles.settingGroup}>
                 <h2>Warnings</h2>
                 <ul className={styles.warningList}>
@@ -689,14 +762,14 @@ export function TypographyStudio() {
                         {warning.summary}
                       </li>
                     ))}
-                  {warnings.every((warning) => warning.status === "pass") && (
+                  {openWarnings === 0 && (
                     <li data-status="pass">
                       No issues found in this type scale.
                     </li>
                   )}
                 </ul>
               </div>
-            )}
+            </div>
           </section>
         </section>
       )}

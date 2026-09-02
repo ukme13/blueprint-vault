@@ -1,4 +1,4 @@
-import { expect, test } from "./typography-fixtures";
+import { expect, showInspectorPanel, test } from "./typography-fixtures";
 
 /**
  * The line-height field.
@@ -47,6 +47,12 @@ const storedLineHeight = (page: import("@playwright/test").Page) =>
   });
 
 test.describe("The line-height field", () => {
+  /* Every field here lives on a role row, and role rows are in the Groups
+     panel. */
+  test.beforeEach(async ({ seededPage: page }) => {
+    await showInspectorPanel(page, "Groups");
+  });
+
   test("shows the ratio a migrated project stored", async ({
     seededPage: page,
   }) => {

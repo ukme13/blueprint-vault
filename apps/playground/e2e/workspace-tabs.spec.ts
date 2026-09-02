@@ -7,6 +7,7 @@ import {
 import {
   TYPOGRAPHY_STORAGE_KEY,
   defaultTypographyProject,
+  showInspectorPanel,
 } from "./typography-fixtures";
 
 /**
@@ -59,6 +60,7 @@ test.describe("Two tabs on one workspace", () => {
       typeTab.getByRole("region", { name: "Type scale settings" }),
     ).toBeVisible();
 
+    await showInspectorPanel(typeTab, "Groups");
     await typeTab.getByLabel("body font weight").fill("700");
     await typeTab.getByLabel("body font weight").blur();
     await expect
@@ -108,6 +110,7 @@ test.describe("Two tabs on one workspace", () => {
       .poll(async () => (await readWorkspace(paletteTab)).name)
       .toBe("Renamed next door");
 
+    await showInspectorPanel(typeTab, "Groups");
     await typeTab.getByLabel("body font weight").fill("300");
     await typeTab.getByLabel("body font weight").blur();
     await expect

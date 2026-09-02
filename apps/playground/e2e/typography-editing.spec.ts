@@ -1,4 +1,4 @@
-import { expect, test } from "./typography-fixtures";
+import { expect, showInspectorPanel, test } from "./typography-fixtures";
 import type { Locator } from "@playwright/test";
 
 /**
@@ -140,6 +140,12 @@ test.describe("Typography scale editing", () => {
     await page.getByLabel("Scale ratio").click();
     await page.getByRole("option", { name: /Golden Ratio/ }).click();
 
+    /* The ratio is on Settings and what it raises is a panel over, which is
+       the point of the count on the tab: the warning is somewhere else. */
+    await expect(page.getByRole("tab", { name: /^Warnings/ })).toContainText(
+      "1",
+    );
+    await showInspectorPanel(page, "Warnings");
     await expect(page.getByText(/grows quickly/i)).toBeVisible();
   });
 
@@ -200,7 +206,6 @@ test.describe("Typography scale editing", () => {
     // The fixture seeds the pre-merge shape: roleStyles and a flat fontFamily.
     // Reaching the editor at all means the migration ran.
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await expect(settings.getByRole("group", { name: "Body" })).toBeVisible();
     /* Geist Sans is a local face, not a Google one. It still has to show, or
        the field reads as empty and the font looks lost. Typeahead presents a
        selection as a token, not as the input's value. */
@@ -213,9 +218,14 @@ test.describe("Typography scale editing", () => {
     await expect(settings.getByText(/is not a Google font/)).toBeHidden();
     await labelInfo(settings, "Base font").hover();
     await expect(settings.getByText(/is not a Google font/)).toBeVisible();
+
+    /* And the roles the old shape carried, which live a panel over. */
+    await showInspectorPanel(page, "Groups");
+    await expect(settings.getByRole("group", { name: "Body" })).toBeVisible();
   });
 
   test("groups roles and adds one to a group", async ({ seededPage: page }) => {
+    await showInspectorPanel(page, "Groups");
     const settings = page.getByRole("region", { name: "Type scale settings" });
 
     for (const group of ["Display", "H", "Body", "Label", "Caption"]) {
@@ -234,6 +244,7 @@ test.describe("Typography scale editing", () => {
   });
 
   test("removes a role", async ({ seededPage: page }) => {
+    await showInspectorPanel(page, "Groups");
     const settings = page.getByRole("region", { name: "Type scale settings" });
     const before = await settings.getByLabel(/ font weight$/).count();
 
@@ -272,6 +283,7 @@ test.describe("Typography scale editing", () => {
   test("adds a group, renames it, and moves it", async ({
     seededPage: page,
   }) => {
+    await showInspectorPanel(page, "Groups");
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await settings.getByRole("button", { name: "Add group" }).click();
 
@@ -290,6 +302,7 @@ test.describe("Typography scale editing", () => {
   test("every group can be renamed, moved and removed", async ({
     seededPage: page,
   }) => {
+    await showInspectorPanel(page, "Groups");
     // H and Body are only defaults now, not locked.
     const settings = page.getByRole("region", { name: "Type scale settings" });
     for (const group of ["H", "Body"]) {
@@ -308,6 +321,7 @@ test.describe("Typography scale editing", () => {
   test("a group named h numbers its roles without a dash", async ({
     seededPage: page,
   }) => {
+    await showInspectorPanel(page, "Groups");
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await settings
       .getByRole("group", { name: "H", exact: true })
@@ -322,6 +336,7 @@ test.describe("Typography scale editing", () => {
   test("a new role reuses its sibling's step rather than growing the ramp", async ({
     seededPage: page,
   }) => {
+    await showInspectorPanel(page, "Groups");
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await settings
       .getByRole("group", { name: "Body", exact: true })
@@ -337,6 +352,7 @@ test.describe("Typography scale editing", () => {
   test("a size can be typed, which unlinks it from the ramp", async ({
     seededPage: page,
   }) => {
+    await showInspectorPanel(page, "Groups");
     const settings = page.getByRole("region", { name: "Type scale settings" });
 
     // 14 is not on the default ramp, so this is only reachable by typing.
@@ -350,6 +366,7 @@ test.describe("Typography scale editing", () => {
   test("picking a step relinks the size to the ramp", async ({
     seededPage: page,
   }) => {
+    await showInspectorPanel(page, "Groups");
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await settings.getByLabel("body size").fill("14");
     await settings.getByLabel("body size").blur();
@@ -412,12 +429,14 @@ test.describe("Typography scale editing", () => {
     await page.goto("/typography");
 
     const settings = page.getByRole("region", { name: "Type scale settings" });
+    await showInspectorPanel(page, "Groups");
     await expect(settings.getByRole("group", { name: "Body" })).toBeVisible();
     await expect(settings.getByLabel("body font weight")).toHaveValue("400");
     await expect(page.getByLabel("Project name")).toHaveValue("Saved earlier");
   });
 
   test("renaming a group renames its roles", async ({ seededPage: page }) => {
+    await showInspectorPanel(page, "Groups");
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await settings.getByLabel("caption name").fill("Overline");
     await settings.getByLabel("caption name").blur();
@@ -428,6 +447,7 @@ test.describe("Typography scale editing", () => {
   });
 
   test("applies a group rename on Enter", async ({ seededPage: page }) => {
+    await showInspectorPanel(page, "Groups");
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await settings.getByLabel("caption name").fill("Overline");
     await settings.getByLabel("caption name").press("Enter");
@@ -441,6 +461,7 @@ test.describe("Typography scale editing", () => {
   test("keeps focus while a group name is typed", async ({
     seededPage: page,
   }) => {
+    await showInspectorPanel(page, "Groups");
     /* The group id is this row's React key, so renaming per keystroke remounted
        the field and focus was lost after one character. */
     const settings = page.getByRole("region", { name: "Type scale settings" });
@@ -456,6 +477,7 @@ test.describe("Typography scale editing", () => {
   test("the size menu lists the largest step first", async ({
     seededPage: page,
   }) => {
+    await showInspectorPanel(page, "Groups");
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await settings.getByLabel("body step").click();
 
@@ -515,6 +537,7 @@ test.describe("Typography scale editing", () => {
     await page.getByRole("button", { name: "Create type scale" }).click();
 
     const settings = page.getByRole("region", { name: "Type scale settings" });
+    await showInspectorPanel(page, "Groups");
     await expect(
       settings.getByRole("group", { name: "Display" }),
     ).toBeVisible();
@@ -563,7 +586,8 @@ test.describe("Typography scale editing", () => {
     await expect(name).toBeVisible();
     await name.fill("Display");
 
-    // The name is what the role dropdown offers.
+    // The name is what the role dropdown offers, a panel over.
+    await showInspectorPanel(page, "Groups");
     await settings.getByLabel("h1 font", { exact: true }).click();
     await expect(page.getByRole("option", { name: "Display" })).toBeVisible();
   });
@@ -575,10 +599,13 @@ test.describe("Typography scale editing", () => {
     await settings.getByRole("button", { name: "Add font" }).click();
     await settings.getByLabel("font-2 name").fill("Display");
 
+    await showInspectorPanel(page, "Groups");
     await settings.getByLabel("h1 font", { exact: true }).click();
     await page.getByRole("option", { name: "Display" }).click();
 
+    await showInspectorPanel(page, "Settings");
     await settings.getByRole("button", { name: "Remove Display font" }).click();
+    await showInspectorPanel(page, "Groups");
 
     // A role pointing at a deleted font would have nothing to render with.
     await expect(settings.getByLabel("h1 font", { exact: true })).toContainText(
@@ -707,7 +734,7 @@ test.describe("Reopening a font picker", () => {
        click above from working. */
     await input.click();
     await expect(page.getByRole("option").first()).toBeVisible();
-    await settings.getByText("Base settings").click();
+    await settings.getByRole("heading", { name: "Scale" }).click();
     await expect(page.getByRole("option")).toHaveCount(0);
   });
 });
@@ -923,6 +950,10 @@ test.describe("Fallbacks", () => {
 });
 
 test.describe("Reordering groups", () => {
+  test.beforeEach(async ({ seededPage: page }) => {
+    await showInspectorPanel(page, "Groups");
+  });
+
   /** The group cards in the order the inspector renders them. */
   const order = (page: import("@playwright/test").Page) =>
     page
@@ -951,30 +982,33 @@ test.describe("Reordering groups", () => {
     );
 
   /*
-   * One step of a keyboard drag, waited on rather than slept through.
+   * Lift a card, carry it one place down, drop it.
    *
-   * Lifting and moving are asynchronous — the sensor has to see the drag
-   * start before an arrow means anything — so three presses in a row lift and
-   * then drop in the same place, which looks exactly like a reorder that does
-   * not work. Each press is settled by watching what the drag announces.
+   * Every step waits on the drag's own state rather than a sleep. The lift is
+   * `aria-pressed` on the handle, which is dnd-kit saying it has the card;
+   * the announcement is not enough on its own, because it updates before the
+   * sensor is ready and an arrow pressed on that signal is swallowed. Three
+   * presses in a row lift and drop in the same place, which reads exactly
+   * like a reorder that does not work.
    */
-  const press = async (page: import("@playwright/test").Page, key: string) => {
-    const before = await announcement(page);
-    await page.keyboard.press(key);
-    await expect.poll(() => announcement(page)).not.toBe(before);
-  };
-
   const carryDown = async (
     page: import("@playwright/test").Page,
     label: string,
   ) => {
-    await page
+    const handle = page
       .getByRole("region", { name: "Type scale settings" })
-      .getByRole("button", { name: `Reorder ${label} group` })
-      .focus();
-    await press(page, "Space");
-    await press(page, "ArrowDown");
-    await press(page, "Space");
+      .getByRole("button", { name: `Reorder ${label} group` });
+
+    await handle.focus();
+    await page.keyboard.press("Space");
+    await expect(handle).toHaveAttribute("aria-pressed", "true");
+
+    const lifted = await announcement(page);
+    await page.keyboard.press("ArrowDown");
+    await expect.poll(() => announcement(page)).not.toBe(lifted);
+
+    await page.keyboard.press("Space");
+    await expect(handle).not.toHaveAttribute("aria-pressed", "true");
   };
 
   test("carries a group down the list from the keyboard", async ({
@@ -1015,11 +1049,15 @@ test.describe("Reordering groups", () => {
     /* The test only means something while the two differ. */
     expect(tallest.height).toBeGreaterThan(shortest.height);
 
-    await settings
-      .getByRole("button", { name: `Reorder ${shortest.label} group` })
-      .focus();
-    await press(page, "Space");
-    await press(page, "ArrowDown");
+    const handle = settings.getByRole("button", {
+      name: `Reorder ${shortest.label} group`,
+    });
+    await handle.focus();
+    await page.keyboard.press("Space");
+    await expect(handle).toHaveAttribute("aria-pressed", "true");
+    const lifted = await announcement(page);
+    await page.keyboard.press("ArrowDown");
+    await expect.poll(() => announcement(page)).not.toBe(lifted);
 
     const dragged = settings.getByRole("group", {
       name: shortest.label!,
@@ -1052,6 +1090,9 @@ test.describe("Reordering groups", () => {
     await expect(
       page.getByRole("region", { name: "Type scale settings" }),
     ).toBeVisible();
+    /* A reload opens the inspector on its first panel, so the groups have to
+       be asked for again. */
+    await showInspectorPanel(page, "Groups");
     await expect.poll(() => order(page)).toEqual(expected);
   });
 });

@@ -4,6 +4,7 @@ import {
   TYPOGRAPHY_STORAGE_KEY,
   defaultTypographyProject,
 } from "./typography-fixtures";
+import { showInspectorPanel } from "./typography-fixtures";
 
 /**
  * Computed-style coverage for the rules nothing else asserts.
@@ -46,10 +47,13 @@ test.describe("Typography studio styles", () => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await expect(settings).toBeVisible();
 
+    /* One button per panel now, so each is measured where it lives. They are
+       still the same class and the point is still that they match. */
     const addFont = settings.getByRole("button", { name: "Add font" });
     const addGroup = settings.getByRole("button", { name: "Add group" });
 
     const font = await addFont.boundingBox();
+    await showInspectorPanel(page, "Groups");
     const group = await addGroup.boundingBox();
     expect(font).not.toBeNull();
     // Same size as each other, which is the whole point of the shared class.
@@ -74,6 +78,7 @@ test.describe("Typography studio styles", () => {
 
     const panel = (await settings.boundingBox())!;
     const font = (await addFont.boundingBox())!;
+    await showInspectorPanel(page, "Groups");
     const group = (await addGroup.boundingBox())!;
 
     expect(font.width).toBe(group.width);
