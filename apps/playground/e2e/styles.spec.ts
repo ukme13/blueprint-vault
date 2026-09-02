@@ -193,11 +193,15 @@ test.describe("The step specimen", () => {
         };
       });
 
+    /* Polled on the measurement rather than on a boolean, so a failure says
+       how much room was short rather than "expected true, received false" —
+       and which fallback a machine picked is exactly what a reader of that
+       failure needs to know. */
     await expect
       .poll(async () => {
         const { box, natural } = await fits();
-        return box >= natural;
+        return { short: Math.max(0, Math.round(natural - box)), box, natural };
       })
-      .toBe(true);
+      .toMatchObject({ short: 0 });
   });
 });
