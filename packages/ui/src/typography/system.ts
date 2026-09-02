@@ -43,7 +43,7 @@ export const TYPE_INDEXING_LABELS: Record<TypeIndexing, string> = {
   size: "Size",
 };
 
-/** Shirt sizes, small to large, used by `size` indexing. */
+/** Shirt sizes, smallest first, used by `size` indexing. */
 export const SIZE_INDEX = ["xs", "sm", "md", "lg", "xl"] as const;
 
 /** Heading is always h1–h6, so it never grows past six. */
@@ -453,10 +453,15 @@ export function roleIdsForGroup(group: TypeGroup, count: number): string[] {
   }
   if (count === 1) return [group.id];
   if (group.indexing === "size") {
-    return Array.from(
-      { length: count },
-      (_, index) => `${group.id}-${SIZE_INDEX[index] ?? index + 1}`,
-    );
+    /* Largest first, because the rows are read top down and a scale is read
+       big to small — the same order the step list and the preview use. The
+       names are taken from the front of SIZE_INDEX and reversed rather than
+       from its end, so a group of three is md/sm/xs and the smallest role
+       keeps the same name whatever the group grows to. */
+    return Array.from({ length: count }, (_, index) => {
+      const size = SIZE_INDEX[count - 1 - index];
+      return `${group.id}-${size ?? count - index}`;
+    });
   }
   return Array.from(
     { length: count },

@@ -129,11 +129,25 @@
   min-width: 0;
   overflow: hidden;
   border: 0;
-  padding: 0;
+  /* Room above and below the line box, in em so it follows the size.
+
+     `line-height: normal` sizes the box from the primary family, and a
+     fallback covering another script can be taller than it — which is exactly
+     the stack this studio builds. An input clips at its padding box, so the
+     padding is what the marks a fallback brings are drawn into. */
+  padding: 0.12em 0;
   background: transparent;
   color: inherit;
   font: inherit;
-  line-height: 1.1;
+  /* The font's own line box rather than a number.
+
+     An input's content box is its line height, and it clips: 1.1 gave 68px
+     for a 62px specimen whose glyphs needed 85, so descenders lost their tails
+     and Thai lost the marks above and below — a preview cropping the thing it
+     exists to show. Which number would have been enough depends on the family
+     and the script, and this studio is for trying families and scripts, so it
+     is not ours to pick. */
+  line-height: normal;
   text-overflow: ellipsis;
   white-space: nowrap;
 }

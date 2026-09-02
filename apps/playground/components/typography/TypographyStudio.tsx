@@ -537,8 +537,13 @@ export function TypographyStudio() {
                 floating over the panel rather than a strip across the top of
                 it, and pins its height at 32px with a border box — so padding
                 on its own is absorbed rather than added. The height goes up by
-                the 8px the padding asks for. */}
-            <div className="[&_.astryx-tab]:h-10 [&_.astryx-tab]:rounded-none [&_.astryx-tab]:py-1">
+                the 8px the padding asks for.
+
+                The hover and selected background is not the button: it is a
+                span behind the label, sized to the old 32px and rounded to
+                match, so squaring the button alone left a rounded pill
+                floating inside a square tab. */}
+            <div className="[&_.astryx-tab]:h-10 [&_.astryx-tab]:rounded-none [&_.astryx-tab]:py-1 [&_.astryx-tab>span:first-child]:h-full [&_.astryx-tab>span:first-child]:rounded-none">
               <TabList
                 hasDivider
                 layout="fill"

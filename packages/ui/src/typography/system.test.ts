@@ -94,13 +94,23 @@ describe("roleIdsForGroup", () => {
     ]);
   });
 
-  it("walks shirt sizes small to large", () => {
+  it("walks shirt sizes large to small, the way the rows are read", () => {
     const group = free("subtitle", "size");
     expect(roleIdsForGroup(group, 3)).toEqual([
-      "subtitle-xs",
-      "subtitle-sm",
       "subtitle-md",
+      "subtitle-sm",
+      "subtitle-xs",
     ]);
+  });
+
+  it("keeps the smallest name whatever the group grows to", () => {
+    /* Taken from the front of the list and reversed rather than from its end:
+       xs stays the bottom row as roles are added above it, instead of every
+       name shifting because the group got one longer. */
+    const group = free("subtitle", "size");
+    expect(roleIdsForGroup(group, 2).at(-1)).toBe("subtitle-xs");
+    expect(roleIdsForGroup(group, 5).at(-1)).toBe("subtitle-xs");
+    expect(roleIdsForGroup(group, 5)[0]).toBe("subtitle-xl");
   });
 
   it("names headings h1 upward and never drops the number", () => {
@@ -498,8 +508,8 @@ describe("updateGroup", () => {
     });
     const after = updateGroup(before, "subtitle", { indexing: "size" });
     expect(after.roles.map((r) => r.id)).toEqual([
-      "subtitle-xs",
       "subtitle-sm",
+      "subtitle-xs",
     ]);
   });
 

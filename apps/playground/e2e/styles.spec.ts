@@ -160,3 +160,44 @@ test.describe("Typography studio styles", () => {
     expect(await styleOf(pass, "color")).not.toBe(await styleOf(fail, "color"));
   });
 });
+
+test.describe("The step specimen", () => {
+  test("shows its glyphs whole, including a fallback's", async ({ page }) => {
+    /* The row is an input, and an input clips at its padding box — its content
+       box is the line box of the primary family alone. A Thai fallback sits
+       taller than that, so the marks above and below were cut off: a preview
+       cropping the thing it exists to show. */
+    await seed(page);
+    const steps = page.getByRole("region", { name: "Generated type steps" });
+    const sample = steps.locator("input").first();
+    await sample.fill("How vexingly zebra ทดสอบ");
+
+    const fits = async () =>
+      sample.evaluate((el: HTMLInputElement) => {
+        const cs = getComputedStyle(el);
+        /* The same text and font in something free to be as tall as it needs,
+           which is what the row has to make room for. */
+        const probe = document.createElement("span");
+        probe.textContent = el.value;
+        probe.style.font = cs.font;
+        probe.style.lineHeight = "normal";
+        probe.style.whiteSpace = "pre";
+        probe.style.position = "absolute";
+        probe.style.visibility = "hidden";
+        document.body.appendChild(probe);
+        const natural = probe.getBoundingClientRect().height;
+        probe.remove();
+        return {
+          box: el.getBoundingClientRect().height,
+          natural,
+        };
+      });
+
+    await expect
+      .poll(async () => {
+        const { box, natural } = await fits();
+        return box >= natural;
+      })
+      .toBe(true);
+  });
+});
