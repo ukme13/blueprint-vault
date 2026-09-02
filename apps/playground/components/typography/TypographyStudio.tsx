@@ -561,7 +561,7 @@ export function TypographyStudio() {
               ))}
               <Button
                 className={styles.addEntryButton}
-                scheme="neutral"
+                scheme="primary"
                 size="medium"
                 variant="contained"
                 onClick={addFont}
@@ -630,7 +630,7 @@ export function TypographyStudio() {
             <div className={styles.settingGroup}>
               <Button
                 className={styles.addEntryButton}
-                scheme="neutral"
+                scheme="primary"
                 size="medium"
                 variant="contained"
                 onClick={addGroup}

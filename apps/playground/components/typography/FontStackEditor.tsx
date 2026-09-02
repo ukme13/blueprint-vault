@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type RefObject } from "react";
+import { useToast } from "@astryxdesign/core/Toast";
 import { Plus, Trash2, X } from "lucide-react";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import {
@@ -108,6 +109,7 @@ export function FontStackEditor({
      stored, because the families array is the ordered list the browser reads
      and a blank entry in it would be a family called "". */
   const [opened, setOpened] = useState(0);
+  const showToast = useToast();
   const filled = FALLBACK_SLOTS.filter((slot) => familyForSlot(font, slot));
   const rowCount = Math.min(Math.max(filled.length, opened), MAX_FALLBACKS);
   const rows = FALLBACK_SLOTS.slice(0, rowCount);
@@ -144,7 +146,7 @@ export function FontStackEditor({
       /* `fontStack` carries no layout any more. It is the scope the module
          hangs the upload-row separator inside the Typeahead menu on, and that
          menu is Astryx's — there is no prop for it. */
-      className={`${styles.fontStack} flex flex-col gap-2 rounded-lg border border-border-base p-3`}
+      className={`${styles.fontStack} flex flex-col gap-2 rounded-lg border border-border-base bg-neutral-850 p-4`}
     >
       <div className={styles.fontStackRow}>
         <div className={styles.fontStackField}>
@@ -157,22 +159,33 @@ export function FontStackEditor({
             onChange={onRename}
           />
         </div>
-        {rowCount < MAX_FALLBACKS && (
-          <Button
-            aria-label={`Add a fallback to ${font.name}`}
-            className="h-8!"
-            /* `leftIcon` rather than an icon in the children: children render
-               into one span, where an svg and a string stack. The icon slot is
-               its own element beside the text, in the button's own flex row. */
-            leftIcon={<Plus aria-hidden="true" />}
-            scheme="neutral"
-            size="small"
-            variant="outlined"
-            onClick={() => setOpened(rowCount + 1)}
-          >
-            Add fallback
-          </Button>
-        )}
+        {/* Kept at the limit rather than removed. A control that disappears
+            reads as a bug in the control; one that answers is the app saying
+            no, once, where the click was. */}
+        <Button
+          aria-label={`Add a fallback to ${font.name}`}
+          className="h-8!"
+          /* `leftIcon` rather than an icon in the children: children render
+             into one span, where an svg and a string stack. The icon slot is
+             its own element beside the text, in the button's own flex row. */
+          leftIcon={<Plus aria-hidden="true" />}
+          scheme="neutral"
+          size="small"
+          variant="outlined"
+          onClick={() => {
+            if (rowCount >= MAX_FALLBACKS) {
+              showToast({
+                body: `A stack holds ${MAX_FALLBACKS} fallbacks. Remove one to add another.`,
+                /* Deduped, so leaning on the button says it once. */
+                uniqueID: `fallback-limit-${font.id}`,
+              });
+              return;
+            }
+            setOpened(rowCount + 1);
+          }}
+        >
+          Add fallback
+        </Button>
         {canRemove && (
           <Button
             aria-label={`Remove ${font.name} font`}

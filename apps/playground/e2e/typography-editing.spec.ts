@@ -830,8 +830,20 @@ test.describe("Fallbacks", () => {
       ).toBeVisible();
     }
 
-    /* Nothing to add a fourth into, so nothing offers to. */
-    await expect(addButton(settings)).toBeHidden();
+    /* The button stays. A control that vanishes reads as a bug in the
+       control; one that answers says no where the click was. */
+    await expect(addButton(settings)).toBeVisible();
+    await addButton(settings).click();
+    /* The toast itself, not the live region that announces it — the same
+       words are in the DOM twice by design. */
+    await expect(
+      page.getByLabel("Notifications").getByText(/A stack holds 3 fallbacks/),
+    ).toBeVisible();
+
+    /* And no fourth row came of it. */
+    await expect(
+      settings.getByLabel("Base fallback 4", { exact: true }),
+    ).toHaveCount(0);
   });
 
   test("keeps the rows a stored stack has, across a reload", async ({
