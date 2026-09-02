@@ -1,14 +1,11 @@
 import {
   DEFAULT_SPECIMEN_TEXT as PACKAGE_SPECIMEN_TEXT,
   DEFAULT_TYPE_SCALE_UNIT,
-  LEGACY_PALETTE_STORAGE_KEY,
-  LEGACY_TYPOGRAPHY_STORAGE_KEY,
-  WORKSPACE_STORAGE_KEY,
-  loadWorkspace,
-  retireLegacyKeys,
+  browserWorkspaceStorage,
+  loadStoredWorkspace,
+  updateStoredWorkspace,
   withSharedName,
   withTypographySlice,
-  type WorkspaceLoadInput,
   type PaletteProjectData,
   type TypeScaleUnit,
   type TypeSystem,
@@ -31,33 +28,6 @@ export interface TypographyProject {
   template: PreviewTemplateId;
 }
 
-/* Every key the workspace can come from, so loadWorkspace decides which one
-   wins rather than this module guessing. */
-function readStorageKeys(): WorkspaceLoadInput {
-  return {
-    workspace: window.localStorage.getItem(WORKSPACE_STORAGE_KEY),
-    legacyPalette: window.localStorage.getItem(LEGACY_PALETTE_STORAGE_KEY),
-    legacyTypography: window.localStorage.getItem(
-      LEGACY_TYPOGRAPHY_STORAGE_KEY,
-    ),
-  };
-}
-
-/**
- * Load the workspace, and retire the keys it grew out of.
- *
- * The retirement is here rather than at each read because every read comes
- * through this. It removes nothing until the workspace key holds something that
- * reads back, so a migration that has not been persisted yet keeps its source;
- * and the input above is gathered before the removal, so the load this call is
- * part of still sees whatever it needed.
- */
-function loadStoredWorkspace() {
-  const input = readStorageKeys();
-  retireLegacyKeys(window.localStorage);
-  return loadWorkspace(input);
-}
-
 /* The workspace name as this tab last saw it. See the note in PaletteStudio:
    only the tab that changed the name may write it. */
 let adoptedName: string | null = null;
@@ -68,7 +38,7 @@ export function readStoredPalette(): PaletteProjectData | null {
     /* No withSharedName here. It exists to push the workspace name into the
        typography slice, and the palette slice has no name to receive — this
        call read as though it did. What the preview wants is the colours. */
-    return loadStoredWorkspace().project?.palette ?? null;
+    return loadStoredWorkspace(browserWorkspaceStorage())?.palette ?? null;
   } catch {
     return null;
   }
@@ -76,7 +46,7 @@ export function readStoredPalette(): PaletteProjectData | null {
 
 export function readStoredProject(): TypographyProject | null {
   try {
-    const workspace = loadStoredWorkspace().project;
+    const workspace = loadStoredWorkspace(browserWorkspaceStorage());
     adoptedName = workspace?.name ?? null;
     /* Adopt the workspace name: it is one name, and the other studio may have
        set it. */
@@ -111,20 +81,15 @@ function narrowTemplate(
  * new type scale never costs someone their palette.
  */
 export function writeStoredProject(project: TypographyProject | null): void {
-  try {
-    const current = loadStoredWorkspace().project;
+  const next = updateStoredWorkspace(browserWorkspaceStorage(), (current) => {
     const renamedHere = !!project && project.system.name !== adoptedName;
-    const next = withSharedName(
+    return withSharedName(
       withTypographySlice(
         current,
         project,
         renamedHere ? project.system.name : undefined,
       ),
     );
-    adoptedName = next.name;
-    window.localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(next));
-  } catch {
-    /* A storage that will not take a write is not something the studio can
-       resolve, and losing the session is worse than losing the save. */
-  }
+  });
+  if (next) adoptedName = next.name;
 }
