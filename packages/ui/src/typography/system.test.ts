@@ -16,6 +16,8 @@ import {
   removeRole,
   renameGroup,
   setGoogleFont,
+  removeFontSlot,
+  MAX_FALLBACKS,
   slotSource,
   familyForSlot,
   localSlots,
@@ -733,5 +735,122 @@ describe("setLocalFont", () => {
       { fontId: "base", slot: "primary", family: "Brand-Latin" },
       { fontId: "base", slot: "fallback", family: "Brand-Thai" },
     ]);
+  });
+});
+
+describe("three fallbacks behind a primary", () => {
+  /* An uploaded Latin face, then Thai, Arabic and Devanagari behind it. The
+     files are what make the slot names load-bearing: each one is stored under
+     the slot it belongs to. */
+  const stacked = () =>
+    system({
+      fonts: [
+        {
+          id: "base",
+          name: "Base",
+          families: [
+            "Brand",
+            "Noto Thai",
+            "Noto Arabic",
+            "Noto Deva",
+            "sans-serif",
+          ],
+          sources: {
+            primary: "local",
+            fallback: "google",
+            fallback2: "local",
+            fallback3: "google",
+          },
+        },
+      ],
+    });
+
+  it("reads each fallback back out of the slot it was put in", () => {
+    const font = stacked().fonts[0]!;
+    expect(familyForSlot(font, "fallback")).toBe("Noto Thai");
+    expect(familyForSlot(font, "fallback2")).toBe("Noto Arabic");
+    expect(familyForSlot(font, "fallback3")).toBe("Noto Deva");
+  });
+
+  it("takes no more than the slots it has", () => {
+    expect(MAX_FALLBACKS).toBe(3);
+  });
+
+  it("closes the gap when a fallback in the middle goes", () => {
+    /* The families array is what the browser reads in order, so a hole would
+       put Devanagari where Arabic was for CSS while this still called it
+       fallback3. */
+    const { system: after } = removeFontSlot(stacked(), "base", "fallback2");
+    const font = after.fonts[0]!;
+
+    expect(font.families).toEqual([
+      "Brand",
+      "Noto Thai",
+      "Noto Deva",
+      "sans-serif",
+    ]);
+    expect(familyForSlot(font, "fallback2")).toBe("Noto Deva");
+    expect(familyForSlot(font, "fallback3")).toBe("");
+  });
+
+  it("moves the sources up with the families they describe", () => {
+    const { system: after } = removeFontSlot(stacked(), "base", "fallback");
+    const font = after.fonts[0]!;
+
+    /* Arabic was the uploaded one. It is in the first fallback slot now, and
+       its source has to be there with it or the entry claims a file for the
+       wrong family. */
+    expect(familyForSlot(font, "fallback")).toBe("Noto Arabic");
+    expect(slotSource(font, "fallback")).toBe("local");
+    expect(font.sources.fallback3).toBeUndefined();
+  });
+
+  it("reports the uploaded files that a removal leaves under the wrong key", () => {
+    const { fileMoves } = removeFontSlot(stacked(), "base", "fallback");
+
+    /* Only fallback2 had a file. fallback3 is a Google family, so there is
+       nothing of its own to move. */
+    expect(fileMoves).toEqual([{ from: "fallback2", to: "fallback" }]);
+  });
+
+  it("reports nothing to move when the removal is the last slot", () => {
+    const { fileMoves } = removeFontSlot(stacked(), "base", "fallback3");
+    expect(fileMoves).toEqual([]);
+  });
+
+  it("leaves the entry alone when the slot is already empty", () => {
+    const before = system({
+      fonts: [
+        {
+          id: "base",
+          name: "Base",
+          families: ["Inter"],
+          sources: { primary: "google" },
+        },
+      ],
+    });
+    const { system: after, fileMoves } = removeFontSlot(
+      before,
+      "base",
+      "fallback2",
+    );
+
+    expect(after).toBe(before);
+    expect(fileMoves).toEqual([]);
+  });
+
+  it("keeps the generic the stack already had", () => {
+    const before = system({
+      fonts: [
+        {
+          id: "base",
+          name: "Base",
+          families: ["Lora", "Noto Thai", "serif"],
+          sources: { primary: "google", fallback: "google" },
+        },
+      ],
+    });
+    const { system: after } = removeFontSlot(before, "base", "fallback");
+    expect(after.fonts[0]!.families).toEqual(["Lora", "serif"]);
   });
 });

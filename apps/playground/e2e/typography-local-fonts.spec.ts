@@ -1,6 +1,10 @@
 import { expect, test } from "./typography-fixtures";
 
 const FILE = "e2e/fixtures-files/Brand-Regular.woff2";
+/* A second file, because a stack dedupes its families: the same file in two
+   slots is one family, and the entry this describes — an uploaded Latin face
+   in front of an uploaded Thai one — needs two of them to exist at all. */
+const THAI_FILE = "e2e/fixtures-files/Brand-Thai.woff2";
 
 /*
  * The upload inputs are named per slot now, so two of them can sit in one
@@ -10,8 +14,8 @@ const FILE = "e2e/fixtures-files/Brand-Regular.woff2";
 const PRIMARY_UPLOAD = "Upload Base font file";
 const PRIMARY_REPLACE = "Replace Base font file";
 const PRIMARY_ADD_MISSING = "Add the missing Base font file";
-const FALLBACK_UPLOAD = "Upload Base Thai fallback file";
-const FALLBACK_REPLACE = "Replace Base Thai fallback file";
+const FALLBACK_UPLOAD = "Upload Base fallback 1 file";
+const FALLBACK_REPLACE = "Replace Base fallback 1 file";
 
 /** The first font entry as the workspace has it stored, not as state has it. */
 const storedEntry = (page: import("@playwright/test").Page) =>
@@ -27,8 +31,8 @@ const storedEntry = (page: import("@playwright/test").Page) =>
  * them, so the upload input does not exist until this runs.
  */
 async function openFallback(scope: import("@playwright/test").Locator) {
-  const add = scope.getByRole("button", { name: /^Add a fallback for / });
-  if ((await add.count()) > 0) await add.click();
+  const add = scope.getByRole("button", { name: /^Add a fallback to / });
+  if ((await add.count()) > 0) await add.first().click();
 }
 
 const registeredFamilies = (page: import("@playwright/test").Page) =>
@@ -153,7 +157,7 @@ test.describe("An upload in each slot", () => {
     await settings.getByLabel(PRIMARY_UPLOAD).setInputFiles(FILE);
     await expect(settings.getByLabel(PRIMARY_REPLACE)).toBeVisible();
     await openFallback(settings);
-    await settings.getByLabel(FALLBACK_UPLOAD).setInputFiles(FILE);
+    await settings.getByLabel(FALLBACK_UPLOAD).setInputFiles(THAI_FILE);
     /* The same signal the primary is waited on for above: a slot offers to
        replace its file once it has one. Without it the read below raced the
        upload it was reading the result of. */
@@ -167,10 +171,12 @@ test.describe("An upload in each slot", () => {
       .poll(() => storedEntry(page).then((entry) => entry.sources))
       .toEqual({ primary: "local", fallback: "local" });
 
-    /* The upload names the family after the file, so both slots land on the
-       same name here — deduped, which is the honest stack for one file used
-       twice. What matters is that neither slot overwrote the other's source. */
-    expect((await storedEntry(page)).families[0]).toBe("Brand-Regular");
+    /* Two files, two families, in the order they were uploaded. What matters
+       is that neither slot overwrote the other's source or its family. */
+    expect((await storedEntry(page)).families.slice(0, 2)).toEqual([
+      "Brand-Regular",
+      "Brand-Thai",
+    ]);
   });
 
   test("a fallback upload leaves the primary alone", async ({
@@ -184,7 +190,7 @@ test.describe("An upload in each slot", () => {
     /* The bug this whole change exists to make impossible: before slots, the
        one upload input rewrote the entire stack. */
     await openFallback(settings);
-    await settings.getByLabel(FALLBACK_UPLOAD).setInputFiles(FILE);
+    await settings.getByLabel(FALLBACK_UPLOAD).setInputFiles(THAI_FILE);
 
     await expect(settings.getByLabel(PRIMARY_REPLACE)).toBeVisible();
   });

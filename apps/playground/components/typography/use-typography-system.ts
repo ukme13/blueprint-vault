@@ -5,6 +5,7 @@ import {
   addRole,
   moveGroup,
   removeFont,
+  removeFontSlot,
   removeGroup,
   removeRole,
   renameFont,
@@ -37,6 +38,8 @@ export interface TypographySystemActions {
   addGroup: () => void;
   addFont: () => void;
   removeFont: (id: string) => void;
+  /** Take one fallback out of a stack, closing the gap behind it. */
+  removeFontSlot: (id: string, slot: FontSlot) => void;
   renameFont: (id: string, name: string) => void;
   setGoogleFont: (
     id: string,
@@ -93,6 +96,8 @@ export function useTypographySystem(
       addGroup: () => editSystem(addGroup),
       addFont: () => editSystem(addFont),
       removeFont: (id) => editSystem((system) => removeFont(system, id)),
+      removeFontSlot: (id, slot) =>
+        editSystem((system) => removeFontSlot(system, id, slot).system),
       renameFont: (id, name) =>
         editSystem((system) => renameFont(system, id, name)),
       setGoogleFont: (id, slot, family, generic) =>

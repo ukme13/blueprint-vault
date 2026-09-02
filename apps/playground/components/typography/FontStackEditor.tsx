@@ -1,15 +1,15 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Trash2 } from "lucide-react";
-import { Selector } from "@astryxdesign/core/Selector";
+import { useRef, useState, type RefObject } from "react";
+import { Plus, Trash2, X } from "lucide-react";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import {
   Button,
-  FONT_SCRIPTS,
-  findGoogleFont,
+  FALLBACK_SLOTS,
+  MAX_FALLBACKS,
+  canPreviewFamily,
   familyForSlot,
-  fontStackNotice,
+  findGoogleFont,
   fontUploadAction,
   genericForCategory,
   isLocalSlot,
@@ -22,36 +22,18 @@ import type { LocalFontStatus } from "./use-local-fonts";
 import styles from "./typography-workspace.module.css";
 
 /**
- * Edit one font as a primary family plus a bilingual fallback.
+ * Edit one font as a primary family and up to three fallbacks behind it.
  *
- * A stack is three slots in practice: the family you want, a family that covers
- * the other script when the first does not, and a generic so something always
- * renders. The generic is appended rather than asked for, because it follows
- * from the primary's category.
+ * CSS falls back per glyph, so a stack is an ordered list and nothing here
+ * has to detect a script: whichever family first has the glyph renders it.
+ * That is also why the studio does not check what a fallback covers. A
+ * designer picking one is testing something, and a check that thinks it knows
+ * better is a check in the way.
  *
- * Thai is the case at hand, but the same problem exists for Arabic,
- * Devanagari, Korean and the rest — hence a script picker rather than a Thai
- * switch.
+ * The whole entry is a card because a stack is read as a unit — which family
+ * comes first matters, and a flat list of fields does not say where one entry
+ * ends and the next begins.
  */
-
-const DEFAULT_SCRIPT = "thai";
-
-/*
- * The generic list moved to `@blueprint/ui`. `setLocalFont` needs the same
- * answer when it keeps a stack's existing generic, and two copies of "is this
- * a real family" would eventually disagree.
- *
- * Why it matters here: a migrated stack of ["Geist Sans", "ui-sans-serif",
- * "system-ui"] has no fallback font, and treating `ui-sans-serif` as one hid
- * the warning that the primary covers no Thai.
- */
-
-function label(script: string): string {
-  return script
-    .split("-")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
 
 interface FontStackEditorProps {
   font: TypeFont;
@@ -61,6 +43,8 @@ interface FontStackEditorProps {
   onPick: (slot: FontSlot, family: string, generic: string) => void;
   onRename: (name: string) => void;
   onRemove: () => void;
+  /** Takes one fallback out, closing the gap behind it. */
+  onRemoveSlot: (slot: FontSlot) => void;
   /** Hands the picked file up; the studio stores it and names the family. */
   onUpload: (slot: FontSlot, file: File) => void;
   /** Why the last picked file was refused, per slot. */
@@ -75,61 +59,93 @@ export function FontStackEditor({
   onPick,
   onRename,
   onRemove,
+  onRemoveSlot,
   onUpload,
   fileStatus,
   uploadError,
 }: FontStackEditorProps) {
-  const [script, setScript] = useState(DEFAULT_SCRIPT);
   /* One per slot, so the row pinned in each picker's menu reaches that slot's
      input and no other. This is the same separation the inputs themselves
-     have, carried through to what opens them. */
-  const primaryFileRef = useRef<HTMLInputElement | null>(null);
-  const fallbackFileRef = useRef<HTMLInputElement | null>(null);
+     have, carried through to what opens them.
+
+     Built once for every slot rather than per rendered row: a ref created
+     while rendering a row would be a new object each time, and the picker
+     that opens it would be holding last render's. */
+  const primaryFile = useRef<HTMLInputElement | null>(null);
+  const firstFile = useRef<HTMLInputElement | null>(null);
+  const secondFile = useRef<HTMLInputElement | null>(null);
+  const thirdFile = useRef<HTMLInputElement | null>(null);
+  /* Four refs by hand rather than a map in one: the record is built here and
+     handed on, and nothing reads a `current` while rendering. */
+  const fileRefs: Record<FontSlot, RefObject<HTMLInputElement | null>> = {
+    primary: primaryFile,
+    fallback: firstFile,
+    fallback2: secondFile,
+    fallback3: thirdFile,
+  };
+  const fileRef = (slot: FontSlot) => fileRefs[slot];
 
   const primary = familyForSlot(font, "primary");
-  const fallback = familyForSlot(font, "fallback");
   const primaryFont = findGoogleFont(primary);
   const generic = primaryFont
     ? genericForCategory(primaryFont.category)
     : "sans-serif";
-
-  const covered = primaryFont?.scripts.includes(script) ?? false;
   const primaryIsLocal = isLocalSlot(font, "primary");
 
-  /* Which of the three notes applies, decided in @blueprint/ui so that only
-     one of them can. Two used to be able to fire together, and the second was
-     guessing about a family it had never seen. */
-  const notice = fontStackNotice({
-    primary,
-    isPrimaryKnown: !!primaryFont,
-    isPrimaryLocal: primaryIsLocal,
-    coversScript: covered,
-    hasFallback: !!fallback,
+  /* What a family covers is the designer's business. Whether this preview can
+     load it at all is ours, and is the one thing left worth saying. */
+  const isPreviewable = canPreviewFamily({
+    family: primary,
+    isInCatalogue: !!primaryFont,
+    isLocal: primaryIsLocal,
   });
 
-  /* The fallback is three controls that a Latin-only stack never touches, so
-     it opens on demand. A stack that already has one is past the question.
+  /* How many fallback rows to show.
 
-     The script stays out of the collapse. It defaults to Thai, which is a
-     guess, and hiding it would leave somebody who cares about Arabic reading
-     a note about Thai with no way to see it was about the wrong script. */
-  const [wasOpened, setWasOpened] = useState(false);
-  const isFallbackOpen = !!fallback || wasOpened;
+     The stored families decide it, so a reload, an import and an undo all
+     show the rows the stack actually has. `opened` is only for the row that
+     has just been added and holds nothing yet: an empty slot cannot be
+     stored, because the families array is the ordered list the browser reads
+     and a blank entry in it would be a family called "". */
+  const [opened, setOpened] = useState(0);
+  const filled = FALLBACK_SLOTS.filter((slot) => familyForSlot(font, slot));
+  const rowCount = Math.min(Math.max(filled.length, opened), MAX_FALLBACKS);
+  const rows = FALLBACK_SLOTS.slice(0, rowCount);
 
   /* The verb is shared between the row someone reads and the `aria-label` on
      the input it clicks, so the two cannot disagree about which state a slot
-     is in. The slot's name stays out of the row: inside a menu opened from
-     this field it would only repeat the field's own label. */
-  const primaryName = `${font.name} font`;
-  const fallbackName = `${font.name} ${label(script)} fallback`;
-  const primaryAction = fontUploadAction(primaryIsLocal, fileStatus("primary"));
-  const fallbackAction = fontUploadAction(
-    isLocalSlot(font, "fallback"),
-    fileStatus("fallback"),
+     is in. */
+  const slotName = (slot: FontSlot) =>
+    slot === "primary"
+      ? `${font.name} font`
+      : `${font.name} fallback ${FALLBACK_SLOTS.indexOf(slot) + 1}`;
+
+  const uploadFor = (slot: FontSlot) => (
+    <FontUploadField
+      action={fontUploadAction(isLocalSlot(font, slot), fileStatus(slot))}
+      family={familyForSlot(font, slot)}
+      fileStatus={fileStatus(slot)}
+      generic={generic}
+      inputRef={fileRef(slot)}
+      isLocal={isLocalSlot(font, slot)}
+      name={slotName(slot)}
+      uploadError={uploadError(slot)}
+      onUpload={(file) => onUpload(slot, file)}
+    />
   );
 
   return (
-    <div className={styles.fontStack}>
+    <section
+      /* A stack is read as a unit — which family comes first is the whole
+         meaning — so the entry is a card rather than a run of fields with a
+         rule between them. Utilities rather than the module beside it: the
+         card is new, and the module is not being rewritten around it. */
+      aria-label={`${font.name} stack`}
+      /* `fontStack` carries no layout any more. It is the scope the module
+         hangs the upload-row separator inside the Typeahead menu on, and that
+         menu is Astryx's — there is no prop for it. */
+      className={`${styles.fontStack} flex flex-col gap-2 rounded-lg border border-border-base p-3`}
+    >
       <div className={styles.fontStackRow}>
         <div className={styles.fontStackField}>
           <TextInput
@@ -141,6 +157,19 @@ export function FontStackEditor({
             onChange={onRename}
           />
         </div>
+        {rowCount < MAX_FALLBACKS && (
+          <Button
+            aria-label={`Add a fallback to ${font.name}`}
+            className="h-8!"
+            scheme="neutral"
+            size="small"
+            variant="outlined"
+            onClick={() => setOpened(rowCount + 1)}
+          >
+            <Plus aria-hidden="true" className="size-4!" />
+            Add fallback
+          </Button>
+        )}
         {canRemove && (
           <Button
             aria-label={`Remove ${font.name} font`}
@@ -160,105 +189,52 @@ export function FontStackEditor({
 
       <GoogleFontPicker
         family={primary}
-        label={primaryName}
+        label={slotName("primary")}
         /* An info icon at the end of the label, which is where Astryx puts a
            note about the field rather than about what was entered. It is a
            standing fact about the family, not something to fix. */
         labelTooltip={
-          notice === "not-in-catalogue"
-            ? `${primary} is not a Google font, so it is not loaded here. It still applies wherever it is installed.`
-            : undefined
+          isPreviewable
+            ? undefined
+            : `${primary} is not a Google font, so it is not loaded here. It still applies wherever it is installed.`
         }
         placeholder="Search Google Fonts"
-        uploadLabel={`${primaryAction} font`}
+        uploadLabel={`${fontUploadAction(primaryIsLocal, fileStatus("primary"))} font`}
         onPick={(picked) => onPick("primary", picked?.family ?? "", generic)}
-        onUpload={() => primaryFileRef.current?.click()}
+        onUpload={() => fileRef("primary").current?.click()}
       />
-      <FontUploadField
-        action={primaryAction}
-        family={primary}
-        fileStatus={fileStatus("primary")}
-        generic={generic}
-        inputRef={primaryFileRef}
-        isLocal={primaryIsLocal}
-        name={primaryName}
-        uploadError={uploadError("primary")}
-        onUpload={(file) => onUpload("primary", file)}
-      />
+      {uploadFor("primary")}
 
-      <div className={styles.fontStackRow}>
-        <div className={styles.fontStackField}>
-          {isFallbackOpen ? (
-            <GoogleFontPicker
-              family={fallback}
-              label={`${font.name} bilingual fallback`}
-              /* The reassurance sits here rather than under the row, because
-                 what it explains is why this field may be left alone. */
-              labelTooltip={
-                notice === "covers-script"
-                  ? `${primary} already covers ${label(script)}, so a fallback is optional.`
-                  : undefined
-              }
-              placeholder={`Covers ${label(script)}`}
-              script={script}
-              uploadLabel={`${fallbackAction} font`}
-              onPick={(picked) =>
-                onPick("fallback", picked?.family ?? "", generic)
-              }
-              onUpload={() => fallbackFileRef.current?.click()}
-            />
-          ) : (
+      {rows.map((slot) => (
+        <div key={slot} className="flex flex-col gap-2">
+          <div className={styles.fontStackRow}>
+            <div className={styles.fontStackField}>
+              <GoogleFontPicker
+                family={familyForSlot(font, slot)}
+                label={slotName(slot)}
+                placeholder="Search Google Fonts"
+                uploadLabel={`${fontUploadAction(isLocalSlot(font, slot), fileStatus(slot))} font`}
+                onPick={(picked) => onPick(slot, picked?.family ?? "", generic)}
+                onUpload={() => fileRef(slot).current?.click()}
+              />
+            </div>
             <Button
-              className={styles.fontStackAdd}
+              aria-label={`Remove ${slotName(slot)}`}
+              className="h-8! w-8! [&_svg]:size-4!"
               scheme="neutral"
-              size="small"
-              variant="outlined"
-              onClick={() => setWasOpened(true)}
+              size="icon"
+              variant="ghost"
+              onClick={() => {
+                setOpened(rowCount - 1);
+                onRemoveSlot(slot);
+              }}
             >
-              {/* "Add a Thai fallback" reads fine and "Add a Arabic
-                  fallback" does not, so the script goes after the noun and
-                  no script needs an article. */}
-              Add a fallback for {label(script)}
+              <X aria-hidden="true" />
             </Button>
-          )}
+          </div>
+          {uploadFor(slot)}
         </div>
-        <div className={styles.fontStackScript}>
-          <Selector
-            isLabelHidden
-            label={`${font.name} fallback script`}
-            options={FONT_SCRIPTS.map((name) => ({
-              label: label(name),
-              value: name,
-            }))}
-            value={script}
-            onChange={setScript}
-          />
-        </div>
-      </div>
-
-      {isFallbackOpen && (
-        <FontUploadField
-          action={fallbackAction}
-          family={fallback}
-          fileStatus={fileStatus("fallback")}
-          generic={generic}
-          inputRef={fallbackFileRef}
-          isLocal={isLocalSlot(font, "fallback")}
-          name={fallbackName}
-          uploadError={uploadError("fallback")}
-          onUpload={(file) => onUpload("fallback", file)}
-        />
-      )}
-
-      {/* The one note that asks for something stays as text, and in both
-          states, because it is the reason to open the field at all. The
-          other two are facts, and sit in their field's label instead. */}
-      {notice === "missing-glyphs" && (
-        <p className={styles.fontStackHint} data-missing="true">
-          {primary} has no {label(script)} glyphs. Without a fallback the
-          browser substitutes a system font.
-        </p>
-      )}
-    </div>
+      ))}
+    </section>
   );
 }

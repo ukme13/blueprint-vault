@@ -249,15 +249,37 @@ export function isHeadingGroup(group: Pick<TypeGroup, "id">): boolean {
 export type TypeFontSource = "google" | "local" | "system";
 
 /**
- * The two named slots in a stack.
+ * The named slots in a stack.
  *
- * A stack is these two plus a generic. The generic is not a slot: it is
- * appended from the primary's category rather than chosen, and nobody uploads
- * a file for `sans-serif`.
+ * A stack is a primary, up to three fallbacks, and a generic. The generic is
+ * not a slot: it is appended from the primary's category rather than chosen,
+ * and nobody uploads a file for `sans-serif`.
+ *
+ * The first fallback is `fallback` rather than `fallback1`, which is not
+ * tidiness — it is what every project saved before there were three of them
+ * already has, in `sources` and in the key its uploaded file is stored under.
+ * Renaming it would mean a migration that moves files, and the payment for
+ * that is one inconsistent name.
  */
-export type FontSlot = "primary" | "fallback";
+export type FontSlot = "primary" | "fallback" | "fallback2" | "fallback3";
 
-export const FONT_SLOTS: readonly FontSlot[] = ["primary", "fallback"];
+export const FONT_SLOTS: readonly FontSlot[] = [
+  "primary",
+  "fallback",
+  "fallback2",
+  "fallback3",
+];
+
+/** The slots behind the primary, in the order the browser tries them. */
+export const FALLBACK_SLOTS: readonly FontSlot[] = FONT_SLOTS.slice(1);
+
+/** How many families can sit behind the primary. */
+export const MAX_FALLBACKS = FALLBACK_SLOTS.length;
+
+/** Where a slot sits in the stack, counting the primary as 0. */
+export function slotIndex(slot: FontSlot): number {
+  return FONT_SLOTS.indexOf(slot);
+}
 
 export interface TypeFont {
   id: string;
@@ -765,8 +787,7 @@ export function familyForSlot(
   font: Pick<TypeFont, "families">,
   slot: FontSlot,
 ): string {
-  const named = namedFamilies(font);
-  return (slot === "primary" ? named[0] : named[1]) ?? "";
+  return namedFamilies(font)[slotIndex(slot)] ?? "";
 }
 
 /** Where one slot's family came from. */
@@ -800,29 +821,88 @@ export function localSlots(
   );
 }
 
+/** One named slot of a stack, with where its family came from. */
+interface SlotEntry {
+  family: string;
+  /** Absent for a slot nothing ever recorded a source for. */
+  source?: TypeFontSource;
+}
+
+/** A stack read back as its named slots, in order. */
+function slotEntries(font: TypeFont): SlotEntry[] {
+  return namedFamilies(font).map((family, index) => ({
+    family,
+    source: font.sources[FONT_SLOTS[index]!],
+  }));
+}
+
 /**
- * Rebuild a stack with one slot replaced.
+ * Rebuild a stack from its slots.
  *
- * The whole stack is written, but from the two slots rather than from the
- * caller — which is what stops setting one of them from dropping the other.
+ * Empty slots are dropped rather than kept as holes, so the families array
+ * stays the ordered list the browser reads. That is also why `sources` is
+ * rebuilt from the position each family ends up in: closing a gap moves
+ * everything behind it up a slot, and a source left on its old key would
+ * describe the wrong family.
+ *
  * The generic goes last and is kept if the stack already had one, so a serif
  * stack does not come back sans-serif.
  */
-function stackFor(
+function fontFromSlots(
   font: TypeFont,
-  slot: FontSlot,
-  family: string,
+  entries: SlotEntry[],
   generic: string,
-): string[] {
-  const primary = slot === "primary" ? family : familyForSlot(font, "primary");
-  const fallback =
-    slot === "fallback" ? family : familyForSlot(font, "fallback");
+): TypeFont {
+  const kept = entries
+    .filter((entry) => entry.family.length > 0)
+    /* A family named twice is one family. Deduped here rather than at the end
+       so the source that survives is the one in front. */
+    .filter(
+      (entry, index, all) =>
+        all.findIndex((other) => other.family === entry.family) === index,
+    )
+    .slice(0, FONT_SLOTS.length);
+
   const existingGeneric = font.families.filter(isGenericFamily);
   const tail = existingGeneric.length > 0 ? existingGeneric : [generic];
 
-  return [primary, fallback, ...tail].filter(
-    (entry, index, all) => entry.length > 0 && all.indexOf(entry) === index,
-  );
+  const sources: TypeFont["sources"] = {};
+  kept.forEach((entry, index) => {
+    if (entry.source) sources[FONT_SLOTS[index]!] = entry.source;
+  });
+
+  return {
+    ...font,
+    families: [...kept.map((entry) => entry.family), ...tail],
+    sources,
+  };
+}
+
+/** A stored file that has to follow its family to a new slot. */
+export interface SlotFileMove {
+  from: FontSlot;
+  to: FontSlot;
+}
+
+/**
+ * Which uploaded files a slot removal leaves under the wrong key.
+ *
+ * Only local slots, because they are the only ones with a file behind them.
+ * Everything after the removed slot moves up one; the caller moves the bytes,
+ * which is not something a pure function can do.
+ */
+export function fallbackFileMoves(
+  font: TypeFont,
+  removed: FontSlot,
+): SlotFileMove[] {
+  const from = slotIndex(removed);
+  return slotEntries(font)
+    .map((entry, index) => ({ entry, index }))
+    .filter(({ entry, index }) => index > from && entry.source === "local")
+    .map(({ index }) => ({
+      from: FONT_SLOTS[index]!,
+      to: FONT_SLOTS[index - 1]!,
+    }));
 }
 
 /**
@@ -845,18 +925,52 @@ export function setSlotFamily(
     fonts: system.fonts.map((font) => {
       if (font.id !== fontId) return font;
 
-      const sources = { ...font.sources };
-      if (family) sources[slot] = source;
-      /* An emptied slot loses its source too, or a cleared upload would leave
-         the entry claiming a file that nothing points at. */
-      else delete sources[slot];
+      const entries = slotEntries(font);
+      const index = slotIndex(slot);
+      while (entries.length <= index) entries.push({ family: "" });
+      /* An emptied slot loses its source with it, or the entry would claim a
+         file that nothing points at. */
+      entries[index] = family ? { family, source } : { family: "" };
 
-      return {
-        ...font,
-        families: stackFor(font, slot, family, generic),
-        sources,
-      };
+      return fontFromSlots(font, entries, generic);
     }),
+  };
+}
+
+/**
+ * Take one family out of a stack, closing the gap behind it.
+ *
+ * Removal rather than emptying, because the families array is what the
+ * browser reads in order: leaving a hole at slot two would put the third
+ * fallback where the second was for CSS and leave it named `fallback3` here,
+ * and the two would disagree from then on.
+ *
+ * The moves come back with the system because the bytes of an uploaded file
+ * live outside it, under a key naming the slot. Applying one without the
+ * other leaves a file orphaned or a slot pointing at nothing.
+ */
+export function removeFontSlot(
+  system: TypeSystem,
+  fontId: string,
+  slot: FontSlot,
+): { system: TypeSystem; fileMoves: SlotFileMove[] } {
+  const font = system.fonts.find((entry) => entry.id === fontId);
+  if (!font) return { system, fileMoves: [] };
+
+  const entries = slotEntries(font);
+  const index = slotIndex(slot);
+  if (index >= entries.length) return { system, fileMoves: [] };
+
+  const fileMoves = fallbackFileMoves(font, slot);
+  entries.splice(index, 1);
+  const next = fontFromSlots(font, entries, "sans-serif");
+
+  return {
+    system: {
+      ...system,
+      fonts: system.fonts.map((entry) => (entry.id === fontId ? next : entry)),
+    },
+    fileMoves,
   };
 }
 

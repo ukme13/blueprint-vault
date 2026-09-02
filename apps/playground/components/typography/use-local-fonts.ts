@@ -85,7 +85,32 @@ export async function forgetFontSlot(
   }
 }
 
-/** Forget every file an entry holds, in both slots. */
+/**
+ * Move a stored file to the slot its family moved to.
+ *
+ * Removing a fallback closes the gap behind it, so everything after it is a
+ * slot further forward than the key its bytes are under. Read, write, delete,
+ * in that order: a crash between the write and the delete leaves a duplicate,
+ * which the next removal cleans up, while the other order can lose the file.
+ */
+export async function moveLocalFont(
+  fontId: string,
+  from: FontSlot,
+  to: FontSlot,
+): Promise<void> {
+  try {
+    const store = fontFileStore();
+    const stored = await store.get(localFontKey(fontId, from));
+    if (!stored) return;
+    await store.put({ ...stored, id: localFontKey(fontId, to) });
+    await store.remove(localFontKey(fontId, from));
+  } catch {
+    /* Storage unavailable. The family still renders from the face already
+       registered for this session. */
+  }
+}
+
+/** Forget every file an entry holds, in every slot. */
 export async function forgetFontEntry(fontId: string): Promise<void> {
   for (const slot of FONT_SLOTS) await forgetFontSlot(fontId, slot);
 }

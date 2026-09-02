@@ -38,6 +38,7 @@ import {
   type TypeScaleUnit,
   type TypeSystem,
   resolveLineHeight,
+  fallbackFileMoves,
   isLocalSlot,
   localFontKey,
 } from "@blueprint/ui";
@@ -63,6 +64,7 @@ import { useGoogleFontsLink } from "./use-google-fonts";
 import {
   forgetFontEntry,
   forgetFontSlot,
+  moveLocalFont,
   forgetLocalFonts,
   storeLocalFont,
   useLocalFonts,
@@ -153,6 +155,7 @@ export function TypographyStudio() {
     addGroup,
     addRole,
     removeFont,
+    removeFontSlot,
     removeGroup,
     removeRole,
     renameFont,
@@ -511,6 +514,29 @@ export function TypographyStudio() {
                   onRemove={() => {
                     void forgetFontEntry(font.id);
                     removeFont(font.id);
+                  }}
+                  onRemoveSlot={(slot) => {
+                    /* The file goes first, then the ones behind it follow
+                       their family forward a slot. Both before the state
+                       change, so a reload mid-way finds files under the keys
+                       the stored stack names — and in this order, because
+                       moving into the slot being emptied would overwrite the
+                       file that is on its way out. */
+                    const moves = fallbackFileMoves(font, slot);
+                    if (isLocalSlot(font, slot) || moves.length > 0) {
+                      void forgetFontSlot(font.id, slot)
+                        .then(() =>
+                          Promise.all(
+                            moves.map((move) =>
+                              moveLocalFont(font.id, move.from, move.to),
+                            ),
+                          ),
+                        )
+                        .then(() =>
+                          setFontFileRevision((current) => current + 1),
+                        );
+                    }
+                    removeFontSlot(font.id, slot);
                   }}
                   fileStatus={(slot) =>
                     localFontStatus.get(localFontKey(font.id, slot)) ??

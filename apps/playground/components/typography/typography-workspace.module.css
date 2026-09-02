@@ -625,22 +625,6 @@
   min-width: 0;
 }
 
-/* One font entry in the inspector: a name row, the two pickers, and whatever
-   hint the chosen family earns. Entries stack, so every one but the first
-   carries its own separator. */
-.fontStack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-  padding-top: var(--spacing-3);
-  border-top: var(--border-width) solid var(--color-border);
-}
-
-.fontStack:first-child {
-  padding-top: 0;
-  border-top: 0;
-}
-
 .fontStackRow {
   display: flex;
   align-items: flex-end;
@@ -652,18 +636,6 @@
      control beside it out of the row. */
   min-width: 0;
   flex: 1;
-}
-
-.fontStackScript {
-  width: 8rem;
-  flex: none;
-}
-
-.fontStackHint {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  line-height: 1.4;
 }
 
 .previewColourControls {
@@ -765,6 +737,9 @@
   white-space: nowrap;
 }
 
+/* Scope only: `.fontStack` carries no layout of its own any more. It is what
+   the two rules below reach inside the Astryx menu through. */
+
 /* Divides uploading from the catalogue below it.
    Hung on the row's own marker rather than on `:first-child`, so it cannot
    end up under a font if the row is ever absent. The dropdown is Astryx's,
@@ -826,12 +801,6 @@
   color: var(--color-warning-300);
 }
 
-/* A local font with no file behind it is expected, not broken — it reads as a
-   warning rather than an error for that reason. */
-.fontStackHint[data-missing="true"] {
-  color: var(--color-warning-300);
-}
-
 /* The one place the studio talks about licensing at the point of shipping. */
 .exportLicenceNote {
   margin: 0;
@@ -845,12 +814,4 @@
    sizes it. */
 .fontPickerField {
   display: contents;
-}
-
-/* Sits where the fallback picker sits, so opening it does not move the script
-   selector beside it. The picker carries a label above the control; this
-   button has none, hence the offset rather than a taller row. */
-.fontStackAdd {
-  width: 100%;
-  margin-top: var(--spacing-5);
 }
