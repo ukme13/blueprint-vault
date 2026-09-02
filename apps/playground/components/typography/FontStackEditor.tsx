@@ -161,12 +161,15 @@ export function FontStackEditor({
           <Button
             aria-label={`Add a fallback to ${font.name}`}
             className="h-8!"
+            /* `leftIcon` rather than an icon in the children: children render
+               into one span, where an svg and a string stack. The icon slot is
+               its own element beside the text, in the button's own flex row. */
+            leftIcon={<Plus aria-hidden="true" />}
             scheme="neutral"
             size="small"
             variant="outlined"
             onClick={() => setOpened(rowCount + 1)}
           >
-            <Plus aria-hidden="true" className="size-4!" />
             Add fallback
           </Button>
         )}
@@ -220,10 +223,13 @@ export function FontStackEditor({
             </div>
             <Button
               aria-label={`Remove ${slotName(slot)}`}
+              /* The same button as the entry's trash, with a different glyph:
+                 they do the same kind of thing at different scopes, and one of
+                 them reading as filled made it look like the louder action. */
               className="h-8! w-8! [&_svg]:size-4!"
               scheme="neutral"
               size="icon"
-              variant="ghost"
+              variant="outlined"
               onClick={() => {
                 setOpened(rowCount - 1);
                 onRemoveSlot(slot);
