@@ -51,6 +51,10 @@ export function useWorkspaceStore(): WorkspaceStore {
   }, []);
 
   useEffect(() => {
+    /* Reading storage must happen in an effect: a useState initializer would
+       run during SSR, where window does not exist, and desync hydration. The
+       cascading render the rule warns about is the one this is for. */
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     reload();
   }, [reload]);
 

@@ -1,9 +1,8 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   loadStoredWorkspace,
   saveStoredWorkspace,
   updateStoredWorkspace,
-  type WorkspaceStorage,
 } from "./store";
 import {
   LEGACY_PALETTE_STORAGE_KEY,
