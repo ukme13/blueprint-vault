@@ -1,6 +1,7 @@
 export * from "./export";
 export * from "./google-fonts";
 export * from "./line-height";
+export * from "./line-height-edit";
 export * from "./migrate";
 export * from "./presets";
 export * from "./scale";
