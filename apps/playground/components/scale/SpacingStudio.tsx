@@ -4,21 +4,19 @@ import { useEffect, useState } from "react";
 import { Slider } from "@astryxdesign/core/Slider";
 import {
   Button,
-  LEGACY_PALETTE_STORAGE_KEY,
-  LEGACY_TYPOGRAPHY_STORAGE_KEY,
   MAX_SPACING_BASE_UNIT_PX,
   MIN_SPACING_BASE_UNIT_PX,
-  WORKSPACE_STORAGE_KEY,
   defaultElevationScale,
   defaultRadiusScale,
   defaultSpacingScale,
   generateSpacingSteps,
-  loadWorkspace,
-  retireLegacyKeys,
   resolveSpacing,
   spacingStepName,
   generatePalettes,
+  browserWorkspaceStorage,
   emptyWorkspace,
+  loadStoredWorkspace,
+  updateStoredWorkspace,
   withElevationSlice,
   withRadiusSlice,
   withSharedName,
@@ -45,78 +43,34 @@ import { WorkspaceNav } from "../WorkspaceNav";
  * See docs/roadmap/scale-studio.md.
  */
 
-function readStorageKeys() {
-  return {
-    workspace: window.localStorage.getItem(WORKSPACE_STORAGE_KEY),
-    legacyPalette: window.localStorage.getItem(LEGACY_PALETTE_STORAGE_KEY),
-    legacyTypography: window.localStorage.getItem(
-      LEGACY_TYPOGRAPHY_STORAGE_KEY,
-    ),
-  };
-}
-
-/**
- * Load the workspace, and retire the keys it grew out of.
- *
- * The retirement is here rather than at each read because every read comes
- * through this. It removes nothing until the workspace key holds something that
- * reads back, so a migration that has not been persisted yet keeps its source;
- * and the input above is gathered before the removal, so the load this call is
- * part of still sees whatever it needed.
- */
-function loadStoredWorkspace() {
-  const input = readStorageKeys();
-  retireLegacyKeys(window.localStorage);
-  return loadWorkspace(input);
-}
-
 function readStoredWorkspace(): WorkspaceProject | null {
-  try {
-    return loadStoredWorkspace().project;
-  } catch {
-    return null;
-  }
+  return loadStoredWorkspace(browserWorkspaceStorage());
 }
 
 /**
- * Persist the spacing scale, and only that slice.
+ * Persist one slice, and only that slice.
  *
  * The stored workspace is re-read for the reason the other studios re-read it:
  * another tab may have moved on since this page loaded, and writing the copy we
- * hold would take its work with us.
+ * hold would take its work with us. `updateStoredWorkspace` is where that read
+ * now happens.
  */
 function writeStoredSpacing(spacing: SpacingScale): void {
-  try {
-    window.localStorage.setItem(
-      WORKSPACE_STORAGE_KEY,
-      JSON.stringify(withSpacingSlice(readStoredWorkspace(), spacing)),
-    );
-  } catch {
-    /* A storage that refuses a write is not something the studio can resolve,
-       and losing the session is worse than losing the save. */
-  }
+  updateStoredWorkspace(browserWorkspaceStorage(), (current) =>
+    withSpacingSlice(current, spacing),
+  );
 }
 
 function writeStoredRadius(radius: RadiusScale): void {
-  try {
-    window.localStorage.setItem(
-      WORKSPACE_STORAGE_KEY,
-      JSON.stringify(withRadiusSlice(readStoredWorkspace(), radius)),
-    );
-  } catch {
-    /* As above. */
-  }
+  updateStoredWorkspace(browserWorkspaceStorage(), (current) =>
+    withRadiusSlice(current, radius),
+  );
 }
 
 function writeStoredElevation(elevation: ElevationScale): void {
-  try {
-    window.localStorage.setItem(
-      WORKSPACE_STORAGE_KEY,
-      JSON.stringify(withElevationSlice(readStoredWorkspace(), elevation)),
-    );
-  } catch {
-    /* As above. */
-  }
+  updateStoredWorkspace(browserWorkspaceStorage(), (current) =>
+    withElevationSlice(current, elevation),
+  );
 }
 
 /**
@@ -128,17 +82,10 @@ function writeStoredElevation(elevation: ElevationScale): void {
  * storage disagreeing with itself.
  */
 function writeStoredName(name: string): void {
-  try {
-    const current = readStoredWorkspace() ?? emptyWorkspace();
-    window.localStorage.setItem(
-      WORKSPACE_STORAGE_KEY,
-      JSON.stringify(
-        withSharedName({ ...current, name: name.trim() || current.name }),
-      ),
-    );
-  } catch {
-    /* As above. */
-  }
+  updateStoredWorkspace(browserWorkspaceStorage(), (stored) => {
+    const current = stored ?? emptyWorkspace();
+    return withSharedName({ ...current, name: name.trim() || current.name });
+  });
 }
 
 /** Every step the ramp offers, whether or not this scale keeps it. */

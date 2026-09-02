@@ -1,23 +1,18 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
+import { useState, type CSSProperties } from "react";
 import {
-  LEGACY_PALETTE_STORAGE_KEY,
-  LEGACY_TYPOGRAPHY_STORAGE_KEY,
-  WORKSPACE_STORAGE_KEY,
   defaultElevationScale,
   defaultRadiusScale,
   defaultSpacingScale,
   generatePalettes,
-  loadWorkspace,
-  retireLegacyKeys,
   semanticCssVariables,
   elevationCssVariables,
   radiusCssVariables,
   spacingCssVariables,
   type ColourMode,
   type SemanticToken,
-  type WorkspaceProject,
+  useWorkspaceStore,
 } from "@blueprint/ui";
 import { usePaletteView } from "../palette/PaletteViewContext";
 import { PreviewChrome } from "../PreviewChrome";
@@ -33,24 +28,6 @@ import { PreviewChrome } from "../PreviewChrome";
  *
  * See docs/roadmap/semantic-tokens.md.
  */
-
-function readWorkspace(): WorkspaceProject | null {
-  try {
-    const input = {
-      workspace: window.localStorage.getItem(WORKSPACE_STORAGE_KEY),
-      legacyPalette: window.localStorage.getItem(LEGACY_PALETTE_STORAGE_KEY),
-      legacyTypography: window.localStorage.getItem(
-        LEGACY_TYPOGRAPHY_STORAGE_KEY,
-      ),
-    };
-    /* Gathered before the removal, so this load still sees whatever it needed.
-       Nothing is removed until the workspace key reads back on its own. */
-    retireLegacyKeys(window.localStorage);
-    return loadWorkspace(input).project;
-  } catch {
-    return null;
-  }
-}
 
 /** The tokens the page draws itself with, named once so the JSX stays honest. */
 const SURFACE = "var(--color-surface-base)";
@@ -83,17 +60,10 @@ const shadow = (id: string) => `var(--shadow-${id})`;
 
 export function SystemPreview() {
   const { seen } = usePaletteView();
-  const [project, setProject] = useState<WorkspaceProject | null>(null);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  /* The read, its timing and the SSR rule all live in the hook now. This page
+     only shows what is stored. */
+  const { project, hasLoaded } = useWorkspaceStore();
   const [mode, setMode] = useState<ColourMode>("light");
-
-  useEffect(() => {
-    /* In an effect, not a state initializer: localStorage does not exist
-       during SSR and reading it there desyncs hydration. */
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setProject(readWorkspace());
-    setHasLoaded(true);
-  }, []);
 
   const tokens: SemanticToken[] = project?.semantics ?? [];
   const palettes = project?.palette ? generatePalettes(project.palette) : [];
