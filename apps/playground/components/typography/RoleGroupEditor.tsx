@@ -1,6 +1,6 @@
 "use client";
 
-import { GripVertical, Plus, Trash2 } from "lucide-react";
+import { GripVertical, Plus, Trash2, X } from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
@@ -84,7 +84,14 @@ export function RoleGroupEditor({
       className={`${styles.settingGroup} flex flex-col gap-3 rounded-lg border border-border-base bg-neutral-850 p-4`}
       role="group"
       style={{
-        transform: CSS.Transform.toString(transform),
+        /* Translate rather than Transform.
+
+           `CSS.Transform` is translate plus scale, and the scale is measured
+           against whatever the card is currently over. Cards here are as tall
+           as the roles they hold, so dragging a short one onto a tall one
+           stretched it to the height of the card it was passing. Translate
+           moves it and leaves it its own size. */
+        transform: CSS.Translate.toString(transform),
         transition,
         /* Lifted while it moves, so it reads as being carried over the others
            rather than swapping with them. */
@@ -290,7 +297,7 @@ export function RoleGroupEditor({
                 {/* The icon is the label. `size="icon"` takes children as the
                     glyph and the accessible name from aria-label, so the row
                     keeps naming which role it removes. */}
-                <Trash2 aria-hidden="true" />
+                <X aria-hidden="true" />
               </Button>
             </div>
           ))}

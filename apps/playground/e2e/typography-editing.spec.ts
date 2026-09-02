@@ -995,6 +995,52 @@ test.describe("Reordering groups", () => {
     await expect.poll(() => stored(page)).toEqual(expected);
   });
 
+  test("carries a card without stretching it to the one it passes", async ({
+    seededPage: page,
+  }) => {
+    /* A group card is as tall as the roles it holds, so the list has uneven
+       heights. dnd-kit's `CSS.Transform` is translate plus a scale measured
+       against whatever is underneath, which grew a short card into the height
+       of the tall one it was moving over. */
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const heights = await settings.getByRole("group").evaluateAll((cards) =>
+      cards.map((card) => ({
+        label: card.getAttribute("aria-label"),
+        height: Math.round(card.getBoundingClientRect().height),
+      })),
+    );
+
+    const shortest = heights.reduce((a, b) => (a.height <= b.height ? a : b));
+    const tallest = heights.reduce((a, b) => (a.height >= b.height ? a : b));
+    /* The test only means something while the two differ. */
+    expect(tallest.height).toBeGreaterThan(shortest.height);
+
+    await settings
+      .getByRole("button", { name: `Reorder ${shortest.label} group` })
+      .focus();
+    await press(page, "Space");
+    await press(page, "ArrowDown");
+
+    const dragged = settings.getByRole("group", {
+      name: shortest.label!,
+      exact: true,
+    });
+    await expect
+      .poll(() =>
+        dragged.evaluate((card) =>
+          Math.round(card.getBoundingClientRect().height),
+        ),
+      )
+      .toBe(shortest.height);
+    /* And the scale itself, which is the thing that was wrong: a matrix whose
+       vertical scale is not 1 is the card being resized rather than moved. */
+    expect(
+      await dragged.evaluate((card) => getComputedStyle(card).transform),
+    ).toMatch(/^matrix\(1, 0, 0, 1, /);
+
+    await page.keyboard.press("Escape");
+  });
+
   test("keeps the new order across a reload", async ({ seededPage: page }) => {
     const before = await order(page);
     await carryDown(page, before[0]!);
