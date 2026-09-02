@@ -741,12 +741,14 @@ test.describe("Reopening a font picker", () => {
 
 test.describe("Where a Selector menu opens", () => {
   /*
-   * Astryx places its popovers twice — CSS anchor positioning and a
-   * JS-measured margin meant as a fallback for browsers without it. Where a
-   * browser has both, the margin moves a menu that anchor positioning has
-   * already placed, and the script picker opened at the top of the window
-   * instead of against its trigger. globals.css neutralises the margin where
-   * anchor positioning works; this is what says so.
+   * A Selector menu is placed by CSS anchor positioning and then shifted by a
+   * JS-measured margin, and the two are meant to compose: the shift is what
+   * puts the selected item over the trigger, macOS style, and what keeps a
+   * long menu on screen.
+   *
+   * So the menu deliberately overlaps its trigger, and a gap is the wrong
+   * thing to measure. What went wrong once was a menu at the top of the
+   * window, nowhere near what opened it — that is what this pins.
    */
   const openMenuBox = (page: import("@playwright/test").Page) =>
     page.evaluate(() => {
@@ -770,15 +772,12 @@ test.describe("Where a Selector menu opens", () => {
     expect(menu).not.toBeNull();
     const anchor = (await trigger.boundingBox())!;
 
-    /* Adjacent on one side or the other: under the trigger normally, over it
-       where there is no room below. Which one is the browser's call, and not
-       what this is pinning down. */
-    const below = Math.abs(menu!.top - (anchor.y + anchor.height));
-    const above = Math.abs(menu!.bottom - anchor.y);
-    /* 32px rather than a tighter figure: the gap is a spacing token plus the
-       popover's own border, and it differs between opening below and flipping
-       above. Broken, this distance was the height of the menu. */
-    expect(Math.min(below, above)).toBeLessThan(32);
+    /* Touching the trigger, on one side or overlapping it. 40px of slack for
+       the spacing token and the popover's border, either way round — whether
+       it opens below, above, or over is the browser's call and the JS's, and
+       not what this is pinning down. Broken, the menu was a screen away. */
+    expect(menu!.bottom).toBeGreaterThan(anchor.y - 40);
+    expect(menu!.top).toBeLessThan(anchor.y + anchor.height + 40);
 
     // And on screen, which is what the bug most visibly broke.
     expect(menu!.top).toBeGreaterThanOrEqual(0);
@@ -789,9 +788,8 @@ test.describe("Where a Selector menu opens", () => {
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    /* The ratio Selector, which sits low enough in the inspector that the
-       menu flips above its trigger — the case the override is about. The
-       script Selector this used to open no longer exists. */
+    /* The ratio Selector. The script Selector this used to open no longer
+       exists. */
     const trigger = settings.getByLabel("Scale ratio", { exact: true });
 
     await trigger.click();
@@ -805,9 +803,8 @@ test.describe("Where a Selector menu opens", () => {
     // Short enough that the menu has to flip above the trigger.
     await page.setViewportSize({ width: 1280, height: 560 });
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    /* The ratio Selector, which sits low enough in the inspector that the
-       menu flips above its trigger — the case the override is about. The
-       script Selector this used to open no longer exists. */
+    /* The ratio Selector. The script Selector this used to open no longer
+       exists. */
     const trigger = settings.getByLabel("Scale ratio", { exact: true });
     await trigger.scrollIntoViewIfNeeded();
 
