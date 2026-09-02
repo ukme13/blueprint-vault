@@ -50,36 +50,3 @@
     color-scheme: dark;
   }
 }
-
-/* ========================================================================
-   4. STOP ASTRYX PLACING THE SELECTOR MENU TWICE
-
-   Astryx positions its popovers two ways at once, both written inline on the
-   popover element. One is CSS anchor positioning — `position-anchor`,
-   `position-area`, `position-try-fallbacks`. The other is a JS-measured
-   `margin-block-start`, there for browsers that have no anchor positioning.
-
-   Where the browser has both, both apply. The margin is an offset measured
-   from the anchor, so applied on top of anchor positioning that has already
-   placed the menu it moves it a second time — by roughly its own height plus
-   the anchor's offset. The script picker, anchored near the bottom of the
-   inspector, opened at the very top of the window: `margin-block-start` was
-   measured at -391px against an anchor at y=365.
-
-   Only Selector is affected. The Typeahead's popover carries no such margin
-   and lands under its field correctly, so it is left alone rather than swept
-   into a blanket `[popover]` rule.
-
-   Guarded on @supports so the fallback survives where it is still the only
-   thing placing the menu: Safari and Firefox have no anchor positioning yet,
-   and there the margin is doing the whole job. `!important` because the
-   declaration it has to beat is an inline style.
-
-   Upstream's to fix — @astryxdesign/core 0.5.2 still does this. Until then
-   this is the smallest thing that puts the menu under its trigger.
-   ======================================================================== */
-@supports (position-area: block-end) {
-  [popover]:has(.astryx-selector-popup) {
-    margin-block-start: 0 !important;
-  }
-}
