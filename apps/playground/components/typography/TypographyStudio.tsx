@@ -469,21 +469,39 @@ export function TypographyStudio() {
                     {/* Editable in place: type in any row and every row
                         follows, so the scale is judged in your own copy without
                         a separate field to find. */}
-                    <input
-                      aria-label="Specimen text"
-                      className={styles.stepSample}
-                      placeholder={DEFAULT_SPECIMEN_TEXT}
-                      spellCheck={false}
+                    <span
+                      className={styles.stepSampleBox}
                       style={{
                         fontFamily: familiesToCss(previewFont?.families ?? []),
                         fontSize: `${step.fontSizePx}px`,
                         fontWeight: resolvedPreviewWeight,
                       }}
-                      value={project.specimenText}
-                      onChange={(event) =>
-                        setPreference({ specimenText: event.target.value })
-                      }
-                    />
+                    >
+                      {/* The measurement, not a duplicate.
+
+                          An input's box is the line box of its primary family,
+                          and it clips — so a fallback covering another script
+                          sits taller than the box and loses the marks above
+                          and below. A span is sized by every font that ends up
+                          drawing, which is the height the row actually needs.
+                          It sets the height and the input fills it. */}
+                      <span
+                        aria-hidden="true"
+                        className={styles.stepSampleMirror}
+                      >
+                        {project.specimenText || DEFAULT_SPECIMEN_TEXT}
+                      </span>
+                      <input
+                        aria-label="Specimen text"
+                        className={styles.stepSample}
+                        placeholder={DEFAULT_SPECIMEN_TEXT}
+                        spellCheck={false}
+                        value={project.specimenText}
+                        onChange={(event) =>
+                          setPreference({ specimenText: event.target.value })
+                        }
+                      />
+                    </span>
                     <span className={styles.stepMeta}>
                       <code>{formatLength(step.fontSizePx, project.unit)}</code>
                       {Math.abs(step.exactFontSizePx - step.fontSizePx) >

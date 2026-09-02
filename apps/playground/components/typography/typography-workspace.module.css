@@ -119,6 +119,39 @@
   background: var(--color-neutral-850);
 }
 
+/*
+ * The specimen, and the thing that measures it.
+ *
+ * One grid cell holding both. The mirror renders the same string and is sized
+ * by every font that ends up drawing it — a fallback covering another script
+ * included — so the cell is as tall as the text really is. The input fills
+ * that cell rather than deciding its own height from the primary family alone,
+ * which is what used to crop the marks a fallback brought.
+ *
+ * A number would have been guesswork: how much room a fallback needs depends
+ * on which family the browser picked, and that differs between machines. This
+ * measures instead, so it is right on all of them.
+ */
+.stepSampleBox {
+  display: grid;
+  /* min-width: 0 on both, or the nowrap mirror sizes the column to the whole
+     string and pushes the row past the panel — the same min-content trap the
+     role table hit. */
+  min-width: 0;
+}
+
+.stepSampleBox > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+
+.stepSampleMirror {
+  visibility: hidden;
+  overflow: hidden;
+  line-height: normal;
+  white-space: nowrap;
+}
+
 .stepSample {
   /* An input styled as text, so the specimen can be typed in place.
 
@@ -129,24 +162,14 @@
   min-width: 0;
   overflow: hidden;
   border: 0;
-  /* Room above and below the line box, in em so it follows the size.
-
-     `line-height: normal` sizes the box from the primary family, and a
-     fallback covering another script can be taller than it — which is exactly
-     the stack this studio builds. An input clips at its padding box, so the
-     padding is what the marks a fallback brings are drawn into. */
-  padding: 0.12em 0;
+  padding: 0;
+  /* Fills the cell the mirror sized. The input clips at its own padding box,
+     so being as tall as the text needs is what stops it cropping. */
+  height: 100%;
   background: transparent;
   color: inherit;
   font: inherit;
-  /* The font's own line box rather than a number.
-
-     An input's content box is its line height, and it clips: 1.1 gave 68px
-     for a 62px specimen whose glyphs needed 85, so descenders lost their tails
-     and Thai lost the marks above and below — a preview cropping the thing it
-     exists to show. Which number would have been enough depends on the family
-     and the script, and this studio is for trying families and scripts, so it
-     is not ours to pick. */
+  /* Matched to the mirror, so the two agree on where the text sits. */
   line-height: normal;
   text-overflow: ellipsis;
   white-space: nowrap;
