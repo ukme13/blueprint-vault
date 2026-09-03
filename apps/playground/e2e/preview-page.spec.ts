@@ -41,7 +41,10 @@ test.describe("The system preview", () => {
         .evaluate((node) => getComputedStyle(node).backgroundColor);
     const light = await background();
 
-    await page.getByRole("radio", { name: "Dark" }).click();
+    await page
+      .getByRole("radiogroup", { name: "Colour mode" })
+      .getByRole("radio", { name: "Dark" })
+      .click();
     await expect(page.getByText("in dark mode")).toBeVisible();
 
     /* The same token, a different primitive. A layer that held one value per

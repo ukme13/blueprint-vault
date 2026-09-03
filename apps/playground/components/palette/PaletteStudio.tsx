@@ -47,6 +47,7 @@ import {
 import { SystemExportDialog } from "../SystemExportDialog";
 import { VisionControl } from "../VisionControl";
 import { WorkspaceBrand } from "../WorkspaceBrand";
+import { StudioThemeControl } from "../StudioThemeControl";
 import { WorkspaceNav } from "../WorkspaceNav";
 import { PaletteCreation } from "./PaletteCreation";
 import { PaletteControls } from "./PaletteControls";
@@ -699,6 +700,7 @@ function PaletteStudioContent() {
           </TabList>
         </nav>
         <span className={styles.headerActions}>
+          <StudioThemeControl />
           <WorkspaceNav active="colour" />
           <input
             ref={headerImportInputRef}

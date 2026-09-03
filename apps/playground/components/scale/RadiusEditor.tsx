@@ -53,7 +53,7 @@ export function RadiusEditor({ scale, onChange }: RadiusEditorProps) {
           <li key={token.id} className="flex w-40 flex-col gap-1">
             <span
               aria-hidden="true"
-              className="h-16 w-full border border-[var(--color-border)] bg-[var(--color-primary-200)]"
+              className="h-16 w-full border border-[var(--color-border)] bg-action-muted"
               style={{ borderRadius: `${token.px}px` }}
             />
             <span className="text-sm font-medium">{token.name}</span>

@@ -337,3 +337,53 @@ anyway. `<Theme mode>` renders an inner element carrying `.xntwwlm
 element does nothing; only `setMode` changes the class. The studio-wide
 toggle therefore goes through `ThemeProvider`, which is what the mode state
 was scaffolded for. Found by screenshotting light mode and seeing dark.
+
+## Notes from the sweep
+
+**The studio switches theme now, and the switch goes through the provider.**
+`ThemeProvider` holds the mode, persists it under `blueprint.colour-mode.v1`,
+and hands it to Astryx's `Theme` — which is the only thing that can flip the
+chrome, because what governs `color-scheme` is a StyleX class it applies from
+the `mode` prop, not the attribute. `layout.tsx` no longer pins
+`data-theme="dark"`; a `beforeInteractive` script applies the saved mode
+before first paint instead, so a reload does not flash the system scheme for
+a frame. `system` is a real third option: no attribute, `color-scheme: light
+dark`, the browser decides.
+
+**237 primitive references in five CSS modules and 17 in components became
+roles.** Property-aware rather than find-and-replace: `neutral-800` was a
+canvas background in 18 places and a divider border in 24, and the two are
+different roles. The mapping went by what a rule _does_ — a `border` at 750
+is `border-strong`, a `background` at 750 is `surface-overlay` — and by the
+chrome's existing lightness, so the studio looks as it did. The 1,056 quoted
+earlier counted `.next` build output four times over; the real number was 237.
+
+**The studio's dark values were tuned to the chrome, not the chrome to the
+values.** The canvas sits at 800, panels a step darker at 900, cards between
+at 850 — recessed panels rather than lifted ones. That is a choice the
+studio had already made, and the sweep's job was to name it, not to redesign
+it. The Semantics tab is where the values get argued with.
+
+**What stayed a primitive stays for a reason, and the guard knows each
+reason.** Slider thumbs and their gap rings have to read on any hue; the
+glyph on a shade is relative to that shade; the colour picker's plane is
+black-to-white by definition; the hue slider is a rainbow; the shadow demo
+shows every level on a light and a dark ground; a track's default source
+colour is data. `primitive-usage.test.ts` now scans the whole playground
+against an allowlist of exactly those, by file and by value, so the next raw
+`--color-neutral-900` in a module fails the build.
+
+**The control widened every header past a phone screen.** Three small-screen
+tests caught it: a `1fr` grid track's floor is its content's min-width, so
+the actions column held the bar at 403px on 375px and the whole workspace
+grid followed. `minmax(0, 1fr)` and a wrapping actions row, in both modules.
+
+**Two controls on the preview page, on purpose.** "Studio theme" is what the
+studio looks like to the person; "Colour mode" is which half of the
+workspace's layer the demo page is drawn with. Different questions, and the
+second has to be answerable regardless of the first.
+
+**The theme test was broken on purpose before it was trusted.** With one
+surface put back to a raw neutral, "repaints the chrome" fails; restored, it
+passes. A test that asserts a mode change without a semantic surface behind
+it would pass against a studio that never changed.

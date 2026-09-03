@@ -109,7 +109,7 @@ function ReferenceField({
       </div>
       {resolved.missing && (
         <span
-          className="shrink-0 text-xs text-[var(--color-warning-300)]"
+          className="shrink-0 text-xs text-status-warning"
           title={
             resolved.missing === "track"
               ? "The track this pointed at is gone."

@@ -81,7 +81,7 @@ export function RoleGroupEditor({
     <div
       ref={setNodeRef}
       aria-label={group.label}
-      className={`${styles.settingGroup} flex flex-col gap-3 rounded-lg border border-border-base bg-neutral-850 p-4`}
+      className={`${styles.settingGroup} flex flex-col gap-3 rounded-lg border border-border-default bg-surface-raised p-4`}
       role="group"
       style={{
         /* Translate rather than Transform.

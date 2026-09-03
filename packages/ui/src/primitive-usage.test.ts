@@ -246,3 +246,55 @@ describe("the measurement check catches a mistake", () => {
     ).toEqual([]);
   });
 });
+
+/*
+ * The studio's own chrome, held to the same rule as the demo page.
+ *
+ * Every CSS module and component under the playground draws from the
+ * semantic layer now, which is what makes the studio-wide theme switch
+ * possible at all: a raw `--color-neutral-900` is one fixed value, and only
+ * a role can hold two. What is allowed through is the short list below, and
+ * each entry is a colour that must *not* follow the mode — a ring on a slider
+ * thumb that has to read on any hue, a glyph on a swatch, the black-to-white
+ * plane of the colour picker, the shadow demo's own light and dark grounds.
+ */
+const CHROME_SOURCES = [
+  resolve(ROOT, "apps", "playground", "components"),
+  resolve(ROOT, "apps", "playground", "app"),
+];
+
+/** file (relative to its root) → the primitives it is allowed to keep. */
+const CHROME_ALLOWED: ReadonlyArray<[RegExp, RegExp]> = [
+  // Slider thumbs and their gap rings, and the glyph on a shade.
+  [
+    /palette[\\/]palette-workspace\.module\.css$/,
+    /^--color-neutral-(?:50|100|300|400|850|900|950)$/,
+  ],
+  // The shadow demo shows each level on a light and on a dark ground.
+  [/scale[\\/]ElevationEditor\.tsx$/, /^--color-neutral-(?:50|900)$/],
+  // The hue slider is a rainbow: its stops are literal by definition.
+  [/palette[\\/]palette-workspace\.module\.css$/, /^hsl\($/],
+  // A colour the user typed, written back out for the swatch to show.
+  [/palette[\\/]ColourPicker\.tsx$/, /^(?:oklch|hsl)\($/],
+  // Palette data, not chrome: the source colour a new track starts from, the
+  // white and black a contrast ratio is measured against, and a value read
+  // back out of the palette. None of these style the studio.
+  [
+    /palette[\\/](?:PaletteCreation|PaletteStudio|TrackDetailDialog|PreviewAccessibility)\.tsx$/,
+    /^(?:#[0-9a-f]{6}|oklch\()$/i,
+  ],
+];
+
+describe("the studio chrome", () => {
+  it("reaches for no primitive that is not on the list", () => {
+    const uses = CHROME_SOURCES.flatMap(findPrimitiveColourUse).filter(
+      (use) =>
+        !CHROME_ALLOWED.some(
+          ([file, found]) => file.test(use.file) && found.test(use.found),
+        ),
+    );
+    expect(
+      uses.map((use) => `${use.file}:${use.line} uses ${use.found}`).join("\n"),
+    ).toBe("");
+  });
+});

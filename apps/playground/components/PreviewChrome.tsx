@@ -7,6 +7,7 @@ import {
 } from "@astryxdesign/core/SegmentedControl";
 import { COLOUR_MODES, type ColourMode } from "@blueprint/ui";
 import { VisionControl } from "./VisionControl";
+import { StudioThemeControl } from "./StudioThemeControl";
 import { WorkspaceNav } from "./WorkspaceNav";
 
 /**
@@ -43,7 +44,7 @@ export function PreviewChrome({
 }: PreviewChromeProps) {
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="flex flex-wrap items-center gap-3 border-b border-[var(--color-neutral-800)] bg-[var(--color-neutral-900)] px-6 py-3 text-[var(--color-neutral-100)]">
+      <header className="flex flex-wrap items-center gap-3 border-b border-border-default bg-surface-subtle px-6 py-3 text-fg-primary">
         <strong className="mr-auto text-sm">{name}</strong>
         <SegmentedControl
           label="Colour mode"
@@ -60,6 +61,7 @@ export function PreviewChrome({
           ))}
         </SegmentedControl>
         <VisionControl />
+        <StudioThemeControl />
         <WorkspaceNav active="preview" />
       </header>
 
@@ -70,7 +72,7 @@ export function PreviewChrome({
           page showed the chrome's colour under a short canvas. */}
       {children}
 
-      <footer className="border-t border-[var(--color-neutral-800)] bg-[var(--color-neutral-900)] px-6 py-4 text-sm text-[var(--color-neutral-400)]">
+      <footer className="border-t border-border-default bg-surface-subtle px-6 py-4 text-sm text-fg-muted">
         Drawn from {tokenCount} semantic tokens, in {mode} mode.
       </footer>
     </div>

@@ -226,6 +226,13 @@
     var(--color-neutral-700),
     var(--color-neutral-300)
   );
+  /* Meta text: a weight, a unit, a hint under a field. One step below
+     secondary and read at small sizes, so it is its own value rather than
+     secondary at an opacity — see fg.disabled in semantic.ts for why. */
+  --color-fg-muted: light-dark(
+    var(--color-neutral-550),
+    var(--color-neutral-500)
+  );
   --color-fg-disabled: light-dark(
     var(--color-neutral-400),
     var(--color-neutral-600)
@@ -240,22 +247,28 @@
   );
 
   /* Surfaces, from the canvas up. `overlay` is what a menu or dialog sits on;
-     a scrim behind one is `surface-overlay` at an opacity, not its own token. */
+     a scrim behind one is `surface-overlay` at an opacity, not its own token.
+
+     The dark values are the studio's chrome as it was drawn before it had
+     names: the canvas at 800, its panels a step darker at 900, cards between
+     them at 850. Recessed panels rather than lifted ones is a choice the
+     studio had already made; the sweep that put names on it kept the look,
+     and the Semantics tab is where the values get argued with, not here. */
   --color-surface-base: light-dark(
     var(--color-neutral-50),
-    var(--color-neutral-950)
+    var(--color-neutral-800)
   );
   --color-surface-subtle: light-dark(
     var(--color-neutral-150),
-    var(--color-neutral-850)
+    var(--color-neutral-900)
   );
   --color-surface-raised: light-dark(
     var(--color-neutral-100),
-    var(--color-neutral-900)
+    var(--color-neutral-850)
   );
   --color-surface-overlay: light-dark(
     var(--color-neutral-25),
-    var(--color-neutral-800)
+    var(--color-neutral-750)
   );
   /* Chrome only: nothing a client exports needs a skeleton or a slider track. */
   --color-surface-skeleton: light-dark(
@@ -302,6 +315,37 @@
   --color-border-strong: light-dark(
     var(--color-neutral-300),
     var(--color-neutral-700)
+  );
+
+  /* The focus indicator. One token so every outline in the studio is the
+     same ring, and so the ring is a colour the contrast report can measure. */
+  --color-focus-ring: light-dark(
+    var(--color-primary-500),
+    var(--color-primary-300)
+  );
+
+  /* Status, as text or an icon on a surface. The same names the workspace
+     exports; the studio's values are a fixed weight either side of middle. */
+  --color-status-success: light-dark(
+    var(--color-success-600),
+    var(--color-success-300)
+  );
+  --color-status-warning: light-dark(
+    var(--color-warning-600),
+    var(--color-warning-300)
+  );
+  --color-status-error: light-dark(
+    var(--color-error-600),
+    var(--color-error-300)
+  );
+  --color-status-info: light-dark(var(--color-info-600), var(--color-info-300));
+
+  /* A cast shadow. Solid, because the chrome draws its dialog shadow as a
+     wide soft glow in the canvas's own neutral rather than as black at an
+     opacity — which is the look it had, kept. Astryx has `--color-shadow`. */
+  --color-shadow-default: light-dark(
+    var(--color-neutral-300),
+    var(--color-neutral-900)
   );
 }
 

@@ -146,7 +146,7 @@ export function FontStackEditor({
       /* `fontStack` carries no layout any more. It is the scope the module
          hangs the upload-row separator inside the Typeahead menu on, and that
          menu is Astryx's — there is no prop for it. */
-      className={`${styles.fontStack} flex flex-col gap-2 rounded-lg border border-border-base bg-neutral-850 p-4`}
+      className={`${styles.fontStack} flex flex-col gap-2 rounded-lg border border-border-default bg-surface-raised p-4`}
     >
       <div className={styles.fontStackRow}>
         <div className={styles.fontStackField}>

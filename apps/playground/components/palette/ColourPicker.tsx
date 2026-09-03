@@ -161,7 +161,7 @@ function createOklchGradient(
     return {
       colour: isDisplayable
         ? `oklch(${channels[0]} ${channels[1]} ${channels[2]})`
-        : "var(--color-neutral-650)",
+        : "var(--color-fg-disabled)",
       isDisplayable,
       progress,
     };
