@@ -277,3 +277,176 @@ to that studio's toolbar.
 
 - Whether the demo page is also the export target for a client-facing PDF or
   static handoff, or stays a live preview only.
+
+## Notes from the vocabulary rework
+
+**One vocabulary, two sources.** The studio's own chrome in `theme.css` and
+the layer the workspace exports had grown separate names for the same roles —
+`--color-bg-surface` in one, `--color-surface-raised` in the other, and
+`-base` suffixes where the first had to dodge Astryx. They now share one set
+of names: `fg.*`, `surface.*`, `border.*`, `action.*`, `status.*`,
+`focus.ring`. `theme.css` defines them for the studio from a neutral ramp that
+has to render before any palette exists; the workspace exports the same names
+for a client and overrides them inline on `/preview`. A developer reads one
+name whether they are looking at the studio or at the file it produced.
+
+**The names have to dodge Astryx, and that is measured, not inferred.** Astryx
+defines `--color-border`, `--color-accent`, `--color-on-accent`,
+`--color-skeleton` and every `text-*` / `background-*` inside its own theme
+layer, scoped to the theme element. Our `@theme` block lands in Tailwind's
+lower `theme` layer at `:root`, so a token of ours with one of those exact
+names loses — and the bridge line that re-asserts it becomes
+`--color-border: var(--color-border)`. Hence no bare `border`, `strong` rather
+than `emphasized`, and `action` rather than `accent`. The bridge test reads
+the resolved `--color-border` on the element Astryx scopes to and compares it
+to ours; it fails when the mapping is broken and passes when it is restored.
+
+**`text` became `fg`.** The same token colours icons and rules; "text" named
+one use. `migrateSemanticIds` now follows a chain — `neutral.dark` →
+`text.primary` → `fg.primary` — so a layer saved under the very first names
+still lands on a name the seed set has, and the contrast rule keys on `fg`
+for the text threshold.
+
+**Seven roles were added, and existing workspaces gain them on read.**
+`action.hover`, `action.active`, `surface.subtle`, `surface.overlay`,
+`border.subtle`, `border.muted`, `fg.disabled`. `fillSeedRoles` appends
+whatever seed role a stored layer lacks, seeded against that palette exactly
+as a fresh layer would be, and never touches an empty layer — an empty layer
+somebody stored is a deliberate act. Nineteen tokens, not twelve.
+
+**Hover and active are states, not signals.** Deriving the report's pairs from
+every `status`/`action` token would have paired `action.hover` against
+`status.info` — a row that measures nothing anyone sees. `semanticPairIds`
+keeps the two states out of the grid; they are still tokens with a foreground
+on them, and the surface checks cover that. Fifteen pairs, as before.
+
+**Opacity modifiers were already working.** `color-mix` takes a `light-dark()`
+colour as it takes any other, so `bg-surface-raised/50` lands as alpha 0.5 in
+both modes. Nothing changed for that; a test now pins it so nothing can.
+
+**Foregrounds are solid on purpose.** A text state expressed as an opacity
+lets the surface bleed through into a colour nobody chose and nothing
+measured. `fg.disabled` is one value and is checked once.
+
+**What governs the mode is a StyleX class, not an attribute.** Flipping
+`html[data-theme]` flips `color-scheme` on the theme host and every token
+read there — the tokens test proves it — and the studio's controls stay dark
+anyway. `<Theme mode>` renders an inner element carrying `.xntwwlm
+{ color-scheme: dark }`, chosen by React from the `mode` prop, and every
+`light-dark()` beneath it resolves against that. Setting `data-theme` on that
+element does nothing; only `setMode` changes the class. The studio-wide
+toggle therefore goes through `ThemeProvider`, which is what the mode state
+was scaffolded for. Found by screenshotting light mode and seeing dark.
+
+## Notes from the sweep
+
+**The studio switches theme now, and the switch goes through the provider.**
+`ThemeProvider` holds the mode, persists it under `blueprint.colour-mode.v1`,
+and hands it to Astryx's `Theme` — which is the only thing that can flip the
+chrome, because what governs `color-scheme` is a StyleX class it applies from
+the `mode` prop, not the attribute. `layout.tsx` no longer pins
+`data-theme="dark"`; a `beforeInteractive` script applies the saved mode
+before first paint instead, so a reload does not flash the system scheme for
+a frame. `system` is a real third option: no attribute, `color-scheme: light
+dark`, the browser decides.
+
+**237 primitive references in five CSS modules and 17 in components became
+roles.** Property-aware rather than find-and-replace: `neutral-800` was a
+canvas background in 18 places and a divider border in 24, and the two are
+different roles. The mapping went by what a rule _does_ — a `border` at 750
+is `border-strong`, a `background` at 750 is `surface-overlay` — and by the
+chrome's existing lightness, so the studio looks as it did. The 1,056 quoted
+earlier counted `.next` build output four times over; the real number was 237.
+
+**The studio's dark values were tuned to the chrome, not the chrome to the
+values.** The canvas sits at 800, panels a step darker at 900, cards between
+at 850 — recessed panels rather than lifted ones. That is a choice the
+studio had already made, and the sweep's job was to name it, not to redesign
+it. The Semantics tab is where the values get argued with.
+
+**What stayed a primitive stays for a reason, and the guard knows each
+reason.** Slider thumbs and their gap rings have to read on any hue; the
+glyph on a shade is relative to that shade; the colour picker's plane is
+black-to-white by definition; the hue slider is a rainbow; the shadow demo
+shows every level on a light and a dark ground; a track's default source
+colour is data. `primitive-usage.test.ts` now scans the whole playground
+against an allowlist of exactly those, by file and by value, so the next raw
+`--color-neutral-900` in a module fails the build.
+
+**The control widened every header past a phone screen.** Three small-screen
+tests caught it: a `1fr` grid track's floor is its content's min-width, so
+the actions column held the bar at 403px on 375px and the whole workspace
+grid followed. `minmax(0, 1fr)` and a wrapping actions row, in both modules.
+
+**Two controls on the preview page, on purpose.** "Studio theme" is what the
+studio looks like to the person; "Colour mode" is which half of the
+workspace's layer the demo page is drawn with. Different questions, and the
+second has to be answerable regardless of the first.
+
+**The theme test was broken on purpose before it was trusted.** With one
+surface put back to a raw neutral, "repaints the chrome" fails; restored, it
+passes. A test that asserts a mode change without a semantic surface behind
+it would pass against a studio that never changed.
+
+## Notes from the table
+
+**The Semantics tab is a table now.** Nineteen names down the side, the two
+modes across, a decision in every cell, grouped by the part of the id before
+the dot the way the export groups them. The list of cards it replaced put
+each token's modes on their own rows, so comparing light with dark — the
+thing being decided — meant reading diagonally.
+
+**It reads the workspace store, not a private copy.** `PaletteStudio` used to
+read the semantic slice once on load and write it back from its own state;
+it now takes it from `useWorkspaceStore` and writes through `update`, which
+re-reads what is stored before writing its own slice. The preview tab and
+the export read the same layer the table just changed. Broken on purpose —
+the setter made a no-op — three of the editor's seven tests fail.
+
+**Two persistence tests failed for a reason the store now owns.** Legacy
+keys were retired on any _load_ that found a workspace, and the load that
+followed a migrated project's first write was the palette studio writing its
+semantics slice on mount. Moving that write onto the store removed the load,
+and a migrated project kept its legacy keys. `updateStoredWorkspace` retires
+them itself now, on the write that creates the workspace key and only then:
+retiring on every write re-parsed the workspace per keystroke, and the
+keyboard drag that reorders typography groups stalled under it — measured
+across sixteen runs each way. A unit test pins the first-write case.
+
+**A border token that equals the surface beneath it is not a border.** The
+table's grid rendered at oklch(0.2) on a canvas of oklch(0.2) — the retune
+had put `border-default` at 800, the canvas's own value. Measured on the
+cell, then moved to 750.
+
+**The preview page has one mode control.** The studio-wide switch was
+mounted there with the others and made a page with two things called a
+theme, each flipping a different half of it. The page's own "Colour mode" is
+the whole page's now, chrome included, via `color-scheme` on its root, and
+the studio's preference is left alone. The test that had pinned two controls
+was passing against an unseeded page with no controls at all. Half right —
+see below.
+
+**A keyboard-drag test is marginal, and is not this work's.** "Reordering
+groups" fails three to five runs in sixteen on this machine with none of
+these changes applied, and eight in sixteen with a content-sized topbar
+track added on the same page — reverted for that. It is timing-fragile
+before anything here touches it, and it deserves its own look.
+
+**One control everywhere, and `system` is a third state.** Removing the
+studio's switch from the preview left that page with a two-state one, so a
+studio set to dark opened a light preview and the preview alone could not
+defer to the operating system. The two questions really are different — the
+mode a client's system is demonstrated in is not the mode the person looking
+at it prefers for their own screen — and answering them separately still
+produced a studio where choosing dark left one page light. They are one
+choice now.
+
+What could not be shared is what the preview does with it. A semantic token
+holds a light reference and a dark one and nothing filed under `system`, so
+the canvas draws with `resolveThemeMode`'s answer rather than with the choice
+itself: `ThemeMode` is what was chosen, `ColourMode` is what gets drawn, and
+keeping them as two types is what stops `"system"` reaching a reference
+lookup that has no half filed under it. The media query behind it is a live
+subscription — a machine turns dark at sunset with the page open — so it is
+owned once, by the provider, and `prefersDark` is a parameter to the resolver
+rather than something it reads.

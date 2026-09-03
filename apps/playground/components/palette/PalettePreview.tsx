@@ -63,7 +63,7 @@ export function PalettePreview({ palettes, semantics }: PalettePreviewProps) {
      a layer missing `status.error` previews in primary rather than crashing. */
   const primaryAction = shades["action.primary"]!;
   const neutralLight = shades["surface.base"]!;
-  const neutralDark = shades["text.primary"]!;
+  const neutralDark = shades["fg.primary"]!;
   const primarySoft = shades["surface.raised"] ?? primaryAction;
   const secondaryAction = shades["action.secondary"] ?? primaryAction;
   const neutralMid = shades["border.default"] ?? neutralDark;

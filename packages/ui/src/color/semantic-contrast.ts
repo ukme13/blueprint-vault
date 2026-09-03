@@ -39,7 +39,10 @@ import type { ColorTrack } from "./types";
  * the trade a hard-coded list cannot make.
  */
 const SURFACE_PREFIX = "surface";
-const TEXT_PREFIX = "text";
+/* `fg`, since the rename: the group holds every foreground, and the text
+   thresholds apply to all of it — an icon at body-text size is read the same
+   way. Anything else drawn on a surface is held to the non-text floor. */
+const TEXT_PREFIX = "fg";
 
 function group(id: string): string {
   return id.split(".")[0] ?? id;

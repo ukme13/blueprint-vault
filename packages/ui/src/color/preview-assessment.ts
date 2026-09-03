@@ -49,8 +49,8 @@ const TOKENS = {
   surfaceBase: "surface.base",
   surfaceRaised: "surface.raised",
   borderDefault: "border.default",
-  textPrimary: "text.primary",
-  textSecondary: "text.secondary",
+  textPrimary: "fg.primary",
+  textSecondary: "fg.secondary",
   focusRing: "focus.ring",
   statusSuccess: "status.success",
   statusWarning: "status.warning",
@@ -464,6 +464,22 @@ export function assessFocusCheck(shades: PreviewShades): FocusContrastResult {
  */
 const SIGNALLING_GROUPS = ["status", "action"];
 
+/**
+ * The action tokens that are states of one control rather than controls.
+ *
+ * `action.hover` is `action.primary` under the pointer. Nobody reads the two
+ * side by side and has to tell them apart, and neither is ever next to a
+ * status badge as a signal — so pairing them would add rows to the report that
+ * measure nothing anyone sees. Kept out of the grid, not out of the layer:
+ * each is still a colour with a foreground on it, and the surface checks
+ * cover that.
+ */
+const ACTION_STATES = new Set(["action.hover", "action.active"]);
+
+function signalsByColour(id: string): boolean {
+  return SIGNALLING_GROUPS.includes(group(id)) && !ACTION_STATES.has(id);
+}
+
 function group(id: string): string {
   return id.split(".")[0] ?? id;
 }
@@ -488,9 +504,7 @@ function pairLabel(first: string, second: string): string {
 export function semanticPairIds(
   shades: PreviewShades,
 ): Array<[string, string]> {
-  const signalling = Object.keys(shades).filter((id) =>
-    SIGNALLING_GROUPS.includes(group(id)),
-  );
+  const signalling = Object.keys(shades).filter(signalsByColour);
 
   return signalling.flatMap((first, at) =>
     signalling

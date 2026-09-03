@@ -192,9 +192,32 @@
   --color-info-50: oklch(95% 0.016 267.17);
 
   /* ========================================================================
-     SEMANTIC TOKENS
+     SEMANTIC TOKENS — the studio's own chrome
+
+     One vocabulary, two sources. These names are the same ones the workspace
+     exports for a client (`semantic.ts` seeds `fg.primary`, `surface.raised`,
+     `action.hover` …), so a developer reads one set of names whether they are
+     looking at this studio or at the file it produced. The values here are the
+     studio's — a neutral ramp that has to render before any palette exists
+     and must not follow a garish one. The preview page overrides the same
+     names inline from the workspace, which is the only place the two meet.
+
+     Naming has to dodge Astryx. It defines `--color-border`, `--color-accent`,
+     `--color-on-accent`, `--color-skeleton` and every `text-*`/`background-*`
+     inside its own theme layer, and the bridge below re-asserts ours over
+     them. A token of ours with one of those exact names would lose to the
+     layer and then be asked to alias itself. So: `fg`, `surface`, `action`,
+     and no bare `border` — `border-default` is the one Astryx reads as
+     `--color-border`. Verified against the computed values, not inferred.
+
+     Every value is `light-dark(oklch …)`, and that is what makes Tailwind's
+     opacity modifiers work — `bg-surface-raised/50` becomes
+     `color-mix(in srgb, var(--color-surface-raised) 50%, transparent)`, and
+     `color-mix` takes a `light-dark()` colour as it takes any other. Measured:
+     alpha 0.5 lands in both modes. Foregrounds are solid on purpose; see
+     `fg.disabled` in semantic.ts for why a text state is never an opacity.
      ======================================================================== */
-  /* Foregrounds */
+  /* Foregrounds: text, icons, rules. Solid, so contrast is one number. */
   --color-fg-primary: light-dark(
     var(--color-neutral-950),
     var(--color-neutral-50)
@@ -202,6 +225,13 @@
   --color-fg-secondary: light-dark(
     var(--color-neutral-700),
     var(--color-neutral-300)
+  );
+  /* Meta text: a weight, a unit, a hint under a field. One step below
+     secondary and read at small sizes, so it is its own value rather than
+     secondary at an opacity — see fg.disabled in semantic.ts for why. */
+  --color-fg-muted: light-dark(
+    var(--color-neutral-550),
+    var(--color-neutral-500)
   );
   --color-fg-disabled: light-dark(
     var(--color-neutral-400),
@@ -211,51 +241,116 @@
     var(--color-primary-600),
     var(--color-primary-400)
   );
-
-  /* Backgrounds */
-  --color-bg-body: light-dark(
+  --color-fg-on-action: light-dark(
     var(--color-neutral-50),
     var(--color-neutral-950)
   );
-  --color-bg-surface: light-dark(
-    var(--color-neutral-100),
+
+  /* Surfaces, from the canvas up. `overlay` is what a menu or dialog sits on;
+     a scrim behind one is `surface-overlay` at an opacity, not its own token.
+
+     The dark values are the studio's chrome as it was drawn before it had
+     names: the canvas at 800, its panels a step darker at 900, cards between
+     them at 850. Recessed panels rather than lifted ones is a choice the
+     studio had already made; the sweep that put names on it kept the look,
+     and the Semantics tab is where the values get argued with, not here. */
+  --color-surface-base: light-dark(
+    var(--color-neutral-50),
+    var(--color-neutral-800)
+  );
+  --color-surface-subtle: light-dark(
+    var(--color-neutral-150),
     var(--color-neutral-900)
   );
-  --color-bg-muted: light-dark(
-    var(--color-neutral-150),
+  --color-surface-raised: light-dark(
+    var(--color-neutral-100),
     var(--color-neutral-850)
   );
+  --color-surface-overlay: light-dark(
+    var(--color-neutral-25),
+    var(--color-neutral-750)
+  );
+  /* Chrome only: nothing a client exports needs a skeleton or a slider track. */
+  --color-surface-skeleton: light-dark(
+    var(--color-neutral-200),
+    var(--color-neutral-800)
+  );
+  --color-surface-track: light-dark(
+    var(--color-neutral-200),
+    var(--color-neutral-800)
+  );
 
-  /* Accents */
-  --color-accent-base: light-dark(
+  /* Actions: the primary control and its states. Hover and active are steps
+     along the ramp rather than an overlay, so each is one measured colour. */
+  --color-action-primary: light-dark(
     var(--color-primary-500),
     var(--color-primary-400)
   );
-  --color-accent-muted-base: light-dark(
+  --color-action-hover: light-dark(
+    var(--color-primary-550),
+    var(--color-primary-350)
+  );
+  --color-action-active: light-dark(
+    var(--color-primary-600),
+    var(--color-primary-300)
+  );
+  --color-action-muted: light-dark(
     var(--color-primary-400),
     var(--color-primary-900)
   );
-  --color-on-accent-base: light-dark(
-    var(--color-neutral-50),
-    var(--color-neutral-950)
-  );
 
-  /* Borders & Controls */
-  --color-border-base: light-dark(
+  /* Borders, three weights. No bare `border`: that name is Astryx's.
+
+     Default sits at 750, one step lighter than the canvas it is drawn on,
+     because at 800 it was the canvas: the Semantics table's grid rendered at
+     oklch(0.2) on a surface of oklch(0.2) — measured, invisible. A border
+     token that shares a value with the surface beneath it is not a border. */
+  --color-border-default: light-dark(
     var(--color-neutral-200),
-    var(--color-neutral-800)
+    var(--color-neutral-750)
   );
-  --color-border-emphasized-base: light-dark(
+  --color-border-subtle: light-dark(
+    var(--color-neutral-150),
+    var(--color-neutral-850)
+  );
+  --color-border-muted: light-dark(
+    var(--color-neutral-100),
+    var(--color-neutral-900)
+  );
+  --color-border-strong: light-dark(
     var(--color-neutral-300),
     var(--color-neutral-700)
   );
-  --color-skeleton-base: light-dark(
-    var(--color-neutral-200),
-    var(--color-neutral-800)
+
+  /* The focus indicator. One token so every outline in the studio is the
+     same ring, and so the ring is a colour the contrast report can measure. */
+  --color-focus-ring: light-dark(
+    var(--color-primary-500),
+    var(--color-primary-300)
   );
-  --color-track-base: light-dark(
-    var(--color-neutral-200),
-    var(--color-neutral-800)
+
+  /* Status, as text or an icon on a surface. The same names the workspace
+     exports; the studio's values are a fixed weight either side of middle. */
+  --color-status-success: light-dark(
+    var(--color-success-600),
+    var(--color-success-300)
+  );
+  --color-status-warning: light-dark(
+    var(--color-warning-600),
+    var(--color-warning-300)
+  );
+  --color-status-error: light-dark(
+    var(--color-error-600),
+    var(--color-error-300)
+  );
+  --color-status-info: light-dark(var(--color-info-600), var(--color-info-300));
+
+  /* A cast shadow. Solid, because the chrome draws its dialog shadow as a
+     wide soft glow in the canvas's own neutral rather than as black at an
+     opacity — which is the look it had, kept. Astryx has `--color-shadow`. */
+  --color-shadow-default: light-dark(
+    var(--color-neutral-300),
+    var(--color-neutral-900)
   );
 }
 
@@ -264,26 +359,33 @@
    ======================================================================== */
 @scope ([data-astryx-theme]) {
   :scope {
-    /* Core Surfaces */
-    --color-background-body: var(--color-bg-body);
-    --color-background-surface: var(--color-bg-surface);
-    --color-background-card: var(--color-bg-surface);
-    --color-background-muted: var(--color-bg-muted);
+    /* Astryx's vocabulary, fed from ours. These are the names its components
+       read and nothing else should write to them or read from them — app code
+       uses the `fg-`/`surface-`/`action-`/`border-` tokens above, so that a
+       search for a role finds one name. Unlayered on purpose: it has to beat
+       theme-neutral's own values, which sit in `astryx-theme`. */
 
-    /* Core Typography & Accents */
+    /* Surfaces */
+    --color-background-body: var(--color-surface-base);
+    --color-background-surface: var(--color-surface-raised);
+    --color-background-card: var(--color-surface-raised);
+    --color-background-muted: var(--color-surface-subtle);
+    --color-background-popover: var(--color-surface-overlay);
+
+    /* Foregrounds & actions */
     --color-text-primary: var(--color-fg-primary);
     --color-text-secondary: var(--color-fg-secondary);
     --color-text-disabled: var(--color-fg-disabled);
     --color-text-accent: var(--color-fg-accent);
-    --color-accent: var(--color-accent-base);
-    --color-accent-muted: var(--color-accent-muted-base);
-    --color-on-accent: var(--color-on-accent-base);
+    --color-accent: var(--color-action-primary);
+    --color-accent-muted: var(--color-action-muted);
+    --color-on-accent: var(--color-fg-on-action);
 
-    /* Borders & Decoratives */
-    --color-border: var(--color-border-base);
-    --color-border-emphasized: var(--color-border-emphasized-base);
-    --color-skeleton: var(--color-skeleton-base);
-    --color-track: var(--color-track-base);
+    /* Borders & decoratives */
+    --color-border: var(--color-border-default);
+    --color-border-emphasized: var(--color-border-strong);
+    --color-skeleton: var(--color-surface-skeleton);
+    --color-track: var(--color-surface-track);
 
     /* Semantic Status Colors (Success, Warning, Error, Info) */
     --color-background-success: light-dark(

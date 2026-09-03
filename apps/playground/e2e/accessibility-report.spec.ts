@@ -107,8 +107,12 @@ test.describe("The accessibility report", () => {
     expect(parsed.method.wcagVersion).toBe("WCAG 2.2");
     /* Every pair among the tokens that signal by colour, derived from the
        workspace's own layer rather than from a list in the package. */
-    const signalling = Object.keys(parsed.colour.shades).filter((id: string) =>
-      /^(status|action)\./.test(id),
+    /* Hover and active are states of the primary control, not signals beside
+       it, so the report leaves them out of the grid — see semanticPairIds. */
+    const signalling = Object.keys(parsed.colour.shades).filter(
+      (id: string) =>
+        /^(status|action)\./.test(id) &&
+        !["action.hover", "action.active"].includes(id),
     ).length;
     expect(parsed.colour.semanticPairs).toHaveLength(
       (signalling * (signalling - 1)) / 2,

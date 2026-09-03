@@ -15,6 +15,7 @@ import {
   TYPE_SCALE_RATIO_PRESETS,
   type TypeScaleInput,
 } from "@blueprint/ui";
+import { ThemeControl } from "../ThemeControl";
 import { WorkspaceNav } from "../WorkspaceNav";
 import styles from "./typography-workspace.module.css";
 
@@ -74,6 +75,7 @@ export function TypographyCreation({ onCreate }: TypographyCreationProps) {
           </span>
           Blueprint
         </p>
+        <ThemeControl />
         <WorkspaceNav active="typography" />
       </header>
 

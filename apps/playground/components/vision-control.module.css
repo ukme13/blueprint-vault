@@ -23,9 +23,9 @@
 }
 
 .visionModeButton[data-active="true"] {
-  border-color: var(--color-primary-500);
-  background: var(--color-primary-900);
-  color: var(--color-primary-200);
+  border-color: var(--color-action-primary);
+  background: var(--color-action-muted);
+  color: var(--color-fg-accent);
 }
 
 .visionGroup[data-open="true"] .visionModeButton {
@@ -43,10 +43,10 @@
      WCAG 2 beside it. */
   height: 28px;
   width: 232px;
-  border: 1px solid var(--color-primary-500);
+  border: 1px solid var(--color-action-primary);
   border-left: none;
   border-radius: 0 8px 8px 0;
-  background: var(--color-primary-900);
+  background: var(--color-action-muted);
 }
 
 .visionOptions > * {

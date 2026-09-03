@@ -16,18 +16,18 @@ test.describe("The system preview", () => {
     await expect(
       page.getByRole("heading", { name: "A system you can hand over" }),
     ).toBeVisible();
-    /* Twelve, because a workspace migrated from the old keys is seeded with
+    /* Nineteen, because a workspace migrated from the old keys is seeded with
        the roles that were already in use. */
-    await expect(page.getByText("Drawn from 12 semantic tokens")).toBeVisible();
+    await expect(page.getByText("Drawn from 19 semantic tokens")).toBeVisible();
   });
 
   test("answers to the mode toggle", async ({ page }) => {
     await openPreview(page);
 
-    const page_ = page.getByRole("heading", {
+    const heading = page.getByRole("heading", {
       name: "A system you can hand over",
     });
-    await expect(page_).toBeVisible();
+    await expect(heading).toBeVisible();
 
     /* A token-driven element rather than a wrapper: the first div on the page
        belongs to the framework and is transparent either way.
@@ -39,14 +39,19 @@ test.describe("The system preview", () => {
       page
         .getByRole("button", { name: "Primary action" })
         .evaluate((node) => getComputedStyle(node).backgroundColor);
-    const light = await background();
+    const dark = await background();
 
-    await page.getByRole("radio", { name: "Dark" }).click();
-    await expect(page.getByText("in dark mode")).toBeVisible();
+    /* Light, because the studio opens dark and the canvas now follows the
+       studio. Clicking the mode it is already in would assert nothing. */
+    await page
+      .getByRole("radiogroup", { name: "Theme" })
+      .getByRole("radio", { name: "Light" })
+      .click();
+    await expect(page.getByText("in light mode")).toBeVisible();
 
     /* The same token, a different primitive. A layer that held one value per
        name could not do this at all. */
-    await expect.poll(background).not.toBe(light);
+    await expect.poll(background).not.toBe(dark);
   });
 
   test("says so when there is no layer to draw", async ({ page }) => {
@@ -96,5 +101,62 @@ test.describe("The preview's vision control", () => {
       "aria-pressed",
       "true",
     );
+  });
+});
+
+test.describe("The preview's theme control", () => {
+  test("is the studio's own, and moves the chrome with the canvas", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    /* One control, and the same one every other page carries. This page used
+       to have a switch of its own: first beside the studio's, which gave a
+       page with two things called a theme each flipping a different half of
+       it, and then alone, which gave a page whose only switch had no way to
+       say "system". */
+    await expect(
+      page.getByRole("radiogroup", { name: "Colour mode" }),
+    ).toHaveCount(0);
+    const control = page.getByRole("radiogroup", { name: "Theme" });
+    await expect(control).toBeVisible();
+    await expect(control.getByRole("radio", { name: "System" })).toBeVisible();
+
+    const bar = page.getByRole("banner");
+    const chrome = () =>
+      bar.evaluate((el) => getComputedStyle(el).backgroundColor);
+    const canvas = () =>
+      page
+        .getByRole("button", { name: "Primary action" })
+        .evaluate((node) => getComputedStyle(node).backgroundColor);
+    const [chromeDark, canvasDark] = [await chrome(), await canvas()];
+
+    await control.getByRole("radio", { name: "Light" }).click();
+
+    /* Both halves, because moving one is the bug this replaced: the canvas
+       draws from semantic variables computed for the resolved mode, the bar
+       from light-dark() chrome tokens, and they answer to one choice now. */
+    await expect.poll(chrome).not.toBe(chromeDark);
+    await expect.poll(canvas).not.toBe(canvasDark);
+  });
+
+  test("is the same choice the studio pages make", async ({
+    seededPage: page,
+  }) => {
+    /* Chosen in the palette studio, read on the preview. The complaint this
+       answers was exactly this crossing: picking dark left the preview light,
+       because the preview's mode was a second piece of state. */
+    await page
+      .getByRole("radiogroup", { name: "Theme" })
+      .getByRole("radio", { name: "Light" })
+      .click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+    await page.goto("/preview");
+    await expect(page.getByText("in light mode")).toBeVisible();
+    await expect(
+      page
+        .getByRole("radiogroup", { name: "Theme" })
+        .getByRole("radio", { name: "Light" }),
+    ).toBeChecked();
   });
 });

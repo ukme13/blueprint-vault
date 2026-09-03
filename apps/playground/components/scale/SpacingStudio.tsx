@@ -31,6 +31,7 @@ import { ElevationEditor } from "./ElevationEditor";
 import { SystemExportDialog } from "../SystemExportDialog";
 import { WorkspaceBrand } from "../WorkspaceBrand";
 import { RadiusEditor } from "./RadiusEditor";
+import { ThemeControl } from "../ThemeControl";
 import { WorkspaceNav } from "../WorkspaceNav";
 
 /**
@@ -146,13 +147,14 @@ export function SpacingStudio() {
 
   return (
     <div className="min-h-dvh">
-      <header className="flex flex-wrap items-center gap-3 border-b border-[var(--color-neutral-800)] bg-[var(--color-neutral-900)] px-6 py-3">
+      <header className="flex flex-wrap items-center gap-3 border-b border-border-default bg-surface-subtle px-6 py-3">
         <WorkspaceBrand
           name={name}
           onChange={setName}
           onCommit={() => writeStoredName(name)}
         />
         <span className="ml-auto flex items-center gap-3">
+          <ThemeControl />
           <WorkspaceNav active="scale" />
           <Button
             scheme="neutral"
@@ -233,7 +235,7 @@ export function SpacingStudio() {
                     of numbers hides. */}
                 <span
                   aria-hidden="true"
-                  className="h-3 rounded-sm bg-[var(--color-primary-400)]"
+                  className="h-3 rounded-sm bg-action-primary"
                   style={{ width: `${token.px}px` }}
                 />
               </li>

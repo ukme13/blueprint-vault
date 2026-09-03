@@ -218,7 +218,7 @@ export function buildAccessibilityReport(
     typography: input.typography
       ? reportTypography(
           input.typography,
-          shades["text.primary"]!.hex,
+          shades["fg.primary"]!.hex,
           shades["surface.base"]!.hex,
         )
       : null,
@@ -321,7 +321,7 @@ export function formatAccessibilityReportMarkdown(
     );
   }
   lines.push(
-    `| Keyboard focus | ${colour.shades["focus.ring"]!.hex} on ${colour.shades["text.primary"]!.hex} | ${colour.focusCheck.adjacentContrast.toFixed(2)}:1 | ${WCAG_CONTRAST.focusIndicator}:1 | ${verdict(colour.focusCheck.status)} | — |`,
+    `| Keyboard focus | ${colour.shades["focus.ring"]!.hex} on ${colour.shades["fg.primary"]!.hex} | ${colour.focusCheck.adjacentContrast.toFixed(2)}:1 | ${WCAG_CONTRAST.focusIndicator}:1 | ${verdict(colour.focusCheck.status)} | — |`,
   );
   lines.push("");
 

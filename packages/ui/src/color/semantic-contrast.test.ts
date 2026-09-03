@@ -55,7 +55,7 @@ describe("assessSemanticContrast", () => {
       "light",
     );
 
-    const text = checks.find((check) => check.foreground.id === "text.primary");
+    const text = checks.find((check) => check.foreground.id === "fg.primary");
     const border = checks.find(
       (check) => check.foreground.id === "border.default",
     );
@@ -89,19 +89,19 @@ describe("assessSemanticContrast", () => {
        otherwise be assumed to behave like its light counterpart. */
     const tracks = palette();
     let tokens = seedSemanticTokens(tracks);
-    tokens = repointSemanticToken(tokens, "text.primary", "dark", {
+    tokens = repointSemanticToken(tokens, "fg.primary", "dark", {
       trackId: "t-neutral",
       weight: 900,
     });
 
     const light = assessSemanticContrast(tokens, tracks, "light").find(
       (check) =>
-        check.foreground.id === "text.primary" &&
+        check.foreground.id === "fg.primary" &&
         check.background.id === "surface.base",
     )!;
     const dark = assessSemanticContrast(tokens, tracks, "dark").find(
       (check) =>
-        check.foreground.id === "text.primary" &&
+        check.foreground.id === "fg.primary" &&
         check.background.id === "surface.base",
     )!;
 
@@ -121,7 +121,7 @@ describe("assessSemanticContrast", () => {
 
     const check = assessSemanticContrast(tokens, tracks, "light").find(
       (each) =>
-        each.foreground.id === "text.primary" &&
+        each.foreground.id === "fg.primary" &&
         each.background.id === "surface.base",
     )!;
 
@@ -135,7 +135,7 @@ describe("assessSemanticContrast", () => {
     const tracks = palette();
     const tokens: SemanticToken[] = [
       {
-        id: "text.primary",
+        id: "fg.primary",
         name: "Text primary",
         description: "",
         light: { trackId: "t-neutral", weight: 950 },

@@ -124,3 +124,20 @@ describe("updating", () => {
     expect(ran).toBe(false);
   });
 });
+
+describe("retiring the keys a workspace replaced", () => {
+  it("retires them on the write that first creates the workspace", () => {
+    /* A migrated project used to keep its legacy keys until whatever load
+       happened to come next — which was the palette studio writing its
+       semantics slice on mount. When that write moved onto the store, nothing
+       followed. The write that makes the workspace real is the one that
+       should clear what it replaced, and nothing else should have to. */
+    const storage = fakeStorage({ [LEGACY_PALETTE_STORAGE_KEY]: "{}" });
+    expect(storage.getItem(WORKSPACE_STORAGE_KEY)).toBeNull();
+
+    updateStoredWorkspace(storage, () => named("Migrated"));
+
+    expect(storage.getItem(WORKSPACE_STORAGE_KEY)).not.toBeNull();
+    expect(storage.getItem(LEGACY_PALETTE_STORAGE_KEY)).toBeNull();
+  });
+});

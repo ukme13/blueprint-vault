@@ -59,7 +59,7 @@ test.describe("The design system export", () => {
     const markdown = await download(page, "Report (Markdown)");
 
     expect(markdown).toContain("## Semantic tokens");
-    expect(markdown).toContain("text.primary");
+    expect(markdown).toContain("fg.primary");
     expect(markdown).toContain("surface.base");
     /* The resolved primitives, because a token id alone does not say which
        shade to go and change. */

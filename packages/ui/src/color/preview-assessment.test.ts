@@ -418,9 +418,13 @@ describe("assessPreview", () => {
     expect(assessment.textColourChoices).toHaveLength(4);
     expect(assessment.nonTextChecks).toHaveLength(2);
     /* Every pair among the six tokens that signal by colour — two actions and
-       four statuses. The list that was here named four of the fifteen. */
-    const signalling = Object.keys(assessment.shades).filter((id) =>
-      /^(status|action)\./.test(id),
+       four statuses. The list that was here named four of the fifteen.
+       `action.hover` and `action.active` are states of the primary control,
+       not signals beside it, so they sit in the layer and out of the grid. */
+    const signalling = Object.keys(assessment.shades).filter(
+      (id) =>
+        /^(status|action)\./.test(id) &&
+        !["action.hover", "action.active"].includes(id),
     ).length;
     expect(signalling).toBe(6);
     expect(assessment.semanticPairs).toHaveLength(

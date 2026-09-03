@@ -1,8 +1,8 @@
 .creationPage,
 .loadingPage {
   min-height: 100svh;
-  background: var(--color-neutral-800);
-  color: var(--color-neutral-100);
+  background: var(--color-surface-base);
+  color: var(--color-fg-primary);
   font-family: var(--font-geist-sans), sans-serif;
 }
 
@@ -14,15 +14,15 @@
   overflow: hidden;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
-  background: var(--color-neutral-800);
-  color: var(--color-neutral-100);
+  background: var(--color-surface-base);
+  color: var(--color-fg-primary);
   font-family: var(--font-geist-sans), sans-serif;
 }
 
 .loadingPage {
   display: grid;
   place-items: center;
-  color: var(--color-neutral-500);
+  color: var(--color-fg-muted);
   font-size: 12px;
 }
 
@@ -30,16 +30,22 @@
 .creationHeader {
   min-height: 64px;
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  /* minmax(0, 1fr), not 1fr: a fr track's floor is its content's min-width,
+     so the actions on the right — nav, theme control, export — held the bar
+     at 403px on a 375px screen and the whole workspace grid went with it.
+     Symmetric on purpose, so the tabs stay centred; the actions wrap onto a
+     second line where they do not fit. A content-sized right track was
+     tried and moved the groups panel enough to unsettle its keyboard drag. */
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 24px;
   padding: 0 24px;
-  border-bottom: 1px solid var(--color-neutral-800);
-  background: var(--color-neutral-900);
+  border-bottom: 1px solid var(--color-border-default);
+  background: var(--color-surface-subtle);
 }
 
 .creationHeader {
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .navigation {
@@ -48,7 +54,12 @@
 
 .headerActions {
   justify-self: end;
+  min-width: 0;
   display: flex;
+  /* Wraps rather than overflows: on a narrow screen the theme control drops
+     under the nav, which the bar's min-height already leaves room for. */
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: center;
   gap: 14px;
 }
@@ -59,14 +70,14 @@
 }
 
 .creationHeader nav a {
-  color: var(--color-neutral-400);
+  color: var(--color-fg-muted);
   font-size: 12px;
   text-decoration: none;
 }
 
 .creationHeader nav a:hover,
 .creationHeader nav a[aria-current="page"] {
-  color: var(--color-neutral-100);
+  color: var(--color-fg-primary);
 }
 
 .toolbar {
@@ -75,8 +86,8 @@
   align-items: center;
   gap: 8px;
   padding: 0 18px;
-  border-bottom: 1px solid var(--color-neutral-800);
-  background: var(--color-neutral-850);
+  border-bottom: 1px solid var(--color-border-default);
+  background: var(--color-surface-raised);
 }
 
 .newProjectButton {
@@ -97,7 +108,7 @@
   padding: 24px 18px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: var(--color-neutral-800);
+  background: var(--color-surface-base);
 }
 
 .stepList {
@@ -114,9 +125,9 @@
   align-items: baseline;
   gap: 16px;
   padding: 14px 16px;
-  border: 1px solid var(--color-neutral-750);
+  border: 1px solid var(--color-border-strong);
   border-radius: 10px;
-  background: var(--color-neutral-850);
+  background: var(--color-surface-raised);
 }
 
 /*
@@ -184,15 +195,15 @@
 }
 
 .stepMeta code {
-  color: var(--color-neutral-500);
+  color: var(--color-fg-muted);
   font-family: var(--font-geist-mono), monospace;
   font-size: 11px;
 }
 
 .stepMeta small {
   border-radius: 4px;
-  background: var(--color-neutral-700);
-  color: var(--color-neutral-300);
+  background: var(--color-surface-overlay);
+  color: var(--color-fg-secondary);
   padding: 2px 6px;
   font-size: 9px;
   text-transform: uppercase;
@@ -207,7 +218,7 @@
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: var(--color-neutral-900);
+  background: var(--color-surface-subtle);
   /* Named so the add buttons below can size against this panel rather than
      the viewport: it is resizable, so the two are not the same question. */
   container: inspector / inline-size;
@@ -218,8 +229,8 @@
   display: flex;
   align-items: center;
   padding: 0 18px;
-  border-bottom: 1px solid var(--color-neutral-800);
-  color: var(--color-neutral-200);
+  border-bottom: 1px solid var(--color-border-default);
+  color: var(--color-fg-secondary);
   font-size: 13px;
 }
 
@@ -231,18 +242,18 @@
   grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   padding: 17px 18px;
-  border-bottom: 1px solid var(--color-neutral-800);
+  border-bottom: 1px solid var(--color-border-default);
 }
 
 .settingGroup h2 {
   margin: 0;
-  color: var(--color-neutral-400);
+  color: var(--color-fg-muted);
   font-size: 11px;
   font-weight: 650;
 }
 
 .roleSettingLabel {
-  color: var(--color-neutral-300);
+  color: var(--color-fg-secondary);
   /* --font-size-base is 0.875rem, 14px at a 16px root. */
   font-size: var(--font-size-base);
   text-transform: capitalize;
@@ -260,20 +271,20 @@
 .warningList li {
   padding: 8px 10px;
   border-radius: 8px;
-  background: var(--color-neutral-850);
-  color: var(--color-neutral-300);
+  background: var(--color-surface-raised);
+  color: var(--color-fg-secondary);
 }
 
 .warningList li[data-status="warn"] {
-  color: var(--color-warning-300);
+  color: var(--color-status-warning);
 }
 
 .warningList li[data-status="fail"] {
-  color: var(--color-error-300);
+  color: var(--color-status-error);
 }
 
 .warningList li[data-status="pass"] {
-  color: var(--color-success-300);
+  color: var(--color-status-success);
 }
 
 .previewPage {
@@ -283,14 +294,14 @@
   display: grid;
   gap: 20px;
   padding: 32px clamp(20px, 4vw, 64px) 60px;
-  background: var(--color-neutral-800);
+  background: var(--color-surface-base);
 }
 
 .previewRole {
   padding: 22px;
-  border: 1px solid var(--color-neutral-750);
+  border: 1px solid var(--color-border-strong);
   border-radius: 14px;
-  background: var(--color-neutral-850);
+  background: var(--color-surface-raised);
 }
 
 .previewRole header {
@@ -299,21 +310,21 @@
 
 .previewRole h3 {
   margin: 0;
-  color: var(--color-neutral-100);
+  color: var(--color-fg-primary);
   font-size: 13px;
   text-transform: capitalize;
 }
 
 .previewRole header p {
   margin: 6px 0 0;
-  color: var(--color-neutral-500);
+  color: var(--color-fg-muted);
   font-size: 10px;
 }
 
 .previewRole > *:not(header) {
   display: block;
   margin: 0 0 10px;
-  color: var(--color-neutral-100);
+  color: var(--color-fg-primary);
 }
 
 .previewRole > *:last-child {
@@ -329,7 +340,7 @@
 }
 
 .exportDialogHeader {
-  border-bottom: 1px solid var(--color-neutral-700);
+  border-bottom: 1px solid var(--color-border-strong);
 }
 
 .exportDialogHeader h2 {
@@ -352,7 +363,7 @@
   flex-direction: column;
   gap: 12px;
   padding: 18px;
-  border-right: 1px solid var(--color-neutral-700);
+  border-right: 1px solid var(--color-border-strong);
 }
 
 .exportSettings h3 {
@@ -369,11 +380,11 @@
 .exportPreview {
   overflow: auto;
   padding: 16px;
-  background: var(--color-neutral-900);
+  background: var(--color-surface-subtle);
 }
 
 .exportDialogFooter {
-  border-top: 1px solid var(--color-neutral-700);
+  border-top: 1px solid var(--color-border-strong);
 }
 
 .exportDialogFooterSpacer {
@@ -385,27 +396,27 @@
 }
 
 .creationHeader a {
-  color: var(--color-neutral-400);
+  color: var(--color-fg-muted);
   font-size: 12px;
   text-decoration: none;
 }
 
 .creationHeader a:hover {
-  color: var(--color-neutral-100);
+  color: var(--color-fg-primary);
 }
 
 .creationCard {
   width: min(780px, calc(100% - 40px));
   margin: 72px auto 0;
   padding: 42px;
-  border: 1px solid var(--color-neutral-750);
+  border: 1px solid var(--color-border-strong);
   border-radius: 18px;
-  background: var(--color-neutral-900);
+  background: var(--color-surface-subtle);
 }
 
 .creationCard h1 {
   margin: 8px 0 8px;
-  color: var(--color-neutral-50);
+  color: var(--color-fg-primary);
   font-size: clamp(28px, 5vw, 42px);
   letter-spacing: -0.035em;
 }
@@ -413,7 +424,7 @@
 .creationIntro {
   max-width: 580px;
   margin: 0 0 32px;
-  color: var(--color-neutral-400);
+  color: var(--color-fg-muted);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -431,7 +442,7 @@
 
 .formError {
   margin: 12px 0 0;
-  color: var(--color-error-300);
+  color: var(--color-status-error);
   font-size: 11px;
 }
 
@@ -442,17 +453,17 @@
   gap: 16px;
   margin-top: 30px;
   padding-top: 22px;
-  border-top: 1px solid var(--color-neutral-800);
+  border-top: 1px solid var(--color-border-default);
 }
 
 .creationFooter p {
   margin: 0;
-  color: var(--color-neutral-500);
+  color: var(--color-fg-muted);
   font-size: 11px;
 }
 
 .creationFooter p strong {
-  color: var(--color-neutral-300);
+  color: var(--color-fg-secondary);
 }
 
 .visuallyHidden {
@@ -495,7 +506,7 @@
   .inspector {
     height: auto;
     overflow-y: visible;
-    border-top: 1px solid var(--color-neutral-800);
+    border-top: 1px solid var(--color-border-default);
   }
 }
 
@@ -702,15 +713,15 @@
 }
 
 .previewContrast[data-status="pass"] {
-  color: var(--color-success-300);
+  color: var(--color-status-success);
 }
 
 .previewContrast[data-status="partial"] {
-  color: var(--color-warning-300);
+  color: var(--color-status-warning);
 }
 
 .previewContrast[data-status="fail"] {
-  color: var(--color-error-300);
+  color: var(--color-status-error);
 }
 
 /* The role cards paint their own surface, which would hide the background
@@ -806,7 +817,7 @@
      so invisible on a menu surface measured at oklch(22%).
      `--color-border-emphasized` is only 30% and barely better; 600 reads as a
      line in both themes without becoming a rule. */
-  background: var(--color-neutral-600);
+  background: var(--color-surface-overlay);
 }
 
 /* What the slot is rendering right now, under the field it belongs to. Compact
@@ -835,13 +846,13 @@
 /* A local font with no file behind it is expected, not broken — a warning
    rather than an error, same as the hint below. */
 .fontStackNote[data-missing="true"] {
-  color: var(--color-warning-300);
+  color: var(--color-status-warning);
 }
 
 /* The one place the studio talks about licensing at the point of shipping. */
 .exportLicenceNote {
   margin: 0;
-  color: var(--color-warning-300);
+  color: var(--color-status-warning);
   font-size: var(--font-size-sm);
   line-height: 1.4;
 }

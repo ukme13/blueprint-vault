@@ -1,11 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import {
-  SegmentedControl,
-  SegmentedControlItem,
-} from "@astryxdesign/core/SegmentedControl";
-import { COLOUR_MODES, type ColourMode } from "@blueprint/ui";
+import type { ColourMode } from "@blueprint/ui";
+import { ThemeControl } from "./ThemeControl";
 import { VisionControl } from "./VisionControl";
 import { WorkspaceNav } from "./WorkspaceNav";
 
@@ -18,17 +15,25 @@ import { WorkspaceNav } from "./WorkspaceNav";
  * which would either fail that check or force an exemption that hollows it out.
  * The directory boundary says which is which.
  *
- * It also fixes a real mismatch. The bar used to be painted from the semantic
- * layer, so on a light system it was a light bar holding Astryx controls that
- * follow the app's dark theme — a row of black blobs. Studio chrome is dark
- * everywhere, like the other topbars, and now the controls sit on the surface
- * they were built for.
+ * One mode control, and it is the same one every other page has. This page
+ * used to carry a switch of its own — two states, "Colour mode" — beside the
+ * studio's three-state theme, which made a page with two things called a
+ * theme each flipping a different half of it, and later a page whose only
+ * switch could not say "system" when every other page could. The theme is one
+ * choice for the whole application now.
+ *
+ * `colorScheme` on the root is still declared rather than inherited, because
+ * this element is where the two halves have to agree: the canvas below draws
+ * from semantic variables computed for a resolved mode, and the bar around it
+ * draws from `light-dark()` chrome tokens, which resolve against whatever
+ * `color-scheme` is in force. Naming the resolved mode here is what keeps a
+ * `system` page from resolving those two against different answers.
  */
 
 interface PreviewChromeProps {
   name: string;
+  /** The resolved mode — what is being drawn, never `system`. */
   mode: ColourMode;
-  onModeChange: (mode: ColourMode) => void;
   /** What the footer reports about the canvas below. */
   tokenCount: number;
   children: ReactNode;
@@ -37,28 +42,14 @@ interface PreviewChromeProps {
 export function PreviewChrome({
   name,
   mode,
-  onModeChange,
   tokenCount,
   children,
 }: PreviewChromeProps) {
   return (
-    <div className="flex min-h-dvh flex-col">
-      <header className="flex flex-wrap items-center gap-3 border-b border-[var(--color-neutral-800)] bg-[var(--color-neutral-900)] px-6 py-3 text-[var(--color-neutral-100)]">
+    <div className="flex min-h-dvh flex-col" style={{ colorScheme: mode }}>
+      <header className="flex flex-wrap items-center gap-3 border-b border-border-default bg-surface-subtle px-6 py-3 text-fg-primary">
         <strong className="mr-auto text-sm">{name}</strong>
-        <SegmentedControl
-          label="Colour mode"
-          size="sm"
-          value={mode}
-          onChange={(next) => onModeChange(next as ColourMode)}
-        >
-          {COLOUR_MODES.map((each) => (
-            <SegmentedControlItem
-              key={each}
-              label={each === "light" ? "Light" : "Dark"}
-              value={each}
-            />
-          ))}
-        </SegmentedControl>
+        <ThemeControl />
         <VisionControl />
         <WorkspaceNav active="preview" />
       </header>
@@ -70,7 +61,7 @@ export function PreviewChrome({
           page showed the chrome's colour under a short canvas. */}
       {children}
 
-      <footer className="border-t border-[var(--color-neutral-800)] bg-[var(--color-neutral-900)] px-6 py-4 text-sm text-[var(--color-neutral-400)]">
+      <footer className="border-t border-border-default bg-surface-subtle px-6 py-4 text-sm text-fg-muted">
         Drawn from {tokenCount} semantic tokens, in {mode} mode.
       </footer>
     </div>

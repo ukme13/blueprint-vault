@@ -2,7 +2,11 @@ import {
   readLegacyPaletteName,
   readPaletteProjectData,
 } from "./palette-project";
-import { readSemanticTokens, semanticsForPalette } from "./semantics";
+import {
+  filledSemanticsForPalette,
+  readSemanticTokens,
+  semanticsForPalette,
+} from "./semantics";
 import {
   elevationOrDefault,
   radiusOrDefault,
@@ -93,8 +97,12 @@ export function readWorkspaceProject(value: unknown): WorkspaceProject | null {
     name: value.name as string,
     palette,
     typography: readTypographyProjectData(value.typography),
+    /* A stored layer is brought up to the current seed set on the way in, the
+       same way a version 1 file gained one at all: a role added since the
+       save is seeded against this palette and appended. */
     semantics:
-      readSemanticTokens(value.semantics) ?? semanticsForPalette(palette),
+      filledSemanticsForPalette(readSemanticTokens(value.semantics), palette) ??
+      semanticsForPalette(palette),
     spacing: spacingOrDefault(value.spacing),
     radius: radiusOrDefault(value.radius),
     elevation: elevationOrDefault(value.elevation),
