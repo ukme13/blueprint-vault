@@ -17,7 +17,7 @@ const topbarBackground = (page: import("@playwright/test").Page) =>
 
 const pick = (page: import("@playwright/test").Page, mode: string) =>
   page
-    .getByRole("radiogroup", { name: "Studio theme" })
+    .getByRole("radiogroup", { name: "Theme" })
     .getByRole("radio", { name: mode })
     .click();
 
@@ -48,7 +48,7 @@ test.describe("The studio theme", () => {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     await expect(
       page
-        .getByRole("radiogroup", { name: "Studio theme" })
+        .getByRole("radiogroup", { name: "Theme" })
         .getByRole("radio", { name: "Light" }),
     ).toBeChecked();
   });

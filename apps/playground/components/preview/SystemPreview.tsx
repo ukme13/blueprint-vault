@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import type { CSSProperties } from "react";
 import {
   defaultElevationScale,
   defaultRadiusScale,
@@ -10,10 +10,10 @@ import {
   elevationCssVariables,
   radiusCssVariables,
   spacingCssVariables,
-  type ColourMode,
   type SemanticToken,
   useWorkspaceStore,
 } from "@blueprint/ui";
+import { useThemeMode } from "../../app/theme-provider";
 import { usePaletteView } from "../palette/PaletteViewContext";
 import { PreviewChrome } from "../PreviewChrome";
 
@@ -63,7 +63,9 @@ export function SystemPreview() {
   /* The read, its timing and the SSR rule all live in the hook now. This page
      only shows what is stored. */
   const { project, hasLoaded } = useWorkspaceStore();
-  const [mode, setMode] = useState<ColourMode>("light");
+  /* The application-wide choice, resolved: a semantic token holds a light
+     value and a dark one, and nothing under "system". */
+  const { resolved: mode } = useThemeMode();
 
   const tokens: SemanticToken[] = project?.semantics ?? [];
   const palettes = project?.palette ? generatePalettes(project.palette) : [];
@@ -102,7 +104,6 @@ export function SystemPreview() {
       mode={mode}
       name={project?.name ?? "Workspace"}
       tokenCount={tokens.length}
-      onModeChange={setMode}
     >
       {/* The variables are declared on the same element that uses them.
           Declaring them on a child left this one resolving

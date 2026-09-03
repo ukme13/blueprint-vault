@@ -24,10 +24,10 @@ test.describe("The system preview", () => {
   test("answers to the mode toggle", async ({ page }) => {
     await openPreview(page);
 
-    const page_ = page.getByRole("heading", {
+    const heading = page.getByRole("heading", {
       name: "A system you can hand over",
     });
-    await expect(page_).toBeVisible();
+    await expect(heading).toBeVisible();
 
     /* A token-driven element rather than a wrapper: the first div on the page
        belongs to the framework and is transparent either way.
@@ -39,17 +39,19 @@ test.describe("The system preview", () => {
       page
         .getByRole("button", { name: "Primary action" })
         .evaluate((node) => getComputedStyle(node).backgroundColor);
-    const light = await background();
+    const dark = await background();
 
+    /* Light, because the studio opens dark and the canvas now follows the
+       studio. Clicking the mode it is already in would assert nothing. */
     await page
-      .getByRole("radiogroup", { name: "Colour mode" })
-      .getByRole("radio", { name: "Dark" })
+      .getByRole("radiogroup", { name: "Theme" })
+      .getByRole("radio", { name: "Light" })
       .click();
-    await expect(page.getByText("in dark mode")).toBeVisible();
+    await expect(page.getByText("in light mode")).toBeVisible();
 
     /* The same token, a different primitive. A layer that held one value per
        name could not do this at all. */
-    await expect.poll(background).not.toBe(light);
+    await expect.poll(background).not.toBe(dark);
   });
 
   test("says so when there is no layer to draw", async ({ page }) => {
@@ -102,30 +104,59 @@ test.describe("The preview's vision control", () => {
   });
 });
 
-test.describe("The preview's one mode control", () => {
-  test("is the page's, and the chrome follows it", async ({
-    seededPage: page,
+test.describe("The preview's theme control", () => {
+  test("is the studio's own, and moves the chrome with the canvas", async ({
+    page,
   }) => {
     await openPreview(page);
-    /* One control, not two. The studio-wide theme switch was mounted here
-       with the others and made a page with two things called a theme, each
-       flipping a different half of it. This page exists to show a client's
-       system in either mode, so the mode chosen here is the whole page's —
-       the bar around the canvas included — and the studio's own preference
-       is not offered beside it. */
+    /* One control, and the same one every other page carries. This page used
+       to have a switch of its own: first beside the studio's, which gave a
+       page with two things called a theme each flipping a different half of
+       it, and then alone, which gave a page whose only switch had no way to
+       say "system". */
     await expect(
-      page.getByRole("radiogroup", { name: "Studio theme" }),
+      page.getByRole("radiogroup", { name: "Colour mode" }),
     ).toHaveCount(0);
-    const control = page.getByRole("radiogroup", { name: "Colour mode" });
+    const control = page.getByRole("radiogroup", { name: "Theme" });
     await expect(control).toBeVisible();
+    await expect(control.getByRole("radio", { name: "System" })).toBeVisible();
 
     const bar = page.getByRole("banner");
-    const before = await bar.evaluate(
-      (el) => getComputedStyle(el).backgroundColor,
-    );
-    await control.getByRole("radio", { name: "Dark" }).click();
-    await expect
-      .poll(() => bar.evaluate((el) => getComputedStyle(el).backgroundColor))
-      .not.toBe(before);
+    const chrome = () =>
+      bar.evaluate((el) => getComputedStyle(el).backgroundColor);
+    const canvas = () =>
+      page
+        .getByRole("button", { name: "Primary action" })
+        .evaluate((node) => getComputedStyle(node).backgroundColor);
+    const [chromeDark, canvasDark] = [await chrome(), await canvas()];
+
+    await control.getByRole("radio", { name: "Light" }).click();
+
+    /* Both halves, because moving one is the bug this replaced: the canvas
+       draws from semantic variables computed for the resolved mode, the bar
+       from light-dark() chrome tokens, and they answer to one choice now. */
+    await expect.poll(chrome).not.toBe(chromeDark);
+    await expect.poll(canvas).not.toBe(canvasDark);
+  });
+
+  test("is the same choice the studio pages make", async ({
+    seededPage: page,
+  }) => {
+    /* Chosen in the palette studio, read on the preview. The complaint this
+       answers was exactly this crossing: picking dark left the preview light,
+       because the preview's mode was a second piece of state. */
+    await page
+      .getByRole("radiogroup", { name: "Theme" })
+      .getByRole("radio", { name: "Light" })
+      .click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+    await page.goto("/preview");
+    await expect(page.getByText("in light mode")).toBeVisible();
+    await expect(
+      page
+        .getByRole("radiogroup", { name: "Theme" })
+        .getByRole("radio", { name: "Light" }),
+    ).toBeChecked();
   });
 });

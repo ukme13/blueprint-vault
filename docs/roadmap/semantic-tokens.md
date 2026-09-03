@@ -423,10 +423,30 @@ mounted there with the others and made a page with two things called a
 theme, each flipping a different half of it. The page's own "Colour mode" is
 the whole page's now, chrome included, via `color-scheme` on its root, and
 the studio's preference is left alone. The test that had pinned two controls
-was passing against an unseeded page with no controls at all.
+was passing against an unseeded page with no controls at all. Half right —
+see below.
 
 **A keyboard-drag test is marginal, and is not this work's.** "Reordering
 groups" fails three to five runs in sixteen on this machine with none of
 these changes applied, and eight in sixteen with a content-sized topbar
 track added on the same page — reverted for that. It is timing-fragile
 before anything here touches it, and it deserves its own look.
+
+**One control everywhere, and `system` is a third state.** Removing the
+studio's switch from the preview left that page with a two-state one, so a
+studio set to dark opened a light preview and the preview alone could not
+defer to the operating system. The two questions really are different — the
+mode a client's system is demonstrated in is not the mode the person looking
+at it prefers for their own screen — and answering them separately still
+produced a studio where choosing dark left one page light. They are one
+choice now.
+
+What could not be shared is what the preview does with it. A semantic token
+holds a light reference and a dark one and nothing filed under `system`, so
+the canvas draws with `resolveThemeMode`'s answer rather than with the choice
+itself: `ThemeMode` is what was chosen, `ColourMode` is what gets drawn, and
+keeping them as two types is what stops `"system"` reaching a reference
+lookup that has no half filed under it. The media query behind it is a live
+subscription — a machine turns dark at sunset with the page open — so it is
+owned once, by the provider, and `prefersDark` is a parameter to the resolver
+rather than something it reads.

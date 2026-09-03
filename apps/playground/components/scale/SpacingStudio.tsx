@@ -31,7 +31,7 @@ import { ElevationEditor } from "./ElevationEditor";
 import { SystemExportDialog } from "../SystemExportDialog";
 import { WorkspaceBrand } from "../WorkspaceBrand";
 import { RadiusEditor } from "./RadiusEditor";
-import { StudioThemeControl } from "../StudioThemeControl";
+import { ThemeControl } from "../ThemeControl";
 import { WorkspaceNav } from "../WorkspaceNav";
 
 /**
@@ -154,7 +154,7 @@ export function SpacingStudio() {
           onCommit={() => writeStoredName(name)}
         />
         <span className="ml-auto flex items-center gap-3">
-          <StudioThemeControl />
+          <ThemeControl />
           <WorkspaceNav active="scale" />
           <Button
             scheme="neutral"

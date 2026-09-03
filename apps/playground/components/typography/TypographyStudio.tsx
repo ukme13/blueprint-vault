@@ -59,7 +59,7 @@ import { Badge } from "@astryxdesign/core/Badge";
 import { TypographyCreation } from "./TypographyCreation";
 import { TypographyExportDialog } from "./TypographyExportDialog";
 import { WorkspaceBrand } from "../WorkspaceBrand";
-import { StudioThemeControl } from "../StudioThemeControl";
+import { ThemeControl } from "../ThemeControl";
 import { WorkspaceNav } from "../WorkspaceNav";
 import { type PreviewLanguage, type PreviewWidth } from "./preview-templates";
 import { FontStackEditor } from "./FontStackEditor";
@@ -371,7 +371,7 @@ export function TypographyStudio() {
           </TabList>
         </nav>
         <span className={styles.headerActions}>
-          <StudioThemeControl />
+          <ThemeControl />
           <WorkspaceNav active="typography" />
           <Button
             aria-label="Export type scale"

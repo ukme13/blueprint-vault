@@ -12,14 +12,17 @@ import { LayerProvider } from "@astryxdesign/core/Layer";
 import { neutralTheme } from "@astryxdesign/theme-neutral/built";
 import {
   isThemeMode,
-  THEME_MODE_STORAGE_KEY,
+  resolveThemeMode,
+  type ColourMode,
   type ThemeMode,
-} from "./theme-mode";
-
-export { THEME_MODES, type ThemeMode } from "./theme-mode";
+} from "@blueprint/ui";
+import { THEME_MODE_STORAGE_KEY } from "./theme-mode";
 
 interface ThemeModeContextValue {
+  /** What was chosen, `system` included. What the control shows. */
   mode: ThemeMode;
+  /** What is actually being drawn. What a semantic token is read by. */
+  resolved: ColourMode;
   setMode: (mode: ThemeMode) => void;
 }
 
@@ -49,10 +52,18 @@ export function useThemeMode(): ThemeModeContextValue {
  * after that read, for the reason every studio's own read carries: under
  * StrictMode the effects run twice, and a write before the first read lands
  * the default over whatever was saved.
+ *
+ * `resolved` is here rather than in the preview that needs it because the
+ * media query is a live subscription — somebody's machine turns dark at
+ * sunset with the page open — and one subscription that everything reads
+ * cannot disagree with itself. It starts light and corrects after mount, the
+ * same shape as the stored mode: `matchMedia` does not exist on the server,
+ * and a `useState` initializer would run there.
  */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<ThemeMode>("dark");
   const [hasLoadedMode, setHasLoadedMode] = useState(false);
+  const [prefersDark, setPrefersDark] = useState(false);
 
   useEffect(() => {
     /* Reading localStorage must happen in an effect: a useState initializer
@@ -65,12 +76,22 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const query = window.matchMedia("(prefers-color-scheme: dark)");
+    const sync = () => setPrefersDark(query.matches);
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
     if (!hasLoadedMode) return;
     window.localStorage.setItem(THEME_MODE_STORAGE_KEY, mode);
   }, [hasLoadedMode, mode]);
 
   return (
-    <ThemeModeContext.Provider value={{ mode, setMode }}>
+    <ThemeModeContext.Provider
+      value={{ mode, resolved: resolveThemeMode(mode, prefersDark), setMode }}
+    >
       <Theme theme={neutralTheme} mode={mode}>
         <LayerProvider toast={{ position: "bottomEnd", maxVisible: 2 }}>
           {children}
