@@ -17,7 +17,7 @@ async function openSemantics(page: Page): Promise<Locator> {
 }
 
 function row(editor: Locator, name: string): Locator {
-  return editor.getByRole("listitem").filter({ hasText: name });
+  return editor.locator("tr:has([data-token])").filter({ hasText: name });
 }
 
 /**
@@ -43,7 +43,7 @@ test.describe("The semantic editor", () => {
     seededPage: page,
   }) => {
     const editor = await openSemantics(page);
-    await expect(editor.getByRole("listitem")).toHaveCount(19);
+    await expect(editor.locator("tr:has([data-token])")).toHaveCount(19);
     await expect(editor.getByText("--color-action-primary")).toBeVisible();
   });
 
@@ -139,10 +139,10 @@ test.describe("The semantic editor", () => {
     const editor = await openSemantics(page);
 
     await editor.getByRole("button", { name: "Add token" }).click();
-    await expect(editor.getByRole("listitem")).toHaveCount(20);
+    await expect(editor.locator("tr:has([data-token])")).toHaveCount(20);
 
     await editor.getByRole("button", { name: "Remove New token" }).click();
-    await expect(editor.getByRole("listitem")).toHaveCount(19);
+    await expect(editor.locator("tr:has([data-token])")).toHaveCount(19);
   });
 
   test("keeps the layer across a reload", async ({ seededPage: page }) => {

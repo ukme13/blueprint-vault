@@ -299,10 +299,15 @@
     var(--color-primary-900)
   );
 
-  /* Borders, three weights. No bare `border`: that name is Astryx's. */
+  /* Borders, three weights. No bare `border`: that name is Astryx's.
+
+     Default sits at 750, one step lighter than the canvas it is drawn on,
+     because at 800 it was the canvas: the Semantics table's grid rendered at
+     oklch(0.2) on a surface of oklch(0.2) — measured, invisible. A border
+     token that shares a value with the surface beneath it is not a border. */
   --color-border-default: light-dark(
     var(--color-neutral-200),
-    var(--color-neutral-800)
+    var(--color-neutral-750)
   );
   --color-border-subtle: light-dark(
     var(--color-neutral-150),

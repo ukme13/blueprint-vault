@@ -387,3 +387,46 @@ second has to be answerable regardless of the first.
 surface put back to a raw neutral, "repaints the chrome" fails; restored, it
 passes. A test that asserts a mode change without a semantic surface behind
 it would pass against a studio that never changed.
+
+## Notes from the table
+
+**The Semantics tab is a table now.** Nineteen names down the side, the two
+modes across, a decision in every cell, grouped by the part of the id before
+the dot the way the export groups them. The list of cards it replaced put
+each token's modes on their own rows, so comparing light with dark — the
+thing being decided — meant reading diagonally.
+
+**It reads the workspace store, not a private copy.** `PaletteStudio` used to
+read the semantic slice once on load and write it back from its own state;
+it now takes it from `useWorkspaceStore` and writes through `update`, which
+re-reads what is stored before writing its own slice. The preview tab and
+the export read the same layer the table just changed. Broken on purpose —
+the setter made a no-op — three of the editor's seven tests fail.
+
+**Two persistence tests failed for a reason the store now owns.** Legacy
+keys were retired on any _load_ that found a workspace, and the load that
+followed a migrated project's first write was the palette studio writing its
+semantics slice on mount. Moving that write onto the store removed the load,
+and a migrated project kept its legacy keys. `updateStoredWorkspace` retires
+them itself now, on the write that creates the workspace key and only then:
+retiring on every write re-parsed the workspace per keystroke, and the
+keyboard drag that reorders typography groups stalled under it — measured
+across sixteen runs each way. A unit test pins the first-write case.
+
+**A border token that equals the surface beneath it is not a border.** The
+table's grid rendered at oklch(0.2) on a canvas of oklch(0.2) — the retune
+had put `border-default` at 800, the canvas's own value. Measured on the
+cell, then moved to 750.
+
+**The preview page has one mode control.** The studio-wide switch was
+mounted there with the others and made a page with two things called a
+theme, each flipping a different half of it. The page's own "Colour mode" is
+the whole page's now, chrome included, via `color-scheme` on its root, and
+the studio's preference is left alone. The test that had pinned two controls
+was passing against an unseeded page with no controls at all.
+
+**A keyboard-drag test is marginal, and is not this work's.** "Reordering
+groups" fails three to five runs in sixteen on this machine with none of
+these changes applied, and eight in sixteen with a content-sized topbar
+track added on the same page — reverted for that. It is timing-fragile
+before anything here touches it, and it deserves its own look.

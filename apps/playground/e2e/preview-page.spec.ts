@@ -101,3 +101,31 @@ test.describe("The preview's vision control", () => {
     );
   });
 });
+
+test.describe("The preview's one mode control", () => {
+  test("is the page's, and the chrome follows it", async ({
+    seededPage: page,
+  }) => {
+    await openPreview(page);
+    /* One control, not two. The studio-wide theme switch was mounted here
+       with the others and made a page with two things called a theme, each
+       flipping a different half of it. This page exists to show a client's
+       system in either mode, so the mode chosen here is the whole page's —
+       the bar around the canvas included — and the studio's own preference
+       is not offered beside it. */
+    await expect(
+      page.getByRole("radiogroup", { name: "Studio theme" }),
+    ).toHaveCount(0);
+    const control = page.getByRole("radiogroup", { name: "Colour mode" });
+    await expect(control).toBeVisible();
+
+    const bar = page.getByRole("banner");
+    const before = await bar.evaluate(
+      (el) => getComputedStyle(el).backgroundColor,
+    );
+    await control.getByRole("radio", { name: "Dark" }).click();
+    await expect
+      .poll(() => bar.evaluate((el) => getComputedStyle(el).backgroundColor))
+      .not.toBe(before);
+  });
+});

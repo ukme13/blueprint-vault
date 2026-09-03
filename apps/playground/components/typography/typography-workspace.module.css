@@ -32,7 +32,10 @@
   display: grid;
   /* minmax(0, 1fr), not 1fr: a fr track's floor is its content's min-width,
      so the actions on the right — nav, theme control, export — held the bar
-     at 403px on a 375px screen and the whole workspace grid went with it. */
+     at 403px on a 375px screen and the whole workspace grid went with it.
+     Symmetric on purpose, so the tabs stay centred; the actions wrap onto a
+     second line where they do not fit. A content-sized right track was
+     tried and moved the groups panel enough to unsettle its keyboard drag. */
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 24px;

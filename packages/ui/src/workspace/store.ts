@@ -1,5 +1,6 @@
 import {
   LEGACY_PALETTE_STORAGE_KEY,
+  LEGACY_STORAGE_KEYS,
   LEGACY_TYPOGRAPHY_STORAGE_KEY,
   WORKSPACE_STORAGE_KEY,
   loadWorkspace,
@@ -101,7 +102,33 @@ export function updateStoredWorkspace(
   apply: (current: WorkspaceProject | null) => WorkspaceProject,
 ): WorkspaceProject | null {
   if (!storage) return null;
+  /* Whether this write is the one that creates the workspace key, read
+     before anything else touches storage. */
+  const isFirstWrite = storage.getItem(WORKSPACE_STORAGE_KEY) === null;
   const next = apply(loadStoredWorkspace(storage));
-  saveStoredWorkspace(storage, next);
+  if (!saveStoredWorkspace(storage, next)) return next;
+  /* The old keys go with the write that first creates the workspace. The
+     load above retires them only when a workspace already reads back, so
+     that first write used to leave them — and they were being cleared by
+     whichever *next* load happened along, which was the palette studio
+     writing its semantics slice on mount. When that write moved onto the
+     store, nothing followed, and a migrated project kept its legacy keys.
+
+     Only on that first write, and without `retireLegacyKeys`. That function
+     re-reads and re-seeds the whole workspace to prove the key holds one;
+     here the save that just succeeded is the proof. And any work at all on
+     every write is paid on every keystroke and every step of a drag in the
+     typography studio, whose keyboard reorder is timed close enough that
+     the re-parse stalled it four runs out of four and two `removeItem`s
+     still cost it one in four. Nothing on the ordinary write costs nothing. */
+  if (isFirstWrite) {
+    for (const key of LEGACY_STORAGE_KEYS) {
+      try {
+        storage.removeItem(key);
+      } catch {
+        /* A key that will not go is the next load's to retire. */
+      }
+    }
+  }
   return next;
 }

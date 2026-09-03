@@ -20,7 +20,9 @@
   display: grid;
   /* minmax(0, 1fr), not 1fr: a fr track's floor is its content's min-width,
      so the actions on the right — nav, theme control, import — held the bar
-     wider than a 375px screen and the workspace grid went with it. */
+     wider than a 375px screen and the workspace grid went with it.
+     Symmetric on purpose, so the tabs stay centred; the actions wrap onto a
+     second line where they do not fit. */
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 24px;
@@ -326,7 +328,7 @@
 .matrixScroller {
   max-width: 100%;
   overflow-x: auto;
-  padding: 0 0 18px;
+  padding: 0 0 0px;
 }
 
 .matrix {
@@ -360,7 +362,7 @@
 }
 
 .paletteRows {
-  overflow: visible;
+  overflow: hidden;
   border: 1px solid var(--color-border-strong);
   border-radius: 12px;
   background: var(--color-surface-raised);
@@ -914,6 +916,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  overflow: hidden;
   padding: 8px 12px;
   border-bottom: 1px solid var(--color-border-strong);
 }

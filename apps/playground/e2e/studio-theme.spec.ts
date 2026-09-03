@@ -61,16 +61,4 @@ test.describe("The studio theme", () => {
        browser decides, which is what Astryx's Theme does for this mode. */
     await expect(page.locator("html")).not.toHaveAttribute("data-theme");
   });
-
-  test("is not the preview page's colour mode", async ({ page }) => {
-    await page.goto("/preview");
-    /* Two controls, two questions: what the studio looks like to the person,
-       and which half of the workspace's layer the demo page is drawn with. */
-    await expect(
-      page.getByRole("radiogroup", { name: "Studio theme" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("radiogroup", { name: "Colour mode" }),
-    ).toBeVisible();
-  });
 });

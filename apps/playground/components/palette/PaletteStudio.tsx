@@ -28,6 +28,7 @@ import {
   saveStoredWorkspace,
   updateStoredWorkspace,
   withPaletteSlice,
+  useWorkspaceStore,
   withSemanticsSlice,
   withSharedName,
   type WorkspaceProject,
@@ -172,28 +173,6 @@ function readForeignSlices(): ForeignSlices {
   }
 }
 
-/** The semantic layer, which this studio owns now that it can edit it. */
-function readStoredSemantics(): WorkspaceProject["semantics"] {
-  try {
-    return loadStoredWorkspace(browserWorkspaceStorage())?.semantics ?? null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Persist the semantic layer, and only that slice.
- *
- * The stored workspace is re-read for the same reason the palette write does
- * it: another tab may have moved on since this page loaded, and writing the
- * copy we hold would take its work with us.
- */
-function writeStoredSemantics(semantics: SemanticToken[] | null): void {
-  updateStoredWorkspace(browserWorkspaceStorage(), (current) =>
-    withSemanticsSlice(current, semantics),
-  );
-}
-
 /**
  * Replace the whole document.
  *
@@ -260,9 +239,16 @@ function PaletteStudioContent() {
   /* Read once on load, so an export carries the type scale without this
      component reading storage while it renders. */
   const [foreign, setForeign] = useState<ForeignSlices>(emptyForeignSlices);
-  const [semantics, setSemantics] =
-    useState<WorkspaceProject["semantics"]>(null);
-  const [hasLoadedSemantics, setHasLoadedSemantics] = useState(false);
+  /* The semantic layer comes from the workspace store rather than from a
+     private read of storage. Every edit goes through `update`, which re-reads
+     what is stored before writing its own slice — the same discipline the
+     palette write keeps by hand — so the preview tab and the export below
+     read the layer the Semantics tab just changed, and another tab's work is
+     not written over with a copy from this page's load. */
+  const workspace = useWorkspaceStore();
+  const semantics = workspace.project?.semantics ?? null;
+  const setSemantics = (next: SemanticToken[] | null) =>
+    workspace.update((current) => withSemanticsSlice(current, next));
   const [pendingImport, setPendingImport] = useState<WorkspaceProject | null>(
     null,
   );
@@ -284,8 +270,6 @@ function PaletteStudioContent() {
     setProject(stored.palette);
     setName(stored.name);
     setForeign(readForeignSlices());
-    setSemantics(readStoredSemantics());
-    setHasLoadedSemantics(true);
     setHasLoadedProject(true);
   }, []);
 
@@ -294,14 +278,6 @@ function PaletteStudioContent() {
 
     writeStoredProject(project, name);
   }, [hasLoadedProject, project, name]);
-
-  useEffect(() => {
-    /* Guarded separately from the palette: writing before the load has run
-       would persist a null layer over a stored one. */
-    if (!hasLoadedSemantics) return;
-
-    writeStoredSemantics(semantics);
-  }, [hasLoadedSemantics, semantics]);
 
   const weights = useMemo(() => {
     const shadeCount = project?.lightnessValues.length ?? 0;

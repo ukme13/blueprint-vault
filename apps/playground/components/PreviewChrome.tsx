@@ -7,7 +7,6 @@ import {
 } from "@astryxdesign/core/SegmentedControl";
 import { COLOUR_MODES, type ColourMode } from "@blueprint/ui";
 import { VisionControl } from "./VisionControl";
-import { StudioThemeControl } from "./StudioThemeControl";
 import { WorkspaceNav } from "./WorkspaceNav";
 
 /**
@@ -19,11 +18,14 @@ import { WorkspaceNav } from "./WorkspaceNav";
  * which would either fail that check or force an exemption that hollows it out.
  * The directory boundary says which is which.
  *
- * It also fixes a real mismatch. The bar used to be painted from the semantic
- * layer, so on a light system it was a light bar holding Astryx controls that
- * follow the app's dark theme — a row of black blobs. Studio chrome is dark
- * everywhere, like the other topbars, and now the controls sit on the surface
- * they were built for.
+ * One mode control, not two. The studio-wide theme switch was mounted here
+ * with the others and made a page with two things called a theme, each
+ * flipping a different half of it: the canvas followed "Colour mode", the bar
+ * around it followed "Studio theme". This page exists to show a client's
+ * system in either mode, so the mode chosen here is the mode of the whole
+ * page — chrome included — and the viewer's own studio preference is left
+ * alone. `color-scheme` on the root is what carries that: every `light-dark()`
+ * token beneath resolves against it, whatever the studio is set to above.
  */
 
 interface PreviewChromeProps {
@@ -43,7 +45,7 @@ export function PreviewChrome({
   children,
 }: PreviewChromeProps) {
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="flex min-h-dvh flex-col" style={{ colorScheme: mode }}>
       <header className="flex flex-wrap items-center gap-3 border-b border-border-default bg-surface-subtle px-6 py-3 text-fg-primary">
         <strong className="mr-auto text-sm">{name}</strong>
         <SegmentedControl
@@ -61,7 +63,6 @@ export function PreviewChrome({
           ))}
         </SegmentedControl>
         <VisionControl />
-        <StudioThemeControl />
         <WorkspaceNav active="preview" />
       </header>
 
