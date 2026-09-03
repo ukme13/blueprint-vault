@@ -16,9 +16,9 @@ test.describe("The system preview", () => {
     await expect(
       page.getByRole("heading", { name: "A system you can hand over" }),
     ).toBeVisible();
-    /* Twelve, because a workspace migrated from the old keys is seeded with
+    /* Nineteen, because a workspace migrated from the old keys is seeded with
        the roles that were already in use. */
-    await expect(page.getByText("Drawn from 12 semantic tokens")).toBeVisible();
+    await expect(page.getByText("Drawn from 19 semantic tokens")).toBeVisible();
   });
 
   test("answers to the mode toggle", async ({ page }) => {

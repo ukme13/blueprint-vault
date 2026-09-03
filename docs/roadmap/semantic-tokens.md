@@ -277,3 +277,63 @@ to that studio's toolbar.
 
 - Whether the demo page is also the export target for a client-facing PDF or
   static handoff, or stays a live preview only.
+
+## Notes from the vocabulary rework
+
+**One vocabulary, two sources.** The studio's own chrome in `theme.css` and
+the layer the workspace exports had grown separate names for the same roles —
+`--color-bg-surface` in one, `--color-surface-raised` in the other, and
+`-base` suffixes where the first had to dodge Astryx. They now share one set
+of names: `fg.*`, `surface.*`, `border.*`, `action.*`, `status.*`,
+`focus.ring`. `theme.css` defines them for the studio from a neutral ramp that
+has to render before any palette exists; the workspace exports the same names
+for a client and overrides them inline on `/preview`. A developer reads one
+name whether they are looking at the studio or at the file it produced.
+
+**The names have to dodge Astryx, and that is measured, not inferred.** Astryx
+defines `--color-border`, `--color-accent`, `--color-on-accent`,
+`--color-skeleton` and every `text-*` / `background-*` inside its own theme
+layer, scoped to the theme element. Our `@theme` block lands in Tailwind's
+lower `theme` layer at `:root`, so a token of ours with one of those exact
+names loses — and the bridge line that re-asserts it becomes
+`--color-border: var(--color-border)`. Hence no bare `border`, `strong` rather
+than `emphasized`, and `action` rather than `accent`. The bridge test reads
+the resolved `--color-border` on the element Astryx scopes to and compares it
+to ours; it fails when the mapping is broken and passes when it is restored.
+
+**`text` became `fg`.** The same token colours icons and rules; "text" named
+one use. `migrateSemanticIds` now follows a chain — `neutral.dark` →
+`text.primary` → `fg.primary` — so a layer saved under the very first names
+still lands on a name the seed set has, and the contrast rule keys on `fg`
+for the text threshold.
+
+**Seven roles were added, and existing workspaces gain them on read.**
+`action.hover`, `action.active`, `surface.subtle`, `surface.overlay`,
+`border.subtle`, `border.muted`, `fg.disabled`. `fillSeedRoles` appends
+whatever seed role a stored layer lacks, seeded against that palette exactly
+as a fresh layer would be, and never touches an empty layer — an empty layer
+somebody stored is a deliberate act. Nineteen tokens, not twelve.
+
+**Hover and active are states, not signals.** Deriving the report's pairs from
+every `status`/`action` token would have paired `action.hover` against
+`status.info` — a row that measures nothing anyone sees. `semanticPairIds`
+keeps the two states out of the grid; they are still tokens with a foreground
+on them, and the surface checks cover that. Fifteen pairs, as before.
+
+**Opacity modifiers were already working.** `color-mix` takes a `light-dark()`
+colour as it takes any other, so `bg-surface-raised/50` lands as alpha 0.5 in
+both modes. Nothing changed for that; a test now pins it so nothing can.
+
+**Foregrounds are solid on purpose.** A text state expressed as an opacity
+lets the surface bleed through into a colour nobody chose and nothing
+measured. `fg.disabled` is one value and is checked once.
+
+**What governs the mode is a StyleX class, not an attribute.** Flipping
+`html[data-theme]` flips `color-scheme` on the theme host and every token
+read there — the tokens test proves it — and the studio's controls stay dark
+anyway. `<Theme mode>` renders an inner element carrying `.xntwwlm
+{ color-scheme: dark }`, chosen by React from the `mode` prop, and every
+`light-dark()` beneath it resolves against that. Setting `data-theme` on that
+element does nothing; only `setMode` changes the class. The studio-wide
+toggle therefore goes through `ThemeProvider`, which is what the mode state
+was scaffolded for. Found by screenshotting light mode and seeing dark.

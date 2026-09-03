@@ -1,6 +1,7 @@
 import type { PaletteProjectData } from "../color/export";
 import { generatePalettes } from "../color/palette";
 import {
+  fillSeedRoles,
   migrateSemanticIds,
   seedSemanticTokens,
   type SemanticToken,
@@ -79,6 +80,31 @@ export function semanticsForPalette(
 ): SemanticToken[] | null {
   if (!palette) return null;
   return seedSemanticTokens(
+    generatePalettes({
+      tracks: palette.tracks,
+      lightnessValues: palette.lightnessValues,
+    }),
+  );
+}
+
+/**
+ * A stored layer, brought up to the current seed set.
+ *
+ * A workspace saved before a role existed has no token for it, and the demo
+ * page and the studio's own chrome reach for the full set by name. The
+ * missing roles are seeded against this palette exactly as a fresh layer
+ * would be, and appended so nothing the user arranged moves.
+ *
+ * Null in, null out: no stored layer is the signal to seed a whole one, which
+ * is `semanticsForPalette`'s job and stays there.
+ */
+export function filledSemanticsForPalette(
+  tokens: SemanticToken[] | null,
+  palette: PaletteProjectData | null,
+): SemanticToken[] | null {
+  if (!tokens || !palette) return tokens;
+  return fillSeedRoles(
+    tokens,
     generatePalettes({
       tracks: palette.tracks,
       lightnessValues: palette.lightnessValues,

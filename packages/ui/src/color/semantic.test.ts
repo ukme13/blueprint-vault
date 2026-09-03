@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { generatePalettes } from "./palette";
 import {
   addSemanticToken,
+  fillSeedRoles,
   migrateSemanticIds,
   removeSemanticToken,
   renameSemanticToken,
@@ -56,10 +57,10 @@ function tokenById(tokens: SemanticToken[], id: string): SemanticToken {
 }
 
 describe("seedSemanticTokens", () => {
-  it("seeds the twelve roles the page needs", () => {
+  it("seeds the nineteen roles the page needs", () => {
     const tokens = seedSemanticTokens(fullPalette());
-    expect(tokens).toHaveLength(12);
-    expect(new Set(tokens.map((token) => token.id)).size).toBe(12);
+    expect(tokens).toHaveLength(19);
+    expect(new Set(tokens.map((token) => token.id)).size).toBe(19);
   });
 
   /* The guard against the layer drifting away from the preview it came from.
@@ -100,7 +101,7 @@ describe("seedSemanticTokens", () => {
     ]);
     const tokens = seedSemanticTokens(tracks);
 
-    expect(tokens).toHaveLength(12);
+    expect(tokens).toHaveLength(19);
     for (const token of tokens) {
       expect(token.light.trackId).toBe("only");
     }
@@ -119,7 +120,7 @@ describe("the dark seed", () => {
     const tokens = seedSemanticTokens(tracks);
     const neutral = tracks.find((track) => track.id === "t-neutral")!;
 
-    const dark = tokenById(tokens, "text.primary");
+    const dark = tokenById(tokens, "fg.primary");
     const light = tokenById(tokens, "surface.base");
 
     const indexOf = (weight: number) =>
@@ -134,7 +135,7 @@ describe("the dark seed", () => {
     const tracks = fullPalette();
     const tokens = seedSemanticTokens(tracks);
 
-    const text = tokenById(tokens, "text.primary");
+    const text = tokenById(tokens, "fg.primary");
     const background = tokenById(tokens, "surface.base");
 
     const lightText = resolveSemantic(text, "light", tracks)!;
@@ -209,7 +210,7 @@ describe("resolveSemantic", () => {
   it("resolves every token in a mode", () => {
     const tracks = fullPalette();
     const tokens = seedSemanticTokens(tracks);
-    expect(resolveSemantics(tokens, "dark", tracks)).toHaveLength(12);
+    expect(resolveSemantics(tokens, "dark", tracks)).toHaveLength(19);
     expect(resolveSemantics(tokens, "dark", [])).toEqual([]);
   });
 });
@@ -270,7 +271,7 @@ describe("editing a layer", () => {
     const tracks = fullPalette();
     const tokens = addSemanticToken(seedSemanticTokens(tracks), tracks, "Chip");
 
-    expect(tokens).toHaveLength(13);
+    expect(tokens).toHaveLength(20);
     const added = tokenById(tokens, "chip");
     expect(resolveSemantic(added, "light", tracks)!.hex).toMatch(
       /^#[0-9a-f]{6}$/i,
@@ -296,7 +297,7 @@ describe("editing a layer", () => {
     const tokens = seedSemanticTokens(fullPalette());
     const next = removeSemanticToken(tokens, "status.info");
 
-    expect(next).toHaveLength(11);
+    expect(next).toHaveLength(18);
     expect(next.some((token) => token.id === "status.info")).toBe(false);
   });
 
@@ -327,7 +328,7 @@ describe("the first names, carried forward", () => {
 
     expect(migrated.map((token) => token.id)).toEqual([
       "action.primary",
-      "text.primary",
+      "fg.primary",
       "surface.base",
     ]);
     expect(migrated[0]!.name).toBe("Action primary");
@@ -363,16 +364,105 @@ describe("the first names, carried forward", () => {
     expect(seedSemanticTokens(fullPalette()).map((token) => token.id)).toEqual([
       "action.primary",
       "action.secondary",
+      "action.hover",
+      "action.active",
       "surface.base",
+      "surface.subtle",
       "surface.raised",
+      "surface.overlay",
       "border.default",
-      "text.primary",
-      "text.secondary",
+      "border.subtle",
+      "border.muted",
+      "fg.primary",
+      "fg.secondary",
+      "fg.disabled",
       "focus.ring",
       "status.success",
       "status.warning",
       "status.error",
       "status.info",
     ]);
+  });
+});
+
+describe("the second rename", () => {
+  const oldToken = (id: string, name: string): SemanticToken => ({
+    id,
+    name,
+    description: "",
+    light: { trackId: "t-neutral", weight: 950 },
+    dark: { trackId: "t-neutral", weight: 50 },
+  });
+
+  it("moves text onto fg", () => {
+    const migrated = migrateSemanticIds([
+      oldToken("text.primary", "Text primary"),
+      oldToken("text.secondary", "Text secondary"),
+    ]);
+    expect(migrated.map((token) => token.id)).toEqual([
+      "fg.primary",
+      "fg.secondary",
+    ]);
+    expect(migrated[0]!.name).toBe("Foreground primary");
+    // A rename moves the name, never what it points at.
+    expect(migrated[0]!.light).toEqual({ trackId: "t-neutral", weight: 950 });
+  });
+
+  it("follows a chain from the very first names in one read", () => {
+    /* A layer saved under the ramp-position names has to cross two renames:
+       neutral.dark → text.primary → fg.primary. Stopping after one would land
+       a project on a name that no longer exists in the seed set. */
+    const migrated = migrateSemanticIds([
+      oldToken("neutral.dark", "Neutral dark"),
+    ]);
+    expect(migrated.map((token) => token.id)).toEqual(["fg.primary"]);
+  });
+
+  it("still refuses to land on a taken id", () => {
+    const migrated = migrateSemanticIds([
+      oldToken("fg.primary", "Mine"),
+      oldToken("text.primary", "Text primary"),
+    ]);
+    expect(migrated.map((token) => token.id)).toEqual([
+      "fg.primary",
+      "text.primary",
+    ]);
+  });
+});
+
+describe("fillSeedRoles", () => {
+  it("appends the seed roles a stored layer lacks, in seed order", () => {
+    const stored = seedSemanticTokens(fullPalette()).filter(
+      (token) => !token.id.startsWith("surface.") && token.id !== "fg.disabled",
+    );
+    const filled = fillSeedRoles(stored, fullPalette());
+
+    const added = filled.slice(stored.length).map((token) => token.id);
+    expect(added).toEqual([
+      "surface.base",
+      "surface.subtle",
+      "surface.raised",
+      "surface.overlay",
+      "fg.disabled",
+    ]);
+    // What the user had stays exactly where it was.
+    expect(filled.slice(0, stored.length)).toEqual(stored);
+  });
+
+  it("leaves a complete layer untouched, by identity", () => {
+    const complete = seedSemanticTokens(fullPalette());
+    expect(fillSeedRoles(complete, fullPalette())).toBe(complete);
+  });
+
+  it("leaves a deliberately empty layer empty", () => {
+    expect(fillSeedRoles([], fullPalette())).toEqual([]);
+  });
+
+  it("is idempotent", () => {
+    const once = fillSeedRoles(
+      [seedSemanticTokens(fullPalette())[0]!],
+      fullPalette(),
+    );
+    expect(fillSeedRoles(once, fullPalette())).toBe(once);
   });
 });

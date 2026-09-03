@@ -159,9 +159,9 @@ export function PreviewAccessibility({
               />
             ))}
             <AccessibilityRow
-              background={shades["text.primary"]!.hex}
+              background={shades["fg.primary"]!.hex}
               badge={focusCheck.status === "pass" ? "Pass" : "Fail"}
-              detail={`${shades["focus.ring"]!.hex} against ${shades["text.primary"]!.hex}`}
+              detail={`${shades["focus.ring"]!.hex} against ${shades["fg.primary"]!.hex}`}
               foreground={shades["focus.ring"]!.hex}
               label="Keyboard focus colour"
               ratioLabel={`${focusCheck.adjacentContrast.toFixed(1)}:1`}

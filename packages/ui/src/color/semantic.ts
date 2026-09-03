@@ -95,11 +95,32 @@ const SEED_ROLES: readonly SeedRole[] = [
     position: 0.48,
   },
   {
+    id: "action.hover",
+    name: "Action hover",
+    description: "A primary control under the pointer.",
+    track: "primary",
+    position: 0.62,
+  },
+  {
+    id: "action.active",
+    name: "Action active",
+    description: "A primary control while it is pressed.",
+    track: "primary",
+    position: 0.7,
+  },
+  {
     id: "surface.base",
     name: "Surface base",
     description: "The page canvas, behind everything else.",
     track: "neutral",
     position: 0.08,
+  },
+  {
+    id: "surface.subtle",
+    name: "Surface subtle",
+    description: "A quiet wash set into the canvas: a well, a code block.",
+    track: "neutral",
+    position: 0.14,
   },
   {
     id: "surface.raised",
@@ -109,6 +130,13 @@ const SEED_ROLES: readonly SeedRole[] = [
     position: 0.12,
   },
   {
+    id: "surface.overlay",
+    name: "Surface overlay",
+    description: "A popover, menu or dialog over everything else.",
+    track: "neutral",
+    position: 0.02,
+  },
+  {
     id: "border.default",
     name: "Border default",
     description: "Borders and dividers.",
@@ -116,21 +144,49 @@ const SEED_ROLES: readonly SeedRole[] = [
     position: 0.48,
   },
   {
-    id: "text.primary",
-    name: "Text primary",
-    description: "Body text and headings.",
+    id: "border.subtle",
+    name: "Border subtle",
+    description: "A border that separates without drawing the eye.",
+    track: "neutral",
+    position: 0.32,
+  },
+  {
+    id: "border.muted",
+    name: "Border muted",
+    description: "The faintest rule: a divider inside a surface.",
+    track: "neutral",
+    position: 0.22,
+  },
+  {
+    /* `fg`, not `text`: the same token colours an icon, a rule in a chart, a
+       glyph in a badge. "Foreground" is what it is; "text" was one thing it
+       is used for. Saved layers keep working through `migrateSemanticIds`. */
+    id: "fg.primary",
+    name: "Foreground primary",
+    description: "Body text, headings and icons.",
     track: "neutral",
     position: 0.9,
   },
   {
-    id: "text.secondary",
+    id: "fg.secondary",
     /* The page asked for this one. Muted text was being faked with opacity,
        which the primitive check cannot see and which mixes a colour nobody
        chose out of whatever happens to be behind it. */
-    name: "Text secondary",
+    name: "Foreground secondary",
     description: "Supporting text, captions and help.",
     track: "neutral",
     position: 0.68,
+  },
+  {
+    /* Solid, like every foreground. Fading text with opacity lets the surface
+       bleed through into a colour nobody chose and nothing measured, which is
+       how a disabled label ends up below the contrast floor on one surface and
+       above it on the next. A token has one value and is checked once. */
+    id: "fg.disabled",
+    name: "Foreground disabled",
+    description: "Text and icons on a control that cannot be used.",
+    track: "neutral",
+    position: 0.55,
   },
   {
     id: "focus.ring",
@@ -484,12 +540,35 @@ const RENAMED_IDS: Readonly<Record<string, string>> = {
   "warning.action": "status.warning",
   "error.action": "status.error",
   "info.action": "status.info",
+  /* The second rename. `text` named one use of a foreground colour; the same
+     token draws icons and rules, so the group is now called what it is. A
+     layer saved under the first names goes `neutral.dark` → `text.primary` →
+     `fg.primary` in one read, which is why the walk below follows a chain. */
+  "text.primary": "fg.primary",
+  "text.secondary": "fg.secondary",
 };
+
+/**
+ * Where an id ends up, following renames until they stop.
+ *
+ * Bounded by the table's size: a cycle would otherwise loop, and a table that
+ * renames `a` to `b` and `b` back to `a` is a bug worth surviving rather than
+ * hanging on.
+ */
+function currentId(id: string): string {
+  let at = id;
+  for (let hops = 0; hops < Object.keys(RENAMED_IDS).length; hops += 1) {
+    const next = RENAMED_IDS[at];
+    if (!next) break;
+    at = next;
+  }
+  return at;
+}
 
 /**
  * Carry a stored layer onto the current names.
  *
- * A token is renamed only when its id is untouched from the first seed set: a
+ * A token is renamed only when its id is untouched from an earlier seed set: a
  * rename moves the id with the label, so an id still matching one of these is
  * one nobody has edited. And never onto a name already taken — two tokens
  * sharing an id would export one variable twice and the later would win.
@@ -498,8 +577,8 @@ export function migrateSemanticIds(tokens: SemanticToken[]): SemanticToken[] {
   const taken = new Set(tokens.map((token) => token.id));
 
   return tokens.map((token) => {
-    const renamed = RENAMED_IDS[token.id];
-    if (!renamed || taken.has(renamed)) return token;
+    const renamed = currentId(token.id);
+    if (renamed === token.id || taken.has(renamed)) return token;
 
     const role = SEED_ROLES.find((each) => each.id === renamed);
     return {
@@ -509,4 +588,27 @@ export function migrateSemanticIds(tokens: SemanticToken[]): SemanticToken[] {
       description: role?.description ?? token.description,
     };
   });
+}
+
+/**
+ * Add the seed roles a stored layer does not have.
+ *
+ * A workspace saved before a role existed has no token for it, and the demo
+ * page and the studio's own chrome both reach for the full set by name. The
+ * new ones are seeded against this palette the same way a fresh layer is, and
+ * appended so nothing somebody arranged moves.
+ *
+ * Only for a layer that has something in it. An empty layer that was
+ * genuinely stored is a deliberate act, and filling it would undo that.
+ */
+export function fillSeedRoles(
+  tokens: SemanticToken[],
+  tracks: ColorTrack[],
+): SemanticToken[] {
+  if (tokens.length === 0 || tracks.length === 0) return tokens;
+  const present = new Set(tokens.map((token) => token.id));
+  const missing = seedSemanticTokens(tracks).filter(
+    (seeded) => !present.has(seeded.id),
+  );
+  return missing.length === 0 ? tokens : [...tokens, ...missing];
 }

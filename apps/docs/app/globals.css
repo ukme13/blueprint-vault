@@ -34,7 +34,7 @@ body {
 
 body {
   color: var(--color-fg-primary);
-  background: var(--color-bg-body);
+  background: var(--color-surface-base);
 }
 
 a {

@@ -7,7 +7,7 @@
 .hero {
   max-width: 48rem;
   padding-bottom: 3rem;
-  border-bottom: 1px solid var(--color-border-emphasized-base);
+  border-bottom: 1px solid var(--color-border-strong);
 }
 
 .eyebrow {
@@ -65,9 +65,9 @@
 .card,
 .componentCard,
 .notice {
-  border: 1px solid var(--color-border-emphasized-base);
+  border: 1px solid var(--color-border-strong);
   border-radius: 1rem;
-  background: var(--color-bg-surface);
+  background: var(--color-surface-raised);
 }
 
 .card,
@@ -100,7 +100,7 @@
 
 .componentCard:hover,
 .componentCard:focus-visible {
-  border-color: var(--color-accent-base);
+  border-color: var(--color-action-primary);
   box-shadow: 0 0.75rem 2rem
     color-mix(in oklch, var(--color-primary-950) 10%, transparent);
   outline: none;

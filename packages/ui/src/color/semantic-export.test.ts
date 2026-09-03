@@ -147,10 +147,10 @@ describe("the design tokens export", () => {
     expect(Object.keys(output.semantic.light).sort()).toEqual([
       "action",
       "border",
+      "fg",
       "focus",
       "status",
       "surface",
-      "text",
     ]);
     expect(Object.keys(output.semantic.dark)).toHaveLength(6);
   });
@@ -169,7 +169,7 @@ describe("the design tokens export", () => {
         dark: { trackId: "t-neutral", weight: 25 },
       },
       {
-        id: "text.primary",
+        id: "fg.primary",
         name: "Text primary",
         description: "",
         light: { trackId: "t-neutral", weight: 900 },
