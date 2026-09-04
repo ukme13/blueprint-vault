@@ -299,3 +299,79 @@ namespace import binds an object carrying only `default`.
 reference workspace are inside `apps/docs`, so `$TURBO_DEFAULT$` already treats
 them as inputs. They are deliberately not declared as outputs: they are
 committed, and an output would be restored from cache over the working tree.
+
+## Notes from closing stage 1's findings
+
+**The six roles are in the layer, and the gap list is empty.** `fg.accent`,
+`fg.on-action`, `action.muted`, `border.strong`, `surface.skeleton` and
+`surface.track` are seed roles now, so the layer is twenty-five and a workspace
+saved before they existed gains them on read. Each is seeded to the primitive
+the studio's chrome already resolves it to, in both modes, so nothing about the
+studio moved: the docs app's eyebrow and its section rules came back through
+the export with no token added by hand to that app.
+
+**Mirroring could not produce those pairs, and that is a fact about the seed
+rather than about these six.** Dark has always been seeded by mirroring the
+index, which is right for a role that carries the page — text on light becomes
+text on dark. It is wrong for a role whose two values were chosen as a pair:
+`fg.on-action` is neutral 50 on the light fill and 950 on the dark one, and the
+mirror of 50 is 900. Every one of the six was a shade out. A seed role can name
+its dark weight now, falling back to the mirror when the track does not have
+it, the same way `preferWeight` falls back to `position`.
+
+**Which of the six the report measures, and why.**
+
+`fg.on-action` is measured against `action.primary`. It is the only foreground
+in the layer whose background is not a surface, and that pair is the one every
+filled button ships. It joins the checks rather than replacing the sample above
+it: that one asks what black or white would do on the fill, which is a
+different question and still worth an answer.
+
+`fg.accent` is measured on `surface.base`, like every other foreground. It is a
+link, an eyebrow, the label on a selected tab — text, not a fill. `Primary
+link` in the same list measures `action.primary` on the canvas, which was the
+fill colour standing in for a text colour the layer did not have; that row is
+left alone for now, but it is the one to revisit when stage 2 writes the colour
+page.
+
+`action.muted` is kept out of the similarity grid, by the rule already written
+down for hover and active: it is the same accent turned down behind a selected
+row, not a signal anybody reads beside a status badge. Six signalling tokens
+and fifteen pairs, unchanged.
+
+`border.strong`, `surface.skeleton` and `surface.track` are out of both. None
+carries text and none signals by colour; they are non-text contrast, the 3:1
+family the report already handles separately through `assessNonTextChecks`.
+Adding rows for them means deciding what each is measured against — a border
+against the surface it sits on, a track against the fill inside it — which is a
+question the colour page should ask with the tokens in front of it rather than
+one answered here in passing.
+
+**A workspace file never migrated, and only a file reaches a client.**
+`readWorkspaceProject` topped a stored layer up to the current seed set;
+`readWorkspaceFileProject` read the layer and stopped. The same document had
+two answers depending on which door it came through, and the docs app reads a
+file — so it kept exporting nineteen roles while the studio had twenty-five.
+The file path fills now, appending behind whatever the file chose.
+
+**The bridge assumed two tracks that have never existed.** Astryx's cyan and
+purple families were fed from `secondary` and `tertiary` primitives, which
+theme.css defines and no saved project has ever had. Those sixteen declarations
+are gone and Astryx keeps its own values. Worth recording what they were doing
+in the studio, where the tracks do exist: theme.css defines both as
+byte-identical copies of primary, hue 34.49 — so a Badge asking for purple was
+rendering in the primary hue, and in dark mode as `tertiary-950`, near black.
+The three purple badges in the palette studio now show theme-neutral's purple.
+That is the one visible change, and it is the bridge no longer answering a
+question it had no palette for.
+
+**Sixty-four primitive references remain in the bridge, and they are the same
+assumption in a quieter form.** The status and colour-family blocks name
+`success`, `warning`, `error` and `primary` directly, and they work only
+because the studio seeds tracks with those names — a client who calls theirs
+`brand` and `grey` gets the same silent nothing cyan and purple were giving.
+They cannot move to roles today: Astryx wants a background, a border, an icon
+and a text colour per status, where the layer has one `status.success` and no
+opinion about the tint behind it. That is a set of roles stage 2 should argue
+for with the colour page in front of it. The count is pinned by a test so it
+can only go down.
