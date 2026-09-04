@@ -1,0 +1,711 @@
+{
+  "palette": {
+    "$type": "color",
+    "$description": "Colour palette exported from Blueprint",
+    "primary": {
+      "25": {
+        "$value": "#F8F5FC"
+      },
+      "50": {
+        "$value": "#F2EBFD"
+      },
+      "100": {
+        "$value": "#E3D8F4"
+      },
+      "150": {
+        "$value": "#D5C6EC"
+      },
+      "200": {
+        "$value": "#C6B4E3"
+      },
+      "250": {
+        "$value": "#B8A1DA"
+      },
+      "300": {
+        "$value": "#AB8FD1"
+      },
+      "350": {
+        "$value": "#9D7DC8"
+      },
+      "400": {
+        "$value": "#906BBE"
+      },
+      "450": {
+        "$value": "#8359B5"
+      },
+      "500": {
+        "$value": "#7646AB"
+      },
+      "550": {
+        "$value": "#663C95"
+      },
+      "600": {
+        "$value": "#56317F"
+      },
+      "650": {
+        "$value": "#47276A"
+      },
+      "700": {
+        "$value": "#381D55"
+      },
+      "750": {
+        "$value": "#2A1442"
+      },
+      "800": {
+        "$value": "#1D0B2F"
+      },
+      "850": {
+        "$value": "#10041D"
+      },
+      "900": {
+        "$value": "#05010D"
+      },
+      "950": {
+        "$value": "#010002"
+      }
+    },
+    "neutral": {
+      "25": {
+        "$value": "#F2F9F4"
+      },
+      "50": {
+        "$value": "#EAF0EC"
+      },
+      "100": {
+        "$value": "#DAE0DC"
+      },
+      "150": {
+        "$value": "#CACFCC"
+      },
+      "200": {
+        "$value": "#BBBFBC"
+      },
+      "250": {
+        "$value": "#ACAFAD"
+      },
+      "300": {
+        "$value": "#9D9F9D"
+      },
+      "350": {
+        "$value": "#8E8F8E"
+      },
+      "400": {
+        "$value": "#808080"
+      },
+      "450": {
+        "$value": "#737373"
+      },
+      "500": {
+        "$value": "#626462"
+      },
+      "550": {
+        "$value": "#535654"
+      },
+      "600": {
+        "$value": "#454946"
+      },
+      "650": {
+        "$value": "#373C38"
+      },
+      "700": {
+        "$value": "#29302B"
+      },
+      "750": {
+        "$value": "#1C241E"
+      },
+      "800": {
+        "$value": "#101813"
+      },
+      "850": {
+        "$value": "#050E08"
+      },
+      "900": {
+        "$value": "#000502"
+      },
+      "950": {
+        "$value": "#000100"
+      }
+    },
+    "success": {
+      "25": {
+        "$value": "#F3F9F3"
+      },
+      "50": {
+        "$value": "#E6F3E5"
+      },
+      "100": {
+        "$value": "#D1E4D0"
+      },
+      "150": {
+        "$value": "#BCD6BB"
+      },
+      "200": {
+        "$value": "#A7C8A6"
+      },
+      "250": {
+        "$value": "#93BA91"
+      },
+      "300": {
+        "$value": "#7EAC7D"
+      },
+      "350": {
+        "$value": "#6A9F69"
+      },
+      "400": {
+        "$value": "#559155"
+      },
+      "450": {
+        "$value": "#3F8340"
+      },
+      "500": {
+        "$value": "#2F7D32"
+      },
+      "550": {
+        "$value": "#1F6623"
+      },
+      "600": {
+        "$value": "#18561B"
+      },
+      "650": {
+        "$value": "#114714"
+      },
+      "700": {
+        "$value": "#0A380D"
+      },
+      "750": {
+        "$value": "#042A07"
+      },
+      "800": {
+        "$value": "#011D03"
+      },
+      "850": {
+        "$value": "#001001"
+      },
+      "900": {
+        "$value": "#000500"
+      },
+      "950": {
+        "$value": "#000100"
+      }
+    },
+    "warning": {
+      "25": {
+        "$value": "#FBF6F0"
+      },
+      "50": {
+        "$value": "#FAECDD"
+      },
+      "100": {
+        "$value": "#F0DAC2"
+      },
+      "150": {
+        "$value": "#E6C8A6"
+      },
+      "200": {
+        "$value": "#DCB68B"
+      },
+      "250": {
+        "$value": "#D2A470"
+      },
+      "300": {
+        "$value": "#C79353"
+      },
+      "350": {
+        "$value": "#BD8133"
+      },
+      "400": {
+        "$value": "#B87503"
+      },
+      "450": {
+        "$value": "#9E6200"
+      },
+      "500": {
+        "$value": "#8C5500"
+      },
+      "550": {
+        "$value": "#794900"
+      },
+      "600": {
+        "$value": "#673D00"
+      },
+      "650": {
+        "$value": "#563100"
+      },
+      "700": {
+        "$value": "#452500"
+      },
+      "750": {
+        "$value": "#351B00"
+      },
+      "800": {
+        "$value": "#251000"
+      },
+      "850": {
+        "$value": "#170700"
+      },
+      "900": {
+        "$value": "#090200"
+      },
+      "950": {
+        "$value": "#020000"
+      }
+    },
+    "error": {
+      "25": {
+        "$value": "#FDF4F3"
+      },
+      "50": {
+        "$value": "#FFE9E4"
+      },
+      "100": {
+        "$value": "#F9D4CD"
+      },
+      "150": {
+        "$value": "#F2C0B7"
+      },
+      "200": {
+        "$value": "#EAACA1"
+      },
+      "250": {
+        "$value": "#E2988B"
+      },
+      "300": {
+        "$value": "#D98476"
+      },
+      "350": {
+        "$value": "#CF7060"
+      },
+      "400": {
+        "$value": "#C65B4B"
+      },
+      "450": {
+        "$value": "#BB4534"
+      },
+      "500": {
+        "$value": "#B02B1B"
+      },
+      "550": {
+        "$value": "#992315"
+      },
+      "600": {
+        "$value": "#821C10"
+      },
+      "650": {
+        "$value": "#6D150A"
+      },
+      "700": {
+        "$value": "#570E06"
+      },
+      "750": {
+        "$value": "#430803"
+      },
+      "800": {
+        "$value": "#300301"
+      },
+      "850": {
+        "$value": "#1E0100"
+      },
+      "900": {
+        "$value": "#0D0000"
+      },
+      "950": {
+        "$value": "#020000"
+      }
+    },
+    "info": {
+      "25": {
+        "$value": "#F2F8FD"
+      },
+      "50": {
+        "$value": "#E3F0FD"
+      },
+      "100": {
+        "$value": "#CCE1F5"
+      },
+      "150": {
+        "$value": "#B5D1EC"
+      },
+      "200": {
+        "$value": "#9FC2E4"
+      },
+      "250": {
+        "$value": "#88B3DB"
+      },
+      "300": {
+        "$value": "#71A4D2"
+      },
+      "350": {
+        "$value": "#5A95C9"
+      },
+      "400": {
+        "$value": "#4285BF"
+      },
+      "450": {
+        "$value": "#2878B8"
+      },
+      "500": {
+        "$value": "#1E67A1"
+      },
+      "550": {
+        "$value": "#17598C"
+      },
+      "600": {
+        "$value": "#104B78"
+      },
+      "650": {
+        "$value": "#093D64"
+      },
+      "700": {
+        "$value": "#043051"
+      },
+      "750": {
+        "$value": "#01233F"
+      },
+      "800": {
+        "$value": "#00172D"
+      },
+      "850": {
+        "$value": "#000C1D"
+      },
+      "900": {
+        "$value": "#00030D"
+      },
+      "950": {
+        "$value": "#000003"
+      }
+    }
+  },
+  "semantic": {
+    "$type": "color",
+    "$description": "Semantic colours exported from Blueprint. Each one references a palette shade rather than repeating its value.",
+    "light": {
+      "action": {
+        "primary": {
+          "$value": "{palette.primary.500}"
+        },
+        "secondary": {
+          "$value": "{palette.neutral.450}"
+        },
+        "hover": {
+          "$value": "{palette.primary.600}"
+        },
+        "active": {
+          "$value": "{palette.primary.650}"
+        }
+      },
+      "surface": {
+        "base": {
+          "$value": "{palette.neutral.100}"
+        },
+        "subtle": {
+          "$value": "{palette.neutral.150}"
+        },
+        "raised": {
+          "$value": "{palette.primary.100}"
+        },
+        "overlay": {
+          "$value": "{palette.neutral.25}"
+        }
+      },
+      "border": {
+        "default": {
+          "$value": "{palette.neutral.450}"
+        },
+        "subtle": {
+          "$value": "{palette.neutral.300}"
+        },
+        "muted": {
+          "$value": "{palette.neutral.200}"
+        }
+      },
+      "fg": {
+        "primary": {
+          "$value": "{palette.neutral.850}"
+        },
+        "secondary": {
+          "$value": "{palette.neutral.650}"
+        },
+        "disabled": {
+          "$value": "{palette.neutral.500}"
+        }
+      },
+      "focus": {
+        "ring": {
+          "$value": "{palette.primary.300}"
+        }
+      },
+      "status": {
+        "success": {
+          "$value": "{palette.success.500}"
+        },
+        "warning": {
+          "$value": "{palette.warning.450}"
+        },
+        "error": {
+          "$value": "{palette.error.500}"
+        },
+        "info": {
+          "$value": "{palette.info.500}"
+        }
+      }
+    },
+    "dark": {
+      "action": {
+        "primary": {
+          "$value": "{palette.primary.450}"
+        },
+        "secondary": {
+          "$value": "{palette.neutral.500}"
+        },
+        "hover": {
+          "$value": "{palette.primary.350}"
+        },
+        "active": {
+          "$value": "{palette.primary.300}"
+        }
+      },
+      "surface": {
+        "base": {
+          "$value": "{palette.neutral.850}"
+        },
+        "subtle": {
+          "$value": "{palette.neutral.800}"
+        },
+        "raised": {
+          "$value": "{palette.primary.850}"
+        },
+        "overlay": {
+          "$value": "{palette.neutral.950}"
+        }
+      },
+      "border": {
+        "default": {
+          "$value": "{palette.neutral.500}"
+        },
+        "subtle": {
+          "$value": "{palette.neutral.650}"
+        },
+        "muted": {
+          "$value": "{palette.neutral.750}"
+        }
+      },
+      "fg": {
+        "primary": {
+          "$value": "{palette.neutral.100}"
+        },
+        "secondary": {
+          "$value": "{palette.neutral.300}"
+        },
+        "disabled": {
+          "$value": "{palette.neutral.450}"
+        }
+      },
+      "focus": {
+        "ring": {
+          "$value": "{palette.primary.650}"
+        }
+      },
+      "status": {
+        "success": {
+          "$value": "{palette.success.450}"
+        },
+        "warning": {
+          "$value": "{palette.warning.500}"
+        },
+        "error": {
+          "$value": "{palette.error.450}"
+        },
+        "info": {
+          "$value": "{palette.info.450}"
+        }
+      }
+    }
+  },
+  "spacing": {
+    "0": {
+      "$value": "0rem"
+    },
+    "1": {
+      "$value": "0.25rem"
+    },
+    "2": {
+      "$value": "0.5rem"
+    },
+    "3": {
+      "$value": "0.75rem"
+    },
+    "4": {
+      "$value": "1rem"
+    },
+    "5": {
+      "$value": "1.25rem"
+    },
+    "6": {
+      "$value": "1.5rem"
+    },
+    "8": {
+      "$value": "2rem"
+    },
+    "10": {
+      "$value": "2.5rem"
+    },
+    "12": {
+      "$value": "3rem"
+    },
+    "16": {
+      "$value": "4rem"
+    },
+    "$type": "dimension",
+    "$description": "Spacing scale exported from Blueprint.",
+    "0-5": {
+      "$value": "0.125rem"
+    },
+    "1-5": {
+      "$value": "0.375rem"
+    }
+  },
+  "radius": {
+    "$type": "dimension",
+    "$description": "Corner radii exported from Blueprint.",
+    "none": {
+      "$value": "0px",
+      "$description": "A square corner."
+    },
+    "inner": {
+      "$value": "4px",
+      "$description": "A corner inside another corner — a chip inside a card."
+    },
+    "element": {
+      "$value": "8px",
+      "$description": "A button, an input, a badge."
+    },
+    "container": {
+      "$value": "12px",
+      "$description": "A card, a panel, a dialog."
+    },
+    "page": {
+      "$value": "28px",
+      "$description": "A full-width surface or a sheet."
+    },
+    "full": {
+      "$value": "9999px",
+      "$description": "A pill or a circle."
+    }
+  },
+  "shadow": {
+    "$type": "shadow",
+    "$description": "Elevation exported from Blueprint. The colour is the same in both modes; the strength is not.",
+    "light": {
+      "low": {
+        "$value": [
+          {
+            "color": "#0001001a",
+            "offsetX": "0px",
+            "offsetY": "1px",
+            "blur": "1px",
+            "spread": "0px"
+          },
+          {
+            "color": "#0001001a",
+            "offsetX": "0px",
+            "offsetY": "2px",
+            "blur": "8px",
+            "spread": "0px"
+          }
+        ]
+      },
+      "med": {
+        "$value": [
+          {
+            "color": "#0001001a",
+            "offsetX": "0px",
+            "offsetY": "1px",
+            "blur": "2px",
+            "spread": "0px"
+          },
+          {
+            "color": "#0001001a",
+            "offsetX": "0px",
+            "offsetY": "2px",
+            "blur": "12px",
+            "spread": "0px"
+          }
+        ]
+      },
+      "high": {
+        "$value": [
+          {
+            "color": "#0001001a",
+            "offsetX": "0px",
+            "offsetY": "2px",
+            "blur": "2px",
+            "spread": "0px"
+          },
+          {
+            "color": "#0001001a",
+            "offsetX": "0px",
+            "offsetY": "8px",
+            "blur": "24px",
+            "spread": "0px"
+          }
+        ]
+      }
+    },
+    "dark": {
+      "low": {
+        "$value": [
+          {
+            "color": "#00010033",
+            "offsetX": "0px",
+            "offsetY": "1px",
+            "blur": "1px",
+            "spread": "0px"
+          },
+          {
+            "color": "#00010033",
+            "offsetX": "0px",
+            "offsetY": "2px",
+            "blur": "8px",
+            "spread": "0px"
+          }
+        ]
+      },
+      "med": {
+        "$value": [
+          {
+            "color": "#00010033",
+            "offsetX": "0px",
+            "offsetY": "1px",
+            "blur": "2px",
+            "spread": "0px"
+          },
+          {
+            "color": "#00010033",
+            "offsetX": "0px",
+            "offsetY": "2px",
+            "blur": "12px",
+            "spread": "0px"
+          }
+        ]
+      },
+      "high": {
+        "$value": [
+          {
+            "color": "#00010033",
+            "offsetX": "0px",
+            "offsetY": "2px",
+            "blur": "2px",
+            "spread": "0px"
+          },
+          {
+            "color": "#0001004d",
+            "offsetX": "0px",
+            "offsetY": "8px",
+            "blur": "24px",
+            "spread": "0px"
+          }
+        ]
+      }
+    }
+  }
+}
