@@ -66,7 +66,7 @@ project file. `formatAccessibilityReportMarkdown` and `Json` write the report.
 Nothing in this plan adds a format; it consumes them.
 
 **The workspace store is one owner.** `packages/ui/src/workspace` reads and
-writes the project, with a version 2 migration and storage as a parameter. The
+writes the project, with file versions 1 to 5 migrated forward and storage as a parameter. The
 docs app can load a workspace file through the same code the studio uses, with
 no storage at all.
 
@@ -91,13 +91,26 @@ half kept.
 
 ## Stages
 
-1. **The reference workspace and the build-time export, no UI.** Check in
+1. ✅ **The reference workspace and the build-time export, no UI.** Check in
    `apps/docs/blueprint/reference.workspace.json`, a real project saved from
    the studio. Add a `prebuild` step that runs the three system formatters
    over it and writes `apps/docs/app/blueprint.css` and the Tailwind and DTCG
    siblings. A test regenerates and compares, so a formatter change that moves
    the output shows in the docs app's diff rather than in a client's inbox.
-   The docs app imports the generated CSS and nothing from `theme.css`.
+   The docs app imports the generated CSS for its tokens, not `theme.css`.
+
+   Two facts found while checking this stage, and what they change. First,
+   `theme.css` also carries the Astryx bridge, the `@scope
+([data-astryx-theme])` block that maps Blueprint roles onto the variables
+   Astryx components read, and the export does not. Without it every Astryx
+   component in the docs app renders in theme-neutral's colours. The bridge
+   moves into its own file, `packages/ui/src/astryx-bridge.css`, which
+   `theme.css` imports so the playground is unchanged, and which the docs app
+   imports beside the generated CSS. A client who uses Astryx gets the same
+   file. Second, `formatDesignSystemCss` leaves typography out on purpose,
+   because the unit is the client's choice. The docs app is a client and
+   chooses `px`, so the prebuild writes a second file from
+   `formatTypeSystemCssExport`.
 
 2. **Colour.** One page for the primitive tracks and one for the semantic
    layer. The semantic page is the Semantics table from the studio, read-only:
@@ -151,7 +164,9 @@ the pages it bundles are finished.
 ## Safety and quality rules
 
 **The docs app may not read `theme.css`.** Enforced by a test on its import
-graph. The moment it does, it stops proving the export.
+graph. The moment it does, it stops proving the export. The Astryx bridge is
+the one file it shares with the studio, and only because the bridge is not a
+token.
 
 **A foundation page may not hardcode a value.** Enforced by the extended
 scanner in stage 4, with a written reason for every allowlist entry.
@@ -222,3 +237,65 @@ Two pieces of housekeeping, so this plan starts from `main`:
    colour-vision simulation as the next priority; `.agents/AGENTS.md`
    describes `apps/web` and Astryx 0.1.3. Point the agents file at
    `CLAUDE.md` rather than keeping a second copy that ages separately.
+
+## Notes from stage 1
+
+**The plan named the wrong file for a Tailwind client.** It said the docs app
+imports the generated CSS, meaning `blueprint.css`. The docs app is a Tailwind
+app and its pages are written in `text-neutral-600` and `bg-primary-500`, and
+only the `@theme` block registers those as utilities — so the plain file would
+have declared every variable and dropped every colour utility, silently, which
+reads as a design change rather than a broken import. It imports
+`blueprint.tailwind.css` instead. Both files still ship to a client, because
+which one is right is a fact about the client's stack. The unit file and the
+bridge join them, so the docs app installs four lines where the plan expected
+two.
+
+**The generated files sit outside Prettier.** They are formatter output
+compared byte for byte against the formatters that produce them, and Prettier
+rewriting them would put the committed copies permanently out of step — drift
+arriving from the one direction nobody would think to look. The reference
+workspace is ignored for the same reason: it is meant to be replaceable by a
+file saved out of the studio, and neither writer formats JSON the way Prettier
+does.
+
+**The export does not carry everything the bridge feeds.** Twenty-two names,
+in two kinds, now pinned by a test that fails when one of them is fixed.
+
+Six are semantic roles the studio's own chrome has and the seeded layer does
+not: `fg.accent`, `fg.on-action`, `action.muted`, `border.strong`,
+`surface.skeleton`, `surface.track`. No workspace has them, so no client can
+have them. Measured on the running docs app, `--color-on-accent` resolves to
+nothing and the Astryx token quietly keeps theme-neutral's value; the home
+page's eyebrow text and its section rules lose their colour the same way,
+because `apps/docs/app/page.module.css` reaches for `--color-fg-accent` and
+`--color-border-strong`. Left broken on purpose: the fix is a decision about
+the seed set, not a name added by hand to one app.
+
+The other sixteen are the `secondary` and `tertiary` primitive tracks. The
+bridge maps Astryx's cyan and purple families onto them, `theme.css` defines
+them, and a studio project has never had them — the six seeded tracks are
+primary, neutral, success, warning, error and info. That gap is not the docs
+app's; it is the bridge assuming a palette shape the studio does not produce.
+
+**The docs app has no dark mode to check.** `layout.tsx` pins
+`data-theme="light"` and its provider pins `mode="light"`, so the screenshots
+are light for both routes. Forcing the attribute and `color-scheme` moves every
+Astryx surface, which is what proves the dark half of the export and the bridge
+resolve; the page chrome stays light because the pages are written in fixed
+Tailwind utilities. Both are pre-existing and neither is stage 1's to fix.
+
+**Running a script against `@blueprint/ui` needs a runner.** The package entry
+is `.tsx`, so Node cannot load it under type stripping, and its internal
+imports are extensionless, so pointing at the `.ts` files directly does not
+work either. `tsx` runs the two scripts. Inside them the package has to be
+reached with `createRequire`: it is CommonJS, apps/docs is ESM, and across that
+edge Node lexes for named exports and cannot follow the `export *` chain from
+the entry to the file a name lives in — `import { x }` fails to link and a
+namespace import binds an object carrying only `default`.
+
+**`turbo build` needs no new configuration.** `prebuild` fires under pnpm, so
+`next build` cannot start without regenerating; the generated files and the
+reference workspace are inside `apps/docs`, so `$TURBO_DEFAULT$` already treats
+them as inputs. They are deliberately not declared as outputs: they are
+committed, and an output would be restored from cache over the working tree.
