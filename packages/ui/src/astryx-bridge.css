@@ -111,7 +111,16 @@
     --color-icon-info: light-dark(var(--color-info-600), var(--color-info-400));
     --color-text-info: light-dark(var(--color-info-900), var(--color-info-100));
 
-    /* Astryx Color Palette overrides (blue, green, red, yellow, cyan, etc.) */
+    /* Astryx's colour families, fed from the tracks a Blueprint workspace
+       actually seeds: blue from primary, green from success, red from error,
+       yellow from warning.
+
+       Cyan and purple used to be here, fed from `secondary` and `tertiary`.
+       Those two tracks exist in the studio's own theme.css and in no
+       workspace anybody has ever saved, so every one of those sixteen
+       declarations was invalid the moment a client installed the export — the
+       token silently kept theme-neutral's value, which is what it does now,
+       explicitly and without sixteen dead lines saying otherwise. */
     --color-background-blue: light-dark(
       var(--color-primary-50),
       var(--color-primary-950)
@@ -178,40 +187,6 @@
     --color-text-yellow: light-dark(
       var(--color-warning-900),
       var(--color-warning-100)
-    );
-
-    --color-background-cyan: light-dark(
-      var(--color-secondary-50),
-      var(--color-secondary-950)
-    );
-    --color-border-cyan: light-dark(
-      var(--color-secondary-200),
-      var(--color-secondary-800)
-    );
-    --color-icon-cyan: light-dark(
-      var(--color-secondary-600),
-      var(--color-secondary-400)
-    );
-    --color-text-cyan: light-dark(
-      var(--color-secondary-900),
-      var(--color-secondary-100)
-    );
-
-    --color-background-purple: light-dark(
-      var(--color-tertiary-50),
-      var(--color-tertiary-950)
-    );
-    --color-border-purple: light-dark(
-      var(--color-tertiary-200),
-      var(--color-tertiary-800)
-    );
-    --color-icon-purple: light-dark(
-      var(--color-tertiary-600),
-      var(--color-tertiary-400)
-    );
-    --color-text-purple: light-dark(
-      var(--color-tertiary-900),
-      var(--color-tertiary-100)
     );
   }
 }

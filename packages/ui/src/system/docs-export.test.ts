@@ -106,21 +106,23 @@ describe("what the docs app is allowed to import", () => {
 });
 
 describe("what the Astryx bridge needs and the export does not carry", () => {
-  it("is exactly this list, and every name on it is a gap", () => {
-    /* Not a permission list. Each of these is a variable the bridge feeds an
-       Astryx token from, which a workspace export does not define — so in any
-       app that installs the export rather than theme.css, that bridge line is
-       invalid and the Astryx token silently keeps theme-neutral's value.
+  it("is nothing", () => {
+    /* Every name the bridge reaches for is one an export defines. There were
+       twenty-two that were not, and they were invisible: a bridge line whose
+       value names an undefined variable is invalid at computed-value time, so
+       the Astryx token quietly keeps theme-neutral's, and nothing warns.
 
-       Two different faults, kept in one list because they are found the same
-       way. The first six are roles the studio's own chrome has and the seeded
-       semantic layer does not, so no workspace has them. The rest are two
-       primitive tracks, `secondary` and `tertiary`, that theme.css defines and
-       a studio project has never had: the bridge maps Astryx's cyan and purple
-       families onto them.
+       They went two ways, because they were two faults. Six were roles the
+       studio's own chrome had and the seeded layer did not — `fg.accent`,
+       `fg.on-action`, `action.muted`, `border.strong`, `surface.skeleton`,
+       `surface.track` — and those joined the seed set, so every workspace has
+       them and `fillSeedRoles` gives them to one saved before they existed.
+       The other sixteen were the `secondary` and `tertiary` primitive tracks,
+       which no project has ever had, and those lines left the bridge.
 
-       When a role or a track is added, this test fails and the name comes off
-       the list. That is the intended way to find out it worked. */
+       Kept as an emptiness rather than deleted: the next role added to the
+       bridge without a matching role in the layer fails here, which is the
+       only place that mistake is visible before a client finds it. */
     const bridge = readFileSync(
       join(ROOT, "packages", "ui", "src", "astryx-bridge.css"),
       "utf8",
@@ -138,21 +140,6 @@ describe("what the Astryx bridge needs and the export does not carry", () => {
       ...new Set([...bridge.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1])),
     ].filter((name) => !exported.has(name));
 
-    expect(missing.sort()).toEqual(
-      [
-        "--color-action-muted",
-        "--color-border-strong",
-        "--color-fg-accent",
-        "--color-fg-on-action",
-        "--color-surface-skeleton",
-        "--color-surface-track",
-        ...["50", "100", "200", "400", "600", "800", "900", "950"].flatMap(
-          (weight) => [
-            `--color-secondary-${weight}`,
-            `--color-tertiary-${weight}`,
-          ],
-        ),
-      ].sort(),
-    );
+    expect(missing.sort(), missing.join("\n")).toEqual([]);
   });
 });
