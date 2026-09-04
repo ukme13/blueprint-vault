@@ -1,0 +1,718 @@
+{
+  "kind": "blueprint-workspace",
+  "version": 5,
+  "project": {
+    "name": "Blueprint reference",
+    "palette": {
+      "tracks": [
+        {
+          "id": "primary",
+          "name": "primary",
+          "seedHex": "#7646ab"
+        },
+        {
+          "id": "neutral",
+          "name": "neutral",
+          "seedHex": "#737373"
+        },
+        {
+          "id": "success",
+          "name": "success",
+          "seedHex": "#2f7d32"
+        },
+        {
+          "id": "warning",
+          "name": "warning",
+          "seedHex": "#b87503"
+        },
+        {
+          "id": "error",
+          "name": "error",
+          "seedHex": "#b02b1b"
+        },
+        {
+          "id": "info",
+          "name": "info",
+          "seedHex": "#2878b8"
+        }
+      ],
+      "lightnessPattern": "custom",
+      "lightnessValues": [
+        97.5,
+        95,
+        90,
+        85,
+        80,
+        75,
+        70,
+        65,
+        60,
+        55,
+        50,
+        45,
+        40,
+        35,
+        30,
+        25,
+        20,
+        15,
+        10,
+        5
+      ]
+    },
+    "semantics": [
+      {
+        "id": "action.primary",
+        "name": "Action primary",
+        "description": "The fill of a primary button or an active control.",
+        "light": {
+          "trackId": "primary",
+          "weight": 500
+        },
+        "dark": {
+          "trackId": "primary",
+          "weight": 450
+        }
+      },
+      {
+        "id": "action.secondary",
+        "name": "Action secondary",
+        "description": "The fill of a secondary button or control.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 450
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 500
+        }
+      },
+      {
+        "id": "action.hover",
+        "name": "Action hover",
+        "description": "A primary control under the pointer.",
+        "light": {
+          "trackId": "primary",
+          "weight": 600
+        },
+        "dark": {
+          "trackId": "primary",
+          "weight": 350
+        }
+      },
+      {
+        "id": "action.active",
+        "name": "Action active",
+        "description": "A primary control while it is pressed.",
+        "light": {
+          "trackId": "primary",
+          "weight": 650
+        },
+        "dark": {
+          "trackId": "primary",
+          "weight": 300
+        }
+      },
+      {
+        "id": "surface.base",
+        "name": "Surface base",
+        "description": "The page canvas, behind everything else.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 100
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 850
+        }
+      },
+      {
+        "id": "surface.subtle",
+        "name": "Surface subtle",
+        "description": "A quiet wash set into the canvas: a well, a code block.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 150
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 800
+        }
+      },
+      {
+        "id": "surface.raised",
+        "name": "Surface raised",
+        "description": "A card or panel lifted off the canvas.",
+        "light": {
+          "trackId": "primary",
+          "weight": 100
+        },
+        "dark": {
+          "trackId": "primary",
+          "weight": 850
+        }
+      },
+      {
+        "id": "surface.overlay",
+        "name": "Surface overlay",
+        "description": "A popover, menu or dialog over everything else.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 25
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 950
+        }
+      },
+      {
+        "id": "border.default",
+        "name": "Border default",
+        "description": "Borders and dividers.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 450
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 500
+        }
+      },
+      {
+        "id": "border.subtle",
+        "name": "Border subtle",
+        "description": "A border that separates without drawing the eye.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 300
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 650
+        }
+      },
+      {
+        "id": "border.muted",
+        "name": "Border muted",
+        "description": "The faintest rule: a divider inside a surface.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 200
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 750
+        }
+      },
+      {
+        "id": "fg.primary",
+        "name": "Foreground primary",
+        "description": "Body text, headings and icons.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 850
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 100
+        }
+      },
+      {
+        "id": "fg.secondary",
+        "name": "Foreground secondary",
+        "description": "Supporting text, captions and help.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 650
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 300
+        }
+      },
+      {
+        "id": "fg.disabled",
+        "name": "Foreground disabled",
+        "description": "Text and icons on a control that cannot be used.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 500
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 450
+        }
+      },
+      {
+        "id": "focus.ring",
+        "name": "Focus ring",
+        "description": "The focus indicator.",
+        "light": {
+          "trackId": "primary",
+          "weight": 300
+        },
+        "dark": {
+          "trackId": "primary",
+          "weight": 650
+        }
+      },
+      {
+        "id": "status.success",
+        "name": "Status success",
+        "description": "A success badge or message.",
+        "light": {
+          "trackId": "success",
+          "weight": 500
+        },
+        "dark": {
+          "trackId": "success",
+          "weight": 450
+        }
+      },
+      {
+        "id": "status.warning",
+        "name": "Status warning",
+        "description": "A warning badge or message.",
+        "light": {
+          "trackId": "warning",
+          "weight": 450
+        },
+        "dark": {
+          "trackId": "warning",
+          "weight": 500
+        }
+      },
+      {
+        "id": "status.error",
+        "name": "Status error",
+        "description": "An error badge or message.",
+        "light": {
+          "trackId": "error",
+          "weight": 500
+        },
+        "dark": {
+          "trackId": "error",
+          "weight": 450
+        }
+      },
+      {
+        "id": "status.info",
+        "name": "Status info",
+        "description": "An informational badge or message.",
+        "light": {
+          "trackId": "info",
+          "weight": 500
+        },
+        "dark": {
+          "trackId": "info",
+          "weight": 450
+        }
+      }
+    ],
+    "spacing": {
+      "baseUnitPx": 4,
+      "steps": [
+        0,
+        0.5,
+        1,
+        1.5,
+        2,
+        3,
+        4,
+        5,
+        6,
+        8,
+        10,
+        12,
+        16
+      ]
+    },
+    "radius": {
+      "multiplier": 1,
+      "tokens": [
+        {
+          "id": "none",
+          "name": "None",
+          "description": "A square corner.",
+          "basePx": 0,
+          "scales": false
+        },
+        {
+          "id": "inner",
+          "name": "Inner",
+          "description": "A corner inside another corner — a chip inside a card.",
+          "basePx": 4,
+          "scales": true
+        },
+        {
+          "id": "element",
+          "name": "Element",
+          "description": "A button, an input, a badge.",
+          "basePx": 8,
+          "scales": true
+        },
+        {
+          "id": "container",
+          "name": "Container",
+          "description": "A card, a panel, a dialog.",
+          "basePx": 12,
+          "scales": true
+        },
+        {
+          "id": "page",
+          "name": "Page",
+          "description": "A full-width surface or a sheet.",
+          "basePx": 28,
+          "scales": true
+        },
+        {
+          "id": "full",
+          "name": "Full",
+          "description": "A pill or a circle.",
+          "basePx": 9999,
+          "scales": false
+        }
+      ]
+    },
+    "elevation": {
+      "colour": {
+        "trackId": "neutral",
+        "weight": 950
+      },
+      "levels": [
+        {
+          "id": "low",
+          "name": "Low",
+          "description": "A card resting on the page.",
+          "layers": [
+            {
+              "offsetXPx": 0,
+              "offsetYPx": 1,
+              "blurPx": 1,
+              "spreadPx": 0,
+              "opacity": {
+                "light": 0.1,
+                "dark": 0.2
+              }
+            },
+            {
+              "offsetXPx": 0,
+              "offsetYPx": 2,
+              "blurPx": 8,
+              "spreadPx": 0,
+              "opacity": {
+                "light": 0.1,
+                "dark": 0.2
+              }
+            }
+          ]
+        },
+        {
+          "id": "med",
+          "name": "Medium",
+          "description": "A menu or a popover above the page.",
+          "layers": [
+            {
+              "offsetXPx": 0,
+              "offsetYPx": 1,
+              "blurPx": 2,
+              "spreadPx": 0,
+              "opacity": {
+                "light": 0.1,
+                "dark": 0.2
+              }
+            },
+            {
+              "offsetXPx": 0,
+              "offsetYPx": 2,
+              "blurPx": 12,
+              "spreadPx": 0,
+              "opacity": {
+                "light": 0.1,
+                "dark": 0.2
+              }
+            }
+          ]
+        },
+        {
+          "id": "high",
+          "name": "High",
+          "description": "A dialog over everything else.",
+          "layers": [
+            {
+              "offsetXPx": 0,
+              "offsetYPx": 2,
+              "blurPx": 2,
+              "spreadPx": 0,
+              "opacity": {
+                "light": 0.1,
+                "dark": 0.2
+              }
+            },
+            {
+              "offsetXPx": 0,
+              "offsetYPx": 8,
+              "blurPx": 24,
+              "spreadPx": 0,
+              "opacity": {
+                "light": 0.1,
+                "dark": 0.3
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "typography": {
+      "system": {
+        "id": "type-system",
+        "name": "Blueprint reference",
+        "groups": [
+          {
+            "id": "display",
+            "label": "Display",
+            "indexing": "number"
+          },
+          {
+            "id": "h",
+            "label": "H",
+            "indexing": "number"
+          },
+          {
+            "id": "body",
+            "label": "Body",
+            "indexing": "number"
+          }
+        ],
+        "baseFontSizePx": 16,
+        "ratio": 1.25,
+        "stepCount": 9,
+        "breakpointPx": 768,
+        "fonts": [
+          {
+            "id": "display",
+            "name": "Display",
+            "families": [
+              "Geist Sans",
+              "ui-sans-serif",
+              "system-ui"
+            ],
+            "sources": {
+              "primary": "system"
+            }
+          },
+          {
+            "id": "main",
+            "name": "Main",
+            "families": [
+              "Geist Sans",
+              "ui-sans-serif",
+              "system-ui"
+            ],
+            "sources": {
+              "primary": "system"
+            }
+          }
+        ],
+        "roles": [
+          {
+            "id": "display-1",
+            "name": "display-1",
+            "groupId": "display",
+            "fontId": "display",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 6,
+            "sameAsRoleId": null,
+            "desktop": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            },
+            "mobile": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            }
+          },
+          {
+            "id": "h1",
+            "name": "h1",
+            "groupId": "h",
+            "fontId": "main",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 6,
+            "sameAsRoleId": null,
+            "desktop": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            },
+            "mobile": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            }
+          },
+          {
+            "id": "h2",
+            "name": "h2",
+            "groupId": "h",
+            "fontId": "main",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 5,
+            "sameAsRoleId": null,
+            "desktop": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            },
+            "mobile": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            }
+          },
+          {
+            "id": "h3",
+            "name": "h3",
+            "groupId": "h",
+            "fontId": "main",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 4,
+            "sameAsRoleId": null,
+            "desktop": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            },
+            "mobile": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            }
+          },
+          {
+            "id": "h4",
+            "name": "h4",
+            "groupId": "h",
+            "fontId": "main",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 3,
+            "sameAsRoleId": null,
+            "desktop": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            },
+            "mobile": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            }
+          },
+          {
+            "id": "h5",
+            "name": "h5",
+            "groupId": "h",
+            "fontId": "main",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 2,
+            "sameAsRoleId": null,
+            "desktop": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            },
+            "mobile": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            }
+          },
+          {
+            "id": "h6",
+            "name": "h6",
+            "groupId": "h",
+            "fontId": "main",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 1,
+            "sameAsRoleId": null,
+            "desktop": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            },
+            "mobile": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            }
+          },
+          {
+            "id": "body",
+            "name": "body",
+            "groupId": "body",
+            "fontId": "main",
+            "fontWeight": 400,
+            "textTransform": "none",
+            "stepOffset": 0,
+            "sameAsRoleId": null,
+            "desktop": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            },
+            "mobile": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            }
+          }
+        ]
+      },
+      "unit": "rem",
+      "specimenText": "How vexingly quick daft zebras jump",
+      "template": "specimen"
+    }
+  }
+}
+

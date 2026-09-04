@@ -1,4 +1,5 @@
 export * from "./palette-project";
+export * from "./seed-project";
 export * from "./semantics";
 export * from "./store";
 export * from "./typography-project";

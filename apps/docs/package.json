@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev --webpack --port 3001",
     "build": "next build --webpack",
+    "seed:blueprint": "tsx scripts/seed-reference-workspace.ts",
     "start": "next start",
     "lint": "eslint --max-warnings 0",
     "check-types": "next typegen && tsc --noEmit"
@@ -28,6 +29,7 @@
     "eslint": "^9.39.5",
     "postcss": "^8.5.26",
     "tailwindcss": "^4.3.3",
+    "tsx": "4.23.13",
     "typescript": "6.0.3"
   }
 }

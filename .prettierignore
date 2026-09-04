@@ -13,3 +13,16 @@ apps/*/AGENTS.md
 pnpm-lock.yaml
 packages/ui/src/typography/google-fonts.json
 packages/ui/src/typography/google-font-scripts.json
+
+# Written by apps/docs/scripts/generate-blueprint.ts from the reference
+# workspace, and compared byte for byte by docs-export.test.ts. Prettier
+# reformatting them would put the committed files permanently out of step with
+# the formatters that produce them — which is the drift that test exists to
+# catch, arriving from the one direction nobody would look.
+apps/docs/app/blueprint/
+
+# Written by apps/docs/scripts/seed-reference-workspace.ts, and replaceable by
+# a project saved straight out of the studio. Neither writer formats it the way
+# Prettier would, so leaving it alone is what keeps re-running either one a
+# no-op.
+apps/docs/blueprint/reference.workspace.json
