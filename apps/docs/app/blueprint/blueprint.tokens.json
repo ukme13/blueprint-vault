@@ -391,6 +391,9 @@
         },
         "active": {
           "$value": "{palette.primary.650}"
+        },
+        "muted": {
+          "$value": "{palette.primary.400}"
         }
       },
       "surface": {
@@ -405,6 +408,12 @@
         },
         "overlay": {
           "$value": "{palette.neutral.25}"
+        },
+        "skeleton": {
+          "$value": "{palette.neutral.200}"
+        },
+        "track": {
+          "$value": "{palette.neutral.200}"
         }
       },
       "border": {
@@ -416,6 +425,9 @@
         },
         "muted": {
           "$value": "{palette.neutral.200}"
+        },
+        "strong": {
+          "$value": "{palette.neutral.300}"
         }
       },
       "fg": {
@@ -427,6 +439,12 @@
         },
         "disabled": {
           "$value": "{palette.neutral.500}"
+        },
+        "accent": {
+          "$value": "{palette.primary.600}"
+        },
+        "on-action": {
+          "$value": "{palette.neutral.50}"
         }
       },
       "focus": {
@@ -462,6 +480,9 @@
         },
         "active": {
           "$value": "{palette.primary.300}"
+        },
+        "muted": {
+          "$value": "{palette.primary.900}"
         }
       },
       "surface": {
@@ -476,6 +497,12 @@
         },
         "overlay": {
           "$value": "{palette.neutral.950}"
+        },
+        "skeleton": {
+          "$value": "{palette.neutral.800}"
+        },
+        "track": {
+          "$value": "{palette.neutral.800}"
         }
       },
       "border": {
@@ -487,6 +514,9 @@
         },
         "muted": {
           "$value": "{palette.neutral.750}"
+        },
+        "strong": {
+          "$value": "{palette.neutral.700}"
         }
       },
       "fg": {
@@ -498,6 +528,12 @@
         },
         "disabled": {
           "$value": "{palette.neutral.450}"
+        },
+        "accent": {
+          "$value": "{palette.primary.400}"
+        },
+        "on-action": {
+          "$value": "{palette.neutral.950}"
         }
       },
       "focus": {

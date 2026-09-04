@@ -238,7 +238,7 @@ describe("a version 1 file still opens", () => {
     expect(after.palette?.tracks).toHaveLength(1);
     expect(after.typography?.system.name).toBe("Brand");
     // The upgrade: it arrives with the layer it never had.
-    expect(after.semantics).toHaveLength(19);
+    expect(after.semantics).toHaveLength(25);
   });
 
   it("writes the current version", () => {
@@ -260,7 +260,13 @@ describe("a version 1 file still opens", () => {
       formatBlueprintWorkspace(workspace({ semantics: chosen })),
     );
 
-    expect(after.semantics).toEqual(chosen);
+    /* What the file chose comes back untouched and still first. The rest of
+       the seed set is appended behind it, the same way stored data is topped
+       up — a file saved before a role existed would otherwise export a layer
+       missing it forever, and be the one door into the workspace that never
+       migrates. */
+    expect(after.semantics!.slice(0, 1)).toEqual(chosen);
+    expect(after.semantics).toHaveLength(25);
   });
 
   it("still refuses a version it does not know", () => {
@@ -281,7 +287,7 @@ describe("a version 1 file still opens", () => {
 
     const after = parseBlueprintWorkspace(paletteFile);
     expect(after.typography).toBeNull();
-    expect(after.semantics).toHaveLength(19);
+    expect(after.semantics).toHaveLength(25);
   });
 });
 

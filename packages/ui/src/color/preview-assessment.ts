@@ -51,6 +51,8 @@ const TOKENS = {
   borderDefault: "border.default",
   textPrimary: "fg.primary",
   textSecondary: "fg.secondary",
+  textAccent: "fg.accent",
+  textOnAction: "fg.on-action",
   focusRing: "focus.ring",
   statusSuccess: "status.success",
   statusWarning: "status.warning",
@@ -273,6 +275,25 @@ const TEXT_SAMPLES: readonly TextSample[] = [
     readable: true,
   },
   {
+    /* The label a button actually ships, as against the one above it, which
+       asks what black or white would do on that fill. Both are worth having
+       and they answer different questions: that one says whether the fill can
+       carry a label at all, this one says whether the label the layer chose
+       does. It is the only sample whose background is not a surface. */
+    label: "Primary action label",
+    foreground: TOKENS.textOnAction,
+    background: TOKENS.actionPrimary,
+  },
+  {
+    /* The accent as text rather than as a fill: a link, an eyebrow, the label
+       on a selected tab. `Primary link` below measures `action.primary` on the
+       canvas, which is the fill colour standing in for a text colour the layer
+       did not have until now. */
+    label: "Accent text",
+    foreground: TOKENS.textAccent,
+    background: TOKENS.surfaceBase,
+  },
+  {
     label: "Body text",
     foreground: TOKENS.textPrimary,
     background: TOKENS.surfaceBase,
@@ -465,16 +486,23 @@ export function assessFocusCheck(shades: PreviewShades): FocusContrastResult {
 const SIGNALLING_GROUPS = ["status", "action"];
 
 /**
- * The action tokens that are states of one control rather than controls.
+ * The action tokens that are not a signal of their own.
  *
- * `action.hover` is `action.primary` under the pointer. Nobody reads the two
- * side by side and has to tell them apart, and neither is ever next to a
+ * `action.hover` is `action.primary` under the pointer, and `action.muted` is
+ * the same accent turned down behind a selected row. Nobody reads any of the
+ * three side by side and has to tell them apart, and none is ever next to a
  * status badge as a signal — so pairing them would add rows to the report that
- * measure nothing anyone sees. Kept out of the grid, not out of the layer:
- * each is still a colour with a foreground on it, and the surface checks
- * cover that.
+ * measure nothing anyone sees. `action.secondary` stays in: two buttons beside
+ * each other is exactly the case this grid is for.
+ *
+ * Kept out of the grid, not out of the layer: each is still a colour with a
+ * foreground on it, and the surface checks cover that.
  */
-const ACTION_STATES = new Set(["action.hover", "action.active"]);
+const ACTION_STATES = new Set([
+  "action.hover",
+  "action.active",
+  "action.muted",
+]);
 
 function signalsByColour(id: string): boolean {
   return SIGNALLING_GROUPS.includes(group(id)) && !ACTION_STATES.has(id);

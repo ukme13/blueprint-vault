@@ -68,6 +68,20 @@ interface SeedRole {
   position: number;
   /** Taken when the track has it, whatever `position` would give. */
   preferWeight?: number;
+  /**
+   * The dark weight, when mirroring is the wrong answer for this role.
+   *
+   * Mirroring is right for the roles that carry the page — text on light
+   * becomes text on dark at the same distance from the edge — and wrong for a
+   * role whose two values were chosen as a pair. `fg.on-action` is white on a
+   * fill in light and near-black on a fill in dark, which is 50 and 950, and
+   * the mirror of 50 is 900. Six roles came over from the studio's chrome with
+   * pairs like that; every one of them would have been a shade out.
+   *
+   * Falls back to the mirror when the track does not have the weight, the same
+   * way `preferWeight` falls back to `position`.
+   */
+  preferDarkWeight?: number;
 }
 
 type TrackRole =
@@ -109,6 +123,19 @@ const SEED_ROLES: readonly SeedRole[] = [
     position: 0.7,
   },
   {
+    /* The accent at rest: a tint behind a selected row, a quiet badge. Not a
+       state of `action.primary` the way hover and active are — nothing is
+       hovering — but the same colour turned down, which is why it takes the
+       accent track at both ends rather than mirroring into neutral. */
+    id: "action.muted",
+    name: "Action muted",
+    description: "A quiet fill in the action colour: a tint or a soft badge.",
+    track: "primary",
+    position: 0.42,
+    preferWeight: 400,
+    preferDarkWeight: 900,
+  },
+  {
     id: "surface.base",
     name: "Surface base",
     description: "The page canvas, behind everything else.",
@@ -137,6 +164,29 @@ const SEED_ROLES: readonly SeedRole[] = [
     position: 0.02,
   },
   {
+    /* Behind a loading placeholder, and behind the filled part of a slider or
+       a progress bar. Two roles rather than one because they are two
+       decisions: a skeleton may pulse and a track may not, and a system that
+       gives them one name cannot change one without the other. They start on
+       the same shade, which is what the studio's chrome already does. */
+    id: "surface.skeleton",
+    name: "Surface skeleton",
+    description: "The placeholder block shown while content loads.",
+    track: "neutral",
+    position: 0.21,
+    preferWeight: 200,
+    preferDarkWeight: 800,
+  },
+  {
+    id: "surface.track",
+    name: "Surface track",
+    description: "The groove of a slider, scrollbar or progress bar.",
+    track: "neutral",
+    position: 0.21,
+    preferWeight: 200,
+    preferDarkWeight: 800,
+  },
+  {
     id: "border.default",
     name: "Border default",
     description: "Borders and dividers.",
@@ -156,6 +206,19 @@ const SEED_ROLES: readonly SeedRole[] = [
     description: "The faintest rule: a divider inside a surface.",
     track: "neutral",
     position: 0.22,
+  },
+  {
+    /* Heavier than `border.default` on purpose: the rule under a section
+       heading and the edge of a card that has to read as an edge. In dark it
+       goes lighter than the mirror would, because a border on a dark surface
+       has to climb further out of it to be seen at all. */
+    id: "border.strong",
+    name: "Border strong",
+    description: "A border meant to be noticed: a card edge, a section rule.",
+    track: "neutral",
+    position: 0.32,
+    preferWeight: 300,
+    preferDarkWeight: 700,
   },
   {
     /* `fg`, not `text`: the same token colours an icon, a rule in a chart, a
@@ -187,6 +250,34 @@ const SEED_ROLES: readonly SeedRole[] = [
     description: "Text and icons on a control that cannot be used.",
     track: "neutral",
     position: 0.55,
+  },
+  {
+    /* Text and icons in the accent colour, on an ordinary surface: a link, an
+       eyebrow, a selected tab's label. It is a foreground and not an action —
+       `action.primary` is the fill of a thing you press, and using a fill
+       colour as text is how a link ends up at 3:1 on the canvas. */
+    id: "fg.accent",
+    name: "Foreground accent",
+    description: "Text or an icon in the accent colour, on a surface.",
+    track: "primary",
+    position: 0.63,
+    preferWeight: 600,
+    preferDarkWeight: 400,
+  },
+  {
+    /* The label on a filled control, which is the one pair every button
+       ships. Its two values are chosen against the fill rather than mirrored
+       through the ramp: near-white on the light fill, near-black on the dark
+       one. Measured against `action.primary` in the report for that reason —
+       it is the only foreground in the layer whose background is not a
+       surface. */
+    id: "fg.on-action",
+    name: "Foreground on action",
+    description: "The label on a filled action: text and icons on the accent.",
+    track: "neutral",
+    position: 0.05,
+    preferWeight: 50,
+    preferDarkWeight: 950,
   },
   {
     id: "focus.ring",
@@ -290,13 +381,19 @@ export function seedSemanticTokens(tracks: ColorTrack[]): SemanticToken[] {
         ? undefined
         : track.shades.find((shade) => shade.weight === role.preferWeight)) ??
       shadeAt(track, role.position);
+    const dark =
+      (role.preferDarkWeight === undefined
+        ? undefined
+        : track.shades.find(
+            (shade) => shade.weight === role.preferDarkWeight,
+          )) ?? mirrored(track, light.weight);
 
     return {
       id: role.id,
       name: role.name,
       description: role.description,
       light: { trackId: track.id, weight: light.weight },
-      dark: { trackId: track.id, weight: mirrored(track, light.weight).weight },
+      dark: { trackId: track.id, weight: dark.weight },
     };
   });
 }

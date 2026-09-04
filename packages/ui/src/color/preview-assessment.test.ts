@@ -414,17 +414,23 @@ describe("assessPreview", () => {
   it("reports every section the preview renders", () => {
     const assessment = assessPreview(shadesOf(distinctPalette()));
 
-    expect(assessment.textChecks).toHaveLength(7);
+    /* Nine: the seven that were here, plus the label a filled action ships
+       (fg.on-action on action.primary) and the accent as text on the canvas,
+       both of which became measurable when the layer gained the roles. */
+    expect(assessment.textChecks).toHaveLength(9);
     expect(assessment.textColourChoices).toHaveLength(4);
     expect(assessment.nonTextChecks).toHaveLength(2);
     /* Every pair among the six tokens that signal by colour — two actions and
        four statuses. The list that was here named four of the fifteen.
-       `action.hover` and `action.active` are states of the primary control,
-       not signals beside it, so they sit in the layer and out of the grid. */
+       `action.hover`, `action.active` and `action.muted` are the primary
+       control under the pointer, pressed, and turned down: three ways of
+       saying the same accent rather than three signals beside each other, so
+       they sit in the layer and out of the grid. Still six, and still
+       fifteen, after the layer grew to twenty-five. */
     const signalling = Object.keys(assessment.shades).filter(
       (id) =>
         /^(status|action)\./.test(id) &&
-        !["action.hover", "action.active"].includes(id),
+        !["action.hover", "action.active", "action.muted"].includes(id),
     ).length;
     expect(signalling).toBe(6);
     expect(assessment.semanticPairs).toHaveLength(
