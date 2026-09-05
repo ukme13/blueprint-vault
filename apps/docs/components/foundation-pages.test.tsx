@@ -1,15 +1,25 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
+  formatTypeSystemCssExport,
   generatePalettes,
   seedSemanticTokens,
   seedWorkspaceProject,
+  typeRoleRowGroups,
   type ColorTrack,
   type SemanticToken,
+  type TypeSystem,
 } from "@blueprint/ui";
 import { PrimitiveTable } from "./PrimitiveTable";
 import { SemanticTable } from "./SemanticTable";
+import { TypeRoleTable } from "./TypeRoleTable";
+import { TypeSpecimens } from "./TypeSpecimens";
 import { guidanceRoleIds } from "../content/colour";
+import {
+  TYPE_GROUP_GUIDANCE,
+  typographyGuidanceIds,
+  typographyGuidanceVariables,
+} from "../content/typography";
 
 /*
  * The rule the whole plan rests on: a page is a template over data.
@@ -144,6 +154,158 @@ describe("the guidance", () => {
     const spoken = new Set(guidanceRoleIds().map((id) => id.split(".")[0]!));
 
     const silent = [...groups].filter((group) => !spoken.has(group)).sort();
+
+    expect(silent, silent.join("\n")).toEqual([]);
+  });
+});
+
+/* The typography page, held to the same rule as the colour ones. */
+
+function typeSystem(): TypeSystem {
+  return seedWorkspaceProject("Reference").typography!.system;
+}
+
+/** One role's size changed, and nothing else. */
+function withRoleSize(system: TypeSystem, id: string, fontSizePx: number) {
+  return {
+    ...system,
+    roles: system.roles.map((role) =>
+      role.id === id
+        ? {
+            ...role,
+            /* Unlinked from the ramp, which is what setting a size by hand
+               means. A role that kept its offset would be overwritten by the
+               scale on the next read and the change would not survive to the
+               page. */
+            stepOffset: null,
+            desktop: { ...role.desktop, fontSizePx },
+            mobile: { ...role.mobile, fontSizePx },
+          }
+        : role,
+    ),
+  };
+}
+
+describe("the typography page is a template over the type system", () => {
+  it("moves the table when a role's size changes", () => {
+    const before = renderToStaticMarkup(
+      <TypeRoleTable system={typeSystem()} />,
+    );
+    const after = renderToStaticMarkup(
+      <TypeRoleTable system={withRoleSize(typeSystem(), "h3", 41)} />,
+    );
+
+    /* The specific number, not merely "the markup differs": a table that
+       rendered a fixed size and a changing label would pass a looser
+       assertion. 41 is odd on purpose — the scale can never generate it, so
+       it can only have come from the system. */
+    expect(before).not.toContain("41px");
+    expect(after).toContain("41px");
+    expect(after).not.toBe(before);
+  });
+
+  it("moves the specimen with it", () => {
+    /* The table and the specimen read the same rows, and this is what says so.
+       A specimen wired to its own resolution would keep rendering the old size
+       beside a table showing the new one, which is the failure a reader would
+       trust least and notice last. */
+    const before = renderToStaticMarkup(
+      <TypeSpecimens system={typeSystem()} />,
+    );
+    const after = renderToStaticMarkup(
+      <TypeSpecimens system={withRoleSize(typeSystem(), "h3", 41)} />,
+    );
+
+    expect(before).not.toContain("font-size:41px");
+    expect(after).toContain("font-size:41px");
+  });
+
+  it("names the variables the export writes, not ones of its own", () => {
+    const system = typeSystem();
+    const markup = renderToStaticMarkup(<TypeRoleTable system={system} />);
+    const css = formatTypeSystemCssExport(system, "px");
+
+    for (const group of typeRoleRowGroups(system)) {
+      for (const row of group.rows) {
+        for (const variable of Object.values(row.variables)) {
+          expect(markup, `${variable} is missing from the table`).toContain(
+            variable,
+          );
+          expect(
+            css,
+            `${variable} is on the page and not in the file`,
+          ).toContain(`${variable}:`);
+        }
+      }
+    }
+  });
+
+  it("draws the specimens in the workspace's font and never in the studio's", () => {
+    /* The whole point of the page, and the one thing the last branch showed is
+       easy to confuse. The studio's own typeface is Inter, applied to every
+       page of this app through `--font-sans`; a specimen inheriting it would
+       render at the right size in the wrong face and look entirely correct.
+       Measured on the built page as well: the specimens come back
+       `"Geist Sans", ui-sans-serif, system-ui` and the chrome around them
+       comes back Inter. Stage 6 owns the browser check; this is the half that
+       can run without one. */
+    const system = typeSystem();
+    const markup = renderToStaticMarkup(<TypeSpecimens system={system} />);
+
+    /* Read out of the style attribute rather than off the raw markup. React
+       writes the stack as `font-family:&quot;Geist Sans&quot;`, and the
+       semicolon inside the entity ends a naive match after four characters. */
+    const stacks = [...markup.matchAll(/style="([^"]+)"/g)]
+      .map((match) => match[1]!.replace(/&quot;/g, '"'))
+      .flatMap((style) =>
+        style
+          .split(";")
+          .filter((declaration) => declaration.startsWith("font-family:"))
+          .map((declaration) => declaration.slice("font-family:".length)),
+      );
+    expect(stacks.length).toBeGreaterThan(0);
+    for (const stack of stacks) {
+      expect(stack, "a specimen is set in the workspace's font").toContain(
+        "Geist Sans",
+      );
+      expect(stack, "the studio's typeface reached a specimen").not.toContain(
+        "Inter",
+      );
+      expect(stack).not.toContain("--font-sans");
+    }
+  });
+});
+
+describe("the typography guidance", () => {
+  it("names only roles and groups a workspace actually has", () => {
+    const system = typeSystem();
+    const known = new Set([
+      ...system.roles.map((role) => role.id),
+      ...system.groups.map((group) => group.id),
+    ]);
+
+    const unknown = typographyGuidanceIds().filter((id) => !known.has(id));
+
+    expect(unknown, unknown.join("\n")).toEqual([]);
+  });
+
+  it("names only variables the export writes", () => {
+    /* A paragraph telling a developer to reference `--font-body-size` is worth
+       exactly as much as that variable existing. */
+    const css = formatTypeSystemCssExport(typeSystem(), "px");
+
+    const missing = typographyGuidanceVariables().filter(
+      (variable) => !css.includes(`${variable}:`),
+    );
+
+    expect(missing, missing.join("\n")).toEqual([]);
+  });
+
+  it("has something to say about every group the system has", () => {
+    const spoken = new Set(Object.keys(TYPE_GROUP_GUIDANCE));
+    const silent = typeSystem()
+      .groups.map((group) => group.id)
+      .filter((id) => !spoken.has(id));
 
     expect(silent, silent.join("\n")).toEqual([]);
   });

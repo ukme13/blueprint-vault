@@ -6,7 +6,6 @@ import {
   Button,
   elementForRole,
   formatLength,
-  type SemanticRole,
   type TypeRole,
   type TypeScaleUnit,
   type ColorTrack,
@@ -19,6 +18,7 @@ import {
   PREVIEW_TEMPLATES,
   PREVIEW_WIDTH_OPTIONS,
   PREVIEW_WIDTHS,
+  specimenTextForRole,
   type PreviewLanguage,
   type PreviewTemplateId,
   type PreviewWidth,
@@ -38,24 +38,6 @@ const TEMPLATE_CLASSES = {
   article: styles.templateArticle,
   marketing: styles.templateMarketing,
   features: styles.templateFeatures,
-};
-
-const PREVIEW_TEXT: Record<SemanticRole, { en: string; th: string }> = {
-  display: { en: "Design with clarity", th: "ออกแบบด้วยความชัดเจน" },
-  heading: {
-    en: "Build a stable type scale",
-    th: "สร้างสเกลตัวอักษรที่มั่นคง",
-  },
-  title: {
-    en: "Semantic roles, not raw sizes",
-    th: "บทบาทเชิงความหมาย ไม่ใช่ขนาดดิบ",
-  },
-  body: {
-    en: "Blueprint generates a modular scale from a base size and ratio, then maps each step to a semantic role so components stay consistent.",
-    th: "Blueprint สร้างสเกลตัวอักษรจากขนาดฐานและอัตราส่วน แล้วจับคู่แต่ละขั้นกับบทบาทเชิงความหมาย เพื่อให้คอมโพเนนต์มีความสม่ำเสมอ",
-  },
-  label: { en: "Field label", th: "ป้ายกำกับฟิลด์" },
-  caption: { en: "Last updated a moment ago", th: "อัปเดตล่าสุดเมื่อสักครู่" },
 };
 
 export interface TypographyPreviewProps {
@@ -201,14 +183,12 @@ export function TypographyPreview({
         )}
         {template === "specimen" &&
           roles.map((role) => {
-            /* Sample copy exists for the six original roles. An arbitrary role
-               falls back to the specimen text, which is always set. */
-            const sample = PREVIEW_TEXT[role.id as SemanticRole];
-            const text = sample
-              ? lang === "th"
-                ? sample.th
-                : sample.en
-              : specimenText || role.name;
+            /* Sample copy exists for the six original roles; an arbitrary
+               role falls back through its group to the specimen text. The
+               copy and the chain both live in the package now, because the
+               documentation renders the same specimens and a second copy of
+               the Thai would be a second thing to get right. */
+            const text = specimenTextForRole(role, lang, specimenText);
             const Tag = elementForRole(system, role);
             /* Judged at this role's own size and weight: the same pair of
                colours passes at a heading and fails at a caption. */
