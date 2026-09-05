@@ -231,9 +231,11 @@ see the roadmap document's "Later improvements" for the full list.
 The [semantic colour layer](docs/roadmap/semantic-tokens.md) is complete. A
 semantic token is a name plus one palette reference per mode, so a name such as
 `fg.primary` or `surface.raised` carries a light value and a dark one and moves
-whenever the shade it points at moves. A new project is seeded with nineteen
-roles across `fg`, `surface`, `border`, `action`, `status`, and `focus`. The
-Semantics tab edits them as a table, with both modes side by side, and the
+whenever the shade it points at moves. A new project is seeded with twenty-five
+roles across `fg`, `surface`, `border`, `action`, `status`, and `focus`. Each
+status will also carry a surface, a foreground, and a border role beside its
+fill, so an alert can be built from the layer rather than from a shade number.
+The Semantics tab edits them as a table, with both modes side by side, and the
 layer exports beside the primitives in all three formats. The `/preview` page
 draws itself from semantic tokens only, in either mode, and a test proves it
 reaches for no primitive.
