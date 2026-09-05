@@ -38,11 +38,25 @@
 @import "./blueprint/blueprint.tailwind.css";
 @import "./blueprint/blueprint-typography.css";
 @import "@blueprint/ui/astryx-bridge.css";
+/* The typeface, and only the typeface. The colour chrome above this app's
+   line is what the export is for; the font is not part of that argument —
+   the docs app is the tool's own documentation, so it is set in the tool's
+   font, and studio-font.css carries nothing else. */
+@import "@blueprint/ui/studio-font.css";
 
 @source "../../../packages/ui/src";
 
+/* The studio's typeface, the same one the playground uses.
+
+   This rule is on `:root`, and the variable it read used to be declared on
+   `<body>` — a variable does not reach its own parent, so at `:root` it was
+   undefined, the declaration was invalid at computed-value time, and `<html>`
+   fell all the way back to the UA default. Measured on a production build
+   before this change, every page of the docs app was rendering in Times New
+   Roman. The app variables now sit on `<html>` in layout.tsx, which is what
+   puts them in scope for this line. */
 :root {
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-sans);
 }
 
 @layer components {
@@ -76,5 +90,5 @@ a {
 }
 
 code {
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-mono);
 }

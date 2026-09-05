@@ -25,6 +25,7 @@
 @import "@astryxdesign/core/astryx.css"; /* Astryx component structure */
 @import "@astryxdesign/theme-neutral/theme.css"; /* Astryx base colour theme */
 @import "@blueprint/ui/theme.css"; /* Blueprint 25-interval colour grid */
+@import "@blueprint/ui/studio-font.css"; /* The studio's own typeface */
 
 /* ========================================================================
    2. TAILWIND V4 SPECIAL DIRECTIVES
@@ -49,4 +50,21 @@
   :root[data-theme="dark"] {
     color-scheme: dark;
   }
+}
+
+/* ========================================================================
+   4. THE STUDIO'S TYPEFACE
+
+   There was no font rule here at all, so page text inherited whatever
+   Astryx's theme layer set — measured, that is Figtree — while the controls
+   beside it rendered in the font the app loaded. Two typefaces on one screen,
+   neither of them chosen by anybody.
+
+   `--font-sans` is the studio's own, defined in studio-font.css. The bridge
+   points
+   Astryx's three type variables at the same token, so the page and its
+   controls now agree.
+   ======================================================================== */
+:root {
+  font-family: var(--font-sans);
 }
