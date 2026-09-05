@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { migrateLegacyProject, type LegacyTypographyProject } from "./migrate";
-import type { TypeSystem } from "./system";
+import { defaultSystem, type TypeSystem } from "./system";
 import {
   formatTypeSystemCssExport,
   formatTypeSystemTailwindExport,
@@ -205,5 +205,72 @@ describe("google font notice", () => {
   it("says nothing when no family comes from Google", () => {
     const output = formatTypeSystemCssExport(migratedLegacy);
     expect(output).not.toContain("Google Fonts");
+  });
+});
+
+describe("the size a role exports", () => {
+  it("is the one the ramp resolves, not the one the file stores", () => {
+    /* The stored size is only meaningful for a role somebody unlinked by
+       typing a number. A role linked to a step keeps whatever was in the field
+       when it was last written, and the studio resolves on read and never
+       writes back — so `defaultSystem` leaves every role holding the base size
+       while the offsets decide what is drawn.
+   
+       Exported unresolved, that is a design system in which every text role is
+       16px. It is not a subtle failure and it is entirely invisible from the
+       studio, which resolves before it renders: measured on the reference
+       workspace's generated file, `--font-h1-size`, `--font-h2-size` and
+       `--font-display-size` were all 16px beside a correct
+       `--font-size-8: 62px`. */
+    const system = defaultSystem(
+      "Reference",
+      ["Geist Sans", "ui-sans-serif"],
+      16,
+      1.25,
+      9,
+    );
+    for (const role of system.roles) {
+      expect(role.desktop.fontSizePx).toBe(16);
+    }
+
+    const css = formatTypeSystemCssExport(system, "px");
+
+    expect(css).toContain("--font-h1-size: 62px;");
+    expect(css).toContain("--font-h6-size: 20px;");
+    expect(css).toContain("--font-body-size: 16px;");
+    /* And the role tokens agree with the step tokens they came from. */
+    expect(css).toContain("--font-size-8: 62px;");
+  });
+
+  it("is the one somebody typed, when they unlinked the role", () => {
+    /* The other half, and the reason the field cannot simply be deleted: an
+       unlinked role has no step to resolve against and the stored number is
+       the only record of the decision. */
+    const base = defaultSystem(
+      "Reference",
+      ["Geist Sans", "ui-sans-serif"],
+      16,
+      1.25,
+      9,
+    );
+    const system: TypeSystem = {
+      ...base,
+      roles: base.roles.map((role) =>
+        role.id === "h3"
+          ? {
+              ...role,
+              stepOffset: null,
+              sameAsRoleId: null,
+              desktop: { ...role.desktop, fontSizePx: 41 },
+              mobile: { ...role.mobile, fontSizePx: 41 },
+            }
+          : role,
+      ),
+    };
+
+    /* 41 is odd, so the ramp can never generate it. */
+    expect(formatTypeSystemCssExport(system, "px")).toContain(
+      "--font-h3-size: 41px;",
+    );
   });
 });

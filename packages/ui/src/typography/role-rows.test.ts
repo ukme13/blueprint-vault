@@ -221,3 +221,28 @@ describe("the scale summary", () => {
     expect(Math.min(...summary.steps.map((step) => step.fontSizePx))).toBe(11);
   });
 });
+
+describe("the rows and the exported file", () => {
+  it("agree about every role's size", () => {
+    /* The two readers of a type system, pinned to each other. They diverged
+       once and in the direction nobody would look: the studio and the
+       documentation both resolve before rendering, so a client installing the
+       file was the only one who could have seen every role at 16px. */
+    const system = defaultSystem(
+      "Reference",
+      ["Geist Sans", "ui-sans-serif"],
+      16,
+      1.25,
+      9,
+    );
+    const css = formatTypeSystemCssExport(system, "px");
+
+    for (const group of typeRoleRowGroups(system)) {
+      for (const row of group.rows) {
+        expect(css, `${row.id} is ${row.fontSizePx}px on the page`).toContain(
+          `${row.variables.size}: ${row.fontSizePx}px;`,
+        );
+      }
+    }
+  });
+});

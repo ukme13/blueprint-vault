@@ -302,6 +302,25 @@ export interface TypeFont {
 }
 
 export interface TypeRoleValue {
+  /**
+   * The size somebody typed, which is not the size the role renders at.
+   *
+   * Only meaningful when the role is unlinked — `stepOffset` and
+   * `sameAsRoleId` both null — because typing a size is what unlinks it. A
+   * linked role keeps whatever was last written here and takes its size from
+   * the ramp, so in a freshly seeded system every role holds the base size and
+   * the offsets decide what is drawn.
+   *
+   * Ask `resolveRoleSizePx`, or `resolveSystemRoles` for a whole system.
+   * Reading this field directly is how the CSS export came to write
+   * `--font-h1-size: 16px` for every role in a file a client installs, while
+   * the studio and the documentation both rendered the scale correctly because
+   * both resolve before they render.
+   *
+   * It cannot be dropped, though every value in a seeded system is inert: it
+   * is the only record of a hand-set size, and the studio's size input writes
+   * here and nowhere else.
+   */
   fontSizePx: number;
   /**
    * How the line height was chosen, not what it works out to.

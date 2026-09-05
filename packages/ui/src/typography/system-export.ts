@@ -1,5 +1,6 @@
 import { formatLength } from "./export";
 import { findGoogleFont } from "./google-fonts";
+import { resolveSystemRoles } from "./role-rows";
 import { generateTypeSteps } from "./scale";
 import { resolveLineHeight, type TypeRole, type TypeSystem } from "./system";
 import type { TypeScaleUnit } from "./types";
@@ -28,6 +29,30 @@ export function typeTokenId(value: string): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+/**
+ * The system with every role's size resolved.
+ *
+ * The one thing this file must do before writing a number. A role's stored
+ * `fontSizePx` is only its own answer when somebody unlinked it by typing a
+ * size; a role linked to a step keeps whatever was in the field when it was
+ * last written, and the studio resolves on read and never writes back. So
+ * `defaultSystem` leaves every role holding the base size and the offsets
+ * decide what is drawn.
+ *
+ * Exported unresolved, that shipped a design system in which every text role
+ * was 16px — measured on the reference workspace's own generated file,
+ * `--font-h1-size`, `--font-h2-size` and `--font-display-size` all 16px beside
+ * a correct `--font-size-8: 62px`. Invisible from the studio and from the
+ * documentation, because both resolve before they render. Only a client
+ * installing the file would have found it.
+ *
+ * `resolveSystemRoles` is the same function the row builder uses, so the
+ * table, the specimen and the file cannot disagree about a size.
+ */
+function resolved(system: TypeSystem): TypeSystem {
+  return { ...system, roles: resolveSystemRoles(system) };
 }
 
 function hasViewportDifference(system: TypeSystem): boolean {
@@ -123,7 +148,12 @@ function googleFontNotice(system: TypeSystem): string[] {
   ];
 }
 
-function body(system: TypeSystem, unit: TypeScaleUnit, open: string): string {
+function body(
+  rawSystem: TypeSystem,
+  unit: TypeScaleUnit,
+  open: string,
+): string {
+  const system = resolved(rawSystem);
   const lines = [
     ...googleFontNotice(system),
     open,

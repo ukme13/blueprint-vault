@@ -35,29 +35,38 @@ import type { TypeStep } from "./types";
 /**
  * A role's size, resolved rather than stored.
  *
- * The stored `fontSizePx` is not the answer, and in the reference workspace it
- * is not even close: every role there is stored at 16 with a different step
- * offset, because the studio resolves on read and never writes the result back.
- * A page that printed `role.desktop.fontSizePx` would show eight roles at one
- * size and call it a scale.
+ * The stored `fontSizePx` is only a role's own answer when somebody unlinked
+ * it by typing a size. A role linked to a step keeps whatever was in the field
+ * when it was last written, and the studio resolves on read and never writes
+ * back — so in the reference workspace every role is stored at 16 with a
+ * different step offset. Anything that prints the stored number shows eight
+ * roles at one size and calls it a scale.
+ *
+ * Each viewport is resolved against its own value rather than desktop's being
+ * copied into both. For a linked role that changes nothing, because both
+ * viewports share the offset; for a role somebody authored at two sizes it is
+ * the difference between keeping their mobile size and silently replacing it
+ * with the desktop one. The studio's own version of this loop copied desktop
+ * across, which was invisible there because it only ever renders desktop, and
+ * became a regression the moment the export started calling it.
  */
-export function resolveSystemRoles(
-  system: TypeSystem,
-  viewport: "desktop" | "mobile" = "desktop",
-): TypeRole[] {
+export function resolveSystemRoles(system: TypeSystem): TypeRole[] {
   const steps = generateTypeSteps(
     system.baseFontSizePx,
     system.ratio,
     system.stepCount,
   );
-  return system.roles.map((role) => {
-    const fontSizePx = resolveRoleSizePx(system, steps, role, viewport);
-    return {
-      ...role,
-      desktop: { ...role.desktop, fontSizePx },
-      mobile: { ...role.mobile, fontSizePx },
-    };
-  });
+  return system.roles.map((role) => ({
+    ...role,
+    desktop: {
+      ...role.desktop,
+      fontSizePx: resolveRoleSizePx(system, steps, role, "desktop"),
+    },
+    mobile: {
+      ...role.mobile,
+      fontSizePx: resolveRoleSizePx(system, steps, role, "mobile"),
+    },
+  }));
 }
 
 /** The variables the export emits for one role. */
@@ -190,7 +199,7 @@ export function typeRoleRowGroups(
   system: TypeSystem,
   viewport: "desktop" | "mobile" = "desktop",
 ): TypeRoleRowGroup[] {
-  const resolved = resolveSystemRoles(system, viewport);
+  const resolved = resolveSystemRoles(system);
   const steps = generateTypeSteps(
     system.baseFontSizePx,
     system.ratio,
