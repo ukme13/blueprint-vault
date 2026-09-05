@@ -524,3 +524,46 @@ It is kept out of the similarity grid, where the other action tones sit,
 because it has no hue to be confused with anything: every pair against it would
 be a row that always passes, including under achromatopsia, where it is the
 only thing on the page that is still exactly what it was.
+
+## Notes from the second brand colour
+
+**`secondary` is a track a person chooses, and a tone like any other.** It had
+been a single role — `action.secondary`, the flat colour of "the other button" —
+left over from before the pattern existed, pointing at a track name that the
+studio's `theme.css` defined and no saved workspace contained. So a client with
+two brand colours had roles for one of them. The seed palette has the track now,
+the creation screen asks for its colour beside the first, and the tone carries
+the same seven roles as primary plus its measured label. Seventy-two roles.
+
+It is chosen, not derived. A complement computed from the first colour is a
+decision about somebody's brand that this studio has no standing to make, so
+the second field defaults to a teal a long way round the wheel from the default
+purple and is otherwise theirs.
+
+**A palette is the person's data; roles are not.** An existing workspace gains
+the secondary roles on read, through `fillSeedRoles`, and does not gain the
+track. Adding a role is filling in a vocabulary the system defines. Adding a
+track is inventing a brand colour for somebody, and no migration should do
+that.
+
+That combination leaves a real state to handle: roles for a tone whose track is
+not there. The fallback chain would have answered it silently — `trackFor`
+walks `secondary → neutral → primary`, so the tone would have resolved to the
+neutral one, and every secondary button would be grey with nothing anywhere
+saying why. A grey that means "we made this up" is indistinguishable from a
+grey somebody chose.
+
+So the tone's roles carry `requireTrack`: the reference keeps the name it asked
+for, `resolveSemantic` reports `missing: "track"` and still returns a colour
+from the first track in the palette. Nothing throws, the Semantics tab already
+renders that state as "track gone", and the gap is something a person can act
+on. It is the one place in the seed set where falling back would have been the
+wrong kindness.
+
+**The grid did not need updating.** `action.secondary` has been a signalling
+token since the grid was written — it was never in the exclusion set — so
+adding the six part-roles beside it changed nothing: they are hyphenated, and
+the existing rule keeps parts of a control out. Six signalling tokens and
+fifteen pairs, with "Primary and secondary" first in the list, which is the pair
+a two-colour brand ships and the one this grid most needed to be measuring all
+along.

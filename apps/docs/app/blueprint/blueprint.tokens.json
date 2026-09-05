@@ -64,6 +64,68 @@
         "$value": "#010002"
       }
     },
+    "secondary": {
+      "25": {
+        "$value": "#F0F9F7"
+      },
+      "50": {
+        "$value": "#DEF4F0"
+      },
+      "100": {
+        "$value": "#C3E7E1"
+      },
+      "150": {
+        "$value": "#A8D9D1"
+      },
+      "200": {
+        "$value": "#8DCCC2"
+      },
+      "250": {
+        "$value": "#6FBFB3"
+      },
+      "300": {
+        "$value": "#4FB2A5"
+      },
+      "350": {
+        "$value": "#0F9D8F"
+      },
+      "400": {
+        "$value": "#179487"
+      },
+      "450": {
+        "$value": "#0E8377"
+      },
+      "500": {
+        "$value": "#047369"
+      },
+      "550": {
+        "$value": "#00645A"
+      },
+      "600": {
+        "$value": "#00544C"
+      },
+      "650": {
+        "$value": "#00453E"
+      },
+      "700": {
+        "$value": "#003731"
+      },
+      "750": {
+        "$value": "#002924"
+      },
+      "800": {
+        "$value": "#001C18"
+      },
+      "850": {
+        "$value": "#00100D"
+      },
+      "900": {
+        "$value": "#000504"
+      },
+      "950": {
+        "$value": "#000101"
+      }
+    },
     "neutral": {
       "25": {
         "$value": "#F2F9F4"
@@ -402,7 +464,25 @@
           "$value": "{palette.primary.450}"
         },
         "secondary": {
-          "$value": "{palette.neutral.450}"
+          "$value": "{palette.secondary.500}"
+        },
+        "secondary-hover": {
+          "$value": "{palette.secondary.550}"
+        },
+        "secondary-active": {
+          "$value": "{palette.secondary.600}"
+        },
+        "secondary-surface": {
+          "$value": "{palette.secondary.50}"
+        },
+        "secondary-surface-hover": {
+          "$value": "{palette.secondary.100}"
+        },
+        "secondary-fg": {
+          "$value": "{palette.secondary.900}"
+        },
+        "secondary-border": {
+          "$value": "{palette.secondary.450}"
         },
         "muted": {
           "$value": "{palette.primary.400}"
@@ -477,6 +557,9 @@
           "$value": "{palette.primary.600}"
         },
         "on-action": {
+          "$value": "{palette.neutral.25}"
+        },
+        "on-secondary": {
           "$value": "{palette.neutral.25}"
         },
         "on-neutral": {
@@ -611,7 +694,25 @@
           "$value": "{palette.primary.450}"
         },
         "secondary": {
-          "$value": "{palette.neutral.500}"
+          "$value": "{palette.secondary.450}"
+        },
+        "secondary-hover": {
+          "$value": "{palette.secondary.400}"
+        },
+        "secondary-active": {
+          "$value": "{palette.secondary.350}"
+        },
+        "secondary-surface": {
+          "$value": "{palette.secondary.950}"
+        },
+        "secondary-surface-hover": {
+          "$value": "{palette.secondary.900}"
+        },
+        "secondary-fg": {
+          "$value": "{palette.secondary.100}"
+        },
+        "secondary-border": {
+          "$value": "{palette.secondary.450}"
         },
         "muted": {
           "$value": "{palette.primary.900}"
@@ -687,6 +788,9 @@
         },
         "on-action": {
           "$value": "{palette.neutral.25}"
+        },
+        "on-secondary": {
+          "$value": "{palette.neutral.950}"
         },
         "on-neutral": {
           "$value": "{palette.neutral.950}"

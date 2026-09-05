@@ -15,10 +15,13 @@
  * a shade has frozen a decision the Semantics tab is supposed to own, and it
  * freezes it in the one place a designer cannot reach.
  *
- * `secondary` and `tertiary` used to be schemes here. They drew from tracks
- * called `secondary` and `tertiary`, which the studio's own theme.css defines
- * and no saved workspace has ever contained — the same fault the Astryx bridge
- * carried for its cyan and purple families, and removed for the same reason.
+ * `secondary` and `tertiary` were removed from this table once, because they
+ * drew from tracks the studio's own theme.css defined and no saved workspace
+ * had ever contained — the same fault the Astryx bridge carried for its cyan
+ * and purple families. `secondary` is back, and the difference is the whole
+ * point: it is a track a person chooses when they create a palette, and a tone
+ * with the same seven roles as any other. `tertiary` is not, and will not be
+ * until somebody has a third brand colour to put in it.
  *
  * See docs/roadmap/semantic-tokens.md.
  */
@@ -26,6 +29,7 @@
 /** The tones a Blueprint button can be drawn in. */
 export const BUTTON_SCHEMES = [
   "primary",
+  "secondary",
   "neutral",
   "success",
   "warning",
@@ -74,6 +78,7 @@ export const BUTTON_TONES: Readonly<Record<ButtonScheme, ButtonToneRoles>> = {
      pattern and renaming it would migrate every saved layer to buy one
      letter's consistency. */
   primary: tone("action.primary", "fg-on-action"),
+  secondary: tone("action.secondary", "fg-on-secondary"),
   neutral: tone("action.neutral", "fg-on-neutral"),
   success: tone("status.success", "fg-on-success"),
   warning: tone("status.warning", "fg-on-warning"),
