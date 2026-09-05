@@ -1,5 +1,6 @@
 import { formatLength } from "./export";
 import { findGoogleFont } from "./google-fonts";
+import { resolveSystemRoles } from "./role-rows";
 import { generateTypeSteps } from "./scale";
 import { resolveLineHeight, type TypeRole, type TypeSystem } from "./system";
 import type { TypeScaleUnit } from "./types";
@@ -13,12 +14,45 @@ import type { TypeScaleUnit } from "./types";
  * not gain an empty media query it never asked for.
  */
 
-function tokenId(value: string): string {
+/**
+ * A font or role id, as it is spelled in a variable name.
+ *
+ * Exported rather than private because the documentation names the same
+ * variables beside each role, and a page that built `--font-h1-size` from its
+ * own `toLowerCase` would be a second spelling of this rule — agreeing until
+ * somebody names a role "Body Large" and the two disagree about the hyphen.
+ * A developer copying a name off the page has to get the one in their file.
+ */
+export function typeTokenId(value: string): string {
   return value
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
+}
+
+/**
+ * The system with every role's size resolved.
+ *
+ * The one thing this file must do before writing a number. A role's stored
+ * `fontSizePx` is only its own answer when somebody unlinked it by typing a
+ * size; a role linked to a step keeps whatever was in the field when it was
+ * last written, and the studio resolves on read and never writes back. So
+ * `defaultSystem` leaves every role holding the base size and the offsets
+ * decide what is drawn.
+ *
+ * Exported unresolved, that shipped a design system in which every text role
+ * was 16px — measured on the reference workspace's own generated file,
+ * `--font-h1-size`, `--font-h2-size` and `--font-display-size` all 16px beside
+ * a correct `--font-size-8: 62px`. Invisible from the studio and from the
+ * documentation, because both resolve before they render. Only a client
+ * installing the file would have found it.
+ *
+ * `resolveSystemRoles` is the same function the row builder uses, so the
+ * table, the specimen and the file cannot disagree about a size.
+ */
+function resolved(system: TypeSystem): TypeSystem {
+  return { ...system, roles: resolveSystemRoles(system) };
 }
 
 function hasViewportDifference(system: TypeSystem): boolean {
@@ -43,7 +77,7 @@ function viewportLines(
 ): string[] {
   return roles.flatMap((role) => {
     const value = role[viewport];
-    const id = tokenId(role.id);
+    const id = typeTokenId(role.id);
     /* Unitless, as it has always been: a component that changes its font size
        keeps a line height in proportion. The config is an intent and would
        interpolate as "[object Object]". */
@@ -59,7 +93,7 @@ function viewportLines(
 function sharedLines(system: TypeSystem, unit: TypeScaleUnit): string[] {
   const fonts = system.fonts.map(
     (font) =>
-      `  --font-family-${tokenId(font.id)}: ${font.families
+      `  --font-family-${typeTokenId(font.id)}: ${font.families
         .map((family) =>
           /^[a-zA-Z][a-zA-Z0-9-]*$/.test(family) ? family : `"${family}"`,
         )
@@ -78,9 +112,9 @@ function sharedLines(system: TypeSystem, unit: TypeScaleUnit): string[] {
   );
 
   const perRole = system.roles.flatMap((role) => {
-    const id = tokenId(role.id);
+    const id = typeTokenId(role.id);
     return [
-      `  --font-${id}-family: var(--font-family-${tokenId(role.fontId)});`,
+      `  --font-${id}-family: var(--font-family-${typeTokenId(role.fontId)});`,
       `  --font-${id}-weight: ${role.fontWeight};`,
       `  --font-${id}-transform: ${role.textTransform};`,
     ];
@@ -114,7 +148,12 @@ function googleFontNotice(system: TypeSystem): string[] {
   ];
 }
 
-function body(system: TypeSystem, unit: TypeScaleUnit, open: string): string {
+function body(
+  rawSystem: TypeSystem,
+  unit: TypeScaleUnit,
+  open: string,
+): string {
+  const system = resolved(rawSystem);
   const lines = [
     ...googleFontNotice(system),
     open,

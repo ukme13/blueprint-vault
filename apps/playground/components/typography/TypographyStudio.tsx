@@ -41,6 +41,10 @@ import {
   fallbackFileMoves,
   isLocalSlot,
   localFontKey,
+  resolveTemplateSlot,
+  type SemanticRole,
+  type PreviewLanguage,
+  type PreviewWidth,
 } from "@blueprint/ui";
 import {
   closestCenter,
@@ -61,7 +65,6 @@ import { TypographyExportDialog } from "./TypographyExportDialog";
 import { WorkspaceBrand } from "../WorkspaceBrand";
 import { ThemeControl } from "../ThemeControl";
 import { WorkspaceNav } from "../WorkspaceNav";
-import { type PreviewLanguage, type PreviewWidth } from "./preview-templates";
 import { FontStackEditor } from "./FontStackEditor";
 import { RoleGroupEditor } from "./RoleGroupEditor";
 import { TypographyPreview } from "./TypographyPreview";
@@ -331,26 +334,26 @@ export function TypographyStudio() {
   );
 
   /* Templates receive resolved CSS so they never do scale maths themselves.
-     Sizes stay in px here: this is a rendered preview, not exported output. */
-  const styleForRole = (roleId: string): CSSProperties => {
-    /* Templates ask for roles by name. An arbitrary system may not have the one
-       a template wants, so fall back within the group, then to body, then to
-       anything — a template must never render unstyled. */
-    const role =
-      resolvedRoles.find((candidate) => candidate.id === roleId) ??
-      resolvedRoles.find((candidate) => candidate.groupId === roleId) ??
-      bodyRole ??
-      resolvedRoles[0];
-    if (!role) return {};
+     Sizes stay in px here: this is a rendered preview, not exported output.
 
-    return {
-      fontFamily: fontFamilyValue(resolvedSystem, role),
-      fontSize: `${role.desktop.fontSizePx}px`,
-      fontWeight: role.fontWeight,
-      lineHeight: resolveLineHeight(role).computedLineHeightRatio,
-      letterSpacing: `${role.desktop.letterSpacingPx}px`,
-      textTransform: role.textTransform,
-    };
+     Which role a slot draws is `resolveTemplateSlot` in the package, shared
+     with the documentation page. The chain that used to be here — exact id,
+     then group, then body — put five of the six slots on body for any workspace
+     built on the merged model, because it has none of the names a template asks
+     for except `body`. The article rendered its kicker, hero, standfirst,
+     byline and section headings all at 16px. */
+  const styleOfRole = (role: TypeRole): CSSProperties => ({
+    fontFamily: fontFamilyValue(resolvedSystem, role),
+    fontSize: `${role.desktop.fontSizePx}px`,
+    fontWeight: role.fontWeight,
+    lineHeight: resolveLineHeight(role).computedLineHeightRatio,
+    letterSpacing: `${role.desktop.letterSpacingPx}px`,
+    textTransform: role.textTransform,
+  });
+
+  const styleForRole = (slot: SemanticRole): CSSProperties => {
+    const role = resolveTemplateSlot(resolvedSystem, slot);
+    return role ? styleOfRole(role) : {};
   };
 
   return (
@@ -815,6 +818,7 @@ export function TypographyStudio() {
           roles={rolesLargeToSmall}
           specimenText={project.specimenText}
           styleFor={styleForRole}
+          styleOf={styleOfRole}
           system={resolvedSystem}
           template={project.template}
           unit={project.unit}

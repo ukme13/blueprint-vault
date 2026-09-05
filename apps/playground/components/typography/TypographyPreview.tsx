@@ -19,10 +19,11 @@ import {
   PREVIEW_TEMPLATES,
   PREVIEW_WIDTH_OPTIONS,
   PREVIEW_WIDTHS,
+  specimenTextForRole,
   type PreviewLanguage,
   type PreviewTemplateId,
   type PreviewWidth,
-} from "./preview-templates";
+} from "@blueprint/ui";
 import {
   PreviewColourControls,
   resolveShadeHex,
@@ -30,22 +31,14 @@ import {
 } from "./PreviewColourControls";
 import styles from "./typography-workspace.module.css";
 
-const PREVIEW_TEXT: Record<SemanticRole, { en: string; th: string }> = {
-  display: { en: "Design with clarity", th: "ออกแบบด้วยความชัดเจน" },
-  heading: {
-    en: "Build a stable type scale",
-    th: "สร้างสเกลตัวอักษรที่มั่นคง",
-  },
-  title: {
-    en: "Semantic roles, not raw sizes",
-    th: "บทบาทเชิงความหมาย ไม่ใช่ขนาดดิบ",
-  },
-  body: {
-    en: "Blueprint generates a modular scale from a base size and ratio, then maps each step to a semantic role so components stay consistent.",
-    th: "Blueprint สร้างสเกลตัวอักษรจากขนาดฐานและอัตราส่วน แล้วจับคู่แต่ละขั้นกับบทบาทเชิงความหมาย เพื่อให้คอมโพเนนต์มีความสม่ำเสมอ",
-  },
-  label: { en: "Field label", th: "ป้ายกำกับฟิลด์" },
-  caption: { en: "Last updated a moment ago", th: "อัปเดตล่าสุดเมื่อสักครู่" },
+/* The templates' layout is the studio's, not the package's. They render inside
+   a resizable preview stage here and inside a document column in the
+   documentation, so the classes travel as a prop rather than as a stylesheet
+   nobody else wanted. */
+const TEMPLATE_CLASSES = {
+  article: styles.templateArticle,
+  marketing: styles.templateMarketing,
+  features: styles.templateFeatures,
 };
 
 export interface TypographyPreviewProps {
@@ -61,7 +54,13 @@ export interface TypographyPreviewProps {
   width: PreviewWidth;
   lang: PreviewLanguage;
   /** Resolved CSS per role, so templates never do scale maths themselves. */
-  styleFor: (roleId: string) => CSSProperties;
+  /* Two questions, and they are not the same one. A template asks which role
+     should draw its heading slot; the specimen list already has a role and
+     asks what it looks like. Folding them into one function is what let the
+     slot chain answer for a concrete role and land every one of them on
+     body. */
+  styleFor: (slot: SemanticRole) => CSSProperties;
+  styleOf: (role: TypeRole) => CSSProperties;
   onTemplateChange: (template: PreviewTemplateId) => void;
   onWidthChange: (width: PreviewWidth) => void;
   onLangChange: (lang: PreviewLanguage) => void;
@@ -82,6 +81,7 @@ export function TypographyPreview({
   width,
   lang,
   styleFor,
+  styleOf,
   onTemplateChange,
   onWidthChange,
   onLangChange,
@@ -176,21 +176,27 @@ export function TypographyPreview({
         }}
       >
         {template === "article" && (
-          <ArticleTemplate lang={lang} styleFor={styleFor} />
+          <ArticleTemplate
+            classNames={TEMPLATE_CLASSES}
+            lang={lang}
+            styleFor={styleFor}
+          />
         )}
         {template === "marketing" && (
-          <MarketingTemplate lang={lang} styleFor={styleFor} />
+          <MarketingTemplate
+            classNames={TEMPLATE_CLASSES}
+            lang={lang}
+            styleFor={styleFor}
+          />
         )}
         {template === "specimen" &&
           roles.map((role) => {
-            /* Sample copy exists for the six original roles. An arbitrary role
-               falls back to the specimen text, which is always set. */
-            const sample = PREVIEW_TEXT[role.id as SemanticRole];
-            const text = sample
-              ? lang === "th"
-                ? sample.th
-                : sample.en
-              : specimenText || role.name;
+            /* Sample copy exists for the six original roles; an arbitrary
+               role falls back through its group to the specimen text. The
+               copy and the chain both live in the package now, because the
+               documentation renders the same specimens and a second copy of
+               the Thai would be a second thing to get right. */
+            const text = specimenTextForRole(role, lang, specimenText);
             const Tag = elementForRole(system, role);
             /* Judged at this role's own size and weight: the same pair of
                colours passes at a heading and fails at a caption. */
@@ -223,7 +229,7 @@ export function TypographyPreview({
                     </p>
                   )}
                 </header>
-                <Tag style={styleFor(role.id)}>{text}</Tag>
+                <Tag style={styleOf(role)}>{text}</Tag>
               </article>
             );
           })}

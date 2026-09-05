@@ -1187,24 +1187,26 @@
             "id": "display",
             "name": "Display",
             "families": [
-              "Geist Sans",
-              "ui-sans-serif",
-              "system-ui"
+              "Space Grotesk",
+              "Kanit",
+              "sans-serif"
             ],
             "sources": {
-              "primary": "system"
+              "primary": "google",
+              "fallback1": "google"
             }
           },
           {
             "id": "main",
             "name": "Main",
             "families": [
-              "Geist Sans",
-              "ui-sans-serif",
-              "system-ui"
+              "Work Sans",
+              "Sarabun",
+              "sans-serif"
             ],
             "sources": {
-              "primary": "system"
+              "primary": "google",
+              "fallback1": "google"
             }
           }
         ],
@@ -1409,4 +1411,3 @@
     }
   }
 }
-
