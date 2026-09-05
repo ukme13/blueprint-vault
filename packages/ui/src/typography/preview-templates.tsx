@@ -1,8 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import type { SemanticRole } from "@blueprint/ui";
-import styles from "./typography-workspace.module.css";
+import type { SemanticRole } from "./types";
 
 export type PreviewTemplateId = "specimen" | "article" | "marketing";
 export type PreviewLanguage = "en" | "th";
@@ -34,10 +33,32 @@ export const PREVIEW_WIDTH_OPTIONS: Array<{
   { id: "desktop", label: "Desktop" },
 ];
 
+/**
+ * Layout classes the host supplies.
+ *
+ * The templates moved here when a second application needed them, and their
+ * three layout rules did not: they were a CSS module in the studio, and a
+ * package that shipped its own stylesheet would be deciding what a gap is for
+ * every app that renders one. This is the same arrangement Button already has
+ * — the caller's className is the only thing that draws pixels — and it is
+ * what lets the documentation set an article in its own column while the
+ * studio sets it inside a resizable preview stage.
+ *
+ * Every field is optional: a template with no classes still renders, in the
+ * browser's own block layout, which is the honest default for a specimen.
+ */
+export interface TemplateClassNames {
+  article?: string;
+  marketing?: string;
+  /** The list wrapping a marketing template's feature cards. */
+  features?: string;
+}
+
 export interface TemplateProps {
   /** Resolved CSS for a role, so templates never do scale maths themselves. */
   styleFor: (role: SemanticRole) => CSSProperties;
   lang: PreviewLanguage;
+  classNames?: TemplateClassNames;
 }
 
 /**
@@ -124,11 +145,11 @@ function Field({
   return lang === "th" ? <span lang="th">{children}</span> : <>{children}</>;
 }
 
-export function ArticleTemplate({ styleFor, lang }: TemplateProps) {
+export function ArticleTemplate({ styleFor, lang, classNames }: TemplateProps) {
   const copy = ARTICLE[lang];
 
   return (
-    <article className={styles.templateArticle}>
+    <article className={classNames?.article}>
       <p style={styleFor("label")}>
         <Field lang={lang}>{copy.kicker}</Field>
       </p>
@@ -169,7 +190,11 @@ export function ArticleTemplate({ styleFor, lang }: TemplateProps) {
   );
 }
 
-export function MarketingTemplate({ styleFor, lang }: TemplateProps) {
+export function MarketingTemplate({
+  styleFor,
+  lang,
+  classNames,
+}: TemplateProps) {
   const copy = MARKETING[lang];
   const features = [
     { title: copy.featureOneTitle, body: copy.featureOneBody },
@@ -178,7 +203,7 @@ export function MarketingTemplate({ styleFor, lang }: TemplateProps) {
   ];
 
   return (
-    <article className={styles.templateMarketing}>
+    <article className={classNames?.marketing}>
       <header>
         <p style={styleFor("label")}>
           <Field lang={lang}>{copy.eyebrow}</Field>
@@ -191,7 +216,7 @@ export function MarketingTemplate({ styleFor, lang }: TemplateProps) {
         </p>
       </header>
 
-      <ul className={styles.templateFeatures}>
+      <ul className={classNames?.features}>
         {features.map((feature) => (
           <li key={feature.title}>
             <h2 style={styleFor("heading")}>

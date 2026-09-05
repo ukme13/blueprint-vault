@@ -41,6 +41,8 @@ import {
   fallbackFileMoves,
   isLocalSlot,
   localFontKey,
+  type PreviewLanguage,
+  type PreviewWidth,
 } from "@blueprint/ui";
 import {
   closestCenter,
@@ -61,7 +63,6 @@ import { TypographyExportDialog } from "./TypographyExportDialog";
 import { WorkspaceBrand } from "../WorkspaceBrand";
 import { ThemeControl } from "../ThemeControl";
 import { WorkspaceNav } from "../WorkspaceNav";
-import { type PreviewLanguage, type PreviewWidth } from "./preview-templates";
 import { FontStackEditor } from "./FontStackEditor";
 import { RoleGroupEditor } from "./RoleGroupEditor";
 import { TypographyPreview } from "./TypographyPreview";

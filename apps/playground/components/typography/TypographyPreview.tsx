@@ -22,13 +22,23 @@ import {
   type PreviewLanguage,
   type PreviewTemplateId,
   type PreviewWidth,
-} from "./preview-templates";
+} from "@blueprint/ui";
 import {
   PreviewColourControls,
   resolveShadeHex,
   type ShadeRef,
 } from "./PreviewColourControls";
 import styles from "./typography-workspace.module.css";
+
+/* The templates' layout is the studio's, not the package's. They render inside
+   a resizable preview stage here and inside a document column in the
+   documentation, so the classes travel as a prop rather than as a stylesheet
+   nobody else wanted. */
+const TEMPLATE_CLASSES = {
+  article: styles.templateArticle,
+  marketing: styles.templateMarketing,
+  features: styles.templateFeatures,
+};
 
 const PREVIEW_TEXT: Record<SemanticRole, { en: string; th: string }> = {
   display: { en: "Design with clarity", th: "ออกแบบด้วยความชัดเจน" },
@@ -176,10 +186,18 @@ export function TypographyPreview({
         }}
       >
         {template === "article" && (
-          <ArticleTemplate lang={lang} styleFor={styleFor} />
+          <ArticleTemplate
+            classNames={TEMPLATE_CLASSES}
+            lang={lang}
+            styleFor={styleFor}
+          />
         )}
         {template === "marketing" && (
-          <MarketingTemplate lang={lang} styleFor={styleFor} />
+          <MarketingTemplate
+            classNames={TEMPLATE_CLASSES}
+            lang={lang}
+            styleFor={styleFor}
+          />
         )}
         {template === "specimen" &&
           roles.map((role) => {

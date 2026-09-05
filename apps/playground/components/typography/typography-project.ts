@@ -10,8 +10,9 @@ import {
   type TypeScaleUnit,
   type TypeSystem,
   type TypographyProjectData,
+  PREVIEW_TEMPLATES,
+  type PreviewTemplateId,
 } from "@blueprint/ui";
-import { PREVIEW_TEMPLATES, type PreviewTemplateId } from "./preview-templates";
 
 export const DEFAULT_UNIT: TypeScaleUnit = DEFAULT_TYPE_SCALE_UNIT;
 export const DEFAULT_SPECIMEN_TEXT = PACKAGE_SPECIMEN_TEXT;
@@ -58,8 +59,9 @@ export function readStoredProject(): TypographyProject | null {
   }
 }
 
-/* The package reads `template` as a string, since it does not know which
-   templates exist. This is where that becomes one of ours. */
+/* The stored slice keeps `template` as a string, because a project saved by
+   an older build may name one that no longer exists. This is where it becomes
+   a template that does. */
 function narrowTemplate(
   data: TypographyProjectData | null,
 ): TypographyProject | null {
