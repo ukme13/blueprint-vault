@@ -1,0 +1,136 @@
+/* ========================================================================
+   THE ASTRYX BRIDGE
+
+   Blueprint's roles, under the names Astryx's components read.
+
+   Its own file rather than a section of theme.css because it is not a token
+   and does not belong to one app. theme.css is the studio's chrome — a
+   neutral ramp that has to render before any palette exists — and the
+   exported CSS is what a client installs. Neither carries this mapping, so
+   an app that installs the export and uses Astryx would render every
+   component in theme-neutral's colours. It imports this instead.
+
+   theme.css imports it too, in the position the block used to occupy, so the
+   playground is unchanged. Unlayered on purpose: it has to beat
+   theme-neutral's own values, which sit in the `astryx-theme` layer.
+
+   Guarded by the bridge test in apps/playground/e2e/semantic-tokens.spec.ts,
+   which reads the resolved `--color-border` on the element Astryx scopes to
+   and compares it with ours.
+   ======================================================================== */
+@scope ([data-astryx-theme]) {
+  :scope {
+    /* Astryx's vocabulary, fed from ours. These are the names its components
+       read and nothing else should write to them or read from them — app code
+       uses the `fg-`/`surface-`/`action-`/`border-` tokens above, so that a
+       search for a role finds one name. Unlayered on purpose: it has to beat
+       theme-neutral's own values, which sit in `astryx-theme`. */
+
+    /* Surfaces */
+    --color-background-body: var(--color-surface-base);
+    --color-background-surface: var(--color-surface-raised);
+    --color-background-card: var(--color-surface-raised);
+    --color-background-muted: var(--color-surface-subtle);
+    --color-background-popover: var(--color-surface-overlay);
+
+    /* Foregrounds & actions */
+    --color-text-primary: var(--color-fg-primary);
+    --color-text-secondary: var(--color-fg-secondary);
+    --color-text-disabled: var(--color-fg-disabled);
+    --color-text-accent: var(--color-fg-accent);
+    --color-accent: var(--color-action-primary);
+    --color-accent-muted: var(--color-action-muted);
+    --color-on-accent: var(--color-fg-on-action);
+
+    /* Borders & decoratives */
+    --color-border: var(--color-border-default);
+    --color-border-emphasized: var(--color-border-strong);
+    --color-skeleton: var(--color-surface-skeleton);
+    --color-track: var(--color-surface-track);
+
+    /* Semantic status colours, four decisions per status, all of them roles.
+
+       These reached straight into `--color-success-50` and its neighbours
+       until the layer had somewhere for them to point. It does now: a status
+       carries a surface, a foreground and a border beside its fill, at the
+       weights this file used to name.
+
+       The icon takes the fill rather than the foreground. An alert's icon is
+       the signal — the thing that says which kind of alert it is — where the
+       text beside it is text. That moves it one step, from the 600/400 this
+       file named to the 500/450 `status.<name>` seeds at, which is the only
+       value in the mapping that is not what the primitives said. */
+    --color-background-success: var(--color-status-success-surface);
+    --color-border-success: var(--color-status-success-border);
+    --color-icon-success: var(--color-status-success);
+    --color-text-success: var(--color-status-success-fg);
+
+    --color-background-warning: var(--color-status-warning-surface);
+    --color-border-warning: var(--color-status-warning-border);
+    --color-icon-warning: var(--color-status-warning);
+    --color-text-warning: var(--color-status-warning-fg);
+
+    --color-background-error: var(--color-status-error-surface);
+    --color-border-error: var(--color-status-error-border);
+    --color-icon-error: var(--color-status-error);
+    --color-text-error: var(--color-status-error-fg);
+
+    --color-background-info: var(--color-status-info-surface);
+    --color-border-info: var(--color-status-info-border);
+    --color-icon-info: var(--color-status-info);
+    --color-text-info: var(--color-status-info-fg);
+
+    /* Astryx's colour families. Green, red and yellow are the same three
+       decisions as success, error and warning, so they take the same roles.
+
+       Cyan and purple used to be here, fed from `secondary` and `tertiary`.
+       Those two tracks exist in the studio's own theme.css and in no
+       workspace anybody has ever saved, so every one of those sixteen
+       declarations was invalid the moment a client installed the export — the
+       token silently kept theme-neutral's value, which is what it does now,
+       explicitly and without sixteen dead lines saying otherwise.
+
+       Blue is the last block in this file still reaching for primitives, and
+       the reason is that it has nothing to reach for instead. Its four values
+       are the accent's soft ground, its edge, its icon and its text — an
+       `action.*` family the way each status has a `status.*` one — and the
+       layer holds two accent roles, a fill and a muted tint, neither of which
+       is a surface to put text on. Inventing the other two here would be
+       choosing four values in a stylesheet that the Semantics tab could never
+       edit. The roles are worth having and they are stage 2's argument; until
+       then this block assumes a track named `primary`, which is the same
+       assumption cyan and purple were removed for and true only because the
+       studio seeds that name. */
+    --color-background-blue: light-dark(
+      var(--color-primary-50),
+      var(--color-primary-950)
+    );
+    --color-border-blue: light-dark(
+      var(--color-primary-200),
+      var(--color-primary-800)
+    );
+    --color-icon-blue: light-dark(
+      var(--color-primary-600),
+      var(--color-primary-400)
+    );
+    --color-text-blue: light-dark(
+      var(--color-primary-900),
+      var(--color-primary-100)
+    );
+
+    --color-background-green: var(--color-status-success-surface);
+    --color-border-green: var(--color-status-success-border);
+    --color-icon-green: var(--color-status-success);
+    --color-text-green: var(--color-status-success-fg);
+
+    --color-background-red: var(--color-status-error-surface);
+    --color-border-red: var(--color-status-error-border);
+    --color-icon-red: var(--color-status-error);
+    --color-text-red: var(--color-status-error-fg);
+
+    --color-background-yellow: var(--color-status-warning-surface);
+    --color-border-yellow: var(--color-status-warning-border);
+    --color-icon-yellow: var(--color-status-warning);
+    --color-text-yellow: var(--color-status-warning-fg);
+  }
+}

@@ -26,6 +26,7 @@ import {
   emptyWorkspace,
   loadStoredWorkspace,
   saveStoredWorkspace,
+  seedPaletteTracks,
   updateStoredWorkspace,
   withPaletteSlice,
   useWorkspaceStore,
@@ -41,7 +42,6 @@ import {
   normalizeTrackName,
   parseBlueprintWorkspace,
   resizeLightnessArray,
-  type ColorTrackInput,
   type PaletteProjectData,
   type SemanticToken,
 } from "@blueprint/ui";
@@ -67,15 +67,6 @@ import {
 } from "./types";
 import { ColourFormatProvider } from "./ColourFormatContext";
 import { PaletteViewProvider, usePaletteView } from "./PaletteViewContext";
-
-const SEMANTIC_TRACKS: ColorTrackInput[] = [
-  { id: "primary", name: "primary", seedHex: "#7646ab" },
-  { id: "neutral", name: "neutral", seedHex: "#737373" },
-  { id: "success", name: "success", seedHex: "#2f7d32" },
-  { id: "warning", name: "warning", seedHex: "#b87503" },
-  { id: "error", name: "error", seedHex: "#b02b1b" },
-  { id: "info", name: "info", seedHex: "#2878b8" },
-];
 
 type ContrastTarget = "white" | "black" | "custom";
 
@@ -198,12 +189,6 @@ function writeStoredProject(
   });
   if (next) adoptedName = next.name;
 }
-function createDefaultTracks(primarySeed: string): ColorTrackInput[] {
-  return SEMANTIC_TRACKS.map((track) =>
-    track.id === "primary" ? { ...track, seedHex: primarySeed } : { ...track },
-  );
-}
-
 /* The glasses mark from the toolbar design. Inline rather than an icon
    import: it is two circles and a bridge, and it belongs to this one chip. */
 
@@ -357,7 +342,7 @@ function PaletteStudioContent() {
             method === "generated" ? "#3b66f5" : normalizeHex(seedHex);
           setName(chosenName);
           setProject({
-            tracks: createDefaultTracks(primarySeed),
+            tracks: seedPaletteTracks(primarySeed),
             lightnessPattern: "custom",
             lightnessValues: createPatternValues("custom"),
           });

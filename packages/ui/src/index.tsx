@@ -1,4 +1,5 @@
 export * from "./button";
+export * from "./use-colour-mode";
 export * from "./color";
 export * from "./scale";
 export * from "./system";

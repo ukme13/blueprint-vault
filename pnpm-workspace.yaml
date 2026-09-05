@@ -8,4 +8,11 @@ allowBuilds:
   # there is nothing to gain by running them.
   "@astryxdesign/cli": false
   "@astryxdesign/core": false
+  # esbuild arrives under `tsx`, which apps/docs uses to run its prebuild
+  # generator. Its postinstall exists to fetch or relink the platform binary
+  # for installers that handle optionalDependencies badly; pnpm installs
+  # `@esbuild/<platform>` properly and esbuild resolves the binary out of it,
+  # so the script has nothing left to do. Verified by running tsx with the
+  # script skipped. Flip to true if a platform ever disagrees.
+  esbuild: false
   sharp: true

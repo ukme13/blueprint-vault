@@ -51,6 +51,8 @@ const TOKENS = {
   borderDefault: "border.default",
   textPrimary: "fg.primary",
   textSecondary: "fg.secondary",
+  textAccent: "fg.accent",
+  textOnAction: "fg.on-action",
   focusRing: "focus.ring",
   statusSuccess: "status.success",
   statusWarning: "status.warning",
@@ -153,6 +155,22 @@ export interface TextCheck {
   label: string;
   foreground: string;
   background: string;
+  /**
+   * The roles the sample names, so a reader can act on a failure.
+   *
+   * A ratio on its own says a pair is wrong and not which pair, which is the
+   * difference between a report and a to-do. The hexes above are what was
+   * measured; these are what to change.
+   */
+  foregroundToken: string;
+  backgroundToken: string;
+  /**
+   * True when the foreground is black or white chosen for the fill.
+   *
+   * Those samples ask whether a fill can carry a label at all, so their
+   * foreground is not a role and `foregroundToken` names the fill instead.
+   */
+  isForegroundReadable: boolean;
   result: TextContrastResult;
   /** The current view, when the Vision chip is on. */
   simulated: SimulatedContrast | null;
@@ -273,6 +291,25 @@ const TEXT_SAMPLES: readonly TextSample[] = [
     readable: true,
   },
   {
+    /* The label a button actually ships, as against the one above it, which
+       asks what black or white would do on that fill. Both are worth having
+       and they answer different questions: that one says whether the fill can
+       carry a label at all, this one says whether the label the layer chose
+       does. It is the only sample whose background is not a surface. */
+    label: "Primary action label",
+    foreground: TOKENS.textOnAction,
+    background: TOKENS.actionPrimary,
+  },
+  {
+    /* The accent as text rather than as a fill: a link, an eyebrow, the label
+       on a selected tab. `Primary link` below measures `action.primary` on the
+       canvas, which is the fill colour standing in for a text colour the layer
+       did not have until now. */
+    label: "Accent text",
+    foreground: TOKENS.textAccent,
+    background: TOKENS.surfaceBase,
+  },
+  {
     label: "Body text",
     foreground: TOKENS.textPrimary,
     background: TOKENS.surfaceBase,
@@ -303,6 +340,17 @@ const TEXT_SAMPLES: readonly TextSample[] = [
     background: TOKENS.statusError,
     readable: true,
   },
+  /* One row per status: the foreground of an alert on the alert's own ground.
+     That is the pair every alert ships, and the four of them are the reason
+     the sub-roles exist — a status that had only a fill left somebody choosing
+     a text colour for it out of the ramp, unmeasured. Built from the ids
+     rather than written out four times, so a status added to the layer is
+     measured without anybody remembering to add a row. */
+  ...(["success", "warning", "error", "info"] as const).map((name) => ({
+    label: `${name.charAt(0).toUpperCase()}${name.slice(1)} alert text`,
+    foreground: `status.${name}-fg`,
+    background: `status.${name}-surface`,
+  })),
 ];
 
 export function assessTextChecks(
@@ -324,6 +372,9 @@ export function assessTextChecks(
       label: sample.label,
       foreground,
       background: background.hex,
+      foregroundToken: sample.foreground,
+      backgroundToken: sample.background,
+      isForegroundReadable: sample.readable === true,
     };
 
     const result = assessTextContrast(check.foreground, check.background);
@@ -465,19 +516,49 @@ export function assessFocusCheck(shades: PreviewShades): FocusContrastResult {
 const SIGNALLING_GROUPS = ["status", "action"];
 
 /**
- * The action tokens that are states of one control rather than controls.
+ * The action tokens that are not a signal of their own.
  *
- * `action.hover` is `action.primary` under the pointer. Nobody reads the two
- * side by side and has to tell them apart, and neither is ever next to a
+ * `action.hover` is `action.primary` under the pointer, and `action.muted` is
+ * the same accent turned down behind a selected row. Nobody reads any of the
+ * three side by side and has to tell them apart, and none is ever next to a
  * status badge as a signal — so pairing them would add rows to the report that
- * measure nothing anyone sees. Kept out of the grid, not out of the layer:
- * each is still a colour with a foreground on it, and the surface checks
- * cover that.
+ * measure nothing anyone sees. `action.secondary` stays in: two buttons beside
+ * each other is exactly the case this grid is for.
+ *
+ * Kept out of the grid, not out of the layer: each is still a colour with a
+ * foreground on it, and the surface checks cover that.
  */
-const ACTION_STATES = new Set(["action.hover", "action.active"]);
+const ACTION_STATES = new Set([
+  "action.hover",
+  "action.active",
+  "action.muted",
+]);
+
+/**
+ * A role that is part of a control rather than the control's colour.
+ *
+ * `status.error-surface` is the ground an alert sits on and
+ * `status.error-border` is its edge; neither is a thing anybody reads meaning
+ * out of, and both are the same hue as the signal beside them, so pairing them
+ * would fill the grid with rows measuring an alert against its own background.
+ * `status.error-fg` is a foreground and is measured, but as text on its
+ * surface, which is a contrast threshold rather than a similarity.
+ *
+ * The hyphen is the rule because it is the naming convention the layer uses:
+ * the bare role is the colour, a suffix names a part of the thing built from
+ * it. Somebody who renames a token into that shape opts into the same
+ * treatment, which is the right answer for a name shaped like a part.
+ */
+function isPartOfAControl(id: string): boolean {
+  return shortName(id).includes("-");
+}
 
 function signalsByColour(id: string): boolean {
-  return SIGNALLING_GROUPS.includes(group(id)) && !ACTION_STATES.has(id);
+  return (
+    SIGNALLING_GROUPS.includes(group(id)) &&
+    !ACTION_STATES.has(id) &&
+    !isPartOfAControl(id)
+  );
 }
 
 function group(id: string): string {

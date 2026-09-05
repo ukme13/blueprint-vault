@@ -6,7 +6,11 @@ import {
   readLegacyPaletteName,
   readPaletteProjectData,
 } from "./palette-project";
-import { readSemanticTokens, semanticsForPalette } from "./semantics";
+import {
+  filledSemanticsForPalette,
+  readSemanticTokens,
+  semanticsForPalette,
+} from "./semantics";
 import {
   elevationOrDefault,
   radiusOrDefault,
@@ -161,8 +165,16 @@ function readWorkspaceFileProject(value: unknown): WorkspaceProject {
     name: raw.name,
     palette,
     typography,
+    /* Topped up to the current seed set, the same way stored data is. This
+       path used to read the layer and stop, so a workspace *file* could never
+       gain a role added after it was saved while a workspace in localStorage
+       gained it on the next read — the same document, two answers, decided by
+       which door it came through. Found when six roles moved over from the
+       studio's chrome and the docs app, which reads a file, kept exporting
+       nineteen. */
     semantics:
-      readSemanticTokens(raw.semantics) ?? semanticsForPalette(palette),
+      filledSemanticsForPalette(readSemanticTokens(raw.semantics), palette) ??
+      semanticsForPalette(palette),
     spacing: spacingOrDefault(raw.spacing),
     radius: radiusOrDefault(raw.radius),
     elevation: elevationOrDefault(raw.elevation),

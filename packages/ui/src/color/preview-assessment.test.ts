@@ -414,17 +414,28 @@ describe("assessPreview", () => {
   it("reports every section the preview renders", () => {
     const assessment = assessPreview(shadesOf(distinctPalette()));
 
-    expect(assessment.textChecks).toHaveLength(7);
+    /* Thirteen: seven original, plus the label a filled action ships
+       (fg.on-action on action.primary), the accent as text on the canvas, and
+       one per status for the foreground of an alert on the alert's own
+       ground. Each became measurable when the layer gained the role. */
+    expect(assessment.textChecks).toHaveLength(13);
     expect(assessment.textColourChoices).toHaveLength(4);
     expect(assessment.nonTextChecks).toHaveLength(2);
     /* Every pair among the six tokens that signal by colour — two actions and
        four statuses. The list that was here named four of the fifteen.
-       `action.hover` and `action.active` are states of the primary control,
-       not signals beside it, so they sit in the layer and out of the grid. */
+       `action.hover`, `action.active` and `action.muted` are the primary
+       control under the pointer, pressed, and turned down: three ways of
+       saying the same accent rather than three signals beside each other, so
+       they sit in the layer and out of the grid. Still six, and still
+       fifteen, after the layer grew to thirty-seven. */
     const signalling = Object.keys(assessment.shades).filter(
       (id) =>
         /^(status|action)\./.test(id) &&
-        !["action.hover", "action.active"].includes(id),
+        !["action.hover", "action.active", "action.muted"].includes(id) &&
+        /* Nor a part of a control: `status.error-surface` is the ground an
+           alert sits on and `status.error-border` its edge, neither of them a
+           colour anybody reads meaning out of. */
+        !id.split(".").at(-1)!.includes("-"),
     ).length;
     expect(signalling).toBe(6);
     expect(assessment.semanticPairs).toHaveLength(

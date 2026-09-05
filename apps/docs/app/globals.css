@@ -1,10 +1,43 @@
+/* ========================================================================
+   1. GROUP ALL IMPORTS AT THE ABSOLUTE TOP
+
+   The layer order is the playground's, and for the reason set out in full at
+   the top of apps/playground/app/globals.css: Astryx's three files each
+   declare their own top-level layer, and importing them into `layer(base)`
+   would nest those inside Tailwind's, where Preflight's unlayered rules beat
+   them and strip the padding off every form control. Declared explicitly,
+   once, so Astryx lands above `base` and below `components`.
+
+   2. WHERE THE TOKENS COME FROM
+
+   Not `@blueprint/ui/theme.css`. That file is the studio's own chrome — a
+   neutral ramp that has to render before any palette exists — and reading it
+   here would mean the docs app renders from something no client receives.
+   These four lines are what a client installs instead, generated from
+   blueprint/reference.workspace.json by scripts/generate-blueprint.ts and
+   committed. If the export ever stops emitting a name, this app is where it
+   shows. `docs-export.test.ts` in packages/ui holds both halves of that.
+
+   The Tailwind file rather than the plain one, because this app is a Tailwind
+   app: `blueprint.css` declares the variables and `blueprint.tailwind.css`
+   declares the same values through `@theme`, which is what registers
+   `text-neutral-600` and `bg-primary-500` as utilities. Both files ship to a
+   client; a client picks the one their stack reads.
+
+   The bridge is the one file still shared with the studio. It is not a token
+   — it maps Blueprint's roles onto the variable names Astryx's components
+   read — and without it every Astryx component renders in theme-neutral's
+   colours.
+   ======================================================================== */
 @layer theme, base, reset, astryx-base, astryx-theme, components, utilities;
 
 @import "tailwindcss";
 @import "@astryxdesign/core/reset.css";
 @import "@astryxdesign/core/astryx.css";
 @import "@astryxdesign/theme-neutral/theme.css";
-@import "@blueprint/ui/theme.css";
+@import "./blueprint/blueprint.tailwind.css";
+@import "./blueprint/blueprint-typography.css";
+@import "@blueprint/ui/astryx-bridge.css";
 
 @source "../../../packages/ui/src";
 

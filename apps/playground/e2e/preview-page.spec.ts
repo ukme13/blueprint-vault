@@ -16,9 +16,11 @@ test.describe("The system preview", () => {
     await expect(
       page.getByRole("heading", { name: "A system you can hand over" }),
     ).toBeVisible();
-    /* Nineteen, because a workspace migrated from the old keys is seeded with
-       the roles that were already in use. */
-    await expect(page.getByText("Drawn from 19 semantic tokens")).toBeVisible();
+    /* Thirty-seven, because a workspace migrated from the old keys is seeded
+       with every role the layer has — including the six that came over from
+       the studio's chrome and the three each status carries, all of which
+       fillSeedRoles adds on read. */
+    await expect(page.getByText("Drawn from 37 semantic tokens")).toBeVisible();
   });
 
   test("answers to the mode toggle", async ({ page }) => {

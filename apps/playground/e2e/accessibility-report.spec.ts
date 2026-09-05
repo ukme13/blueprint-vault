@@ -107,12 +107,18 @@ test.describe("The accessibility report", () => {
     expect(parsed.method.wcagVersion).toBe("WCAG 2.2");
     /* Every pair among the tokens that signal by colour, derived from the
        workspace's own layer rather than from a list in the package. */
-    /* Hover and active are states of the primary control, not signals beside
-       it, so the report leaves them out of the grid — see semanticPairIds. */
+    /* Hover, active and muted are the primary control under the pointer,
+       pressed, and turned down — three ways of saying the same accent rather
+       than three signals beside each other, so the report leaves them out of
+       the grid. See semanticPairIds. */
     const signalling = Object.keys(parsed.colour.shades).filter(
       (id: string) =>
         /^(status|action)\./.test(id) &&
-        !["action.hover", "action.active"].includes(id),
+        !["action.hover", "action.active", "action.muted"].includes(id) &&
+        /* Nor a part of a control: `status.error-surface` is the ground an
+           alert sits on and `status.error-border` its edge, neither of them a
+           colour anybody reads meaning out of. */
+        !id.split(".").at(-1)!.includes("-"),
     ).length;
     expect(parsed.colour.semanticPairs).toHaveLength(
       (signalling * (signalling - 1)) / 2,
