@@ -336,6 +336,20 @@
     var(--color-primary-600),
     var(--color-primary-300)
   );
+  /* The secondary action. In the seed set since the tone pattern landed, and
+     never in this file — which nothing caught, because a role the compiled CSS
+     omits and a role Tailwind tree-shakes look identical from the page: both
+     resolve to the empty string. `@theme static` restored twenty-seven of the
+     twenty-eight missing roles and left this one, which is how it was found.
+
+     The `secondary` primitives were already here, twenty shades of them, with
+     nothing reading a single one. Written the way `action.primary` is — 500 on
+     light, 400 on dark — because it is the same role in another hue. */
+  --color-action-secondary: light-dark(
+    var(--color-secondary-500),
+    var(--color-secondary-400)
+  );
+
   --color-action-muted: light-dark(
     var(--color-primary-400),
     var(--color-primary-900)
