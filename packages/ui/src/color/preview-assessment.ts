@@ -302,6 +302,11 @@ const MEASURED_TONES: ReadonlyArray<{
     onFill: TOKENS.textOnAction,
   },
   {
+    label: "Secondary action",
+    id: TOKENS.actionSecondary,
+    onFill: "fg.on-secondary",
+  },
+  {
     label: "Neutral action",
     id: TOKENS.actionNeutral,
     onFill: "fg.on-neutral",

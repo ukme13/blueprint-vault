@@ -20,6 +20,10 @@ interface PaletteCreationProps {
   onCreate: (details: {
     name: string;
     seedHex: string;
+    /* The second brand colour. Chosen here rather than derived: a complement
+       computed from the first is a decision about somebody's brand that
+       nobody asked this studio to make. */
+    secondaryHex: string;
     method: CreationMethod;
   }) => void;
   /* A workspace, not a palette: someone landing here has usually just cleared
@@ -30,6 +34,7 @@ interface PaletteCreationProps {
 export function PaletteCreation({ onCreate, onImport }: PaletteCreationProps) {
   const [name, setName] = useState("My colour system");
   const [seedHex, setSeedHex] = useState("#7646ab");
+  const [secondaryHex, setSecondaryHex] = useState("#0f9d8f");
   const [method, setMethod] = useState<CreationMethod>("brand");
   const [error, setError] = useState("");
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -51,12 +56,18 @@ export function PaletteCreation({ onCreate, onImport }: PaletteCreationProps) {
 
     try {
       const normalizedSeed = normalizeHex(seedHex);
+      const normalizedSecondary = normalizeHex(secondaryHex);
       if (!name.trim()) {
         setError("Enter a project name.");
         return;
       }
       setError("");
-      onCreate({ name: name.trim(), seedHex: normalizedSeed, method });
+      onCreate({
+        name: name.trim(),
+        seedHex: normalizedSeed,
+        secondaryHex: normalizedSecondary,
+        method,
+      });
     } catch {
       setError("Enter a valid HEX colour, for example #7646ab.");
     }
@@ -81,8 +92,8 @@ export function PaletteCreation({ onCreate, onImport }: PaletteCreationProps) {
       <form className={styles.creationCard} onSubmit={submit}>
         <h1>Create your colour system</h1>
         <p className={styles.creationIntro}>
-          Start with one colour. Blueprint will build 20 stable OKLCH shades and
-          the main semantic tracks.
+          Start with your two brand colours. Blueprint will build 20 stable
+          OKLCH shades for each and the semantic tracks around them.
         </p>
 
         <section className={styles.astryxField}>
@@ -151,6 +162,29 @@ export function PaletteCreation({ onCreate, onImport }: PaletteCreationProps) {
                 label="Source colour HEX value"
                 value={seedHex}
                 onChange={setSeedHex}
+              />
+            </span>
+          </section>
+        )}
+
+        {method === "brand" && (
+          <section className={styles.field}>
+            <span>Secondary colour</span>
+            <span className={styles.colourInput}>
+              <ColourPicker
+                label="secondary colour"
+                value={
+                  /^#[0-9a-f]{6}$/i.test(secondaryHex)
+                    ? secondaryHex
+                    : "#0f9d8f"
+                }
+                onChange={setSecondaryHex}
+              />
+              <TextInput
+                isLabelHidden
+                label="Secondary colour HEX value"
+                value={secondaryHex}
+                onChange={setSecondaryHex}
               />
             </span>
           </section>

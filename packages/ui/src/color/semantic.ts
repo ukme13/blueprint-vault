@@ -102,6 +102,26 @@ interface SeedRole {
    * whichever end of this role's own track reads better on it.
    */
   readableOn?: string;
+  /**
+   * Point at the named track even when the palette has not got one.
+   *
+   * `trackFor` falls back down a chain so a project with a single colour still
+   * seeds a complete layer, and for most roles that is right: a status wants
+   * *a* colour more than it wants its own.
+   *
+   * A second brand colour is different. A workspace written before `secondary`
+   * existed gains the roles on read and does not gain the track — a palette is
+   * the person's data, and inventing a brand colour for them is not a
+   * migration. Falling back would hand them a secondary tone that silently
+   * *is* the neutral one: every button in it grey, nothing anywhere saying
+   * why, and no way to tell that from a deliberate choice.
+   *
+   * So these roles keep the name they wanted. `resolveSemantic` reports the
+   * reference as `missing: "track"` and still returns a colour, which is the
+   * state the Semantics tab already renders as "track gone" — a gap somebody
+   * can act on rather than a grey they cannot explain.
+   */
+  requireTrack?: boolean;
 }
 
 type TrackRole =
@@ -157,6 +177,8 @@ interface ToneSpec {
   onFillName: string;
   /** A foreground of this tone, on its surface or on the canvas. */
   foreground: [light: number, dark: number];
+  /** Keep the track name when the palette has not got one. See `requireTrack`. */
+  requireTrack?: boolean;
 }
 
 /** The pale ground and its hover, the same for every tone. */
@@ -179,6 +201,7 @@ function toneRoles(tone: ToneSpec): SeedRole[] {
     position: tone.position,
     preferWeight: light,
     preferDarkWeight: dark,
+    requireTrack: tone.requireTrack,
   });
 
   return [
@@ -190,6 +213,7 @@ function toneRoles(tone: ToneSpec): SeedRole[] {
       position: tone.position,
       preferWeight: tone.fill[0],
       preferDarkWeight: tone.fill[1],
+      requireTrack: tone.requireTrack,
     },
     of("hover", "hover", "The fill under the pointer.", tone.hover),
     of("active", "active", "The fill while it is pressed.", tone.active),
@@ -247,6 +271,30 @@ const TONES: readonly ToneSpec[] = [
     onFill: "fg.on-action",
     onFillName: "Foreground on action",
     foreground: [900, 100],
+  },
+  {
+    /* The second brand colour, and a tone rather than a single fill. It was
+       one role — the flat colour of "the other button" — from before the
+       pattern existed, which left a client with two brand colours and roles
+       for one of them.
+
+       `requireTrack` because a palette written before this gains the roles on
+       read and does not gain the track: a palette is the person's data, and
+       choosing a second brand colour for them is not a migration. The roles
+       keep the name they asked for so the studio can say the track is missing
+       rather than quietly drawing them in neutral. */
+    id: "action.secondary",
+    name: "Action secondary",
+    description: "The fill of a button in the second brand colour.",
+    track: "secondary",
+    position: 0.55,
+    fill: [500, 450],
+    hover: [550, 400],
+    active: [600, 350],
+    onFill: "fg.on-secondary",
+    onFillName: "Foreground on secondary",
+    foreground: [900, 100],
+    requireTrack: true,
   },
   {
     /* Black in light and white in dark, which is the one tone whose fill
@@ -330,13 +378,7 @@ const onFill = (id: string): SeedRole =>
 
 const SEED_ROLES: readonly SeedRole[] = [
   ...tone("action.primary"),
-  {
-    id: "action.secondary",
-    name: "Action secondary",
-    description: "The fill of a secondary button or control.",
-    track: "secondary",
-    position: 0.48,
-  },
+  ...tone("action.secondary"),
   {
     /* Not the primary tone's surface, though it reads like it should be.
        A surface is the pale ground a control sits on at the canvas end of
@@ -557,6 +599,13 @@ export function seedSemanticTokens(tracks: ColorTrack[]): SemanticToken[] {
 
   for (const role of ordered) {
     const track = trackFor(tracks, role.track);
+    /* The shades come from whatever track the chain landed on — weights are
+       the same across a Blueprint palette — but the reference keeps the name
+       the role asked for when it must. See `requireTrack`. */
+    const referencedTrackId =
+      role.requireTrack === true && track.name !== role.track
+        ? role.track
+        : track.id;
     const light =
       (role.preferWeight === undefined
         ? undefined
@@ -578,10 +627,13 @@ export function seedSemanticTokens(tracks: ColorTrack[]): SemanticToken[] {
       name: role.name,
       description: role.description,
       light: {
-        trackId: track.id,
+        trackId: referencedTrackId,
         weight: measured?.light.weight ?? light.weight,
       },
-      dark: { trackId: track.id, weight: measured?.dark.weight ?? dark.weight },
+      dark: {
+        trackId: referencedTrackId,
+        weight: measured?.dark.weight ?? dark.weight,
+      },
     });
   }
 

@@ -11,6 +11,11 @@
           "seedHex": "#7646ab"
         },
         {
+          "id": "secondary",
+          "name": "secondary",
+          "seedHex": "#0f9d8f"
+        },
+        {
           "id": "neutral",
           "name": "neutral",
           "seedHex": "#737373"
@@ -155,14 +160,92 @@
       {
         "id": "action.secondary",
         "name": "Action secondary",
-        "description": "The fill of a secondary button or control.",
+        "description": "The fill of a button in the second brand colour.",
         "light": {
-          "trackId": "neutral",
+          "trackId": "secondary",
+          "weight": 500
+        },
+        "dark": {
+          "trackId": "secondary",
+          "weight": 450
+        }
+      },
+      {
+        "id": "action.secondary-hover",
+        "name": "Action secondary hover",
+        "description": "The fill under the pointer.",
+        "light": {
+          "trackId": "secondary",
+          "weight": 550
+        },
+        "dark": {
+          "trackId": "secondary",
+          "weight": 400
+        }
+      },
+      {
+        "id": "action.secondary-active",
+        "name": "Action secondary active",
+        "description": "The fill while it is pressed.",
+        "light": {
+          "trackId": "secondary",
+          "weight": 600
+        },
+        "dark": {
+          "trackId": "secondary",
+          "weight": 350
+        }
+      },
+      {
+        "id": "action.secondary-surface",
+        "name": "Action secondary surface",
+        "description": "The soft ground of an alert, a ghost control or a hovered outline.",
+        "light": {
+          "trackId": "secondary",
+          "weight": 50
+        },
+        "dark": {
+          "trackId": "secondary",
+          "weight": 950
+        }
+      },
+      {
+        "id": "action.secondary-surface-hover",
+        "name": "Action secondary surface hover",
+        "description": "That soft ground, hovered or pressed.",
+        "light": {
+          "trackId": "secondary",
+          "weight": 100
+        },
+        "dark": {
+          "trackId": "secondary",
+          "weight": 900
+        }
+      },
+      {
+        "id": "action.secondary-fg",
+        "name": "Action secondary foreground",
+        "description": "Text and icons on the surface, and on the canvas.",
+        "light": {
+          "trackId": "secondary",
+          "weight": 900
+        },
+        "dark": {
+          "trackId": "secondary",
+          "weight": 100
+        }
+      },
+      {
+        "id": "action.secondary-border",
+        "name": "Action secondary border",
+        "description": "The edge of an outlined control or an alert.",
+        "light": {
+          "trackId": "secondary",
           "weight": 450
         },
         "dark": {
-          "trackId": "neutral",
-          "weight": 500
+          "trackId": "secondary",
+          "weight": 450
         }
       },
       {
@@ -462,6 +545,19 @@
         "dark": {
           "trackId": "neutral",
           "weight": 25
+        }
+      },
+      {
+        "id": "fg.on-secondary",
+        "name": "Foreground on secondary",
+        "description": "Text and icons on the action secondary fill.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 25
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 950
         }
       },
       {
