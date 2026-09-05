@@ -119,7 +119,7 @@ half kept.
    report already computes for each pair. Written guidance for each group:
    `fg`, `surface`, `border`, `action`, `status`, `focus`.
 
-3. **Typography, then spacing, radius and elevation.** The same shape for each:
+3. **Typography ✅, then spacing, radius and elevation.** The same shape for each:
    the table the studio already knows how to draw, the specimens the studio
    already renders, and the guidance a person writes. Elevation shows every
    level on a light and a dark ground, which the playground already does and
@@ -432,3 +432,70 @@ documented in OKLCH" — the documentation had to choose hex on the client's
 behalf, exactly as `generate-blueprint.ts` does for the export. If a client's
 notation is part of their system rather than part of their browser, that is a
 slice the workspace is missing.
+
+## Notes from stage 3, typography
+
+**The reference workspace stores every role at 16px.** Eight roles, eight
+different step offsets, all with `desktop.fontSizePx: 16`. The studio resolves
+the offset against the ramp on read and never writes the result back, so the
+stored number has been meaningless since the model merge. A page printing
+`role.desktop.fontSizePx` would have shown eight roles at one size and called
+it a scale, and nothing anywhere would have said otherwise. `resolveSystemRoles`
+is that resolution lifted out of the studio's `useMemo` and into the package,
+which is where the row builder reads it.
+
+**The plan named five default groups and there are three.** "Display, heading,
+body, label and caption" is the group table from the typography rework, not what
+`defaultSystem` builds — it builds Display, H and Body. Supporting roles are
+real and worth having; they are something a project adds, not something it is
+given. The guidance covers the three that exist, and a test checks its role and
+group names against the seed system so the prose cannot quietly describe an
+intention again.
+
+**The preview templates ask for roles no default workspace has, and this page
+makes it visible.** `ArticleTemplate` asks for `label`, `title`, `heading`,
+`body` and `display` — the six names from before the merge. A default system
+has `display-1`, `h1`–`h6` and `body`, so four of the five fall through
+`styleForRole` to body, and the article renders its kicker, its standfirst, its
+byline and both section headings at 16px. The fallback is doing exactly what it
+was designed to do, and what it is hiding is that the templates and the model
+have been out of step since the merge. Not fixed here: the same fallback runs
+in the studio, and changing it is a studio change. It is the first thing to
+look at if the handover in stage 5 is meant to show a scale doing a job.
+
+**Astryx's table guidance cannot be followed from a server component.** Its
+"set an explicit width on every column with `proportional()` or `pixel()`"
+lives in the data-driven mode, whose `columns` array carries a `renderCell`
+function — and a function cannot cross into a client component. It fails the
+build rather than degrading, which is the good kind of failure. Composed rows
+are the only option, and there the cell sets `overflow-x: hidden` on an
+auto-layout table, so a long `nowrap` variable name is clipped with no scroll:
+measured, three names cut at 1280px and eleven at 900px. The names wrap now. A
+wrapped name is ugly and complete; a clipped one is tidy and wrong, and it is
+the tidy one somebody copies.
+
+**A specimen rendered as its real element lands in the page's own outline.**
+The plan asked for each role rendered as the element it maps to, which is
+right — an `h2` role has to be an `h2` or the page is describing something it
+is not showing. But seven roles rendered as h1 through h6 give a reader
+navigating by heading eight top-level headings, six of them the words "Build a
+stable type scale". The tag stays and `aria-level` moves the announced level
+under the section, which is the distinction that was actually wanted: a sample
+of a heading, not a heading of this document.
+
+**The preview templates moved into the package and lost their `"use client"`.**
+Not for tidiness — the directive makes the whole module a client boundary, and
+a server component cannot call a function exported from one, nor pass
+`styleFor` across it. They are constants and pure JSX, so the directive was
+only ever there because the file lived in the studio's tree.
+
+**Both fonts in the reference workspace are the same system family.** Two
+entries, Display and Main, both `["Geist Sans", "ui-sans-serif", "system-ui"]`,
+both sourced `system` — so nothing on this page loads from Google and nothing
+is uploaded, and Geist Sans is not installed on a CI machine or on most
+readers'. The specimens are honest about that rather than letting the fallback
+pass for the font, and the note is printed once per family rather than once per
+entry. It also means the Google and uploaded paths are written and unit-tested
+but have never rendered on this page. A reference workspace with one Google
+family and one uploaded family would be a better fixture, and is worth doing
+before stage 5 hands one to a client.
