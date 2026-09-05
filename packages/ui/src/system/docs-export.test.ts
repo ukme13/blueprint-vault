@@ -122,7 +122,18 @@ describe("what the Astryx bridge needs and the export does not carry", () => {
 
        Kept as an emptiness rather than deleted: the next role added to the
        bridge without a matching role in the layer fails here, which is the
-       only place that mistake is visible before a client finds it. */
+       only place that mistake is visible before a client finds it.
+
+       Bare references only. The fault this guards against is the silent
+       one — an undefined `var()` with nothing behind it takes its whole
+       declaration out at computed-value time — and a reference carrying a
+       fallback cannot fail that way: it resolves to the fallback and says
+       so in the computed value. The three type lines are the only ones
+       written with one, and they are written that way on purpose. Their
+       first choice is the studio's own typeface, which an export
+       deliberately does not carry, and their fallback is the client's own.
+       Fifty-one references in the bridge, forty-eight of them bare, and
+       this counts those. */
     const bridge = readFileSync(
       join(ROOT, "packages", "ui", "src", "astryx-bridge.css"),
       "utf8",
@@ -137,7 +148,9 @@ describe("what the Astryx bridge needs and the export does not carry", () => {
     );
 
     const missing = [
-      ...new Set([...bridge.matchAll(/var\((--[a-z0-9-]+)/g)].map((m) => m[1])),
+      ...new Set(
+        [...bridge.matchAll(/var\(\s*(--[a-z0-9-]+)\s*\)/g)].map((m) => m[1]!),
+      ),
     ].filter((name) => !exported.has(name));
 
     expect(missing.sort(), missing.join("\n")).toEqual([]);

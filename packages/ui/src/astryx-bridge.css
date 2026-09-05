@@ -26,6 +26,30 @@
        search for a role finds one name. Unlayered on purpose: it has to beat
        theme-neutral's own values, which sit in `astryx-theme`. */
 
+    /* Type. Astryx's components read these three and nothing else, so
+       without them the studio renders its own text in the studio's font and
+       every Astryx control in theme-neutral's — which is what it did:
+       measured, a paragraph came back Figtree and a button beside it came
+       back Geist. Two typefaces on one screen, neither of them chosen.
+
+       The only lines here that carry a fallback, because they are the only
+       ones whose first choice is deliberately absent from an export.
+       `--font-sans` is the studio's own typeface and belongs to the tool, not
+       to the client: shipping Inter inside a client's design system would be
+       the tool putting its own taste in their file. So in the studio these
+       resolve to `--font-sans`, and in an app that installs the export they
+       resolve to `--font-family-base` — the client's own body font, out of
+       their own typography export — with a generic behind that. Both readings
+       are the right one for where they are read. */
+    --font-family-body: var(--font-sans, var(--font-family-base, sans-serif));
+    --font-family-heading: var(
+      --font-sans,
+      var(--font-family-base, sans-serif)
+    );
+    /* No exported equivalent: a type system names its body font, not its
+       code font. */
+    --font-family-code: var(--font-mono, ui-monospace, monospace);
+
     /* Surfaces */
     --color-background-body: var(--color-surface-base);
     --color-background-surface: var(--color-surface-raised);
