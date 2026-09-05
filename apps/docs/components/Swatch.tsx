@@ -20,7 +20,7 @@ export function Swatch({ hex, label }: SwatchProps) {
   return (
     <span
       aria-label={`${label}, ${hex}`}
-      className="inline-block size-6 rounded border border-border-default align-middle"
+      className="inline-block size-6 rounded-inner border border-border-default align-middle"
       role="img"
       style={{ backgroundColor: hex }}
       title={hex}

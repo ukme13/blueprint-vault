@@ -45,8 +45,7 @@ export const metadata: Metadata = { title: "Typography" };
 const TEMPLATE_CLASSES = {
   article: "flex flex-col gap-4",
   marketing: "flex flex-col gap-4",
-  features:
-    "m-0 grid list-none grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-5 p-0",
+  features: "m-0 grid list-none gap-5 p-0 sm:grid-cols-3",
 };
 
 export default function TypographyFoundationPage() {
