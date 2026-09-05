@@ -1,4 +1,22 @@
-@theme {
+/*
+ * The studio's colour chrome.
+ *
+ * `static` is load-bearing. Tailwind v4 tree-shakes an `@theme` variable that
+ * no source file mentions, and "mentions" means its scanner found the whole
+ * name as text. The Button reaches its tone through `var()` strings assembled
+ * from a table at runtime, so nothing it does is text a scanner can find, and
+ * twenty-eight roles were dropped from the compiled stylesheet with nothing
+ * anywhere to say so: `--color-action-primary-active` resolved to the empty
+ * string, `background: var(--color-action-primary-active)` was invalid at
+ * computed-value time, and the "Add font" button turned transparent when
+ * pressed. The whole action.neutral tone went the same way.
+ *
+ * The export hit this on 2026-09-05 and was fixed the same way. This file kept
+ * the bug, because a role is only dropped when no utility class happens to
+ * name it too — which made it look like a handful of arbitrary roles rather
+ * than a rule. `theme-variables.spec.ts` holds it now.
+ */
+@theme static {
   /* ========================================================================
      PRIMARY 
      ======================================================================== */
@@ -322,6 +340,20 @@
     var(--color-primary-600),
     var(--color-primary-300)
   );
+  /* The secondary action. In the seed set since the tone pattern landed, and
+     never in this file — which nothing caught, because a role the compiled CSS
+     omits and a role Tailwind tree-shakes look identical from the page: both
+     resolve to the empty string. `@theme static` restored twenty-seven of the
+     twenty-eight missing roles and left this one, which is how it was found.
+
+     The `secondary` primitives were already here, twenty shades of them, with
+     nothing reading a single one. Written the way `action.primary` is — 500 on
+     light, 400 on dark — because it is the same role in another hue. */
+  --color-action-secondary: light-dark(
+    var(--color-secondary-500),
+    var(--color-secondary-400)
+  );
+
   --color-action-muted: light-dark(
     var(--color-primary-400),
     var(--color-primary-900)
