@@ -1,4 +1,22 @@
-@theme {
+/*
+ * The studio's colour chrome.
+ *
+ * `static` is load-bearing. Tailwind v4 tree-shakes an `@theme` variable that
+ * no source file mentions, and "mentions" means its scanner found the whole
+ * name as text. The Button reaches its tone through `var()` strings assembled
+ * from a table at runtime, so nothing it does is text a scanner can find, and
+ * twenty-eight roles were dropped from the compiled stylesheet with nothing
+ * anywhere to say so: `--color-action-primary-active` resolved to the empty
+ * string, `background: var(--color-action-primary-active)` was invalid at
+ * computed-value time, and the "Add font" button turned transparent when
+ * pressed. The whole action.neutral tone went the same way.
+ *
+ * The export hit this on 2026-09-05 and was fixed the same way. This file kept
+ * the bug, because a role is only dropped when no utility class happens to
+ * name it too — which made it look like a handful of arbitrary roles rather
+ * than a rule. `theme-variables.spec.ts` holds it now.
+ */
+@theme static {
   /* ========================================================================
      PRIMARY 
      ======================================================================== */
