@@ -228,6 +228,31 @@ properties or a Tailwind v4 `@theme` block. Project-file import and export,
 fluid typography, and responsive per-breakpoint overrides are not built yet;
 see the roadmap document's "Later improvements" for the full list.
 
+The [semantic colour layer](docs/roadmap/semantic-tokens.md) is complete. A
+semantic token is a name plus one palette reference per mode, so a name such as
+`fg.primary` or `surface.raised` carries a light value and a dark one and moves
+whenever the shade it points at moves. A new project is seeded with roles for
+foreground, surface, border, action, status, and focus. Each status and action
+tone carries a fill, a surface, a foreground, and a border, so an alert or a
+button can be built from the layer rather than from a shade number. A saved
+workspace gains any role added since it was written the next time it is read,
+so the count is a fact about the current seed set rather than about the file.
+The Semantics tab edits them as a table, with both modes side by side, and the
+layer exports beside the primitives in all three formats. The `/preview` page
+draws itself from semantic tokens only, in either mode, and a test proves it
+reaches for no primitive.
+
+The [scale studio](docs/roadmap/scale-studio.md) is complete and lives at
+`/scale`. Spacing is a base unit, 4px by default and editable, counted out over
+an editable step list and exported in rem. Radius tokens are named by use
+rather than by size and scale together from one multiplier. Elevation levels
+are composite shadows drawn from one palette shade, with opacity held per mode
+because a dark surface swallows a shadow, so a level renders correctly in
+either mode without changing colour. All three families export beside the
+colour and type
+tokens, and a workspace saved before they existed opens and gains sensible
+defaults.
+
 CI now runs lint, type checking, unit tests, build, and Playwright checks
 automatically on every push and pull request to `main` (see
 `.github/workflows/ci.yml`).
@@ -236,10 +261,12 @@ automatically on every push and pull request to `main` (see
 
 The next priorities are:
 
-1. Add [colour-vision simulation and an exportable accessibility report](docs/roadmap/colour-vision-simulation.md).
-2. Document the core foundations: colour, typography, spacing, shape,
-   elevation, and accessibility.
-3. Define the first product scope before creating a product application such as
+1. Document the core foundations and build the handover; see
+   [Foundations documentation and the handover](docs/roadmap/foundations-handover.md).
+   The documentation application reads a workspace file, renders colour,
+   typography, spacing, shape, and elevation from it, and the studio packs the
+   result into an archive a client can keep.
+2. Define the first product scope before creating a product application such as
    `apps/ferre`.
 
 Later improvements to the Typography Studio (fluid typography, responsive
@@ -247,4 +274,6 @@ overrides, JSON export, project-file import and export, more presets) remain
 open; see [Typography Studio](docs/roadmap/typography-studio.md).
 
 The completed shared-format, anchor, and manual-edit milestone is documented in
-[Colour formats and anchors](docs/roadmap/colour-formats-and-anchors.md).
+[Colour formats and anchors](docs/roadmap/colour-formats-and-anchors.md), and
+the completed simulation and report milestone in
+[Colour-vision simulation](docs/roadmap/colour-vision-simulation.md).
