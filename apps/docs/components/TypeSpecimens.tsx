@@ -120,11 +120,22 @@ function Specimen({ row }: { row: TypeRoleRow }) {
 }
 
 export function TypeSpecimens({ system }: TypeSpecimensProps) {
-  const fonts = typeFontRows(system);
+  /* One note per family, not per font entry. This workspace has two entries,
+     Display and Main, both pointing at the same stack — so the note appeared
+     twice, word for word, which reads as a rendering fault rather than as two
+     entries agreeing. The note is about the family, so the family is the key. */
+  const notes = [
+    ...new Map(
+      typeFontRows(system).map((font) => [
+        `${font.primary}|${font.availability}`,
+        font,
+      ]),
+    ).values(),
+  ];
 
   return (
     <VStack gap={5}>
-      {fonts.map((font) => (
+      {notes.map((font) => (
         <FontNote font={font} key={font.id} />
       ))}
 
