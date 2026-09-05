@@ -17,6 +17,7 @@ import { SEED_PALETTE_TRACKS } from "./workspace/seed-project";
  */
 
 const BRIDGE = readFileSync(join(__dirname, "astryx-bridge.css"), "utf8");
+const THEME = readFileSync(join(__dirname, "theme.css"), "utf8");
 
 /** Every `var(--color-<track>-<weight>)` in the file, with its track. */
 function primitiveReferences(): Array<{ name: string; track: string }> {
@@ -26,6 +27,32 @@ function primitiveReferences(): Array<{ name: string; track: string }> {
 }
 
 describe("the Astryx bridge", () => {
+  it("names only roles the studio's own chrome defines", () => {
+    /* The other half of the gap the docs-export guard holds. That one asks
+       whether a client's export carries every name the bridge feeds a token
+       from; this one asks the same of theme.css, which is what the playground
+       renders against.
+
+       Both halves are needed, and finding that out cost a measurement:
+       pointing the status blocks at `status.success-surface` and its
+       neighbours made the export correct and left the studio with three
+       Astryx tokens resolving to nothing, because theme.css had the fill and
+       not the parts. Neither file errors, neither warns, and the studio just
+       renders Astryx's own green instead of the project's. */
+    const referenced = new Set(
+      [...BRIDGE.matchAll(/var\((--color-[a-z0-9-]+)\)/g)].map((m) => m[1]!),
+    );
+    const defined = new Set(
+      [...THEME.matchAll(/^\s*(--color-[a-z0-9-]+)\s*:/gm)].map((m) => m[1]!),
+    );
+
+    const undefinedNames = [...referenced]
+      .filter((name) => !defined.has(name))
+      .sort();
+
+    expect(undefinedNames, undefinedNames.join("\n")).toEqual([]);
+  });
+
   it("assumes no primitive track a workspace does not seed", () => {
     /* `secondary` and `tertiary` were here, feeding Astryx's cyan and purple
        families. Both are defined in the studio's own theme.css and in no
@@ -51,20 +78,20 @@ describe("the Astryx bridge", () => {
   });
 
   it("still reaches for a primitive where no role exists yet, and this is the count", () => {
-    /* Not approval — a ratchet. Sixty-four references remain, all of them in
-       the two blocks that feed Astryx's four-part status sets and its colour
-       families: a background, a border, an icon and a text colour per status,
-       where the layer has one `status.success` and no opinion about the tint
-       behind it.
+    /* Not approval — a ratchet. Eight references remain, and they are one
+       block: Astryx's blue family, whose four values are the accent's soft
+       ground, its edge, its icon and its text. The layer has two accent roles,
+       a fill and a muted tint, and neither is a surface to put text on — so
+       unlike the status blocks, which moved onto roles the moment each status
+       gained a surface, a foreground and a border, this one has nothing to
+       point at. Inventing the values here would put four decisions in a
+       stylesheet the Semantics tab cannot edit.
 
-       They cannot move to roles today without either inventing values the
-       layer does not hold or changing what the studio looks like, and the
-       roles to hold them are stage 2's argument, not this file's. What this
-       does hold is the direction: the number may go down and may not go up.
-       Every one of these still assumes a client's palette names its tracks
-       `success`, `warning`, `error` and `primary`, which is the same
-       assumption cyan and purple were removed for — only true so far because
-       the studio seeds those names. */
-    expect(primitiveReferences()).toHaveLength(64);
+       It was sixty-four before the status sub-roles landed. Every one of these
+       eight still assumes a client's palette names a track `primary`, which is
+       the same assumption cyan and purple were removed for and true only
+       because the studio seeds that name. The number may go down and may not
+       go up. */
+    expect(primitiveReferences()).toHaveLength(8);
   });
 });
