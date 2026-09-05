@@ -46,7 +46,7 @@ const matrixColumns: TableColumn<MatrixRow>[] = [
     header: "Variant",
     width: pixel(112),
     renderCell: (row) => (
-      <span className="text-xs font-bold text-neutral-600">{row.variant}</span>
+      <span className="text-xs font-bold text-fg-secondary">{row.variant}</span>
     ),
   },
   ...COLORS.map((c): TableColumn<MatrixRow> => ({
@@ -144,7 +144,9 @@ const propsColumns: TableColumn<PropRow>[] = [
     header: "Prop",
     width: proportional(1),
     renderCell: (row) => (
-      <span className="font-mono text-[13px] text-primary-600">{row.prop}</span>
+      <span className="font-mono text-[length:var(--font-size-1)] text-fg-accent">
+        {row.prop}
+      </span>
     ),
   },
   {
@@ -152,7 +154,9 @@ const propsColumns: TableColumn<PropRow>[] = [
     header: "Type",
     width: proportional(2),
     renderCell: (row) => (
-      <span className="font-mono text-[12px] text-neutral-500">{row.type}</span>
+      <span className="font-mono text-[length:var(--font-size-1)] text-fg-secondary">
+        {row.type}
+      </span>
     ),
   },
   {
@@ -160,7 +164,9 @@ const propsColumns: TableColumn<PropRow>[] = [
     header: "Default",
     width: proportional(1),
     renderCell: (row) => (
-      <span className="font-mono text-[12px] text-neutral-500">{row.def}</span>
+      <span className="font-mono text-[length:var(--font-size-1)] text-fg-secondary">
+        {row.def}
+      </span>
     ),
   },
   {
@@ -168,7 +174,7 @@ const propsColumns: TableColumn<PropRow>[] = [
     header: "Description",
     width: proportional(3),
     renderCell: (row) => (
-      <span className="text-[13px] leading-relaxed text-neutral-700">
+      <span className="text-[length:var(--font-size-1)] leading-relaxed text-fg-secondary">
         {row.desc}
       </span>
     ),
@@ -226,14 +232,14 @@ function SectionHeading({
 }) {
   return (
     <div className="space-y-2">
-      <span className="text-[11px] font-bold uppercase tracking-widest text-primary-600">
+      <span className="text-[length:var(--font-size-0)] font-bold uppercase tracking-widest text-fg-accent">
         {eyebrow}
       </span>
-      <h2 className="text-2xl font-black tracking-tight text-neutral-900">
+      <h2 className="text-2xl font-black tracking-tight text-fg-primary">
         {title}
       </h2>
       {description && (
-        <p className="max-w-2xl text-sm text-neutral-600">{description}</p>
+        <p className="max-w-2xl text-sm text-fg-secondary">{description}</p>
       )}
     </div>
   );
@@ -248,7 +254,7 @@ function Card({
 }) {
   return (
     <div
-      className={`rounded-3xl border border-neutral-200 bg-white/80 p-6 shadow-xl shadow-neutral-200/50 backdrop-blur-sm ${className}`}
+      className={`rounded-container border border-border-default bg-surface-raised p-6 shadow-med backdrop-blur-sm ${className}`}
     >
       {children}
     </div>
@@ -299,18 +305,18 @@ export default function ButtonDocsPage() {
   ]);
 
   return (
-    <main className="min-h-screen bg-linear-to-br from-neutral-50 via-white to-neutral-100 p-4 font-sans antialiased md:p-10">
+    <main className="min-h-screen bg-surface-base p-4 font-sans antialiased md:p-10">
       <div className="mx-auto max-w-7xl space-y-16">
         {/* ── 1. Hero Header & Import Guide ───────────────────────────── */}
-        <header className="space-y-8 border-b border-neutral-200 pb-10">
+        <header className="space-y-8 border-b border-border-default pb-10">
           <div className="flex flex-col gap-3">
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-neutral-500">
+            <span className="text-xs font-bold uppercase tracking-[0.2em] text-fg-secondary">
               @blueprint/ui · Component
             </span>
-            <h1 className="text-4xl font-black tracking-tight text-neutral-900 md:text-5xl">
+            <h1 className="text-4xl font-black tracking-tight text-fg-primary md:text-5xl">
               Button
             </h1>
-            <p className="max-w-2xl text-base leading-relaxed text-neutral-600">
+            <p className="max-w-2xl text-base leading-relaxed text-fg-secondary">
               A polymorphic, CVA-driven button built on the Atmos 25-interval
               OKLCH color grid. Supports 6 color schemes across 6 visual
               variants and 6 sizes, with built-in loading and icon slots.
@@ -329,7 +335,7 @@ export default function ButtonDocsPage() {
           <Card>
             <div className="grid gap-8 lg:grid-cols-2">
               {/* Live preview */}
-              <div className="flex min-h-60 items-center justify-center rounded-2xl border border-dashed border-neutral-300 bg-neutral-50 p-10">
+              <div className="flex min-h-60 items-center justify-center rounded-container border border-dashed border-border-strong bg-surface-subtle p-10">
                 <Button
                   scheme={scheme}
                   variant={variant}
@@ -371,7 +377,7 @@ export default function ButtonDocsPage() {
                     onChange={(v) => setSize(v as ButtonSize)}
                   />
 
-                  <div className="flex flex-col justify-end gap-2.5 pb-1">
+                  <div className="flex flex-col justify-end gap-3 pb-1">
                     <CheckboxInput
                       label="Disabled"
                       size="sm"
@@ -447,7 +453,7 @@ export default function ButtonDocsPage() {
                   >
                     {s === "icon" ? <PlusIcon /> : "Button"}
                   </Button>
-                  <span className="text-[11px] font-bold uppercase tracking-widest text-neutral-500">
+                  <span className="text-[length:var(--font-size-0)] font-bold uppercase tracking-widest text-fg-secondary">
                     {s}
                   </span>
                 </div>

@@ -1,19 +1,39 @@
+/*
+ * The documentation's own home page.
+ *
+ * Every value here is a token. It was not: this page predates the spacing,
+ * radius and elevation layers, so it carried twenty-nine measurements, a
+ * primitive shade inside a shadow, and two Astryx token names that the bridge
+ * happens to define. The scanner in `primitive-usage.ts` holds it now.
+ *
+ * Font sizes come from the type scale, and where they name a step token
+ * (`--font-size-1`) rather than a role (`--font-h6-size`) that is a role the
+ * system does not have — an eyebrow, a card title, a caption. The guidance on
+ * /foundations/typography says reaching for a step is a sign a role is
+ * missing, and this page is the evidence for that sentence.
+ *
+ * Widths are the exception and are not tokens: a content column is a size, and
+ * the scale plan defers size tokens to their own family.
+ */
+
 .page {
-  width: min(72rem, calc(100% - 2rem));
+  width: min(72rem, calc(100% - var(--spacing-8)));
   margin-inline: auto;
-  padding-block: 5rem;
+  /* The page's outer rhythm wants 80px and the scale stops at 64. */
+  padding-block: var(--spacing-16);
 }
 
 .hero {
   max-width: 48rem;
-  padding-bottom: 3rem;
+  padding-bottom: var(--spacing-12);
   border-bottom: 1px solid var(--color-border-strong);
 }
 
 .eyebrow {
-  margin: 0 0 0.75rem;
+  margin: 0 0 var(--spacing-3);
   color: var(--color-fg-accent);
-  font-size: 0.75rem;
+  /* No label role in the type system; this is the step under body. */
+  font-size: var(--font-size-1);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -21,35 +41,36 @@
 
 .hero h1 {
   margin: 0;
-  font-size: clamp(2.5rem, 7vw, 4.5rem);
+  /* Fluid between two real steps rather than between two typed numbers. */
+  font-size: clamp(var(--font-size-6), 7vw, var(--font-display-size));
   line-height: 1;
   letter-spacing: -0.04em;
 }
 
 .introduction {
-  margin: 1.5rem 0 0;
+  margin: var(--spacing-6) 0 0;
   color: var(--color-fg-secondary);
-  font-size: 1.125rem;
+  font-size: var(--font-size-3);
   line-height: 1.7;
 }
 
 .section {
-  padding-block: 3rem;
+  padding-block: var(--spacing-12);
 }
 
 .sectionHeading {
-  margin-bottom: 1.5rem;
+  margin-bottom: var(--spacing-6);
 }
 
 .sectionHeading h2,
 .notice h2 {
   margin: 0;
-  font-size: 1.25rem;
+  font-size: var(--font-h6-size);
 }
 
 .sectionHeading p,
 .notice p {
-  margin: 0.5rem 0 0;
+  margin: var(--spacing-2) 0 0;
   color: var(--color-fg-secondary);
   line-height: 1.6;
 }
@@ -57,7 +78,7 @@
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-  gap: 1rem;
+  gap: var(--spacing-4);
   padding: 0;
   list-style: none;
 }
@@ -66,26 +87,27 @@
 .componentCard,
 .notice {
   border: 1px solid var(--color-border-strong);
-  border-radius: 1rem;
+  border-radius: var(--radius-container);
   background: var(--color-surface-raised);
 }
 
 .card,
 .componentCard {
-  padding: 1.5rem;
+  padding: var(--spacing-6);
 }
 
 .card h3,
 .componentCard h3 {
   margin: 0;
-  font-size: 1rem;
+  /* A card title is a heading with no heading role at this size. */
+  font-size: var(--font-size-2);
 }
 
 .card p,
 .componentCard p {
-  margin: 0.75rem 0 0;
+  margin: var(--spacing-3) 0 0;
   color: var(--color-fg-secondary);
-  font-size: 0.875rem;
+  font-size: var(--font-body-size);
   line-height: 1.6;
 }
 
@@ -101,20 +123,23 @@
 .componentCard:hover,
 .componentCard:focus-visible {
   border-color: var(--color-action-primary);
-  box-shadow: 0 0.75rem 2rem
-    color-mix(in oklch, var(--color-primary-950) 10%, transparent);
+  /* The elevation level, not a shadow built out of a primitive shade. It
+     follows the mode, which the hand-written one could not. */
+  box-shadow: var(--shadow-med);
   outline: none;
-  transform: translateY(-0.125rem);
+  transform: translateY(calc(var(--spacing-0-5) * -1));
 }
 
 .status {
   display: inline-flex;
-  margin-bottom: 1rem;
-  border-radius: 999px;
-  padding: 0.25rem 0.5rem;
-  color: var(--color-text-success);
-  background: var(--color-background-success);
-  font-size: 0.6875rem;
+  margin-bottom: var(--spacing-4);
+  border-radius: var(--radius-full);
+  padding: var(--spacing-1) var(--spacing-2);
+  /* Blueprint's status roles rather than Astryx's `--color-text-success`,
+     which the bridge defines and a client installing the export does not. */
+  color: var(--color-status-success-fg);
+  background: var(--color-status-success-surface);
+  font-size: var(--font-size-0);
   font-weight: 750;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -122,15 +147,15 @@
 
 .cardAction {
   display: inline-block;
-  margin-top: 1.25rem;
+  margin-top: var(--spacing-5);
   color: var(--color-fg-accent);
-  font-size: 0.8125rem;
+  font-size: var(--font-size-1);
   font-weight: 700;
 }
 
 .notice {
   max-width: 48rem;
-  padding: 1.5rem;
+  padding: var(--spacing-6);
 }
 
 .notice code {
