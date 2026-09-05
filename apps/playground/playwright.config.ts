@@ -31,8 +31,16 @@ export default defineConfig({
      * and what it does, never how it arrives, so there is nothing left for the
      * animation to prove — and reduced motion is a mode real people browse in,
      * so this exercises a supported path rather than an artificial one.
+     *
+     * Through `contextOptions` rather than a top-level `reducedMotion` key.
+     * Playwright's documentation lists reduced motion among the options a test
+     * may override, and 1.62's `PlaywrightTestOptions` does not carry it —
+     * only `colorScheme` of that group is there. Written at the top level it
+     * is not a valid key: it type-errors, and at runtime it is simply ignored,
+     * which is the worse half. `browser-emulation.spec.ts` asserts the media
+     * query, so a version that moves this cannot leave it silently off again.
      */
-    reducedMotion: "reduce",
+    contextOptions: { reducedMotion: "reduce" },
   },
   projects: [
     {
