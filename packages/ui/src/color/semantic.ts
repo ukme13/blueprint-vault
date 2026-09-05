@@ -1,3 +1,4 @@
+import { contrastRatio } from "./accessibility";
 import type { ColorTrack, ShadeItem } from "./types";
 
 /**
@@ -82,6 +83,25 @@ interface SeedRole {
    * way `preferWeight` falls back to `position`.
    */
   preferDarkWeight?: number;
+  /**
+   * Choose between the two ends of this role's track by measuring.
+   *
+   * Named for the fill this role is drawn on top of. A label on a filled
+   * control has exactly one job — to be readable on that fill — and which end
+   * of the neutral ramp does it is a fact about the fill's lightness rather
+   * than a preference anybody holds.
+   *
+   * Seeding it statically works for one palette and no others. Measured
+   * against this project's own: white reads better on the primary, warning,
+   * error and info fills, near-black on success in dark, and the neutral fill
+   * inverts with the mode. A client whose brand colour is pale wants the
+   * opposite of all of them, and would have no way to know until the report
+   * told them.
+   *
+   * So the seed asks. `seedSemanticTokens` resolves the fill first, then takes
+   * whichever end of this role's own track reads better on it.
+   */
+  readableOn?: string;
 }
 
 type TrackRole =
@@ -93,14 +113,223 @@ type TrackRole =
   | "error"
   | "info";
 
-const SEED_ROLES: readonly SeedRole[] = [
+/**
+ * A tone: one colour of the system, and everything a control needs from it.
+ *
+ * The statuses arrived at this shape first — a fill is not enough to build an
+ * alert, which needs a ground, a foreground and an edge as well. A button
+ * turned out to want exactly the same four, plus a hovered and a pressed fill
+ * and a hovered ground. So it is one pattern applied six times rather than six
+ * sets of names, and the Button's scheme table is a lookup rather than a
+ * palette of its own.
+ *
+ * Every weight below was measured against this project's palette rather than
+ * chosen by eye. Three of them came back different from the obvious answer:
+ *
+ * - The border is 450 in **both** modes. A border's job is to be seen against
+ *   the canvas, and the canvas moves between modes while the middle of the
+ *   ramp does not — so the same weight clears 3:1 on both. The 200/800 the
+ *   statuses were seeded at for their alert borders measures 1.4:1 on a light
+ *   canvas and 1.06:1 on a dark one, which is not a boundary.
+ * - The surface stays at the pale end, 50/950, where it measures about 1.15:1
+ *   against the canvas. That is faint, and it is what a hover wash is; the
+ *   alternative moves the alert backgrounds the bridge feeds.
+ * - The label on the fill is measured per mode rather than declared. See
+ *   `readableOn`.
+ */
+interface ToneSpec {
+  /** The fill's role id: `action.primary`, `status.success`. */
+  id: string;
+  /** How a role of this tone is named: "Primary action". */
+  name: string;
+  /** What the fill is for, in one line. */
+  description: string;
+  track: TrackRole;
+  /** The fill, as a fraction along the track. */
+  position: number;
+  fill: [light: number, dark: number];
+  /** One step toward the middle of the ramp, then two. */
+  hover: [light: number, dark: number];
+  active: [light: number, dark: number];
+  /** The id of the label that sits on the fill, which lives in the fg group. */
+  onFill: string;
+  /** What that label is called. */
+  onFillName: string;
+  /** A foreground of this tone, on its surface or on the canvas. */
+  foreground: [light: number, dark: number];
+}
+
+/** The pale ground and its hover, the same for every tone. */
+const TONE_SURFACE: [number, number] = [50, 950];
+const TONE_SURFACE_HOVER: [number, number] = [100, 900];
+/** Measured: the one weight that clears 3:1 on both canvases. */
+const TONE_BORDER = 450;
+
+function toneRoles(tone: ToneSpec): SeedRole[] {
+  const of = (
+    suffix: string,
+    label: string,
+    description: string,
+    [light, dark]: [number, number],
+  ): SeedRole => ({
+    id: `${tone.id}-${suffix}`,
+    name: `${tone.name} ${label}`,
+    description,
+    track: tone.track,
+    position: tone.position,
+    preferWeight: light,
+    preferDarkWeight: dark,
+  });
+
+  return [
+    {
+      id: tone.id,
+      name: tone.name,
+      description: tone.description,
+      track: tone.track,
+      position: tone.position,
+      preferWeight: tone.fill[0],
+      preferDarkWeight: tone.fill[1],
+    },
+    of("hover", "hover", "The fill under the pointer.", tone.hover),
+    of("active", "active", "The fill while it is pressed.", tone.active),
+    of(
+      "surface",
+      "surface",
+      "The soft ground of an alert, a ghost control or a hovered outline.",
+      TONE_SURFACE,
+    ),
+    of(
+      "surface-hover",
+      "surface hover",
+      "That soft ground, hovered or pressed.",
+      TONE_SURFACE_HOVER,
+    ),
+    of(
+      "fg",
+      "foreground",
+      "Text and icons on the surface, and on the canvas.",
+      tone.foreground,
+    ),
+    of("border", "border", "The edge of an outlined control or an alert.", [
+      TONE_BORDER,
+      TONE_BORDER,
+    ]),
+  ];
+}
+
+/** The label on a filled control, measured against that fill. */
+function onFillRole(tone: ToneSpec): SeedRole {
+  return {
+    id: tone.onFill,
+    name: tone.onFillName,
+    description: `Text and icons on the ${tone.name.toLowerCase()} fill.`,
+    track: "neutral",
+    /* Only reached when the fill is missing from the layer, which the
+       measurement cannot happen without. */
+    position: 0.05,
+    preferWeight: 50,
+    preferDarkWeight: 950,
+    readableOn: tone.id,
+  };
+}
+
+const TONES: readonly ToneSpec[] = [
   {
     id: "action.primary",
     name: "Action primary",
     description: "The fill of a primary button or an active control.",
     track: "primary",
     position: 0.55,
+    fill: [500, 450],
+    hover: [550, 400],
+    active: [600, 350],
+    onFill: "fg.on-action",
+    onFillName: "Foreground on action",
+    foreground: [900, 100],
   },
+  {
+    /* Black in light and white in dark, which is the one tone whose fill
+       crosses the ramp rather than sitting on it. A neutral action is a
+       variant of a button and not a second mode: it takes its two values from
+       the same layer every other tone does, so "the quiet button" is a
+       decision the Semantics tab can edit rather than a branch in a
+       component. */
+    id: "action.neutral",
+    name: "Action neutral",
+    description: "The fill of a plain button: black on light, white on dark.",
+    track: "neutral",
+    position: 0.95,
+    fill: [950, 50],
+    hover: [900, 100],
+    active: [850, 150],
+    onFill: "fg.on-neutral",
+    onFillName: "Foreground on neutral",
+    /* Body text, because a neutral text button's label is body text. */
+    foreground: [850, 100],
+  },
+  {
+    id: "status.success",
+    name: "Status success",
+    description: "A success badge or message.",
+    track: "success",
+    position: 0.55,
+    fill: [500, 450],
+    hover: [550, 400],
+    active: [600, 350],
+    onFill: "fg.on-success",
+    onFillName: "Foreground on success",
+    foreground: [900, 100],
+  },
+  {
+    id: "status.warning",
+    name: "Status warning",
+    description: "A warning badge or message.",
+    track: "warning",
+    position: 0.45,
+    fill: [450, 500],
+    hover: [500, 450],
+    active: [550, 400],
+    onFill: "fg.on-warning",
+    onFillName: "Foreground on warning",
+    foreground: [900, 100],
+  },
+  {
+    id: "status.error",
+    name: "Status error",
+    description: "An error badge or message.",
+    track: "error",
+    position: 0.55,
+    fill: [500, 450],
+    hover: [550, 400],
+    active: [600, 350],
+    onFill: "fg.on-error",
+    onFillName: "Foreground on error",
+    foreground: [900, 100],
+  },
+  {
+    id: "status.info",
+    name: "Status info",
+    description: "An informational badge or message.",
+    track: "info",
+    position: 0.55,
+    fill: [500, 450],
+    hover: [550, 400],
+    active: [600, 350],
+    onFill: "fg.on-info",
+    onFillName: "Foreground on info",
+    foreground: [900, 100],
+  },
+];
+
+const tone = (id: string): SeedRole[] =>
+  toneRoles(TONES.find((each) => each.id === id)!);
+
+const onFill = (id: string): SeedRole =>
+  onFillRole(TONES.find((each) => each.id === id)!);
+
+const SEED_ROLES: readonly SeedRole[] = [
+  ...tone("action.primary"),
   {
     id: "action.secondary",
     name: "Action secondary",
@@ -109,24 +338,13 @@ const SEED_ROLES: readonly SeedRole[] = [
     position: 0.48,
   },
   {
-    id: "action.hover",
-    name: "Action hover",
-    description: "A primary control under the pointer.",
-    track: "primary",
-    position: 0.62,
-  },
-  {
-    id: "action.active",
-    name: "Action active",
-    description: "A primary control while it is pressed.",
-    track: "primary",
-    position: 0.7,
-  },
-  {
-    /* The accent at rest: a tint behind a selected row, a quiet badge. Not a
-       state of `action.primary` the way hover and active are — nothing is
-       hovering — but the same colour turned down, which is why it takes the
-       accent track at both ends rather than mirroring into neutral. */
+    /* Not the primary tone's surface, though it reads like it should be.
+       A surface is the pale ground a control sits on at the canvas end of
+       the ramp; this is the accent turned down but still present — the fill
+       of a selected chip, at 400 and 900. Three places in the studio use it
+       that way and Astryx reads it as `--color-accent-muted`, so folding it
+       into `action.primary-surface` would move three backgrounds two thirds
+       of the way up the ramp. Two names because they are two jobs. */
     id: "action.muted",
     name: "Action muted",
     description: "A quiet fill in the action colour: a tint or a soft badge.",
@@ -135,6 +353,8 @@ const SEED_ROLES: readonly SeedRole[] = [
     preferWeight: 400,
     preferDarkWeight: 900,
   },
+  ...tone("action.neutral"),
+
   {
     id: "surface.base",
     name: "Surface base",
@@ -164,11 +384,9 @@ const SEED_ROLES: readonly SeedRole[] = [
     position: 0.02,
   },
   {
-    /* Behind a loading placeholder, and behind the filled part of a slider or
-       a progress bar. Two roles rather than one because they are two
-       decisions: a skeleton may pulse and a track may not, and a system that
-       gives them one name cannot change one without the other. They start on
-       the same shade, which is what the studio's chrome already does. */
+    /* Two roles rather than one because they are two decisions: a skeleton
+       may pulse and a track may not, and a system that gives them one name
+       cannot change one without the other. */
     id: "surface.skeleton",
     name: "Surface skeleton",
     description: "The placeholder block shown while content loads.",
@@ -186,6 +404,7 @@ const SEED_ROLES: readonly SeedRole[] = [
     preferWeight: 200,
     preferDarkWeight: 800,
   },
+
   {
     id: "border.default",
     name: "Border default",
@@ -208,10 +427,6 @@ const SEED_ROLES: readonly SeedRole[] = [
     position: 0.22,
   },
   {
-    /* Heavier than `border.default` on purpose: the rule under a section
-       heading and the edge of a card that has to read as an edge. In dark it
-       goes lighter than the mirror would, because a border on a dark surface
-       has to climb further out of it to be seen at all. */
     id: "border.strong",
     name: "Border strong",
     description: "A border meant to be noticed: a card edge, a section rule.",
@@ -220,10 +435,11 @@ const SEED_ROLES: readonly SeedRole[] = [
     preferWeight: 300,
     preferDarkWeight: 700,
   },
+
   {
     /* `fg`, not `text`: the same token colours an icon, a rule in a chart, a
-       glyph in a badge. "Foreground" is what it is; "text" was one thing it
-       is used for. Saved layers keep working through `migrateSemanticIds`. */
+       glyph in a badge. Saved layers keep working through
+       `migrateSemanticIds`. */
     id: "fg.primary",
     name: "Foreground primary",
     description: "Body text, headings and icons.",
@@ -232,9 +448,6 @@ const SEED_ROLES: readonly SeedRole[] = [
   },
   {
     id: "fg.secondary",
-    /* The page asked for this one. Muted text was being faked with opacity,
-       which the primitive check cannot see and which mixes a colour nobody
-       chose out of whatever happens to be behind it. */
     name: "Foreground secondary",
     description: "Supporting text, captions and help.",
     track: "neutral",
@@ -242,9 +455,7 @@ const SEED_ROLES: readonly SeedRole[] = [
   },
   {
     /* Solid, like every foreground. Fading text with opacity lets the surface
-       bleed through into a colour nobody chose and nothing measured, which is
-       how a disabled label ends up below the contrast floor on one surface and
-       above it on the next. A token has one value and is checked once. */
+       bleed through into a colour nobody chose and nothing measured. */
     id: "fg.disabled",
     name: "Foreground disabled",
     description: "Text and icons on a control that cannot be used.",
@@ -252,10 +463,9 @@ const SEED_ROLES: readonly SeedRole[] = [
     position: 0.55,
   },
   {
-    /* Text and icons in the accent colour, on an ordinary surface: a link, an
-       eyebrow, a selected tab's label. It is a foreground and not an action —
-       `action.primary` is the fill of a thing you press, and using a fill
-       colour as text is how a link ends up at 3:1 on the canvas. */
+    /* Text in the accent colour on an ordinary surface: a link, an eyebrow.
+       Not `action.primary-fg`, which is the label of an outlined button and
+       sits at the dark end of the ramp with the other tones. */
     id: "fg.accent",
     name: "Foreground accent",
     description: "Text or an icon in the accent colour, on a surface.",
@@ -264,181 +474,21 @@ const SEED_ROLES: readonly SeedRole[] = [
     preferWeight: 600,
     preferDarkWeight: 400,
   },
-  {
-    /* The label on a filled control, which is the one pair every button
-       ships. Its two values are chosen against the fill rather than mirrored
-       through the ramp: near-white on the light fill, near-black on the dark
-       one. Measured against `action.primary` in the report for that reason —
-       it is the only foreground in the layer whose background is not a
-       surface. */
-    id: "fg.on-action",
-    name: "Foreground on action",
-    description: "The label on a filled action: text and icons on the accent.",
-    track: "neutral",
-    position: 0.05,
-    preferWeight: 50,
-    preferDarkWeight: 950,
-  },
+  ...TONES.map((each) => onFill(each.id)),
+
   {
     id: "focus.ring",
     name: "Focus ring",
     description: "The focus indicator.",
     track: "primary",
     position: 0.32,
-    /* 300 is the weight the focus token is documented against, so it is taken
-       when the track has it rather than whatever the position rounds to. */
     preferWeight: 300,
   },
-  {
-    id: "status.success",
-    name: "Status success",
-    description: "A success badge or message.",
-    track: "success",
-    position: 0.55,
-  },
-  /* Three parts per status, beside the fill.
 
-     `status.success` on its own is the signal: the dot, the badge fill, the
-     colour somebody reads meaning out of. An alert needs three more — a soft
-     ground to sit on, a foreground that reads on that ground, and a border to
-     hold its edge — and a system that stops at the signal makes everyone
-     assemble those from shade numbers, which is the thing the layer exists to
-     prevent. Astryx has wanted all four per status since before this layer
-     did; the bridge was reaching straight into the primitives for them.
-
-     Every one takes its own status track, at the weights the studio's chrome
-     already resolves to: surface 50/950, foreground 900/100, border 200/800.
-     None of those three is a mirror of its light value, which is why each
-     names its dark weight. */
-  {
-    id: "status.success-surface",
-    name: "Status success surface",
-    description: "The soft background of a success alert or badge.",
-    track: "success",
-    position: 0.05,
-    preferWeight: 50,
-    preferDarkWeight: 950,
-  },
-  {
-    id: "status.success-fg",
-    name: "Status success foreground",
-    description: "Text and icons on the success surface.",
-    track: "success",
-    position: 0.95,
-    preferWeight: 900,
-    preferDarkWeight: 100,
-  },
-  {
-    id: "status.success-border",
-    name: "Status success border",
-    description: "The border around a success alert or badge.",
-    track: "success",
-    position: 0.21,
-    preferWeight: 200,
-    preferDarkWeight: 800,
-  },
-  {
-    id: "status.warning",
-    name: "Status warning",
-    description: "A warning badge or message.",
-    track: "warning",
-    position: 0.45,
-  },
-  {
-    id: "status.warning-surface",
-    name: "Status warning surface",
-    description: "The soft background of a warning alert or badge.",
-    track: "warning",
-    position: 0.05,
-    preferWeight: 50,
-    preferDarkWeight: 950,
-  },
-  {
-    id: "status.warning-fg",
-    name: "Status warning foreground",
-    description: "Text and icons on the warning surface.",
-    track: "warning",
-    position: 0.95,
-    preferWeight: 900,
-    preferDarkWeight: 100,
-  },
-  {
-    id: "status.warning-border",
-    name: "Status warning border",
-    description: "The border around a warning alert or badge.",
-    track: "warning",
-    position: 0.21,
-    preferWeight: 200,
-    preferDarkWeight: 800,
-  },
-  {
-    id: "status.error",
-    name: "Status error",
-    description: "An error badge or message.",
-    track: "error",
-    position: 0.55,
-  },
-  {
-    id: "status.error-surface",
-    name: "Status error surface",
-    description: "The soft background of an error alert or badge.",
-    track: "error",
-    position: 0.05,
-    preferWeight: 50,
-    preferDarkWeight: 950,
-  },
-  {
-    id: "status.error-fg",
-    name: "Status error foreground",
-    description: "Text and icons on the error surface.",
-    track: "error",
-    position: 0.95,
-    preferWeight: 900,
-    preferDarkWeight: 100,
-  },
-  {
-    id: "status.error-border",
-    name: "Status error border",
-    description: "The border around an error alert or badge.",
-    track: "error",
-    position: 0.21,
-    preferWeight: 200,
-    preferDarkWeight: 800,
-  },
-  {
-    id: "status.info",
-    name: "Status info",
-    description: "An informational badge or message.",
-    track: "info",
-    position: 0.55,
-  },
-  {
-    id: "status.info-surface",
-    name: "Status info surface",
-    description: "The soft background of an informational alert or badge.",
-    track: "info",
-    position: 0.05,
-    preferWeight: 50,
-    preferDarkWeight: 950,
-  },
-  {
-    id: "status.info-fg",
-    name: "Status info foreground",
-    description: "Text and icons on the info surface.",
-    track: "info",
-    position: 0.95,
-    preferWeight: 900,
-    preferDarkWeight: 100,
-  },
-  {
-    id: "status.info-border",
-    name: "Status info border",
-    description: "The border around an informational alert or badge.",
-    track: "info",
-    position: 0.21,
-    preferWeight: 200,
-    preferDarkWeight: 800,
-  },
+  ...tone("status.success"),
+  ...tone("status.warning"),
+  ...tone("status.error"),
+  ...tone("status.info"),
 ];
 
 /** Where along a track a role sits, as a fraction of its length. */
@@ -496,7 +546,16 @@ function mirrored(track: ColorTrack, weight: number): ShadeItem {
 export function seedSemanticTokens(tracks: ColorTrack[]): SemanticToken[] {
   if (tracks.length === 0) return [];
 
-  return SEED_ROLES.map((role) => {
+  /* Fills first, then the labels that measure against them. Every role a
+     `readableOn` names is an ordinary role in this same list, so one pass
+     would depend on the order somebody happened to write them in. */
+  const seeded = new Map<string, SemanticToken>();
+  const ordered = [
+    ...SEED_ROLES.filter((role) => role.readableOn === undefined),
+    ...SEED_ROLES.filter((role) => role.readableOn !== undefined),
+  ];
+
+  for (const role of ordered) {
     const track = trackFor(tracks, role.track);
     const light =
       (role.preferWeight === undefined
@@ -509,15 +568,54 @@ export function seedSemanticTokens(tracks: ColorTrack[]): SemanticToken[] {
         : track.shades.find(
             (shade) => shade.weight === role.preferDarkWeight,
           )) ?? mirrored(track, light.weight);
+    const measured =
+      role.readableOn === undefined
+        ? null
+        : readableEnds(track, seeded.get(role.readableOn), tracks);
 
-    return {
+    seeded.set(role.id, {
       id: role.id,
       name: role.name,
       description: role.description,
-      light: { trackId: track.id, weight: light.weight },
-      dark: { trackId: track.id, weight: dark.weight },
-    };
-  });
+      light: {
+        trackId: track.id,
+        weight: measured?.light.weight ?? light.weight,
+      },
+      dark: { trackId: track.id, weight: measured?.dark.weight ?? dark.weight },
+    });
+  }
+
+  /* Back into the order the roles are written in, which is the order the
+     Semantics table groups them and the export writes them. */
+  return SEED_ROLES.map((role) => seeded.get(role.id)!);
+}
+
+/**
+ * The end of a track that reads best on a fill, per mode.
+ *
+ * Null when the fill is not in the layer, which leaves the caller on its
+ * declared weights: a seed that cannot measure should fall back to a stated
+ * choice rather than to a guess about a colour that is not there.
+ */
+function readableEnds(
+  track: ColorTrack,
+  fill: SemanticToken | undefined,
+  tracks: ColorTrack[],
+): { light: ShadeItem; dark: ShadeItem } | null {
+  if (!fill) return null;
+  const lightest = track.shades[0]!;
+  const darkest = track.shades[track.shades.length - 1]!;
+
+  const better = (mode: ColourMode): ShadeItem => {
+    const on = resolveSemantic(fill, mode, tracks);
+    if (!on) return mode === "light" ? lightest : darkest;
+    return contrastRatio(lightest.hex, on.hex) >=
+      contrastRatio(darkest.hex, on.hex)
+      ? lightest
+      : darkest;
+  };
+
+  return { light: better("light"), dark: better("dark") };
 }
 
 /**
@@ -765,6 +863,13 @@ const RENAMED_IDS: Readonly<Record<string, string>> = {
      `fg.primary` in one read, which is why the walk below follows a chain. */
   "text.primary": "fg.primary",
   "text.secondary": "fg.secondary",
+  /* The third rename, and the one that made a pattern out of a special case.
+     Primary was the only tone whose hovered and pressed fills were named for
+     the group rather than for the tone — `action.hover` reads as "the hover
+     of actions", which stopped being true the moment a second action tone
+     existed. Every tone now spells them the same way. */
+  "action.hover": "action.primary-hover",
+  "action.active": "action.primary-active",
 };
 
 /**
