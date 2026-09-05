@@ -11,7 +11,7 @@ test.describe("Typography export", () => {
     await expect(page.getByText(":root {")).toBeVisible();
 
     await page.getByRole("button", { name: "Tailwind CSS" }).click();
-    await expect(page.getByText("@theme {")).toBeVisible();
+    await expect(page.getByText("@theme static {")).toBeVisible();
   });
 
   test("exports rem by default and switches unit on request", async ({

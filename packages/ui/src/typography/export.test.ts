@@ -40,7 +40,7 @@ describe("formatTypeScaleTailwindExport", () => {
   it("emits an @theme block with the same tokens", () => {
     const output = formatTypeScaleTailwindExport(scale);
 
-    expect(output.startsWith("@theme {")).toBe(true);
+    expect(output.startsWith("@theme static {")).toBe(true);
     expect(output).toContain("--font-family-base: Inter, sans-serif;");
     expect(output).toContain(`--font-size-${scale.steps[0]!.step}:`);
   });

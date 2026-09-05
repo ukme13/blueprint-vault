@@ -95,7 +95,7 @@ export function formatScaleTailwind(input: ScaleExportInput): string {
   const { spacing, radius, elevation, palettes } = input;
 
   return [
-    "@theme {",
+    "@theme static {",
     ...spacingLines(spacing, "  "),
     "",
     ...radiusLines(radius, "  "),

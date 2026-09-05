@@ -31,7 +31,7 @@ describe("palette developer exports", () => {
       "--color-primary-50: #",
     );
     expect(formatPaletteTailwindExport([palette], "oklch")).toContain(
-      "@theme {\n  --color-primary-50: oklch(",
+      "@theme static {\n  --color-primary-50: oklch(",
     );
   });
 

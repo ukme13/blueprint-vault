@@ -175,7 +175,7 @@ describe("viewport handling", () => {
 describe("formatTypeSystemTailwindExport", () => {
   it("uses a @theme block with the same tokens", () => {
     const output = formatTypeSystemTailwindExport(migratedLegacy);
-    expect(output.startsWith("@theme {")).toBe(true);
+    expect(output.startsWith("@theme static {")).toBe(true);
     expect(output).toContain("--font-body-size:");
   });
 });

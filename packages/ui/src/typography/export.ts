@@ -65,7 +65,7 @@ export function formatTypeScaleTailwindExport(
   unit: TypeScaleUnit = "rem",
 ): string {
   return [
-    "@theme {",
+    "@theme static {",
     `  --font-family-base: ${scale.fontFamily};`,
     ...tokenLines(scale, unit),
     "}",
