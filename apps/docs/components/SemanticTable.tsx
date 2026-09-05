@@ -98,11 +98,17 @@ export function SemanticTable({ tokens, palettes }: SemanticTableProps) {
                     <Text type="body">{row.name}</Text>
                   </TableCell>
                   <TableCell>
-                    {/* A variable name broken across two lines is one somebody
-                        has to reassemble before pasting it. */}
-                    <Text textWrap="nowrap" type="code">
-                      {row.variable}
-                    </Text>
+                    {/* Allowed to wrap. A name broken across two lines is one
+                        somebody has to reassemble before pasting, which is why
+                        this was `nowrap` — and measured on the built page, the
+                        cell clipped instead: `.astryx-table-cell` sets
+                        `overflow-x: hidden`, so at 900px
+                        `--color-action-primary-surface-hover` wanted 318px of
+                        a 154px cell and lost half its name with no scrollbar
+                        to say so. A wrapped name is ugly and complete; a
+                        clipped one is tidy and wrong, and it is the tidy one
+                        somebody copies. */}
+                    <Text type="code">{row.variable}</Text>
                   </TableCell>
                   <TableCell>
                     <Reference mode="light" row={row} />
