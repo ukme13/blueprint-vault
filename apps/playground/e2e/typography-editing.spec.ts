@@ -979,14 +979,48 @@ test.describe("Reordering groups", () => {
     );
 
   /*
+   * Lift a card, and wait until an arrow key will actually be heard.
+   *
+   * Every observable sign of the lift arrives before the sensor can receive a
+   * movement key, and this is dnd-kit's own arrangement rather than a guess.
+   * `KeyboardSensor.attach()` calls `handleStart()` synchronously — which is
+   * what turns `isDragging` on, and with it `aria-pressed` on the handle and
+   * the "picked up" line in the live region — and then queues the keydown
+   * listener itself in a `setTimeout`. The timer is what stops the Space that
+   * began the drag from being re-read as a movement, so it is deliberate.
+   *
+   * Between those two there is a window where the card is fully, visibly
+   * lifted and nothing is listening. An arrow pressed there is not mishandled,
+   * it is dropped: no listener, no event. The card lifts and drops in the same
+   * place, and the test reads exactly like a reorder that does not work.
+   *
+   * There is no DOM signal for "the listener is attached" — it happens in a
+   * timer with no rendered effect. What is deterministic is the order of the
+   * queue. dnd-kit queues its timer while handling the Space; a timer queued
+   * after we have seen `aria-pressed` is therefore queued second, and timers
+   * of equal delay fire in the order they were registered. Waiting for ours is
+   * waiting for theirs to have run. That is an ordering guarantee, not a
+   * duration: the wait is over the moment the queue reaches it, whether that
+   * takes a microsecond or a second on a loaded machine.
+   */
+  const lift = async (
+    page: import("@playwright/test").Page,
+    handle: import("@playwright/test").Locator,
+  ) => {
+    await handle.focus();
+    await page.keyboard.press("Space");
+    await expect(handle).toHaveAttribute("aria-pressed", "true");
+    await page.evaluate(
+      () => new Promise<void>((resolve) => setTimeout(resolve)),
+    );
+  };
+
+  /*
    * Lift a card, carry it one place down, drop it.
    *
-   * Every step waits on the drag's own state rather than a sleep. The lift is
-   * `aria-pressed` on the handle, which is dnd-kit saying it has the card;
-   * the announcement is not enough on its own, because it updates before the
-   * sensor is ready and an arrow pressed on that signal is swallowed. Three
-   * presses in a row lift and drop in the same place, which reads exactly
-   * like a reorder that does not work.
+   * Every step waits on the drag's own state rather than a sleep: the lift is
+   * `aria-pressed` plus the queue turn above, the move is the live region
+   * changing, and the drop is `aria-pressed` going away.
    */
   const carryDown = async (
     page: import("@playwright/test").Page,
@@ -996,9 +1030,7 @@ test.describe("Reordering groups", () => {
       .getByRole("region", { name: "Type scale settings" })
       .getByRole("button", { name: `Reorder ${label} group` });
 
-    await handle.focus();
-    await page.keyboard.press("Space");
-    await expect(handle).toHaveAttribute("aria-pressed", "true");
+    await lift(page, handle);
 
     const lifted = await announcement(page);
     await page.keyboard.press("ArrowDown");
@@ -1049,9 +1081,7 @@ test.describe("Reordering groups", () => {
     const handle = settings.getByRole("button", {
       name: `Reorder ${shortest.label} group`,
     });
-    await handle.focus();
-    await page.keyboard.press("Space");
-    await expect(handle).toHaveAttribute("aria-pressed", "true");
+    await lift(page, handle);
     const lifted = await announcement(page);
     await page.keyboard.press("ArrowDown");
     await expect.poll(() => announcement(page)).not.toBe(lifted);
