@@ -1,0 +1,54 @@
+/*
+ * The studio's typeface, as a Tailwind theme.
+ *
+ * Its own file rather than a block in theme.css, because the two have
+ * different audiences. theme.css is the studio's colour chrome, and the docs
+ * app is forbidden from importing it — the docs app installs the export, the
+ * way a client does, and `docs-export.test.ts` holds that line. Type is not
+ * in that argument: the docs app is part of the tool, its chrome is the
+ * tool's chrome, and it should be set in the tool's font.
+ *
+ * So both apps import this, only the playground imports theme.css, and the
+ * stack is written once. It is not in the export and should not be: shipping
+ * Inter inside a client's design system would be the tool putting its own
+ * taste in their file. `astryx-bridge.css` reads these two through a fallback
+ * for exactly that reason.
+ *
+ * `static` because Tailwind tree-shakes an `@theme` variable no source file
+ * mentions, and what mentions these is a `var()` in a stylesheet rather than
+ * a utility class. It survived that in theme.css; it is not worth finding out
+ * per app whether it keeps surviving.
+ */
+@theme static {
+  /* ========================================================================
+     THE STUDIO'S TYPEFACE
+
+     Two families joined into one role. next/font hands each family its own
+     variable and has no option that folds two into one — its `fallback` takes
+     plain family names, not another loader — so the join is an ordinary font
+     stack, written once here. Inter carries Latin, Noto Sans Thai carries the
+     Thai block Inter has no glyphs for, and the browser falls from one to the
+     other per character.
+
+     The literal names are the second fallback, for anything rendered outside
+     an app that sets the variables: a component in a test, a page before its
+     stylesheet lands. `system-ui` is the third, because a missing typeface
+     should still leave readable text.
+
+     This is the tool's font. What a workspace says about type belongs to the
+     person using the tool, and the typography studio and every export read
+     that instead.
+
+     The apps put next/font's variables on <html> rather than <body>, and that
+     is load-bearing: these two lines are emitted at :root, so a variable
+     defined one level lower is out of scope when they are substituted and
+     every page silently falls through to the literal names below. Measured —
+     with the variables on <body> a paragraph resolved to plain "Inter", which
+     is the fallback and not the font that had just been downloaded.
+     ======================================================================== */
+  --font-sans:
+    var(--font-sans-latin, Inter), var(--font-sans-thai, "Noto Sans Thai"),
+    system-ui, sans-serif;
+  --font-mono:
+    var(--font-mono-face, "Geist Mono"), ui-monospace, SFMono-Regular, monospace;
+}
