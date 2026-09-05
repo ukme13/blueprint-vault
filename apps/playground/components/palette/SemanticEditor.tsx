@@ -14,6 +14,7 @@ import { TextInput } from "@astryxdesign/core/TextInput";
 import {
   addSemanticToken,
   Button,
+  groupSemanticTokens,
   COLOUR_MODES,
   removeSemanticToken,
   renameSemanticToken,
@@ -146,45 +147,6 @@ function ReferenceField({
   );
 }
 
-/** The part of an id before the dot: `surface.raised` → `surface`. */
-function groupOf(id: string): string {
-  return id.split(".")[0] ?? id;
-}
-
-/**
- * What a group is called in the section row.
- *
- * The id prefix is the export's spelling — `fg` is what a developer types —
- * and it makes a poor heading. A group somebody added themselves has no entry
- * here and shows its prefix, which is still what they typed.
- */
-const GROUP_LABELS: Readonly<Record<string, string>> = {
-  action: "Actions",
-  surface: "Surfaces",
-  border: "Borders",
-  fg: "Foregrounds",
-  focus: "Focus",
-  status: "Status",
-};
-
-/**
- * Tokens in the order they are stored, bucketed by group in the order each
- * group first appears. Not sorted: the order somebody arranged is theirs, and
- * the export writes it the same way.
- */
-function grouped(
-  tokens: SemanticToken[],
-): Array<{ group: string; tokens: SemanticToken[] }> {
-  const buckets = new Map<string, SemanticToken[]>();
-  for (const token of tokens) {
-    const group = groupOf(token.id);
-    const bucket = buckets.get(group);
-    if (bucket) bucket.push(token);
-    else buckets.set(group, [token]);
-  }
-  return [...buckets].map(([group, members]) => ({ group, tokens: members }));
-}
-
 interface SemanticEditorProps {
   tokens: SemanticToken[];
   palettes: ColorTrack[];
@@ -257,77 +219,81 @@ export function SemanticEditor({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {grouped(tokens).flatMap(({ group, tokens: members }) => [
-            /* A section row, like the group headings in a design tool's
+          {groupSemanticTokens(tokens).flatMap(
+            ({ group, label, tokens: members }) => [
+              /* A section row, like the group headings in a design tool's
                variables panel: the name once, and the rows under it are its. */
-            <TableRow key={`group:${group}`}>
-              <TableCell colSpan={5}>
-                <strong
-                  className="text-xs font-semibold uppercase tracking-wide text-fg-muted"
-                  data-group={group}
-                >
-                  {GROUP_LABELS[group] ?? group}
-                </strong>
-              </TableCell>
-            </TableRow>,
-            ...members.map((token) => (
-              <TableRow key={token.id}>
-                <TableCell>
-                  <div className="w-44" data-token={token.id}>
-                    <TextInput
-                      isLabelHidden
-                      label={`${token.id} name`}
-                      value={draft?.id === token.id ? draft.label : token.name}
-                      /* Typing changes the label only. A rename re-slugs the
+              <TableRow key={`group:${group}`}>
+                <TableCell colSpan={5}>
+                  <strong
+                    className="text-xs font-semibold uppercase tracking-wide text-fg-muted"
+                    data-group={group}
+                  >
+                    {label}
+                  </strong>
+                </TableCell>
+              </TableRow>,
+              ...members.map((token) => (
+                <TableRow key={token.id}>
+                  <TableCell>
+                    <div className="w-44" data-token={token.id}>
+                      <TextInput
+                        isLabelHidden
+                        label={`${token.id} name`}
+                        value={
+                          draft?.id === token.id ? draft.label : token.name
+                        }
+                        /* Typing changes the label only. A rename re-slugs the
                          id, which is this row's React key, so doing it per
                          keystroke remounts the field and drops focus after
                          one character — the mistake the typography groups
                          already made. */
-                      onChange={(label) => setDraft({ id: token.id, label })}
-                      onBlur={() => commit(token.id)}
-                      /* Enter blurs rather than committing directly, so both
+                        onChange={(label) => setDraft({ id: token.id, label })}
+                        onBlur={() => commit(token.id)}
+                        /* Enter blurs rather than committing directly, so both
                          paths go through one handler. */
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          event.currentTarget.blur();
-                        }
-                      }}
-                    />
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <code className="text-xs text-fg-secondary">
-                    {semanticVariableName(token.id)}
-                  </code>
-                </TableCell>
-                {COLOUR_MODES.map((mode) => (
-                  <TableCell key={mode}>
-                    <ReferenceField
-                      mode={mode}
-                      palettes={palettes}
-                      token={token}
-                      tokens={tokens}
-                      onChange={onChange}
-                    />
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            event.currentTarget.blur();
+                          }
+                        }}
+                      />
+                    </div>
                   </TableCell>
-                ))}
-                <TableCell>
-                  <Button
-                    aria-label={`Remove ${token.name}`}
-                    scheme="neutral"
-                    size="xs"
-                    variant="text"
-                    onClick={() =>
-                      onChange(removeSemanticToken(tokens, token.id))
-                    }
-                  >
-                    Remove
-                  </Button>
-                </TableCell>
-              </TableRow>
-            )),
-          ])}
+                  <TableCell>
+                    <code className="text-xs text-fg-secondary">
+                      {semanticVariableName(token.id)}
+                    </code>
+                  </TableCell>
+                  {COLOUR_MODES.map((mode) => (
+                    <TableCell key={mode}>
+                      <ReferenceField
+                        mode={mode}
+                        palettes={palettes}
+                        token={token}
+                        tokens={tokens}
+                        onChange={onChange}
+                      />
+                    </TableCell>
+                  ))}
+                  <TableCell>
+                    <Button
+                      aria-label={`Remove ${token.name}`}
+                      scheme="neutral"
+                      size="xs"
+                      variant="text"
+                      onClick={() =>
+                        onChange(removeSemanticToken(tokens, token.id))
+                      }
+                    >
+                      Remove
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              )),
+            ],
+          )}
         </TableBody>
       </Table>
     </section>

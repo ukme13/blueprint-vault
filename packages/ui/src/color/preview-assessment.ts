@@ -155,6 +155,22 @@ export interface TextCheck {
   label: string;
   foreground: string;
   background: string;
+  /**
+   * The roles the sample names, so a reader can act on a failure.
+   *
+   * A ratio on its own says a pair is wrong and not which pair, which is the
+   * difference between a report and a to-do. The hexes above are what was
+   * measured; these are what to change.
+   */
+  foregroundToken: string;
+  backgroundToken: string;
+  /**
+   * True when the foreground is black or white chosen for the fill.
+   *
+   * Those samples ask whether a fill can carry a label at all, so their
+   * foreground is not a role and `foregroundToken` names the fill instead.
+   */
+  isForegroundReadable: boolean;
   result: TextContrastResult;
   /** The current view, when the Vision chip is on. */
   simulated: SimulatedContrast | null;
@@ -356,6 +372,9 @@ export function assessTextChecks(
       label: sample.label,
       foreground,
       background: background.hex,
+      foregroundToken: sample.foreground,
+      backgroundToken: sample.background,
+      isForegroundReadable: sample.readable === true,
     };
 
     const result = assessTextContrast(check.foreground, check.background);
