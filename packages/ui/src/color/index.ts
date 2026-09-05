@@ -12,6 +12,8 @@ export * from "./semantic-contrast";
 export * from "./semantic-export";
 export * from "./preview-assessment";
 export * from "./theme-mode";
+export * from "./token-rows";
+export * from "./colour-mode";
 export * from "./transitions";
 export * from "./types";
 export * from "./vision";

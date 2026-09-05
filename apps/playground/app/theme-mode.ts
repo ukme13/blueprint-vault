@@ -1,16 +1,13 @@
 /**
  * Where the studio's colour-mode choice is kept.
  *
- * A module of its own, with no "use client" and no imports, because two very
- * different files read this key. The provider is a client component; the root
- * layout is a server component that inlines the key into a script. A constant
- * imported from a client module into a server component arrives as a client
- * reference rather than a string, so the key has to live somewhere neither
- * side owns.
- *
- * Only the key. The mode's type, its values and the resolution of `system`
- * live in `@blueprint/ui`, next to the `ColourMode` they resolve to — a
- * choice with a third state, and the semantic layer that has values for two,
- * belong beside each other.
+ * A re-export, and a module of its own with no "use client", because the root
+ * layout is a server component that inlines this into a script. The key itself
+ * lives in @blueprint/ui: the studio and the documentation are two windows onto
+ * one design system, and somebody who sets dark in one and finds the other
+ * light has been told they are two products.
  */
-export const THEME_MODE_STORAGE_KEY = "blueprint.colour-mode.v1";
+export {
+  COLOUR_MODE_STORAGE_KEY as THEME_MODE_STORAGE_KEY,
+  applySavedColourModeScript,
+} from "@blueprint/ui";

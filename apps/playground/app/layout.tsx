@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import Script from "next/script";
 import "./globals.css";
-import { THEME_MODE_STORAGE_KEY } from "./theme-mode";
+import { applySavedColourModeScript } from "./theme-mode";
 import { ThemeProvider } from "./theme-provider";
 
 const geistSans = localFont({
@@ -35,13 +35,11 @@ export const metadata: Metadata = {
  * injected into the initial HTML ahead of hydration, and Next only allows it
  * in the root layout.
  *
- * "system" and an unset key both leave the attribute off, which is what
- * `Theme` does for that mode too — `color-scheme` falls back to `light dark`
- * and the browser decides.
+ * The script itself comes from @blueprint/ui, because the documentation app
+ * inlines the same one and two copies of a script that reads one key is two
+ * things to keep in step.
  */
-const APPLY_SAVED_MODE = `(function(){try{var m=localStorage.getItem(${JSON.stringify(
-  THEME_MODE_STORAGE_KEY,
-)});if(m==="light"||m==="dark"){document.documentElement.setAttribute("data-theme",m)}}catch(e){}})()`;
+const APPLY_SAVED_MODE = applySavedColourModeScript();
 
 export default function RootLayout({
   children,
