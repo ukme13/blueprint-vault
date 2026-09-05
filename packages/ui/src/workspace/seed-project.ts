@@ -38,6 +38,11 @@ import type { WorkspaceProject } from "./types";
  */
 export const SEED_PALETTE_TRACKS: readonly ColorTrackInput[] = [
   { id: "primary", name: "primary", seedHex: "#7646ab" },
+  /* Teal, a long way round the wheel from the default purple. A second brand
+     colour that arrives looking like a shade of the first teaches nobody what
+     it is for, and the studio's job here is to show that the two tones are
+     independent rather than to guess somebody's brand. */
+  { id: "secondary", name: "secondary", seedHex: "#0f9d8f" },
   { id: "neutral", name: "neutral", seedHex: "#737373" },
   { id: "success", name: "success", seedHex: "#2f7d32" },
   { id: "warning", name: "warning", seedHex: "#b87503" },
@@ -45,21 +50,34 @@ export const SEED_PALETTE_TRACKS: readonly ColorTrackInput[] = [
   { id: "info", name: "info", seedHex: "#2878b8" },
 ];
 
-/** The six tracks, with `primary` moved onto a chosen seed colour. */
-export function seedPaletteTracks(primarySeedHex: string): ColorTrackInput[] {
-  return SEED_PALETTE_TRACKS.map((track) =>
-    track.id === "primary"
-      ? { ...track, seedHex: primarySeedHex }
-      : { ...track },
-  );
+/**
+ * The seven tracks, with the two brand colours moved onto chosen seeds.
+ *
+ * Both are the person's to choose. `secondary` is not a shade of `primary`
+ * or a derived complement: it is a second brand colour, and a system that
+ * derived it would be inventing a decision that belongs to whoever owns the
+ * brand. It defaults to the seed above when nobody says otherwise.
+ */
+export function seedPaletteTracks(
+  primarySeedHex: string,
+  secondarySeedHex?: string,
+): ColorTrackInput[] {
+  return SEED_PALETTE_TRACKS.map((track) => {
+    if (track.id === "primary") return { ...track, seedHex: primarySeedHex };
+    if (track.id === "secondary" && secondarySeedHex !== undefined) {
+      return { ...track, seedHex: secondarySeedHex };
+    }
+    return { ...track };
+  });
 }
 
 /** The palette slice a new project starts with. */
 export function seedPaletteProject(
   primarySeedHex = SEED_PALETTE_TRACKS[0]!.seedHex,
+  secondarySeedHex?: string,
 ): PaletteProjectData {
   return {
-    tracks: seedPaletteTracks(primarySeedHex),
+    tracks: seedPaletteTracks(primarySeedHex, secondarySeedHex),
     lightnessPattern: "custom",
     lightnessValues: defaultLightnessValues("custom"),
   };
