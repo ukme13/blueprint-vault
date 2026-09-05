@@ -450,3 +450,77 @@ lookup that has no half filed under it. The media query behind it is a live
 subscription — a machine turns dark at sunset with the page open — so it is
 owned once, by the provider, and `prefersDark` is a parameter to the resolver
 rather than something it reads.
+
+## Notes from the tone pattern
+
+**A tone is one colour of the system and everything a control needs from it.**
+The statuses arrived at the shape first, in stage 2 of the foundations plan: a
+fill is not enough to build an alert, which needs a ground, a foreground and an
+edge as well. Putting the Button on the layer showed a button wants the same
+four plus a hovered fill, a pressed fill and a hovered ground. So it is one
+pattern applied six times rather than six sets of names.
+
+| role              | what it is                                          |
+| ----------------- | --------------------------------------------------- |
+| `F`               | the fill of a contained control                     |
+| `F-hover`         | that fill under the pointer                         |
+| `F-active`        | that fill while it is pressed                       |
+| `F-surface`       | the soft ground: an alert, a ghost control, a hover |
+| `F-surface-hover` | that ground, hovered or pressed                     |
+| `F-fg`            | text and icons on the surface, and on the canvas    |
+| `F-border`        | the edge of an outlined control or an alert         |
+| `fg.on-<tone>`    | the label on the fill                               |
+
+Six tones — `action.primary`, `action.neutral`, and the four statuses — so
+forty-eight of the layer's sixty-five roles are this table.
+
+**Three weights came back from measurement different from the obvious answer.**
+The border is 450 in _both_ modes: a border's job is to be seen against the
+canvas, the canvas moves between modes and the middle of the ramp does not, so
+one weight clears 3:1 on both. The 200/800 the statuses were seeded at for
+their alert borders measures 1.4:1 on a light canvas and 1.06:1 on a dark one,
+which is not a boundary — that is what an outlined button would have had. The
+surface stays at the pale end, 50/950, about 1.15:1 against the canvas: faint,
+and what a hover wash is; moving it would move the alert backgrounds the bridge
+feeds. And the label on a fill is not declared at all.
+
+**`fg.on-<tone>` is measured, not chosen.** A label on a filled control has one
+job, and which end of the neutral ramp does it is a fact about the fill's
+lightness. Seeded statically it works for one palette: measured against this
+project's own, white reads on primary, warning, error and info, near-black on
+success and info in dark, and the neutral fill inverts with the mode. A client
+whose brand colour is pale wants the opposite of all of them and would have no
+way to know. So `seedSemanticTokens` resolves the fill first and takes whichever
+end reads better on it.
+
+The question this was expected to answer — does `fg.on-warning` need a dark
+seed? — came back no. The warning fill is `warning-450` in light, where white
+measures 4.67 and near-black 4.18, and `warning-500` in dark, where white
+measures 5.75. Light in both modes, and the measurement is why.
+
+**The rename.** `action.hover` and `action.active` are
+`action.primary-hover` and `action.primary-active`. The old names read as "the
+hover of actions", which stopped being true the moment a second action tone
+existed. `migrateSemanticIds` carries a saved layer across, keeping whatever
+reference the user had.
+
+**`action.muted` stayed.** It looks like it should fold into
+`action.primary-surface` and it should not. A surface is the pale ground at the
+canvas end of the ramp; `action.muted` is the accent turned down but still
+present, at 400 and 900 — the fill of a selected chip. Three places in the
+studio use it that way and Astryx reads it as `--color-accent-muted`, so
+merging them would have moved three backgrounds two thirds of the way up the
+ramp. Two names because they are two jobs.
+
+**A neutral action is a variant, not a mode.** The Button's quiet scheme is
+black on a light page and white on a dark one, which is the one fill that
+crosses the ramp rather than sitting on it — and that is a per-mode pair, which
+is exactly what a semantic token is. So it is `action.neutral` with the same
+seven roles as every other tone, editable in the Semantics tab, rather than a
+branch inside the component asking which mode it is in. The component never
+asks.
+
+It is kept out of the similarity grid, where the other action tones sit,
+because it has no hue to be confused with anything: every pair against it would
+be a row that always passes, including under achromatopsia, where it is the
+only thing on the page that is still exactly what it was.
