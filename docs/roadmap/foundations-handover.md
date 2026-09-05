@@ -499,3 +499,51 @@ entry. It also means the Google and uploaded paths are written and unit-tested
 but have never rendered on this page. A reference workspace with one Google
 family and one uploaded family would be a better fixture, and is worth doing
 before stage 5 hands one to a client.
+
+### Closing those findings
+
+**The stored size was worse than dead, and could not be deleted.** The note
+above said the reference workspace stores every role at 16px. What it missed is
+that the CSS export read that field directly, so a client installing the
+generated file got a design system in which every text role was 16px —
+`--font-h1-size`, `--font-h2-size` and `--font-display-size` all the base size
+beside a correct `--font-size-8: 62px`, with the line heights wrong alongside
+them because a line height is computed from the size it sits on. Invisible from
+the studio and from the documentation, both of which resolve before rendering.
+Only the artefact that leaves the building was wrong.
+
+The field itself stays. It looks dead because every value in a seeded system is
+inert, but it is the store for a hand-set size: the studio's size input writes
+there and sets `stepOffset: null`, and an unlinked role has no step to resolve
+against. Removing it would have deleted the Custom size and silently reset
+every role somebody had tuned. `resolveSystemRoles` is the only path to a size
+anything renders or writes now, and a guard holds the row builder and the
+exported file to the same number.
+
+No file version bump. The shape did not change and no reader needs to tell the
+two apart, so a bump would have added a number to
+`SUPPORTED_WORKSPACE_FILE_VERSIONS` that distinguishes nothing.
+
+**The template slot rules had to be a hierarchy, not one role per group.** One
+role per group gives `h1` for a heading slot, which on a default system is
+62px — the same as `display-1` — so the hero, the standfirst and every section
+heading would have come out identical and the article would have looked broken
+in a new way. A standfirst is a subordinate title and a section heading sits
+under it, so they take the second and third heading roles. Measured in the
+studio: 62 / 48 / 40 / 16 where it was 62 / 16.
+
+**The Google path had never run, and now has.** Both fixture entries were
+"system Geist Sans", a family in no catalogue, never uploaded, installed on no
+CI machine. Space Grotesk with Kanit and Work Sans with Sarabun replace them —
+a Latin face and a Thai face per entry, none of them the studio's own Inter or
+Noto Sans Thai. All four load, and the Thai is drawn by the Thai face rather
+than by a system fallback: measured per family, the display stack and Kanit
+alone are both 284.12px against 286.79 for Space Grotesk and for serif.
+
+**Clipping was in the two tables written first.** The typography table was
+fixed when it was found; the colour and semantic tables carried the same
+`nowrap` and clipped a hundred and seventy cells between them at 900px. All
+three are clean at 900 and 1280 now. Seven `sr-only` spans still measure as
+clipped and should: 1px wide holding 50px of text is the visually-hidden
+pattern working, and it is indistinguishable from a real clip unless you ask
+why.
