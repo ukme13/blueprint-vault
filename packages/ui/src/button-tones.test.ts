@@ -85,10 +85,16 @@ describe("the Button's colours", () => {
   });
 
   it("has no scheme for a track a workspace does not seed", () => {
-    /* `secondary` and `tertiary` were schemes here, drawing from tracks that
-       exist in the studio's theme.css and in no saved project — the same
-       fault the bridge carried for cyan and purple. */
-    expect(BUTTON_SCHEMES).not.toContain("secondary");
+    /* Both `secondary` and `tertiary` were schemes here once, drawing from
+       tracks that existed in the studio's theme.css and in no saved project —
+       the same fault the bridge carried for cyan and purple, and both were
+       removed for it.
+
+       `secondary` is back because the seed palette has the track now and the
+       creation screen asks for its colour. `tertiary` is not, and the rule is
+       the same rule: a scheme may name a tone the layer holds roles for, and
+       nothing else. */
+    expect(BUTTON_SCHEMES).toContain("secondary");
     expect(BUTTON_SCHEMES).not.toContain("tertiary");
   });
 });
