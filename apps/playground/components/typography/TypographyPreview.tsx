@@ -6,6 +6,7 @@ import {
   Button,
   elementForRole,
   formatLength,
+  type SemanticRole,
   type TypeRole,
   type TypeScaleUnit,
   type ColorTrack,
@@ -53,7 +54,13 @@ export interface TypographyPreviewProps {
   width: PreviewWidth;
   lang: PreviewLanguage;
   /** Resolved CSS per role, so templates never do scale maths themselves. */
-  styleFor: (roleId: string) => CSSProperties;
+  /* Two questions, and they are not the same one. A template asks which role
+     should draw its heading slot; the specimen list already has a role and
+     asks what it looks like. Folding them into one function is what let the
+     slot chain answer for a concrete role and land every one of them on
+     body. */
+  styleFor: (slot: SemanticRole) => CSSProperties;
+  styleOf: (role: TypeRole) => CSSProperties;
   onTemplateChange: (template: PreviewTemplateId) => void;
   onWidthChange: (width: PreviewWidth) => void;
   onLangChange: (lang: PreviewLanguage) => void;
@@ -74,6 +81,7 @@ export function TypographyPreview({
   width,
   lang,
   styleFor,
+  styleOf,
   onTemplateChange,
   onWidthChange,
   onLangChange,
@@ -221,7 +229,7 @@ export function TypographyPreview({
                     </p>
                   )}
                 </header>
-                <Tag style={styleFor(role.id)}>{text}</Tag>
+                <Tag style={styleOf(role)}>{text}</Tag>
               </article>
             );
           })}

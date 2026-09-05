@@ -6,6 +6,7 @@ import {
   googleFontsHref,
   typeFontRows,
   typeRoleRowGroups,
+  resolveTemplateSlot,
   ArticleTemplate,
   type SemanticRole,
 } from "@blueprint/ui";
@@ -83,18 +84,15 @@ export default function TypographyFoundationPage() {
       .map((family) => ({ family })),
   );
 
-  /* The article template asks for roles by the six original names. This
-     workspace has its own, so the lookup falls through id, then group, then
-     body — the same chain the studio's preview uses, which is why a template
-     can never render unstyled. */
-  const styleForRole = (role: SemanticRole) => {
-    const match =
-      rows.find((row) => row.id === role) ??
-      rows.find((row) => row.groupId === role) ??
-      rows.find((row) => row.id === "body") ??
-      rows.find((row) => row.groupId === "body") ??
-      rows[0];
-    return match ? specimenStyle(match) : {};
+  /* Which role draws each slot is `resolveTemplateSlot` in the package, the
+     same function the studio's preview uses. The six names a template asks
+     for are the ones the system shipped with, and this workspace has none of
+     them but `body` — so before the resolver, five of six slots landed on
+     body and the article below rendered flat. */
+  const styleForSlot = (slot: SemanticRole) => {
+    const role = resolveTemplateSlot(system, slot);
+    const row = role && rows.find((candidate) => candidate.id === role.id);
+    return row ? specimenStyle(row) : {};
   };
 
   return (
@@ -142,12 +140,12 @@ export default function TypographyFoundationPage() {
         <ArticleTemplate
           classNames={TEMPLATE_CLASSES}
           lang="en"
-          styleFor={styleForRole}
+          styleFor={styleForSlot}
         />
         <ArticleTemplate
           classNames={TEMPLATE_CLASSES}
           lang="th"
-          styleFor={styleForRole}
+          styleFor={styleForSlot}
         />
       </VStack>
     </FoundationsFrame>

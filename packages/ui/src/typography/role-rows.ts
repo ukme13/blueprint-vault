@@ -2,6 +2,9 @@ import { findGoogleFont } from "./google-fonts";
 import { generateTypeSteps } from "./scale";
 import { typeTokenId } from "./system-export";
 import {
+  BODY_GROUP_ID,
+  DISPLAY_GROUP_ID,
+  HEADING_GROUP_ID,
   elementForRole,
   familiesToCss,
   resolveLineHeight,
@@ -11,7 +14,7 @@ import {
   type TypeRole,
   type TypeSystem,
 } from "./system";
-import type { TypeStep } from "./types";
+import type { SemanticRole, TypeStep } from "./types";
 
 /**
  * A type system as rows something can render.
@@ -293,4 +296,90 @@ export function typeScaleSummary(system: TypeSystem): TypeScaleSummary {
       system.stepCount,
     ),
   };
+}
+
+/**
+ * Which role a preview template's slot should draw.
+ *
+ * The templates ask for the six role names the system shipped with —
+ * `display`, `title`, `heading`, `body`, `label`, `caption` — and a workspace
+ * built on the merged model has none of them except `body`. Its roles are
+ * `display-1`, `h1` to `h6` and `body`. So five of the six slots fell through
+ * to body, and the article template rendered its kicker, its standfirst, its
+ * byline and both section headings at the same 16px as its paragraphs. The
+ * fallback was doing what it was built to do and what it hid was that the
+ * templates and the model had been out of step since the merge.
+ *
+ * An exact id always wins: a workspace that has a role called `caption` gets
+ * it, and none of the rules below run. The rules are for the workspaces that
+ * do not, which is every default one.
+ *
+ * The rules are a hierarchy rather than one role per group, because a group is
+ * not a size. Mapping `heading` to the heading group's first role gives `h1`,
+ * which on a default system is 62px — the same as `display-1` — so the hero,
+ * the standfirst and every section heading would come out identical and the
+ * article would look broken in a new way. A standfirst is a subordinate title
+ * and a section heading sits under it, so they take the second and third
+ * heading roles. Measured on the default system, the six slots resolve to 62,
+ * 48, 40, 16, 16 and 16 rather than 62, 62, 62, 16, 16 and 16.
+ */
+interface SlotRule {
+  groupId: string;
+  /** Position in the group, or the smallest role it has. */
+  at: number | "smallest";
+}
+
+const SLOT_RULES: Readonly<Record<SemanticRole, SlotRule>> = {
+  display: { groupId: DISPLAY_GROUP_ID, at: 0 },
+  title: { groupId: HEADING_GROUP_ID, at: 1 },
+  heading: { groupId: HEADING_GROUP_ID, at: 2 },
+  body: { groupId: BODY_GROUP_ID, at: 0 },
+  /* A kicker, a byline and a caption are the quietest text on the page, so
+     they take the smallest thing the body group has — which on a default
+     system is body itself, because there is nothing smaller. That is the
+     honest answer: the workspace has no caption role. */
+  label: { groupId: BODY_GROUP_ID, at: "smallest" },
+  caption: { groupId: BODY_GROUP_ID, at: "smallest" },
+};
+
+/**
+ * The role a template slot draws, resolved against a real workspace.
+ *
+ * Never null for a system with any roles at all: a template that renders
+ * unstyled is worse than one rendering at the wrong size, and the chain ends
+ * at the first role in the system.
+ */
+export function resolveTemplateSlot(
+  system: TypeSystem,
+  slot: SemanticRole,
+): TypeRole | null {
+  const roles = resolveSystemRoles(system);
+  if (roles.length === 0) return null;
+
+  /* An exact id first, so a workspace that has named a role after the slot is
+     never second-guessed by a rule. */
+  const exact = roles.find((role) => role.id === slot);
+  if (exact) return exact;
+
+  const rule = SLOT_RULES[slot];
+  const inGroup = roles.filter((role) => role.groupId === rule.groupId);
+  if (inGroup.length > 0) {
+    if (rule.at === "smallest") {
+      return inGroup.reduce((smallest, role) =>
+        role.desktop.fontSizePx < smallest.desktop.fontSizePx ? role : smallest,
+      );
+    }
+    /* A group shorter than the rule asks for falls to its last role rather
+       than to body: a system with two heading roles should still put its
+       section headings in a heading. */
+    return inGroup[Math.min(rule.at, inGroup.length - 1)] ?? null;
+  }
+
+  /* No such group. Body, then anything, so a template always renders. */
+  return (
+    roles.find((role) => role.id === BODY_GROUP_ID) ??
+    roles.find((role) => role.groupId === BODY_GROUP_ID) ??
+    roles[0] ??
+    null
+  );
 }

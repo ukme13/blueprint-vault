@@ -3,6 +3,7 @@ import { formatTypeSystemCssExport } from "./system-export";
 import { defaultSystem, type TypeSystem } from "./system";
 import {
   resolveSystemRoles,
+  resolveTemplateSlot,
   typeFontRows,
   typeRoleRowGroups,
   typeRoleVariables,
@@ -244,5 +245,100 @@ describe("the rows and the exported file", () => {
         );
       }
     }
+  });
+});
+
+describe("which role a template slot draws", () => {
+  const seeded = () =>
+    defaultSystem("Reference", ["Geist Sans", "ui-sans-serif"], 16, 1.25, 9);
+
+  const sizeOf = (
+    system: TypeSystem,
+    slot: Parameters<typeof resolveTemplateSlot>[1],
+  ) => resolveTemplateSlot(system, slot)?.desktop.fontSizePx;
+
+  it("gives the article a hierarchy on a workspace with none of its names", () => {
+    /* The whole point. A default workspace has `display-1`, `h1`–`h6` and
+       `body`, and none of the six names a template asks for except `body` —
+       so every slot fell through to body and the article rendered its kicker,
+       hero, standfirst, byline and section headings all at 16px. */
+    const system = seeded();
+
+    expect(sizeOf(system, "display")).toBe(62);
+    expect(sizeOf(system, "title")).toBe(48);
+    expect(sizeOf(system, "heading")).toBe(40);
+    expect(sizeOf(system, "body")).toBe(16);
+    expect(sizeOf(system, "label")).toBe(16);
+    expect(sizeOf(system, "caption")).toBe(16);
+
+    /* Four distinct sizes across the six slots, and the three that carry the
+       article's structure are all different. Mapping each slot to its group's
+       first role instead would give 62, 62, 62 — the hero, the standfirst and
+       every section heading identical. */
+    const structural = [
+      sizeOf(system, "display"),
+      sizeOf(system, "title"),
+      sizeOf(system, "heading"),
+    ];
+    expect(new Set(structural).size).toBe(3);
+  });
+
+  it("prefers a role the workspace actually named", () => {
+    /* A workspace that has a `caption` gets its `caption`, and the rule never
+       runs. A rule that outranked an exact name would be the studio telling
+       somebody their own role was the wrong one. */
+    const base = seeded();
+    /* Deliberately somewhere the rule would never look: a `caption` in the
+       heading group, larger than body. If the rule ran it would return the
+       smallest body role, so only the exact-id path can find this. */
+    const system: TypeSystem = {
+      ...base,
+      roles: [
+        ...base.roles,
+        {
+          ...base.roles.find((role) => role.id === "h4")!,
+          id: "caption",
+          name: "caption",
+          groupId: "h",
+          stepOffset: 3,
+        },
+      ],
+    };
+
+    expect(resolveTemplateSlot(system, "caption")?.id).toBe("caption");
+    expect(sizeOf(system, "caption")).toBe(32);
+    /* And the slots around it are untouched. */
+    expect(sizeOf(system, "body")).toBe(16);
+    expect(sizeOf(system, "label")).toBe(16);
+  });
+
+  it("falls to the group's last role rather than to body", () => {
+    /* A system with two headings should still put a section heading in a
+       heading, even though the rule asks for a third. */
+    const base = seeded();
+    const system: TypeSystem = {
+      ...base,
+      roles: base.roles.filter(
+        (role) => !["h3", "h4", "h5", "h6"].includes(role.id),
+      ),
+    };
+
+    expect(resolveTemplateSlot(system, "heading")?.id).toBe("h2");
+  });
+
+  it("renders something for a system with no groups it knows", () => {
+    /* A template must never render unstyled, so the chain ends at the first
+       role rather than at null. */
+    const base = seeded();
+    const system: TypeSystem = {
+      ...base,
+      groups: [{ id: "custom", label: "Custom", indexing: "number" }],
+      roles: base.roles
+        .filter((role) => role.id === "h1")
+        .map((role) => ({ ...role, groupId: "custom" })),
+    };
+
+    expect(resolveTemplateSlot(system, "heading")?.id).toBe("h1");
+    expect(resolveTemplateSlot({ ...system, roles: [] }, "body")).toBeNull();
   });
 });
