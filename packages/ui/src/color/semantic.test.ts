@@ -57,10 +57,10 @@ function tokenById(tokens: SemanticToken[], id: string): SemanticToken {
 }
 
 describe("seedSemanticTokens", () => {
-  it("seeds the twenty-five roles the page needs", () => {
+  it("seeds the thirty-seven roles the page needs", () => {
     const tokens = seedSemanticTokens(fullPalette());
-    expect(tokens).toHaveLength(25);
-    expect(new Set(tokens.map((token) => token.id)).size).toBe(25);
+    expect(tokens).toHaveLength(37);
+    expect(new Set(tokens.map((token) => token.id)).size).toBe(37);
   });
 
   /* The guard against the layer drifting away from the preview it came from.
@@ -101,7 +101,7 @@ describe("seedSemanticTokens", () => {
     ]);
     const tokens = seedSemanticTokens(tracks);
 
-    expect(tokens).toHaveLength(25);
+    expect(tokens).toHaveLength(37);
     for (const token of tokens) {
       expect(token.light.trackId).toBe("only");
     }
@@ -210,7 +210,7 @@ describe("resolveSemantic", () => {
   it("resolves every token in a mode", () => {
     const tracks = fullPalette();
     const tokens = seedSemanticTokens(tracks);
-    expect(resolveSemantics(tokens, "dark", tracks)).toHaveLength(25);
+    expect(resolveSemantics(tokens, "dark", tracks)).toHaveLength(37);
     expect(resolveSemantics(tokens, "dark", [])).toEqual([]);
   });
 });
@@ -271,7 +271,7 @@ describe("editing a layer", () => {
     const tracks = fullPalette();
     const tokens = addSemanticToken(seedSemanticTokens(tracks), tracks, "Chip");
 
-    expect(tokens).toHaveLength(26);
+    expect(tokens).toHaveLength(38);
     const added = tokenById(tokens, "chip");
     expect(resolveSemantic(added, "light", tracks)!.hex).toMatch(
       /^#[0-9a-f]{6}$/i,
@@ -297,7 +297,7 @@ describe("editing a layer", () => {
     const tokens = seedSemanticTokens(fullPalette());
     const next = removeSemanticToken(tokens, "status.info");
 
-    expect(next).toHaveLength(24);
+    expect(next).toHaveLength(36);
     expect(next.some((token) => token.id === "status.info")).toBe(false);
   });
 
@@ -384,9 +384,21 @@ describe("the first names, carried forward", () => {
       "fg.on-action",
       "focus.ring",
       "status.success",
+      "status.success-surface",
+      "status.success-fg",
+      "status.success-border",
       "status.warning",
+      "status.warning-surface",
+      "status.warning-fg",
+      "status.warning-border",
       "status.error",
+      "status.error-surface",
+      "status.error-fg",
+      "status.error-border",
       "status.info",
+      "status.info-surface",
+      "status.info-fg",
+      "status.info-border",
     ]);
   });
 });
@@ -457,28 +469,29 @@ describe("fillSeedRoles", () => {
     expect(filled.slice(0, stored.length)).toEqual(stored);
   });
 
-  it("gives a layer saved before the chrome roles existed all six", () => {
-    /* The case every stored workspace is in. The six came over from the
-       studio's own chrome after nineteen roles had been shipping for a while,
-       so no saved layer has them and the bridge feeds an Astryx token from
-       each — a workspace that did not gain them on read would leave a client
-       with six invalid declarations and no way to see why. */
+  it("gives a layer saved before the chrome roles existed all eighteen", () => {
+    /* The case every stored workspace is in, twice over. Six roles came from
+       the studio's own chrome after nineteen had been shipping, and twelve
+       more arrived when each status gained a surface, a foreground and a
+       border. The bridge feeds an Astryx token from every one of the
+       eighteen, so a layer that did not gain them on read would leave a
+       client with eighteen invalid declarations and no way to see why. */
     const nineteen = seedSemanticTokens(fullPalette()).filter(
       (token) =>
+        !token.id.includes("-") &&
         ![
           "action.muted",
           "surface.skeleton",
           "surface.track",
           "border.strong",
           "fg.accent",
-          "fg.on-action",
         ].includes(token.id),
     );
     expect(nineteen).toHaveLength(19);
 
     const filled = fillSeedRoles(nineteen, fullPalette());
 
-    expect(filled).toHaveLength(25);
+    expect(filled).toHaveLength(37);
     const onAction = tokenById(filled, "fg.on-action");
     /* Seeded against the palette, not copied from a default: near-white on the
        light fill and near-black on the dark one, which is the pair the
@@ -489,6 +502,16 @@ describe("fillSeedRoles", () => {
        body text lands on. */
     expect(onAction.light.trackId).toBe(
       tokenById(filled, "fg.primary").light.trackId,
+    );
+
+    /* And one of the twelve, on its own status track rather than on neutral:
+       an alert's ground is the quietest shade of the colour it is warning
+       in, not a grey. */
+    const errorSurface = tokenById(filled, "status.error-surface");
+    expect(errorSurface.light.weight).toBe(50);
+    expect(errorSurface.dark.weight).toBe(950);
+    expect(errorSurface.light.trackId).toBe(
+      tokenById(filled, "status.error").light.trackId,
     );
   });
 

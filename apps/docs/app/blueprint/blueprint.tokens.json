@@ -464,6 +464,42 @@
         },
         "info": {
           "$value": "{palette.info.500}"
+        },
+        "success-surface": {
+          "$value": "{palette.success.50}"
+        },
+        "success-fg": {
+          "$value": "{palette.success.900}"
+        },
+        "success-border": {
+          "$value": "{palette.success.200}"
+        },
+        "warning-surface": {
+          "$value": "{palette.warning.50}"
+        },
+        "warning-fg": {
+          "$value": "{palette.warning.900}"
+        },
+        "warning-border": {
+          "$value": "{palette.warning.200}"
+        },
+        "error-surface": {
+          "$value": "{palette.error.50}"
+        },
+        "error-fg": {
+          "$value": "{palette.error.900}"
+        },
+        "error-border": {
+          "$value": "{palette.error.200}"
+        },
+        "info-surface": {
+          "$value": "{palette.info.50}"
+        },
+        "info-fg": {
+          "$value": "{palette.info.900}"
+        },
+        "info-border": {
+          "$value": "{palette.info.200}"
         }
       }
     },
@@ -553,6 +589,42 @@
         },
         "info": {
           "$value": "{palette.info.450}"
+        },
+        "success-surface": {
+          "$value": "{palette.success.950}"
+        },
+        "success-fg": {
+          "$value": "{palette.success.100}"
+        },
+        "success-border": {
+          "$value": "{palette.success.800}"
+        },
+        "warning-surface": {
+          "$value": "{palette.warning.950}"
+        },
+        "warning-fg": {
+          "$value": "{palette.warning.100}"
+        },
+        "warning-border": {
+          "$value": "{palette.warning.800}"
+        },
+        "error-surface": {
+          "$value": "{palette.error.950}"
+        },
+        "error-fg": {
+          "$value": "{palette.error.100}"
+        },
+        "error-border": {
+          "$value": "{palette.error.800}"
+        },
+        "info-surface": {
+          "$value": "{palette.info.950}"
+        },
+        "info-fg": {
+          "$value": "{palette.info.100}"
+        },
+        "info-border": {
+          "$value": "{palette.info.800}"
         }
       }
     }

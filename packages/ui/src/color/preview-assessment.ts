@@ -324,6 +324,17 @@ const TEXT_SAMPLES: readonly TextSample[] = [
     background: TOKENS.statusError,
     readable: true,
   },
+  /* One row per status: the foreground of an alert on the alert's own ground.
+     That is the pair every alert ships, and the four of them are the reason
+     the sub-roles exist — a status that had only a fill left somebody choosing
+     a text colour for it out of the ramp, unmeasured. Built from the ids
+     rather than written out four times, so a status added to the layer is
+     measured without anybody remembering to add a row. */
+  ...(["success", "warning", "error", "info"] as const).map((name) => ({
+    label: `${name.charAt(0).toUpperCase()}${name.slice(1)} alert text`,
+    foreground: `status.${name}-fg`,
+    background: `status.${name}-surface`,
+  })),
 ];
 
 export function assessTextChecks(
@@ -504,8 +515,31 @@ const ACTION_STATES = new Set([
   "action.muted",
 ]);
 
+/**
+ * A role that is part of a control rather than the control's colour.
+ *
+ * `status.error-surface` is the ground an alert sits on and
+ * `status.error-border` is its edge; neither is a thing anybody reads meaning
+ * out of, and both are the same hue as the signal beside them, so pairing them
+ * would fill the grid with rows measuring an alert against its own background.
+ * `status.error-fg` is a foreground and is measured, but as text on its
+ * surface, which is a contrast threshold rather than a similarity.
+ *
+ * The hyphen is the rule because it is the naming convention the layer uses:
+ * the bare role is the colour, a suffix names a part of the thing built from
+ * it. Somebody who renames a token into that shape opts into the same
+ * treatment, which is the right answer for a name shaped like a part.
+ */
+function isPartOfAControl(id: string): boolean {
+  return shortName(id).includes("-");
+}
+
 function signalsByColour(id: string): boolean {
-  return SIGNALLING_GROUPS.includes(group(id)) && !ACTION_STATES.has(id);
+  return (
+    SIGNALLING_GROUPS.includes(group(id)) &&
+    !ACTION_STATES.has(id) &&
+    !isPartOfAControl(id)
+  );
 }
 
 function group(id: string): string {

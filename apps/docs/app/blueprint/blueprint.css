@@ -147,6 +147,18 @@
   --color-border-strong: var(--color-neutral-300);
   --color-fg-accent: var(--color-primary-600);
   --color-fg-on-action: var(--color-neutral-50);
+  --color-status-success-surface: var(--color-success-50);
+  --color-status-success-fg: var(--color-success-900);
+  --color-status-success-border: var(--color-success-200);
+  --color-status-warning-surface: var(--color-warning-50);
+  --color-status-warning-fg: var(--color-warning-900);
+  --color-status-warning-border: var(--color-warning-200);
+  --color-status-error-surface: var(--color-error-50);
+  --color-status-error-fg: var(--color-error-900);
+  --color-status-error-border: var(--color-error-200);
+  --color-status-info-surface: var(--color-info-50);
+  --color-status-info-fg: var(--color-info-900);
+  --color-status-info-border: var(--color-info-200);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -176,6 +188,18 @@
     --color-border-strong: var(--color-neutral-700);
     --color-fg-accent: var(--color-primary-400);
     --color-fg-on-action: var(--color-neutral-950);
+    --color-status-success-surface: var(--color-success-950);
+    --color-status-success-fg: var(--color-success-100);
+    --color-status-success-border: var(--color-success-800);
+    --color-status-warning-surface: var(--color-warning-950);
+    --color-status-warning-fg: var(--color-warning-100);
+    --color-status-warning-border: var(--color-warning-800);
+    --color-status-error-surface: var(--color-error-950);
+    --color-status-error-fg: var(--color-error-100);
+    --color-status-error-border: var(--color-error-800);
+    --color-status-info-surface: var(--color-info-950);
+    --color-status-info-fg: var(--color-info-100);
+    --color-status-info-border: var(--color-info-800);
   }
 }
 
@@ -205,6 +229,18 @@
   --color-border-strong: var(--color-neutral-700);
   --color-fg-accent: var(--color-primary-400);
   --color-fg-on-action: var(--color-neutral-950);
+  --color-status-success-surface: var(--color-success-950);
+  --color-status-success-fg: var(--color-success-100);
+  --color-status-success-border: var(--color-success-800);
+  --color-status-warning-surface: var(--color-warning-950);
+  --color-status-warning-fg: var(--color-warning-100);
+  --color-status-warning-border: var(--color-warning-800);
+  --color-status-error-surface: var(--color-error-950);
+  --color-status-error-fg: var(--color-error-100);
+  --color-status-error-border: var(--color-error-800);
+  --color-status-info-surface: var(--color-info-950);
+  --color-status-info-fg: var(--color-info-100);
+  --color-status-info-border: var(--color-info-800);
 }
 
 :root {

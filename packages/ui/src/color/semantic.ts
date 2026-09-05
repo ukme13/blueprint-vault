@@ -296,12 +296,80 @@ const SEED_ROLES: readonly SeedRole[] = [
     track: "success",
     position: 0.55,
   },
+  /* Three parts per status, beside the fill.
+
+     `status.success` on its own is the signal: the dot, the badge fill, the
+     colour somebody reads meaning out of. An alert needs three more — a soft
+     ground to sit on, a foreground that reads on that ground, and a border to
+     hold its edge — and a system that stops at the signal makes everyone
+     assemble those from shade numbers, which is the thing the layer exists to
+     prevent. Astryx has wanted all four per status since before this layer
+     did; the bridge was reaching straight into the primitives for them.
+
+     Every one takes its own status track, at the weights the studio's chrome
+     already resolves to: surface 50/950, foreground 900/100, border 200/800.
+     None of those three is a mirror of its light value, which is why each
+     names its dark weight. */
+  {
+    id: "status.success-surface",
+    name: "Status success surface",
+    description: "The soft background of a success alert or badge.",
+    track: "success",
+    position: 0.05,
+    preferWeight: 50,
+    preferDarkWeight: 950,
+  },
+  {
+    id: "status.success-fg",
+    name: "Status success foreground",
+    description: "Text and icons on the success surface.",
+    track: "success",
+    position: 0.95,
+    preferWeight: 900,
+    preferDarkWeight: 100,
+  },
+  {
+    id: "status.success-border",
+    name: "Status success border",
+    description: "The border around a success alert or badge.",
+    track: "success",
+    position: 0.21,
+    preferWeight: 200,
+    preferDarkWeight: 800,
+  },
   {
     id: "status.warning",
     name: "Status warning",
     description: "A warning badge or message.",
     track: "warning",
     position: 0.45,
+  },
+  {
+    id: "status.warning-surface",
+    name: "Status warning surface",
+    description: "The soft background of a warning alert or badge.",
+    track: "warning",
+    position: 0.05,
+    preferWeight: 50,
+    preferDarkWeight: 950,
+  },
+  {
+    id: "status.warning-fg",
+    name: "Status warning foreground",
+    description: "Text and icons on the warning surface.",
+    track: "warning",
+    position: 0.95,
+    preferWeight: 900,
+    preferDarkWeight: 100,
+  },
+  {
+    id: "status.warning-border",
+    name: "Status warning border",
+    description: "The border around a warning alert or badge.",
+    track: "warning",
+    position: 0.21,
+    preferWeight: 200,
+    preferDarkWeight: 800,
   },
   {
     id: "status.error",
@@ -311,11 +379,65 @@ const SEED_ROLES: readonly SeedRole[] = [
     position: 0.55,
   },
   {
+    id: "status.error-surface",
+    name: "Status error surface",
+    description: "The soft background of an error alert or badge.",
+    track: "error",
+    position: 0.05,
+    preferWeight: 50,
+    preferDarkWeight: 950,
+  },
+  {
+    id: "status.error-fg",
+    name: "Status error foreground",
+    description: "Text and icons on the error surface.",
+    track: "error",
+    position: 0.95,
+    preferWeight: 900,
+    preferDarkWeight: 100,
+  },
+  {
+    id: "status.error-border",
+    name: "Status error border",
+    description: "The border around an error alert or badge.",
+    track: "error",
+    position: 0.21,
+    preferWeight: 200,
+    preferDarkWeight: 800,
+  },
+  {
     id: "status.info",
     name: "Status info",
     description: "An informational badge or message.",
     track: "info",
     position: 0.55,
+  },
+  {
+    id: "status.info-surface",
+    name: "Status info surface",
+    description: "The soft background of an informational alert or badge.",
+    track: "info",
+    position: 0.05,
+    preferWeight: 50,
+    preferDarkWeight: 950,
+  },
+  {
+    id: "status.info-fg",
+    name: "Status info foreground",
+    description: "Text and icons on the info surface.",
+    track: "info",
+    position: 0.95,
+    preferWeight: 900,
+    preferDarkWeight: 100,
+  },
+  {
+    id: "status.info-border",
+    name: "Status info border",
+    description: "The border around an informational alert or badge.",
+    track: "info",
+    position: 0.21,
+    preferWeight: 200,
+    preferDarkWeight: 800,
   },
 ];
 
