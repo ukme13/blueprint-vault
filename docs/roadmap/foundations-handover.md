@@ -119,7 +119,7 @@ half kept.
    report already computes for each pair. Written guidance for each group:
    `fg`, `surface`, `border`, `action`, `status`, `focus`.
 
-3. **Typography ✅, then spacing, radius and elevation.** The same shape for each:
+3. ✅ **Typography, spacing, radius and elevation.** The same shape for each:
    the table the studio already knows how to draw, the specimens the studio
    already renders, and the guidance a person writes. Elevation shows every
    level on a light and a dark ground, which the playground already does and
@@ -547,3 +547,49 @@ three are clean at 900 and 1280 now. Seven `sr-only` spans still measure as
 clipped and should: 1px wide holding 50px of text is the visually-hidden
 pattern working, and it is indistinguishable from a real clip unless you ask
 why.
+
+## Notes from stage 3, spacing, radius and elevation
+
+**The row builder is thin, and that is the finding.** Its colour and typography
+siblings exist because two readers would otherwise each decide what a row is.
+Here they would not: `resolveSpacing`, `resolveRadius` and `resolveElevation`
+are what `scale-export.ts` already calls to write the file, so a page calling
+the same functions cannot print a variable the file lacks. `scale-rows.ts`
+carries only the two things a page needs and an export does not — elevation
+paired across its two modes, and the shade a shadow was drawn from, which the
+resolution otherwise consumes. Where the naming rule is already one function,
+a row builder should be small enough to look unnecessary.
+
+**Elevation is the one page whose grounds cannot be semantic utilities.** The
+page has to show a level on a light ground and a dark one at the same time, and
+a semantic utility resolves to whichever mode the reader is in — `bg-surface-base`
+would draw the same ground twice and quietly prove nothing. The playground's
+editor reaches for `--color-neutral-50` and `--color-neutral-900`, which is a
+primitive and not something a documentation page may name. So the grounds are
+`surface.base` and `surface.raised` resolved per mode and passed in as values,
+the way `Swatch` already takes a hex. Stage 4's scanner should treat that as
+the shape that passes: a role named, resolved from the workspace, never typed.
+
+**The plan was right about spacing and had already corrected itself.** "Spacing
+is not geometric" is the first thing the roadmap says, and it says it as a
+correction to its own earlier draft. That correction is load-bearing: it is
+what the page's opening section is about, and a scale generated with the type
+maths would have shipped 6.25px steps that look principled and cannot be used.
+Nothing on these three pages contradicts the plan. The only thing it did not
+anticipate is the ground problem above, which is a documentation concern rather
+than a scale one.
+
+**Radius has no description problem and typography did.** Every radius token
+carries its own `description` — "a button, an input, a badge" — written when
+the token was defined, so the page's table has a "what it is for" column filled
+from the workspace rather than from the content module. Spacing steps and type
+roles have no equivalent, which is why their pages carry more prose. A token
+that knows what it is for is worth more than a paragraph that knows it.
+
+**One prose convention had to be enforced against itself.** The guidance names
+a counter-example — "there is no radius ramp here and no radius-2" — and the
+test that checks every backticked token exists would have failed on it. The
+answer is that a counter-example is not a token and does not get backticks;
+neither do rgba, var() or box-shadow. The convention is that a backtick means
+"this exists", which makes the test's job stating the obvious rather than
+guessing.

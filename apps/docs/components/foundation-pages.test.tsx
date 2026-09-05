@@ -1,10 +1,12 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
+  formatScaleCss,
   formatTypeSystemCssExport,
   generatePalettes,
   seedSemanticTokens,
   seedWorkspaceProject,
+  resolveSpacing,
   typeRoleRowGroups,
   type ColorTrack,
   type SemanticToken,
@@ -12,6 +14,9 @@ import {
 } from "@blueprint/ui";
 import { PrimitiveTable } from "./PrimitiveTable";
 import { SemanticTable } from "./SemanticTable";
+import { ElevationSpecimen, ElevationTable } from "./ElevationScale";
+import { RadiusSpecimen, RadiusTable } from "./RadiusScale";
+import { SpacingSpecimen, SpacingTable } from "./SpacingScale";
 import { TypeRoleTable } from "./TypeRoleTable";
 import { TypeSpecimens } from "./TypeSpecimens";
 import { guidanceRoleIds } from "../content/colour";
@@ -20,6 +25,7 @@ import {
   typographyGuidanceIds,
   typographyGuidanceVariables,
 } from "../content/typography";
+import { scaleGuidanceIds, scaleGuidanceVariables } from "../content/scale";
 
 /*
  * The rule the whole plan rests on: a page is a template over data.
@@ -308,5 +314,160 @@ describe("the typography guidance", () => {
       .filter((id) => !spoken.has(id));
 
     expect(silent, silent.join("\n")).toEqual([]);
+  });
+});
+
+/* Spacing, radius and elevation, held to the same rule as the pages above. */
+
+const scaleProject = () => seedWorkspaceProject("Reference");
+const scalePalettes = () => generatePalettes(scaleProject().palette!);
+
+describe("the spacing page is a template over the scale", () => {
+  it("moves when the base unit changes", () => {
+    const base = scaleProject().spacing;
+    const before = renderToStaticMarkup(<SpacingTable scale={base} />);
+    const after = renderToStaticMarkup(
+      <SpacingTable scale={{ ...base, baseUnitPx: 6 }} />,
+    );
+
+    /* 9px is step 1.5 at a base of 6, and the seeded scale cannot produce it:
+       every value there is a multiple of 4 or a half step of it, so 9 can only
+       have come from the change. 24px would not have done — step 6 at a base
+       of 4 is also 24, and the assertion would have passed before the edit. */
+    expect(before).toContain("16px");
+    expect(before).not.toContain("9px");
+    expect(after).toContain("9px");
+    expect(after).not.toBe(before);
+  });
+
+  it("draws the bars from the same values", () => {
+    /* The table and the specimen read one resolution. A bar wired to its own
+       maths would keep drawing the old width beside a table showing the new
+       one, which is the disagreement a reader would notice last. */
+    const base = scaleProject().spacing;
+    const before = renderToStaticMarkup(<SpacingSpecimen scale={base} />);
+    const after = renderToStaticMarkup(
+      <SpacingSpecimen scale={{ ...base, baseUnitPx: 6 }} />,
+    );
+
+    expect(before).toContain("width:16px");
+    expect(before).not.toContain("width:9px");
+    expect(after).toContain("width:9px");
+  });
+});
+
+describe("the radius page is a template over the scale", () => {
+  it("follows the multiplier, and leaves the two fixed tokens alone", () => {
+    const base = scaleProject().radius;
+    const before = renderToStaticMarkup(<RadiusTable scale={base} />);
+    const after = renderToStaticMarkup(
+      <RadiusTable scale={{ ...base, multiplier: 2 }} />,
+    );
+
+    expect(after).not.toBe(before);
+    /* `full` is a pill in both, because half a pill is still a pill. */
+    expect(before).toContain("9999px");
+    expect(after).toContain("9999px");
+    /* And a scaling token doubled. */
+    const scaling = base.tokens.find((token) => token.scales)!;
+    expect(after).toContain(`${scaling.basePx * 2}px`);
+  });
+
+  it("draws each corner at its own radius", () => {
+    const base = scaleProject().radius;
+    const markup = renderToStaticMarkup(<RadiusSpecimen scale={base} />);
+
+    for (const token of base.tokens) {
+      const px = token.scales
+        ? Math.round(token.basePx * base.multiplier)
+        : token.basePx;
+      expect(markup, `${token.id} is drawn`).toContain(`border-radius:${px}px`);
+    }
+  });
+});
+
+describe("the elevation page is a template over the scale", () => {
+  it("moves when a level's strength changes", () => {
+    const base = scaleProject().elevation;
+    const stronger = {
+      ...base,
+      levels: base.levels.map((level, index) =>
+        index === 0
+          ? {
+              ...level,
+              layers: level.layers.map((layer) => ({
+                ...layer,
+                opacity: { ...layer.opacity, light: 0.42 },
+              })),
+            }
+          : level,
+      ),
+    };
+
+    const before = renderToStaticMarkup(
+      <ElevationTable palettes={scalePalettes()} scale={base} />,
+    );
+    const after = renderToStaticMarkup(
+      <ElevationTable palettes={scalePalettes()} scale={stronger} />,
+    );
+
+    expect(before).not.toContain("0.42");
+    expect(after).toContain("0.42");
+  });
+
+  it("draws both grounds with one shadow colour and two strengths", () => {
+    /* The claim the page is making, asserted rather than described. */
+    const project = scaleProject();
+    const markup = renderToStaticMarkup(
+      <ElevationSpecimen
+        palettes={scalePalettes()}
+        scale={project.elevation}
+        tokens={project.semantics ?? []}
+      />,
+    );
+
+    const shadows = [
+      ...markup.matchAll(/rgba\((\d+), (\d+), (\d+), ([\d.]+)\)/g),
+    ];
+    expect(shadows.length).toBeGreaterThan(0);
+
+    const channels = new Set(
+      shadows.map((match) => `${match[1]},${match[2]},${match[3]}`),
+    );
+    const alphas = new Set(shadows.map((match) => match[4]));
+    /* One colour, more than one strength. */
+    expect(channels.size).toBe(1);
+    expect(alphas.size).toBeGreaterThan(1);
+  });
+});
+
+describe("the scale guidance", () => {
+  it("names only tokens a workspace actually has", () => {
+    const project = scaleProject();
+    const known = new Set([
+      ...project.radius.tokens.map((token) => token.id),
+      ...project.elevation.levels.map((level) => level.id),
+      ...resolveSpacing(project.spacing).map((token) => token.name),
+    ]);
+
+    const unknown = scaleGuidanceIds().filter((id) => !known.has(id));
+
+    expect(unknown, unknown.join("\n")).toEqual([]);
+  });
+
+  it("names only variables the export writes", () => {
+    const project = scaleProject();
+    const css = formatScaleCss({
+      spacing: project.spacing,
+      radius: project.radius,
+      elevation: project.elevation,
+      palettes: scalePalettes(),
+    });
+
+    const missing = scaleGuidanceVariables().filter(
+      (variable) => !css.includes(`${variable}:`),
+    );
+
+    expect(missing, missing.join("\n")).toEqual([]);
   });
 });
