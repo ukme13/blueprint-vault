@@ -65,7 +65,7 @@ describe("buildAccessibilityReport", () => {
        the same assessment the preview shows. */
     const built = report();
 
-    expect(built.colour.textChecks).toHaveLength(20);
+    expect(built.colour.textChecks).toHaveLength(22);
     /* Fifteen: every pair among the six tokens that signal by colour. */
     expect(built.colour.semanticPairs).toHaveLength(15);
     expect(built.colour.issueCount).toBeGreaterThanOrEqual(0);

@@ -428,7 +428,7 @@ describe("assessPreview", () => {
        (fg.on-action on action.primary), the accent as text on the canvas, and
        one per status for the foreground of an alert on the alert's own
        ground. Each became measurable when the layer gained the role. */
-    expect(assessment.textChecks).toHaveLength(20);
+    expect(assessment.textChecks).toHaveLength(22);
     expect(assessment.textColourChoices).toHaveLength(4);
     expect(assessment.nonTextChecks).toHaveLength(2);
     /* Every pair among the six tokens that signal by colour — two actions and
