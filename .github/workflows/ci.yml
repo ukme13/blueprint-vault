@@ -3,12 +3,24 @@ name: CI
 on:
   push:
     branches: [main]
+  # Every pull request, whatever it targets. Filtered to `main`, a PR based on
+  # another branch matched no trigger at all and got no run — which is not a
+  # red X, it is an empty checks list that reads as "nothing to report". Five
+  # stacked PRs were opened and reviewed that way, and the one type error among
+  # them reached main because no run had ever looked at it.
   pull_request:
-    branches: [main]
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Per branch, not per workflow. The group was shared by every ref, so four
+  # merges landing in a row cancelled each other and left one completed run
+  # between them; the three cancelled ones are indistinguishable from three
+  # that never started.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # A pull request's later push makes its earlier run irrelevant, so cancel it.
+  # A push to main is a merge that is already in the history and the only run
+  # that will ever exist for it, so it finishes even if the next merge arrives
+  # first.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   TURBO_TELEMETRY_DISABLED: 1
