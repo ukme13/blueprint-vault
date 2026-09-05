@@ -75,6 +75,84 @@
         }
       },
       {
+        "id": "action.primary-hover",
+        "name": "Action primary hover",
+        "description": "The fill under the pointer.",
+        "light": {
+          "trackId": "primary",
+          "weight": 550
+        },
+        "dark": {
+          "trackId": "primary",
+          "weight": 400
+        }
+      },
+      {
+        "id": "action.primary-active",
+        "name": "Action primary active",
+        "description": "The fill while it is pressed.",
+        "light": {
+          "trackId": "primary",
+          "weight": 600
+        },
+        "dark": {
+          "trackId": "primary",
+          "weight": 350
+        }
+      },
+      {
+        "id": "action.primary-surface",
+        "name": "Action primary surface",
+        "description": "The soft ground of an alert, a ghost control or a hovered outline.",
+        "light": {
+          "trackId": "primary",
+          "weight": 50
+        },
+        "dark": {
+          "trackId": "primary",
+          "weight": 950
+        }
+      },
+      {
+        "id": "action.primary-surface-hover",
+        "name": "Action primary surface hover",
+        "description": "That soft ground, hovered or pressed.",
+        "light": {
+          "trackId": "primary",
+          "weight": 100
+        },
+        "dark": {
+          "trackId": "primary",
+          "weight": 900
+        }
+      },
+      {
+        "id": "action.primary-fg",
+        "name": "Action primary foreground",
+        "description": "Text and icons on the surface, and on the canvas.",
+        "light": {
+          "trackId": "primary",
+          "weight": 900
+        },
+        "dark": {
+          "trackId": "primary",
+          "weight": 100
+        }
+      },
+      {
+        "id": "action.primary-border",
+        "name": "Action primary border",
+        "description": "The edge of an outlined control or an alert.",
+        "light": {
+          "trackId": "primary",
+          "weight": 450
+        },
+        "dark": {
+          "trackId": "primary",
+          "weight": 450
+        }
+      },
+      {
         "id": "action.secondary",
         "name": "Action secondary",
         "description": "The fill of a secondary button or control.",
@@ -88,29 +166,107 @@
         }
       },
       {
-        "id": "action.hover",
-        "name": "Action hover",
-        "description": "A primary control under the pointer.",
+        "id": "action.muted",
+        "name": "Action muted",
+        "description": "A quiet fill in the action colour: a tint or a soft badge.",
         "light": {
           "trackId": "primary",
-          "weight": 600
+          "weight": 400
         },
         "dark": {
           "trackId": "primary",
-          "weight": 350
+          "weight": 900
         }
       },
       {
-        "id": "action.active",
-        "name": "Action active",
-        "description": "A primary control while it is pressed.",
+        "id": "action.neutral",
+        "name": "Action neutral",
+        "description": "The fill of a plain button: black on light, white on dark.",
         "light": {
-          "trackId": "primary",
-          "weight": 650
+          "trackId": "neutral",
+          "weight": 950
         },
         "dark": {
-          "trackId": "primary",
-          "weight": 300
+          "trackId": "neutral",
+          "weight": 50
+        }
+      },
+      {
+        "id": "action.neutral-hover",
+        "name": "Action neutral hover",
+        "description": "The fill under the pointer.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 900
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 100
+        }
+      },
+      {
+        "id": "action.neutral-active",
+        "name": "Action neutral active",
+        "description": "The fill while it is pressed.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 850
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 150
+        }
+      },
+      {
+        "id": "action.neutral-surface",
+        "name": "Action neutral surface",
+        "description": "The soft ground of an alert, a ghost control or a hovered outline.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 50
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 950
+        }
+      },
+      {
+        "id": "action.neutral-surface-hover",
+        "name": "Action neutral surface hover",
+        "description": "That soft ground, hovered or pressed.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 100
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 900
+        }
+      },
+      {
+        "id": "action.neutral-fg",
+        "name": "Action neutral foreground",
+        "description": "Text and icons on the surface, and on the canvas.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 850
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 100
+        }
+      },
+      {
+        "id": "action.neutral-border",
+        "name": "Action neutral border",
+        "description": "The edge of an outlined control or an alert.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 450
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 450
         }
       },
       {
@@ -166,6 +322,32 @@
         }
       },
       {
+        "id": "surface.skeleton",
+        "name": "Surface skeleton",
+        "description": "The placeholder block shown while content loads.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 200
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 800
+        }
+      },
+      {
+        "id": "surface.track",
+        "name": "Surface track",
+        "description": "The groove of a slider, scrollbar or progress bar.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 200
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 800
+        }
+      },
+      {
         "id": "border.default",
         "name": "Border default",
         "description": "Borders and dividers.",
@@ -202,6 +384,19 @@
         "dark": {
           "trackId": "neutral",
           "weight": 750
+        }
+      },
+      {
+        "id": "border.strong",
+        "name": "Border strong",
+        "description": "A border meant to be noticed: a card edge, a section rule.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 300
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 700
         }
       },
       {
@@ -244,6 +439,97 @@
         }
       },
       {
+        "id": "fg.accent",
+        "name": "Foreground accent",
+        "description": "Text or an icon in the accent colour, on a surface.",
+        "light": {
+          "trackId": "primary",
+          "weight": 600
+        },
+        "dark": {
+          "trackId": "primary",
+          "weight": 400
+        }
+      },
+      {
+        "id": "fg.on-action",
+        "name": "Foreground on action",
+        "description": "Text and icons on the action primary fill.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 25
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 25
+        }
+      },
+      {
+        "id": "fg.on-neutral",
+        "name": "Foreground on neutral",
+        "description": "Text and icons on the action neutral fill.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 25
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 950
+        }
+      },
+      {
+        "id": "fg.on-success",
+        "name": "Foreground on success",
+        "description": "Text and icons on the status success fill.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 25
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 950
+        }
+      },
+      {
+        "id": "fg.on-warning",
+        "name": "Foreground on warning",
+        "description": "Text and icons on the status warning fill.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 25
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 25
+        }
+      },
+      {
+        "id": "fg.on-error",
+        "name": "Foreground on error",
+        "description": "Text and icons on the status error fill.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 25
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 25
+        }
+      },
+      {
+        "id": "fg.on-info",
+        "name": "Foreground on info",
+        "description": "Text and icons on the status info fill.",
+        "light": {
+          "trackId": "neutral",
+          "weight": 25
+        },
+        "dark": {
+          "trackId": "neutral",
+          "weight": 950
+        }
+      },
+      {
         "id": "focus.ring",
         "name": "Focus ring",
         "description": "The focus indicator.",
@@ -270,6 +556,84 @@
         }
       },
       {
+        "id": "status.success-hover",
+        "name": "Status success hover",
+        "description": "The fill under the pointer.",
+        "light": {
+          "trackId": "success",
+          "weight": 550
+        },
+        "dark": {
+          "trackId": "success",
+          "weight": 400
+        }
+      },
+      {
+        "id": "status.success-active",
+        "name": "Status success active",
+        "description": "The fill while it is pressed.",
+        "light": {
+          "trackId": "success",
+          "weight": 600
+        },
+        "dark": {
+          "trackId": "success",
+          "weight": 350
+        }
+      },
+      {
+        "id": "status.success-surface",
+        "name": "Status success surface",
+        "description": "The soft ground of an alert, a ghost control or a hovered outline.",
+        "light": {
+          "trackId": "success",
+          "weight": 50
+        },
+        "dark": {
+          "trackId": "success",
+          "weight": 950
+        }
+      },
+      {
+        "id": "status.success-surface-hover",
+        "name": "Status success surface hover",
+        "description": "That soft ground, hovered or pressed.",
+        "light": {
+          "trackId": "success",
+          "weight": 100
+        },
+        "dark": {
+          "trackId": "success",
+          "weight": 900
+        }
+      },
+      {
+        "id": "status.success-fg",
+        "name": "Status success foreground",
+        "description": "Text and icons on the surface, and on the canvas.",
+        "light": {
+          "trackId": "success",
+          "weight": 900
+        },
+        "dark": {
+          "trackId": "success",
+          "weight": 100
+        }
+      },
+      {
+        "id": "status.success-border",
+        "name": "Status success border",
+        "description": "The edge of an outlined control or an alert.",
+        "light": {
+          "trackId": "success",
+          "weight": 450
+        },
+        "dark": {
+          "trackId": "success",
+          "weight": 450
+        }
+      },
+      {
         "id": "status.warning",
         "name": "Status warning",
         "description": "A warning badge or message.",
@@ -280,6 +644,84 @@
         "dark": {
           "trackId": "warning",
           "weight": 500
+        }
+      },
+      {
+        "id": "status.warning-hover",
+        "name": "Status warning hover",
+        "description": "The fill under the pointer.",
+        "light": {
+          "trackId": "warning",
+          "weight": 500
+        },
+        "dark": {
+          "trackId": "warning",
+          "weight": 450
+        }
+      },
+      {
+        "id": "status.warning-active",
+        "name": "Status warning active",
+        "description": "The fill while it is pressed.",
+        "light": {
+          "trackId": "warning",
+          "weight": 550
+        },
+        "dark": {
+          "trackId": "warning",
+          "weight": 400
+        }
+      },
+      {
+        "id": "status.warning-surface",
+        "name": "Status warning surface",
+        "description": "The soft ground of an alert, a ghost control or a hovered outline.",
+        "light": {
+          "trackId": "warning",
+          "weight": 50
+        },
+        "dark": {
+          "trackId": "warning",
+          "weight": 950
+        }
+      },
+      {
+        "id": "status.warning-surface-hover",
+        "name": "Status warning surface hover",
+        "description": "That soft ground, hovered or pressed.",
+        "light": {
+          "trackId": "warning",
+          "weight": 100
+        },
+        "dark": {
+          "trackId": "warning",
+          "weight": 900
+        }
+      },
+      {
+        "id": "status.warning-fg",
+        "name": "Status warning foreground",
+        "description": "Text and icons on the surface, and on the canvas.",
+        "light": {
+          "trackId": "warning",
+          "weight": 900
+        },
+        "dark": {
+          "trackId": "warning",
+          "weight": 100
+        }
+      },
+      {
+        "id": "status.warning-border",
+        "name": "Status warning border",
+        "description": "The edge of an outlined control or an alert.",
+        "light": {
+          "trackId": "warning",
+          "weight": 450
+        },
+        "dark": {
+          "trackId": "warning",
+          "weight": 450
         }
       },
       {
@@ -296,12 +738,168 @@
         }
       },
       {
+        "id": "status.error-hover",
+        "name": "Status error hover",
+        "description": "The fill under the pointer.",
+        "light": {
+          "trackId": "error",
+          "weight": 550
+        },
+        "dark": {
+          "trackId": "error",
+          "weight": 400
+        }
+      },
+      {
+        "id": "status.error-active",
+        "name": "Status error active",
+        "description": "The fill while it is pressed.",
+        "light": {
+          "trackId": "error",
+          "weight": 600
+        },
+        "dark": {
+          "trackId": "error",
+          "weight": 350
+        }
+      },
+      {
+        "id": "status.error-surface",
+        "name": "Status error surface",
+        "description": "The soft ground of an alert, a ghost control or a hovered outline.",
+        "light": {
+          "trackId": "error",
+          "weight": 50
+        },
+        "dark": {
+          "trackId": "error",
+          "weight": 950
+        }
+      },
+      {
+        "id": "status.error-surface-hover",
+        "name": "Status error surface hover",
+        "description": "That soft ground, hovered or pressed.",
+        "light": {
+          "trackId": "error",
+          "weight": 100
+        },
+        "dark": {
+          "trackId": "error",
+          "weight": 900
+        }
+      },
+      {
+        "id": "status.error-fg",
+        "name": "Status error foreground",
+        "description": "Text and icons on the surface, and on the canvas.",
+        "light": {
+          "trackId": "error",
+          "weight": 900
+        },
+        "dark": {
+          "trackId": "error",
+          "weight": 100
+        }
+      },
+      {
+        "id": "status.error-border",
+        "name": "Status error border",
+        "description": "The edge of an outlined control or an alert.",
+        "light": {
+          "trackId": "error",
+          "weight": 450
+        },
+        "dark": {
+          "trackId": "error",
+          "weight": 450
+        }
+      },
+      {
         "id": "status.info",
         "name": "Status info",
         "description": "An informational badge or message.",
         "light": {
           "trackId": "info",
           "weight": 500
+        },
+        "dark": {
+          "trackId": "info",
+          "weight": 450
+        }
+      },
+      {
+        "id": "status.info-hover",
+        "name": "Status info hover",
+        "description": "The fill under the pointer.",
+        "light": {
+          "trackId": "info",
+          "weight": 550
+        },
+        "dark": {
+          "trackId": "info",
+          "weight": 400
+        }
+      },
+      {
+        "id": "status.info-active",
+        "name": "Status info active",
+        "description": "The fill while it is pressed.",
+        "light": {
+          "trackId": "info",
+          "weight": 600
+        },
+        "dark": {
+          "trackId": "info",
+          "weight": 350
+        }
+      },
+      {
+        "id": "status.info-surface",
+        "name": "Status info surface",
+        "description": "The soft ground of an alert, a ghost control or a hovered outline.",
+        "light": {
+          "trackId": "info",
+          "weight": 50
+        },
+        "dark": {
+          "trackId": "info",
+          "weight": 950
+        }
+      },
+      {
+        "id": "status.info-surface-hover",
+        "name": "Status info surface hover",
+        "description": "That soft ground, hovered or pressed.",
+        "light": {
+          "trackId": "info",
+          "weight": 100
+        },
+        "dark": {
+          "trackId": "info",
+          "weight": 900
+        }
+      },
+      {
+        "id": "status.info-fg",
+        "name": "Status info foreground",
+        "description": "Text and icons on the surface, and on the canvas.",
+        "light": {
+          "trackId": "info",
+          "weight": 900
+        },
+        "dark": {
+          "trackId": "info",
+          "weight": 100
+        }
+      },
+      {
+        "id": "status.info-border",
+        "name": "Status info border",
+        "description": "The edge of an outlined control or an alert.",
+        "light": {
+          "trackId": "info",
+          "weight": 450
         },
         "dark": {
           "trackId": "info",

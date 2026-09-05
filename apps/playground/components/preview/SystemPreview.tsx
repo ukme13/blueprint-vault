@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import {
+  Button,
   defaultElevationScale,
   defaultRadiusScale,
   defaultSpacingScale,
@@ -171,6 +172,16 @@ export function SystemPreview() {
               >
                 Tertiary
               </button>
+              {/* The shared Button, on the one page that may not name a
+                  primitive. It draws from the same layer this page does —
+                  `action.neutral` and the label measured against it — so a
+                  component here is proof the component reads the workspace
+                  rather than the studio's own chrome. Everything around it is
+                  drawn by hand for the same reason: this page is where the
+                  layer is argued with. */}
+              <Button scheme="neutral" size="medium" variant="contained">
+                Neutral action
+              </Button>
             </div>
           </section>
 

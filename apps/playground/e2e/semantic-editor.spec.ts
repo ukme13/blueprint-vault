@@ -39,12 +39,14 @@ async function swatch(
 }
 
 test.describe("The semantic editor", () => {
-  test("seeds the thirty-seven roles the page needs", async ({
+  test("seeds the sixty-five roles the page needs", async ({
     seededPage: page,
   }) => {
     const editor = await openSemantics(page);
-    await expect(editor.locator("tr:has([data-token])")).toHaveCount(37);
-    await expect(editor.getByText("--color-action-primary")).toBeVisible();
+    await expect(editor.locator("tr:has([data-token])")).toHaveCount(65);
+    await expect(
+      editor.getByText("--color-action-primary", { exact: true }),
+    ).toBeVisible();
   });
 
   test("shows both modes at once", async ({ seededPage: page }) => {
@@ -139,10 +141,10 @@ test.describe("The semantic editor", () => {
     const editor = await openSemantics(page);
 
     await editor.getByRole("button", { name: "Add token" }).click();
-    await expect(editor.locator("tr:has([data-token])")).toHaveCount(38);
+    await expect(editor.locator("tr:has([data-token])")).toHaveCount(66);
 
     await editor.getByRole("button", { name: "Remove New token" }).click();
-    await expect(editor.locator("tr:has([data-token])")).toHaveCount(37);
+    await expect(editor.locator("tr:has([data-token])")).toHaveCount(65);
   });
 
   test("keeps the layer across a reload", async ({ seededPage: page }) => {
