@@ -23,7 +23,9 @@ describe("the preview page uses semantic tokens only", () => {
     /* The rule that makes the page worth building. Every place it would have
        to reach for a primitive is a semantic token the layer is missing, so a
        page allowed to use `--color-primary-500` proves nothing at all. */
-    const uses = PREVIEW_SOURCES.flatMap(findPrimitiveColourUse);
+    const uses = PREVIEW_SOURCES.flatMap((root) =>
+      findPrimitiveColourUse(root),
+    );
 
     expect(
       uses,
@@ -37,7 +39,9 @@ describe("the preview page uses spacing tokens only", () => {
     /* Padding, margin and gap come from the scale. Every measurement the page
        cannot express is a step the scale is missing, which is how the set gets
        argued from a real page rather than invented. */
-    const uses = PREVIEW_SOURCES.flatMap(findHardcodedMeasurements);
+    const uses = PREVIEW_SOURCES.flatMap((root) =>
+      findHardcodedMeasurements(root),
+    );
 
     expect(
       uses,
@@ -48,7 +52,7 @@ describe("the preview page uses spacing tokens only", () => {
 
 describe("the preview page uses radius tokens only", () => {
   it("reaches for no rounded utility anywhere", () => {
-    const uses = PREVIEW_SOURCES.flatMap(findHardcodedRadius);
+    const uses = PREVIEW_SOURCES.flatMap((root) => findHardcodedRadius(root));
 
     expect(
       uses,
@@ -287,7 +291,9 @@ const CHROME_ALLOWED: ReadonlyArray<[RegExp, RegExp]> = [
 
 describe("the studio chrome", () => {
   it("reaches for no primitive that is not on the list", () => {
-    const uses = CHROME_SOURCES.flatMap(findPrimitiveColourUse).filter(
+    const uses = CHROME_SOURCES.flatMap((root) =>
+      findPrimitiveColourUse(root),
+    ).filter(
       (use) =>
         !CHROME_ALLOWED.some(
           ([file, found]) => file.test(use.file) && found.test(use.found),
