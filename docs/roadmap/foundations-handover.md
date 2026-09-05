@@ -112,7 +112,7 @@ half kept.
    chooses `px`, so the prebuild writes a second file from
    `formatTypeSystemCssExport`.
 
-2. **Colour.** One page for the primitive tracks and one for the semantic
+2. ✅ **Colour.** One page for the primitive tracks and one for the semantic
    layer. The semantic page is the Semantics table from the studio, read-only:
    nineteen names down the side, light and dark across, the resolved swatch
    and the primitive it points at in each cell, and the contrast verdict the
@@ -375,3 +375,60 @@ and a text colour per status, where the layer has one `status.success` and no
 opinion about the tint behind it. That is a set of roles stage 2 should argue
 for with the colour page in front of it. The count is pinned by a test so it
 can only go down.
+
+## Notes from stage 2
+
+**What the two tables share is the rule, not the component.** The plan said
+the documentation's semantic page is "the Semantics table from the studio,
+read-only". Building it showed that sharing the component would mean a
+read-only flag threaded through a table whose every cell is an input — two
+tables in one file, pretending to be one. What genuinely was duplicated is
+smaller and worth more: which group a token belongs to, what that group is
+called, and what order the groups come in. That is `groupSemanticTokens` in
+@blueprint/ui, and the studio's editor calls it now. `semanticRowGroups`,
+`primitiveTrackRows` and `resolvedRoleReference` sit beside it, so a variable
+name on a page is built by the function the CSS export uses rather than by a
+second spelling of the same rule.
+
+**Backticks in the guidance earn their keep twice.** The content module writes
+role names in backticks, which is how the test finds them to check against the
+seed set — and rendering the string raw put the backticks on the page. The
+marker stays in the source and a four-line `Prose` component reads it. A
+paragraph that wants more syntax than that is a paragraph that wants MDX, and
+the plan's answer to that is still no.
+
+**Vitest in an application, which the testing strategy does not ask for.**
+Unit tests live in packages/ui and Playwright covers the apps. The exception
+here is narrow and the reason is the rule being checked: a page is a template
+over data, and the only way to know a template is a template is to render it
+twice against different workspaces and watch the output move. That test has to
+live where the components do. Both were watched failing with a hard-coded
+swatch in place.
+
+**The documentation was pinned light in two places**, `mode="light"` on its
+provider and `data-theme="light"` on its root element — on a site describing a
+system whose whole point is that a name carries two values. The mode is one
+preference across both applications now, under the key the studio already
+used, so a person moving between them keeps their choice.
+
+**What the reference workspace does not have, and a real project would.**
+Three things, all of them worth knowing before stage 5 hands one to a client.
+
+Its stored layer is nineteen roles, seeded before the six chrome roles and the
+twelve status parts existed; the pages render thirty-seven because
+`fillSeedRoles` tops it up on read. That is the migration working, and it also
+means the file on disk has not matched what the pages show since the day it
+was written. Re-seeding it would fix the mismatch and lose the demonstration.
+
+Its tracks carry no `adjustments`. A project somebody has actually worked on
+has anchors and manual overrides — hand-tuned shades that the generator blends
+around — and no page here has ever been rendered against one. The tables would
+show them without knowing they were special, which is probably right and has
+not been checked.
+
+And a workspace has no colour format. The studio picks hex, OKLCH or RGB from
+a per-device preference, so a handover file cannot say "this system is
+documented in OKLCH" — the documentation had to choose hex on the client's
+behalf, exactly as `generate-blueprint.ts` does for the export. If a client's
+notation is part of their system rather than part of their browser, that is a
+slice the workspace is missing.
