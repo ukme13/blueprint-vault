@@ -366,7 +366,7 @@
   border: 1px solid var(--color-border-strong);
   border-radius: 12px;
   background: var(--color-surface-raised);
-  box-shadow: 0 14px 40px var(--color-shadow-default);
+  box-shadow: none;
 }
 
 .paletteRow {
