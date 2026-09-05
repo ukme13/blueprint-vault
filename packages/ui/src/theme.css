@@ -246,6 +246,30 @@
     var(--color-neutral-950)
   );
 
+  /* The label on each filled control. Measured, not declared: white reads on
+     four of the six fills and near-black on the others, and the neutral fill
+     inverts with the mode. */
+  --color-fg-on-neutral: light-dark(
+    var(--color-neutral-25),
+    var(--color-neutral-950)
+  );
+  --color-fg-on-success: light-dark(
+    var(--color-neutral-25),
+    var(--color-neutral-950)
+  );
+  --color-fg-on-warning: light-dark(
+    var(--color-neutral-25),
+    var(--color-neutral-25)
+  );
+  --color-fg-on-error: light-dark(
+    var(--color-neutral-25),
+    var(--color-neutral-25)
+  );
+  --color-fg-on-info: light-dark(
+    var(--color-neutral-25),
+    var(--color-neutral-950)
+  );
+
   /* Surfaces, from the canvas up. `overlay` is what a menu or dialog sits on;
      a scrim behind one is `surface-overlay` at an opacity, not its own token.
 
@@ -286,17 +310,67 @@
     var(--color-primary-500),
     var(--color-primary-400)
   );
-  --color-action-hover: light-dark(
+  --color-action-primary-hover: light-dark(
     var(--color-primary-550),
     var(--color-primary-350)
   );
-  --color-action-active: light-dark(
+  --color-action-primary-active: light-dark(
     var(--color-primary-600),
     var(--color-primary-300)
   );
   --color-action-muted: light-dark(
     var(--color-primary-400),
     var(--color-primary-900)
+  );
+
+  /* The neutral action: black on light, white on dark. A whole tone rather
+     than a shade of one, so the Button's quiet scheme reads from the layer
+     like every other. */
+  --color-action-neutral: light-dark(
+    var(--color-neutral-950),
+    var(--color-neutral-50)
+  );
+  --color-action-neutral-hover: light-dark(
+    var(--color-neutral-900),
+    var(--color-neutral-100)
+  );
+  --color-action-neutral-active: light-dark(
+    var(--color-neutral-850),
+    var(--color-neutral-150)
+  );
+  --color-action-neutral-surface: light-dark(
+    var(--color-neutral-50),
+    var(--color-neutral-950)
+  );
+  --color-action-neutral-surface-hover: light-dark(
+    var(--color-neutral-100),
+    var(--color-neutral-900)
+  );
+  --color-action-neutral-fg: light-dark(
+    var(--color-neutral-850),
+    var(--color-neutral-100)
+  );
+  --color-action-neutral-border: light-dark(
+    var(--color-neutral-450),
+    var(--color-neutral-450)
+  );
+
+  /* The rest of primary's tone, beside the fill and its two states above. */
+  --color-action-primary-surface: light-dark(
+    var(--color-primary-50),
+    var(--color-primary-950)
+  );
+  --color-action-primary-surface-hover: light-dark(
+    var(--color-primary-100),
+    var(--color-primary-900)
+  );
+  --color-action-primary-fg: light-dark(
+    var(--color-primary-900),
+    var(--color-primary-100)
+  );
+  --color-action-primary-border: light-dark(
+    var(--color-primary-450),
+    var(--color-primary-450)
   );
 
   /* Borders, three weights. No bare `border`: that name is Astryx's.
@@ -360,8 +434,8 @@
     var(--color-success-100)
   );
   --color-status-success-border: light-dark(
-    var(--color-success-200),
-    var(--color-success-800)
+    var(--color-success-450),
+    var(--color-success-450)
   );
 
   --color-status-warning-surface: light-dark(
@@ -373,8 +447,8 @@
     var(--color-warning-100)
   );
   --color-status-warning-border: light-dark(
-    var(--color-warning-200),
-    var(--color-warning-800)
+    var(--color-warning-450),
+    var(--color-warning-450)
   );
 
   --color-status-error-surface: light-dark(
@@ -386,8 +460,8 @@
     var(--color-error-100)
   );
   --color-status-error-border: light-dark(
-    var(--color-error-200),
-    var(--color-error-800)
+    var(--color-error-450),
+    var(--color-error-450)
   );
 
   --color-status-info-surface: light-dark(
@@ -399,8 +473,59 @@
     var(--color-info-100)
   );
   --color-status-info-border: light-dark(
-    var(--color-info-200),
-    var(--color-info-800)
+    var(--color-info-450),
+    var(--color-info-450)
+  );
+
+  /* Each status gains the fill's two states and its hovered ground, so a
+     button in a status tone reads from the same seven names as any other. */
+  --color-status-success-hover: light-dark(
+    var(--color-success-650),
+    var(--color-success-250)
+  );
+  --color-status-success-active: light-dark(
+    var(--color-success-700),
+    var(--color-success-200)
+  );
+  --color-status-success-surface-hover: light-dark(
+    var(--color-success-100),
+    var(--color-success-900)
+  );
+  --color-status-warning-hover: light-dark(
+    var(--color-warning-650),
+    var(--color-warning-250)
+  );
+  --color-status-warning-active: light-dark(
+    var(--color-warning-700),
+    var(--color-warning-200)
+  );
+  --color-status-warning-surface-hover: light-dark(
+    var(--color-warning-100),
+    var(--color-warning-900)
+  );
+  --color-status-error-hover: light-dark(
+    var(--color-error-650),
+    var(--color-error-250)
+  );
+  --color-status-error-active: light-dark(
+    var(--color-error-700),
+    var(--color-error-200)
+  );
+  --color-status-error-surface-hover: light-dark(
+    var(--color-error-100),
+    var(--color-error-900)
+  );
+  --color-status-info-hover: light-dark(
+    var(--color-info-650),
+    var(--color-info-250)
+  );
+  --color-status-info-active: light-dark(
+    var(--color-info-700),
+    var(--color-info-200)
+  );
+  --color-status-info-surface-hover: light-dark(
+    var(--color-info-100),
+    var(--color-info-900)
   );
 
   /* A cast shadow. Solid, because the chrome draws its dialog shadow as a

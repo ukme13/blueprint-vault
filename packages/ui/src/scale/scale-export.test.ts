@@ -67,7 +67,7 @@ describe("the Tailwind export", () => {
     /* @theme is what generates p-4 and rounded-element; it declares tokens,
        not the rules that change them per mode. */
     const css = formatScaleTailwind(input());
-    const theme = css.slice(css.indexOf("@theme {"), css.indexOf("\n}"));
+    const theme = css.slice(css.indexOf("@theme static {"), css.indexOf("\n}"));
     expect(theme).toContain("--spacing-4:");
     expect(theme).toContain("--radius-element:");
     expect(theme).not.toContain("data-theme");

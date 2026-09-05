@@ -58,7 +58,9 @@ export const PRIMITIVE_GUIDANCE: GuidanceBlock[] = [
 export const SEMANTIC_GROUP_GUIDANCE: Readonly<Record<string, string[]>> = {
   action: [
     "`action.primary` is the fill of the thing you press. `action.secondary` is the fill of the one beside it that is not the main choice — two buttons in a dialog, not a quieter shade of one.",
-    "`action.hover`, `action.active` and `action.muted` are the same accent under the pointer, pressed, and turned down behind a selected row. They are states of one control rather than three colours, which is why the accessibility report measures them against nothing: nobody reads two of them side by side.",
+    "`action.primary-hover`, `action.primary-active` and `action.muted` are the same accent under the pointer, pressed, and turned down behind a selected row. They are states of one control rather than three colours, which is why the accessibility report measures them against nothing: nobody reads two of them side by side.",
+    "`action.neutral` is the button with nothing to say — black on a light page, white on a dark one, which is the one tone whose fill crosses the ramp rather than sitting on it. It is a tone like any other and not a mode: its two values live in the layer, so the quiet button is a decision you can edit here rather than a branch inside a component.",
+    "Every tone carries seven roles under the same seven names: the fill, its hovered and pressed states, a soft surface and that surface hovered, a foreground for text on either, and a border. `fg.on-action` is the label on the primary fill — one per tone, chosen by measuring against the fill rather than by picking white and hoping.",
   ],
   surface: [
     "`surface.base` is the page. `surface.subtle` is a wash set into it — a well, a code block — and `surface.raised` is a card or panel lifted off it. `surface.overlay` is what sits over everything: a menu, a popover, a dialog.",

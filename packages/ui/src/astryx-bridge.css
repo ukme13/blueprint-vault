@@ -80,43 +80,26 @@
     --color-icon-info: var(--color-status-info);
     --color-text-info: var(--color-status-info-fg);
 
-    /* Astryx's colour families. Green, red and yellow are the same three
-       decisions as success, error and warning, so they take the same roles.
+    /* Astryx's colour families. Each is the same four decisions a tone
+       holds, so each takes a tone's roles: blue from the primary action,
+       green from success, red from error, yellow from warning.
 
-       Cyan and purple used to be here, fed from `secondary` and `tertiary`.
-       Those two tracks exist in the studio's own theme.css and in no
-       workspace anybody has ever saved, so every one of those sixteen
-       declarations was invalid the moment a client installed the export — the
-       token silently kept theme-neutral's value, which is what it does now,
-       explicitly and without sixteen dead lines saying otherwise.
+       Blue was the last block in this file reaching for primitives, and it
+       had nothing to reach for instead — the layer held an accent fill and a
+       muted tint, neither of them a ground to put text on. It does now. The
+       icon takes the fill rather than the foreground, for the reason the
+       statuses do: an icon in a family colour is the signal, and the text
+       beside it is text.
 
-       Blue is the last block in this file still reaching for primitives, and
-       the reason is that it has nothing to reach for instead. Its four values
-       are the accent's soft ground, its edge, its icon and its text — an
-       `action.*` family the way each status has a `status.*` one — and the
-       layer holds two accent roles, a fill and a muted tint, neither of which
-       is a surface to put text on. Inventing the other two here would be
-       choosing four values in a stylesheet that the Semantics tab could never
-       edit. The roles are worth having and they are stage 2's argument; until
-       then this block assumes a track named `primary`, which is the same
-       assumption cyan and purple were removed for and true only because the
-       studio seeds that name. */
-    --color-background-blue: light-dark(
-      var(--color-primary-50),
-      var(--color-primary-950)
-    );
-    --color-border-blue: light-dark(
-      var(--color-primary-200),
-      var(--color-primary-800)
-    );
-    --color-icon-blue: light-dark(
-      var(--color-primary-600),
-      var(--color-primary-400)
-    );
-    --color-text-blue: light-dark(
-      var(--color-primary-900),
-      var(--color-primary-100)
-    );
+       Cyan and purple used to be here too, fed from `secondary` and
+       `tertiary`. Those two tracks exist in the studio's own theme.css and in
+       no workspace anybody has ever saved, so every one of those sixteen
+       declarations was invalid the moment a client installed the export. They
+       are gone, and Astryx keeps its own cyan and purple. */
+    --color-background-blue: var(--color-action-primary-surface);
+    --color-border-blue: var(--color-action-primary-border);
+    --color-icon-blue: var(--color-action-primary);
+    --color-text-blue: var(--color-action-primary-fg);
 
     --color-background-green: var(--color-status-success-surface);
     --color-border-green: var(--color-status-success-border);

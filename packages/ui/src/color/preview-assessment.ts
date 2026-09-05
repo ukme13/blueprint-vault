@@ -46,6 +46,7 @@ import {
 const TOKENS = {
   actionPrimary: "action.primary",
   actionSecondary: "action.secondary",
+  actionNeutral: "action.neutral",
   surfaceBase: "surface.base",
   surfaceRaised: "surface.raised",
   borderDefault: "border.default",
@@ -283,22 +284,40 @@ interface TextSample {
   readable?: boolean;
 }
 
+/**
+ * The tones a control can be drawn in, and the label each fill carries.
+ *
+ * The layer gives every tone the same seven roles, so the report can measure
+ * every tone the same way rather than naming pairs one at a time. What is
+ * listed here is which tones exist; what is measured is decided once below.
+ */
+const MEASURED_TONES: ReadonlyArray<{
+  label: string;
+  id: string;
+  onFill: string;
+}> = [
+  {
+    label: "Primary action",
+    id: TOKENS.actionPrimary,
+    onFill: TOKENS.textOnAction,
+  },
+  {
+    label: "Neutral action",
+    id: TOKENS.actionNeutral,
+    onFill: "fg.on-neutral",
+  },
+  { label: "Success", id: TOKENS.statusSuccess, onFill: "fg.on-success" },
+  { label: "Warning", id: TOKENS.statusWarning, onFill: "fg.on-warning" },
+  { label: "Error", id: TOKENS.statusError, onFill: "fg.on-error" },
+  { label: "Info", id: TOKENS.statusInfo, onFill: "fg.on-info" },
+];
+
 const TEXT_SAMPLES: readonly TextSample[] = [
   {
     label: "Primary action text",
     foreground: TOKENS.actionPrimary,
     background: TOKENS.actionPrimary,
     readable: true,
-  },
-  {
-    /* The label a button actually ships, as against the one above it, which
-       asks what black or white would do on that fill. Both are worth having
-       and they answer different questions: that one says whether the fill can
-       carry a label at all, this one says whether the label the layer chose
-       does. It is the only sample whose background is not a surface. */
-    label: "Primary action label",
-    foreground: TOKENS.textOnAction,
-    background: TOKENS.actionPrimary,
   },
   {
     /* The accent as text rather than as a fill: a link, an eyebrow, the label
@@ -340,17 +359,23 @@ const TEXT_SAMPLES: readonly TextSample[] = [
     background: TOKENS.statusError,
     readable: true,
   },
-  /* One row per status: the foreground of an alert on the alert's own ground.
-     That is the pair every alert ships, and the four of them are the reason
-     the sub-roles exist — a status that had only a fill left somebody choosing
-     a text colour for it out of the ramp, unmeasured. Built from the ids
-     rather than written out four times, so a status added to the layer is
-     measured without anybody remembering to add a row. */
-  ...(["success", "warning", "error", "info"] as const).map((name) => ({
-    label: `${name.charAt(0).toUpperCase()}${name.slice(1)} alert text`,
-    foreground: `status.${name}-fg`,
-    background: `status.${name}-surface`,
-  })),
+  /* Two rows per tone, built from the tone list rather than written out
+     twelve times: the label a filled control ships, and the foreground an
+     alert or an outlined control puts on that tone's own ground. Those are
+     the two pairs every tone actually renders, and a tone added to the layer
+     is measured without anybody remembering to add a row. */
+  ...MEASURED_TONES.flatMap((tone) => [
+    {
+      label: `${tone.label} label`,
+      foreground: tone.onFill,
+      background: tone.id,
+    },
+    {
+      label: `${tone.label} on its surface`,
+      foreground: `${tone.id}-fg`,
+      background: `${tone.id}-surface`,
+    },
+  ]),
 ];
 
 export function assessTextChecks(
@@ -518,20 +543,27 @@ const SIGNALLING_GROUPS = ["status", "action"];
 /**
  * The action tokens that are not a signal of their own.
  *
- * `action.hover` is `action.primary` under the pointer, and `action.muted` is
- * the same accent turned down behind a selected row. Nobody reads any of the
- * three side by side and has to tell them apart, and none is ever next to a
- * status badge as a signal — so pairing them would add rows to the report that
- * measure nothing anyone sees. `action.secondary` stays in: two buttons beside
- * each other is exactly the case this grid is for.
+ * `action.primary-hover` is the primary fill under the pointer and
+ * `action.muted` is the same accent turned down behind a selected row. Nobody
+ * reads those side by side and has to tell them apart, and none is ever next
+ * to a status badge as a signal — so pairing them would add rows to the report
+ * that measure nothing anyone sees. `action.secondary` stays in: two buttons
+ * beside each other is exactly the case this grid is for.
+ *
+ * `action.neutral` is out for a different reason. It has no hue at all — it is
+ * black on a light page and white on a dark one — so "can somebody tell these
+ * two apart" is not a question about it. Every pair against it would be a row
+ * that always passes, including under achromatopsia, where it is the only
+ * thing on the page that is still exactly what it was.
  *
  * Kept out of the grid, not out of the layer: each is still a colour with a
- * foreground on it, and the surface checks cover that.
+ * foreground on it, and the tone rows above cover that.
  */
 const ACTION_STATES = new Set([
-  "action.hover",
-  "action.active",
+  "action.primary-hover",
+  "action.primary-active",
   "action.muted",
+  "action.neutral",
 ]);
 
 /**

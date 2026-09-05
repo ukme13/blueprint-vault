@@ -62,7 +62,9 @@ export function formatPaletteTailwindExport(
   palettes: ColorTrack[],
   colourFormat: ColourFormat,
 ): string {
-  return ["@theme {", ...tokenLines(palettes, colourFormat), "}"].join("\n");
+  return ["@theme static {", ...tokenLines(palettes, colourFormat), "}"].join(
+    "\n",
+  );
 }
 
 /**

@@ -57,10 +57,10 @@ function tokenById(tokens: SemanticToken[], id: string): SemanticToken {
 }
 
 describe("seedSemanticTokens", () => {
-  it("seeds the thirty-seven roles the page needs", () => {
+  it("seeds the sixty-five roles the page needs", () => {
     const tokens = seedSemanticTokens(fullPalette());
-    expect(tokens).toHaveLength(37);
-    expect(new Set(tokens.map((token) => token.id)).size).toBe(37);
+    expect(tokens).toHaveLength(65);
+    expect(new Set(tokens.map((token) => token.id)).size).toBe(65);
   });
 
   /* The guard against the layer drifting away from the preview it came from.
@@ -101,7 +101,7 @@ describe("seedSemanticTokens", () => {
     ]);
     const tokens = seedSemanticTokens(tracks);
 
-    expect(tokens).toHaveLength(37);
+    expect(tokens).toHaveLength(65);
     for (const token of tokens) {
       expect(token.light.trackId).toBe("only");
     }
@@ -210,7 +210,7 @@ describe("resolveSemantic", () => {
   it("resolves every token in a mode", () => {
     const tracks = fullPalette();
     const tokens = seedSemanticTokens(tracks);
-    expect(resolveSemantics(tokens, "dark", tracks)).toHaveLength(37);
+    expect(resolveSemantics(tokens, "dark", tracks)).toHaveLength(65);
     expect(resolveSemantics(tokens, "dark", [])).toEqual([]);
   });
 });
@@ -271,7 +271,7 @@ describe("editing a layer", () => {
     const tracks = fullPalette();
     const tokens = addSemanticToken(seedSemanticTokens(tracks), tracks, "Chip");
 
-    expect(tokens).toHaveLength(38);
+    expect(tokens).toHaveLength(66);
     const added = tokenById(tokens, "chip");
     expect(resolveSemantic(added, "light", tracks)!.hex).toMatch(
       /^#[0-9a-f]{6}$/i,
@@ -297,7 +297,7 @@ describe("editing a layer", () => {
     const tokens = seedSemanticTokens(fullPalette());
     const next = removeSemanticToken(tokens, "status.info");
 
-    expect(next).toHaveLength(36);
+    expect(next).toHaveLength(64);
     expect(next.some((token) => token.id === "status.info")).toBe(false);
   });
 
@@ -363,10 +363,21 @@ describe("the first names, carried forward", () => {
   it("seeds the usage-based names", () => {
     expect(seedSemanticTokens(fullPalette()).map((token) => token.id)).toEqual([
       "action.primary",
+      "action.primary-hover",
+      "action.primary-active",
+      "action.primary-surface",
+      "action.primary-surface-hover",
+      "action.primary-fg",
+      "action.primary-border",
       "action.secondary",
-      "action.hover",
-      "action.active",
       "action.muted",
+      "action.neutral",
+      "action.neutral-hover",
+      "action.neutral-active",
+      "action.neutral-surface",
+      "action.neutral-surface-hover",
+      "action.neutral-fg",
+      "action.neutral-border",
       "surface.base",
       "surface.subtle",
       "surface.raised",
@@ -382,21 +393,38 @@ describe("the first names, carried forward", () => {
       "fg.disabled",
       "fg.accent",
       "fg.on-action",
+      "fg.on-neutral",
+      "fg.on-success",
+      "fg.on-warning",
+      "fg.on-error",
+      "fg.on-info",
       "focus.ring",
       "status.success",
+      "status.success-hover",
+      "status.success-active",
       "status.success-surface",
+      "status.success-surface-hover",
       "status.success-fg",
       "status.success-border",
       "status.warning",
+      "status.warning-hover",
+      "status.warning-active",
       "status.warning-surface",
+      "status.warning-surface-hover",
       "status.warning-fg",
       "status.warning-border",
       "status.error",
+      "status.error-hover",
+      "status.error-active",
       "status.error-surface",
+      "status.error-surface-hover",
       "status.error-fg",
       "status.error-border",
       "status.info",
+      "status.info-hover",
+      "status.info-active",
       "status.info-surface",
+      "status.info-surface-hover",
       "status.info-fg",
       "status.info-border",
     ]);
@@ -469,49 +497,71 @@ describe("fillSeedRoles", () => {
     expect(filled.slice(0, stored.length)).toEqual(stored);
   });
 
-  it("gives a layer saved before the chrome roles existed all eighteen", () => {
-    /* The case every stored workspace is in, twice over. Six roles came from
-       the studio's own chrome after nineteen had been shipping, and twelve
-       more arrived when each status gained a surface, a foreground and a
-       border. The bridge feeds an Astryx token from every one of the
-       eighteen, so a layer that did not gain them on read would leave a
-       client with eighteen invalid declarations and no way to see why. */
-    const nineteen = seedSemanticTokens(fullPalette()).filter(
-      (token) =>
-        !token.id.includes("-") &&
-        ![
-          "action.muted",
-          "surface.skeleton",
-          "surface.track",
-          "border.strong",
-          "fg.accent",
-        ].includes(token.id),
+  it("carries a layer saved under the first nineteen names all the way", () => {
+    /* The case every stored workspace is in, three times over. Nineteen roles
+       shipped first; six came over from the studio's chrome; twelve more
+       arrived when each status gained a surface, a foreground and a border;
+       and the tone pattern added the rest. Two of the original nineteen were
+       renamed on the way — a layer that did not migrate and fill on read would
+       leave a client with a button drawing from names nothing defines. */
+    const original = [
+      "action.primary",
+      "action.secondary",
+      "action.hover",
+      "action.active",
+      "surface.base",
+      "surface.subtle",
+      "surface.raised",
+      "surface.overlay",
+      "border.default",
+      "border.subtle",
+      "border.muted",
+      "fg.primary",
+      "fg.secondary",
+      "fg.disabled",
+      "focus.ring",
+      "status.success",
+      "status.warning",
+      "status.error",
+      "status.info",
+    ];
+    const tracks = fullPalette();
+    const stored = original.map((id) => ({
+      id,
+      name: id,
+      description: "",
+      light: { trackId: "t-primary", weight: 500 },
+      dark: { trackId: "t-primary", weight: 450 },
+    }));
+
+    const migrated = migrateSemanticIds(stored);
+    /* The rename: primary's two states were named for the group rather than
+       for the tone, which stopped being true when a second tone arrived. */
+    expect(migrated.map((token) => token.id)).toContain("action.primary-hover");
+    expect(migrated.map((token) => token.id)).toContain(
+      "action.primary-active",
     );
-    expect(nineteen).toHaveLength(19);
+    expect(migrated.map((token) => token.id)).not.toContain("action.hover");
+    /* And the reference the user had is carried, not reseeded. */
+    expect(tokenById(migrated, "action.primary-hover").light.weight).toBe(500);
 
-    const filled = fillSeedRoles(nineteen, fullPalette());
+    const filled = fillSeedRoles(migrated, tracks);
+    expect(filled).toHaveLength(65);
 
-    expect(filled).toHaveLength(37);
+    /* The label on a fill is measured against that fill rather than declared,
+       so it lands on whichever end of the neutral ramp reads on it. */
     const onAction = tokenById(filled, "fg.on-action");
-    /* Seeded against the palette, not copied from a default: near-white on the
-       light fill and near-black on the dark one, which is the pair the
-       studio's chrome already resolves to. */
-    expect(onAction.light.weight).toBe(50);
-    expect(onAction.dark.weight).toBe(950);
-    /* The neutral track, whatever the fixture calls it — the same one the
-       body text lands on. */
     expect(onAction.light.trackId).toBe(
-      tokenById(filled, "fg.primary").light.trackId,
+      tracks.find((track) => track.name === "neutral")!.id,
     );
 
-    /* And one of the twelve, on its own status track rather than on neutral:
-       an alert's ground is the quietest shade of the colour it is warning
-       in, not a grey. */
+    /* And a tone part sits on its own track: an alert's ground is the quietest
+       shade of the colour it is warning in, not a grey. */
     const errorSurface = tokenById(filled, "status.error-surface");
     expect(errorSurface.light.weight).toBe(50);
     expect(errorSurface.dark.weight).toBe(950);
     expect(errorSurface.light.trackId).toBe(
-      tokenById(filled, "status.error").light.trackId,
+      tracks.find((track) => track.name === "error")!.id,
     );
   });
 

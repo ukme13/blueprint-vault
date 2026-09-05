@@ -101,11 +101,11 @@ describe("the Tailwind export", () => {
       tracks,
     );
 
-    expect(css).toContain("@theme {");
+    expect(css).toContain("@theme static {");
     expect(css).toContain(':root[data-theme="dark"]');
     /* @theme declares tokens, not the rules that override them, so dark cannot
        live inside it. */
-    const theme = css.slice(css.indexOf("@theme {"), css.indexOf("}"));
+    const theme = css.slice(css.indexOf("@theme static {"), css.indexOf("}"));
     expect(theme).not.toContain("data-theme");
   });
 });

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
-import { Button } from "@blueprint/ui";
+import { BUTTON_SCHEMES, Button } from "@blueprint/ui";
 import { Selector } from "@astryxdesign/core/Selector";
 import { CheckboxInput } from "@astryxdesign/core/CheckboxInput";
 import { CodeBlock } from "@astryxdesign/core/CodeBlock";
@@ -20,16 +20,10 @@ const VARIANTS = [
   "mixed",
   "link",
 ] as const;
-const COLORS = [
-  "primary",
-  "secondary",
-  "tertiary",
-  "error",
-  "warning",
-  "info",
-  "success",
-  "neutral",
-] as const;
+/* From the package rather than a list of its own: the schemes a button has
+   are the tones the layer holds roles for, and a page that kept its own copy
+   would go on offering `secondary` after the tone it drew from was gone. */
+const COLORS = BUTTON_SCHEMES;
 const SIZES = ["xs", "small", "medium", "large", "xl", "icon"] as const;
 
 type ButtonVariant = (typeof VARIANTS)[number];
@@ -78,7 +72,7 @@ interface PropRow extends Record<string, unknown> {
 const propRows: PropRow[] = [
   {
     prop: "scheme",
-    type: `"primary" | "secondary" | "tertiary" | "error" | "warning" | "info" | "success" | "neutral"`,
+    type: COLORS.map((name) => `"${name}"`).join(" | "),
     def: '"primary"',
     desc: "Selects the OKLCH color track. Drives the --btn-main/hover/active/border/soft CSS variables.",
   },
@@ -318,7 +312,7 @@ export default function ButtonDocsPage() {
             </h1>
             <p className="max-w-2xl text-base leading-relaxed text-neutral-600">
               A polymorphic, CVA-driven button built on the Atmos 25-interval
-              OKLCH color grid. Supports 8 color schemes across 6 visual
+              OKLCH color grid. Supports 6 color schemes across 6 visual
               variants and 6 sizes, with built-in loading and icon slots.
             </p>
           </div>

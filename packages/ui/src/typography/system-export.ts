@@ -148,5 +148,5 @@ export function formatTypeSystemTailwindExport(
   system: TypeSystem,
   unit: TypeScaleUnit = "rem",
 ): string {
-  return body(system, unit, "@theme {");
+  return body(system, unit, "@theme static {");
 }

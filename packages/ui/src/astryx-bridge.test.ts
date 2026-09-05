@@ -77,21 +77,17 @@ describe("the Astryx bridge", () => {
     expect(strangers, strangers.join("\n")).toEqual([]);
   });
 
-  it("still reaches for a primitive where no role exists yet, and this is the count", () => {
-    /* Not approval — a ratchet. Eight references remain, and they are one
-       block: Astryx's blue family, whose four values are the accent's soft
-       ground, its edge, its icon and its text. The layer has two accent roles,
-       a fill and a muted tint, and neither is a surface to put text on — so
-       unlike the status blocks, which moved onto roles the moment each status
-       gained a surface, a foreground and a border, this one has nothing to
-       point at. Inventing the values here would put four decisions in a
-       stylesheet the Semantics tab cannot edit.
+  it("reaches for no primitive at all", () => {
+    /* It was eighty when this file was one block of a stylesheet, sixty-four
+       once the status tones existed, and eight while Astryx's blue family had
+       no accent surface, border or foreground to point at. The tone pattern
+       gave it all three.
 
-       It was sixty-four before the status sub-roles landed. Every one of these
-       eight still assumes a client's palette names a track `primary`, which is
-       the same assumption cyan and purple were removed for and true only
-       because the studio seeds that name. The number may go down and may not
-       go up. */
-    expect(primitiveReferences()).toHaveLength(8);
+       Zero is the point rather than a milestone: every name in this file is
+       now a role somebody can edit in the Semantics tab, which means a client
+       whose palette names its tracks differently gets a working bridge, and
+       the studio no longer holds four decisions a designer cannot reach. */
+    const referenced = primitiveReferences().map((each) => each.name);
+    expect(referenced, referenced.join(", ")).toEqual([]);
   });
 });

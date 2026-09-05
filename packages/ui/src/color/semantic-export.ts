@@ -99,7 +99,7 @@ export function formatSemanticTailwindExport(
   const darkAttribute = declarations(tokens, "dark", tracks, "  ");
 
   return [
-    "@theme {",
+    "@theme static {",
     ...light,
     "}",
     "",
