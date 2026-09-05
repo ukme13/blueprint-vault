@@ -3,7 +3,7 @@
   min-height: 100svh;
   background: var(--color-surface-base);
   color: var(--color-fg-primary);
-  font-family: var(--font-geist-sans), sans-serif;
+  font-family: var(--font-sans);
 }
 
 /* The workspace is exactly one viewport and never scrolls itself. Header and
@@ -16,7 +16,7 @@
   grid-template-rows: auto auto minmax(0, 1fr);
   background: var(--color-surface-base);
   color: var(--color-fg-primary);
-  font-family: var(--font-geist-sans), sans-serif;
+  font-family: var(--font-sans);
 }
 
 .loadingPage {
@@ -196,7 +196,7 @@
 
 .stepMeta code {
   color: var(--color-fg-muted);
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
 }
 

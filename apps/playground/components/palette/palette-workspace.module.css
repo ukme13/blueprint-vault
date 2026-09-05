@@ -4,7 +4,7 @@
   min-height: 100svh;
   background: var(--color-surface-base);
   color: var(--color-fg-primary);
-  font-family: var(--font-geist-sans), sans-serif;
+  font-family: var(--font-sans);
 }
 
 .loadingPage {
@@ -247,7 +247,7 @@
 
 .trackSourceValue code {
   color: var(--color-fg-secondary);
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   overflow-wrap: anywhere;
 }
@@ -357,7 +357,7 @@
 
 .weightHeader code {
   text-align: center;
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-mono);
   font-size: 10px;
 }
 
@@ -716,7 +716,7 @@
 }
 
 .colourHexInput input {
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-mono);
   font-size: 16px;
 }
 
@@ -788,7 +788,7 @@
 }
 
 .shadeContrastRatio {
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 600;
   line-height: 1;
@@ -906,7 +906,7 @@
 .popoverValue code {
   display: block;
   overflow: hidden;
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-mono);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -956,7 +956,7 @@
 
 .popoverContrast small {
   color: var(--color-fg-muted);
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-mono);
   font-size: 8px;
   text-transform: capitalize;
 }
@@ -981,7 +981,7 @@
 }
 
 .popoverContrastScore strong {
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-mono);
   font-size: 21px;
 }
 
@@ -1004,7 +1004,7 @@
   gap: 5px;
   margin: 0;
   color: var(--color-status-error);
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-mono);
   font-weight: 700;
 }
 
@@ -1126,7 +1126,7 @@
 }
 
 .lightnessList code {
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-mono);
 }
 
 .lightnessSlider {
@@ -1140,7 +1140,7 @@
 }
 
 .lightnessInput input {
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-mono);
   text-align: right;
 }
 
@@ -1302,7 +1302,7 @@
 
 .sourceCard code {
   color: var(--color-fg-muted);
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-mono);
   font-size: 9px;
 }
 
@@ -1547,7 +1547,7 @@
 
 .contrastList small {
   color: var(--color-fg-disabled);
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   line-height: 1.4;
 }
@@ -1555,7 +1555,7 @@
 .contrastList .contrastResult {
   margin-top: 4px;
   color: var(--color-fg-muted);
-  font-family: var(--font-geist-sans), sans-serif;
+  font-family: var(--font-sans);
   font-size: 11px;
   line-height: 1.5;
 }
@@ -1571,7 +1571,7 @@
   display: block;
   margin-top: 2px;
   color: var(--color-fg-muted);
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-mono);
   font-size: 11px;
   line-height: 1.5;
 }
@@ -1753,7 +1753,7 @@
   outline: 0;
   background: transparent;
   color: var(--color-fg-primary);
-  font-family: var(--font-geist-mono), monospace;
+  font-family: var(--font-mono);
 }
 
 .formError {
