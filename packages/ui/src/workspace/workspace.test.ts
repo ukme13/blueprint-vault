@@ -366,7 +366,7 @@ describe("the semantic slice", () => {
       typography: null,
     })!;
 
-    expect(stored.semantics).toHaveLength(37);
+    expect(stored.semantics).toHaveLength(65);
     expect(stored.semantics!.every((token) => token.light && token.dark)).toBe(
       true,
     );
@@ -399,7 +399,7 @@ describe("the semantic slice", () => {
       semantics: chosen,
     })!;
 
-    expect(stored.semantics).toHaveLength(37);
+    expect(stored.semantics).toHaveLength(65);
     expect(stored.semantics![0]!.light.weight).toBe(100);
   });
 
@@ -426,18 +426,18 @@ describe("the semantic slice", () => {
       ],
     })!;
 
-    expect(stored.semantics).toHaveLength(37);
+    expect(stored.semantics).toHaveLength(65);
     expect(stored.semantics![0]!.id).toBe("action.primary");
   });
 
   it("seeds a layer when the workspace is rebuilt from the old keys", () => {
     const project = workspaceFromLegacy(legacyPalette(), legacyTypography())!;
-    expect(project.semantics).toHaveLength(37);
+    expect(project.semantics).toHaveLength(65);
   });
 
   it("gives a first palette a layer, and leaves an edited one alone", () => {
     const first = withPaletteSlice(null, legacyPalette() as never);
-    expect(first.semantics).toHaveLength(37);
+    expect(first.semantics).toHaveLength(65);
 
     const edited = withPaletteSlice(
       { ...first, semantics: [] },
@@ -478,7 +478,7 @@ describe("a layer stored under the first names", () => {
       ],
     })!;
 
-    expect(stored.semantics).toHaveLength(37);
+    expect(stored.semantics).toHaveLength(65);
     expect(stored.semantics![0]!.id).toBe("fg.primary");
     expect(stored.semantics![0]!.light.weight).toBe(950);
   });

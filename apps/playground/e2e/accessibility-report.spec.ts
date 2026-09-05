@@ -114,7 +114,13 @@ test.describe("The accessibility report", () => {
     const signalling = Object.keys(parsed.colour.shades).filter(
       (id: string) =>
         /^(status|action)\./.test(id) &&
-        !["action.hover", "action.active", "action.muted"].includes(id) &&
+        ![
+          "action.primary-hover",
+          "action.primary-active",
+          "action.muted",
+          /* No hue to be confused with anything: black on light, white on dark. */
+          "action.neutral",
+        ].includes(id) &&
         /* Nor a part of a control: `status.error-surface` is the ground an
            alert sits on and `status.error-border` its edge, neither of them a
            colour anybody reads meaning out of. */

@@ -403,10 +403,20 @@ describe("assessPreview", () => {
       assessment.semanticPairs.filter((pair) => pair.result.isTooSimilar)
         .length;
 
+    /* Every kind of thing that weakens only once simulated, each counted once.
+       The two check terms used to be missing from this sum and it still
+       matched, because nothing in the layer weakened under a deficiency
+       without failing outright first. A tone whose label sits close to its
+       threshold changed that, and the formula was wrong all along. */
     expect(assessment.issueCount).toBe(
       withoutSimulation +
         assessment.semanticPairs.filter(
           (pair) => pair.collapsesUnder.length > 0,
+        ).length +
+        assessment.textChecks.filter((check) => check.weakensUnder.length > 0)
+          .length +
+        assessment.nonTextChecks.filter(
+          (check) => check.weakensUnder.length > 0,
         ).length,
     );
   });
@@ -418,7 +428,7 @@ describe("assessPreview", () => {
        (fg.on-action on action.primary), the accent as text on the canvas, and
        one per status for the foreground of an alert on the alert's own
        ground. Each became measurable when the layer gained the role. */
-    expect(assessment.textChecks).toHaveLength(13);
+    expect(assessment.textChecks).toHaveLength(20);
     expect(assessment.textColourChoices).toHaveLength(4);
     expect(assessment.nonTextChecks).toHaveLength(2);
     /* Every pair among the six tokens that signal by colour — two actions and
@@ -431,7 +441,13 @@ describe("assessPreview", () => {
     const signalling = Object.keys(assessment.shades).filter(
       (id) =>
         /^(status|action)\./.test(id) &&
-        !["action.hover", "action.active", "action.muted"].includes(id) &&
+        ![
+          "action.primary-hover",
+          "action.primary-active",
+          "action.muted",
+          /* No hue to be confused with anything: black on light, white on dark. */
+          "action.neutral",
+        ].includes(id) &&
         /* Nor a part of a control: `status.error-surface` is the ground an
            alert sits on and `status.error-border` its edge, neither of them a
            colour anybody reads meaning out of. */
