@@ -4,6 +4,7 @@
   "private": true,
   "exports": {
     ".": "./src/index.tsx",
+    "./primitive-usage": "./src/primitive-usage.ts",
     "./*.css": "./src/*.css",
     "./*": "./src/*.tsx"
   },

@@ -71,6 +71,16 @@ export interface ScanOptions {
    * 1.75rem from somewhere else.
    */
   spacingSteps?: readonly string[];
+  /**
+   * The radius tokens this root's Tailwind theme defines, by id.
+   *
+   * The same argument as `spacingSteps`, one family over. Where the theme is
+   * built from the workspace, `rounded-container` is `--radius-container` and
+   * is exactly what a page should write; `rounded-2xl` is Tailwind's own and
+   * is not. Omitted, every `rounded` utility is reported, which is right for
+   * an app whose theme declares no radii.
+   */
+  radiusTokens?: readonly string[];
   allowed?: readonly AllowEntry[];
 }
 
@@ -232,7 +242,19 @@ export function findPrimitiveColourUse(
  * is not a token anybody wants, and a breakpoint is not spacing. A check that
  * flagged them would be switched off within a week, so it states what it does
  * not cover.
+ *
+ * A width or a height is exempt for the same reason the Tailwind half already
+ * ignores `w-56`: a size is not spacing, and the scale plan defers size tokens
+ * to their own family. This half did not know that, which only showed once the
+ * check met a page with a content column — three container widths on the
+ * documentation's home page, and no token in the system that could express
+ * any of them. Flagging them would have pushed the page into inventing tokens
+ * this stage has not designed.
  */
+/** Declarations whose value is a size rather than a distance between things. */
+const SIZE_PROPERTY =
+  /\b(?:(?:min-|max-)?(?:width|height|inline-size|block-size)|flex-basis|basis|grid-template-(?:columns|rows)|grid-auto-(?:columns|rows))\s*:/;
+
 const CSS_LENGTH = /\b(?!1px\b)\d*\.?\d+(?:px|rem)\b/g;
 
 /** Tailwind utilities whose value comes from the spacing scale. */
@@ -273,6 +295,8 @@ export function findHardcodedMeasurements(
     strippedLines(path).forEach((code, index) => {
       /* A breakpoint is not spacing. */
       if (code.includes("@media")) return;
+      /* Nor is a size. */
+      if (SIZE_PROPERTY.test(code)) return;
 
       for (const [pattern, subject] of [
         [CSS_LENGTH, code],
@@ -305,7 +329,17 @@ export function findHardcodedMeasurements(
  * so reaching for Tailwind's version of it is the same mistake as reaching for
  * its `4px`.
  */
-const TAILWIND_RADIUS = /\brounded(?:-(?:[a-z]+|\[[^\]]+\]))?(?![\w-])/g;
+const TAILWIND_RADIUS = /\brounded(?:-(?:[a-z0-9]+|\[[^\]]+\]))?(?![\w-])/g;
+
+/** Whether a `rounded-*` utility names a radius the workspace defines. */
+function isKnownRadius(
+  found: string,
+  tokens: readonly string[] | undefined,
+): boolean {
+  if (!tokens) return false;
+  const suffix = found.slice("rounded-".length);
+  return found.startsWith("rounded-") && tokens.includes(suffix);
+}
 
 export interface RadiusUse {
   file: string;
@@ -322,6 +356,7 @@ export function findHardcodedRadius(
   for (const path of scanned(directory, options)) {
     strippedLines(path).forEach((code, index) => {
       for (const match of quotedOnly(code).matchAll(TAILWIND_RADIUS)) {
+        if (isKnownRadius(match[0], options.radiusTokens)) continue;
         uses.push({
           file: rel(directory, path),
           line: index + 1,
