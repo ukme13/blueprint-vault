@@ -108,6 +108,8 @@ We absolutely DO NOT use standard Tailwind raw utility colors (e.g., `bg-orange-
 3. **"doc and push"** is a two-step request, in order: first write a summary of
    key changes, architectural decisions, and lessons learned; then push and
    open or update the PR with the `gh` CLI.
+4. **A branch is not finished until CI has a completed green run for it; a
+   cancelled or missing run is not green.**
 
 ## 🧩 Reconciling Astryx Guidance With This Workspace
 
