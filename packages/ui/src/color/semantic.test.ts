@@ -57,10 +57,10 @@ function tokenById(tokens: SemanticToken[], id: string): SemanticToken {
 }
 
 describe("seedSemanticTokens", () => {
-  it("seeds the sixty-five roles the page needs", () => {
+  it("seeds the seventy-two roles the page needs", () => {
     const tokens = seedSemanticTokens(fullPalette());
-    expect(tokens).toHaveLength(65);
-    expect(new Set(tokens.map((token) => token.id)).size).toBe(65);
+    expect(tokens).toHaveLength(72);
+    expect(new Set(tokens.map((token) => token.id)).size).toBe(72);
   });
 
   /* The guard against the layer drifting away from the preview it came from.
@@ -101,10 +101,55 @@ describe("seedSemanticTokens", () => {
     ]);
     const tokens = seedSemanticTokens(tracks);
 
-    expect(tokens).toHaveLength(65);
+    expect(tokens).toHaveLength(72);
     for (const token of tokens) {
-      expect(token.light.trackId).toBe("only");
+      /* Every role lands on the one track there is — except the second brand
+         colour, which keeps the name it asked for. See the test below. */
+      const expected = token.id.startsWith("action.secondary")
+        ? "secondary"
+        : "only";
+      expect(token.light.trackId, token.id).toBe(expected);
     }
+  });
+
+  it("leaves the second brand tone pointing at a track that is not there", () => {
+    /* The state every existing workspace lands in: it gains the roles on read
+       and does not gain the track, because a palette is the person's data and
+       choosing a brand colour for them is not a migration.
+
+       Falling back would hand them a secondary tone that silently *is* the
+       neutral one — every button in it grey, and no way to tell that from a
+       decision somebody made. So the reference keeps the name, and the layer
+       reports the gap instead of hiding it. */
+    const tracks = palette([
+      { id: "p", name: "primary", seedHex: "#7646ab" },
+      { id: "n", name: "neutral", seedHex: "#737373" },
+    ]);
+    const tokens = seedSemanticTokens(tracks);
+    const tone = tokens.filter((token) =>
+      token.id.startsWith("action.secondary"),
+    );
+    expect(tone).toHaveLength(7);
+
+    for (const token of tone) {
+      for (const mode of ["light", "dark"] as const) {
+        /* Never a throw: a palette without the track is an ordinary state. */
+        const resolved = resolveSemantic(token, mode, tracks)!;
+        expect(resolved, `${token.id} ${mode}`).not.toBeNull();
+        /* Reported, so the Semantics tab can say "track gone" and the report
+           can carry it. */
+        expect(resolved.missing, `${token.id} ${mode}`).toBe("track");
+        /* And still a colour, from the fallback resolution states: the first
+           track in the palette. */
+        expect(resolved.trackId).toBe("p");
+        expect(resolved.hex).toMatch(/^#[0-9a-f]{6}$/i);
+      }
+    }
+
+    /* The label on the fill is a neutral role and resolves normally: it is
+       measured against whatever the fill came back as, missing or not. */
+    const label = tokenById(tokens, "fg.on-secondary");
+    expect(resolveSemantic(label, "light", tracks)!.missing).toBeNull();
   });
 
   it("seeds nothing for an empty palette", () => {
@@ -210,7 +255,7 @@ describe("resolveSemantic", () => {
   it("resolves every token in a mode", () => {
     const tracks = fullPalette();
     const tokens = seedSemanticTokens(tracks);
-    expect(resolveSemantics(tokens, "dark", tracks)).toHaveLength(65);
+    expect(resolveSemantics(tokens, "dark", tracks)).toHaveLength(72);
     expect(resolveSemantics(tokens, "dark", [])).toEqual([]);
   });
 });
@@ -271,7 +316,7 @@ describe("editing a layer", () => {
     const tracks = fullPalette();
     const tokens = addSemanticToken(seedSemanticTokens(tracks), tracks, "Chip");
 
-    expect(tokens).toHaveLength(66);
+    expect(tokens).toHaveLength(73);
     const added = tokenById(tokens, "chip");
     expect(resolveSemantic(added, "light", tracks)!.hex).toMatch(
       /^#[0-9a-f]{6}$/i,
@@ -297,7 +342,7 @@ describe("editing a layer", () => {
     const tokens = seedSemanticTokens(fullPalette());
     const next = removeSemanticToken(tokens, "status.info");
 
-    expect(next).toHaveLength(64);
+    expect(next).toHaveLength(71);
     expect(next.some((token) => token.id === "status.info")).toBe(false);
   });
 
@@ -370,6 +415,12 @@ describe("the first names, carried forward", () => {
       "action.primary-fg",
       "action.primary-border",
       "action.secondary",
+      "action.secondary-hover",
+      "action.secondary-active",
+      "action.secondary-surface",
+      "action.secondary-surface-hover",
+      "action.secondary-fg",
+      "action.secondary-border",
       "action.muted",
       "action.neutral",
       "action.neutral-hover",
@@ -393,6 +444,7 @@ describe("the first names, carried forward", () => {
       "fg.disabled",
       "fg.accent",
       "fg.on-action",
+      "fg.on-secondary",
       "fg.on-neutral",
       "fg.on-success",
       "fg.on-warning",
@@ -546,7 +598,7 @@ describe("fillSeedRoles", () => {
     expect(tokenById(migrated, "action.primary-hover").light.weight).toBe(500);
 
     const filled = fillSeedRoles(migrated, tracks);
-    expect(filled).toHaveLength(65);
+    expect(filled).toHaveLength(72);
 
     /* The label on a fill is measured against that fill rather than declared,
        so it lands on whichever end of the neutral ramp reads on it. */

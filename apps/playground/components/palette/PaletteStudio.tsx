@@ -337,12 +337,18 @@ function PaletteStudioContent() {
           setName(imported.name);
           setProject(imported.palette);
         }}
-        onCreate={({ name: chosenName, seedHex, method }) => {
-          const primarySeed =
-            method === "generated" ? "#3b66f5" : normalizeHex(seedHex);
+        onCreate={({ name: chosenName, seedHex, secondaryHex, method }) => {
+          const generated = method === "generated";
+          const primarySeed = generated ? "#3b66f5" : normalizeHex(seedHex);
+          /* Undefined rather than a colour when the generated set was chosen:
+             the seed's own second brand colour is the right answer there, and
+             passing one from a form nobody filled in would look like a choice. */
+          const secondarySeed = generated
+            ? undefined
+            : normalizeHex(secondaryHex);
           setName(chosenName);
           setProject({
-            tracks: seedPaletteTracks(primarySeed),
+            tracks: seedPaletteTracks(primarySeed, secondarySeed),
             lightnessPattern: "custom",
             lightnessValues: createPatternValues("custom"),
           });
