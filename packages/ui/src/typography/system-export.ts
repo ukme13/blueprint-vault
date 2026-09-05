@@ -13,7 +13,16 @@ import type { TypeScaleUnit } from "./types";
  * not gain an empty media query it never asked for.
  */
 
-function tokenId(value: string): string {
+/**
+ * A font or role id, as it is spelled in a variable name.
+ *
+ * Exported rather than private because the documentation names the same
+ * variables beside each role, and a page that built `--font-h1-size` from its
+ * own `toLowerCase` would be a second spelling of this rule — agreeing until
+ * somebody names a role "Body Large" and the two disagree about the hyphen.
+ * A developer copying a name off the page has to get the one in their file.
+ */
+export function typeTokenId(value: string): string {
   return value
     .trim()
     .toLowerCase()
@@ -43,7 +52,7 @@ function viewportLines(
 ): string[] {
   return roles.flatMap((role) => {
     const value = role[viewport];
-    const id = tokenId(role.id);
+    const id = typeTokenId(role.id);
     /* Unitless, as it has always been: a component that changes its font size
        keeps a line height in proportion. The config is an intent and would
        interpolate as "[object Object]". */
@@ -59,7 +68,7 @@ function viewportLines(
 function sharedLines(system: TypeSystem, unit: TypeScaleUnit): string[] {
   const fonts = system.fonts.map(
     (font) =>
-      `  --font-family-${tokenId(font.id)}: ${font.families
+      `  --font-family-${typeTokenId(font.id)}: ${font.families
         .map((family) =>
           /^[a-zA-Z][a-zA-Z0-9-]*$/.test(family) ? family : `"${family}"`,
         )
@@ -78,9 +87,9 @@ function sharedLines(system: TypeSystem, unit: TypeScaleUnit): string[] {
   );
 
   const perRole = system.roles.flatMap((role) => {
-    const id = tokenId(role.id);
+    const id = typeTokenId(role.id);
     return [
-      `  --font-${id}-family: var(--font-family-${tokenId(role.fontId)});`,
+      `  --font-${id}-family: var(--font-family-${typeTokenId(role.fontId)});`,
       `  --font-${id}-weight: ${role.fontWeight};`,
       `  --font-${id}-transform: ${role.textTransform};`,
     ];

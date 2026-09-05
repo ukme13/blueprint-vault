@@ -5,6 +5,7 @@ export * from "./line-height";
 export * from "./line-height-edit";
 export * from "./migrate";
 export * from "./presets";
+export * from "./role-rows";
 export * from "./scale";
 export * from "./system";
 export * from "./system-export";
