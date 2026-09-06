@@ -137,6 +137,11 @@ function main(): void {
   if (!existsSync(built)) throw new Error("The docs build produced no `out`.");
   const pages = join(out, blueprint.HANDOVER_PAGES_DIR);
   cpSync(built, pages, { recursive: true });
+  /* Copied, then removed. A static export left in the app is build output that
+     the repository's own scanners then read as source — the token check found
+     Astryx's `--x-` internals in it and reported them as undefined variables,
+     which is true and not anybody's problem. */
+  rmSync(built, { recursive: true, force: true });
 
   for (const name of filesUnder(pages)) {
     if (!name.endsWith(".html")) continue;
