@@ -47,3 +47,6 @@ apps/*/CLAUDE.md
 # Misc
 .DS_Store
 *.pem
+
+# The handover output folder is produced, not committed.
+handover/

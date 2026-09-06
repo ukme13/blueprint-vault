@@ -27,7 +27,22 @@ import {
  * See docs/roadmap/foundations-handover.md.
  */
 
-const REFERENCE = join(process.cwd(), "blueprint", "reference.workspace.json");
+/**
+ * The workspace this build describes.
+ *
+ * The reference fixture unless `BLUEPRINT_WORKSPACE` names another file,
+ * which is what makes one app able to document any client's system: `pnpm
+ * handover` points it at theirs and builds the same pages against it.
+ *
+ * An environment variable rather than a runtime import, and that is the
+ * plan's open question answered. Runtime would make the documentation a
+ * tool — drop a file in, read the pages against it — and build-time makes it
+ * a deliverable, a folder a client keeps that needs nothing running. A
+ * deliverable is what stage 5 is for. The tool can follow if somebody asks.
+ */
+const REFERENCE =
+  process.env.BLUEPRINT_WORKSPACE ??
+  join(process.cwd(), "blueprint", "reference.workspace.json");
 
 export interface ReferenceWorkspace {
   project: WorkspaceProject;

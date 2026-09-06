@@ -37,7 +37,12 @@ const blueprint = createRequire(import.meta.url)(
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const APP = resolve(HERE, "..");
-const REFERENCE = join(APP, "blueprint", "reference.workspace.json");
+/* The same variable `lib/workspace.ts` reads, so the stylesheets and the
+   pages in one build always describe the same workspace. Two sources for
+   that would be a handover whose colour page and colour tokens disagree. */
+const REFERENCE =
+  process.env.BLUEPRINT_WORKSPACE ??
+  join(APP, "blueprint", "reference.workspace.json");
 const OUT = join(APP, "app", "blueprint");
 
 function main(): void {

@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { seedWorkspaceProject } from "../workspace/seed-project";
-import { buildHandoverFiles, HANDOVER_README } from "./handover";
+import {
+  buildHandoverFiles,
+  HANDOVER_README,
+  unexpectedHandoverPaths,
+} from "./handover";
 
 /*
  * What a client receives, and whether they can tell what it is.
@@ -108,5 +112,37 @@ describe("a workspace with only half a system", () => {
        free from generating it out of the list. */
     const readme = files.find((file) => file.path === HANDOVER_README)!;
     expect(readme.contents).not.toContain("blueprint-typography.css");
+  });
+});
+
+describe("what may be in the archive", () => {
+  it("is the builder's files and the built pages, and nothing else", () => {
+    const files = build();
+    const written = [
+      ...files.map((file) => file.path),
+      "pages/index.html",
+      "pages/foundations/colour/index.html",
+      "pages/_next/static/css/app.css",
+    ];
+
+    expect(unexpectedHandoverPaths(written, files)).toEqual([]);
+  });
+
+  it("names a file that came from neither", () => {
+    /* The case worth having: somebody copies a note into the output folder
+       because it is quicker than adding it to the builder, and a client
+       receives an artefact no README describes. */
+    const files = build();
+    const written = [
+      ...files.map((file) => file.path),
+      "pages/index.html",
+      "NOTES.txt",
+      "assets/logo.svg",
+    ];
+
+    expect(unexpectedHandoverPaths(written, files)).toEqual([
+      "NOTES.txt",
+      "assets/logo.svg",
+    ]);
   });
 });

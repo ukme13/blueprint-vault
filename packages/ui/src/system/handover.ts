@@ -190,3 +190,29 @@ export function buildHandoverFiles(
   files.push({ path: HANDOVER_README, contents: readme(paths, options) });
   return files;
 }
+
+/** Where the built foundation pages sit inside the archive. */
+export const HANDOVER_PAGES_DIR = "pages";
+
+/**
+ * Anything in a handover that neither the builder nor the docs build made.
+ *
+ * Empty is the passing state. The risk is a hand-copied file — a favicon, a
+ * stray note, a stylesheet somebody dropped into the output directory
+ * because it was quicker than adding it to the builder — reaching a client
+ * as an artefact no README describes and no test knows about.
+ *
+ * Given what was actually written rather than what was meant to be, so it
+ * catches a file the script never mentions. The script lists its own output
+ * directory and passes that in; a name that is neither a builder file nor
+ * under the pages directory comes back, and the run stops.
+ */
+export function unexpectedHandoverPaths(
+  written: readonly string[],
+  files: readonly HandoverFile[],
+): string[] {
+  const known = new Set(files.map((file) => file.path));
+  return written.filter(
+    (path) => !known.has(path) && !path.startsWith(`${HANDOVER_PAGES_DIR}/`),
+  );
+}
