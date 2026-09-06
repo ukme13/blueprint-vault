@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { formatTypeSystemCssExport } from "./system-export";
 import { defaultSystem, type TypeSystem } from "./system";
+import { readTypographyProjectData } from "../workspace/typography-project";
 import {
   resolveSystemRoles,
   resolveTemplateSlot,
@@ -257,17 +258,40 @@ describe("which role a template slot draws", () => {
     slot: Parameters<typeof resolveTemplateSlot>[1],
   ) => resolveTemplateSlot(system, slot)?.desktop.fontSizePx;
 
-  it("gives the article a hierarchy on a workspace with none of its names", () => {
-    /* The whole point. A default workspace has `display-1`, `h1`–`h6` and
-       `body`, and none of the six names a template asks for except `body` —
-       so every slot fell through to body and the article rendered its kicker,
-       hero, standfirst, byline and section headings all at 16px. */
+  it("takes label and caption by name, now that a default system has them", () => {
+    /* The id path. Two consumers argued these roles into the system — the
+       article template's kicker and byline, and the documentation home page's
+       eyebrow, badge and caption — so the slot that used to fall through to
+       body now finds a role with the right name. */
     const system = seeded();
+
+    expect(resolveTemplateSlot(system, "label")?.id).toBe("label");
+    expect(resolveTemplateSlot(system, "caption")?.id).toBe("caption");
+    /* 12 and 11, not the 14 and 12 that were asked for: two steps below base
+       is 10.24 and the floor clamps it to 11, one step below is 12.80 rounding
+       to 12, and there is nothing between 12 and base. */
+    expect(sizeOf(system, "label")).toBe(12);
+    expect(sizeOf(system, "caption")).toBe(11);
+  });
+
+  it("gives the article a hierarchy on a workspace with none of its names", () => {
+    /* The rule path, on a system stripped of every name a template asks for.
+       This is what a workspace saved before the two roles existed looks like,
+       and it is why the group rules stay: they are not dead code, they are the
+       answer for every project that has not opted in. */
+    const base = seeded();
+    const system: TypeSystem = {
+      ...base,
+      roles: base.roles.filter(
+        (role) => !["label", "caption"].includes(role.id),
+      ),
+    };
 
     expect(sizeOf(system, "display")).toBe(62);
     expect(sizeOf(system, "title")).toBe(48);
     expect(sizeOf(system, "heading")).toBe(40);
     expect(sizeOf(system, "body")).toBe(16);
+    /* Both fall to the smallest role the body group has, which is body. */
     expect(sizeOf(system, "label")).toBe(16);
     expect(sizeOf(system, "caption")).toBe(16);
 
@@ -284,32 +308,23 @@ describe("which role a template slot draws", () => {
   });
 
   it("prefers a role the workspace actually named", () => {
-    /* A workspace that has a `caption` gets its `caption`, and the rule never
-       runs. A rule that outranked an exact name would be the studio telling
-       somebody their own role was the wrong one. */
+    /* A rule that outranked an exact name would be the studio telling somebody
+       their own role was the wrong one. The `caption` here is moved somewhere
+       the rule would never look — the heading group, larger than body — so if
+       the rule ran it would return the smallest body role instead. */
     const base = seeded();
-    /* Deliberately somewhere the rule would never look: a `caption` in the
-       heading group, larger than body. If the rule ran it would return the
-       smallest body role, so only the exact-id path can find this. */
     const system: TypeSystem = {
       ...base,
-      roles: [
-        ...base.roles,
-        {
-          ...base.roles.find((role) => role.id === "h4")!,
-          id: "caption",
-          name: "caption",
-          groupId: "h",
-          stepOffset: 3,
-        },
-      ],
+      roles: base.roles.map((role) =>
+        role.id === "caption" ? { ...role, groupId: "h", stepOffset: 3 } : role,
+      ),
     };
 
     expect(resolveTemplateSlot(system, "caption")?.id).toBe("caption");
     expect(sizeOf(system, "caption")).toBe(32);
     /* And the slots around it are untouched. */
     expect(sizeOf(system, "body")).toBe(16);
-    expect(sizeOf(system, "label")).toBe(16);
+    expect(sizeOf(system, "label")).toBe(12);
   });
 
   it("falls to the group's last role rather than to body", () => {
@@ -340,5 +355,41 @@ describe("which role a template slot draws", () => {
 
     expect(resolveTemplateSlot(system, "heading")?.id).toBe("h1");
     expect(resolveTemplateSlot({ ...system, roles: [] }, "body")).toBeNull();
+  });
+});
+
+describe("a saved type system", () => {
+  it("does not gain a role it was saved without", () => {
+    /* The opposite of the semantic colour layer, and deliberately. A semantic
+       role is vocabulary the system defines, so topping a saved layer up to
+       the seed set is a migration. A type role is a decision somebody made
+       about their own scale — the same species as a palette track — so adding
+       one on their behalf would be inventing their design.
+
+       `label` and `caption` arrived after most saved projects. This is the
+       assertion that they stay out of them. */
+    const saved = {
+      ...defaultSystem("Saved", ["Geist Sans"], 16, 1.25, 9),
+      roles: defaultSystem("Saved", ["Geist Sans"], 16, 1.25, 9).roles.filter(
+        (role) => !["label", "caption"].includes(role.id),
+      ),
+    };
+
+    const project = readTypographyProjectData({
+      system: saved,
+      unit: "px",
+      specimenText: "",
+      template: "specimen",
+    });
+
+    const ids = project!.system.roles.map((role) => role.id);
+    expect(ids).not.toContain("label");
+    expect(ids).not.toContain("caption");
+    /* And a new one does have them, which is the other half of the rule. */
+    expect(
+      defaultSystem("New", ["Geist Sans"], 16, 1.25, 9).roles.map(
+        (role) => role.id,
+      ),
+    ).toEqual(expect.arrayContaining(["label", "caption"]));
   });
 });

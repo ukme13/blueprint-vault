@@ -6,11 +6,13 @@
  * primitive shade inside a shadow, and two Astryx token names that the bridge
  * happens to define. The scanner in `primitive-usage.ts` holds it now.
  *
- * Font sizes come from the type scale, and where they name a step token
- * (`--font-size-1`) rather than a role (`--font-h6-size`) that is a role the
- * system does not have — an eyebrow, a card title, a caption. The guidance on
- * /foundations/typography says reaching for a step is a sign a role is
- * missing, and this page is the evidence for that sentence.
+ * Font sizes come from the type scale. The eyebrow, the badge and the card
+ * action name `label` and `caption`, two roles this page argued into the
+ * default system by reaching for bare steps and having nowhere else to go.
+ * What still names a step is the card title at 16px, which is a heading with
+ * no heading role at that size — so the sentence in the typography guidance,
+ * that reaching for a step is a sign a role is missing, keeps one piece of
+ * evidence rather than five.
  *
  * Widths are the exception and are not tokens: a content column is a size, and
  * the scale plan defers size tokens to their own family.
@@ -32,8 +34,12 @@
 .eyebrow {
   margin: 0 0 var(--spacing-3);
   color: var(--color-fg-accent);
-  /* No label role in the type system; this is the step under body. */
-  font-size: var(--font-size-1);
+  /* The label role, which this page argued into the type system: an eyebrow
+     was one of five things reaching for a bare step because nothing under
+     body had a name. The weight stays the page's own — a role carries a size
+     and a rhythm, and 700 here is this eyebrow being emphatic. */
+  font-size: var(--font-label-size);
+  line-height: var(--font-label-line-height);
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -139,7 +145,9 @@
      which the bridge defines and a client installing the export does not. */
   color: var(--color-status-success-fg);
   background: var(--color-status-success-surface);
-  font-size: var(--font-size-0);
+  /* Caption: the quietest text on the page. */
+  font-size: var(--font-caption-size);
+  line-height: var(--font-caption-line-height);
   font-weight: 750;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -149,7 +157,8 @@
   display: inline-block;
   margin-top: var(--spacing-5);
   color: var(--color-fg-accent);
-  font-size: var(--font-size-1);
+  font-size: var(--font-label-size);
+  line-height: var(--font-label-line-height);
   font-weight: 700;
 }
 

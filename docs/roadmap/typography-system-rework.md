@@ -383,3 +383,53 @@ names and comments only, never a hidden runtime dependency.
 
 Model, migration and rounding functions need unit tests. Role editing, font
 stacking, the Google picker and rounding each need Playwright coverage.
+
+### Notes from adding label and caption
+
+**Two consumers, then the role.** The rule this plan set for adding anything is
+that a page argues for it. `label` and `caption` were argued by five uses
+across two products: the article template's kicker and byline, and the
+documentation home page's eyebrow, badge and card action. All five had been
+reaching for a bare step token because nothing under body had a name.
+
+**14px does not exist on the default scale, and could not be made to.** They
+were asked for at roughly 14 and 12. Two steps below base is 10.24 and the
+floor clamps it to 11; one step below is 12.80 rounding to 12; base is 16. The
+small end of a 1.25 ramp is 11, 12, 16 with nothing between, so the roles took
+the two steps there are. Hand-setting 14 would have hit the number and broken
+what a default role is for — a hand-set size unlinks from the ramp, so changing
+the base or the ratio would move every other role and leave these two behind.
+
+**They could not live in the body group.** Every group is reindexed by position
+on read, which is what repairs a project an earlier release left holding both
+`body` and `body-1`. Putting two roles in the body group therefore renamed all
+three: `body` became `body-1` and the new ones `body-2` and `body-3`, taking
+`--font-body-size` out of every file that already installs it. A group of one
+takes the group's own id, which is the only shape in this model that keeps a
+role called `label` called `label` — and it is what `display` already does.
+
+**The legacy migration had been carrying these two groups all along.** A
+pre-merge project has `label` and `caption` roles, so `legacyGroups` added the
+groups for them. With the defaults now carrying both, that produced two groups
+with the same id — the identical fault `display` had, for the identical reason.
+`legacyGroups` is `defaultGroups` now. Worth noticing that the two shapes
+converged rather than one copying the other: the pre-merge model named these
+roles long before the merged one did, and the pages that asked for them back
+had never seen it.
+
+**Supporting roles render as a span.** A label sits beside a field, an eyebrow
+above a title, a byline under one — each is a run inside other content, and a
+paragraph wrapping one puts a block where an inline element belongs.
+`elementForRole` reads a small set of ids, the same way it reads heading ids,
+so moving a role between groups never changes what it renders as.
+
+**Auto line height needed its own ratio for them.** Left at body's 1.5 both
+came out on a 20px line, because `auto` ceils to the 4px grid and 12 × 1.5 is 18. A paragraph's leading on a caption. 1.3 and 1.4 put both on 16px.
+
+**A saved system does not gain them.** The semantic colour layer tops a stored
+layer up to the current seed set on every read; a type system deliberately does
+not. A semantic role is vocabulary the system defines, so filling one in is a
+migration. A type role is a decision somebody made about their own scale — the
+same species as a palette track — so adding one on their behalf would be
+inventing their design. The template resolver's group rules are the answer for
+every project that has not opted in, which is why those rules stay.

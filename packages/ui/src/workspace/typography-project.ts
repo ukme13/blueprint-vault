@@ -38,6 +38,16 @@ function readPreferences(value: object): Omit<TypographyProjectData, "system"> {
  * project is orphaned by a rename — and the system itself is then normalised,
  * since an earlier release stored one with no groups, roles keyed by `group`,
  * and absolute steps.
+ *
+ * **A stored system never gains a role it was saved without.** The semantic
+ * colour layer does the opposite — `fillSeedRoles` tops a saved layer up to
+ * the current seed set on every read — and the difference is deliberate. A
+ * semantic role is vocabulary the system defines, so filling one in is a
+ * migration; a type role is a decision somebody made about their own scale,
+ * the same as a palette track, so adding one on their behalf is inventing
+ * their design. `label` and `caption` arrived after most saved projects and
+ * those projects do not have them. The template resolver's group rules are the
+ * answer for every one of them, which is why those rules stay.
  */
 export function readTypographyProjectData(
   value: unknown,

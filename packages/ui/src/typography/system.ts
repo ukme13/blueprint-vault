@@ -65,6 +65,25 @@ export const HEADING_GROUP_ID = "h";
 export const BODY_GROUP_ID = "body";
 export const DISPLAY_GROUP_ID = "display";
 
+/**
+ * The two supporting roles, each alone in a group of its own.
+ *
+ * A group of one takes the group's own id, which is the only shape in this
+ * model that keeps a role called `label` called `label`. Every group is
+ * reindexed by position on read — that is what repairs a project an earlier
+ * release left holding both `body` and `body-1` — so putting these two in the
+ * body group would have renamed all three: `body` to `body-1` and these to
+ * `body-2` and `body-3`, taking `--font-body-size` out of every file that
+ * already installs it.
+ *
+ * It is the same shape `display` already has, and it reads correctly on the
+ * Groups tab: these are named roles rather than an indexed family, and a
+ * project that wants two labels gets `label-1` and `label-2` the way every
+ * other group works.
+ */
+export const LABEL_GROUP_ID = "label";
+export const CAPTION_GROUP_ID = "caption";
+
 /** The expressive brand font, and the readable one everything else uses. */
 export const DISPLAY_FONT_ID = "display";
 export const MAIN_FONT_ID = "main";
@@ -75,6 +94,8 @@ export function defaultGroups(): TypeGroup[] {
     { id: DISPLAY_GROUP_ID, label: "Display", indexing: "number" },
     { id: HEADING_GROUP_ID, label: "H", indexing: "number" },
     { id: BODY_GROUP_ID, label: "Body", indexing: "number" },
+    { id: LABEL_GROUP_ID, label: "Label", indexing: "number" },
+    { id: CAPTION_GROUP_ID, label: "Caption", indexing: "number" },
   ];
 }
 
@@ -145,6 +166,50 @@ export function defaultSystem(
     mobile: value(baseFontSizePx),
   };
 
+  /**
+   * The two supporting roles, and the sizes the scale can actually give them.
+   *
+   * Asked for at roughly 14px and 12px, and 14 does not exist on this ramp.
+   * Two steps below base is 10.24 before rounding and the floor clamps it to
+   * 11, one step below is 12.80 rounding to 12, and base is 16 — so the small
+   * end of a 1.25 scale is 11, 12, 16 with nothing between. They take the two
+   * steps there are.
+   *
+   * Linked to a step rather than hand-set at 14, which would have hit the
+   * number and broken the thing a default role is for: a hand-set size unlinks
+   * from the ramp, so changing the base or the ratio would move every other
+   * role and leave these two behind.
+   *
+   * `label` carries a little more weight because it names something rather
+   * than saying it — a form label, an eyebrow, a badge — and `caption` stays
+   * at body's weight because it is still prose, only quieter.
+   */
+  const label: TypeRole = {
+    id: "label",
+    name: "label",
+    groupId: LABEL_GROUP_ID,
+    fontId: MAIN_FONT_ID,
+    fontWeight: 500,
+    textTransform: "none",
+    stepOffset: -1,
+    sameAsRoleId: null,
+    desktop: value(baseFontSizePx),
+    mobile: value(baseFontSizePx),
+  };
+
+  const caption: TypeRole = {
+    id: "caption",
+    name: "caption",
+    groupId: CAPTION_GROUP_ID,
+    fontId: MAIN_FONT_ID,
+    fontWeight: 400,
+    textTransform: "none",
+    stepOffset: -2,
+    sameAsRoleId: null,
+    desktop: value(baseFontSizePx),
+    mobile: value(baseFontSizePx),
+  };
+
   return {
     id: "type-system",
     name,
@@ -167,7 +232,7 @@ export function defaultSystem(
         sources: { primary: "system" },
       },
     ],
-    roles: [display, ...headings, body],
+    roles: [display, ...headings, body, label, caption],
   };
 }
 
@@ -345,6 +410,13 @@ export const AUTO_LINE_HEIGHT_RATIOS: Readonly<Record<string, number>> = {
   [DISPLAY_GROUP_ID]: 1.1,
   [HEADING_GROUP_ID]: 1.2,
   [BODY_GROUP_ID]: 1.5,
+  /* Tighter than body, because supporting text is short. Left at body's 1.5
+     they came out on a 20px line — `auto` ceils to the 4px grid, so 12 × 1.5
+     is 18 and rounds up — which is a paragraph's leading on a caption. Both
+     land on 16px here: a label is nearly always one line and a caption is
+     rarely more than two. */
+  [LABEL_GROUP_ID]: 1.3,
+  [CAPTION_GROUP_ID]: 1.4,
 };
 
 /** The ratio a role's `auto` resolves against. */
@@ -410,8 +482,19 @@ export interface TypeSystem {
 
 const HEADING_ELEMENTS = ["h1", "h2", "h3", "h4", "h5", "h6"] as const;
 
-/** The elements a role can render as: a heading level, or a paragraph. */
-export type RoleElement = (typeof HEADING_ELEMENTS)[number] | "p";
+/**
+ * Roles that are a run of text inside something else rather than a block.
+ *
+ * A form label, an eyebrow above a title, a byline, the caption under a
+ * figure: each sits within other content, and wrapping one in a `<p>` puts a
+ * paragraph inside a paragraph or a block inside a label. Matched by id, the
+ * same way a heading is, so moving a role between groups never changes what it
+ * renders as.
+ */
+const SPAN_ROLE_IDS: readonly string[] = ["label", "caption", "overline"];
+
+/** The elements a role can render as: a heading level, a paragraph, or a run. */
+export type RoleElement = (typeof HEADING_ELEMENTS)[number] | "p" | "span";
 
 /** A role id that names an HTML heading level. */
 function isHeadingElement(id: string): id is (typeof HEADING_ELEMENTS)[number] {
@@ -421,9 +504,10 @@ function isHeadingElement(id: string): id is (typeof HEADING_ELEMENTS)[number] {
 /**
  * Semantic element for a role, derived rather than stored.
  *
- * The heading group is h1 to h6 by position; everything else is a paragraph.
- * A stored, editable element was a control nobody needed: headings already know
- * their level, and every other role is a visual style applied to body copy.
+ * The heading group is h1 to h6 by position, the supporting roles are inline
+ * runs, and everything else is a paragraph. A stored, editable element was a
+ * control nobody needed: headings already know their level, and every other
+ * role is a visual style applied to body copy.
  */
 export function elementForRole(
   _system: TypeSystem,
@@ -433,7 +517,8 @@ export function elementForRole(
      never changes what a role renders as. A predicate rather than a regex, so
      the narrowing is something the compiler checked instead of a cast at every
      place the result is used as a tag name. */
-  return isHeadingElement(role.id) ? role.id : "p";
+  if (isHeadingElement(role.id)) return role.id;
+  return SPAN_ROLE_IDS.includes(role.id) ? "span" : "p";
 }
 
 /** Roles in a group, in insertion order. */

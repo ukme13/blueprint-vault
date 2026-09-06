@@ -685,3 +685,28 @@ sweep that lost something rather than moving it.
 **No spacing step at 80px or 10px.** The home page's outer rhythm wanted 80 and
 the scale stops at 64; `gap-2.5` wanted 10. Both were rounded to a neighbouring
 step rather than adding to the scale, since one page is not yet an argument.
+
+### One of the five roles has been added
+
+Stage 4's notes listed five things the swept pages could not name. The first of
+them is closed: there is a type role under 16px now, two of them — `label` at
+12px and `caption` at 11px, in the default system and in the reference
+workspace.
+
+They were added the way the roadmap says a token should be: because two
+products reached for one and could not find it. The article template's kicker
+and byline and this app's eyebrow, badge and card action were all naming bare
+step tokens, and the typography guidance already said that reaching for a step
+is a sign a role is missing. The home page keeps exactly one such reach — a
+card title at 16px, which is a heading with no heading role at that size — so
+the sentence keeps one piece of evidence rather than five.
+
+**The typography page needed no edit.** Two groups and two rows appeared in its
+table, with their guidance above them and their six variables beside them,
+because the page is a template over the workspace and the guidance is keyed by
+group id. That is the claim stage 2 and stage 3 made about every page here, and
+this is the first change that tested it from the data side rather than by
+rendering the same workspace twice.
+
+The other four remain: four levels of grey text against two foreground roles,
+no size family, no gradient, and no spacing step at 80px.

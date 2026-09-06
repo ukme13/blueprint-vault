@@ -27,9 +27,12 @@ describe("findUndefinedCssVars", () => {
     const defined = definedCssVars(ROOT);
     expect(defined.has("--spacing-1")).toBe(true);
     expect(defined.has("--font-size-sm")).toBe(true);
-    // The ones that caused the bugs genuinely do not exist.
+    /* The ones that caused the bugs genuinely do not exist. `--font-caption-size`
+       used to be one of them and is a token now: two products argued a caption
+       role into the default type system, and a fixture naming a variable
+       because it was missing has to move when somebody supplies it. */
     expect(defined.has("--spacing-200")).toBe(false);
-    expect(defined.has("--font-caption-size")).toBe(false);
+    expect(defined.has("--font-caption-tracking")).toBe(false);
   });
 });
 
