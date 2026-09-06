@@ -20,7 +20,7 @@ import { readTypographyProjectData } from "./typography-project";
 import { DEFAULT_WORKSPACE_NAME } from "./workspace";
 import type { WorkspaceProject } from "./types";
 
-export const BLUEPRINT_WORKSPACE_FILE_VERSION = 5;
+export const BLUEPRINT_WORKSPACE_FILE_VERSION = 6;
 
 /**
  * Versions this build can open.
@@ -31,9 +31,19 @@ export const BLUEPRINT_WORKSPACE_FILE_VERSION = 5;
  * demand that it was written by this exact build: each earlier version differs
  * only by lacking a slice that is filled on the way in — semantics at 2, the
  * spacing scale at 3, radius at 4, elevation at 5.
+ *
+ * Six is the first that is not a missing slice. A semantic reference can carry
+ * an alpha, and a file written at 5 has none anywhere: absent means opaque, so
+ * every version-5 file reads as the file it always was and needs nothing
+ * filled. The number moved anyway, because the migration that matters runs the
+ * other way. A build that only knows 5, handed a file with `alpha: 0.12` in it,
+ * would read the reference, ignore the field it does not know, and hand back a
+ * solid divider — a silent change to somebody's system with nothing anywhere
+ * saying so. Refusing the file is the honest failure, and only a version number
+ * it does not recognise can make it refuse.
  */
 export const SUPPORTED_WORKSPACE_FILE_VERSIONS: readonly number[] = [
-  1, 2, 3, 4, 5,
+  1, 2, 3, 4, 5, 6,
 ];
 
 export interface BlueprintWorkspaceFile {
