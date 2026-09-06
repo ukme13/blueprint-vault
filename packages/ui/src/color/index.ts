@@ -13,6 +13,7 @@ export * from "./semantic-export";
 export * from "./preview-assessment";
 export * from "./role-consumers";
 export * from "./selection-ops";
+export * from "./semantic-selection";
 export * from "./theme-mode";
 export * from "./token-rows";
 export * from "./colour-mode";

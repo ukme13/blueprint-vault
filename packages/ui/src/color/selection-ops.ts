@@ -306,3 +306,97 @@ export function repointTokens(
     refusals,
   );
 }
+
+/**
+ * The selected tokens as text somebody can carry between workspaces.
+ *
+ * The layer's own JSON, which is exactly what the workspace file holds for
+ * this slice. A private clipboard format would be one more thing to version,
+ * and this one can be pasted into an editor, read, and pasted back.
+ */
+export function formatSemanticClipboard(
+  layer: SemanticToken[],
+  ids: readonly string[],
+): string {
+  const wanted = new Set(ids);
+  return `${JSON.stringify(
+    layer.filter((token) => wanted.has(token.id)),
+    null,
+    2,
+  )}\n`;
+}
+
+/**
+ * Read tokens off the clipboard, keeping only what is a token.
+ *
+ * Empty for anything else, because the clipboard holds whatever somebody last
+ * copied and a paste that threw would turn "wrong window" into an error
+ * dialog. A damaged entry is dropped rather than taking the paste with it,
+ * the same way a damaged token is dropped on read.
+ */
+export function parseSemanticClipboard(source: string): SemanticToken[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(source);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+
+  return parsed.filter((entry): entry is SemanticToken => {
+    if (!entry || typeof entry !== "object") return false;
+    const token = entry as Partial<SemanticToken>;
+    return (
+      typeof token.id === "string" &&
+      !!token.id &&
+      !!token.light &&
+      !!token.dark &&
+      typeof token.light.trackId === "string" &&
+      typeof token.dark.trackId === "string"
+    );
+  });
+}
+
+/**
+ * Insert tokens after a row, renaming anything that would collide.
+ *
+ * Through the same `-copy` rule duplicate uses, so pasting a row beside itself
+ * reads the way duplicating it does. An id that is free keeps its name: pasting
+ * a vocabulary into a workspace that has never had it should give that
+ * workspace the names somebody wrote, not `brand.wash-copy`.
+ *
+ * `afterId` is where the paste lands. Absent, or naming a row that is not in
+ * the layer, appends — which is what a paste with nothing selected should do.
+ */
+export function pasteTokens(
+  layer: SemanticToken[],
+  incoming: readonly SemanticToken[],
+  afterId?: string | null,
+): SemanticEdit {
+  if (incoming.length === 0) return edit(layer);
+
+  const taken = new Set(layer.map((token) => token.id));
+  const added: string[] = [];
+
+  const copies = incoming.map((token) => {
+    const id = taken.has(token.id) ? copyId(token.id, taken) : token.id;
+    taken.add(id);
+    added.push(id);
+    return {
+      ...token,
+      id,
+      light: { ...token.light },
+      dark: { ...token.dark },
+    };
+  });
+
+  const at = afterId ? layer.findIndex((token) => token.id === afterId) : -1;
+  if (at === -1) return edit([...layer, ...copies], [], [], added);
+
+  return edit(
+    [...layer.slice(0, at + 1), ...copies, ...layer.slice(at + 1)],
+    [],
+    [],
+    added,
+  );
+}

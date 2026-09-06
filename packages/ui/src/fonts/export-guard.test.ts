@@ -4,6 +4,7 @@ import {
   formatTypeScaleCssExport,
   formatTypeScaleTailwindExport,
 } from "../typography/export";
+import { formatSemanticClipboard } from "../color/selection-ops";
 import { seedSemanticTokens } from "../color/semantic";
 import { defaultElevationScale } from "../scale/elevation";
 import { defaultRadiusScale } from "../scale/radius";
@@ -50,6 +51,11 @@ const DOCUMENT_FORMATTERS = [
   "formatPaletteTailwindExport",
   "formatScaleCss",
   "formatScaleTailwind",
+  /* The clipboard is a document like any other: it leaves the application as
+     text, and somebody can paste it into a file. That it happens to carry a
+     slice with no font field in it is a fact about today's shape, not a
+     reason to leave it off the list. */
+  "formatSemanticClipboard",
   "formatSemanticCssExport",
   "formatSemanticDesignTokens",
   "formatSemanticTailwindExport",
@@ -152,6 +158,20 @@ describe("no export carries font data", () => {
     );
     expect(tailwind).toContain(FAMILY);
     assertNamesOnly("the Tailwind export", tailwind);
+  });
+
+  it("keeps no bytes on the clipboard", () => {
+    /* Copy leaves the application as text and can be pasted into a file, so
+       it is checked like any other document rather than trusted because the
+       slice it serialises has no font in it. */
+    const layer = seedSemanticTokens(reportPalette());
+    assertNamesOnly(
+      "the clipboard",
+      formatSemanticClipboard(
+        layer,
+        layer.map((token) => token.id),
+      ),
+    );
   });
 
   it("carries no face through the legacy scale exports either", () => {

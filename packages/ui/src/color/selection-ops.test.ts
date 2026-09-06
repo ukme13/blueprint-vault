@@ -3,6 +3,9 @@ import { generatePalettes } from "./palette";
 import { usedBy } from "./role-consumers";
 import {
   deleteTokens,
+  formatSemanticClipboard,
+  parseSemanticClipboard,
+  pasteTokens,
   duplicateTokens,
   moveToGroup,
   repointTokens,
@@ -367,5 +370,118 @@ describe("every operation answers in the same shape", () => {
     });
 
     expect(JSON.stringify(before)).toBe(snapshot);
+  });
+});
+
+describe("the clipboard", () => {
+  it("writes the selected tokens as the layer's own JSON", () => {
+    /* Not a private format. A private one would be a second thing to version,
+       and this can be pasted into an editor, read, and pasted back. */
+    const text = formatSemanticClipboard(layer(), [
+      "brand.wash",
+      "extra.scrim",
+    ]);
+    const back = parseSemanticClipboard(text);
+
+    expect(back.map((token) => token.id)).toEqual([
+      "brand.wash",
+      "extra.scrim",
+    ]);
+    /* Alpha and all: a copy that came back opaque would be a different token
+       wearing the same name. */
+    expect(back[0]!.light.alpha).toBe(0.12);
+  });
+
+  it("reads nothing out of whatever else was on the clipboard", () => {
+    /* The clipboard holds whatever somebody last copied, so a paste that threw
+       would turn "wrong window" into an error dialog. */
+    expect(parseSemanticClipboard("a screenshot, probably")).toEqual([]);
+    expect(parseSemanticClipboard("{}")).toEqual([]);
+    expect(parseSemanticClipboard("[1, 2, 3]")).toEqual([]);
+  });
+
+  it("drops a damaged entry rather than the whole paste", () => {
+    const mixed = JSON.stringify([
+      { id: "good.one", name: "Good", light: { trackId: "t" }, dark: {} },
+      { id: "no.references" },
+    ]);
+    expect(parseSemanticClipboard(mixed)).toHaveLength(0);
+
+    const withDark = JSON.stringify([
+      {
+        id: "good.one",
+        name: "Good",
+        light: { trackId: "t", weight: 100 },
+        dark: { trackId: "t", weight: 900 },
+      },
+      "not a token",
+    ]);
+    expect(parseSemanticClipboard(withDark).map((t) => t.id)).toEqual([
+      "good.one",
+    ]);
+  });
+});
+
+describe("pasteTokens", () => {
+  it("inserts after the row that was current", () => {
+    const incoming = parseSemanticClipboard(
+      formatSemanticClipboard(layer(), ["extra.scrim"]),
+    );
+    const result = pasteTokens(layer(), incoming, "brand.wash");
+
+    expect(ids(result.layer)).toEqual([
+      "action.primary",
+      "brand.wash",
+      "extra.scrim-copy",
+      "brand.rule",
+      "extra.scrim",
+    ]);
+  });
+
+  it("renames only what would collide", () => {
+    /* Pasting a vocabulary into a workspace that never had it should give that
+       workspace the names somebody wrote, not `brand.wash-copy`. */
+    const incoming = parseSemanticClipboard(
+      formatSemanticClipboard(layer(), ["brand.wash", "brand.rule"]),
+    );
+    const fresh = layer().filter((token) => token.id === "action.primary");
+    const result = pasteTokens(fresh, incoming);
+
+    expect(ids(result.layer)).toEqual([
+      "action.primary",
+      "brand.wash",
+      "brand.rule",
+    ]);
+    expect(result.added).toEqual(["brand.wash", "brand.rule"]);
+  });
+
+  it("appends when nothing is selected to paste after", () => {
+    const incoming = parseSemanticClipboard(
+      formatSemanticClipboard(layer(), ["brand.wash"]),
+    );
+    expect(ids(pasteTokens(layer(), incoming).layer).at(-1)).toBe(
+      "brand.wash-copy",
+    );
+    expect(ids(pasteTokens(layer(), incoming, "gone.away").layer).at(-1)).toBe(
+      "brand.wash-copy",
+    );
+  });
+
+  it("keeps two pasted copies of one id apart", () => {
+    const one = parseSemanticClipboard(
+      formatSemanticClipboard(layer(), ["brand.wash"]),
+    );
+    const result = pasteTokens(layer(), [...one, ...one]);
+
+    expect(ids(result.layer)).toContain("brand.wash-copy");
+    expect(ids(result.layer)).toContain("brand.wash-copy-2");
+    expect(new Set(ids(result.layer)).size).toBe(result.layer.length);
+  });
+
+  it("does nothing for an empty paste", () => {
+    const before = layer();
+    const result = pasteTokens(before, []);
+    expect(result.layer).toBe(before);
+    expect(result.added).toEqual([]);
   });
 });
