@@ -141,6 +141,8 @@ Somebody can:
    Keep the component under 250 lines by splitting sidebar, table and
    context menu; the logic is already in stage 2.
 
+   **Status: stage 4b ✅ complete.**
+
 5. **Alpha in the UI.** An alpha field beside each reference (a percent,
    like Figma), swatches drawn over a checker when alpha is under 100%,
    and the report and preview showing composited results. The seed set
@@ -393,12 +395,57 @@ panel to appear at all; and serially a different, older test fails instead
 failure is about what it asserts. It is the same shape as the docs app's
 `survives a reload`, noted at stage 1. The suite has outgrown the profile.
 
+**Stage 4b is complete.** The table now renders folder-aware short names,
+sticky group headings, in-place spreadsheet editing, Figma-style colour chips,
+column resizing and ordering, and safe row dragging within a folder.
+
+**A group is a folder, not part of the editable name.** The table now renders
+the short name (`subtle`) beside the full exported variable
+(`--color-border-subtle`). A dotted value is the one deliberate exception: typing
+`primary.x` changes both the folder and the short name. The four pure helpers
+(`groupOf`, `shortName`, `withGroup` and `renameTokenFromCell`) live in
+`packages/ui`, so the editor does not have a second naming rule.
+
+**The All view brings back section rows without losing the filter.** Each folder
+has a heading row with 40px above and 8px below. The heading is sticky inside
+the table's scroll region: when a long folder is moving past, its name stays
+visible until the next folder replaces it. This is useful context in All and
+does not change the table's order or the saved layer.
+
+**Editing is spreadsheet editing, including the colour reference.** Name and
+description enter on double-click or Enter. Enter commits and moves down, Tab
+commits and moves right, Escape cancels, and the arrow keys move the active cell
+when it is not being edited. Light and dark references are always visible as
+Figma-style colour chips; clicking a chip opens the track and weight picker.
+Each cell write carries the stage 3 edit key, so one cell's keystrokes coalesce
+and two different renames remain two undo steps.
+
+**Dragging has a safe boundary.** A row grip reorders siblings inside its
+current folder, while a move-to-group action changes the folder explicitly. The
+column separators resize the table, and the headers can be dragged to change
+column order. No drag can silently move a role across folders or change the
+semantic model outside the requested operation.
+
+**The installed seed vocabulary has no `primary` folder.** It has roles such as
+`action.primary`, so the folder test creates `primary.x` as a custom token. The
+load-bearing rule still applies: seeded roles cannot be renamed or moved because
+the Button, bridge or report reads their exported ids by name.
+
+**Stage 4b checks.** The UI suite covers short/full names, folder-aware rename,
+new tokens in the active folder and in `custom`, dotted moves in All, Enter and
+Tab navigation, one-step undo, sticky headings, colour-chip editing, column
+resizing and row dragging. The unit suite covers the four name helpers and the
+same full package, docs and playground checks used by stage 4a. Verification
+was completed locally before the Stage 4b commit handoff; no broad suite was
+rerun during the final documentation and commit preparation.
+
 ## Not doing
 
 - **Columns beyond light and dark.** A third mode (high contrast, a second
   brand) is the semantic plan's "later" item and is a different plan.
-- **Drag to reorder rows.** Order follows the group and the seed; moving
-  between groups is a rename, which is what the context menu does.
+- **Cross-folder row drag.** Rows can be dragged to reorder siblings inside
+  their current folder. Moving a row into another folder stays an explicit
+  `Move to group…` action, so a drop cannot silently rename an exported role.
 - **Alpha on primitives.** A primitive is a colour; transparency is a use.
   Alpha lives on the semantic reference only.
 - **Paste from Figma.** Copy and paste are within the table. Import from
