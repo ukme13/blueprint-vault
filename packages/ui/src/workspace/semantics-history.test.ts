@@ -6,7 +6,6 @@ import {
   createSemanticsHistory,
   SEMANTICS_HISTORY_LIMIT,
   semanticsSnapshotOf,
-  snapshotAfterEdit,
   workspaceWithSnapshot,
   type SemanticsSnapshot,
 } from "./semantics-history";
@@ -124,13 +123,7 @@ describe("undo over the selection operations", () => {
     const gone = deleteTokens(layer, ["brand.beta", "brand.delta"]);
     expect(gone.refusals).toEqual([]);
 
-    history.commit(
-      snapshotAfterEdit(
-        { tokens: layer, removedSeedRoles: [] },
-        gone.layer,
-        gone.removed,
-      ),
-    );
+    history.commit(gone.layer, { justRemoved: gone.removed });
 
     expect(ids(history.undo()!)).toEqual([
       "brand.alpha",
@@ -153,7 +146,7 @@ describe("undo over the selection operations", () => {
       "brand.delta",
     ]);
 
-    history.commit({ tokens: gone.layer, removedSeedRoles: gone.removed });
+    history.commit(gone.layer, { justRemoved: gone.removed });
 
     expect(history.size).toBe(1);
     expect(ids(history.undo()!)).toHaveLength(5);
@@ -175,12 +168,10 @@ describe("what counts as a step", () => {
 
     for (const label of ["A", "Al", "Alp", "Alpha"]) {
       history.commit(
-        snapshot(
-          layer.map((token) =>
-            token.id === "brand.alpha" ? { ...token, name: label } : token,
-          ),
+        layer.map((token) =>
+          token.id === "brand.alpha" ? { ...token, name: label } : token,
         ),
-        "rename:brand.alpha",
+        { key: "rename:brand.alpha" },
       );
     }
 
@@ -195,9 +186,9 @@ describe("what counts as a step", () => {
     const layer = ordered();
     const history = createSemanticsHistory(snapshot(layer));
 
-    history.commit(snapshot(layer), "rename:brand.alpha");
-    history.commit(snapshot(layer), "rename:brand.alpha");
-    history.commit(snapshot(layer), "rename:brand.beta");
+    history.commit(layer, { key: "rename:brand.alpha" });
+    history.commit(layer, { key: "rename:brand.alpha" });
+    history.commit(layer, { key: "rename:brand.beta" });
 
     expect(history.size).toBe(2);
   });
@@ -208,9 +199,9 @@ describe("what counts as a step", () => {
     const layer = ordered();
     const history = createSemanticsHistory(snapshot(layer));
 
-    history.commit(snapshot(layer), "rename:brand.alpha");
-    history.commit(snapshot(deleteTokens(layer, ["brand.beta"]).layer));
-    history.commit(snapshot(layer), "rename:brand.alpha");
+    history.commit(layer, { key: "rename:brand.alpha" });
+    history.commit(deleteTokens(layer, ["brand.beta"]).layer);
+    history.commit(layer, { key: "rename:brand.alpha" });
 
     expect(history.size).toBe(3);
   });
@@ -223,7 +214,7 @@ describe("what counts as a step", () => {
     const layer = ordered();
     const history = createSemanticsHistory(snapshot(layer));
 
-    history.commit(snapshot(deleteTokens(layer, ["brand.beta"]).layer));
+    history.commit(deleteTokens(layer, ["brand.beta"]).layer);
     const before = history.size;
 
     history.sync(snapshot(deleteTokens(layer, ["brand.epsilon"]).layer));
@@ -240,9 +231,9 @@ describe("what counts as a step", () => {
     const layer = ordered();
     const history = createSemanticsHistory(snapshot(layer));
 
-    history.commit(snapshot(layer), "rename:brand.alpha");
+    history.commit(layer, { key: "rename:brand.alpha" });
     history.sync(snapshot(layer));
-    history.commit(snapshot(layer), "rename:brand.alpha");
+    history.commit(layer, { key: "rename:brand.alpha" });
 
     expect(history.size).toBe(2);
   });
@@ -251,8 +242,13 @@ describe("what counts as a step", () => {
     const layer = ordered();
     const history = createSemanticsHistory(snapshot(layer), 6);
 
+    /* Sixty distinct writes, so nothing coalesces and every one is a step. */
     for (let at = 0; at < 60; at += 1) {
-      history.commit(snapshot(deleteTokens(layer, [`brand.${at}`]).layer));
+      history.commit(
+        layer.map((token) =>
+          token.id === "brand.alpha" ? { ...token, name: `pass ${at}` } : token,
+        ),
+      );
     }
 
     expect(history.size).toBe(6);
@@ -277,9 +273,7 @@ describe("an undone delete survives a reload", () => {
     const gone = deleteTokens(start.semantics!, ["border.subtle"]);
     expect(gone.removed).toEqual(["border.subtle"]);
 
-    const deleted = history.commit(
-      snapshotAfterEdit(semanticsSnapshotOf(start), gone.layer, gone.removed),
-    );
+    const deleted = history.commit(gone.layer, { justRemoved: gone.removed });
     expect(deleted.removedSeedRoles).toEqual(["border.subtle"]);
 
     return workspaceWithSnapshot(start, history.undo()!);
@@ -331,12 +325,12 @@ describe("an undone delete survives a reload", () => {
     const history = createSemanticsHistory(semanticsSnapshotOf(start));
 
     const first = deleteTokens(start.semantics!, ["border.subtle"]);
-    const afterFirst = history.commit(
-      snapshotAfterEdit(semanticsSnapshotOf(start), first.layer, first.removed),
-    );
+    const afterFirst = history.commit(first.layer, {
+      justRemoved: first.removed,
+    });
 
     const second = deleteTokens(afterFirst.tokens!, ["border.muted"]);
-    history.commit(snapshotAfterEdit(afterFirst, second.layer, second.removed));
+    history.commit(second.layer, { justRemoved: second.removed });
 
     const undone = history.undo()!;
     expect(undone.removedSeedRoles).toEqual(["border.subtle"]);
@@ -354,9 +348,7 @@ describe("an undone delete survives a reload", () => {
     const history = createSemanticsHistory(semanticsSnapshotOf(start));
     const gone = deleteTokens(start.semantics!, ["border.subtle"]);
 
-    history.commit(
-      snapshotAfterEdit(semanticsSnapshotOf(start), gone.layer, gone.removed),
-    );
+    history.commit(gone.layer, { justRemoved: gone.removed });
     history.undo();
 
     const redone = workspaceWithSnapshot(start, history.redo()!);

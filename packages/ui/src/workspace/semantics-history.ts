@@ -105,12 +105,19 @@ export type EditKey = string | undefined;
 
 export interface SemanticsHistory {
   /**
-   * Record an edit this session made.
+   * Record an edit this session made, and return the snapshot to store.
    *
-   * Returns the snapshot to store, which is the same object handed in — the
-   * return is there so a caller can write `store(history.commit(next))`.
+   * Takes the layer rather than a snapshot, and works the removed-seed list out
+   * from the step before it. A caller that assembled its own snapshot could
+   * reconcile the list differently from the way it will be reconciled on the
+   * next read, and the history would then hold a state the workspace never had.
    */
-  commit(next: SemanticsSnapshot, key?: EditKey): SemanticsSnapshot;
+  commit(
+    tokens: SemanticToken[] | null,
+    options?: { key?: EditKey; justRemoved?: readonly string[] },
+  ): SemanticsSnapshot;
+  /** The slice as it stands, which is what the next edit is computed from. */
+  readonly present: SemanticsSnapshot;
   /**
    * Adopt a slice this session did not produce.
    *
@@ -149,7 +156,17 @@ export function createSemanticsHistory(
   let openEdit: EditKey;
 
   return {
-    commit(next, key) {
+    get present() {
+      return history.present ?? initial;
+    },
+
+    commit(tokens, options) {
+      const key = options?.key;
+      const next = snapshotAfterEdit(
+        history.present ?? initial,
+        tokens,
+        options?.justRemoved,
+      );
       const coalesces = key !== undefined && key === openEdit;
       openEdit = key;
       return coalesces ? history.replaceTop(next) : history.push(next);
