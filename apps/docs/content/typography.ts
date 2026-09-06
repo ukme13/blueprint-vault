@@ -29,6 +29,7 @@ export const TYPOGRAPHY_GUIDANCE: GuidanceBlock[] = [
       "A step is a size the scale generated. A role is a decision about what one of those sizes is for — `h2` is a section title, `body` is the paragraph somebody reads. Many roles can share a step: a button is usually body's size with more weight, and a caption is one step below it. Adding a role never means adding a step.",
       "That separation is what keeps the ramp honest. The step count answers how many distinct sizes the system wants; the role list answers how many jobs there are. A system that conflated them would grow a new size every time somebody needed a new label.",
       "A role records how far it sits from the base step rather than which step it is. An offset survives a change to the step count; an index into the ramp does not, and silently points at a different size the moment somebody adds a step at the bottom.",
+      "`label` and `caption` are the newest roles and they show how a role gets added: two things wanted a size under body and neither could name one, so both reached for a bare step. A kicker and a byline in the article template, and an eyebrow, a badge and a card action on this documentation's own home page. Five uses across two products is the argument; one page wanting something is not.",
     ],
   },
   {
@@ -82,7 +83,15 @@ export const TYPE_GROUP_GUIDANCE: Readonly<Record<string, string[]>> = {
   ],
   body: [
     "Body is the size most people spend the most time reading, so it is chosen first and everything else is derived from it. It sits at the base step by definition: the ratio counts up and down from here.",
-    "`body` is where a supporting role belongs when a project adds one. A label, a button or a caption is nearly always body with an adjustment — a step down, more weight, wider letter spacing — and recording that as a role rather than as a one-off keeps them moving when body moves.",
+    "Everything else in the scale is measured from here. A supporting role is body with an adjustment — a step down, more weight, wider letter spacing — and recording that as a role rather than as a one-off is what keeps it moving when body moves.",
+  ],
+  label: [
+    "`label` names something rather than saying it: a form label, an eyebrow above a title, the text on a badge, a link that acts as a button. One step under body, with a little more weight, because a name read at a glance needs the extra and a paragraph does not.",
+    "It renders as a span rather than a paragraph. A label sits inside other content — beside a field, above a heading — and wrapping one in a paragraph puts a block where an inline run belongs.",
+  ],
+  caption: [
+    "`caption` is the quietest text the system has: a byline, a figure caption, a timestamp, a note under a control. Two steps under body, at body's weight, because it is still prose and only the size should say it matters less.",
+    "It is the floor of the scale and it is meant to be. Anything smaller fails the body-size validation for good reason, and text that has to be smaller than a caption to fit is usually text that should not be there.",
   ],
 };
 

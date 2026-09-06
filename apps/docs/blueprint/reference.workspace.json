@@ -1176,6 +1176,16 @@
             "id": "body",
             "label": "Body",
             "indexing": "number"
+          },
+          {
+            "id": "label",
+            "label": "Label",
+            "indexing": "number"
+          },
+          {
+            "id": "caption",
+            "label": "Caption",
+            "indexing": "number"
           }
         ],
         "baseFontSizePx": 16,
@@ -1387,6 +1397,54 @@
             "fontWeight": 400,
             "textTransform": "none",
             "stepOffset": 0,
+            "sameAsRoleId": null,
+            "desktop": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            },
+            "mobile": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            }
+          },
+          {
+            "id": "label",
+            "name": "label",
+            "groupId": "label",
+            "fontId": "main",
+            "fontWeight": 500,
+            "textTransform": "none",
+            "stepOffset": -1,
+            "sameAsRoleId": null,
+            "desktop": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            },
+            "mobile": {
+              "fontSizePx": 16,
+              "lineHeight": {
+                "mode": "auto"
+              },
+              "letterSpacingPx": 0
+            }
+          },
+          {
+            "id": "caption",
+            "name": "caption",
+            "groupId": "caption",
+            "fontId": "main",
+            "fontWeight": 400,
+            "textTransform": "none",
+            "stepOffset": -2,
             "sameAsRoleId": null,
             "desktop": {
               "fontSizePx": 16,
