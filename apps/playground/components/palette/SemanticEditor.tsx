@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { ContextMenu } from "@astryxdesign/core/ContextMenu";
 import { TextInput } from "@astryxdesign/core/TextInput";
@@ -72,11 +72,20 @@ export function SemanticEditor({
   const isRail = useMediaQuery(`(max-width: ${RAIL_BELOW - 1}px)`);
 
   const region = useRef<HTMLDivElement>(null);
+  const groupField = useRef<HTMLInputElement>(null);
 
   const askForGroup = useCallback((ids: string[]) => {
     setGroupName("");
     setGrouping(ids);
   }, []);
+
+  /* Focused here rather than with `hasAutoFocus`, and for the same reason the
+     field no longer cancels on blur: the menu it opens from is still closing,
+     and autofocus fires before the menu hands focus back to its trigger. An
+     effect runs after that. */
+  useEffect(() => {
+    if (grouping) groupField.current?.focus();
+  }, [grouping]);
 
   /* Selecting a row moves focus to the region, which is what makes Delete and
      Ctrl+Z reach it: a `<td>` holds nothing focusable, so without this the
@@ -182,13 +191,17 @@ export function SemanticEditor({
         {grouping && (
           <div className={styles.groupDraft}>
             <TextInput
-              hasAutoFocus
+              ref={groupField}
               isLabelHidden
               label="New group name"
               placeholder={`Move ${grouping.length} to group…`}
               value={groupName}
               onChange={setGroupName}
-              onBlur={() => setGrouping(null)}
+              /* No cancel on blur, and the menu is why. This field opens from
+                 a menu item, and a menu returns focus to its trigger as it
+                 closes — so a field that dismissed itself on blur raced the
+                 menu and lost, sometimes. Escape cancels it; nothing else
+                 does, which is also one fewer way to lose what you typed. */
               onKeyDown={(event) => {
                 if (event.key === "Escape") setGrouping(null);
                 if (event.key !== "Enter") return;

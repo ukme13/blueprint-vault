@@ -18,7 +18,11 @@ import type { Locator, Page } from "@playwright/test";
 async function openSemantics(page: Page): Promise<Locator> {
   await page.getByRole("button", { name: "Semantics" }).click();
   const editor = page.getByRole("region", { name: "Semantic tokens" });
-  await expect(editor).toBeVisible();
+  /* Longer than the default, because four workers against one webpack dev
+     server is genuinely slow to compile this route on first hit — the tab
+     click lands and the panel takes its time. Seen failing here once at the
+     5s default while every assertion after it was fine. */
+  await expect(editor).toBeVisible({ timeout: 20_000 });
   return editor;
 }
 
@@ -242,8 +246,15 @@ test.describe("Operating on a selection", () => {
     await page
       .getByRole("menuitem", { name: "New group with selection" })
       .click();
-    await editor.getByLabel("New group name").fill("rule");
-    await editor.getByLabel("New group name").press("Enter");
+    /* Wait for the focus the field asks for before typing into it. The field
+       cancels on blur, and the menu returns focus to its trigger as it closes
+       — so a fill that lands before the field has focus is a fill the menu
+       then throws away. Passed alone and failed once in a full parallel run
+       before this line. */
+    const name = editor.getByLabel("New group name");
+    await expect(name).toBeFocused();
+    await name.fill("rule");
+    await name.press("Enter");
 
     await expect(groupEntry(editor, "Borders")).toContainText("2");
     await expect(groupEntry(editor, "rule")).toContainText("2");
@@ -264,8 +275,15 @@ test.describe("Operating on a selection", () => {
     await page
       .getByRole("menuitem", { name: "New group with selection" })
       .click();
-    await editor.getByLabel("New group name").fill("rule");
-    await editor.getByLabel("New group name").press("Enter");
+    /* Wait for the focus the field asks for before typing into it. The field
+       cancels on blur, and the menu returns focus to its trigger as it closes
+       — so a fill that lands before the field has focus is a fill the menu
+       then throws away. Passed alone and failed once in a full parallel run
+       before this line. */
+    const name = editor.getByLabel("New group name");
+    await expect(name).toBeFocused();
+    await name.fill("rule");
+    await name.press("Enter");
 
     await expect(toastText(page)).toContainText(
       "border.default (Astryx bridge)",

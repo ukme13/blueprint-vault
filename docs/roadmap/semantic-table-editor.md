@@ -131,7 +131,7 @@ Somebody can:
    Coalesce keystrokes inside one in-place edit into one step. Test that
    undo after a multi-delete restores order as well as content.
 
-4. **The table.** Rebuild `SemanticEditor` on the Astryx `Table` in the
+4. **The table.** (a ✅, b next.) Rebuild `SemanticEditor` on the Astryx `Table` in the
    mode that supports selection (read `astryx component Table` first;
    if selection is composed-only, compose it). Group sidebar, search,
    row selection with the keyboard rules above, context menu (Copy, Paste,
@@ -326,6 +326,62 @@ exist yet.
 to bind Ctrl+Z and Ctrl+Shift+Z to in one line. A shortcut belongs to the
 component that owns the focus it applies to, which is the table that does not
 exist yet.
+
+## Notes from stage 4a
+
+**Which Astryx components, and what had to be composed.** The table is `Table`
+in children mode with `TableHeader` / `TableBody` / `TableRow` / `TableCell`;
+the sidebar is `List` and `ListItem`; the row menu is `ContextMenu` for
+right-click and `DropdownMenu` for the "…" button, from one item list;
+`Tooltip` carries the lock's words and `useToast` the refusals.
+`useMediaQuery` decides the rail.
+
+**Table selection is native and the wrong shape twice.** `useTableSelection`
+exists, and it is a data-driven plugin where this table has to stay in children
+mode while the per-cell editing lives in the cells — and it selects with
+checkboxes, where a spreadsheet selects with a click, a shift-click and a
+Ctrl-click. So selection is composed: `@blueprint/ui`'s pure rules, and
+`aria-selected` on the row.
+
+That works because `TableRow` takes handlers, which its published props do not
+say. The document lists `children` and nothing else; the type it ships extends
+`BaseProps<HTMLTableRowElement>` and spreads the rest. Reading the `.d.ts` in
+`node_modules` was what settled it — the CLI's props table is a summary, not the
+contract, and four of the six type errors on the first compile were props the
+document named that the types do not have (`autoFocus` for `hasAutoFocus`,
+`title` on `ListItem`, `hasChevron` inside `button`, a toast `title`/
+`description` that is really `body`/`type`).
+
+**`List`, not `SideNav`.** The layout guidance is explicit — "SideNav when the
+nav is really filters or controls" is on its don't list — and a group sidebar
+changes what the table beside it shows rather than where somebody is.
+
+**Three faults only a screenshot found.** The lock was `⚿`, which is not in the
+studio's typeface and drew a tofu box in every read row; every test that asked
+for it found it, because it is a character. The table compressed instead of
+scrolling, and at 1024 that squeezed the weight selector out of both mode cells
+— the number half of a reference, gone, with no scrollbar to suggest it had
+been there. And Tailwind's `sr-only` is `position: absolute` with a negative
+margin, so the hidden column label laid itself out against the page rather than
+its header cell and pushed the document 16px past the viewport.
+
+**Measured, and left.** A long name still clips inside its input. Astryx cells
+carry `max-width: 0` with `overflow-x: hidden` — the mechanism that stops one
+long value stretching a column — so a wider element inside is simply cut: 240px
+of content in a 195.6px cell. Lifting the cap on that one column let it claim
+the whole table and collapsed both mode columns to nothing. It clipped before
+this branch too. Column widths belong with 4b, which replaces the editing that
+lives in them.
+
+**The responsive contract.** At 1024 and above, a 220px sidebar and a table
+that fills the rest; below it, a 56px rail of counts with the names in
+tooltips. The table has a 60rem floor and scrolls inside its own region, so the
+page never scrolls sideways at any width — measured at 1280, 1024 and 900.
+
+**What the old editor did that this does not, yet.** The group headings are
+gone: rows used to sit under a section row per group, and the sidebar replaces
+that with a filter. Somebody looking at "All" now sees seventy-two undivided
+rows. 4b should either restore the heading rows or make "All" group them.
 
 ## Not doing
 
