@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { generatePalettes } from "./palette";
+import { composite } from "./composite";
 import { seedSemanticTokens } from "./semantic";
 import {
   assessNonTextChecks,
@@ -82,6 +83,54 @@ describe("previewShadesFor", () => {
     /* 300 is the weight the focus token is documented against, so it is taken
        by name where it exists rather than by where it falls in the track. */
     expect(shadesOf(distinctPalette())["focus.ring"]!.weight).toBe(300);
+  });
+
+  it("composites a transparent token over the page ground", () => {
+    /* The similarity grid compares two swatches, and neither of them is a
+       surface — so a transparent one has to be laid on the canvas before it is
+       compared, or the grid measures a colour that is never drawn. The rule
+       reaches every check built on these shades, which is why it lives here
+       and not in each of them. */
+    const tracks = distinctPalette();
+    const seeded = seedSemanticTokens(tracks);
+    const error = seeded.find((token) => token.id === "status.error")!;
+    const faded = seeded.map((token) =>
+      token.id === "status.error"
+        ? { ...token, light: { ...error.light, alpha: 0.3 } }
+        : token,
+    );
+
+    const solid = previewShadesFor(seeded, tracks)!;
+    const washed = previewShadesFor(faded, tracks)!;
+
+    expect(washed["status.error"]!.hex).not.toBe(solid["status.error"]!.hex);
+    /* Over the canvas specifically, which is what makes it reproducible. */
+    expect(washed["status.error"]!.hex).toBe(
+      composite(
+        { hex: solid["status.error"]!.hex, alpha: 0.3 },
+        solid["surface.base"]!.hex,
+      ),
+    );
+    /* And the weight still names the primitive it came from, because that is
+       what the report prints beside the ratio. */
+    expect(washed["status.error"]!.weight).toBe(solid["status.error"]!.weight);
+    /* Nothing else moves. */
+    expect(washed["status.success"]!.hex).toBe(solid["status.success"]!.hex);
+  });
+
+  it("leaves the page ground itself alone, having nothing behind it", () => {
+    const tracks = distinctPalette();
+    const seeded = seedSemanticTokens(tracks);
+    const base = seeded.find((token) => token.id === "surface.base")!;
+    const faded = seeded.map((token) =>
+      token.id === "surface.base"
+        ? { ...token, light: { ...base.light, alpha: 0.4 } }
+        : token,
+    );
+
+    expect(previewShadesFor(faded, tracks)!["surface.base"]!.hex).toBe(
+      previewShadesFor(seeded, tracks)!["surface.base"]!.hex,
+    );
   });
 
   it("keys the shades by token id, so a renamed token follows", () => {

@@ -4,6 +4,7 @@ import {
   fillSeedRoles,
   migrateSemanticIds,
   seedSemanticTokens,
+  type SemanticReference,
   type SemanticToken,
 } from "../color/semantic";
 
@@ -17,16 +18,31 @@ import {
  * See docs/roadmap/semantic-tokens.md.
  */
 
-function readReference(
-  value: unknown,
-): { trackId: string; weight: number } | null {
+function readReference(value: unknown): SemanticReference | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
   const raw = value as Record<string, unknown>;
   if (typeof raw.trackId !== "string" || !raw.trackId) return null;
   if (typeof raw.weight !== "number" || !Number.isFinite(raw.weight)) {
     return null;
   }
-  return { trackId: raw.trackId, weight: raw.weight };
+
+  /* A file from before version 6 has no alpha anywhere, and absent is already
+     what opaque means — so the field is omitted rather than written as 1, and
+     such a file round-trips to the bytes it arrived as.
+
+     Anything that is not a finite number is dropped to absent rather than
+     taking the token with it: `null` or a string here is not a transparency
+     somebody set. A finite number outside 0 to 1 is kept as stored and
+     clamped where it is resolved, which is what makes the studio able to say
+     the value is wrong instead of quietly correcting it. */
+  const alpha =
+    typeof raw.alpha === "number" && Number.isFinite(raw.alpha)
+      ? raw.alpha
+      : undefined;
+
+  return alpha === undefined
+    ? { trackId: raw.trackId, weight: raw.weight }
+    : { trackId: raw.trackId, weight: raw.weight, alpha };
 }
 
 function readToken(value: unknown): SemanticToken | null {

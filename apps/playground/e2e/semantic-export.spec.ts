@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { expect, test } from "./fixtures";
+import { expect, test, WORKSPACE_STORAGE_KEY } from "./fixtures";
 import type { Page } from "@playwright/test";
 
 /**
@@ -112,5 +112,95 @@ test.describe("The scales in the export", () => {
     expect(tokens.shadow.light.low!.$value[0]!.color).toMatch(
       /^#[0-9a-f]{8}$/i,
     );
+  });
+});
+
+test.describe("An alias with a transparency", () => {
+  /**
+   * Give one token an alpha, through storage.
+   *
+   * No UI sets one yet — that is stage 5 of the table plan — and this test is
+   * about the export rather than about the editor. Written into the slice the
+   * store already persisted and reloaded, so the app reads it the way it would
+   * read a file somebody saved.
+   */
+  async function makeTransparent(page: Page): Promise<void> {
+    await page.evaluate((key) => {
+      const raw = window.localStorage.getItem(key);
+      if (!raw) throw new Error("no workspace in storage");
+      const stored = JSON.parse(raw) as {
+        semantics?: Array<{
+          id: string;
+          light: Record<string, unknown>;
+          dark: Record<string, unknown>;
+        }>;
+      };
+      const token = stored.semantics?.find(
+        (each) => each.id === "action.primary",
+      );
+      if (!token) throw new Error("no action.primary in storage");
+      token.light.alpha = 0.5;
+      token.dark.alpha = 0.5;
+      window.localStorage.setItem(key, JSON.stringify(stored));
+    }, WORKSPACE_STORAGE_KEY);
+    await page.reload();
+    await expect(
+      page.getByRole("region", { name: "Palette toolbar" }),
+    ).toBeVisible();
+  }
+
+  /** The value of one custom property in the `:root` block of an export. */
+  function declaration(css: string, name: string): string {
+    const found = new RegExp(`${name}: (.+);`).exec(css);
+    if (!found) throw new Error(`${name} is not in the export`);
+    return found[1]!;
+  }
+
+  test("still points at the primitive after the primitive changes", async ({
+    seededPage: page,
+  }) => {
+    /* The alias rule, with an alpha in the way. A transparency is the one
+       place an exporter is tempted to resolve — a mix needs a colour, and the
+       colour is right there — and the token would come out as a fixed shade
+       that stops following the palette. */
+    await makeTransparent(page);
+
+    const before = await download(page, "CSS");
+    const alias = declaration(before, "--color-action-primary");
+    expect(alias).toMatch(
+      /^color-mix\(in oklab, var\(--color-primary-\d+\) 50%, transparent\)$/,
+    );
+
+    const [, variable] = /var\((--color-primary-\d+)\)/.exec(alias)!;
+    const primitiveBefore = declaration(before, variable!);
+
+    /* The export is a modal, and it is still open. Everything behind it is
+       inert until it closes, which reads in a trace as a button that is
+       visible, enabled and never clickable. */
+    const exportDialog = page.getByRole("dialog", { name: "Export palette" });
+    await page.keyboard.press("Escape");
+    await expect(exportDialog).toBeHidden();
+
+    await page.getByRole("button", { name: "Overview" }).click();
+    await page
+      .getByRole("button", { name: "Choose primary source colour" })
+      .click();
+    const picker = page.getByRole("dialog", {
+      name: "primary source colour picker",
+    });
+    const hex = picker.getByLabel("primary source colour HEX");
+    await hex.fill("#0B7A3D");
+    await hex.press("Enter");
+    await page.keyboard.press("Escape");
+    await expect(picker).toBeHidden();
+
+    const after = await download(page, "CSS");
+
+    /* The same alias, character for character: which primitive and how much
+       of it are both the token's, and neither is a colour. */
+    expect(declaration(after, "--color-action-primary")).toBe(alias);
+    /* And the primitive underneath it moved, which is what makes the
+       assertion above worth making. */
+    expect(declaration(after, variable!)).not.toBe(primitiveBefore);
   });
 });

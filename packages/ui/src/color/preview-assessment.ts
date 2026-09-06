@@ -12,9 +12,11 @@ import {
   type TextColourRecommendation,
   type TextContrastResult,
 } from "./accessibility";
+import { composite } from "./composite";
 import {
   resolveSemantics,
   type ColourMode,
+  type ResolvedSemantic,
   type SemanticToken,
 } from "./semantic";
 import type { ColorTrack, ShadeItem } from "./types";
@@ -76,6 +78,32 @@ export const PREVIEW_REQUIRED_TOKENS: readonly string[] = [
 ];
 
 /**
+ * What is behind everything else, in one mode.
+ *
+ * The page canvas: `surface.base`, or the first surface the layer has, or the
+ * first token there is. A transparent colour has to be laid over something
+ * before it can be measured, and for a swatch in a grid the honest answer is
+ * the ground the page is painted on.
+ *
+ * Its own alpha is ignored, and not by accident. `surface.base` is the bottom
+ * of the stack; there is nothing in the system behind it to composite it over.
+ * Compositing a colour over itself returns it unchanged anyway, so the rule
+ * needs no special case — it falls out.
+ */
+function groundHex(resolved: ResolvedSemantic[]): string {
+  const base =
+    resolved.find((token) => token.id === TOKENS.surfaceBase) ??
+    resolved.find((token) => token.id.split(".")[0] === "surface") ??
+    resolved[0];
+  return base?.hex ?? "#ffffff";
+}
+
+/** The ground a token composites over, which for the ground itself is itself. */
+function groundFor(token: ResolvedSemantic, ground: string): string {
+  return token.id === TOKENS.surfaceBase ? token.hex : ground;
+}
+
+/**
  * The semantic layer resolved to shades, keyed by token id.
  *
  * A map rather than named fields, because the layer is editable: somebody can
@@ -110,13 +138,28 @@ export function previewShadesFor(
     ),
   );
 
+  const resolved = resolveSemantics(tokens, mode, tracks);
+  const ground = groundHex(resolved);
+
   const shades: PreviewShades = {};
-  for (const resolved of resolveSemantics(tokens, mode, tracks)) {
+  for (const token of resolved) {
     /* The resolver already fell back to a real track and weight, so this
        lookup cannot miss — but a shade the palette does not hold would be a
        colour nobody chose, so it is skipped rather than invented. */
-    const shade = byWeight.get(`${resolved.trackId}:${resolved.weight}`);
-    if (shade) shades[resolved.id] = shade;
+    const shade = byWeight.get(`${token.trackId}:${token.weight}`);
+    if (!shade) continue;
+
+    /* Composited here, once, so every check downstream measures what the eye
+       receives without each having to know about alpha. A transparent token
+       read raw would give a ratio for a colour that is never on screen — the
+       one thing the plan's rules forbid.
+       `weight` still names the primitive the colour came from, which is what
+       the report prints; `L`, `C` and `H` describe that primitive rather than
+       the composited result, and nothing reads them from here. */
+    shades[token.id] =
+      token.alpha >= 1
+        ? shade
+        : { ...shade, hex: composite(token, groundFor(token, ground)) };
   }
 
   const hasEverything = PREVIEW_REQUIRED_TOKENS.every((id) => id in shades);

@@ -11,6 +11,7 @@ import {
 } from "../color/preview-assessment";
 import {
   assessSemanticContrastReport,
+  describeSemanticContrast,
   type SemanticContrastCheck,
   type SemanticContrastReport,
 } from "../color/semantic-contrast";
@@ -275,7 +276,11 @@ function semanticRow(check: SemanticContrastCheck): string {
   const required = check.isText
     ? WCAG_CONTRAST.normalTextAA
     : WCAG_CONTRAST.nonText;
-  const resolved = `${check.foreground.trackName} ${check.foreground.weight} on ${check.background.trackName} ${check.background.weight}`;
+  /* The words come from the package rather than being assembled here, so the
+     studio's own table and this file say the same thing about the same pair —
+     and so a transparent side can never be printed as its raw shade by one of
+     them and its composited colour by the other. */
+  const resolved = describeSemanticContrast(check);
 
   return `| ${check.mode} | ${check.foreground.id} | ${check.background.id} | ${resolved} | ${check.ratio.toFixed(2)}:1 | ${required}:1 | ${check.passes ? "Pass" : "Fail"} |`;
 }

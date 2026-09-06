@@ -4,8 +4,10 @@ import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { defaultSystem } from "../typography/system";
 import {
+  BLUEPRINT_WORKSPACE_FILE_VERSION,
   formatBlueprintWorkspace,
   parseBlueprintWorkspace,
+  SUPPORTED_WORKSPACE_FILE_VERSIONS,
 } from "./workspace-file";
 import { DEFAULT_WORKSPACE_NAME } from "./workspace";
 import type { WorkspaceProject } from "./types";
@@ -243,7 +245,10 @@ describe("a version 1 file still opens", () => {
 
   it("writes the current version", () => {
     const file = JSON.parse(formatBlueprintWorkspace(workspace()));
-    expect(file.version).toBe(5);
+    /* The constant rather than the number. Which version is current changes;
+       that the writer stamps it is the claim, and a literal here made every
+       version bump edit a test that was not about the bump. */
+    expect(file.version).toBe(BLUEPRINT_WORKSPACE_FILE_VERSION);
   });
 
   it("round-trips a chosen layer rather than reseeding it", () => {
@@ -272,7 +277,7 @@ describe("a version 1 file still opens", () => {
   it("still refuses a version it does not know", () => {
     const future = JSON.stringify({
       kind: "blueprint-workspace",
-      version: 6,
+      version: BLUEPRINT_WORKSPACE_FILE_VERSION + 1,
       project: workspace(),
     });
     expect(() => parseBlueprintWorkspace(future)).toThrow(/not supported/);
@@ -342,5 +347,120 @@ describe("a version 3 file still opens", () => {
     const after = parseBlueprintWorkspace(v3);
     expect(after.spacing).toEqual(defaultSpacingScale());
     expect(after.radius).toEqual(defaultRadiusScale());
+  });
+});
+
+describe("a version 5 file still opens, and a version 6 file carries alpha", () => {
+  /* A semantic layer of one token, so the assertions are about the reference
+     and not about which of seventy-two roles moved. */
+  const layer = (alpha?: number) => [
+    {
+      id: "border.subtle",
+      name: "Subtle border",
+      description: "",
+      light:
+        alpha === undefined
+          ? { trackId: "primary", weight: 200 }
+          : { trackId: "primary", weight: 200, alpha },
+      dark:
+        alpha === undefined
+          ? { trackId: "primary", weight: 800 }
+          : { trackId: "primary", weight: 800, alpha },
+    },
+  ];
+
+  const fileAt = (version: number, alpha?: number) =>
+    JSON.stringify({
+      kind: "blueprint-workspace",
+      version,
+      project: { ...workspace({ semantics: layer(alpha) }) },
+    });
+
+  it("reads a file written before alpha existed as opaque", () => {
+    /* Version 6 is the first that is not a missing slice: an absent alpha is
+       already what opaque means, so a version 5 file needs nothing filled and
+       has to come back unchanged. */
+    const after = parseBlueprintWorkspace(fileAt(5));
+    const token = after.semantics!.find((each) => each.id === "border.subtle")!;
+
+    expect(token.light).toEqual({ trackId: "primary", weight: 200 });
+    expect(token.light.alpha).toBeUndefined();
+    expect(token.dark.alpha).toBeUndefined();
+  });
+
+  it("round-trips an alpha identically", () => {
+    /* Both directions. The reader that shipped before this dropped every field
+       it did not name, so a file written at 12% came back solid — a silent
+       change to somebody's system with nothing anywhere saying so. */
+    const written = formatBlueprintWorkspace(
+      workspace({ semantics: layer(0.12) }),
+    );
+    expect(written).toContain('"alpha": 0.12');
+
+    const after = parseBlueprintWorkspace(written);
+    const token = after.semantics!.find((each) => each.id === "border.subtle")!;
+
+    expect(token.light).toEqual({
+      trackId: "primary",
+      weight: 200,
+      alpha: 0.12,
+    });
+    expect(token.dark.alpha).toBe(0.12);
+
+    /* And out again unchanged, which is the half that catches a reader that
+       reads the field and a writer that forgets it. */
+    expect(formatBlueprintWorkspace(after)).toContain('"alpha": 0.12');
+  });
+
+  it("moved the version, and kept the one before it", () => {
+    /* Six, spelled out once, because this is the test about the bump itself.
+       Five stays supported: a file written before alpha is still a file this
+       build understands completely. */
+    expect(BLUEPRINT_WORKSPACE_FILE_VERSION).toBe(6);
+    expect(SUPPORTED_WORKSPACE_FILE_VERSIONS).toEqual([1, 2, 3, 4, 5, 6]);
+
+    /* And the reason the number moved at all. A build handed a file from
+       after it must refuse the file rather than read the parts it recognises
+       and drop an alpha on the floor. */
+    expect(() => parseBlueprintWorkspace(fileAt(7, 0.12))).toThrow(TypeError);
+  });
+
+  it("keeps an out-of-range alpha rather than dropping the token", () => {
+    /* Reading is not the place to correct it. The value stays as stored, is
+       clamped where it resolves, and is reported there — so the studio can say
+       the number is wrong instead of quietly rewriting somebody's file. */
+    const after = parseBlueprintWorkspace(fileAt(6, 1.4));
+    const token = after.semantics!.find((each) => each.id === "border.subtle")!;
+    expect(token.light.alpha).toBe(1.4);
+  });
+
+  it("treats an alpha that is not a number as no alpha at all", () => {
+    /* A `null` or a string is not a transparency somebody set, and dropping
+       the whole token over one would cost a role for a field that is
+       optional. */
+    /* Cast, because the point is a file the types say cannot exist: a
+       hand-edited document, or one from a build that wrote the field
+       differently. The reader's job is to survive it. */
+    const damaged = JSON.stringify({
+      kind: "blueprint-workspace",
+      version: 6,
+      project: {
+        ...workspace(),
+        semantics: [
+          {
+            id: "border.subtle",
+            name: "Subtle border",
+            description: "",
+            light: { trackId: "primary", weight: 200, alpha: "0.5" },
+            dark: { trackId: "primary", weight: 800, alpha: null },
+          },
+        ],
+      } as unknown as WorkspaceProject,
+    });
+
+    const after = parseBlueprintWorkspace(damaged);
+    const token = after.semantics!.find((each) => each.id === "border.subtle")!;
+    expect(token.light.alpha).toBeUndefined();
+    expect(token.dark.alpha).toBeUndefined();
   });
 });

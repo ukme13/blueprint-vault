@@ -10,6 +10,7 @@ import {
   resolveSemantic,
   resolveSemantics,
   seedSemanticTokens,
+  semanticCssVariables,
   semanticId,
   type SemanticToken,
 } from "./semantic";
@@ -257,6 +258,113 @@ describe("resolveSemantic", () => {
     const tokens = seedSemanticTokens(tracks);
     expect(resolveSemantics(tokens, "dark", tracks)).toHaveLength(72);
     expect(resolveSemantics(tokens, "dark", [])).toEqual([]);
+  });
+});
+
+describe("a reference with an alpha", () => {
+  /** `border.subtle` at 12% in light and 20% in dark, over the seed layer. */
+  function transparent(tracks: ColorTrack[]): SemanticToken {
+    const token = tokenById(seedSemanticTokens(tracks), "border.subtle");
+    return {
+      ...token,
+      light: { ...token.light, alpha: 0.12 },
+      dark: { ...token.dark, alpha: 0.2 },
+    };
+  }
+
+  it("carries the alpha through with the colour", () => {
+    const tracks = fullPalette();
+    const token = transparent(tracks);
+
+    const light = resolveSemantic(token, "light", tracks)!;
+    const dark = resolveSemantic(token, "dark", tracks)!;
+
+    expect(light.alpha).toBe(0.12);
+    expect(dark.alpha).toBe(0.2);
+    /* Still a reference. The alpha says how much of the primitive is drawn,
+       and changes nothing about which primitive it is. */
+    expect(light.hex).toBe(
+      resolveSemantic(
+        tokenById(seedSemanticTokens(tracks), "border.subtle"),
+        "light",
+        tracks,
+      )!.hex,
+    );
+    expect(light.missing).toBeNull();
+  });
+
+  it("is opaque when the reference has none", () => {
+    /* The default absence means, and the reason the field is optional: sixty
+       of the seventy-two roles are opaque and their export must not change. */
+    const tracks = fullPalette();
+    for (const resolved of resolveSemantics(
+      seedSemanticTokens(tracks),
+      "light",
+      tracks,
+    )) {
+      expect(resolved.alpha, `${resolved.id} is not opaque`).toBe(1);
+    }
+  });
+
+  it("clamps an impossible alpha and reports it, rather than throwing", () => {
+    /* A file can say 1.4. Throwing costs somebody their layer; writing 1 back
+       in silence hides that anything happened. */
+    const tracks = fullPalette();
+    const token = tokenById(seedSemanticTokens(tracks), "border.subtle");
+
+    const over = resolveSemantic(
+      { ...token, light: { ...token.light, alpha: 1.4 } },
+      "light",
+      tracks,
+    )!;
+    expect(over.alpha).toBe(1);
+    expect(over.missing).toBe("alpha");
+
+    const under = resolveSemantic(
+      { ...token, light: { ...token.light, alpha: -0.5 } },
+      "light",
+      tracks,
+    )!;
+    expect(under.alpha).toBe(0);
+    expect(under.missing).toBe("alpha");
+  });
+
+  it("reports the bigger fault when a reference has two", () => {
+    /* One field, so the two have to be ordered. A track that is gone means the
+       colour is not the one anybody chose; an alpha a tenth out of range means
+       it very nearly is. */
+    const tracks = fullPalette();
+    const token = tokenById(seedSemanticTokens(tracks), "status.success");
+
+    const resolved = resolveSemantic(
+      { ...token, light: { ...token.light, alpha: 3 } },
+      "light",
+      tracks.filter((track) => track.id !== "t-success"),
+    )!;
+
+    expect(resolved.missing).toBe("track");
+    expect(resolved.alpha).toBe(1);
+  });
+
+  it("draws a transparent token as an eight-digit colour", () => {
+    /* The preview renders resolved values rather than aliases, so the alpha
+       has to reach the page as part of the colour or the swatch draws opaque
+       while the report calls it transparent. */
+    const tracks = fullPalette();
+    const variables = semanticCssVariables(
+      [transparent(tracks)],
+      "light",
+      tracks,
+    );
+
+    expect(variables["--color-border-subtle"]).toMatch(/^#[0-9a-f]{6}1f$/i);
+
+    const opaque = semanticCssVariables(
+      seedSemanticTokens(tracks),
+      "light",
+      tracks,
+    );
+    expect(opaque["--color-fg-primary"]).toMatch(/^#[0-9a-f]{6}$/i);
   });
 });
 

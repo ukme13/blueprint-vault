@@ -3,6 +3,7 @@ import { formatPaletteCssExport, formatPaletteDesignTokens } from "./export";
 import { generatePalettes } from "./palette";
 import { seedSemanticTokens, type SemanticToken } from "./semantic";
 import {
+  BLUEPRINT_TOKENS_EXTENSION,
   formatSemanticCssExport,
   formatSemanticDesignTokens,
   formatSemanticTailwindExport,
@@ -28,6 +29,19 @@ function palette(): ColorTrack[] {
   });
 }
 
+/** The seed layer with `border.subtle` at 12% in both modes. */
+function withAlpha(tracks: ColorTrack[]): SemanticToken[] {
+  return seedSemanticTokens(tracks).map((token) =>
+    token.id === "border.subtle"
+      ? {
+          ...token,
+          light: { ...token.light, alpha: 0.12 },
+          dark: { ...token.dark, alpha: 0.12 },
+        }
+      : token,
+  );
+}
+
 describe("the CSS export", () => {
   it("emits aliases, never resolved colours", () => {
     /* The rule the layer exists for. A client who edits one primitive should
@@ -46,7 +60,12 @@ describe("the CSS export", () => {
   it("names variables the primitive export actually defines", () => {
     /* An alias to a variable nothing declares is dropped silently and the
        element keeps whatever it inherited — the same class of bug the css
-       token check was built for. */
+       token check was built for.
+
+       With a transparent token in the layer, because a mix wraps the alias in
+       another function and that is exactly where a formatter stops emitting
+       one. Both branches of `cssAlias` are walked into the primitive file by
+       the same assertion. */
     const tracks = palette();
     const primitives = formatPaletteCssExport(tracks, "hex");
     const declared = new Set(
@@ -55,14 +74,20 @@ describe("the CSS export", () => {
       ),
     );
 
-    const referenced = [
-      ...formatSemanticCssExport(seedSemanticTokens(tracks), tracks).matchAll(
-        /var\((--color-[a-z0-9-]+)\)/g,
-      ),
-    ].map((match) => match[1]!);
+    const css = formatSemanticCssExport(withAlpha(tracks), tracks);
+    const referenced = [...css.matchAll(/var\((--color-[a-z0-9-]+)\)/g)].map(
+      (match) => match[1]!,
+    );
 
     expect(referenced.length).toBeGreaterThan(0);
     expect(referenced.filter((name) => !declared.has(name))).toEqual([]);
+
+    /* And the transparent one is among them rather than having been flattened
+       to a colour on its way out, which would satisfy the loop above by
+       contributing nothing to it. */
+    const transparent = /--color-border-subtle: (.+);/.exec(css)![1]!;
+    expect(transparent).toContain("var(--color-");
+    expect(transparent).toContain("12%");
   });
 
   it("carries both modes, and lets a choice beat the system setting", () => {
@@ -189,5 +214,90 @@ describe("the design tokens export", () => {
     };
     expect(output.semantic.light).toEqual({});
     expect(formatSemanticCssExport([], palette())).toContain(":root {");
+  });
+});
+
+describe("a transparent token in the export", () => {
+  it("keeps the alias, mixed toward transparent", () => {
+    /* The rule that made this a decision rather than a formatting choice: a
+       transparency must not flatten the alias. Change the primitive and the
+       mix has to move with it. */
+    const tracks = palette();
+    const css = formatSemanticCssExport(withAlpha(tracks), tracks);
+
+    expect(css).toMatch(
+      /--color-border-subtle: color-mix\(in oklab, var\(--color-[a-z]+-\d+\) 12%, transparent\);/,
+    );
+    /* Relative colour syntax is the better spelling and is above this
+       workspace's browser floor — Chrome 122, Firefox 128, Safari 18, against
+       a floor of 114, 125 and 17. If it ever appears here, the floor moved
+       and this test should be the thing that says so. */
+    expect(css).not.toContain("oklch(from");
+  });
+
+  it("leaves every opaque token exactly as it was", () => {
+    /* The half that protects the generated files in this repository. Adding
+       alpha to one token must not move a single character of the other
+       seventy-one. */
+    const tracks = palette();
+    const before = formatSemanticCssExport(seedSemanticTokens(tracks), tracks);
+    const after = formatSemanticCssExport(withAlpha(tracks), tracks);
+
+    const lines = (css: string) =>
+      css.split("\n").filter((line) => !line.includes("--color-border-subtle"));
+
+    expect(lines(after)).toEqual(lines(before));
+    expect(after).not.toBe(before);
+  });
+
+  it("mixes in the Tailwind theme too", () => {
+    const tracks = palette();
+    const css = formatSemanticTailwindExport(withAlpha(tracks), tracks);
+    expect(css).toContain("@theme static {");
+    expect(css).toMatch(/--color-border-subtle: color-mix\(in oklab, var\(/);
+  });
+
+  it("records the reference and the alpha under a namespaced extension", () => {
+    /* The Design Tokens alias form has no alpha slot, so the value is
+       resolved and the two facts behind it go where the format puts vendor
+       data: "$extensions", keyed by reverse domain name notation. A tool that
+       does not understand the key must preserve it, so the alias survives a
+       round trip through a pipeline that has never heard of this studio. */
+    const tracks = palette();
+    const output = JSON.parse(
+      formatSemanticDesignTokens(withAlpha(tracks), tracks),
+    ) as {
+      semantic: {
+        light: Record<string, Record<string, Record<string, unknown>>>;
+      };
+    };
+
+    const subtle = output.semantic.light.border!.subtle!;
+    expect(subtle.$value).toMatch(/^#[0-9a-f]{6}1f$/i);
+
+    const extensions = subtle.$extensions as Record<
+      string,
+      { reference: string; alpha: number }
+    >;
+    expect(Object.keys(extensions)).toEqual([BLUEPRINT_TOKENS_EXTENSION]);
+    expect(BLUEPRINT_TOKENS_EXTENSION).toMatch(/^[a-z]+\.[a-z]+\.[a-z]+$/);
+    expect(extensions[BLUEPRINT_TOKENS_EXTENSION]!.alpha).toBe(0.12);
+
+    /* And the reference it records resolves into the primitive file, the same
+       as an ordinary alias does. */
+    const alias = extensions[BLUEPRINT_TOKENS_EXTENSION]!.reference;
+    const primitives = JSON.parse(formatPaletteDesignTokens(tracks, "hex")) as {
+      palette: Record<string, Record<string, unknown>>;
+    };
+    const [, track, weight] = /^\{palette\.([a-z-]+)\.(\d+)\}$/.exec(alias)!;
+    expect(primitives.palette[track!]![weight!]).toBeDefined();
+
+    /* An opaque token gains no extension at all: an empty one on every token
+       would move every generated file to record that nothing is
+       transparent. */
+    expect(output.semantic.light.action!.primary!.$extensions).toBeUndefined();
+    expect(output.semantic.light.action!.primary!.$value).toMatch(
+      /^\{palette\./,
+    );
   });
 });
