@@ -30,6 +30,23 @@ export const COLOUR_MODES: readonly ColourMode[] = ["light", "dark"];
 export interface SemanticReference {
   trackId: string;
   weight: number;
+  /**
+   * How much of the referenced colour there is, from 0 to 1.
+   *
+   * Absent means opaque, and absent is what almost every token is: a divider,
+   * a hover wash, disabled text and a scrim want transparency, and the other
+   * sixty-odd roles do not. Optional rather than defaulted to 1 so a token
+   * nobody has made transparent exports exactly the file it exported before
+   * alpha existed — the alias alone, with no mix wrapped round it.
+   *
+   * Still a reference, not a value: the token says which primitive and how
+   * much of it, and the export writes both without resolving either.
+   *
+   * An out-of-range number is kept rather than silently corrected. It is
+   * clamped where it is resolved and reported there as `missing: "alpha"`,
+   * the same way a deleted track is reported — see `resolveSemantic`.
+   */
+  alpha?: number;
 }
 
 export interface SemanticToken {
@@ -678,7 +695,7 @@ function readableEnds(
  * same call the uploaded-fonts plan made about a font file that is not in this
  * browser — so resolution reports them and carries on.
  */
-export type SemanticMiss = "track" | "weight";
+export type SemanticMiss = "track" | "weight" | "alpha";
 
 export interface ResolvedSemantic {
   id: string;
@@ -689,6 +706,14 @@ export interface ResolvedSemantic {
   /** The weight actually used. */
   weight: number;
   hex: string;
+  /**
+   * The alpha actually used: 0 to 1, and 1 for a reference with none.
+   *
+   * Always a number, where the reference's own field is optional — a caller
+   * measuring or drawing wants an alpha, and `?? 1` scattered through five
+   * modules is five places for the default to drift.
+   */
+  alpha: number;
   missing: SemanticMiss | null;
 }
 
@@ -702,11 +727,40 @@ function nearestWeight(track: ColorTrack, weight: number): ShadeItem {
 }
 
 /**
+ * A stored alpha, brought into range, and whether it had to be.
+ *
+ * A file can say 1.4 — hand-edited, written by a future build, or damaged —
+ * and the two wrong answers are to throw, which costs somebody their layer,
+ * and to write 1 back silently, which hides that anything happened. So the
+ * value is kept as stored, clamped here, and the fact that it was out of range
+ * travels with the resolution the way a deleted track does.
+ *
+ * Anything that is not a finite number is treated as no alpha at all rather
+ * than as a broken one: `null`, a string and a `NaN` are not values somebody
+ * set, and an opaque token is what the field's absence already means.
+ */
+function resolveAlpha(alpha: number | undefined): {
+  value: number;
+  outOfRange: boolean;
+} {
+  if (typeof alpha !== "number" || !Number.isFinite(alpha)) {
+    return { value: 1, outOfRange: false };
+  }
+  if (alpha < 0) return { value: 0, outOfRange: true };
+  if (alpha > 1) return { value: 1, outOfRange: true };
+  return { value: alpha, outOfRange: false };
+}
+
+/**
  * What a token is worth in one mode.
  *
  * The single place a reference becomes a colour. Nothing upstream of this call
  * knows about modes, which is what keeps preview, contrast and export from each
  * growing their own idea of what dark means.
+ *
+ * The colour comes back with its alpha rather than composited: what it should
+ * be laid over depends on where it is drawn, and this function does not know.
+ * `composite` is the one way to turn the pair into something measurable.
  *
  * Null only for an empty palette, where there is no colour to fall back to.
  */
@@ -722,6 +776,7 @@ export function resolveSemantic(
   const track = referenced ?? tracks[0]!;
   const exact = track.shades.find((shade) => shade.weight === reference.weight);
   const shade = exact ?? nearestWeight(track, reference.weight);
+  const alpha = resolveAlpha(reference.alpha);
 
   return {
     id: token.id,
@@ -730,7 +785,18 @@ export function resolveSemantic(
     trackName: track.name,
     weight: shade.weight,
     hex: shade.hex,
-    missing: referenced ? (exact ? null : "weight") : "track",
+    alpha: alpha.value,
+    /* One field, so a reference with two faults reports the larger. A missing
+       track means the colour is not the one anybody chose; an alpha a tenth
+       out of range means it very nearly is. Reporting the alpha first would
+       hide the bigger of the two behind the smaller. */
+    missing: referenced
+      ? exact
+        ? alpha.outOfRange
+          ? "alpha"
+          : null
+        : "weight"
+      : "track",
   };
 }
 
@@ -874,6 +940,11 @@ export function semanticVariableName(id: string): string {
  *
  * `transform` is where simulation hooks in; it defaults to the identity so a
  * caller that does not simulate passes nothing.
+ *
+ * A transparent token comes out as an eight-digit hex, and the alpha is
+ * appended after the transform rather than passed through it: a colour-vision
+ * simulation is a statement about a colour, and how much of that colour is
+ * drawn is not something a deficiency changes.
  */
 export function semanticCssVariables(
   tokens: SemanticToken[],
@@ -884,9 +955,17 @@ export function semanticCssVariables(
   return Object.fromEntries(
     resolveSemantics(tokens, mode, tracks).map((resolved) => [
       semanticVariableName(resolved.id),
-      transform(resolved.hex),
+      `${transform(resolved.hex)}${alphaHex(resolved.alpha)}`,
     ]),
   );
+}
+
+/** `0.5` as the two hex digits a colour carries it in, and `""` for opaque. */
+function alphaHex(alpha: number): string {
+  if (alpha >= 1) return "";
+  return Math.round(Math.max(0, alpha) * 255)
+    .toString(16)
+    .padStart(2, "0");
 }
 
 /**

@@ -23,6 +23,7 @@ import {
   semanticVariableName,
   type ColorTrack,
   type ColourMode,
+  type SemanticMiss,
   type SemanticToken,
 } from "@blueprint/ui";
 import { usePaletteView } from "./PaletteViewContext";
@@ -58,6 +59,22 @@ interface ReferenceFieldProps {
   tokens: SemanticToken[];
 }
 
+/* Keyed by `SemanticMiss` rather than a ternary, so a new kind of fault has to
+   be given words here instead of arriving under the previous one's label —
+   which is what an out-of-range alpha did on the day it was added: reported
+   correctly by the resolver and shown as "weight gone". */
+const MISSING_LABEL: Record<SemanticMiss, string> = {
+  track: "track gone",
+  weight: "weight gone",
+  alpha: "alpha out of range",
+};
+
+const MISSING_REASON: Record<SemanticMiss, string> = {
+  track: "The track this pointed at is gone.",
+  weight: "The weight this pointed at is gone.",
+  alpha: "The stored transparency is outside 0 to 100%, and is being clamped.",
+};
+
 function ReferenceField({
   token,
   mode,
@@ -73,8 +90,16 @@ function ReferenceField({
     palettes.find((candidate) => candidate.id === resolved.trackId) ??
     palettes[0]!;
 
+  /* The alpha rides along. Repointing is a statement about which primitive,
+     and rebuilding the reference from the two selectors alone would drop a
+     transparency somebody set every time they changed the shade. */
   const repoint = (reference: { trackId: string; weight: number }) =>
-    onChange(repointSemanticToken(tokens, token.id, mode, reference));
+    onChange(
+      repointSemanticToken(tokens, token.id, mode, {
+        ...reference,
+        alpha: token[mode].alpha,
+      }),
+    );
 
   return (
     /* data-mode names which half of the pair this is. The swatch is decorative
@@ -134,13 +159,9 @@ function ReferenceField({
       {resolved.missing && (
         <span
           className="shrink-0 text-xs text-status-warning"
-          title={
-            resolved.missing === "track"
-              ? "The track this pointed at is gone."
-              : "The weight this pointed at is gone."
-          }
+          title={MISSING_REASON[resolved.missing]}
         >
-          {resolved.missing === "track" ? "track gone" : "weight gone"}
+          {MISSING_LABEL[resolved.missing]}
         </span>
       )}
     </div>
