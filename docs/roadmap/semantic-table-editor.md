@@ -118,7 +118,7 @@ Somebody can:
    for a transparent foreground names the composited colour; every alias
    in the CSS export still resolves into the primitive output.
 
-2. **Selection operations, no UI.** Pure functions in `packages/ui`:
+2. ✅ **Selection operations, no UI.** Pure functions in `packages/ui`:
    `deleteTokens`, `duplicateTokens` (new ids with a `-copy` suffix that
    never collides), `moveToGroup` (rename prefix, preserving order),
    `repointTokens` (one mode, one reference, many ids), and `usedBy` over
@@ -208,6 +208,68 @@ stage 5, because the field exists now.
 every formatter's opaque branch emits the characters it emitted before — no
 `$extensions` key on an opaque Design Tokens entry, no mix around an opaque
 alias. Regenerated and diffed to prove it.
+
+## Notes from stage 2
+
+**Seventy of the seventy-two seed roles are load-bearing.** This was written
+expecting a handful, and it is the finding that matters most for stage 4. The
+seed set was not designed and then consumed — it grew out of its consumers, one
+role at a time: seven button tones of eight roles each, thirty-four names the
+Astryx bridge feeds into Astryx's own tokens, fifteen the palette preview
+measures. A role nothing reads is the exception. Only `border.subtle` and
+`border.muted` have no consumer, and they are what make the removed-seed list
+reachable at all.
+
+So the `usedBy` badge is not an edge case in the editor. It is what almost
+every row will show, and "you cannot delete this" would be a table where
+nothing can be deleted. The list of names in plain words, and the repoint that
+is always available instead, are the whole difference between a rule and a
+wall.
+
+**Reading a role is not declaring one.** `theme.css` declares all seventy-two
+so the studio's chrome has them whatever a workspace holds. Counting those as
+consumers would have made every seeded role undeletable and the feature
+pointless. Only the two it genuinely reaches for through `var()` —
+`action.primary-active` and `surface.raised` — are counted. That distinction is
+the one judgement in `usedBy` and it is worth knowing about before stage 4.
+
+**Two of the five consumer lists cannot be read at runtime.** `usedBy` is
+bundled for a browser and `node:fs` is not, so the bridge's thirty-four names
+and the chrome's two are constants. A test reads the same files the bridge
+guard reads and fails with the exact list to paste — the arrangement the docs
+export guard already uses. The Button tones need no copy: the table holds
+`var(--color-…)` strings, so they are parsed back out of it and a seventh tone
+is picked up without anybody editing `role-consumers.ts`.
+
+**Version 7 is a stronger case for a bump than version 6 was.** An alpha a
+version-6 reader drops changes a colour. A `removedSeedRoles` list a
+version-6 reader drops makes `fillSeedRoles` put the role back — silently
+reversing an edit somebody made, in the one direction the reader was built to
+be helpful in. Both readers, file and storage, were wired in the same commit,
+because the semantic top-up itself once shipped with only one of them and the
+same document gave two answers depending on which door it came in.
+
+**The removed list is reconciled against the layer, not against the
+operation.** There are more ways back in than there are operations — a
+duplicate renamed onto the id, a token added by hand, an imported file that has
+it — and all of them look the same from the layer: the id is present now. What
+is _not_ inferred is the removal itself. Inferring "a seed role left the layer,
+so it was deleted" is tidier and wrong on one path that matters: an import
+replaces the layer wholesale, and every seed role the incoming document happens
+not to have would be recorded as something this user threw away. So a deletion
+says so explicitly, through `withSemanticsSlice`'s `justRemoved`.
+
+**Nothing calls that parameter yet, deliberately.** The editor's own delete is
+stage 4's, so deleting a seed role in the studio today behaves exactly as it
+did before this list existed. That is the "no UI" of a model stage rather than
+an oversight, and it is the one thing stage 4 must not forget to wire.
+
+**Two component files were touched, both for types rather than behaviour.**
+`PaletteStudio.tsx`'s `ForeignSlices` is `Omit<WorkspaceProject, …>`, so a new
+field on the workspace is a compile error there by design — `removedSeedRoles`
+joins `semantics` in the exclusion list, because it belongs to the slice that
+studio owns. And stage 1's `SemanticEditor` badge map gained nothing new. No
+component gained a call to a stage 2 function.
 
 ## Not doing
 
