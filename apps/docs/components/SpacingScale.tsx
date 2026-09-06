@@ -94,7 +94,7 @@ export function SpacingSpecimen({ scale }: SpacingScaleProps) {
               which is the honest picture of what it does. */}
           <span
             aria-hidden="true"
-            className="block h-4 rounded-sm bg-action-primary"
+            className="block h-4 rounded-inner bg-action-primary"
             style={{ width: `${token.px}px` }}
           />
           <Text color="secondary" hasTabularNumbers>

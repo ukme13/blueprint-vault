@@ -50,9 +50,8 @@ function roleHex(
   id: string,
   mode: ColourMode,
   palettes: ColorTrack[],
-  fallback: string,
-): string {
-  return resolvedRoleReference(tokens, id, mode, palettes)?.hex ?? fallback;
+): string | null {
+  return resolvedRoleReference(tokens, id, mode, palettes)?.hex ?? null;
 }
 
 export function ElevationTable({
@@ -124,13 +123,19 @@ export function ElevationSpecimen({
   tokens,
 }: ElevationScaleProps) {
   const { rows } = elevationRows(scale, palettes);
-  const grounds: Array<{ mode: ColourMode; ground: string; card: string }> = (
-    ["light", "dark"] as ColourMode[]
-  ).map((mode) => ({
-    mode,
-    ground: roleHex(tokens, "surface.base", mode, palettes, "#ffffff"),
-    card: roleHex(tokens, "surface.raised", mode, palettes, "#ffffff"),
-  }));
+  const grounds = (["light", "dark"] as ColourMode[])
+    .map((mode) => ({
+      mode,
+      ground: roleHex(tokens, "surface.base", mode, palettes),
+      card: roleHex(tokens, "surface.raised", mode, palettes),
+    }))
+    /* A ground with no role behind it is not drawn at all. There is nothing
+       to invent a colour from, and a white rectangle would be this page
+       claiming a value the workspace never gave it. */
+    .filter(
+      (entry): entry is { mode: ColourMode; ground: string; card: string } =>
+        entry.ground !== null && entry.card !== null,
+    );
 
   return (
     <VStack gap={5}>
@@ -141,12 +146,12 @@ export function ElevationSpecimen({
             {grounds.map(({ mode, ground, card }) => (
               <VStack gap={1} key={mode}>
                 <div
-                  className="flex h-24 w-48 items-center justify-center rounded"
+                  className="flex h-24 w-48 items-center justify-center rounded-container"
                   style={{ background: ground }}
                 >
                   <span
                     aria-label={`${row.name} on a ${mode} ground`}
-                    className="block h-12 w-32 rounded"
+                    className="block h-12 w-32 rounded-element"
                     role="img"
                     style={{
                       background: card,

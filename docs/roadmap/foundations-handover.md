@@ -125,7 +125,7 @@ half kept.
    level on a light and a dark ground, which the playground already does and
    the allowlist already permits.
 
-4. **The scanner, extended to the docs app.** `primitive-usage.ts` takes a
+4. ✅ **The scanner, extended to the docs app.** `primitive-usage.ts` takes a
    root and an allowlist; the docs app's allowlist starts empty and each entry
    added must say why. This is the stage that keeps stages 2 and 3 honest. It
    lands after them rather than before so the allowlist is written from what
@@ -593,3 +593,95 @@ answer is that a counter-example is not a token and does not get backticks;
 neither do rgba, var() or box-shadow. The convention is that a backtick means
 "this exists", which makes the test's job stating the obvious rather than
 guessing.
+
+## Notes from stage 4
+
+**The allowlist is empty, and two entries were expected.** The elevation page's
+grounds and the `Swatch` were both predicted to need one, and neither does. The
+reason is the same for both and worth writing down: a value that arrives as
+data is invisible to a scanner that reads text. `Swatch` takes a hex as a prop;
+the elevation grounds are `surface.base` and `surface.raised` resolved through
+`resolvedRoleReference`. The only literal either file held was a `#ffffff`
+fallback for a workspace missing the role — and a white rectangle would have
+been the page inventing a colour nobody gave it, so it draws nothing now.
+
+The list stays as an emptiness rather than being deleted. The next value typed
+into a page fails there, and the argument for the first entry has to be written
+beside it.
+
+**Three skips, and a skip is not an allowlist entry.** They say "this file is
+not a page", where an allowlist entry says "this page may keep this value".
+`app/blueprint` is the generated export, named by the plan. A test names the
+values it asserts on; that is what a test is. And a content module is prose —
+`content/scale.ts` explains that a ratio of 1.25 over a 4px base gives 6.25px,
+which is the argument for the whole spacing page and cannot be made in tokens.
+Both already have tests of their own that check every token they name exists.
+
+**The check had to learn the difference between the two apps.** The scale plan
+says `p-4` reaches a measurement without writing px, and it is right about the
+studio, whose `theme.css` declares colour and nothing else. The documentation
+installs a generated `@theme` built from the workspace's own spacing and radius
+scales, so `p-4` there _is_ `--spacing-4` and `rounded-container` _is_
+`--radius-container`. Flagging those would have pushed these pages into inline
+styles to satisfy a check. The scanner takes the token lists now: a utility
+naming one passes, and `gap-2.5` — which the Button page had — is reported,
+because 2.5 is not a step this scale has. The mechanism the plan wanted
+survives one level in.
+
+**Sizes are not spacing, and only half the check knew.** The Tailwind half had
+always ignored `w-56` with a written reason: a size is a different family and
+the plan defers it. The CSS half flagged every length, which only showed when
+it met a page with a content column — `72rem`, `48rem` and `14rem` on the home
+page, none of which any token in the system can express. Both halves agree now.
+
+**Two false positives, and both were identifiers.** A local `const rounded =`
+in a table and `fontFamily: row.fontStack` in a specimen. A Tailwind utility
+only ever reaches a page inside a string, so the Tailwind patterns look only at
+quoted spans now. A check that reports a variable name is a check somebody
+switches off, which is the failure mode this whole stage exists to prevent.
+
+**`rounded-3xl` was invisible.** The radius pattern allowed letters after the
+hyphen and nothing else, so a numeric suffix left it matching bare `rounded`
+and then failing its own trailing check. Both instances were on the Button
+page, which is where a scanner that had never been pointed at this app would
+be expected to have a hole.
+
+**The scanner got its own entry point, and the playground stopped compiling
+until it did.** Re-exporting it from the package root pulled `node:fs` and
+`node:path` into the browser bundle. A build-time tool is a different product
+from a component library, and `@blueprint/ui/primitive-usage` is the door for
+it.
+
+### The roles the sweep could not name
+
+Each of these is a page reaching for something the layer does not have. None
+was worked around; all are recorded here because the roadmap's own rule is that
+a page argues the vocabulary into shape.
+
+**Four levels of grey text and two roles.** The Button page distinguished
+`neutral-500`, `-600`, `-700` and `-900`. The layer has `fg.primary`,
+`fg.secondary` and `fg.disabled`, so three of the four collapsed onto
+`fg.secondary`. Either the page was making a distinction nobody needs, or the
+layer is one foreground short — a `fg.muted` between secondary and disabled.
+The pages read fine collapsed, which is weak evidence for the first.
+
+**No type role under 16px, and three pages need one.** An eyebrow, a card
+title, a badge and a caption all reach for the step tokens `--font-size-0` and
+`--font-size-1` because the type system's smallest role is `body`. The
+typography guidance already says reaching for a step is a sign a role is
+missing; the home page is now the evidence for that sentence. A supporting
+group — label, caption, overline — is what the typography rework's own group
+table listed and `defaultSystem` never built.
+
+**No size family.** Three container widths on the home page and a grid track on
+the typography page. The scale plan defers size tokens to a later stage and
+this is the first page that wanted them.
+
+**No gradient.** The Button page's header was a three-stop gradient across
+`neutral-50`, white and `neutral-100`. There is no gradient family, so it is a
+flat `surface.base` now. That is a visible change and the only one in the
+sweep that lost something rather than moving it.
+
+**No spacing step at 80px or 10px.** The home page's outer rhythm wanted 80 and
+the scale stops at 64; `gap-2.5` wanted 10. Both were rounded to a neighbouring
+step rather than adding to the scale, since one page is not yet an argument.
