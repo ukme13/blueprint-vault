@@ -4,6 +4,7 @@ import {
   fillSeedRoles,
   migrateSemanticIds,
   seedSemanticTokens,
+  SEED_ROLE_IDS,
   type SemanticReference,
   type SemanticToken,
 } from "../color/semantic";
@@ -117,6 +118,7 @@ export function semanticsForPalette(
 export function filledSemanticsForPalette(
   tokens: SemanticToken[] | null,
   palette: PaletteProjectData | null,
+  removed: readonly string[] = [],
 ): SemanticToken[] | null {
   if (!tokens || !palette) return tokens;
   return fillSeedRoles(
@@ -125,5 +127,27 @@ export function filledSemanticsForPalette(
       tracks: palette.tracks,
       lightnessValues: palette.lightnessValues,
     }),
+    removed,
   );
+}
+
+/**
+ * Read the list of seed roles a workspace has thrown away.
+ *
+ * Anything that is not a seed role's id is dropped rather than kept: the list
+ * only ever changes what `fillSeedRoles` does, and an id it will never seed is
+ * an entry that can only grow. A missing or damaged list reads as empty, which
+ * is the state every workspace written before this had.
+ */
+export function readRemovedSeedRoles(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const seeds = new Set(SEED_ROLE_IDS);
+  return [
+    ...new Set(
+      value.filter(
+        (entry): entry is string =>
+          typeof entry === "string" && seeds.has(entry),
+      ),
+    ),
+  ];
 }

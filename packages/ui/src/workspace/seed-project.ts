@@ -106,6 +106,7 @@ export function seedWorkspaceProject(name: string): WorkspaceProject {
     name,
     palette,
     semantics: semanticsForPalette(palette),
+    removedSeedRoles: [],
     spacing: defaultSpacingScale(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),

@@ -1,4 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { generatePalettes } from "../color/palette";
+import {
+  rememberRemovedSeedRoles,
+  seedSemanticTokens,
+} from "../color/semantic";
+import { deleteTokens } from "../color/selection-ops";
 import { defaultElevationScale } from "../scale/elevation";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
@@ -9,8 +15,10 @@ import {
   parseBlueprintWorkspace,
   SUPPORTED_WORKSPACE_FILE_VERSIONS,
 } from "./workspace-file";
-import { DEFAULT_WORKSPACE_NAME } from "./workspace";
+import { DEFAULT_WORKSPACE_NAME, readWorkspaceProject } from "./workspace";
 import type { WorkspaceProject } from "./types";
+import type { ColorTrack } from "../color/types";
+import type { BlueprintWorkspaceFile } from "./workspace-file";
 
 const LIGHTNESS = [
   97.5, 95, 90, 85, 80, 75, 70, 65, 60, 55, 50, 45, 40, 35, 30, 25, 20, 15, 10,
@@ -71,6 +79,7 @@ const workspace = (over: Partial<WorkspaceProject> = {}): WorkspaceProject => ({
     template: "article",
   },
   semantics: null,
+  removedSeedRoles: [],
   spacing: defaultSpacingScale(),
   radius: defaultRadiusScale(),
   elevation: defaultElevationScale(),
@@ -412,17 +421,22 @@ describe("a version 5 file still opens, and a version 6 file carries alpha", () 
     expect(formatBlueprintWorkspace(after)).toContain('"alpha": 0.12');
   });
 
-  it("moved the version, and kept the one before it", () => {
-    /* Six, spelled out once, because this is the test about the bump itself.
-       Five stays supported: a file written before alpha is still a file this
-       build understands completely. */
-    expect(BLUEPRINT_WORKSPACE_FILE_VERSION).toBe(6);
-    expect(SUPPORTED_WORKSPACE_FILE_VERSIONS).toEqual([1, 2, 3, 4, 5, 6]);
+  it("moved the version, and kept the ones before it", () => {
+    /* Spelled out once, because this is the test about the bumps themselves.
+       Six was alpha and seven is the removed-seed list; every earlier version
+       stays supported, because each is still a file this build understands
+       completely. */
+    expect(BLUEPRINT_WORKSPACE_FILE_VERSION).toBe(7);
+    expect(SUPPORTED_WORKSPACE_FILE_VERSIONS).toEqual([1, 2, 3, 4, 5, 6, 7]);
 
     /* And the reason the number moved at all. A build handed a file from
        after it must refuse the file rather than read the parts it recognises
        and drop an alpha on the floor. */
-    expect(() => parseBlueprintWorkspace(fileAt(7, 0.12))).toThrow(TypeError);
+    expect(() =>
+      parseBlueprintWorkspace(
+        fileAt(BLUEPRINT_WORKSPACE_FILE_VERSION + 1, 0.12),
+      ),
+    ).toThrow(TypeError);
   });
 
   it("keeps an out-of-range alpha rather than dropping the token", () => {
@@ -462,5 +476,131 @@ describe("a version 5 file still opens, and a version 6 file carries alpha", () 
     const token = after.semantics!.find((each) => each.id === "border.subtle")!;
     expect(token.light.alpha).toBeUndefined();
     expect(token.dark.alpha).toBeUndefined();
+  });
+});
+
+describe("a seed role somebody deleted stays deleted", () => {
+  /**
+   * A workspace whose layer is the seed set minus one role, deliberately.
+   *
+   * `border.subtle` because it is one of the two seed roles nothing reads by
+   * name, which is what makes it deletable at all — see `usedBy`.
+   */
+  function withoutSubtleBorder(): {
+    project: WorkspaceProject;
+    tracks: ColorTrack[];
+  } {
+    const base = workspace();
+    const tracks = generatePalettes({
+      tracks: base.palette!.tracks,
+      lightnessValues: base.palette!.lightnessValues,
+    });
+    const seeded = seedSemanticTokens(tracks);
+    const gone = deleteTokens(seeded, ["border.subtle"]);
+
+    expect(gone.refusals).toEqual([]);
+    expect(gone.removed).toEqual(["border.subtle"]);
+
+    return {
+      project: {
+        ...base,
+        semantics: gone.layer,
+        removedSeedRoles: gone.removed,
+      },
+      tracks,
+    };
+  }
+
+  it("is not put back when the file is opened again", () => {
+    /* Without the list, `fillSeedRoles` cannot tell a role somebody threw away
+       from one added to the seed set since the save, and puts both back — so
+       the deletion undoes itself on the next open. */
+    const { project } = withoutSubtleBorder();
+    const after = parseBlueprintWorkspace(formatBlueprintWorkspace(project));
+
+    expect(after.semantics!.map((token) => token.id)).not.toContain(
+      "border.subtle",
+    );
+    expect(after.removedSeedRoles).toEqual(["border.subtle"]);
+  });
+
+  it("comes back, and is forgotten, when the id is added again", () => {
+    /* Reconciled against the layer rather than against the operation, so a
+       duplicate renamed onto the id clears the list exactly like a token added
+       by hand does. */
+    const { project, tracks } = withoutSubtleBorder();
+    const back = seedSemanticTokens(tracks).find(
+      (token) => token.id === "border.subtle",
+    )!;
+
+    const readded = parseBlueprintWorkspace(
+      formatBlueprintWorkspace({
+        ...project,
+        semantics: [...project.semantics!, back],
+        removedSeedRoles: rememberRemovedSeedRoles(project.removedSeedRoles, [
+          ...project.semantics!,
+          back,
+        ]),
+      }),
+    );
+
+    expect(readded.semantics!.map((token) => token.id)).toContain(
+      "border.subtle",
+    );
+    expect(readded.removedSeedRoles).toEqual([]);
+  });
+
+  it("fills a role added to the seed set since the save, as it always did", () => {
+    /* The half the list must not break. An absent id still means "missing" for
+       every role that is not on the list, so a workspace saved before a role
+       existed still gains it. */
+    const { project } = withoutSubtleBorder();
+    const short = {
+      ...project,
+      semantics: project.semantics!.filter(
+        (token) => token.id !== "focus.ring",
+      ),
+    };
+
+    const after = parseBlueprintWorkspace(formatBlueprintWorkspace(short));
+    const ids = after.semantics!.map((token) => token.id);
+
+    expect(ids).toContain("focus.ring");
+    expect(ids).not.toContain("border.subtle");
+  });
+
+  it("reads the same through storage as through a file", () => {
+    /* Both doors, because the semantic top-up itself shipped with only one of
+       them wired: the same document gave two answers depending on which way it
+       came in, and the docs app kept exporting nineteen roles. */
+    const { project } = withoutSubtleBorder();
+    const raw = JSON.parse(
+      formatBlueprintWorkspace(project),
+    ) as BlueprintWorkspaceFile;
+
+    const fromFile = parseBlueprintWorkspace(formatBlueprintWorkspace(project));
+    const fromStorage = readWorkspaceProject(raw.project)!;
+
+    expect(fromStorage.removedSeedRoles).toEqual(fromFile.removedSeedRoles);
+    expect(fromStorage.semantics!.map((token) => token.id)).toEqual(
+      fromFile.semantics!.map((token) => token.id),
+    );
+    expect(fromStorage.semantics!.map((token) => token.id)).not.toContain(
+      "border.subtle",
+    );
+  });
+
+  it("keeps only ids the seed set actually has", () => {
+    /* The list only ever changes what `fillSeedRoles` does, so an id it will
+       never seed is an entry that can only grow. */
+    const { project } = withoutSubtleBorder();
+    const after = parseBlueprintWorkspace(
+      formatBlueprintWorkspace({
+        ...project,
+        removedSeedRoles: ["border.subtle", "brand.wash", "border.subtle"],
+      }),
+    );
+
+    expect(after.removedSeedRoles).toEqual(["border.subtle"]);
   });
 });

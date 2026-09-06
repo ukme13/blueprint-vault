@@ -5,6 +5,7 @@ import {
 import {
   filledSemanticsForPalette,
   readSemanticTokens,
+  readRemovedSeedRoles,
   semanticsForPalette,
 } from "./semantics";
 import {
@@ -18,6 +19,7 @@ import { defaultSpacingScale } from "../scale/spacing";
 import { readTypographyProjectData } from "./typography-project";
 import type { TypographyProjectData, WorkspaceProject } from "./types";
 import type { PaletteProjectData } from "../color/export";
+import { rememberRemovedSeedRoles } from "../color/semantic";
 import type { SemanticToken } from "../color/semantic";
 import type { ElevationScale } from "../scale/elevation";
 import type { RadiusScale } from "../scale/radius";
@@ -93,16 +95,24 @@ export function readWorkspaceProject(value: unknown): WorkspaceProject | null {
   /* Slices are read independently: a corrupt palette must not cost someone
      their type scale, and the reverse. */
   const palette = readPaletteProjectData(value.palette);
+  const removedSeedRoles = readRemovedSeedRoles(
+    (value as { removedSeedRoles?: unknown }).removedSeedRoles,
+  );
   return {
     name: value.name as string,
     palette,
     typography: readTypographyProjectData(value.typography),
     /* A stored layer is brought up to the current seed set on the way in, the
        same way a version 1 file gained one at all: a role added since the
-       save is seeded against this palette and appended. */
+       save is seeded against this palette and appended — except the ones this
+       workspace threw away, which are missing on purpose. */
     semantics:
-      filledSemanticsForPalette(readSemanticTokens(value.semantics), palette) ??
-      semanticsForPalette(palette),
+      filledSemanticsForPalette(
+        readSemanticTokens(value.semantics),
+        palette,
+        removedSeedRoles,
+      ) ?? semanticsForPalette(palette),
+    removedSeedRoles,
     spacing: spacingOrDefault(value.spacing),
     radius: radiusOrDefault(value.radius),
     elevation: elevationOrDefault(value.elevation),
@@ -141,6 +151,7 @@ export function workspaceFromLegacy(
     palette,
     typography,
     semantics: semanticsForPalette(palette),
+    removedSeedRoles: [],
     spacing: defaultSpacingScale(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
@@ -219,6 +230,7 @@ export function emptyWorkspace(
     palette: null,
     typography: null,
     semantics: null,
+    removedSeedRoles: [],
     spacing: defaultSpacingScale(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
@@ -285,11 +297,40 @@ export function withElevationSlice(
   return { ...(current ?? emptyWorkspace()), elevation };
 }
 
+/**
+ * Replace the semantic layer, keeping the other slices.
+ *
+ * The removed-seed list is recomputed rather than passed, so the editor cannot
+ * get the two out of step: an id back in the layer is forgotten, and an id
+ * `justRemoved` names is recorded. Reconciled against the layer itself, so a
+ * duplicate renamed onto a removed id clears it exactly like a hand-added one.
+ *
+ * `justRemoved` has to be passed by whoever deletes, and is not inferred from
+ * a role having left the layer. Inferring it would be tidier and is wrong on
+ * one path that matters: an import replaces the layer wholesale, and every
+ * seed role the incoming document happens not to have would be recorded as
+ * something this user threw away. So a deletion says so, and everything else
+ * is a layer that changed.
+ *
+ * Nothing calls it with a value yet. The editor's own delete is stage 4's,
+ * which is why deleting a seed role in the studio today still behaves exactly
+ * as it did before this list existed.
+ */
 export function withSemanticsSlice(
   current: WorkspaceProject | null,
   semantics: SemanticToken[] | null,
+  justRemoved: readonly string[] = [],
 ): WorkspaceProject {
-  return { ...(current ?? emptyWorkspace()), semantics };
+  const base = current ?? emptyWorkspace();
+  return {
+    ...base,
+    semantics,
+    removedSeedRoles: rememberRemovedSeedRoles(
+      base.removedSeedRoles,
+      semantics,
+      justRemoved,
+    ),
+  };
 }
 
 export function withTypographySlice(

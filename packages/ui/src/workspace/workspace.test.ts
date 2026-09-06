@@ -240,6 +240,7 @@ describe("readWorkspaceProject", () => {
       palette: null,
       typography: null,
       semantics: null,
+      removedSeedRoles: [],
       spacing: defaultSpacingScale(),
       radius: defaultRadiusScale(),
       elevation: defaultElevationScale(),

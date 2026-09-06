@@ -192,6 +192,7 @@ describe("no export carries font data", () => {
       name: "Uploaded",
       palette: null,
       semantics: null,
+      removedSeedRoles: [],
       spacing: defaultSpacingScale(),
       radius: defaultRadiusScale(),
       elevation: defaultElevationScale(),
