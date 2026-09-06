@@ -1,8 +1,19 @@
 "use client";
 
 import type { MouseEvent } from "react";
-import { Lock } from "lucide-react";
-import { Tooltip } from "@astryxdesign/core/Tooltip";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import {
   Table,
   TableBody,
@@ -11,182 +22,135 @@ import {
   TableHeaderCell,
   TableRow,
 } from "@astryxdesign/core/Table";
-import { TextInput } from "@astryxdesign/core/TextInput";
 import {
-  COLOUR_MODES,
-  listConsumers,
-  semanticVariableName,
-  usedBy,
+  groupSemanticTokens,
   type ColorTrack,
   type SemanticToken,
 } from "@blueprint/ui";
-import { ReferenceField } from "./SemanticReferenceField";
-import {
-  SemanticRowMenuButton,
-  type SemanticRowActions,
-} from "./SemanticRowMenu";
+import { type SemanticRowActions } from "./SemanticRowMenu";
+import { SemanticRow, type SemanticCell } from "./SemanticRow";
+import { useSemanticColumnWidths } from "./use-semantic-column-widths";
 import styles from "./semantic-table.module.css";
-
-/**
- * The rows, and selecting them.
- *
- * Astryx's `Table` in children mode, and the selection is composed rather than
- * native. `useTableSelection` exists and is the wrong shape twice over: it is a
- * data-driven plugin, and this table has to stay in children mode while the
- * per-cell editing lives in the cells; and it selects with checkboxes, where a
- * spreadsheet selects with a click, a shift-click and a Ctrl-click. So the
- * rules are `@blueprint/ui`'s pure functions and the row carries
- * `aria-selected` itself.
- *
- * `TableRow` takes it: its published props list only `children`, and the type
- * it ships extends `BaseProps<HTMLTableRowElement>` and spreads the rest, so
- * handlers and ARIA reach the `<tr>`.
- *
- * See docs/roadmap/semantic-table-editor.md, stage 4.
- */
 
 interface SemanticTableProps {
   rows: SemanticToken[];
-  /** The whole layer, which the per-cell edits still operate over. */
   tokens: SemanticToken[];
   palettes: ColorTrack[];
+  group: string | null;
   isSelected: (id: string) => boolean;
-  onRowClick: (
-    id: string,
-    modifiers: { isRange?: boolean; isToggle?: boolean },
-  ) => void;
-  onChange: (next: SemanticToken[]) => void;
-  onRename: (id: string, label: string) => void;
-  /** The draft label being typed, before it is committed. */
-  draft: { id: string; label: string } | null;
-  onDraft: (draft: { id: string; label: string } | null) => void;
+  editing: { id: string; cell: SemanticCell } | null;
   actionsFor: (id: string) => SemanticRowActions;
+  onRowClick: (id: string, event: MouseEvent<HTMLTableRowElement>) => void;
+  onEdit: (id: string, cell: SemanticCell) => void;
+  onCancel: () => void;
+  onReferenceChange: (
+    id: string,
+    cell: "light" | "dark",
+    next: SemanticToken[],
+  ) => void;
+  onCommitText: (
+    id: string,
+    cell: "name" | "description",
+    value: string,
+    move: "down" | "right" | null,
+  ) => void;
+  onReorder: (activeId: string, overId: string) => void;
 }
 
-/** A click on an input, a button or a selector is not a click on the row. */
-function isInteractive(event: MouseEvent<HTMLTableRowElement>): boolean {
-  const target = event.target as HTMLElement | null;
-  return !!target?.closest(
-    "input, button, select, textarea, a, [role='combobox'], [role='listbox']",
+export function SemanticTable(props: SemanticTableProps) {
+  const columns = useSemanticColumnWidths();
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
-}
-
-export function SemanticTable({
-  rows,
-  tokens,
-  palettes,
-  isSelected,
-  onRowClick,
-  onChange,
-  onRename,
-  draft,
-  onDraft,
-  actionsFor,
-}: SemanticTableProps) {
+  const groups =
+    props.group === null
+      ? groupSemanticTokens(props.rows)
+      : [{ group: props.group, label: "", tokens: props.rows }];
+  const ids = groups.flatMap((group) => group.tokens.map((token) => token.id));
+  const onDragEnd = (event: DragEndEvent) => {
+    if (event.over)
+      props.onReorder(String(event.active.id), String(event.over.id));
+  };
   return (
-    <Table density="compact" dividers="grid" hasHover verticalAlign="middle">
-      <TableHeader>
-        <TableRow isHeaderRow>
-          <TableHeaderCell>Token</TableHeaderCell>
-          <TableHeaderCell>Variable</TableHeaderCell>
-          <TableHeaderCell>Light</TableHeaderCell>
-          <TableHeaderCell>Dark</TableHeaderCell>
-          <TableHeaderCell className={styles.actionsHeader}>
-            <span className={styles.srOnly}>Actions</span>
-          </TableHeaderCell>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((token) => {
-          const consumers = usedBy(token.id);
-          const selected = isSelected(token.id);
-
-          return (
-            <TableRow
-              key={token.id}
-              aria-selected={selected}
-              className={styles.row}
-              data-selected={selected ? "true" : undefined}
-              onClick={(event) => {
-                if (isInteractive(event)) return;
-                onRowClick(token.id, {
-                  isRange: event.shiftKey,
-                  isToggle: event.ctrlKey || event.metaKey,
-                });
-              }}
-              onContextMenu={() => {
-                /* Right-clicking a row that is not in the selection makes it
-                   the selection, which is what every file manager does — the
-                   alternative is a menu whose Delete applies to rows somebody
-                   cannot see the highlight on. */
-                if (!selected) onRowClick(token.id, {});
-              }}
-            >
-              <TableCell>
-                <div className={styles.nameCell} data-token={token.id}>
-                  {consumers.length > 0 && (
-                    <Tooltip
-                      content={`Read by ${listConsumers(consumers)}. It can be repointed, not deleted or renamed.`}
-                    >
-                      <span
-                        aria-label={`${token.id} is read by ${listConsumers(consumers)}`}
-                        className={styles.lock}
-                        data-locked={token.id}
-                        role="img"
-                      >
-                        {/* A drawn icon, not a glyph. The first pass used ⚿,
-                            which is not in the studio's typeface and rendered
-                            as a tofu box in every row — visible only in a
-                            screenshot, because it is a character and every
-                            test that asked for it found it. */}
-                        <Lock aria-hidden="true" size={12} />
-                      </span>
-                    </Tooltip>
+    <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+      <SortableContext items={ids} strategy={verticalListSortingStrategy}>
+        <Table
+          density="compact"
+          dividers="grid"
+          hasHover
+          verticalAlign="middle"
+        >
+          <colgroup>
+            {columns.order.map((key) => (
+              <col key={key} style={{ width: columns.widths[key] }} />
+            ))}
+          </colgroup>
+          <TableHeader>
+            <TableRow isHeaderRow>
+              {columns.order.map((key) => (
+                <TableHeaderCell key={key} className={styles.resizeHeader}>
+                  {key === "actions" ? (
+                    <span className={styles.srOnly}>Actions</span>
+                  ) : (
+                    <span {...columns.headerProps(key)}>
+                      {key[0]!.toUpperCase() + key.slice(1)}
+                    </span>
                   )}
-                  <TextInput
-                    isLabelHidden
-                    label={`${token.id} name`}
-                    value={draft?.id === token.id ? draft.label : token.name}
-                    /* Typing changes the label only. A rename re-slugs the id,
-                       which is this row's React key, so doing it per keystroke
-                       remounts the field and drops focus after one character —
-                       the mistake the typography groups already made. */
-                    onChange={(label) => onDraft({ id: token.id, label })}
-                    onBlur={() => onRename(token.id, draft?.label ?? "")}
-                    onKeyDown={(event) => {
-                      if (event.key !== "Enter") return;
-                      event.preventDefault();
-                      event.currentTarget.blur();
-                    }}
-                  />
-                </div>
-              </TableCell>
-              <TableCell>
-                <code className={styles.variable}>
-                  {semanticVariableName(token.id)}
-                </code>
-              </TableCell>
-              {COLOUR_MODES.map((mode) => (
-                <TableCell key={mode}>
-                  <ReferenceField
-                    mode={mode}
-                    palettes={palettes}
-                    token={token}
-                    tokens={tokens}
-                    onChange={onChange}
-                  />
-                </TableCell>
+                  {key !== "actions" && (
+                    <button
+                      className={styles.resizeHandle}
+                      type="button"
+                      {...columns.separatorProps(key)}
+                    />
+                  )}
+                </TableHeaderCell>
               ))}
-              <TableCell>
-                <SemanticRowMenuButton
-                  actions={actionsFor(token.id)}
-                  label={`Actions for ${token.name}`}
-                />
-              </TableCell>
             </TableRow>
-          );
-        })}
-      </TableBody>
-    </Table>
+          </TableHeader>
+          <TableBody>
+            {groups.flatMap((group) => [
+              ...(props.group === null
+                ? [
+                    <TableRow
+                      className={styles.groupHeading}
+                      data-group-heading={group.group}
+                      key={`heading-${group.group}`}
+                    >
+                      <TableCell colSpan={6}>{group.label}</TableCell>
+                    </TableRow>,
+                  ]
+                : []),
+              ...group.tokens.map((token) => (
+                <SemanticRow
+                  key={token.id}
+                  token={token}
+                  tokens={props.tokens}
+                  palettes={props.palettes}
+                  columnOrder={columns.order}
+                  selected={props.isSelected(token.id)}
+                  editing={
+                    props.editing?.id === token.id ? props.editing.cell : null
+                  }
+                  actions={props.actionsFor(token.id)}
+                  canReorder={group.tokens.length > 1}
+                  onRowClick={(event) => props.onRowClick(token.id, event)}
+                  onEdit={(cell) => props.onEdit(token.id, cell)}
+                  onCancel={props.onCancel}
+                  onReferenceChange={(mode, next) =>
+                    props.onReferenceChange(token.id, mode, next)
+                  }
+                  onCommitText={(cell, value, move) =>
+                    props.onCommitText(token.id, cell, value, move)
+                  }
+                />
+              )),
+            ])}
+          </TableBody>
+        </Table>
+      </SortableContext>
+    </DndContext>
   );
 }

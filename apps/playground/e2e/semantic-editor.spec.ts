@@ -16,8 +16,8 @@ async function openSemantics(page: Page): Promise<Locator> {
   return editor;
 }
 
-function row(editor: Locator, name: string): Locator {
-  return editor.locator("tr:has([data-token])").filter({ hasText: name });
+function row(editor: Locator, id: string): Locator {
+  return editor.locator(`tr:has([data-token="${id}"])`);
 }
 
 /**
@@ -29,10 +29,10 @@ function row(editor: Locator, name: string): Locator {
  */
 async function swatch(
   editor: Locator,
-  tokenName: string,
+  tokenId: string,
   mode: "light" | "dark",
 ): Promise<string> {
-  return row(editor, tokenName)
+  return row(editor, tokenId)
     .locator(`[data-mode="${mode}"] i`)
     .first()
     .evaluate((node) => getComputedStyle(node).backgroundColor);
@@ -54,8 +54,12 @@ test.describe("The semantic editor", () => {
        decided. Choosing them one at a time is how a layer ends up with dark
        text on a dark page. */
     const editor = await openSemantics(page);
-    await expect(editor.getByLabel("Action primary light track")).toBeVisible();
-    await expect(editor.getByLabel("Action primary dark track")).toBeVisible();
+    await expect(
+      editor.getByLabel("Edit Action primary light reference"),
+    ).toBeVisible();
+    await expect(
+      editor.getByLabel("Edit Action primary dark reference"),
+    ).toBeVisible();
   });
 
   test("moves every token pointing at a track when that track changes", async ({
@@ -64,7 +68,7 @@ test.describe("The semantic editor", () => {
     /* The rule the whole layer rests on, and the one thing no unit test can
        show: no reload, no re-seed, just the reference resolving again. */
     const editor = await openSemantics(page);
-    const before = await swatch(editor, "Action primary", "light");
+    const before = await swatch(editor, "action.primary", "light");
 
     await page.getByRole("button", { name: "Overview" }).click();
     await page
@@ -76,14 +80,11 @@ test.describe("The semantic editor", () => {
     const hex = picker.getByLabel("primary source colour HEX");
     await hex.fill("#0B7A3D");
     await hex.press("Enter");
-    /* Escape rather than the close button: Enter may already have dismissed
-       the picker, and clicking a button that is gone waits for the timeout. */
-    await page.keyboard.press("Escape");
     await expect(picker).toBeHidden();
 
     await page.getByRole("button", { name: "Semantics" }).click();
     await expect
-      .poll(() => swatch(editor, "Action primary", "light"))
+      .poll(() => swatch(editor, "action.primary", "light"))
       .not.toBe(before);
 
     /* And the stored token still holds only a reference. Switching tabs
@@ -112,29 +113,35 @@ test.describe("The semantic editor", () => {
     seededPage: page,
   }) => {
     const editor = await openSemantics(page);
-    const darkBefore = await swatch(editor, "Action primary", "dark");
+    const darkBefore = await swatch(editor, "action.primary", "dark");
 
+    await editor.getByLabel("Edit Action primary light reference").click();
     await editor.getByLabel("Action primary light weight").click();
     await page.getByRole("option", { name: "100", exact: true }).click();
 
     await expect
-      .poll(() => swatch(editor, "Action primary", "dark"))
+      .poll(() => swatch(editor, "action.primary", "dark"))
       .toBe(darkBefore);
   });
 
-  test("renames the token and the variable it exports", async ({
+  test("renames a free new token and the variable it exports", async ({
     seededPage: page,
   }) => {
     /* The id is the exported name, so a rename that left it alone would let
        the label and the variable a developer writes drift apart. */
     const editor = await openSemantics(page);
-    const field = editor.getByLabel("surface.raised name");
+    await editor.getByRole("button", { name: "Add token" }).click();
+    const field = editor.getByLabel("custom.new-token name");
 
-    await field.fill("Brand wash");
+    await field.fill("brand-wash");
     await field.press("Enter");
 
-    await expect(editor.getByText("--color-brand-wash")).toBeVisible();
-    await expect(editor.getByText("--color-surface-raised")).toHaveCount(0);
+    await expect(
+      editor.getByText("--color-custom-brand-wash", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      editor.getByText("--color-custom-new-token", { exact: true }),
+    ).toHaveCount(0);
   });
 
   test("adds and removes a token", async ({ seededPage: page }) => {
@@ -145,13 +152,14 @@ test.describe("The semantic editor", () => {
 
     /* Through the row menu since stage 4a: the per-row Remove button became
        one Delete that applies to a selection. */
-    await editor.getByRole("button", { name: "Actions for New token" }).click();
+    await editor.getByRole("button", { name: "Actions for new-token" }).click();
     await page.getByRole("menuitem", { name: "Delete" }).click();
     await expect(editor.locator("tr:has([data-token])")).toHaveCount(72);
   });
 
   test("keeps the layer across a reload", async ({ seededPage: page }) => {
     const editor = await openSemantics(page);
+    await editor.getByLabel("Edit Action primary light reference").click();
     await editor.getByLabel("Action primary light weight").click();
     await page.getByRole("option", { name: "100", exact: true }).click();
 
@@ -174,7 +182,7 @@ test.describe("The semantic editor", () => {
     await page.reload();
     const reopened = await openSemantics(page);
     await expect(
-      reopened.getByLabel("Action primary light weight"),
-    ).toContainText("100");
+      reopened.getByLabel("Edit Action primary light reference"),
+    ).toContainText("primary/100");
   });
 });

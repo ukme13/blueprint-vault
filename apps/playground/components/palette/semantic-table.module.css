@@ -112,10 +112,23 @@
  */
 .tableWrap table {
   min-width: 60rem;
+  table-layout: fixed;
 }
 
 .row[data-selected] {
   background: var(--color-action-primary-surface);
+}
+
+.groupHeading td {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--color-surface-raised);
+  color: var(--color-fg-secondary);
+  padding-top: 40px;
+  padding-bottom: 8px;
+  font-size: var(--font-size-xs, 0.75rem);
+  font-weight: var(--font-weight-semibold, 600);
 }
 
 /*
@@ -138,6 +151,31 @@
   width: 11rem;
 }
 
+.rowDragHandle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--spacing-5);
+  height: var(--spacing-5);
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-fg-secondary);
+  cursor: grab;
+  padding: 0;
+}
+
+.rowDragHandle:hover,
+.rowDragHandle:focus-visible {
+  background: var(--color-surface-subtle);
+  color: var(--color-fg-primary);
+}
+
+.rowDragHandle:active {
+  cursor: grabbing;
+}
+
 /* A mark, not a badge: it sits beside a name in a dense row, and Astryx's
    guidance keeps Badge for counts. The tooltip carries the words. */
 .lock {
@@ -155,6 +193,43 @@
   font-size: var(--font-size-xs, 0.75rem);
 }
 
+.referenceChip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  max-width: 100%;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-fg-primary);
+  cursor: pointer;
+  font: inherit;
+  padding: var(--spacing-1);
+  white-space: nowrap;
+}
+
+.referenceChip:hover {
+  background: var(--color-surface-subtle);
+}
+
+.referenceSwatch {
+  width: var(--spacing-5);
+  height: var(--spacing-5);
+  flex: 0 0 auto;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+}
+
+.referencePicker {
+  display: grid;
+  gap: var(--spacing-3);
+}
+
+.referenceWarning {
+  color: var(--color-status-warning);
+  font-size: var(--font-size-xs, 0.75rem);
+}
+
 /*
  * A hidden column label that stays inside the table.
  *
@@ -166,6 +241,43 @@
  */
 .actionsHeader {
   position: relative;
+}
+
+.resizeHeader {
+  position: relative;
+}
+
+.resizeHandle {
+  position: absolute;
+  top: 0;
+  right: calc(var(--spacing-1) * -1);
+  z-index: 2;
+  width: var(--spacing-2);
+  height: 100%;
+  border: 0;
+  background: transparent;
+  cursor: col-resize;
+}
+
+.resizeHandle::after {
+  position: absolute;
+  top: var(--spacing-1);
+  bottom: var(--spacing-1);
+  left: 50%;
+  width: 1px;
+  background: var(--color-border-default);
+  content: "";
+  opacity: 0;
+}
+
+.resizeHandle:hover::after,
+.resizeHandle:focus-visible::after {
+  opacity: 1;
+}
+
+.resizeHandle:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -1px;
 }
 
 .srOnly {

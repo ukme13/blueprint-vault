@@ -3,7 +3,7 @@
 import { DropdownMenu } from "@astryxdesign/core/DropdownMenu";
 
 /**
- * The five things a row can do, in two places.
+ * The row actions, in two places.
  *
  * Astryx's `ContextMenu` for right-click and `DropdownMenu` for the "…"
  * button, from one list of items — because a context menu is not reachable
@@ -18,7 +18,12 @@ import { DropdownMenu } from "@astryxdesign/core/DropdownMenu";
 export interface SemanticRowActions {
   copy: () => void;
   paste: () => void;
+  /** Open the draft for a new folder. */
   newGroup: () => void;
+  /** Move the target rows into an existing folder. */
+  moveToGroup: (group: string) => void;
+  /** Existing folders available to the move submenu. */
+  groups: Array<{ id: string; label: string }>;
   duplicate: () => void;
   remove: () => void;
   /** True when nothing on the clipboard can be pasted. */
@@ -35,7 +40,19 @@ export function semanticMenuItems(actions: SemanticRowActions) {
     { label: many ? `Copy ${rows}` : "Copy", onClick: actions.copy },
     { label: "Paste", onClick: actions.paste, isDisabled: !actions.canPaste },
     { type: "divider" as const },
-    { label: "New group with selection", onClick: actions.newGroup },
+    {
+      id: "move-to-group",
+      label: "Move to group…",
+      items: [
+        ...actions.groups.map((group) => ({
+          id: `move-to-${group.id}`,
+          label: group.label,
+          onClick: () => actions.moveToGroup(group.id),
+        })),
+        { type: "divider" as const },
+        { id: "new-group", label: "New group", onClick: actions.newGroup },
+      ],
+    },
     {
       label: many ? `Duplicate ${rows}` : "Duplicate",
       onClick: actions.duplicate,
