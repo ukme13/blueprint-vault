@@ -40,11 +40,13 @@ similarity grid, the preview's contrast) composites the colour over the
 surface it is measured on before measuring. A 60% black is a different
 colour on cream and on white, and the report says which.
 
-**Export keeps the alias.** CSS emits relative colour syntax so the alias
-survives: `--color-divider: oklch(from var(--color-neutral-950) l c h / 12%)`.
-Tailwind gets the same. DTCG emits the resolved value with the alpha and
-records the reference and alpha in `$extensions`, because the DTCG alias
-form has no alpha slot. The Astryx bridge is unchanged: it points at roles.
+**Export keeps the alias.** CSS emits a mix toward transparent so the alias
+survives: `--color-divider: color-mix(in oklab, var(--color-neutral-950) 12%,
+transparent)`. Tailwind gets the same. DTCG emits the resolved value with the
+alpha and records the reference and alpha in `$extensions`, because the DTCG
+alias form has no alpha slot. The Astryx bridge is unchanged: it points at
+roles. (The first draft of this line said relative colour syntax; see the
+decision below for why it does not.)
 
 **Selection is a set of ids, held by the editor, not by the store.** The
 store holds the layer; the editor holds which rows are selected and what
@@ -207,12 +209,49 @@ followed through to the preview and the export.
 
 Open, with a recommendation for each.
 
-**How alpha is exported. Recommend: relative colour syntax, keeping the
-alias.** `color-mix` is the alternative and also keeps the alias, but
-mixes toward transparent through a colour space the client did not choose.
-`oklch(from var(--x) l c h / a)` says exactly what the token says.
-Browser support for relative colour syntax should be checked against the
-project's stated browser floor before stage 1 starts.
+**How alpha is exported. Settled in stage 1: `color-mix(in oklab, var(--x) 12%,
+transparent)`.** The recommendation was relative colour syntax. The floor says
+no.
+
+_The floor._ This workspace declares no `browserslist` of its own, so the floor
+it inherits is Astryx's. `astryx docs browser-support` does not state one
+number — it defines tiers, and says "Astryx officially supports Tier 1 and
+Tier 2". That makes **Tier 2** the floor: Chrome 114+, Edge 114+, Safari 17+,
+Firefox 125+ (Baseline − 2 years, 2024). Tier 1 is Chrome 125+, Edge 125+,
+Safari 26+, Firefox 147+.
+
+_The evidence._ MDN's browser compatibility data, fetched from
+`bcd.developer.mozilla.org/bcd/api/v0/current/css.types.color.oklch.json`
+(BCD 8.0.14, snapshot 2026-09-03), key `relative_syntax`, described there as
+"Relative Oklch colors", beside the same data for `color-mix()` from
+`css.types.color.color-mix.json`:
+
+|                        | Chrome | Edge | Firefox | Safari | Samsung |
+| ---------------------- | ------ | ---- | ------- | ------ | ------- |
+| Relative Oklch colours | 122    | 122  | 128     | 18     | 26.0    |
+| `color-mix()`          | 111    | 111  | 113     | 16.2   | 22.0    |
+| Tier 2 floor           | 114    | 114  | 125     | 17     | —       |
+
+Relative colour syntax is outside the floor on all three engines: Chrome by
+eight versions, Firefox by three, Safari by a whole major. `color-mix()` is
+inside it on all three, and Astryx's own document lists `color-mix()` among the
+features that have "been widely available since 2023 or earlier" and need "no
+special handling".
+
+_The recommendation's objection does not survive measurement._ It says
+`color-mix` "mixes toward transparent through a colour space the client did not
+choose". Measured in Chromium 151.0.7922.34,
+`color-mix(in oklab, rgb(234 88 12) 40%, transparent)` computes to
+`oklab(0.646079 0.146426 0.127797 / 0.4)` — the colour's own coordinates,
+untouched, with the alpha applied. Mixing with `transparent` premultiplies, so
+the interpolation space decides how the value is written and not what colour
+comes out. MDN, on `color-mix()`: "the `color-mix()` function can be used to add
+transparency to any color". The alias survives either way; only the spelling
+differs, and one of the two spellings renders for everybody inside the floor.
+
+_Revisit when_ the floor moves up to Baseline 2026, where relative colour syntax
+is inside on every engine. It is the better spelling. It is not yet the safe
+one.
 
 **Whether seed roles can be deleted. Recommend: only the ones nothing
 reads.** Figma allows any deletion because Figma has no Button reading the
