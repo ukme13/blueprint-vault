@@ -64,6 +64,27 @@ const TOKENS = {
 } as const;
 
 /**
+ * The same ids as a list, for whoever needs to ask about a role by name.
+ *
+ * `usedBy` needs to say that deleting one of these takes a check out of the
+ * palette preview. Derived from the table above rather than written beside it,
+ * because two lists that must agree are one list too many — the mistake this
+ * module's own history is made of.
+ */
+export const PREVIEW_ROLE_IDS: readonly string[] = Object.values(TOKENS);
+
+/**
+ * Whether the colour-vision grid pairs this role with the others.
+ *
+ * Exported for `usedBy`, which has to answer the same question the grid
+ * answers. A rule, so the answer holds for a role somebody invented as much as
+ * for a seeded one.
+ */
+export function isSignallingRole(id: string): boolean {
+  return signalsByColour(id);
+}
+
+/**
  * What a preview cannot do without.
  *
  * A surface to draw on, text to draw, something to act with, and a focus ring —
