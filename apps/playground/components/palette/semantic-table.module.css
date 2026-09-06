@@ -1,0 +1,130 @@
+/*
+ * The Semantics tab, as two regions.
+ *
+ * A grid rather than nested flexboxes, which is what the layout guidance asks
+ * for: the sidebar has a width budget and the table fills what is left. The
+ * budget is 220px, the low end of the filter-rail range, because these entries
+ * are one word and a count.
+ *
+ * The responsive contract, in one place so it cannot drift from the code:
+ *   >= 1024  sidebar 220 | table fills
+ *   <  1024  sidebar 56 (counts only, names in the tooltip) | table fills
+ * The rail is a class rather than a different tree, so nothing moves between
+ * the server's paint and the client's — `useMediaQuery` is false on the first
+ * render by design.
+ */
+
+.editor {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: var(--spacing-4);
+  min-height: 0;
+  padding: var(--spacing-6) var(--spacing-6) var(--spacing-8);
+}
+
+@media (max-width: 1023px) {
+  .editor {
+    grid-template-columns: 56px minmax(0, 1fr);
+    gap: var(--spacing-3);
+    padding: var(--spacing-4);
+  }
+}
+
+.empty {
+  margin: 0 auto;
+  max-width: 56rem;
+  padding: var(--spacing-10) var(--spacing-6);
+  color: var(--color-fg-secondary);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+/* The sidebar gives up its own padding: List carries an inset of its own, and
+   the layout guidance is that whichever of the two has the larger inset owns
+   the content line. */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+  border-right: 1px solid var(--color-border-subtle);
+  padding-right: var(--spacing-2);
+}
+
+.sidebar[data-collapsed] .count {
+  display: none;
+}
+
+.count {
+  color: var(--color-fg-secondary);
+  font-size: var(--font-size-xs, 0.75rem);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.newGroup {
+  padding-left: var(--spacing-2);
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  min-width: 0;
+}
+
+/* No outline on the region itself: it is focusable only so it can hear keys,
+   and a focus ring around the whole table would read as a control. The rows
+   and the fields inside it keep theirs. */
+.main:focus {
+  outline: none;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.search {
+  flex: 1 1 auto;
+  max-width: 22rem;
+  min-width: 0;
+}
+
+.groupDraft {
+  max-width: 22rem;
+}
+
+/* The table scrolls inside its own region rather than pushing the page wide,
+   which is what keeps the sidebar and the table together at 1024. */
+.tableWrap {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.row[data-selected] {
+  background: var(--color-action-primary-surface);
+}
+
+.nameCell {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  width: 12rem;
+}
+
+/* A mark, not a badge: it sits beside a name in a dense row, and Astryx's
+   guidance keeps Badge for counts. The tooltip carries the words. */
+.lock {
+  flex-shrink: 0;
+  color: var(--color-fg-muted);
+  cursor: help;
+  font-size: var(--font-size-xs, 0.75rem);
+  line-height: 1;
+}
+
+.variable {
+  color: var(--color-fg-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs, 0.75rem);
+}

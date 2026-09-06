@@ -242,8 +242,10 @@ function PaletteStudioContent() {
      slice rather than a feature of one editor. The keyboard is stage 4's:
      `semanticsHistory.undo` and `.redo` are what it binds. */
   const semanticsHistory = useSemanticsHistory(workspace);
-  const setSemantics = (next: SemanticToken[] | null) =>
-    semanticsHistory.write(next);
+  const setSemantics = (
+    next: SemanticToken[] | null,
+    options?: { editKey?: string; justRemoved?: readonly string[] },
+  ) => semanticsHistory.write(next, options);
   const [pendingImport, setPendingImport] = useState<WorkspaceProject | null>(
     null,
   );
@@ -820,6 +822,8 @@ function PaletteStudioContent() {
           palettes={palettes}
           tokens={semantics ?? []}
           onChange={setSemantics}
+          onRedo={semanticsHistory.redo}
+          onUndo={semanticsHistory.undo}
         />
       )}
 

@@ -1,198 +1,93 @@
 "use client";
 
-import { useState } from "react";
-import { Selector } from "@astryxdesign/core/Selector";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableHeaderCell,
-  TableRow,
-} from "@astryxdesign/core/Table";
+import { useCallback, useState } from "react";
+import { useMediaQuery } from "@astryxdesign/core/hooks";
+import { ContextMenu } from "@astryxdesign/core/ContextMenu";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import {
   addSemanticToken,
   Button,
-  groupSemanticTokens,
-  COLOUR_MODES,
-  removeSemanticToken,
+  deleteTokens,
+  moveToGroup,
   renameSemanticToken,
-  repointSemanticToken,
-  resolveSemantic,
-  semanticVariableName,
   type ColorTrack,
-  type ColourMode,
-  type SemanticMiss,
   type SemanticToken,
 } from "@blueprint/ui";
-import { usePaletteView } from "./PaletteViewContext";
+import { SemanticSidebar } from "./SemanticSidebar";
+import { SemanticTable } from "./SemanticTable";
+import { useSemanticSelection } from "./use-semantic-selection";
+import {
+  useSemanticActions,
+  type SemanticWriteOptions,
+} from "./use-semantic-actions";
+import { semanticMenuItems } from "./SemanticRowMenu";
+import styles from "./semantic-table.module.css";
 
 /**
  * Edit the semantic layer: what each name points at, in each mode.
  *
- * A table, because a layer is read as one: nineteen names down the side, the
- * two modes across, and a decision in every cell. The list of cards it
- * replaced put each token's two modes on their own rows, so comparing a
- * light value with the dark one beside it — the thing being decided — meant
- * reading diagonally. Rows are grouped by the part of the id before the dot,
- * the way the export groups them, so `surface.*` sits together and a new
- * `surface.hover` lands where somebody would look for it.
+ * A spreadsheet, because that is how a designer already works: groups down the
+ * left with their counts, rows that select in bulk, and one menu that does
+ * everything to a selection. Both modes are on screen at once rather than
+ * behind a switch — a semantic token exists to hold two values, and choosing
+ * them one at a time is how a layer ends up with dark text on a dark page.
  *
- * Both modes are on screen at once rather than behind a switch. A semantic
- * token exists to hold two values, and the pair is the thing being decided —
- * choosing them one at a time is how a layer ends up with text that is dark on
- * a dark page.
+ * Nothing here decides anything. Every operation is a stage 2 function from
+ * `@blueprint/ui`, every write goes through the stage 3 history, and this file
+ * renders the result and the refusals. That is the plan's first safety rule:
+ * stage 4 wires stage 2, and does not contain logic.
  *
- * The table renders what it is given and hands every change back. What it is
- * given comes from the workspace store, in `PaletteStudio`, so the preview
- * tab and the export read the same layer this edits.
- *
- * See docs/roadmap/semantic-tokens.md.
+ * See docs/roadmap/semantic-table-editor.md.
  */
 
-interface ReferenceFieldProps {
-  token: SemanticToken;
-  mode: ColourMode;
-  palettes: ColorTrack[];
-  onChange: (next: SemanticToken[]) => void;
-  tokens: SemanticToken[];
-}
-
-/* Keyed by `SemanticMiss` rather than a ternary, so a new kind of fault has to
-   be given words here instead of arriving under the previous one's label —
-   which is what an out-of-range alpha did on the day it was added: reported
-   correctly by the resolver and shown as "weight gone". */
-const MISSING_LABEL: Record<SemanticMiss, string> = {
-  track: "track gone",
-  weight: "weight gone",
-  alpha: "alpha out of range",
-};
-
-const MISSING_REASON: Record<SemanticMiss, string> = {
-  track: "The track this pointed at is gone.",
-  weight: "The weight this pointed at is gone.",
-  alpha: "The stored transparency is outside 0 to 100%, and is being clamped.",
-};
-
-function ReferenceField({
-  token,
-  mode,
-  palettes,
-  tokens,
-  onChange,
-}: ReferenceFieldProps) {
-  const { seen } = usePaletteView();
-  const resolved = resolveSemantic(token, mode, palettes);
-  if (!resolved) return null;
-
-  const track =
-    palettes.find((candidate) => candidate.id === resolved.trackId) ??
-    palettes[0]!;
-
-  /* The alpha rides along. Repointing is a statement about which primitive,
-     and rebuilding the reference from the two selectors alone would drop a
-     transparency somebody set every time they changed the shade. */
-  const repoint = (reference: { trackId: string; weight: number }) =>
-    onChange(
-      repointSemanticToken(tokens, token.id, mode, {
-        ...reference,
-        alpha: token[mode].alpha,
-      }),
-    );
-
-  return (
-    /* data-mode names which half of the pair this is. The swatch is decorative
-       — the two selectors beside it already say the track and the weight — so
-       there is no role to reach it by, and a test that guessed at nesting read
-       the light swatch for both modes. */
-    <div className="flex min-w-0 items-center gap-2" data-mode={mode}>
-      {/* The resolved colour, simulated like every other swatch in the studio,
-          so this panel agrees with the matrix beside it. */}
-      <i
-        aria-hidden="true"
-        className="size-6 shrink-0 rounded border border-border-default"
-        style={{ backgroundColor: seen(resolved.hex) }}
-      />
-      {/* Wide enough for a track name: the cell was splitting the row evenly
-          with the name and the variable, and "primary" came out as "pri…". */}
-      <div className="min-w-28 flex-1">
-        <Selector
-          isLabelHidden
-          label={`${token.name} ${mode} track`}
-          options={palettes.map((candidate) => ({
-            label: candidate.name,
-            value: candidate.id,
-          }))}
-          value={track.id}
-          onChange={(trackId) => {
-            /* Keep the weight when the new track has it, so switching track
-               does not silently move the shade as well. */
-            const next = palettes.find((candidate) => candidate.id === trackId);
-            const keeps = next?.shades.some(
-              (shade) => shade.weight === resolved.weight,
-            );
-            repoint({
-              trackId,
-              weight: keeps
-                ? resolved.weight
-                : (next?.shades[Math.floor((next.shades.length - 1) / 2)]
-                    ?.weight ?? resolved.weight),
-            });
-          }}
-        />
-      </div>
-      <div className="w-20 shrink-0">
-        <Selector
-          isLabelHidden
-          label={`${token.name} ${mode} weight`}
-          options={track.shades.map((shade) => ({
-            label: String(shade.weight),
-            value: String(shade.weight),
-          }))}
-          value={String(resolved.weight)}
-          onChange={(weight) =>
-            repoint({ trackId: track.id, weight: Number(weight) })
-          }
-        />
-      </div>
-      {resolved.missing && (
-        <span
-          className="shrink-0 text-xs text-status-warning"
-          title={MISSING_REASON[resolved.missing]}
-        >
-          {MISSING_LABEL[resolved.missing]}
-        </span>
-      )}
-    </div>
-  );
-}
+/** Below this the sidebar drops its labels and keeps its counts. */
+const RAIL_BELOW = 1024;
 
 interface SemanticEditorProps {
   tokens: SemanticToken[];
   palettes: ColorTrack[];
-  onChange: (tokens: SemanticToken[]) => void;
+  onChange: (next: SemanticToken[], options?: SemanticWriteOptions) => void;
+  /** The stage 3 history, so the table's own keys can reach it. */
+  onUndo?: () => void;
+  onRedo?: () => void;
 }
 
 export function SemanticEditor({
   tokens,
   palettes,
   onChange,
+  onUndo,
+  onRedo,
 }: SemanticEditorProps) {
-  /* The label being typed, before it is committed. Renaming on every keystroke
-     re-slugs the id, which is the row's key — the typography groups did that
-     and lost focus after one character. */
   const [draft, setDraft] = useState<{ id: string; label: string } | null>(
     null,
   );
+  /** The rows a "New group with selection" is waiting on a name for. */
+  const [grouping, setGrouping] = useState<string[] | null>(null);
+  const [groupName, setGroupName] = useState("");
+  const selection = useSemanticSelection(tokens);
+  /* SSR-safe and false on the first paint, which is why the rail is a CSS
+     class rather than a different tree: the layout must not move after
+     hydration on a narrow window. */
+  const isRail = useMediaQuery(`(max-width: ${RAIL_BELOW - 1}px)`);
+
+  const askForGroup = useCallback((ids: string[]) => {
+    setGroupName("");
+    setGrouping(ids);
+  }, []);
+
+  const { apply, actionsFor } = useSemanticActions({
+    isSelected: selection.isSelected,
+    onChange,
+    onNewGroup: askForGroup,
+    selected: selection.selected,
+    tokens,
+  });
 
   if (palettes.length === 0) {
     return (
-      <section
-        aria-label="Semantic tokens"
-        className="mx-auto max-w-4xl px-6 py-10"
-      >
-        <p className="text-sm text-fg-secondary">
+      <section aria-label="Semantic tokens" className={styles.empty}>
+        <p>
           Semantic tokens point at palette shades, so there is nothing to build
           them from yet. Create a palette first.
         </p>
@@ -200,123 +95,127 @@ export function SemanticEditor({
     );
   }
 
-  const commit = (id: string) => {
-    if (draft?.id === id)
-      onChange(renameSemanticToken(tokens, id, draft.label));
-    setDraft(null);
-  };
-
   return (
-    <section
-      aria-label="Semantic tokens"
-      className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-8"
-    >
-      <header className="flex items-end justify-between gap-4">
-        <p className="max-w-2xl text-sm text-fg-secondary">
-          A semantic token says when to use a colour, not what it is. Each one
-          points at a palette shade, so changing the palette moves every token
-          that references it.
-        </p>
-        <Button
-          scheme="neutral"
-          size="small"
-          variant="outlined"
-          onClick={() => onChange(addSemanticToken(tokens, palettes))}
-        >
-          Add token
-        </Button>
-      </header>
+    <section aria-label="Semantic tokens" className={styles.editor}>
+      <SemanticSidebar
+        group={selection.group}
+        isCollapsed={isRail}
+        tokens={tokens}
+        onGroupChange={selection.setGroup}
+        onNewGroup={(name) =>
+          apply(moveToGroup(tokens, selection.selected, name))
+        }
+      />
 
-      <Table density="compact" dividers="grid" hasHover verticalAlign="middle">
-        <TableHeader>
-          <TableRow isHeaderRow>
-            <TableHeaderCell>Token</TableHeaderCell>
-            <TableHeaderCell>Variable</TableHeaderCell>
-            <TableHeaderCell>Light</TableHeaderCell>
-            <TableHeaderCell>Dark</TableHeaderCell>
-            <TableHeaderCell>
-              <span className="sr-only">Actions</span>
-            </TableHeaderCell>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {groupSemanticTokens(tokens).flatMap(
-            ({ group, label, tokens: members }) => [
-              /* A section row, like the group headings in a design tool's
-               variables panel: the name once, and the rows under it are its. */
-              <TableRow key={`group:${group}`}>
-                <TableCell colSpan={5}>
-                  <strong
-                    className="text-xs font-semibold uppercase tracking-wide text-fg-muted"
-                    data-group={group}
-                  >
-                    {label}
-                  </strong>
-                </TableCell>
-              </TableRow>,
-              ...members.map((token) => (
-                <TableRow key={token.id}>
-                  <TableCell>
-                    <div className="w-44" data-token={token.id}>
-                      <TextInput
-                        isLabelHidden
-                        label={`${token.id} name`}
-                        value={
-                          draft?.id === token.id ? draft.label : token.name
-                        }
-                        /* Typing changes the label only. A rename re-slugs the
-                         id, which is this row's React key, so doing it per
-                         keystroke remounts the field and drops focus after
-                         one character — the mistake the typography groups
-                         already made. */
-                        onChange={(label) => setDraft({ id: token.id, label })}
-                        onBlur={() => commit(token.id)}
-                        /* Enter blurs rather than committing directly, so both
-                         paths go through one handler. */
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter") {
-                            event.preventDefault();
-                            event.currentTarget.blur();
-                          }
-                        }}
-                      />
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <code className="text-xs text-fg-secondary">
-                      {semanticVariableName(token.id)}
-                    </code>
-                  </TableCell>
-                  {COLOUR_MODES.map((mode) => (
-                    <TableCell key={mode}>
-                      <ReferenceField
-                        mode={mode}
-                        palettes={palettes}
-                        token={token}
-                        tokens={tokens}
-                        onChange={onChange}
-                      />
-                    </TableCell>
-                  ))}
-                  <TableCell>
-                    <Button
-                      aria-label={`Remove ${token.name}`}
-                      scheme="neutral"
-                      size="xs"
-                      variant="text"
-                      onClick={() =>
-                        onChange(removeSemanticToken(tokens, token.id))
-                      }
-                    >
-                      Remove
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              )),
-            ],
-          )}
-        </TableBody>
-      </Table>
+      <div
+        className={styles.main}
+        /* On the region rather than the window, so Delete does not fire while
+           somebody is typing in the search field or in a cell — and so the
+           studio's other tabs never see these keys at all. */
+        role="presentation"
+        tabIndex={-1}
+        onKeyDown={(event) => {
+          const target = event.target as HTMLElement;
+          const typing = !!target.closest("input, textarea, [role='combobox']");
+          const meta = event.ctrlKey || event.metaKey;
+
+          if (meta && event.key.toLowerCase() === "z") {
+            event.preventDefault();
+            (event.shiftKey ? onRedo : onUndo)?.();
+            return;
+          }
+          if (typing) return;
+          if (meta && event.key.toLowerCase() === "a") {
+            event.preventDefault();
+            selection.selectAll();
+            return;
+          }
+          if (event.key === "Escape") selection.clear();
+          if (event.key === "Delete" || event.key === "Backspace") {
+            event.preventDefault();
+            apply(deleteTokens(tokens, selection.selected));
+          }
+        }}
+      >
+        <header className={styles.toolbar}>
+          <div className={styles.search}>
+            <TextInput
+              isLabelHidden
+              label="Search tokens"
+              placeholder="Search by name or variable"
+              value={selection.query}
+              onChange={selection.setQuery}
+            />
+          </div>
+          <p
+            className={styles.count}
+            data-selection-count={selection.selected.length}
+          >
+            {selection.selected.length > 0
+              ? `${selection.selected.length} selected`
+              : `${selection.visible.length} of ${tokens.length}`}
+          </p>
+          <Button
+            scheme="neutral"
+            size="small"
+            variant="outlined"
+            onClick={() => onChange(addSemanticToken(tokens, palettes))}
+          >
+            Add token
+          </Button>
+        </header>
+
+        {grouping && (
+          <div className={styles.groupDraft}>
+            <TextInput
+              hasAutoFocus
+              isLabelHidden
+              label="New group name"
+              placeholder={`Move ${grouping.length} to group…`}
+              value={groupName}
+              onChange={setGroupName}
+              onBlur={() => setGrouping(null)}
+              onKeyDown={(event) => {
+                if (event.key === "Escape") setGrouping(null);
+                if (event.key !== "Enter") return;
+                event.preventDefault();
+                const name = groupName.trim();
+                /* A blank name would rename the prefix to nothing and leave
+                   every moved row with an id starting at a dot. */
+                if (name) apply(moveToGroup(tokens, grouping, name));
+                setGrouping(null);
+              }}
+            />
+          </div>
+        )}
+
+        <ContextMenu
+          items={semanticMenuItems(actionsFor())}
+          label="Token actions"
+          menuWidth={220}
+        >
+          <div className={styles.tableWrap}>
+            <SemanticTable
+              actionsFor={actionsFor}
+              draft={draft}
+              isSelected={selection.isSelected}
+              palettes={palettes}
+              rows={selection.visible}
+              tokens={tokens}
+              onChange={onChange}
+              onDraft={setDraft}
+              onRename={(id, label) => {
+                if (draft?.id !== id) return;
+                setDraft(null);
+                onChange(renameSemanticToken(tokens, id, label), {
+                  editKey: `rename:${id}`,
+                });
+              }}
+              onRowClick={selection.click}
+            />
+          </div>
+        </ContextMenu>
+      </div>
     </section>
   );
 }
