@@ -1,4 +1,5 @@
 import { contrastRatio } from "./accessibility";
+import { alphaHex } from "./composite";
 import type { ColorTrack, ShadeItem } from "./types";
 
 /**
@@ -958,14 +959,6 @@ export function semanticCssVariables(
       `${transform(resolved.hex)}${alphaHex(resolved.alpha)}`,
     ]),
   );
-}
-
-/** `0.5` as the two hex digits a colour carries it in, and `""` for opaque. */
-function alphaHex(alpha: number): string {
-  if (alpha >= 1) return "";
-  return Math.round(Math.max(0, alpha) * 255)
-    .toString(16)
-    .padStart(2, "0");
 }
 
 /**

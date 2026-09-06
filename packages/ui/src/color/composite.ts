@@ -25,6 +25,30 @@ function clamp01(value: number): number {
 }
 
 /**
+ * An alpha as a percentage: `0.125` becomes `12.5%`.
+ *
+ * One spelling, used by the CSS export, the Tailwind export and the report's
+ * own wording, so a token written as 12% in one is never 0.12 in another.
+ * Trailing zeros are dropped because they read as precision nobody set.
+ */
+export function alphaPercent(alpha: number): string {
+  return `${Number((clamp01(alpha) * 100).toFixed(2))}%`;
+}
+
+/**
+ * An alpha as the two hex digits a colour carries it in, and `""` for opaque.
+ *
+ * Empty rather than `ff`, so an opaque colour is the six-digit value it has
+ * always been and every generated file stays byte-for-byte what it was.
+ */
+export function alphaHex(alpha: number): string {
+  if (alpha >= 1) return "";
+  return Math.round(clamp01(alpha) * 255)
+    .toString(16)
+    .padStart(2, "0");
+}
+
+/**
  * Source-over, in sRGB, on the values as they are written.
  *
  * The space is the one the browser paints in, which is the only space whose

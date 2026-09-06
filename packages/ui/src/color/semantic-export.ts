@@ -1,3 +1,4 @@
+import { alphaHex, alphaPercent } from "./composite";
 import { paletteTokenName } from "./export";
 import {
   resolveSemantics,
@@ -21,14 +22,79 @@ import type { ColorTrack } from "./types";
  * See docs/roadmap/semantic-tokens.md.
  */
 
+/**
+ * Where the reference and its alpha are recorded in a Design Tokens file.
+ *
+ * Reverse domain name notation, which is what the format's `$extensions`
+ * section recommends: "The keys SHOULD be chosen such that they avoid the
+ * likelihood of a naming clash with another vendor's data. The reverse domain
+ * name notation is recommended for this purpose." Tools that do not know the
+ * key must preserve it, so the reference survives a round trip through a
+ * pipeline that has never heard of this studio.
+ */
+export const BLUEPRINT_TOKENS_EXTENSION = "co.designally.blueprint";
+
 /** `action.primary` in the primary track at 550 → `var(--color-primary-550)`. */
-function cssAlias(resolved: ResolvedSemantic): string {
+function paletteVariable(resolved: ResolvedSemantic): string {
   return `var(--color-${paletteTokenName(resolved.trackName)}-${resolved.weight})`;
+}
+
+/**
+ * The value a semantic custom property takes.
+ *
+ * An opaque token is the alias and nothing else, byte-for-byte what this
+ * function emitted before alpha existed. A transparent one is the same alias
+ * mixed toward `transparent`, which keeps it an alias: change the primitive and
+ * the mix moves with it.
+ *
+ * `color-mix` rather than relative colour syntax, and the difference is the
+ * browser floor rather than taste. `oklch(from var(--x) l c h / a)` says what
+ * the token says, and arrived in Chrome 122, Firefox 128 and Safari 18 — above
+ * this workspace's floor on all three. `color-mix()` has been in since Chrome
+ * 111, Firefox 113 and Safari 16.2. Mixing with `transparent` premultiplies, so
+ * the interpolation space decides how the value is written and not what colour
+ * comes out: measured in Chromium 151, an orange at 40% in oklab computes to
+ * that orange's own coordinates with an alpha of 0.4.
+ *
+ * See the decision in docs/roadmap/semantic-table-editor.md.
+ */
+function cssAlias(resolved: ResolvedSemantic): string {
+  const alias = paletteVariable(resolved);
+  if (resolved.alpha >= 1) return alias;
+  return `color-mix(in oklab, ${alias} ${alphaPercent(resolved.alpha)}, transparent)`;
 }
 
 /** The same reference in the Design Tokens format's own alias syntax. */
 function tokensAlias(resolved: ResolvedSemantic): string {
   return `{palette.${paletteTokenName(resolved.trackName)}.${resolved.weight}}`;
+}
+
+/**
+ * One Design Tokens entry, which for a transparent token is two facts.
+ *
+ * The format's alias form has no alpha slot: `{palette.neutral.950}` can say
+ * which primitive and cannot say how much of it. So a transparent token emits
+ * the resolved value — eight hex digits, the same spelling the shadow export
+ * already uses for a colour with an alpha — and puts the two things that value
+ * was computed from under `$extensions`, where a tool that understands them can
+ * rebuild the alias and every other tool must preserve them.
+ *
+ * An opaque token emits the alias alone, exactly as before, with no
+ * `$extensions` key at all. Adding an empty one to every token would move every
+ * generated file in the repository to record that nothing is transparent.
+ */
+function tokensEntry(resolved: ResolvedSemantic): Record<string, unknown> {
+  if (resolved.alpha >= 1) return { $value: tokensAlias(resolved) };
+
+  return {
+    $value: `${resolved.hex}${alphaHex(resolved.alpha)}`,
+    $extensions: {
+      [BLUEPRINT_TOKENS_EXTENSION]: {
+        reference: tokensAlias(resolved),
+        alpha: resolved.alpha,
+      },
+    },
+  };
 }
 
 function declarations(
@@ -150,7 +216,7 @@ export function formatSemanticDesignTokens(
     (["light", "dark"] as ColourMode[]).map((mode) => {
       const group: Record<string, unknown> = {};
       for (const resolved of resolveSemantics(tokens, mode, tracks)) {
-        nest(group, resolved.id, { $value: tokensAlias(resolved) });
+        nest(group, resolved.id, tokensEntry(resolved));
       }
       return [mode, group];
     }),
