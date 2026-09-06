@@ -212,7 +212,25 @@ design tokens, and editable Blueprint project files. CSS and token exports can
 use HEX, OKLCH, or RGB values. A saved Blueprint project can be imported from
 the creation screen, or imported into an open project after confirmation.
 
-The documentation application and shared component library are still early.
+The documentation application is complete for the foundations. It reads a
+workspace file checked into the repository, installs the exported stylesheets
+the way a client's developer would rather than importing the studio's own
+`theme.css`, and renders six pages from it: colour, semantic roles,
+typography, spacing, radius, and elevation. Each carries a table built from the
+workspace and guidance written by a person, and each follows the reader's
+light, dark, or system choice — the same preference the studio keeps, under one
+key, so moving between the two applications keeps it. No page may hardcode a
+value: a scanner checks primitive shades, literal colours, measurements, radii,
+and typefaces across the whole application, with an empty allowlist.
+
+`pnpm handover <workspace.json>` produces the deliverable. One archive holds
+the three export formats, the typography stylesheet, the workspace itself, the
+accessibility report in both formats, a README naming every file and which to
+install, and the six foundation pages built statically against that workspace —
+so the same command documents any client's system. The pages open from a folder
+with nothing running. The studio's export dialog offers the same archive minus
+the pages, which need a build a browser cannot run.
+
 Button is the first documented shared component. New shared components should
 be added only when a real product demonstrates a reusable need.
 
@@ -253,26 +271,30 @@ colour and type
 tokens, and a workspace saved before they existed opens and gains sensible
 defaults.
 
-CI now runs lint, type checking, unit tests, build, and Playwright checks
-automatically on every push and pull request to `main` (see
-`.github/workflows/ci.yml`).
+CI runs lint, type checking, unit tests, and build on every push and pull
+request to `main`, with Playwright suites for the studio and for the
+documentation on their own paths filters. A merge to `main` additionally
+builds a handover archive and opens it from disk, so the command cannot break
+unnoticed (see `.github/workflows/ci.yml`).
 
 ## Current roadmap
 
 The next priorities are:
 
-1. Document the core foundations and build the handover; see
-   [Foundations documentation and the handover](docs/roadmap/foundations-handover.md).
-   The documentation application reads a workspace file, renders colour,
-   typography, spacing, shape, and elevation from it, and the studio packs the
-   result into an archive a client can keep.
-2. Define the first product scope before creating a product application such as
-   `apps/ferre`.
+1. Define the first product scope before creating a product application such as
+   `apps/ferre`. The foundations are documented and handed over; what is
+   missing is a decision about what the first product is for, which is the
+   thing that will argue the next set of components into existence the way the
+   pages argued the token vocabulary into shape.
+2. Component documentation beyond Button, driven by that product rather than by
+   the component library.
 
 Later improvements to the Typography Studio (fluid typography, responsive
 overrides, JSON export, project-file import and export, more presets) remain
 open; see [Typography Studio](docs/roadmap/typography-studio.md).
 
+The completed foundations milestone is documented in
+[Foundations documentation and the handover](docs/roadmap/foundations-handover.md).
 The completed shared-format, anchor, and manual-edit milestone is documented in
 [Colour formats and anchors](docs/roadmap/colour-formats-and-anchors.md), and
 the completed simulation and report milestone in
