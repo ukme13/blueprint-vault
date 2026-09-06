@@ -70,6 +70,29 @@ export interface TemplateProps {
   styleFor: (role: SemanticRole) => CSSProperties;
   lang: PreviewLanguage;
   classNames?: TemplateClassNames;
+  /**
+   * Where the template's own headings sit in the host's outline.
+   *
+   * 1 by default, which is right in the studio: the preview stage is the
+   * page and the article's title is its title. On a documentation page it
+   * is not — the page already has an h1 and a section h2 above it, and a
+   * template rendered there contributed a second and a third. Measured on
+   * `/foundations/typography`: five level-one headings, two of them the
+   * article specimen and one of them its Thai twin.
+   *
+   * The visual size is unaffected. A heading's size comes from the role it
+   * draws rather than from its tag, so this moves the outline only.
+   */
+  headingLevel?: 1 | 2 | 3 | 4;
+}
+
+/** The two tags a template needs, for a host that sits it at `level`. */
+function headings(level: 1 | 2 | 3 | 4) {
+  const clamp = (value: number) => Math.min(value, 6);
+  return {
+    Title: `h${clamp(level)}` as `h${1 | 2 | 3 | 4 | 5 | 6}`,
+    Section: `h${clamp(level + 1)}` as `h${1 | 2 | 3 | 4 | 5 | 6}`,
+  };
 }
 
 /**
@@ -156,7 +179,13 @@ function Field({
   return lang === "th" ? <span lang="th">{children}</span> : <>{children}</>;
 }
 
-export function ArticleTemplate({ styleFor, lang, classNames }: TemplateProps) {
+export function ArticleTemplate({
+  styleFor,
+  lang,
+  classNames,
+  headingLevel = 1,
+}: TemplateProps) {
+  const { Title, Section } = headings(headingLevel);
   const copy = ARTICLE[lang];
 
   return (
@@ -164,9 +193,9 @@ export function ArticleTemplate({ styleFor, lang, classNames }: TemplateProps) {
       <p style={styleFor("label")}>
         <Field lang={lang}>{copy.kicker}</Field>
       </p>
-      <h1 style={styleFor("display")}>
+      <Title style={styleFor("display")}>
         <Field lang={lang}>{copy.title}</Field>
-      </h1>
+      </Title>
       <p style={styleFor("title")}>
         <Field lang={lang}>{copy.standfirst}</Field>
       </p>
@@ -174,9 +203,9 @@ export function ArticleTemplate({ styleFor, lang, classNames }: TemplateProps) {
         <Field lang={lang}>{copy.byline}</Field>
       </p>
 
-      <h2 style={styleFor("heading")}>
+      <Section style={styleFor("heading")}>
         <Field lang={lang}>{copy.headingOne}</Field>
-      </h2>
+      </Section>
       <p style={styleFor("body")}>
         <Field lang={lang}>{copy.bodyOne}</Field>
       </p>
@@ -185,9 +214,9 @@ export function ArticleTemplate({ styleFor, lang, classNames }: TemplateProps) {
         <Field lang={lang}>{copy.quote}</Field>
       </blockquote>
 
-      <h2 style={styleFor("heading")}>
+      <Section style={styleFor("heading")}>
         <Field lang={lang}>{copy.headingTwo}</Field>
-      </h2>
+      </Section>
       <p style={styleFor("body")}>
         <Field lang={lang}>{copy.bodyTwo}</Field>
       </p>
@@ -205,7 +234,9 @@ export function MarketingTemplate({
   styleFor,
   lang,
   classNames,
+  headingLevel = 1,
 }: TemplateProps) {
+  const { Title, Section } = headings(headingLevel);
   const copy = MARKETING[lang];
   const features = [
     { title: copy.featureOneTitle, body: copy.featureOneBody },
@@ -219,9 +250,9 @@ export function MarketingTemplate({
         <p style={styleFor("label")}>
           <Field lang={lang}>{copy.eyebrow}</Field>
         </p>
-        <h1 style={styleFor("display")}>
+        <Title style={styleFor("display")}>
           <Field lang={lang}>{copy.title}</Field>
-        </h1>
+        </Title>
         <p style={styleFor("title")}>
           <Field lang={lang}>{copy.subtitle}</Field>
         </p>
@@ -230,9 +261,9 @@ export function MarketingTemplate({
       <ul className={classNames?.features}>
         {features.map((feature) => (
           <li key={feature.title}>
-            <h2 style={styleFor("heading")}>
+            <Section style={styleFor("heading")}>
               <Field lang={lang}>{feature.title}</Field>
-            </h2>
+            </Section>
             <p style={styleFor("body")}>
               <Field lang={lang}>{feature.body}</Field>
             </p>

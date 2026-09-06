@@ -50,3 +50,7 @@ apps/*/CLAUDE.md
 
 # The handover output folder is produced, not committed.
 handover/
+
+# Playwright output in the docs app, like the playground's.
+apps/docs/test-results/
+apps/docs/playwright-report/

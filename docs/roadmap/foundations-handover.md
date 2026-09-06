@@ -1,5 +1,20 @@
 # Foundations documentation and the handover
 
+## Done
+
+Closed on 2026-09-06, across pull requests #91 to #105.
+
+The documentation application reads a checked-in workspace, installs the same
+export a client installs, and renders six foundation pages from it. A handover
+is one archive: the stylesheets, the workspace, the accessibility report, a
+README, and the pages built statically against whichever workspace file the
+command is pointed at. Two scanners hold the pages to tokens, and Playwright
+covers both applications in CI.
+
+The definition of done is walked item by item below, with where each is proven.
+One of the six is met differently from how it was written; that is said there
+rather than ticked.
+
 ## Goal
 
 Turn what the studio produces into something a client's team can receive and
@@ -140,7 +155,7 @@ half kept.
    live page that the static build links to. A PDF is a print stylesheet over
    the same HTML, later, if a client asks for one.
 
-6. **Checks.** Playwright for the docs app, in the CI workflow beside the
+6. ✅ **Checks.** Playwright for the docs app, in the CI workflow beside the
    playground's. The e2e covers the pages rendering, the mode switch, and one
    value followed from the reference workspace to the rendered table, so a
    page that stops reading the data is caught.
@@ -183,16 +198,53 @@ the handover. If the docs page and the handover page can drift, they will.
 
 ## Definition of done
 
-1. The docs app builds from a checked-in workspace and the exported CSS, with
-   no import from `theme.css`.
-2. Colour, semantic, typography, spacing, radius and elevation each have a
-   page that renders from the workspace and carries written guidance.
-3. Changing a value in the reference workspace changes every page that shows
-   it, proven by a test.
-4. No foundation page uses a hardcoded value, proven by the scanner.
-5. The export dialog produces a handover archive with the three formats, the
-   workspace, the report and the static foundation pages.
-6. Playwright covers the docs app in CI.
+1. ✅ **The docs app builds from a checked-in workspace and the exported CSS,
+   with no import from `theme.css`.** Proven by
+   `system/docs-export.test.ts` — "are what the reference workspace generates
+   today" regenerates the committed files and compares them, and "is the
+   generated export, never the studio's theme.css" scans the app's import
+   graph. #93.
+
+2. ✅ **Colour, semantic, typography, spacing, radius and elevation each have a
+   page that renders from the workspace and carries written guidance.** Six
+   routes under `/foundations`, with guidance in `content/colour.ts`,
+   `content/typography.ts` and `content/scale.ts`. The guidance tests —
+   "names only roles a workspace actually has" and its typography and scale
+   siblings — keep the prose from naming a token nothing defines. #93, #100,
+   #101.
+
+3. ✅ **Changing a value in the reference workspace changes every page that
+   shows it, proven by a test.** `components/foundation-pages.test.tsx`, one
+   describe per page: "the colour page's table is a template over the
+   workspace" and its five siblings, each rendering twice with one value
+   changed. Every one was watched failing against a hardcoded value. Proven
+   again end to end by `e2e/workspace-values.spec.ts`, which follows a value
+   from the JSON to the built page. #93, #100, #101, #105.
+
+4. ✅ **No foundation page uses a hardcoded value, proven by the scanner.**
+   `components/no-hardcoded-values.test.ts`, four checks — primitive shades and
+   literal colours, measurements, radii, typefaces — over the whole app with an
+   **empty allowlist**. Watched failing with `bg-neutral-100` on the home page.
+   #102.
+
+5. ⚠️ **The export dialog produces a handover archive with the three formats,
+   the workspace, the report and the static foundation pages.** Met in two
+   halves rather than one, deliberately. The dialog's Handover (.zip) carries
+   the three formats, the typography stylesheet, the workspace, both reports
+   and a README — eight files, proven by
+   `e2e/handover-archive.spec.ts`, which unzips the download and compares it
+   with `buildHandoverFiles`. It does **not** carry the pages: those are a Next
+   build, and a browser cannot run one. `pnpm handover` produces the whole
+   archive, 118 entries with 110 of them pages, proven by
+   `scripts/verify-handover.ts` opening it over `file://`. The line above was
+   written before that constraint was understood; the split is recorded in the
+   stage 5 notes and is the better arrangement, but it is not what this item
+   says. #104.
+
+6. ✅ **Playwright covers the docs app in CI.** `apps/docs/playwright.config.ts`
+   and twenty-nine tests in `apps/docs/e2e`, run by the `Playwright e2e (docs)`
+   job on its own paths filter. The handover archive has a job of its own on
+   merges to main. #105.
 
 ## Decisions
 
@@ -774,3 +826,49 @@ workspace with a green primary instead of the purple one, built through the
 same command, shows `#0B7A3D` on its colour page and does not show `#7646AB` —
 which is the assertion that the parameter reached the pages rather than merely
 the build.
+
+## Notes from stage 6
+
+**A suite that renders components is not a suite that checks a site.** The unit
+tests render each table twice with a value changed, which proves the component
+is a template. They cannot see a stylesheet that did not ship, a client
+component that throws on hydration, or a mode attribute nothing applies. The
+first run of the browser suite found three things of that kind in one go.
+
+**Expectations are read from the workspace file, not asked of the package.** An
+assertion computed with `semanticRowGroups` would agree with a page rendered by
+`semanticRowGroups` whatever either of them did. Reading the JSON and doing the
+arithmetic in the test says something the page cannot make true by itself: the
+file says the base unit is 4, the screen says 16px, and 16 is four fours. It
+also sidesteps the loader problem — the package entry is a `.tsx` that pulls in
+React and Astryx, which Playwright's Node side cannot resolve.
+
+**Two things about the app the suite had to learn.** With nothing stored, the
+shared colour-mode hook falls back to **dark** and then persists it, so an
+empty key is not the system state — it is a reader who has not chosen, and they
+get dark whatever their machine prefers. And an init script runs on every
+navigation, so seeding the mode without a guard made a test about persistence
+measure the fixture rather than the app.
+
+**`aria-level` on a native heading does nothing.** The typography page's
+heading specimens carried `role="heading" aria-level="4"` to keep them out of
+the page's outline, added in stage 3 with a comment explaining the reasoning.
+Measured here: Chrome reports `heading "…" [level=1]` for that exact markup —
+the native tag's implicit level wins. It has been removed, because a comment
+claiming a fix that is not happening is worse than the problem. The page has
+three level-one headings and the reason is written where the code is: the plan
+asks for each role rendered as its real element, the table says `<h1>`, and the
+specimen has to be one.
+
+**A template's heading level belongs to its host.** `ArticleTemplate` rendering
+an `<h1>` is right in the studio, where the preview stage is the page, and
+wrong on a documentation page that already has one. It takes a `headingLevel`
+now, defaulting to 1 so the studio is unchanged.
+
+**The handover job runs on merges only, and that is a trade rather than an
+oversight.** It builds the documentation a second time and opens every page in
+a browser — roughly four minutes on top of a run that already builds twice.
+What it guards is a command nobody runs by accident, so catching a break at the
+merge is soon enough to matter and late enough to be affordable. If the
+handover ever becomes something a person runs weekly, it should move onto pull
+requests.

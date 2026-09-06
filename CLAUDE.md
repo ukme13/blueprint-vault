@@ -6,6 +6,8 @@ This is a Monorepo workspace engineering an advanced OKLCH-based dynamic color p
 
 - `apps/playground`: Next.js application for palette experiments and live previews.
 - `apps/docs`: Next.js application for Blueprint design-system documentation.
+  It installs the generated export the way a client does and never imports
+  `packages/ui/src/theme.css`; a test on its import graph holds that.
 - `packages/ui`: Shared component library containing core mathematical engines and primitive tokens.
 - Tech Stack: React, TypeScript, Tailwind CSS v4, and Astryx UI elements.
 
