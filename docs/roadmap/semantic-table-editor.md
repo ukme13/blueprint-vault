@@ -383,6 +383,16 @@ gone: rows used to sit under a section row per group, and the sidebar replaces
 that with a filter. Somebody looking at "All" now sees seventy-two undivided
 rows. 4b should either restore the heading rows or make "All" group them.
 
+**The local four-worker run is saturated, and it is worth someone's attention.**
+The playground suite is 235 tests against one `next dev --webpack` server, and
+the config runs four workers locally against CI's one. Serially — CI's profile
+— every test in this branch passes. With four workers, two of them fail
+reproducibly at the _first_ assertion, waiting twenty seconds for the Semantics
+panel to appear at all; and serially a different, older test fails instead
+(`semantic-tokens.spec.ts`, the typeface one, which passes with four). Neither
+failure is about what it asserts. It is the same shape as the docs app's
+`survives a reload`, noted at stage 1. The suite has outgrown the profile.
+
 ## Not doing
 
 - **Columns beyond light and dark.** A third mode (high contrast, a second
