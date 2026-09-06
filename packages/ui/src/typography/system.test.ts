@@ -193,20 +193,17 @@ describe("moveGroup", () => {
     expect(moveGroup(s, "b", -1).map((g) => g.id)).toEqual([
       "b",
       "a",
-      "display",
-      "h",
-      "body",
+      ...defaultGroups().map((group) => group.id),
     ]);
   });
 
   it("moves a default group like any other, since none are locked", () => {
     const s = system({ groups: [...defaultGroups(), free("a", "number")] });
-    expect(moveGroup(s, "h", 1).map((g) => g.id)).toEqual([
-      "display",
-      "body",
-      "h",
-      "a",
-    ]);
+    /* `h` swaps with whatever follows it, wherever the default list puts it. */
+    const after = defaultGroups().map((group) => group.id);
+    const at = after.indexOf("h");
+    [after[at], after[at + 1]] = [after[at + 1]!, after[at]!];
+    expect(moveGroup(s, "h", 1).map((g) => g.id)).toEqual([...after, "a"]);
   });
 
   it("refuses to move past the ends", () => {

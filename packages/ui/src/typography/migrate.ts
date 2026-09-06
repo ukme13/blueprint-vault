@@ -57,15 +57,18 @@ const LEGACY_GROUPS: Record<SemanticRole, string> = {
   caption: "caption",
 };
 
-/** Groups a migrated legacy project needs: the two fixed ones plus two free. */
+/** Groups a migrated legacy project needs, which are now all of the defaults. */
 function legacyGroups(): TypeGroup[] {
-  /* Display comes from defaultGroups now; adding it here as well gave a
-     migrated project two groups with the same id. */
-  return [
-    ...defaultGroups(),
-    { id: "label", label: "Label", indexing: "number" },
-    { id: "caption", label: "Caption", indexing: "number" },
-  ];
+  /* Label and caption were added here because a legacy project has both roles
+     and `defaultGroups` had neither. It has both now — the article template and
+     the documentation's home page argued them into the default system — so
+     adding them again gave a migrated project two groups with the same id,
+     which is the same fault `display` had for the same reason.
+
+     Worth noticing that the two shapes converged rather than one copying the
+     other: the pre-merge model named these roles years before the merged one
+     did, and the pages that asked for them back had never seen it. */
+  return defaultGroups();
 }
 
 export interface LegacyTypographyProject {
