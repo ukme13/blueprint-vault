@@ -409,3 +409,11 @@ history mechanism from stage 3 should be written so it can be reused there.
   recommends moving, measured to match).
 - Whether the group sidebar also becomes the navigation for the docs
   semantic page, which would give the two the same shape.
+- **Removing a whole tone.** A client with no `info` status wants those
+  eight roles gone, and today they cannot go: `usedBy` refuses each one
+  because `BUTTON_TONES` names them, and it is code. Deleting a tone means
+  the Button's scheme list becoming workspace data — which tones exist is a
+  property of the system rather than of the component library. That is a
+  plan of its own, not this one; stage 2 measured the shape of the problem
+  (seventy of seventy-two seed roles are load-bearing, and fifty-six of them
+  are load-bearing because of that one table) and stops there.
