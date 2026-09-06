@@ -148,10 +148,17 @@ export function buildHandoverFiles(
     colourFormat: options.colourFormat,
   });
 
-  const files: HandoverFile[] = DESIGN_SYSTEM_FILE_NAMES.map((name) => ({
-    path: name,
-    contents: system[name],
-  }));
+  /* An empty file is left out rather than shipped.
+     `designSystemFiles` returns a fixed-shape record, so a workspace with no
+     type scale gets `""` for `blueprint-typography.css` — and a zero-byte
+     stylesheet in a client's archive is worse than no stylesheet: it is
+     something to install that silently does nothing, listed in a README as
+     though it worked. Found by downloading a real archive for a palette-only
+     workspace. Because the README is generated from this list, omitting the
+     file omits its description too. */
+  const files: HandoverFile[] = DESIGN_SYSTEM_FILE_NAMES.filter(
+    (name) => system[name].length > 0,
+  ).map((name) => ({ path: name, contents: system[name] }));
 
   files.push({
     path: HANDOVER_WORKSPACE_FILE,

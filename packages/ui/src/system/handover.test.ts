@@ -88,3 +88,25 @@ describe("the handover archive", () => {
     expect(css(oklch, "blueprint-typography.css")).toContain("rem;");
   });
 });
+
+describe("a workspace with only half a system", () => {
+  it("leaves out the file it has nothing to write into", () => {
+    /* A palette-only workspace is a real state — it is what the studio's own
+       e2e fixture seeds — and `designSystemFiles` answers with a fixed-shape
+       record, so typography comes back as an empty string. A zero-byte
+       stylesheet in a client's archive is worse than no stylesheet: it is
+       something to install that silently does nothing, listed in the README as
+       though it worked. */
+    const paletteOnly = { ...seedWorkspaceProject("Client"), typography: null };
+    const files = buildHandoverFiles(paletteOnly, options);
+    const paths = files.map((file) => file.path);
+
+    expect(paths).not.toContain("blueprint-typography.css");
+    expect(paths).toContain("blueprint.css");
+
+    /* And the README does not offer them a file that is not there, which comes
+       free from generating it out of the list. */
+    const readme = files.find((file) => file.path === HANDOVER_README)!;
+    expect(readme.contents).not.toContain("blueprint-typography.css");
+  });
+});
