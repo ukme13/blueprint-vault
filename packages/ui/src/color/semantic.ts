@@ -819,12 +819,13 @@ export function resolveSemantics(
  * concern and every rule about ids and uniqueness is testable without a DOM.
  */
 
-/** Turn a label into a token id: lowercase, words joined by a single dot. */
+/** Turn a label into a token id, preserving hyphens inside a name. */
 export function semanticId(label: string): string {
   return label
     .trim()
     .toLowerCase()
-    .replace(/[^a-z0-9]+/g, ".")
+    .replace(/[^a-z0-9.-]+/g, ".")
+    .replace(/\.{2,}/g, ".")
     .replace(/^\.|\.$/g, "");
 }
 
@@ -900,11 +901,17 @@ export function addSemanticToken(
     suffix += 1;
   }
 
+  /* The table edits the short name; the folder is already expressed by the
+     id. Keep the stored display name in that same shape for newly-created
+     rows, including when the caller supplied a dotted starting id. */
+  const dot = id.indexOf(".");
+  const short = dot === -1 ? id : id.slice(dot + 1);
+
   return [
     ...tokens,
     {
       id,
-      name: label,
+      name: short,
       description: "",
       light: reference,
       dark: {

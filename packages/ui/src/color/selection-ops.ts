@@ -1,4 +1,5 @@
 import { listConsumers, usedBy } from "./role-consumers";
+import { semanticGroupOf } from "./token-rows";
 import type { SemanticReference, SemanticToken } from "./semantic";
 import type { ColourMode } from "./semantic";
 
@@ -65,6 +66,29 @@ function edit(
   added: string[] = [],
 ): SemanticEdit {
   return { layer, refusals, removed, added };
+}
+
+/**
+ * Reorder one token inside its current group. Groups are folders in the
+ * semantic table, so a drag may change sibling order but never move a token
+ * across a folder boundary. Use `moveToGroup` for that deliberate action.
+ */
+export function reorderToken(
+  layer: SemanticToken[],
+  activeId: string,
+  overId: string,
+): SemanticEdit {
+  const from = layer.findIndex((token) => token.id === activeId);
+  const to = layer.findIndex((token) => token.id === overId);
+  if (from === -1) return edit(layer, [notHere(activeId)]);
+  if (to === -1) return edit(layer, [notHere(overId)]);
+  if (from === to || semanticGroupOf(activeId) !== semanticGroupOf(overId)) {
+    return edit(layer);
+  }
+  const next = [...layer];
+  const [moved] = next.splice(from, 1);
+  next.splice(to, 0, moved!);
+  return edit(next);
 }
 
 /** The refusal every operation gives for an id that is not in the layer. */

@@ -9,6 +9,7 @@ import {
   duplicateTokens,
   moveToGroup,
   repointTokens,
+  reorderToken,
 } from "./selection-ops";
 import { seedSemanticTokens, type SemanticToken } from "./semantic";
 import type { ColorTrack } from "./types";
@@ -239,6 +240,23 @@ describe("moveToGroup", () => {
     const result = moveToGroup(layer(), ["brand.wash"], "brand");
     expect(ids(result.layer)).toEqual(ids(layer()));
     expect(result.refusals).toEqual([]);
+  });
+});
+
+describe("reorderToken", () => {
+  it("moves a token among its folder siblings", () => {
+    const result = reorderToken(layer(), "brand.rule", "brand.wash");
+    expect(ids(result.layer)).toEqual([
+      "action.primary",
+      "brand.rule",
+      "brand.wash",
+      "extra.scrim",
+    ]);
+  });
+
+  it("does not turn a row drag into a cross-folder move", () => {
+    const result = reorderToken(layer(), "brand.rule", "extra.scrim");
+    expect(ids(result.layer)).toEqual(ids(layer()));
   });
 });
 
