@@ -1052,11 +1052,52 @@ export function migrateSemanticIds(tokens: SemanticToken[]): SemanticToken[] {
 export function fillSeedRoles(
   tokens: SemanticToken[],
   tracks: ColorTrack[],
+  removed: readonly string[] = [],
 ): SemanticToken[] {
   if (tokens.length === 0 || tracks.length === 0) return tokens;
   const present = new Set(tokens.map((token) => token.id));
+  /* A role somebody deliberately deleted is not a role they are missing.
+     Without this list the two facts are indistinguishable from here — an
+     absent id looks the same whether it was never seeded or was thrown away
+     five minutes ago — and the answer that used to be right for both would
+     quietly put it back on the next read. */
+  const gone = new Set(removed);
   const missing = seedSemanticTokens(tracks).filter(
-    (seeded) => !present.has(seeded.id),
+    (seeded) => !present.has(seeded.id) && !gone.has(seeded.id),
   );
   return missing.length === 0 ? tokens : [...tokens, ...missing];
+}
+
+/** Every id the seed set ships, which is what the removed list may hold. */
+export const SEED_ROLE_IDS: readonly string[] = SEED_ROLES.map(
+  (role) => role.id,
+);
+
+/**
+ * The removed-seed list after an edit, reconciled against the layer itself.
+ *
+ * Against the layer rather than against the operation, because there are more
+ * ways back in than there are operations: a duplicate renamed onto the id, a
+ * token added by hand, an imported file that has it. Every one of them is
+ * somebody changing their mind, and all of them are visible as "the id is in
+ * the layer now" — so that is what is checked.
+ *
+ * Only seed roles are recorded. Anybody's own token cannot be resurrected by
+ * `fillSeedRoles`, so remembering it would be a list that grows forever and
+ * does nothing.
+ */
+export function rememberRemovedSeedRoles(
+  previous: readonly string[],
+  layer: SemanticToken[] | null,
+  justRemoved: readonly string[] = [],
+): string[] {
+  const seeds = new Set(SEED_ROLE_IDS);
+  const present = new Set((layer ?? []).map((token) => token.id));
+
+  const kept = previous.filter((id) => seeds.has(id) && !present.has(id));
+  const added = justRemoved.filter(
+    (id) => seeds.has(id) && !present.has(id) && !kept.includes(id),
+  );
+
+  return [...kept, ...added];
 }

@@ -135,7 +135,13 @@ function readStoredProject(): StoredPalette {
  * slice per stage, and a studio that named each one had to be edited every
  * time — which is how one gets forgotten and an export quietly drops it.
  */
-type ForeignSlices = Omit<WorkspaceProject, "name" | "palette" | "semantics">;
+/* `removedSeedRoles` sits with the layer rather than here: it is part of the
+   semantic slice this studio owns, and reading it as a foreign one would let
+   the editor delete a seed role and then write a stale list back over it. */
+type ForeignSlices = Omit<
+  WorkspaceProject,
+  "name" | "palette" | "semantics" | "removedSeedRoles"
+>;
 
 function emptyForeignSlices(): ForeignSlices {
   const empty = emptyWorkspace();
@@ -912,6 +918,7 @@ function PaletteStudioContent() {
           name,
           palette: project,
           semantics,
+          removedSeedRoles: workspace.project?.removedSeedRoles ?? [],
         }}
         onOpenChange={setIsExportDialogOpen}
       />

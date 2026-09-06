@@ -8,6 +8,7 @@ import {
 } from "./palette-project";
 import {
   filledSemanticsForPalette,
+  readRemovedSeedRoles,
   readSemanticTokens,
   semanticsForPalette,
 } from "./semantics";
@@ -20,7 +21,7 @@ import { readTypographyProjectData } from "./typography-project";
 import { DEFAULT_WORKSPACE_NAME } from "./workspace";
 import type { WorkspaceProject } from "./types";
 
-export const BLUEPRINT_WORKSPACE_FILE_VERSION = 6;
+export const BLUEPRINT_WORKSPACE_FILE_VERSION = 7;
 
 /**
  * Versions this build can open.
@@ -41,9 +42,18 @@ export const BLUEPRINT_WORKSPACE_FILE_VERSION = 6;
  * solid divider — a silent change to somebody's system with nothing anywhere
  * saying so. Refusing the file is the honest failure, and only a version number
  * it does not recognise can make it refuse.
+ *
+ * Seven is the same argument again, and it is the stronger case of the two.
+ * `removedSeedRoles` names the seed roles a workspace has deliberately thrown
+ * away. A file written at 6 has none, and an absent list already means "nothing
+ * was removed", so it reads back unchanged. But a build that only knows 6,
+ * handed a file that says `border.subtle` was deleted, drops the list, finds
+ * the role missing from the layer and puts it back — undoing a decision
+ * somebody made, in the one direction the reader was built to be helpful in.
+ * An alpha silently lost changes a colour; this silently reverses an edit.
  */
 export const SUPPORTED_WORKSPACE_FILE_VERSIONS: readonly number[] = [
-  1, 2, 3, 4, 5, 6,
+  1, 2, 3, 4, 5, 6, 7,
 ];
 
 export interface BlueprintWorkspaceFile {
@@ -88,6 +98,7 @@ function paletteOnlyWorkspace(
     palette: project,
     typography: null,
     semantics: semanticsForPalette(project),
+    removedSeedRoles: [],
     spacing: spacingOrDefault(undefined),
     radius: radiusOrDefault(undefined),
     elevation: elevationOrDefault(undefined),
@@ -169,6 +180,8 @@ function readWorkspaceFileProject(value: unknown): WorkspaceProject {
     throw new TypeError("The Blueprint project data is incomplete or invalid.");
   }
 
+  const removedSeedRoles = readRemovedSeedRoles(raw.removedSeedRoles);
+
   /* Each earlier version is missing a slice and gains it here. Nothing else
      about the shape has changed across the three. */
   return {
@@ -183,8 +196,17 @@ function readWorkspaceFileProject(value: unknown): WorkspaceProject {
        studio's chrome and the docs app, which reads a file, kept exporting
        nineteen. */
     semantics:
-      filledSemanticsForPalette(readSemanticTokens(raw.semantics), palette) ??
-      semanticsForPalette(palette),
+      filledSemanticsForPalette(
+        readSemanticTokens(raw.semantics),
+        palette,
+        removedSeedRoles,
+      ) ?? semanticsForPalette(palette),
+    /* Read through the same door as the layer it belongs to. A file opened
+       here and a workspace read out of storage have to agree about which roles
+       were thrown away, or the same document gives two answers depending on
+       which way it came in — the fault the semantic top-up itself shipped
+       once. */
+    removedSeedRoles,
     spacing: spacingOrDefault(raw.spacing),
     radius: radiusOrDefault(raw.radius),
     elevation: elevationOrDefault(raw.elevation),

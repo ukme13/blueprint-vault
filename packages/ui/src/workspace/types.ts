@@ -43,6 +43,22 @@ export interface WorkspaceProject {
    */
   semantics: SemanticToken[] | null;
   /**
+   * Seed roles this workspace has deliberately thrown away.
+   *
+   * Part of the semantic slice rather than a slice of its own: it is only
+   * meaningful beside the layer, and whoever writes one writes both.
+   *
+   * It exists because an absent id means two different things and the reader
+   * cannot tell them apart. A role added to the seed set since the save is
+   * missing and should be filled in; a role somebody deleted last week is
+   * missing and should stay that way. Without this list `fillSeedRoles` gives
+   * the same answer to both, and the deletion undoes itself on the next read.
+   *
+   * Never null, unlike the layer: an empty list and no list say the same
+   * thing, and a nullable one would be three states for two facts.
+   */
+  removedSeedRoles: string[];
+  /**
    * The spacing scale.
    *
    * Never null once read: unlike a studio somebody has not opened, a workspace

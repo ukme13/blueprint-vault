@@ -100,10 +100,10 @@ function buttonToneVariables(): Map<string, string> {
        is where that is somebody's problem. Here it is one tone's worth of
        consumers missing, not a module that throws on import and takes every
        test in the file with it. */
-    const roles = BUTTON_TONES[scheme] as Record<string, string> | undefined;
+    const roles = BUTTON_TONES[scheme];
     if (!roles) continue;
 
-    for (const value of Object.values(roles)) {
+    for (const value of Object.values(roles) as string[]) {
       /* The table holds `var(--color-x)` strings, because that is what a
          component sets. Read back out rather than kept as a second list of
          names beside it: a row added to the table is picked up here without
