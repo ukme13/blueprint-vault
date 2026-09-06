@@ -6,8 +6,11 @@ import { Dialog } from "@astryxdesign/core/Dialog";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Selector } from "@astryxdesign/core/Selector";
+import { strToU8, zipSync } from "fflate";
 import {
   Button,
+  buildHandoverFiles,
+  HANDOVER_README,
   COLOUR_FORMAT_LABELS,
   COLOUR_FORMATS,
   buildAccessibilityReport,
@@ -26,7 +29,13 @@ import { useColourFormat } from "./palette/ColourFormatContext";
 import styles from "./system-export-dialog.module.css";
 
 type ExportFormat =
-  "css" | "tailwind" | "tokens" | "project" | "report-md" | "report-json";
+  | "css"
+  | "tailwind"
+  | "tokens"
+  | "project"
+  | "report-md"
+  | "report-json"
+  | "handover";
 
 const FORMATS: Array<{ value: ExportFormat; label: string }> = [
   { value: "css", label: "CSS" },
@@ -35,12 +44,23 @@ const FORMATS: Array<{ value: ExportFormat; label: string }> = [
   { value: "project", label: "Blueprint Workspace" },
   { value: "report-md", label: "Report (Markdown)" },
   { value: "report-json", label: "Report (JSON)" },
+  { value: "handover", label: "Handover (.zip)" },
 ];
 
 /* The report is the only format that is about the project rather than made of
    it, so it is the only one the colour-format switch does not apply to: every
    value in it is a measurement, and a ratio has no hex notation. */
 const REPORT_FORMATS: ExportFormat[] = ["report-md", "report-json"];
+
+/**
+ * The studio build stamped into a handover's README.
+ *
+ * Written here rather than read from package.json, which a browser bundle has
+ * no business importing. It is what a client quotes when something in their
+ * file looks wrong, so it wants to move when the export format does rather
+ * than on every patch release.
+ */
+const HANDOVER_VERSION = "0.1.0";
 
 interface SystemExportDialogProps {
   isOpen: boolean;
@@ -81,6 +101,22 @@ export function SystemExportDialog({
     onOpenChange(nextIsOpen);
   };
 
+  /* Built once and read twice, so the README somebody previews is the README
+     inside the archive they download rather than a second rendering of it. */
+  const handover = useMemo(
+    () =>
+      buildHandoverFiles(workspace, {
+        colourFormat,
+        typeScaleUnit: workspace.typography?.unit === "rem" ? "rem" : "px",
+        version: HANDOVER_VERSION,
+        /* Date only. A handover exported twice in one afternoon should differ
+           by its contents or not at all, and a timestamp would make every
+           archive a different file for no reason a client can see. */
+        exportedAt: new Date().toISOString().slice(0, 10),
+      }),
+    [colourFormat, workspace],
+  );
+
   const output = useMemo(() => {
     /* Every family in every format. A semantic alias points at a primitive
        variable and a shadow sits inside the spacing around it, so a file
@@ -103,6 +139,14 @@ export function SystemExportDialog({
     if (exportFormat === "project") {
       return formatBlueprintWorkspace(workspace);
     }
+    if (exportFormat === "handover") {
+      /* The README rather than a file listing. It is the one file in there
+         that says what the other seven are, so previewing it answers the
+         question somebody opens this dialog with. */
+      return (
+        handover.find((file) => file.path === HANDOVER_README)?.contents ?? ""
+      );
+    }
     if (REPORT_FORMATS.includes(exportFormat)) {
       /* Built here rather than passed in, so the preview and the downloaded
          file are the same string by construction. The report carries no
@@ -120,26 +164,52 @@ export function SystemExportDialog({
         : formatAccessibilityReportMarkdown(report);
     }
     return formatDesignSystemCss(system);
-  }, [colourFormat, exportFormat, palettes, workspace]);
+  }, [colourFormat, exportFormat, handover, palettes, workspace]);
 
   const extension =
-    exportFormat === "report-md"
-      ? "md"
-      : exportFormat === "project" ||
-          exportFormat === "tokens" ||
-          exportFormat === "report-json"
-        ? "json"
-        : "css";
+    exportFormat === "handover"
+      ? "zip"
+      : exportFormat === "report-md"
+        ? "md"
+        : exportFormat === "project" ||
+            exportFormat === "tokens" ||
+            exportFormat === "report-json"
+          ? "json"
+          : "css";
   const filename = `${
     workspace.name
       .trim()
       .replace(/[^a-z0-9]+/gi, "-")
       .toLowerCase() || "blueprint-workspace"
-  }${REPORT_FORMATS.includes(exportFormat) ? "-accessibility" : ""}.${
-    exportFormat === "project" ? "blueprint." : ""
-  }${extension}`;
+  }${REPORT_FORMATS.includes(exportFormat) ? "-accessibility" : ""}${
+    exportFormat === "handover" ? "-handover" : ""
+  }.${exportFormat === "project" ? "blueprint." : ""}${extension}`;
 
   const downloadOutput = () => {
+    /* A zip is bytes rather than a string, so it takes its own path to the
+       same three lines. fflate over jszip: zero dependencies against four, one
+       of which is a Node stream polyfill that would ship to the browser, and
+       jszip's last release is 2022. */
+    if (exportFormat === "handover") {
+      const archive = zipSync(
+        Object.fromEntries(
+          handover.map((file) => [file.path, strToU8(file.contents)]),
+        ),
+        /* Level 6: a design system is text and compresses to a fraction of
+           itself either way, and 9 spends time a click should not. */
+        { level: 6 },
+      );
+      const zipUrl = URL.createObjectURL(
+        new Blob([archive as BlobPart], { type: "application/zip" }),
+      );
+      const zipLink = document.createElement("a");
+      zipLink.href = zipUrl;
+      zipLink.download = filename;
+      zipLink.click();
+      URL.revokeObjectURL(zipUrl);
+      return;
+    }
+
     const url = URL.createObjectURL(
       new Blob([output], {
         type:
@@ -238,7 +308,7 @@ export function SystemExportDialog({
             language={
               extension === "json"
                 ? "json"
-                : extension === "md"
+                : extension === "md" || extension === "zip"
                   ? "markdown"
                   : "css"
             }

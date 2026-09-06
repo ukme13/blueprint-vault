@@ -25,6 +25,13 @@ const VAR_AS_STYLE_KEY = /["'`](--[a-zA-Z0-9-]+)["'`]\s*:/g;
 const SKIP_DIRS = new Set([
   "node_modules",
   ".next",
+  /* A static export and the handover folder built from it. Both are build
+     output like `.next` — every variable in them was compiled from source this
+     scan already reads, and Astryx's own `--x-` internals inside them are not
+     anybody's to define. Left in, the check reports a hundred true findings
+     about somebody else's stylesheet. */
+  "out",
+  "handover",
   ".turbo",
   "dist",
   "coverage",

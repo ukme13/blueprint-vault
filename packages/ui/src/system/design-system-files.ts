@@ -1,4 +1,5 @@
 import { generatePalettes } from "../color/palette";
+import type { ColourFormat } from "../color/format";
 import { parseBlueprintWorkspace } from "../workspace/workspace-file";
 import type { WorkspaceProject } from "../workspace/types";
 import {
@@ -37,6 +38,15 @@ export type DesignSystemFilesOptions = {
    * on the reader's behalf. Whoever asks for the files makes it instead.
    */
   typeScaleUnit: "px" | "rem";
+  /**
+   * Notation for colour values, defaulting to hex.
+   *
+   * Optional because the docs app has no opinion and a default keeps its call
+   * site honest about that. The studio has one — a per-device preference
+   * somebody set — and a handover should be written in the notation they were
+   * reading when they exported it.
+   */
+  colourFormat?: ColourFormat;
 };
 
 /** Filenames are part of the contract: a client links against these. */
@@ -65,10 +75,10 @@ export function designSystemFiles(
     spacing: project.spacing,
     radius: project.radius,
     elevation: project.elevation,
-    /* hex, which is what the studio opens on and what the widest set of tools
-       reads. The values are OKLCH-derived either way: this is the notation,
-       not the colour. */
-    colourFormat: "hex" as const,
+    /* hex by default, which is what the studio opens on and what the widest
+       set of tools reads. The values are OKLCH-derived either way: this is the
+       notation, not the colour. */
+    colourFormat: options.colourFormat ?? "hex",
   };
 
   return {

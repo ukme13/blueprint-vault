@@ -131,7 +131,7 @@ half kept.
    lands after them rather than before so the allowlist is written from what
    the pages actually needed, not from what they might.
 
-5. **The handover.** A new entry in the export dialog: one archive holding the
+5. ✅ **The handover.** A new entry in the export dialog: one archive holding the
    CSS, Tailwind and DTCG files, the workspace file, the accessibility report,
    and a static, self-contained HTML build of the foundation pages for that
    workspace. That build is the docs app's pages rendered once against the
@@ -217,11 +217,14 @@ outgrows it.
 
 ## Still open
 
-- Whether the docs app should also render a client's workspace dropped in at
-  runtime (import a file, read the docs against it), or stay build-time only.
-  Runtime is what makes the docs a tool; build-time is what makes them a
-  deliverable. Stage 5 gives the deliverable; the tool can follow if a client
-  asks for it.
+- ~~Whether the docs app should also render a client's workspace dropped in at
+  runtime.~~ **Settled in stage 5: build-time, with a parameter.**
+  `BLUEPRINT_WORKSPACE` names the file and `pnpm handover` points it at a
+  client's, so one build documents any system. Runtime would make the
+  documentation a tool and build-time makes it a deliverable — a folder a
+  client keeps that needs nothing running — and a deliverable is what this plan
+  was for. The tool can still follow if a client asks; nothing here forecloses
+  it.
 - Whether the Button page moves onto the same data-driven pattern now or waits
   for the component plan.
 
@@ -710,3 +713,64 @@ rendering the same workspace twice.
 
 The other four remain: four levels of grey text against two foreground roles,
 no size family, no gradient, and no spacing step at 80px.
+
+## Notes from stage 5
+
+**The archive splits along what a browser can do, and that is what closes the
+open question.** Everything in `buildHandoverFiles` is a pure function of the
+project, so the export dialog produces it and a client gets an archive from a
+button. The foundation pages are a Next build, which a browser cannot run, so
+`pnpm handover` makes those and zips both halves. The documentation is
+therefore build-time with a parameter — `BLUEPRINT_WORKSPACE`, read by both
+`lib/workspace.ts` and the stylesheet generator — rather than a runtime tool
+that reads a dropped-in file. A deliverable is what this stage is for; the tool
+can follow if a client asks.
+
+**Every docs route exports statically, which was not certain before checking.**
+Eight pages and the not-found, all prerendered, no route handlers, no dynamic
+segments, no `next/image`, no cookies or headers. `output: "export"` is opt-in
+through an environment variable rather than always on, because it also disables
+`next start` — which is what the screenshots and the local e2e runs use.
+
+**Next has no way to make a static export open from a folder.** `assetPrefix`
+is one string for every page, and a page two directories down needs a different
+prefix from the one at the top. So `trailingSlash` makes every route
+`dir/index.html`, which gives each file a predictable depth, and the handover
+script rewrites `href`, `src` and `url(` per file afterwards. Measured on the
+output: no absolute reference survives, and `foundations/colour/index.html`
+asks for `../../_next/...`.
+
+**fflate over jszip, checked before choosing.** fflate 0.8.3 is MIT with zero
+dependencies, last touched July 2026. jszip 3.10.1 is dual MIT/GPL, pulls four
+runtime dependencies — one of them `readable-stream`, a Node polyfill that
+would ship to the browser — and its last release is August 2022. Both do the
+job; only one of them is a single import with nothing behind it.
+
+**The first real download shipped an empty file.** `designSystemFiles` returns
+a fixed-shape record, so a workspace with no type scale gets `""` for
+`blueprint-typography.css` — seven good files and a zero-byte stylesheet,
+listed in the README as though it worked. A file with no contents is left out
+now, and because the README is generated from the list, its description goes
+with it. Found by downloading an archive rather than by reading the code, and
+only because the studio's own e2e fixture happens to be palette-only.
+
+**The archive is guarded by what was written, not by what was meant.**
+`unexpectedHandoverPaths` takes the real directory listing, so a file copied in
+by hand or left behind by an earlier run is named and the run stops. Checking
+the script's intentions would have proved only that the script agrees with
+itself.
+
+**An expectation guessed from the data model was wrong about the page.** The
+first version of the verification script asserted 72 semantic rows and found
+116, because the semantic page carries the contrast table as well as the role
+tables. Both counts are now derived from the archived workspace through
+`semanticRowGroups` and `typeRoleRowGroups`, which is the same rule the pages
+render by — so the check cannot be wrong about the model or the page.
+
+**Proved from `file://`, twice.** The reference archive unzips into a temporary
+folder and every page renders there with no failed request that is not a
+`file:` URL, in both modes: 72 semantic roles, 10 type role rows. Then a second
+workspace with a green primary instead of the purple one, built through the
+same command, shows `#0B7A3D` on its colour page and does not show `#7646AB` —
+which is the assertion that the parameter reached the pages rather than merely
+the build.

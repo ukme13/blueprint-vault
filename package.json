@@ -10,10 +10,13 @@
     "test": "turbo run test",
     "xds": "node node_modules/@astryxdesign/cli/bin/astryx.mjs",
     "format:check": "prettier --check . --ignore-unknown",
-    "prepare": "git config core.hooksPath .githooks || true"
+    "prepare": "git config core.hooksPath .githooks || true",
+    "handover": "tsx scripts/handover.ts"
   },
   "devDependencies": {
+    "fflate": "^0.8.3",
     "prettier": "^3.9.6",
+    "tsx": "4.23.13",
     "turbo": "^2.10.12",
     "typescript": "6.0.3"
   },
