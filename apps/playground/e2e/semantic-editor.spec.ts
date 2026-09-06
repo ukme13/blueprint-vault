@@ -143,7 +143,10 @@ test.describe("The semantic editor", () => {
     await editor.getByRole("button", { name: "Add token" }).click();
     await expect(editor.locator("tr:has([data-token])")).toHaveCount(73);
 
-    await editor.getByRole("button", { name: "Remove New token" }).click();
+    /* Through the row menu since stage 4a: the per-row Remove button became
+       one Delete that applies to a selection. */
+    await editor.getByRole("button", { name: "Actions for New token" }).click();
+    await page.getByRole("menuitem", { name: "Delete" }).click();
     await expect(editor.locator("tr:has([data-token])")).toHaveCount(72);
   });
 

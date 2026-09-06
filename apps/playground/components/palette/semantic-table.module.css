@@ -102,20 +102,46 @@
   overflow-x: auto;
 }
 
+/*
+ * A floor for the table, so it scrolls rather than compresses.
+ *
+ * Without it the five columns share whatever the region has, and at 1024 that
+ * squeezed the weight selector out of both mode cells entirely — the number a
+ * reference is half made of, gone, with no scrollbar to suggest it was ever
+ * there. 60rem is the width at which every column still holds its content.
+ */
+.tableWrap table {
+  min-width: 60rem;
+}
+
 .row[data-selected] {
   background: var(--color-action-primary-surface);
 }
 
+/*
+ * The name cell fills whatever column the table gives it.
+ *
+ * Not a fixed width, and that was measured. Astryx cells carry
+ * `max-width: 0` with `overflow-x: hidden` — the mechanism that stops one long
+ * value stretching a column — so a wider div inside is simply clipped: 240px
+ * of content in a 195px cell. Lifting the cap on this one column instead let
+ * it claim the whole table and collapsed the two mode columns to nothing.
+ *
+ * So a long name scrolls inside its input, which is what an input does. The
+ * column widths are stage 4b's, along with the editing that lives in them.
+ */
 .nameCell {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
-  width: 12rem;
+  min-width: 0;
+  width: 11rem;
 }
 
 /* A mark, not a badge: it sits beside a name in a dense row, and Astryx's
    guidance keeps Badge for counts. The tooltip carries the words. */
 .lock {
+  display: inline-flex;
   flex-shrink: 0;
   color: var(--color-fg-muted);
   cursor: help;
@@ -127,4 +153,26 @@
   color: var(--color-fg-secondary);
   font-family: var(--font-mono);
   font-size: var(--font-size-xs, 0.75rem);
+}
+
+/*
+ * A hidden column label that stays inside the table.
+ *
+ * Tailwind's `sr-only` is `position: absolute` with a negative margin, and the
+ * header cell is not a positioned ancestor — so it laid itself out against the
+ * page and pushed the document 16px wider than the viewport at 1024. A hidden
+ * label is not something anybody looks at, so nothing but a measurement finds
+ * it: `documentElement.scrollWidth` was 1040 against a clientWidth of 1024.
+ */
+.actionsHeader {
+  position: relative;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import type { MouseEvent } from "react";
+import { Lock } from "lucide-react";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
 import {
   Table,
@@ -90,8 +91,8 @@ export function SemanticTable({
           <TableHeaderCell>Variable</TableHeaderCell>
           <TableHeaderCell>Light</TableHeaderCell>
           <TableHeaderCell>Dark</TableHeaderCell>
-          <TableHeaderCell>
-            <span className="sr-only">Actions</span>
+          <TableHeaderCell className={styles.actionsHeader}>
+            <span className={styles.srOnly}>Actions</span>
           </TableHeaderCell>
         </TableRow>
       </TableHeader>
@@ -131,8 +132,14 @@ export function SemanticTable({
                         aria-label={`${token.id} is read by ${listConsumers(consumers)}`}
                         className={styles.lock}
                         data-locked={token.id}
+                        role="img"
                       >
-                        ⚿
+                        {/* A drawn icon, not a glyph. The first pass used ⚿,
+                            which is not in the studio's typeface and rendered
+                            as a tofu box in every row — visible only in a
+                            screenshot, because it is a character and every
+                            test that asked for it found it. */}
+                        <Lock aria-hidden="true" size={12} />
                       </span>
                     </Tooltip>
                   )}

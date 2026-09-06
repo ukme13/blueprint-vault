@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { ContextMenu } from "@astryxdesign/core/ContextMenu";
 import { TextInput } from "@astryxdesign/core/TextInput";
@@ -71,10 +71,23 @@ export function SemanticEditor({
      hydration on a narrow window. */
   const isRail = useMediaQuery(`(max-width: ${RAIL_BELOW - 1}px)`);
 
+  const region = useRef<HTMLDivElement>(null);
+
   const askForGroup = useCallback((ids: string[]) => {
     setGroupName("");
     setGrouping(ids);
   }, []);
+
+  /* Selecting a row moves focus to the region, which is what makes Delete and
+     Ctrl+Z reach it: a `<td>` holds nothing focusable, so without this the
+     keys land on the body and the handler below never sees them. */
+  const selectRow = useCallback(
+    (id: string, modifiers: { isRange?: boolean; isToggle?: boolean }) => {
+      selection.click(id, modifiers);
+      region.current?.focus({ preventScroll: true });
+    },
+    [selection],
+  );
 
   const { apply, actionsFor } = useSemanticActions({
     isSelected: selection.isSelected,
@@ -108,6 +121,7 @@ export function SemanticEditor({
       />
 
       <div
+        ref={region}
         className={styles.main}
         /* On the region rather than the window, so Delete does not fire while
            somebody is typing in the search field or in a cell — and so the
@@ -211,7 +225,7 @@ export function SemanticEditor({
                   editKey: `rename:${id}`,
                 });
               }}
-              onRowClick={selection.click}
+              onRowClick={selectRow}
             />
           </div>
         </ContextMenu>
