@@ -110,7 +110,7 @@ Somebody can:
 
 ## Stages
 
-1. **Alpha in the model, no UI.** The reference shape, the workspace file
+1. ✅ **Alpha in the model, no UI.** The reference shape, the workspace file
    version and its migration (an absent alpha reads as opaque), resolution
    with alpha, compositing in the report and the similarity grid, and the
    three export formats with the alias preserved. Tests: a token at 12%
@@ -155,6 +155,59 @@ Somebody can:
 Stage 1 lands with nothing consuming it, like every model stage before it,
 because a file written with alpha by stage 5 must be readable by everything
 in between.
+
+## Notes from stage 1
+
+**The workspace file went 5 → 6, and not because anything is missing.** Every
+earlier bump added a slice that older files lacked and gained on read. A
+version 5 file has no alpha anywhere, and absent already means opaque, so it
+reads back unchanged and nothing is filled. The number moved for the other
+direction: a build that knows only 5, handed a file with `alpha: 0.12`, would
+read the reference, ignore the field it does not know and hand back a solid
+divider — a silent change to somebody's system. Only a version it does not
+recognise makes it refuse, and refusing is the honest failure.
+
+**Compositing happens in sRGB, on the encoded values, and that was measured.**
+`composite(fg, surface)` is source-over with no linearisation, because that is
+what the compositor does and therefore the only answer true of the screen. In
+Chromium 151, a canvas in the default `srgb` colour space filled white and then
+covered with `rgba(0,0,0,0.5)` reads back `127,127,127`; at `0.12` it reads
+`224`. Linear-light would give `#bcbcbc` for the first, and interpolating in
+OKLab — the space the palette is _generated_ in — would give roughly `#777777`.
+Both would describe a page no browser renders. The function rounds where the
+compositor truncates, so a channel can land one step of 255 apart; a ratio moves
+in the fourth decimal.
+
+**One composite, in one place, per measuring path.** `previewShadesFor`
+composites each token over the mode's page ground before handing the map on, so
+the text checks, the non-text checks, the focus check and the similarity grid
+all measure what the eye receives without any of them knowing about alpha.
+`assessSemanticContrast` composites per pair instead, because a foreground's
+answer depends on which surface it is being measured against — which is exactly
+the fact the report is for.
+
+**The ground rule needs no special case.** A transparent surface composites over
+`surface.base`; `surface.base` composites over itself, because there is nothing
+in the system behind the page canvas. Compositing a colour over itself returns
+it unchanged, so the rule falls out rather than being written.
+
+**An out-of-range alpha is kept, not corrected.** The reader stores `1.4` as
+`1.4`; the resolver clamps it and reports `missing: "alpha"` beside `"track"`
+and `"weight"`. That let the studio's badge say the wrong thing under the right
+mechanism — it was a ternary, so a new fault arrived labelled "weight gone" —
+and it is a map now. Two faults on one reference report the larger: a gone track
+means the colour is not the one anybody chose, an alpha a tenth out of range
+means it very nearly is.
+
+**Repointing dropped the alpha, and would have from the first edit.** The
+editor rebuilt the reference from its two selectors, so changing a shade on a
+transparent token would have quietly made it solid. Fixed here rather than in
+stage 5, because the field exists now.
+
+**Nothing in `apps/docs/app/blueprint/` moved.** No token has an alpha yet, and
+every formatter's opaque branch emits the characters it emitted before — no
+`$extensions` key on an opaque Design Tokens entry, no mix around an opaque
+alias. Regenerated and diffed to prove it.
 
 ## Not doing
 
@@ -252,6 +305,26 @@ differs, and one of the two spellings renders for everybody inside the floor.
 _Revisit when_ the floor moves up to Baseline 2026, where relative colour syntax
 is inside on every engine. It is the better spelling. It is not yet the safe
 one.
+
+**Which space compositing happens in. Settled in stage 1: sRGB, on the encoded
+values.** Not linear-light, which is the physically correct blend and is not
+what a compositor does; not OKLab, which is where this palette is generated and
+would be right for a gradient. Measured, not assumed — see "Notes from stage 1".
+
+**How the reference and alpha are recorded in Design Tokens. Settled in stage 1:
+`$extensions`, under `co.designally.blueprint`.** The format's alias form has no
+alpha slot, so a transparent token emits the resolved eight-digit value (the
+spelling the shadow export already uses) and puts the reference and the alpha
+where the specification puts vendor data: "The keys SHOULD be chosen such that
+they avoid the likelihood of a naming clash with another vendor's data. The
+reverse domain name notation is recommended for this purpose." Tools that do not
+understand the key MUST preserve it, so the alias survives a pipeline that has
+never heard of this studio.
+
+_Open, and worth one minute of somebody's attention:_ this repository declares
+no domain anywhere — no `homepage`, no `repository`, no organisation name — so
+the key was taken from the account this work is done under. If the published
+domain is something else, this constant is the one place to change it.
 
 **Whether seed roles can be deleted. Recommend: only the ones nothing
 reads.** Figma allows any deletion because Figma has no Button reading the

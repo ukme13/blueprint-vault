@@ -438,22 +438,24 @@ describe("a version 5 file still opens, and a version 6 file carries alpha", () 
     /* A `null` or a string is not a transparency somebody set, and dropping
        the whole token over one would cost a role for a field that is
        optional. */
+    /* Cast, because the point is a file the types say cannot exist: a
+       hand-edited document, or one from a build that wrote the field
+       differently. The reader's job is to survive it. */
     const damaged = JSON.stringify({
       kind: "blueprint-workspace",
       version: 6,
       project: {
-        ...workspace({
-          semantics: [
-            {
-              id: "border.subtle",
-              name: "Subtle border",
-              description: "",
-              light: { trackId: "primary", weight: 200, alpha: "0.5" },
-              dark: { trackId: "primary", weight: 800, alpha: null },
-            },
-          ],
-        }),
-      },
+        ...workspace(),
+        semantics: [
+          {
+            id: "border.subtle",
+            name: "Subtle border",
+            description: "",
+            light: { trackId: "primary", weight: 200, alpha: "0.5" },
+            dark: { trackId: "primary", weight: 800, alpha: null },
+          },
+        ],
+      } as unknown as WorkspaceProject,
     });
 
     const after = parseBlueprintWorkspace(damaged);
