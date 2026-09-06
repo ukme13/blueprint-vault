@@ -7,3 +7,4 @@ export * from "./types";
 export * from "./use-workspace-store";
 export * from "./workspace";
 export * from "./workspace-file";
+export * from "./semantics-history";

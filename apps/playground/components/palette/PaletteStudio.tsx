@@ -30,7 +30,6 @@ import {
   updateStoredWorkspace,
   withPaletteSlice,
   useWorkspaceStore,
-  withSemanticsSlice,
   withSharedName,
   type WorkspaceProject,
   defaultLightnessValues,
@@ -57,6 +56,7 @@ import { PaletteMatrix } from "./PaletteMatrix";
 import { PaletteOverview } from "./PaletteOverview";
 import { PalettePreview } from "./PalettePreview";
 import { SemanticEditor } from "./SemanticEditor";
+import { useSemanticsHistory } from "./use-semantics-history";
 import { TrackDetailDialog } from "./TrackDetailDialog";
 import styles from "./palette-workspace.module.css";
 import {
@@ -238,8 +238,12 @@ function PaletteStudioContent() {
      not written over with a copy from this page's load. */
   const workspace = useWorkspaceStore();
   const semantics = workspace.project?.semantics ?? null;
+  /* Every semantic write goes through the history, so undo is a fact about the
+     slice rather than a feature of one editor. The keyboard is stage 4's:
+     `semanticsHistory.undo` and `.redo` are what it binds. */
+  const semanticsHistory = useSemanticsHistory(workspace);
   const setSemantics = (next: SemanticToken[] | null) =>
-    workspace.update((current) => withSemanticsSlice(current, next));
+    semanticsHistory.write(next);
   const [pendingImport, setPendingImport] = useState<WorkspaceProject | null>(
     null,
   );

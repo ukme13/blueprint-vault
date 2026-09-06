@@ -126,7 +126,7 @@ Somebody can:
    in the slice that `fillSeedRoles` honours. Tests for each, including
    that a load-bearing role refuses deletion with the list of consumers.
 
-3. **Undo.** A history of layers for the semantics slice with a bounded
+3. ✅ **Undo.** A history of layers for the semantics slice with a bounded
    depth, in `packages/ui`, bound to Ctrl+Z / Ctrl+Shift+Z in the editor.
    Coalesce keystrokes inside one in-place edit into one step. Test that
    undo after a multi-delete restores order as well as content.
@@ -270,6 +270,62 @@ field on the workspace is a compile error there by design — `removedSeedRoles`
 joins `semantics` in the exclusion list, because it belongs to the slice that
 studio owns. And stage 1's `SemanticEditor` badge map gained nothing new. No
 component gained a call to a stage 2 function.
+
+## Notes from stage 3
+
+**The history holds whole values, not reversed actions.** Every edit in this
+studio is already a pure `T -> T`, so keeping the value before it is cheaper to
+write and impossible to get wrong. An inverse-action history has to derive an
+undo for every operation, and a single missing inverse is a corruption nobody
+notices until it is saved.
+
+**A step is the layer _and_ the removed-seed list.** This is the one thing that
+would have shipped broken. A history holding `SemanticToken[]` alone restores a
+deleted seed role, leaves its id on the removed list, and the next read takes it
+straight back out — an undo that works on screen and is gone after a reload. The
+snapshot type exists for that reason and for no other.
+
+The corollary is that `workspaceWithSnapshot` writes the list as recorded rather
+than reconciling it. `withSemanticsSlice` reconciles because a _new_ edit has to;
+an undo is restoring a pair that was already consistent when it was taken, and
+reconciling would drop the removal the moment its token came back — which is
+precisely the step being undone.
+
+**Coalescing is keyed, not flagged.** A boolean "this continues the previous
+edit" is true of the fourth keystroke in a cell and equally true of the first
+keystroke in the _next_ cell, so it folds two renames into one undo. A key —
+`rename:surface.raised` — says _which_ edit, coalesces with itself and not with
+its neighbour, and ends an edit when focus moves without the editor having to
+announce it. Anything unkeyed, and any undo, redo or sync, closes the open edit,
+so a keystroke cannot reach back across a delete that happened between two of
+them.
+
+**Fifty steps.** Each is a whole slice of seventy-two tokens — roughly 15 kB of
+plain objects — so fifty is about three quarters of a megabyte held for as long
+as the tab is open, which is nothing beside what the palette itself costs. It is
+chosen to be past the point anybody keeps counting: a designer who has made
+fifty edits has stopped thinking of them as a sequence. The bound trims the
+oldest rather than refusing new steps, because an editor that silently stopped
+being undoable once its history filled would do so at the worst possible moment.
+
+**A reconcile is not a step, and neither is the first read.** Undo means "take
+back what I did". Undoing a write another tab made would throw their work away
+with nothing to distinguish it from an ordinary undo, and recording the layer as
+it was found would let somebody undo the act of opening the studio. Both go
+through `sync`, which moves the present and leaves the past and the future
+alone.
+
+Worth knowing for stage 4: there is no `storage` event listener anywhere in this
+studio today. Cross-tab safety comes from `updateStoredWorkspace` re-reading
+before every write, and `useWorkspaceStore.reload` exists for a tab that has
+learnt storage changed — with nothing calling it. So `sync` is currently only
+the first read. The rule is in place and tested; the second caller does not
+exist yet.
+
+**No keyboard here.** `useSemanticsHistory` returns `undo` and `redo` for stage 4
+to bind Ctrl+Z and Ctrl+Shift+Z to in one line. A shortcut belongs to the
+component that owns the focus it applies to, which is the table that does not
+exist yet.
 
 ## Not doing
 

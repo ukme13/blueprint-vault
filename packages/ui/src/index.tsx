@@ -1,5 +1,6 @@
 export * from "./button";
 export * from "./button-tones";
+export * from "./history";
 export * from "./use-colour-mode";
 export * from "./color";
 export * from "./scale";
