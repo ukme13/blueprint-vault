@@ -138,11 +138,13 @@ export default function TypographyFoundationPage() {
         </Text>
         <ArticleTemplate
           classNames={TEMPLATE_CLASSES}
+          headingLevel={3}
           lang="en"
           styleFor={styleForSlot}
         />
         <ArticleTemplate
           classNames={TEMPLATE_CLASSES}
+          headingLevel={3}
           lang="th"
           styleFor={styleForSlot}
         />

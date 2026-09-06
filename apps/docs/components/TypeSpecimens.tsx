@@ -70,38 +70,26 @@ function FontNote({ font }: { font: TypeFontRow }) {
   );
 }
 
-/**
- * A specimen's heading level, which is not its element.
+/*
+ * A heading specimen is a heading, and the page has three of them.
  *
- * The plan asked for each role rendered as its real element, and that is
- * right: the `h2` role has to be an `h2` here or the page is describing
- * something it is not showing. But seven roles rendered as h1 through h6 land
- * in the outline of a page that already has its own title, and a reader
- * arriving by heading navigation gets eight top-level headings, six of which
- * are the words "Build a stable type scale".
+ * This carried `role="heading" aria-level={4}` to keep the samples out of
+ * the page's outline. It did not work. Measured on the built page, Chrome
+ * reports `heading "Build a stable type scale" [level=1]` for an `<h1>`
+ * carrying both attributes — a native heading's implicit level wins, and
+ * the override was doing nothing while looking like it did something.
  *
- * So the tag stays and the announced level moves. `aria-level` on a heading
- * element overrides the level without touching the element, which is exactly
- * the distinction here — the specimen is a sample of a heading rather than a
- * heading of this document. Level 4 puts every one of them under the page
- * title, the "Specimens" section and its group label, which is where they
- * sit visually.
- *
- * This was not in the plan and is the cost of the plan's own instruction. It
- * is only needed for the heading roles; a paragraph specimen is a paragraph
- * either way.
+ * So it is gone, and the page has three level-one headings: its title and
+ * the `h1` role's two specimens. That is the cost of the plan's own
+ * instruction to render each role as its real element, which is right —
+ * the table says `<h1>` and the specimen has to be one. Worth fixing when
+ * there is an answer that keeps the element and moves the outline; there
+ * is not one today, and a comment claiming otherwise is worse than the
+ * three headings.
  */
-const SPECIMEN_HEADING_LEVEL = 4;
-
 function Specimen({ row }: { row: TypeRoleRow }) {
   const Element = row.element;
   const style = specimenStyle(row);
-  /* A paragraph carries no level to override. */
-  const outline =
-    Element === "p"
-      ? {}
-      : { role: "heading" as const, "aria-level": SPECIMEN_HEADING_LEVEL };
-
   return (
     <VStack gap={2}>
       <Text color="secondary" type="code">
@@ -109,10 +97,10 @@ function Specimen({ row }: { row: TypeRoleRow }) {
       </Text>
       {/* The same element the role exports as, so the outline this page shows
           is the outline a product using the role would get. */}
-      <Element style={style} {...outline}>
+      <Element style={style}>
         {specimenTextForRole(row, "en", row.name)}
       </Element>
-      <Element lang="th" style={style} {...outline}>
+      <Element lang="th" style={style}>
         {specimenTextForRole(row, "th", row.name)}
       </Element>
     </VStack>
