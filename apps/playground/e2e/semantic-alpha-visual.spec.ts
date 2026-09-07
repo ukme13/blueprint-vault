@@ -27,7 +27,7 @@ for (const width of [1280, 1024]) {
       ).toHaveValue("100%");
       await expect(page.locator("html")).toHaveScreenshot(
         `semantic-alpha-${mode.toLowerCase()}-${width}.png`,
-        { animations: "disabled", fullPage: true },
+        { animations: "disabled" },
       );
     });
   }
