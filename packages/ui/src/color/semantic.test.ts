@@ -293,17 +293,21 @@ describe("a reference with an alpha", () => {
     expect(light.missing).toBeNull();
   });
 
-  it("is opaque when the reference has none", () => {
-    /* The default absence means, and the reason the field is optional: sixty
-       of the seventy-two roles are opaque and their export must not change. */
+  it("keeps an absent alpha opaque", () => {
+    /* Absence is still opaque, even though stage 5 seeds a few real overlays. */
     const tracks = fullPalette();
-    for (const resolved of resolveSemantics(
-      seedSemanticTokens(tracks),
-      "light",
-      tracks,
-    )) {
-      expect(resolved.alpha, `${resolved.id} is not opaque`).toBe(1);
-    }
+    const token = tokenById(seedSemanticTokens(tracks), "action.primary");
+    expect(resolveSemantic(token, "light", tracks)!.alpha).toBe(1);
+  });
+
+  it("migrates overlays, disabled foregrounds and hover tints to alpha seeds", () => {
+    const tokens = seedSemanticTokens(fullPalette());
+    expect(tokenById(tokens, "surface.overlay").light.alpha).toBe(0.96);
+    expect(tokenById(tokens, "border.subtle").light.alpha).toBe(0.12);
+    expect(tokenById(tokens, "fg.disabled").dark.alpha).toBe(0.5);
+    expect(tokenById(tokens, "action.primary-surface-hover").light.alpha).toBe(
+      0.18,
+    );
   });
 
   it("clamps an impossible alpha and reports it, rather than throwing", () => {

@@ -101,6 +101,8 @@ interface SeedRole {
    * way `preferWeight` falls back to `position`.
    */
   preferDarkWeight?: number;
+  /** Transparency values are stored per mode, like the referenced weight. */
+  alpha?: [light: number, dark: number];
   /**
    * Choose between the two ends of this role's track by measuring.
    *
@@ -211,6 +213,7 @@ function toneRoles(tone: ToneSpec): SeedRole[] {
     label: string,
     description: string,
     [light, dark]: [number, number],
+    alpha?: [light: number, dark: number],
   ): SeedRole => ({
     id: `${tone.id}-${suffix}`,
     name: `${tone.name} ${label}`,
@@ -219,6 +222,7 @@ function toneRoles(tone: ToneSpec): SeedRole[] {
     position: tone.position,
     preferWeight: light,
     preferDarkWeight: dark,
+    alpha,
     requireTrack: tone.requireTrack,
   });
 
@@ -240,12 +244,14 @@ function toneRoles(tone: ToneSpec): SeedRole[] {
       "surface",
       "The soft ground of an alert, a ghost control or a hovered outline.",
       TONE_SURFACE,
+      [0.12, 0.16],
     ),
     of(
       "surface-hover",
       "surface hover",
       "That soft ground, hovered or pressed.",
       TONE_SURFACE_HOVER,
+      [0.18, 0.22],
     ),
     of(
       "fg",
@@ -442,6 +448,7 @@ const SEED_ROLES: readonly SeedRole[] = [
     description: "A popover, menu or dialog over everything else.",
     track: "neutral",
     position: 0.02,
+    alpha: [0.96, 0.92],
   },
   {
     /* Two roles rather than one because they are two decisions: a skeleton
@@ -478,6 +485,7 @@ const SEED_ROLES: readonly SeedRole[] = [
     description: "A border that separates without drawing the eye.",
     track: "neutral",
     position: 0.32,
+    alpha: [0.12, 0.16],
   },
   {
     id: "border.muted",
@@ -514,13 +522,12 @@ const SEED_ROLES: readonly SeedRole[] = [
     position: 0.68,
   },
   {
-    /* Solid, like every foreground. Fading text with opacity lets the surface
-       bleed through into a colour nobody chose and nothing measured. */
     id: "fg.disabled",
     name: "Foreground disabled",
     description: "Text and icons on a control that cannot be used.",
     track: "neutral",
     position: 0.55,
+    alpha: [0.45, 0.5],
   },
   {
     /* Text in the accent colour on an ordinary surface: a link, an eyebrow.
@@ -647,10 +654,12 @@ export function seedSemanticTokens(tracks: ColorTrack[]): SemanticToken[] {
       light: {
         trackId: referencedTrackId,
         weight: measured?.light.weight ?? light.weight,
+        ...(role.alpha === undefined ? {} : { alpha: role.alpha[0] }),
       },
       dark: {
         trackId: referencedTrackId,
         weight: measured?.dark.weight ?? dark.weight,
+        ...(role.alpha === undefined ? {} : { alpha: role.alpha[1] }),
       },
     });
   }

@@ -1,4 +1,5 @@
 export * from "./accessibility";
+export * from "./alpha";
 export * from "./conversion";
 export * from "./export";
 export * from "./format";
