@@ -160,6 +160,60 @@ test.describe("Selecting rows", () => {
      is a test of the fixture. */
 });
 
+test.describe("Reference transparency", () => {
+  test("edits alpha with a checkerboard preview and restores it with undo", async ({
+    seededPage: page,
+  }) => {
+    const editor = await openSemantics(page);
+    await showBorders(editor);
+    const row = editor.locator('tr:has([data-semantic-token="border.subtle"])');
+    const alpha = row.getByRole("textbox", {
+      name: /border subtle light transparency/i,
+    });
+
+    await expect(alpha).toHaveValue("12%");
+    await expect(
+      row
+        .getByRole("button", { name: /edit border subtle light reference/i })
+        .locator("[data-transparent]"),
+    ).toBeVisible();
+    await alpha.fill("65%");
+    await alpha.press("Enter");
+    await expect(alpha).toHaveValue("65%");
+
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(alpha).toHaveValue("12%");
+  });
+
+  test("keeps alpha docked, exposes opaque values on focus, and tabs from reference", async ({
+    seededPage: page,
+  }) => {
+    const editor = await openSemantics(page);
+    await showBorders(editor);
+    const row = editor.locator(
+      'tr:has([data-semantic-token="border.default"])',
+    );
+    const reference = row.getByRole("button", {
+      name: /edit border default light reference/i,
+    });
+    const alpha = row.getByRole("textbox", {
+      name: /border default light transparency/i,
+    });
+    const alphaField = row.locator('[data-semantic-cell="light-alpha"]');
+
+    await expect(alpha).toHaveValue("100%");
+    await expect(alphaField).toHaveCSS("opacity", "0");
+    const before = await reference.boundingBox();
+    await alpha.focus();
+    await expect(alphaField).toHaveCSS("opacity", "1");
+    expect(await reference.boundingBox()).toEqual(before);
+
+    await reference.focus();
+    await page.keyboard.press("Tab");
+    await expect(alpha).toBeFocused();
+  });
+});
+
 test.describe("Operating on a selection", () => {
   test("Delete removes the free rows, keeps the read ones, and says which", async ({
     seededPage: page,
@@ -493,7 +547,7 @@ test.describe("Folder names and spreadsheet editing", () => {
   }) => {
     const editor = await openSemantics(page);
     await showBorders(editor);
-    await editor.getByLabel("Edit Border subtle light reference").click();
+    await editor.getByLabel(/Edit Border subtle light reference/i).click();
     await expect(page.getByLabel("Border subtle light track")).toBeVisible();
     await expect(page.getByLabel("Border subtle light weight")).toBeVisible();
   });

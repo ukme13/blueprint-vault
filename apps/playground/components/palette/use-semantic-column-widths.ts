@@ -6,8 +6,8 @@ export const SEMANTIC_COLUMNS = [
   ["name", 180],
   ["variable", 250],
   ["description", 220],
-  ["light", 160],
-  ["dark", 160],
+  ["light", 200],
+  ["dark", 200],
   ["actions", 52],
 ] as const;
 

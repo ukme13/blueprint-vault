@@ -193,11 +193,18 @@
   font-size: var(--font-size-xs, 0.75rem);
 }
 
+.referenceField {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  width: 100%;
+}
+
 .referenceChip {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-2);
-  max-width: 100%;
+  min-width: 0;
   border: 0;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -212,12 +219,53 @@
   background: var(--color-surface-subtle);
 }
 
-.referenceSwatch {
+.transparencySwatch {
+  position: relative;
+  display: inline-flex;
   width: var(--spacing-5);
   height: var(--spacing-5);
   flex: 0 0 auto;
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.transparencySwatch[data-transparent] {
+  background-color: var(--color-surface-subtle);
+  background-image: conic-gradient(
+    var(--color-border-subtle) 25%,
+    transparent 0 50%,
+    var(--color-border-subtle) 0 75%,
+    transparent 0
+  );
+  background-size: var(--spacing-2) var(--spacing-2);
+}
+
+.transparencySwatch i {
+  position: absolute;
+  inset: 0;
+}
+
+.alphaField {
+  width: 3.5rem;
+  min-width: 3.5rem;
+  margin-left: auto;
+  opacity: 1;
+  transition: opacity 120ms ease;
+}
+
+.alphaField[data-opaque] {
+  opacity: 0;
+}
+
+.referenceField:hover .alphaField,
+.referenceField:focus-within .alphaField {
+  opacity: 1;
+}
+
+.alphaField input {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .referencePicker {
