@@ -197,6 +197,38 @@ export function SemanticEditor({
               onReferenceChange={(id, cell, next) =>
                 onChange(next, { editKey: `${cell}:${id}` })
               }
+              onAlphaChange={(id, mode, alpha) =>
+                onChange(
+                  tokens.map((token) =>
+                    token.id === id
+                      ? {
+                          ...token,
+                          [mode]: { ...token[mode], alpha },
+                        }
+                      : token,
+                  ),
+                  { editKey: `alpha:${mode}:${id}` },
+                )
+              }
+              onAlphaMove={(id, mode, move) => {
+                const row = selection.visible.findIndex(
+                  (token) => token.id === id,
+                );
+                const next =
+                  move === "down" ? selection.visible[row + 1] : undefined;
+                if (next)
+                  region.current
+                    ?.querySelector<HTMLElement>(
+                      `[data-semantic-token="${next.id}"][data-semantic-cell="${mode}-alpha"] input`,
+                    )
+                    ?.focus();
+                if (move === "right")
+                  region.current
+                    ?.querySelector<HTMLElement>(
+                      `[data-semantic-token="${id}"][data-semantic-cell="${mode === "light" ? "dark" : "light"}"]`,
+                    )
+                    ?.focus();
+              }}
               onCommitText={commitText}
               onReorder={(activeId, overId) =>
                 onChange(reorderToken(tokens, activeId, overId).layer)

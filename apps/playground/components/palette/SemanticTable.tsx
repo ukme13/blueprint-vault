@@ -48,6 +48,12 @@ interface SemanticTableProps {
     cell: "light" | "dark",
     next: SemanticToken[],
   ) => void;
+  onAlphaChange: (id: string, mode: "light" | "dark", alpha: number) => void;
+  onAlphaMove: (
+    id: string,
+    mode: "light" | "dark",
+    move: "down" | "right",
+  ) => void;
   onCommitText: (
     id: string,
     cell: "name" | "description",
@@ -142,6 +148,10 @@ export function SemanticTable(props: SemanticTableProps) {
                   onReferenceChange={(mode, next) =>
                     props.onReferenceChange(token.id, mode, next)
                   }
+                  onAlphaChange={(mode, alpha) =>
+                    props.onAlphaChange(token.id, mode, alpha)
+                  }
+                  onAlphaMove={props.onAlphaMove}
                   onCommitText={(cell, value, move) =>
                     props.onCommitText(token.id, cell, value, move)
                   }

@@ -269,12 +269,16 @@ describe("a transparent token is composited before it is measured", () => {
     expect(first).not.toBe(second);
   });
 
-  it("says exactly what it always said when nothing is transparent", () => {
+  it("says exactly what it always said when the layer is opaque", () => {
     /* The other half of the rule. Sixty-odd opaque roles must produce the
        report they produced before alpha existed, or every generated file in
        the repository moves for no reason. */
     const tracks = palette();
-    const tokens = seedSemanticTokens(tracks);
+    const tokens = seedSemanticTokens(tracks).map((token) => ({
+      ...token,
+      light: { ...token.light, alpha: undefined },
+      dark: { ...token.dark, alpha: undefined },
+    }));
 
     for (const check of assessSemanticContrast(tokens, tracks, "light")) {
       expect(check.isComposited).toBe(false);

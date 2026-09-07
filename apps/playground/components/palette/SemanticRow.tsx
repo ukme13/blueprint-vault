@@ -38,6 +38,12 @@ interface SemanticRowProps {
   onEdit: (cell: SemanticCell) => void;
   onCancel: () => void;
   onReferenceChange: (mode: "light" | "dark", next: SemanticToken[]) => void;
+  onAlphaChange: (mode: "light" | "dark", alpha: number) => void;
+  onAlphaMove: (
+    id: string,
+    mode: "light" | "dark",
+    move: "down" | "right",
+  ) => void;
   onCommitText: (
     cell: "name" | "description",
     value: string,
@@ -146,6 +152,8 @@ export function SemanticRow(props: SemanticRowProps) {
           token={token}
           tokens={props.tokens}
           onChange={(next) => props.onReferenceChange(key, next)}
+          onAlphaChange={(alpha) => props.onAlphaChange(key, alpha)}
+          onAlphaMove={(move) => props.onAlphaMove(token.id, key, move)}
         />
       </TableCell>
     );

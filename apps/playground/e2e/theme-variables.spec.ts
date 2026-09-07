@@ -33,9 +33,9 @@ import { expect, test } from "./fixtures";
 
 /** The semantic roles in an export: the aliases, as against the hex shades. */
 function rolesIn(css: string): string[] {
-  const roles = [...css.matchAll(/^\s*(--color-[a-z0-9-]+)\s*:\s*var\(/gm)].map(
-    (match) => match[1]!,
-  );
+  const roles = [
+    ...css.matchAll(/^\s*(--color-[a-z0-9-]+)\s*:\s*(?:var\(|color-mix\()/gm),
+  ].map((match) => match[1]!);
   return [...new Set(roles)].sort();
 }
 

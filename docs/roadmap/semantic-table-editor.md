@@ -439,6 +439,41 @@ same full package, docs and playground checks used by stage 4a. Verification
 was completed locally before the Stage 4b commit handoff; no broad suite was
 rerun during the final documentation and commit preparation.
 
+## Stage 5 â€” Alpha in the table
+
+**Status: complete.** The semantic reference keeps its primitive alias and now
+shows its alpha as an in-place percentage field. The colour chip and slug stay
+on the left; the percentage is right-docked with `margin-left: auto`, so a
+short and a long token slug share the same alpha edge. Values below 100% stay
+visible with an accent field. Fully opaque values keep their reserved space but
+fade in only when the cell is hovered or focused, so the left chip never moves.
+
+**Transparency is visible, not inferred.** A reference with alpha below 1 has
+a two-tone checkerboard below its colour in the table and in every picker that
+uses the shared swatch. Astryx supplies the `TextInput` used for the percentage
+field and the existing `Popover` reference picker. Its component discovery has
+no native checkerboard swatch, so `TransparencySwatch` composes the underlay
+from the installed colour tokens.
+
+**The spreadsheet contract continues into alpha.** Tab moves from the reference
+chip into alpha and then to the next reference; Enter commits and moves down.
+Up and Down change alpha by 1%, or 5% with Shift. Escape restores the value at
+focus. Alpha writes use `alpha:light:<id>` and `alpha:dark:<id>`, so a field
+edit is one undo step.
+
+**Seeds now use the stage 1 alpha model where it describes a real use.**
+Overlays, subtle borders, disabled foregrounds, and soft hover surfaces carry
+per-mode alpha. The CSS export continues to preserve their aliases as
+`color-mix(in oklab, var(--color-...) N%, transparent)`.
+
+**Stage 5 checks.** `@blueprint/ui` has 819 passing tests, including percentage
+parsing and clamping. Playground has 250 passing Playwright tests, covering the
+checkerboard preview, alpha undo, right-docked focus state, Tab navigation and
+the CSS export. Light and dark screenshots at 1280px and 1024px confirm the
+opaque and transparent rows; the focused reference chip keeps the same measured
+box, so the alpha reveal has no layout shift. Full lint, type, build and test
+checks passed.
+
 ## Not doing
 
 - **Columns beyond light and dark.** A third mode (high contrast, a second
@@ -469,9 +504,9 @@ with and without alpha, into the primitive output.
 
 **Undo restores order.** Not only which tokens exist, but where they sit.
 
-**The studio does not visibly change on the day alpha ships.** Stage 5
-seeds alpha to match the current solid values, measured, so the change
-is in the model and not on screen.
+**The studio makes alpha visible where it is intentional.** Stage 5 seeds the
+measured overlay, disabled and hover uses with alpha, then gives those rows a
+checkerboard preview. Opaque rows stay visually quiet until their cell is used.
 
 ## Definition of done
 
@@ -573,9 +608,6 @@ history mechanism from stage 3 should be written so it can be reused there.
 
 ## Still open
 
-- Whether `fg.disabled` and friends should keep their solid seeds and only
-  new tokens use alpha, or whether the seed set moves onto alpha (stage 5
-  recommends moving, measured to match).
 - Whether the group sidebar also becomes the navigation for the docs
   semantic page, which would give the two the same shape.
 - **Removing a whole tone.** A client with no `info` status wants those

@@ -203,4 +203,30 @@ test.describe("An alias with a transparency", () => {
        assertion above worth making. */
     expect(declaration(after, variable!)).not.toBe(primitiveBefore);
   });
+
+  test("updates the CSS export preview after an in-place alpha edit", async ({
+    seededPage: page,
+  }) => {
+    await page.getByRole("button", { name: "Semantics" }).click();
+    const editor = page.getByRole("region", { name: "Semantic tokens" });
+    await expect(editor).toBeVisible();
+    await editor
+      .getByRole("navigation", { name: "Token groups" })
+      .getByRole("listitem")
+      .filter({ hasText: "Borders" })
+      .click();
+    const alpha = editor.getByRole("textbox", {
+      name: /border subtle light transparency/i,
+    });
+    await alpha.fill("65%");
+    await alpha.press("Enter");
+
+    await page.getByRole("button", { name: "Export palette" }).click();
+    await page.getByRole("button", { name: "CSS", exact: true }).click();
+    await expect(
+      page.getByRole("region", { name: "Export preview" }),
+    ).toContainText(
+      /--color-border-subtle: color-mix\(in oklab, var\(--color-neutral-\d+\) 65%, transparent\)/,
+    );
+  });
 });
