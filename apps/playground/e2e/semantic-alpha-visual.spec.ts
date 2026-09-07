@@ -29,7 +29,9 @@ for (const width of [1280, 1024]) {
       // baseline against Linux CI rendering. The semantic assertions above
       // verify the relevant table states on every runner.
       await page.screenshot({
-        path: testInfo.outputPath(`semantic-alpha-${mode.toLowerCase()}-${width}.png`),
+        path: testInfo.outputPath(
+          `semantic-alpha-${mode.toLowerCase()}-${width}.png`,
+        ),
         fullPage: true,
       });
     });
