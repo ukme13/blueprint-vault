@@ -7,6 +7,8 @@ import {
   describeRefusals,
   duplicateTokens,
   formatSemanticClipboard,
+  groupSemanticTokens,
+  moveToGroup,
   parseSemanticClipboard,
   pasteTokens,
   type SemanticEdit,
@@ -94,6 +96,11 @@ export function useSemanticActions({
         },
         paste: () => apply(pasteTokens(tokens, clipboard, ids.at(-1) ?? null)),
         newGroup: () => onNewGroup(ids),
+        moveToGroup: (group) => apply(moveToGroup(tokens, ids, group)),
+        groups: groupSemanticTokens(tokens).map(({ group, label }) => ({
+          id: group,
+          label,
+        })),
         duplicate: () => apply(duplicateTokens(tokens, ids)),
         remove: () => apply(deleteTokens(tokens, ids)),
       };

@@ -457,6 +457,7 @@ describe("editing a layer", () => {
   it("makes an id from a label", () => {
     expect(semanticId("Surface  Raised")).toBe("surface.raised");
     expect(semanticId("  Text / Primary  ")).toBe("text.primary");
+    expect(semanticId("action.new-token")).toBe("action.new-token");
     expect(semanticId("!!!")).toBe("");
   });
 });
