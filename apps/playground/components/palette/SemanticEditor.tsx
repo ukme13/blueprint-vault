@@ -11,7 +11,7 @@ import {
   type ColorTrack,
   type SemanticToken,
 } from "@blueprint/ui";
-import { SemanticGroupDraft } from "./SemanticGroupDraft";
+import { SemanticNewGroupDialog } from "./SemanticNewGroupDialog";
 import { type SemanticCell } from "./SemanticRow";
 import { semanticMenuItems } from "./SemanticRowMenu";
 import { SemanticSidebar } from "./SemanticSidebar";
@@ -47,15 +47,18 @@ export function SemanticEditor({
     cell: SemanticCell;
   } | null>(null);
   const [grouping, setGrouping] = useState<string[] | null>(null);
-  const [groupName, setGroupName] = useState("");
   const selection = useSemanticSelection(tokens);
   const isRail = useMediaQuery(`(max-width: ${RAIL_BELOW - 1}px)`);
   const region = useRef<HTMLDivElement>(null);
 
-  const askForGroup = useCallback((ids: string[]) => {
-    setGroupName("");
-    setGrouping(ids);
-  }, []);
+  const { apply, actionsFor } = useSemanticActions({
+    isSelected: selection.isSelected,
+    onChange,
+    onNewGroup: setGrouping,
+    onUndo,
+    selected: selection.selected,
+    tokens,
+  });
   const selectRow = useCallback(
     (id: string, event: MouseEvent<HTMLTableRowElement>) => {
       selection.click(id, {
@@ -66,13 +69,6 @@ export function SemanticEditor({
     },
     [selection],
   );
-  const { apply, actionsFor } = useSemanticActions({
-    isSelected: selection.isSelected,
-    onChange,
-    onNewGroup: askForGroup,
-    selected: selection.selected,
-    tokens,
-  });
   const onKeyDown = useSemanticKeyboard({
     apply,
     clear: selection.clear,
@@ -134,110 +130,114 @@ export function SemanticEditor({
   };
 
   return (
-    <section aria-label="Semantic tokens" className={styles.editor}>
-      <SemanticSidebar
-        group={selection.group}
-        isCollapsed={isRail}
-        tokens={tokens}
-        onGroupChange={selection.setGroup}
-        onNewGroup={(name) =>
-          apply(moveToGroup(tokens, selection.selected, name))
-        }
-      />
-      <div
-        ref={region}
-        className={styles.main}
-        role="presentation"
-        tabIndex={-1}
-        onKeyDown={onKeyDown}
-      >
-        <SemanticToolbar
+    <>
+      <section aria-label="Semantic tokens" className={styles.editor}>
+        <SemanticSidebar
           group={selection.group}
-          onAdd={(next) => {
-            const added = next.at(-1);
-            onChange(next);
-            if (added) setEditing({ id: added.id, cell: "name" });
-          }}
-          onQueryChange={selection.setQuery}
-          palettes={palettes}
-          query={selection.query}
-          selected={selection.selected.length}
+          isCollapsed={isRail}
           tokens={tokens}
-          total={tokens.length}
-          visible={selection.visible.length}
+          onGroupChange={selection.setGroup}
+          onNewGroup={(name) =>
+            apply(moveToGroup(tokens, selection.selected, name))
+          }
         />
-        {grouping && (
-          <SemanticGroupDraft
-            count={grouping.length}
-            name={groupName}
-            onNameChange={setGroupName}
-            onCancel={() => setGrouping(null)}
-            onCommit={(name) => {
-              apply(moveToGroup(tokens, grouping, name));
-              setGrouping(null);
-            }}
-          />
-        )}
-        <ContextMenu
-          items={semanticMenuItems(actionsFor())}
-          label="Token actions"
-          menuWidth={220}
+        <div
+          ref={region}
+          className={styles.main}
+          role="presentation"
+          tabIndex={-1}
+          onKeyDown={onKeyDown}
         >
-          <div className={styles.tableWrap}>
-            <SemanticTable
-              actionsFor={actionsFor}
-              editing={editing}
-              group={selection.group}
-              isSelected={selection.isSelected}
-              palettes={palettes}
-              rows={selection.visible}
-              tokens={tokens}
-              onCancel={() => setEditing(null)}
-              onEdit={(id, cell) => setEditing({ id, cell })}
-              onReferenceChange={(id, cell, next) =>
-                onChange(next, { editKey: `${cell}:${id}` })
-              }
-              onAlphaChange={(id, mode, alpha) =>
-                onChange(
-                  tokens.map((token) =>
-                    token.id === id
-                      ? {
-                          ...token,
-                          [mode]: { ...token[mode], alpha },
-                        }
-                      : token,
-                  ),
-                  { editKey: `alpha:${mode}:${id}` },
-                )
-              }
-              onAlphaMove={(id, mode, move) => {
-                const row = selection.visible.findIndex(
-                  (token) => token.id === id,
-                );
-                const next =
-                  move === "down" ? selection.visible[row + 1] : undefined;
-                if (next)
-                  region.current
-                    ?.querySelector<HTMLElement>(
-                      `[data-semantic-token="${next.id}"][data-semantic-cell="${mode}-alpha"] input`,
-                    )
-                    ?.focus();
-                if (move === "right")
-                  region.current
-                    ?.querySelector<HTMLElement>(
-                      `[data-semantic-token="${id}"][data-semantic-cell="${mode === "light" ? "dark" : "light"}"]`,
-                    )
-                    ?.focus();
-              }}
-              onCommitText={commitText}
-              onReorder={(activeId, overId) =>
-                onChange(reorderToken(tokens, activeId, overId).layer)
-              }
-              onRowClick={selectRow}
-            />
-          </div>
-        </ContextMenu>
-      </div>
-    </section>
+          <SemanticToolbar
+            group={selection.group}
+            onAdd={(next) => {
+              const added = next.at(-1);
+              onChange(next);
+              if (added) setEditing({ id: added.id, cell: "name" });
+            }}
+            onQueryChange={selection.setQuery}
+            palettes={palettes}
+            query={selection.query}
+            selected={selection.selected.length}
+            tokens={tokens}
+            total={tokens.length}
+            visible={selection.visible.length}
+          />
+          <ContextMenu
+            items={semanticMenuItems(actionsFor())}
+            label="Token actions"
+            menuWidth={220}
+          >
+            <div className={styles.tableWrap}>
+              <SemanticTable
+                actionsFor={actionsFor}
+                editing={editing}
+                group={selection.group}
+                isSelected={selection.isSelected}
+                palettes={palettes}
+                rows={selection.visible}
+                tokens={tokens}
+                onCancel={() => setEditing(null)}
+                onEdit={(id, cell) => setEditing({ id, cell })}
+                onReferenceChange={(id, cell, next) =>
+                  onChange(next, { editKey: `${cell}:${id}` })
+                }
+                onAlphaChange={(id, mode, alpha) =>
+                  onChange(
+                    tokens.map((token) =>
+                      token.id === id
+                        ? {
+                            ...token,
+                            [mode]: { ...token[mode], alpha },
+                          }
+                        : token,
+                    ),
+                    { editKey: `alpha:${mode}:${id}` },
+                  )
+                }
+                onAlphaMove={(id, mode, move) => {
+                  const row = selection.visible.findIndex(
+                    (token) => token.id === id,
+                  );
+                  const next =
+                    move === "down" ? selection.visible[row + 1] : undefined;
+                  if (next)
+                    region.current
+                      ?.querySelector<HTMLElement>(
+                        `[data-semantic-token="${next.id}"][data-semantic-cell="${mode}-alpha"] input`,
+                      )
+                      ?.focus();
+                  if (move === "right")
+                    region.current
+                      ?.querySelector<HTMLElement>(
+                        `[data-semantic-token="${id}"][data-semantic-cell="${mode === "light" ? "dark" : "light"}"]`,
+                      )
+                      ?.focus();
+                }}
+                onCommitText={commitText}
+                onReorder={(activeId, overId) =>
+                  onChange(
+                    reorderToken(tokens, activeId, overId, selection.selected)
+                      .layer,
+                  )
+                }
+                onRowClick={selectRow}
+              />
+            </div>
+          </ContextMenu>
+        </div>
+      </section>
+      <SemanticNewGroupDialog
+        count={grouping?.length ?? 0}
+        isOpen={grouping !== null}
+        onCommit={(name) => {
+          if (grouping) apply(moveToGroup(tokens, grouping, name));
+          setGrouping(null);
+        }}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) setGrouping(null);
+        }}
+      />
+    </>
   );
 }

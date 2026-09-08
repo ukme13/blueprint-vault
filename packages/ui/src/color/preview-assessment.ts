@@ -78,7 +78,7 @@ export const PREVIEW_ROLE_IDS: readonly string[] = Object.values(TOKENS);
  *
  * Exported for `usedBy`, which has to answer the same question the grid
  * answers. A rule, so the answer holds for a role somebody invented as much as
- * for a seeded one.
+ * for a seeded one. `usedBy` still only locks the ones the preview lists.
  */
 export function isSignallingRole(id: string): boolean {
   return signalsByColour(id);

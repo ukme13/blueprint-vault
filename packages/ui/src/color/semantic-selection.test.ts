@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  deleteTokens,
+  duplicateTokens,
+  moveToGroup,
+  pasteTokens,
+} from "./selection-ops";
+import {
   describeRefusals,
+  describeSemanticEdit,
   EMPTY_SELECTION,
   filterSemanticTokens,
   selectAllVisible,
@@ -261,5 +268,63 @@ describe("describeRefusals", () => {
     expect(
       describeRefusals([{ id: "brand.wash", reason: "…", usedBy: [] }]),
     ).toBe("1 row was kept: brand.wash.");
+  });
+});
+
+describe("describeSemanticEdit", () => {
+  const reference = (weight: number) => ({ trackId: "t-neutral", weight });
+  const free = (id: string): SemanticToken => ({
+    id,
+    name: id,
+    description: "",
+    light: reference(200),
+    dark: reference(800),
+  });
+  const tokens = () => [
+    free("brand.wash"),
+    free("brand.rule"),
+    free("extra.scrim"),
+  ];
+
+  it("says nothing when the layer did not change", () => {
+    const before = tokens();
+    expect(describeSemanticEdit(before, deleteTokens(before, []))).toBe("");
+  });
+
+  it("names a deleted token, and counts several", () => {
+    const before = tokens();
+    expect(
+      describeSemanticEdit(before, deleteTokens(before, ["brand.wash"])),
+    ).toBe("Deleted brand.wash.");
+    expect(
+      describeSemanticEdit(
+        before,
+        deleteTokens(before, ["brand.wash", "brand.rule"]),
+      ),
+    ).toBe("Deleted 2 tokens.");
+  });
+
+  it("names a duplicate from the token it came from", () => {
+    const before = tokens();
+    expect(
+      describeSemanticEdit(before, duplicateTokens(before, ["brand.wash"])),
+    ).toBe("Duplicated brand.wash.");
+  });
+
+  it("names a paste that kept its id", () => {
+    const before = tokens();
+    expect(
+      describeSemanticEdit(
+        before,
+        pasteTokens(before, [free("chip.idle")], null),
+      ),
+    ).toBe("Pasted chip.idle.");
+  });
+
+  it("names the group a move landed in", () => {
+    const before = tokens();
+    expect(
+      describeSemanticEdit(before, moveToGroup(before, ["brand.wash"], "rule")),
+    ).toBe("Moved brand.wash to rule.");
   });
 });

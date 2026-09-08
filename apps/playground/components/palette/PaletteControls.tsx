@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
 import {
   SegmentedControl,
@@ -112,15 +113,19 @@ export function PaletteControls({
         </span>
 
         <p className={styles.lightnessHint}>
-          Every bar uses the full 0–100% scale. Moving a slider switches the
-          pattern to Custom.
+          Every bar runs from black to white so you can see which way is darker.
+          Moving a slider switches the pattern to Custom.
         </p>
 
         <ol className={styles.lightnessList}>
           {lightnessValues.map((lightness, index) => (
             <li key={weights[index]}>
               <code>{weights[index]}</code>
-              <span className={styles.lightnessSlider}>
+              <span
+                className={styles.lightnessSlider}
+                data-lightness-slider=""
+                style={{ "--lightness": String(lightness) } as CSSProperties}
+              >
                 <Slider
                   isLabelHidden
                   label={`${weights[index]} target lightness`}

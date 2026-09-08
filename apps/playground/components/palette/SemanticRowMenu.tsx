@@ -18,7 +18,7 @@ import { DropdownMenu } from "@astryxdesign/core/DropdownMenu";
 export interface SemanticRowActions {
   copy: () => void;
   paste: () => void;
-  /** Open the draft for a new folder. */
+  /** Open the dialog for a new folder. */
   newGroup: () => void;
   /** Move the target rows into an existing folder. */
   moveToGroup: (group: string) => void;

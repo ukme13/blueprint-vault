@@ -69,6 +69,14 @@ export function PalettePreview({ palettes, semantics }: PalettePreviewProps) {
   const neutralMid = shades["border.default"] ?? neutralDark;
   const successAction = shades["status.success"] ?? primaryAction;
   const errorAction = shades["status.error"] ?? primaryAction;
+  /* Soft badge fill and its label, from the layer — not Astryx's purple
+     variant, which follows the studio's color-scheme. This block is a light
+     product mock (`previewShadesFor` is light-only), so a dark-mode chip on
+     a light canvas is the wrong colour. */
+  const chipFill =
+    shades["action.primary-surface"] ?? shades["action.muted"] ?? primarySoft;
+  const chipText = shades["action.primary-fg"] ?? primaryAction;
+  const supportingText = shades["fg.secondary"] ?? neutralDark;
 
   return (
     <section className={styles.sectionPage} aria-labelledby="preview-title">
@@ -124,9 +132,20 @@ export function PalettePreview({ palettes, semantics }: PalettePreviewProps) {
           </header>
           <section
             className={styles.textPreview}
-            style={{ backgroundColor: seen(neutralLight.hex) }}
+            style={{
+              backgroundColor: seen(neutralLight.hex),
+              colorScheme: "light",
+            }}
           >
-            <Badge label="New release" variant="purple" />
+            <Badge
+              data-preview-chip=""
+              label="New release"
+              variant="purple"
+              style={{
+                backgroundColor: seen(chipFill.hex),
+                color: seen(chipText.hex),
+              }}
+            />
             <h3 style={{ color: seen(neutralDark.hex) }}>
               Design with confidence
             </h3>
@@ -149,7 +168,10 @@ export function PalettePreview({ palettes, semantics }: PalettePreviewProps) {
           </header>
           <section
             className={styles.surfacePreview}
-            style={{ backgroundColor: seen(neutralDark.hex) }}
+            style={{
+              backgroundColor: seen(neutralDark.hex),
+              colorScheme: "light",
+            }}
           >
             <article
               style={{
@@ -157,7 +179,9 @@ export function PalettePreview({ palettes, semantics }: PalettePreviewProps) {
                 color: seen(neutralDark.hex),
               }}
             >
-              <small>Account balance</small>
+              <small style={{ color: seen(supportingText.hex) }}>
+                Account balance
+              </small>
               <strong>$24,860.00</strong>
               <span style={{ color: seen(successAction.hex) }}>
                 +8.4% this month
@@ -169,7 +193,9 @@ export function PalettePreview({ palettes, semantics }: PalettePreviewProps) {
                 color: seen(neutralDark.hex),
               }}
             >
-              <small>Suggested action</small>
+              <small style={{ color: seen(supportingText.hex) }}>
+                Suggested action
+              </small>
               <strong>Review your colour tokens</strong>
               <span style={{ color: seen(primaryAction.hex) }}>
                 Open details →

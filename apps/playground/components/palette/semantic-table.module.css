@@ -91,10 +91,6 @@
   min-width: 0;
 }
 
-.groupDraft {
-  max-width: 22rem;
-}
-
 /* The table scrolls inside its own region rather than pushing the page wide,
    which is what keeps the sidebar and the table together at 1024. */
 .tableWrap {
@@ -117,6 +113,35 @@
 
 .row[data-selected] {
   background: var(--color-action-primary-surface);
+}
+
+.row[data-can-reorder] {
+  cursor: grab;
+}
+
+.row[data-dragging] {
+  cursor: grabbing;
+  opacity: 0.45;
+}
+
+.dropGap td {
+  height: var(--spacing-10);
+  padding: 0;
+  background: var(--color-action-primary-surface);
+  border-color: var(--color-action-primary);
+}
+
+.dragOverlay {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-4);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  color: var(--color-fg-primary);
+  cursor: grabbing;
+  font-size: var(--font-size-sm, 0.875rem);
 }
 
 .groupHeading td {
@@ -149,31 +174,6 @@
   gap: var(--spacing-2);
   min-width: 0;
   width: 11rem;
-}
-
-.rowDragHandle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--spacing-5);
-  height: var(--spacing-5);
-  flex: 0 0 auto;
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: var(--color-fg-secondary);
-  cursor: grab;
-  padding: 0;
-}
-
-.rowDragHandle:hover,
-.rowDragHandle:focus-visible {
-  background: var(--color-surface-subtle);
-  color: var(--color-fg-primary);
-}
-
-.rowDragHandle:active {
-  cursor: grabbing;
 }
 
 /* A mark, not a badge: it sits beside a name in a dense row, and Astryx's

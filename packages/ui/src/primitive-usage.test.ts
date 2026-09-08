@@ -277,7 +277,9 @@ const CHROME_ALLOWED: ReadonlyArray<[RegExp, RegExp]> = [
   // The shadow demo shows each level on a light and on a dark ground.
   [/scale[\\/]ElevationEditor\.tsx$/, /^--color-neutral-(?:50|900)$/],
   // The hue slider is a rainbow: its stops are literal by definition.
-  [/palette[\\/]palette-workspace\.module\.css$/, /^hsl\($/],
+  // The lightness rails are a true L scale (black to white), not a
+  // theme colour — `--color-neutral-*` is tinted and would follow the mode.
+  [/palette[\\/]palette-workspace\.module\.css$/, /^(?:hsl|oklch)\($/],
   // A colour the user typed, written back out for the swatch to show.
   [/palette[\\/]ColourPicker\.tsx$/, /^(?:oklch|hsl)\($/],
   // Palette data, not chrome: the source colour a new track starts from, the

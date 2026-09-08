@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { useToast } from "@astryxdesign/core/Toast";
+import { Button } from "@astryxdesign/core/Button";
+import { useToast, type ShowToastFn } from "@astryxdesign/core/Toast";
 import {
   deleteTokens,
   describeRefusals,
+  describeSemanticEdit,
   duplicateTokens,
   formatSemanticClipboard,
   groupSemanticTokens,
@@ -39,6 +41,8 @@ interface UseSemanticActions {
   onChange: (next: SemanticToken[], options?: SemanticWriteOptions) => void;
   /** Ask for a group name, then move these rows into it. */
   onNewGroup: (ids: string[]) => void;
+  /** Reverse the last recorded semantic write. */
+  onUndo?: () => void;
 }
 
 export interface SemanticActions {
@@ -50,12 +54,41 @@ export interface SemanticActions {
   target: (id?: string) => string[];
 }
 
+/**
+ * One toast for the latest edit.
+ *
+ * Overwrite so a second delete does not stack, and the Undo on it is always
+ * the last step. Stay until dismissed when the step can be taken back — five
+ * seconds is not long enough to notice a row has gone and reach for Undo.
+ */
+function announceEdit(toast: ShowToastFn, body: string, onUndo?: () => void) {
+  let dismiss = () => {};
+  dismiss = toast({
+    body,
+    type: "info",
+    uniqueID: "semantic-edit",
+    isAutoHide: !onUndo,
+    endContent: onUndo ? (
+      <Button
+        label="Undo"
+        size="sm"
+        variant="secondary"
+        onClick={() => {
+          dismiss();
+          onUndo();
+        }}
+      />
+    ) : undefined,
+  });
+}
+
 export function useSemanticActions({
   tokens,
   selected,
   isSelected,
   onChange,
   onNewGroup,
+  onUndo,
 }: UseSemanticActions): SemanticActions {
   const toast = useToast();
   /* The clipboard as this page last saw it. The system clipboard is written
@@ -69,10 +102,12 @@ export function useSemanticActions({
       if (result.layer !== tokens) {
         onChange(result.layer, { justRemoved: result.removed });
       }
-      const message = describeRefusals(result.refusals);
-      if (message) toast({ body: message, type: "info" });
+      const success = describeSemanticEdit(tokens, result);
+      const refusal = describeRefusals(result.refusals);
+      const body = [success, refusal].filter(Boolean).join(" ");
+      if (body) announceEdit(toast, body, success ? onUndo : undefined);
     },
-    [onChange, toast, tokens],
+    [onChange, onUndo, toast, tokens],
   );
 
   const target = useCallback(

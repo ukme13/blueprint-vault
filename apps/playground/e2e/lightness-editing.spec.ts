@@ -45,4 +45,43 @@ test.describe("Lightness editing", () => {
 
     await expect(input).toHaveValue("50");
   });
+
+  test("each target-lightness track is a black-to-white gradient", async ({
+    seededPage: page,
+  }) => {
+    const track = page
+      .locator("[data-lightness-slider] .astryx-slider-track")
+      .first();
+    const fill = page
+      .locator(
+        "[data-lightness-slider] .astryx-slider-track + [aria-hidden='true']",
+      )
+      .first();
+
+    const backgroundImage = await track.evaluate(
+      (el) => getComputedStyle(el).backgroundImage,
+    );
+    const fillOpacity = await fill.evaluate(
+      (el) => getComputedStyle(el).opacity,
+    );
+
+    const borderWidth = await track.evaluate(
+      (el) => getComputedStyle(el).borderTopWidth,
+    );
+    const borderRadius = await track.evaluate(
+      (el) => getComputedStyle(el).borderRadius,
+    );
+    const middleTrack = page
+      .locator("[data-lightness-slider] .astryx-slider-track")
+      .nth(10);
+    const middleHeight = await middleTrack.evaluate(
+      (el) => getComputedStyle(el).height,
+    );
+
+    expect(backgroundImage).toMatch(/linear-gradient/i);
+    expect(Number(fillOpacity)).toBe(0);
+    expect(borderWidth).toBe("1px");
+    expect(borderRadius).toBe("4px");
+    expect(middleHeight).toBe("14px");
+  });
 });
