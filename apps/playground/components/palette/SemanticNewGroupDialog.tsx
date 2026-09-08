@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@blueprint/ui";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import {
@@ -31,11 +31,11 @@ export function SemanticNewGroupDialog({
       ? "Move 1 token into a new group"
       : `Move ${count} tokens into a new group`;
 
-  useEffect(() => {
-    if (isOpen) setName("");
-  }, [isOpen]);
-
-  const close = () => onOpenChange(false);
+  const handleOpenChange = (open: boolean) => {
+    if (!open) setName("");
+    onOpenChange(open);
+  };
+  const close = () => handleOpenChange(false);
   const commit = () => {
     if (!trimmed) return;
     onCommit(trimmed);
@@ -47,7 +47,7 @@ export function SemanticNewGroupDialog({
       isOpen={isOpen}
       purpose="form"
       width={400}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
     >
       <Layout
         height="auto"
@@ -55,7 +55,7 @@ export function SemanticNewGroupDialog({
           <DialogHeader
             subtitle={subtitle}
             title="New group"
-            onOpenChange={onOpenChange}
+            onOpenChange={handleOpenChange}
           />
         }
         content={
