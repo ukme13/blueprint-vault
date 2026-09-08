@@ -81,3 +81,54 @@ test.describe("Accessibility preview", () => {
     expect(widths.document).toBeLessThanOrEqual(widths.viewport);
   });
 });
+
+test.describe("Text hierarchy preview", () => {
+  test("the chip keeps palette colours when the studio is dark", async ({
+    seededPage: page,
+  }) => {
+    await page.getByRole("button", { name: "Preview" }).click();
+    const chip = page.locator("[data-preview-chip]");
+    await expect(chip).toHaveText("New release");
+
+    const darkFill = await chip.evaluate(
+      (el) => getComputedStyle(el).backgroundColor,
+    );
+    const darkText = await chip.evaluate((el) => getComputedStyle(el).color);
+
+    await page
+      .getByRole("radiogroup", { name: "Theme" })
+      .getByRole("radio", { name: "Light" })
+      .click();
+
+    await expect
+      .poll(() => chip.evaluate((el) => getComputedStyle(el).backgroundColor))
+      .toBe(darkFill);
+    await expect
+      .poll(() => chip.evaluate((el) => getComputedStyle(el).color))
+      .toBe(darkText);
+  });
+});
+
+test.describe("Surfaces preview", () => {
+  test("captions use supporting text without fading the colour", async ({
+    seededPage: page,
+  }) => {
+    await page.getByRole("button", { name: "Preview" }).click();
+
+    for (const label of ["Account balance", "Suggested action"]) {
+      const caption = page.getByText(label, { exact: true });
+      const opacity = await caption.evaluate(
+        (el) => getComputedStyle(el).opacity,
+      );
+      expect(Number(opacity)).toBe(1);
+    }
+
+    const captionColour = await page
+      .getByText("Account balance", { exact: true })
+      .evaluate((el) => getComputedStyle(el).color);
+    const headingColour = await page
+      .getByText("$24,860.00", { exact: true })
+      .evaluate((el) => getComputedStyle(el).color);
+    expect(captionColour).not.toBe(headingColour);
+  });
+});

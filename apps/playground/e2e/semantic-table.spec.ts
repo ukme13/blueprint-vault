@@ -34,7 +34,15 @@ function groupEntry(editor: Locator, label: string): Locator {
     .filter({ hasText: label });
 }
 
-/** Show one group, so the row order under test is short and known. */
+/** Name a new group in the modal opened from Move to group. */
+async function fillNewGroup(page: Page, name: string): Promise<void> {
+  const dialog = page.getByRole("dialog", { name: "New group" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel("Group name").fill(name);
+  await dialog.getByRole("button", { name: "Create" }).click();
+  await expect(dialog).toBeHidden();
+}
+
 async function showBorders(editor: Locator): Promise<void> {
   await groupEntry(editor, "Borders").click();
   await expect(editor.locator("tr:has([data-token])")).toHaveCount(4);
@@ -50,6 +58,22 @@ async function showBorders(editor: Locator): Promise<void> {
  */
 function rowBody(editor: Locator, id: string): Locator {
   return editor.locator(`tr:has([data-token="${id}"]) code`);
+}
+
+async function dragRowBody(
+  page: Page,
+  from: Locator,
+  to: Locator,
+): Promise<void> {
+  const start = await from.boundingBox();
+  const end = await to.boundingBox();
+  if (!start || !end) throw new Error("Expected row body to be visible");
+  await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(end.x + end.width / 2, end.y + end.height / 2, {
+    steps: 12,
+  });
+  await page.mouse.up();
 }
 
 const selectionCount = (editor: Locator) =>
@@ -240,6 +264,17 @@ test.describe("Operating on a selection", () => {
     await expect(toastText(page)).toContainText(
       "border.default (Astryx bridge)",
     );
+    await expect(toastText(page)).toContainText("Deleted");
+    await expect(
+      toastText(page).getByRole("button", { name: "Undo" }),
+    ).toBeVisible();
+    await toastText(page).getByRole("button", { name: "Undo" }).click();
+    await expect(await rowIds(editor)).toEqual([
+      "border.default",
+      "border.subtle",
+      "border.muted",
+      "border.strong",
+    ]);
   });
 
   test("Ctrl-Z after a delete puts the rows back where they were", async ({
@@ -299,18 +334,14 @@ test.describe("Operating on a selection", () => {
       .click();
     await page.getByRole("menuitem", { name: "Move to group…" }).hover();
     await page.getByRole("menuitem", { name: "New group" }).click();
-    /* Wait for the focus the field asks for before typing into it. The field
-       cancels on blur, and the menu returns focus to its trigger as it closes
-       — so a fill that lands before the field has focus is a fill the menu
-       then throws away. Passed alone and failed once in a full parallel run
-       before this line. */
-    const name = editor.getByLabel("New group name");
-    await expect(name).toBeFocused();
-    await name.fill("rule");
-    await name.press("Enter");
+    await fillNewGroup(page, "rule");
 
     await expect(groupEntry(editor, "Borders")).toContainText("2");
     await expect(groupEntry(editor, "rule")).toContainText("2");
+    await expect(toastText(page)).toContainText("Moved");
+    await toastText(page).getByRole("button", { name: "Undo" }).click();
+    await expect(groupEntry(editor, "Borders")).toContainText("4");
+    await expect(groupEntry(editor, "rule")).toHaveCount(0);
   });
 
   test("Move to group lists existing folders", async ({ seededPage: page }) => {
@@ -344,15 +375,7 @@ test.describe("Operating on a selection", () => {
       .click();
     await page.getByRole("menuitem", { name: "Move to group…" }).hover();
     await page.getByRole("menuitem", { name: "New group" }).click();
-    /* Wait for the focus the field asks for before typing into it. The field
-       cancels on blur, and the menu returns focus to its trigger as it closes
-       — so a fill that lands before the field has focus is a fill the menu
-       then throws away. Passed alone and failed once in a full parallel run
-       before this line. */
-    const name = editor.getByLabel("New group name");
-    await expect(name).toBeFocused();
-    await name.fill("rule");
-    await name.press("Enter");
+    await fillNewGroup(page, "rule");
 
     await expect(toastText(page)).toContainText(
       "border.default (Astryx bridge)",
@@ -360,31 +383,77 @@ test.describe("Operating on a selection", () => {
     await expect(groupEntry(editor, "Borders")).toContainText("4");
   });
 
-  test("the grip reorders rows inside one folder", async ({
+  test("a drop slot opens where the row will land", async ({
     seededPage: page,
   }) => {
     const editor = await openSemantics(page);
     await showBorders(editor);
 
-    const muted = editor.getByRole("button", { name: "Reorder Border muted" });
-    const subtle = editor.getByRole("button", {
-      name: "Reorder Border subtle",
-    });
-    const from = await muted.boundingBox();
-    const to = await subtle.boundingBox();
-    if (!from || !to) throw new Error("Expected row grips to be visible");
+    const from = await rowBody(editor, "border.muted").boundingBox();
+    const to = await rowBody(editor, "border.subtle").boundingBox();
+    if (!from || !to) throw new Error("Expected row body to be visible");
     await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
     await page.mouse.down();
     await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, {
       steps: 12,
     });
+    await expect(editor.locator("[data-drop-gap]")).toBeVisible();
     await page.mouse.up();
+  });
+
+  test("dragging a row body reorders it inside one folder", async ({
+    seededPage: page,
+  }) => {
+    const editor = await openSemantics(page);
+    await showBorders(editor);
+
+    await dragRowBody(
+      page,
+      rowBody(editor, "border.muted"),
+      rowBody(editor, "border.subtle"),
+    );
 
     await expect(await rowIds(editor)).toEqual([
       "border.default",
       "border.muted",
       "border.subtle",
       "border.strong",
+    ]);
+  });
+
+  test("there is no drag handle on a row", async ({ seededPage: page }) => {
+    const editor = await openSemantics(page);
+    await showBorders(editor);
+
+    await expect(editor.locator("[data-row-drag-handle]")).toHaveCount(0);
+    await expect(editor.getByRole("button", { name: /^Reorder / })).toHaveCount(
+      0,
+    );
+  });
+
+  test("dragging a selected block moves those rows together", async ({
+    seededPage: page,
+  }) => {
+    const editor = await openSemantics(page);
+    await showBorders(editor);
+
+    await rowBody(editor, "border.subtle").click();
+    await rowBody(editor, "border.muted").click({
+      modifiers: ["ControlOrMeta"],
+    });
+    await expect(selectionCount(editor)).toHaveText("2 selected");
+
+    await dragRowBody(
+      page,
+      rowBody(editor, "border.subtle"),
+      rowBody(editor, "border.strong"),
+    );
+
+    await expect(await rowIds(editor)).toEqual([
+      "border.default",
+      "border.strong",
+      "border.subtle",
+      "border.muted",
     ]);
   });
 
@@ -457,6 +526,25 @@ test.describe("Folder names and spreadsheet editing", () => {
     await field.press("Enter");
 
     await expect(editor.locator('[data-token="status.pending"]')).toBeVisible();
+  });
+
+  test("an invented status token is not locked and can be deleted", async ({
+    seededPage: page,
+  }) => {
+    const editor = await openSemantics(page);
+    await groupEntry(editor, "Status").click();
+    await editor.getByRole("button", { name: "Add token" }).click();
+
+    const field = editor.getByLabel("status.new-token name");
+    await field.fill("token");
+    await field.press("Enter");
+
+    await expect(editor.locator('[data-token="status.token"]')).toBeVisible();
+    await expect(editor.locator('[data-locked="status.token"]')).toHaveCount(0);
+
+    await editor.getByRole("button", { name: "Actions for token" }).click();
+    await page.getByRole("menuitem", { name: "Delete" }).click();
+    await expect(editor.locator('[data-token="status.token"]')).toHaveCount(0);
   });
 
   test("a dotted name in All creates a token in that folder", async ({

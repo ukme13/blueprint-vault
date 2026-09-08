@@ -1,6 +1,6 @@
 import { semanticGroupLabel, semanticGroupOf } from "./token-rows";
 import type { SemanticToken } from "./semantic";
-import type { SemanticRefusal } from "./selection-ops";
+import type { SemanticEdit, SemanticRefusal } from "./selection-ops";
 
 /**
  * What the table shows, and what is selected in it.
@@ -208,4 +208,53 @@ export function describeRefusals(refusals: readonly SemanticRefusal[]): string {
 
   const rows = refusals.length === 1 ? "1 row was" : `${refusals.length} were`;
   return `${rows} kept: ${named.join(", ")}.`;
+}
+
+function countPhrase(count: number, one: string): string {
+  return count === 1 ? one : `${count} tokens`;
+}
+
+const COPY_SUFFIX = /-copy(-\d+)?$/;
+
+/**
+ * What to tell somebody when an edit did land.
+ *
+ * One short sentence for the toast: a name when there is one row, a count
+ * when there are several. Empty when the layer did not change, so a caller
+ * can skip the toast the way `describeRefusals` skips an empty refusal list.
+ *
+ * Delete, duplicate, paste and move are the operations that mean something
+ * happened; a no-op, a reorder and a repoint are silent here.
+ */
+export function describeSemanticEdit(
+  before: readonly SemanticToken[],
+  result: SemanticEdit,
+): string {
+  if (result.layer === before) return "";
+
+  if (result.removed.length > 0 && result.added.length === 0) {
+    return `Deleted ${countPhrase(result.removed.length, result.removed[0]!)}.`;
+  }
+
+  if (result.added.length > 0 && result.removed.length === 0) {
+    const copies = result.added.every((id) => COPY_SUFFIX.test(id));
+    const verb = copies ? "Duplicated" : "Pasted";
+    const one = copies
+      ? result.added[0]!.replace(COPY_SUFFIX, "")
+      : result.added[0]!;
+    return `${verb} ${countPhrase(result.added.length, one)}.`;
+  }
+
+  const beforeIds = new Set(before.map((token) => token.id));
+  const afterIds = new Set(result.layer.map((token) => token.id));
+  const left = before.filter((token) => !afterIds.has(token.id));
+  const arrived = result.layer.filter((token) => !beforeIds.has(token.id));
+  if (left.length === 0 || left.length !== arrived.length) return "";
+
+  const groups = [
+    ...new Set(arrived.map((token) => semanticGroupOf(token.id))),
+  ];
+  if (groups.length !== 1) return "";
+  const label = semanticGroupLabel(groups[0]!);
+  return `Moved ${countPhrase(left.length, left[0]!.id)} to ${label}.`;
 }

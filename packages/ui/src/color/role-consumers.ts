@@ -151,8 +151,11 @@ export function usedBy(id: string): string[] {
         ? "Palette preview (required)"
         : "Palette preview",
     );
+    /* The pair grid measures signalling roles that already exist. It does not
+       read a name, so an invented `action.token` must not inherit a lock from
+       a grid that would simply have one less pair if the row went. */
+    if (isSignallingRole(id)) consumers.push("Colour-vision pair grid");
   }
-  if (isSignallingRole(id)) consumers.push("Colour-vision pair grid");
 
   return consumers;
 }

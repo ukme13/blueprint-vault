@@ -69,26 +69,51 @@ function edit(
 }
 
 /**
- * Reorder one token inside its current group. Groups are folders in the
- * semantic table, so a drag may change sibling order but never move a token
- * across a folder boundary. Use `moveToGroup` for that deliberate action.
+ * Reorder one token, or a selected block, inside its current group.
+ *
+ * Groups are folders in the semantic table, so a drag may change sibling
+ * order but never move a token across a folder boundary. Use `moveToGroup`
+ * for that deliberate action. A mixed-group selection is also a no-op:
+ * dragging is not a rename, and silently rewriting ids would be.
+ *
+ * `selectedIds` is the table's current selection. If the dragged row is in
+ * it, every selected row moves as one block in the layer's existing order.
+ * If it is not, only the dragged row moves — other selected rows stay put.
  */
 export function reorderToken(
   layer: SemanticToken[],
   activeId: string,
   overId: string,
+  selectedIds: readonly string[] = [],
 ): SemanticEdit {
   const from = layer.findIndex((token) => token.id === activeId);
   const to = layer.findIndex((token) => token.id === overId);
   if (from === -1) return edit(layer, [notHere(activeId)]);
   if (to === -1) return edit(layer, [notHere(overId)]);
-  if (from === to || semanticGroupOf(activeId) !== semanticGroupOf(overId)) {
+  const selected = new Set(selectedIds);
+  const movingIds = selected.has(activeId)
+    ? layer.filter((token) => selected.has(token.id)).map((token) => token.id)
+    : [activeId];
+  const group = semanticGroupOf(movingIds[0]!);
+  if (
+    from === to ||
+    movingIds.some((id) => semanticGroupOf(id) !== group) ||
+    group !== semanticGroupOf(overId) ||
+    (movingIds.length > 1 && movingIds.includes(overId))
+  ) {
     return edit(layer);
   }
-  const next = [...layer];
-  const [moved] = next.splice(from, 1);
-  next.splice(to, 0, moved!);
-  return edit(next);
+  const moving = new Set(movingIds);
+  const block = layer.filter((token) => moving.has(token.id));
+  const remaining = layer.filter((token) => !moving.has(token.id));
+  const over = remaining.findIndex((token) => token.id === overId);
+  if (over === -1) return edit(layer);
+  const insertAt = from < to ? over + 1 : over;
+  return edit([
+    ...remaining.slice(0, insertAt),
+    ...block,
+    ...remaining.slice(insertAt),
+  ]);
 }
 
 /** The refusal every operation gives for an id that is not in the layer. */
@@ -139,6 +164,8 @@ export function deleteTokens(
     }
     deleting.add(id);
   }
+
+  if (deleting.size === 0) return edit(layer, refusals);
 
   return edit(
     layer.filter((token) => !deleting.has(token.id)),
@@ -276,6 +303,8 @@ export function moveToGroup(
     taken.add(next);
     taken.delete(id);
   }
+
+  if (renames.size === 0) return edit(layer, refusals);
 
   return edit(
     layer.map((token) => {

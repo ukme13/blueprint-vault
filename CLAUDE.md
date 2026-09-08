@@ -101,6 +101,19 @@ We absolutely DO NOT use standard Tailwind raw utility colors (e.g., `bg-orange-
    existing behaviour, break the rule deliberately once and confirm the test
    catches it.
 
+## Token & execution
+
+- Tests: Vitest for package logic; Playwright only the spec that covers the
+  change. Never `playwright test` with no filter unless I ask. Use
+  `--reporter=line`.
+- If an unrelated or flaky test fails, stop and report. Do not retry, bisect,
+  or fix it.
+- Do not use browser tools or screenshots; I will check the screen. Still run
+  the targeted spec for behaviour.
+- Read with grep / line ranges. Do not dump whole large files.
+- Stop any temp server you started on 3000–3005 before finishing. Never touch
+  port 3002.
+
 ## 🔀 Git & Workflow Protocol
 
 1. **Local first.** Always commit locally. Never `git push` or open a PR

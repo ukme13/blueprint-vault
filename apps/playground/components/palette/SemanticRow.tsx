@@ -1,9 +1,7 @@
 "use client";
 
 import type { MouseEvent } from "react";
-import { GripVertical, Lock } from "lucide-react";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { Lock } from "lucide-react";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { TableCell, TableRow } from "@astryxdesign/core/Table";
 import {
@@ -20,6 +18,7 @@ import {
   type SemanticRowActions,
 } from "./SemanticRowMenu";
 import { SemanticTextCell } from "./SemanticTextCell";
+import { useSemanticRowSort } from "./use-semantic-row-sort";
 import type { SemanticColumnKey } from "./use-semantic-column-widths";
 import styles from "./semantic-table.module.css";
 
@@ -53,32 +52,17 @@ interface SemanticRowProps {
 
 export function SemanticRow(props: SemanticRowProps) {
   const { token } = props;
-  const {
-    attributes,
-    isDragging,
-    listeners,
-    setActivatorNodeRef,
-    setNodeRef,
-    transform,
-    transition,
-  } = useSortable({ id: token.id, disabled: !props.canReorder });
+  const { isDragging, setNodeRef, sortableProps } = useSemanticRowSort({
+    id: token.id,
+    canReorder: props.canReorder,
+    onRowClick: props.onRowClick,
+  });
   const consumers = usedBy(token.id);
   const cell = (key: SemanticColumnKey) => {
     if (key === "name")
       return (
         <TableCell key={key}>
           <div className={styles.nameCell} data-token={token.id}>
-            <button
-              ref={setActivatorNodeRef}
-              aria-label={`Reorder ${token.name}`}
-              className={styles.rowDragHandle}
-              data-row-drag-handle
-              type="button"
-              {...attributes}
-              {...listeners}
-            >
-              <GripVertical aria-hidden="true" size={14} />
-            </button>
             {consumers.length > 0 && (
               <Tooltip
                 content={`Read by ${listConsumers(consumers)}. It cannot be renamed.`}
@@ -163,21 +147,11 @@ export function SemanticRow(props: SemanticRowProps) {
       ref={setNodeRef}
       aria-selected={props.selected}
       className={styles.row}
+      data-can-reorder={props.canReorder || undefined}
+      data-dragging={isDragging || undefined}
       data-selected={props.selected || undefined}
       data-token-row={token.id}
-      onClick={(event) => {
-        if (
-          !(event.target as HTMLElement).closest(
-            "input, button, select, textarea, [role='combobox'], [role='listbox'], [data-row-drag-handle]",
-          )
-        )
-          props.onRowClick(event);
-      }}
-      style={{
-        opacity: isDragging ? 0.45 : undefined,
-        transform: CSS.Translate.toString(transform),
-        transition,
-      }}
+      {...sortableProps}
     >
       {props.columnOrder.map((key) => cell(key))}
     </TableRow>

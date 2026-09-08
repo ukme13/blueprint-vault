@@ -1,17 +1,9 @@
 "use client";
 
-import type { MouseEvent } from "react";
-import {
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
+import type { MouseEvent, ReactNode } from "react";
+import { DndContext, DragOverlay } from "@dnd-kit/core";
 import {
   SortableContext,
-  sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import {
@@ -24,12 +16,18 @@ import {
 } from "@astryxdesign/core/Table";
 import {
   groupSemanticTokens,
+  semanticVariableName,
+  shortName,
   type ColorTrack,
   type SemanticToken,
 } from "@blueprint/ui";
 import { type SemanticRowActions } from "./SemanticRowMenu";
 import { SemanticRow, type SemanticCell } from "./SemanticRow";
-import { useSemanticColumnWidths } from "./use-semantic-column-widths";
+import { useSemanticTableSort } from "./use-semantic-row-sort";
+import {
+  useSemanticColumnWidths,
+  type SemanticColumnKey,
+} from "./use-semantic-column-widths";
 import styles from "./semantic-table.module.css";
 
 interface SemanticTableProps {
@@ -63,25 +61,71 @@ interface SemanticTableProps {
   onReorder: (activeId: string, overId: string) => void;
 }
 
+function DropGap({ colSpan }: { colSpan: number }) {
+  return (
+    <TableRow aria-hidden="true" className={styles.dropGap} data-drop-gap>
+      <TableCell colSpan={colSpan} />
+    </TableRow>
+  );
+}
+
+function withDropGap(
+  row: ReactNode,
+  tokenId: string,
+  colSpan: number,
+  gap: { id: string; side: "before" | "after" } | null,
+): ReactNode[] {
+  if (gap?.id !== tokenId) return [row];
+  const slot = <DropGap key={`drop-gap-${tokenId}`} colSpan={colSpan} />;
+  return gap.side === "before" ? [slot, row] : [row, slot];
+}
+
 export function SemanticTable(props: SemanticTableProps) {
   const columns = useSemanticColumnWidths();
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
   const groups =
     props.group === null
       ? groupSemanticTokens(props.rows)
       : [{ group: props.group, label: "", tokens: props.rows }];
   const ids = groups.flatMap((group) => group.tokens.map((token) => token.id));
-  const onDragEnd = (event: DragEndEvent) => {
-    if (event.over)
-      props.onReorder(String(event.active.id), String(event.over.id));
-  };
+  const sort = useSemanticTableSort(ids, props.onReorder);
+  const activeToken = sort.activeId
+    ? props.tokens.find((token) => token.id === sort.activeId)
+    : undefined;
+  const tokenRow = (token: SemanticToken, canReorder: boolean) => (
+    <SemanticRow
+      key={token.id}
+      token={token}
+      tokens={props.tokens}
+      palettes={props.palettes}
+      columnOrder={columns.order}
+      selected={props.isSelected(token.id)}
+      editing={props.editing?.id === token.id ? props.editing.cell : null}
+      actions={props.actionsFor(token.id)}
+      canReorder={canReorder}
+      onRowClick={(event) => props.onRowClick(token.id, event)}
+      onEdit={(cell) => props.onEdit(token.id, cell)}
+      onCancel={props.onCancel}
+      onReferenceChange={(mode, next) =>
+        props.onReferenceChange(token.id, mode, next)
+      }
+      onAlphaChange={(mode, alpha) =>
+        props.onAlphaChange(token.id, mode, alpha)
+      }
+      onAlphaMove={props.onAlphaMove}
+      onCommitText={(cell, value, move) =>
+        props.onCommitText(token.id, cell, value, move)
+      }
+    />
+  );
   return (
-    <DndContext sensors={sensors} onDragEnd={onDragEnd}>
+    <DndContext
+      measuring={sort.measuring}
+      sensors={sort.sensors}
+      onDragStart={sort.onDragStart}
+      onDragOver={sort.onDragOver}
+      onDragCancel={sort.onDragCancel}
+      onDragEnd={sort.onDragEnd}
+    >
       <SortableContext items={ids} strategy={verticalListSortingStrategy}>
         <Table
           density="compact"
@@ -96,7 +140,7 @@ export function SemanticTable(props: SemanticTableProps) {
           </colgroup>
           <TableHeader>
             <TableRow isHeaderRow>
-              {columns.order.map((key) => (
+              {columns.order.map((key: SemanticColumnKey) => (
                 <TableHeaderCell key={key} className={styles.resizeHeader}>
                   {key === "actions" ? (
                     <span className={styles.srOnly}>Actions</span>
@@ -125,42 +169,34 @@ export function SemanticTable(props: SemanticTableProps) {
                       data-group-heading={group.group}
                       key={`heading-${group.group}`}
                     >
-                      <TableCell colSpan={6}>{group.label}</TableCell>
+                      <TableCell colSpan={columns.order.length}>
+                        {group.label}
+                      </TableCell>
                     </TableRow>,
                   ]
                 : []),
-              ...group.tokens.map((token) => (
-                <SemanticRow
-                  key={token.id}
-                  token={token}
-                  tokens={props.tokens}
-                  palettes={props.palettes}
-                  columnOrder={columns.order}
-                  selected={props.isSelected(token.id)}
-                  editing={
-                    props.editing?.id === token.id ? props.editing.cell : null
-                  }
-                  actions={props.actionsFor(token.id)}
-                  canReorder={group.tokens.length > 1}
-                  onRowClick={(event) => props.onRowClick(token.id, event)}
-                  onEdit={(cell) => props.onEdit(token.id, cell)}
-                  onCancel={props.onCancel}
-                  onReferenceChange={(mode, next) =>
-                    props.onReferenceChange(token.id, mode, next)
-                  }
-                  onAlphaChange={(mode, alpha) =>
-                    props.onAlphaChange(token.id, mode, alpha)
-                  }
-                  onAlphaMove={props.onAlphaMove}
-                  onCommitText={(cell, value, move) =>
-                    props.onCommitText(token.id, cell, value, move)
-                  }
-                />
-              )),
+              ...group.tokens.flatMap((token) =>
+                withDropGap(
+                  tokenRow(token, group.tokens.length > 1),
+                  token.id,
+                  columns.order.length,
+                  sort.gap,
+                ),
+              ),
             ])}
           </TableBody>
         </Table>
       </SortableContext>
+      <DragOverlay dropAnimation={null}>
+        {activeToken ? (
+          <div className={styles.dragOverlay}>
+            <span>{shortName(activeToken.id)}</span>
+            <code className={styles.variable}>
+              {semanticVariableName(activeToken.id)}
+            </code>
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }

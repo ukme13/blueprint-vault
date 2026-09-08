@@ -112,6 +112,28 @@ describe("usedBy", () => {
     expect(usedBy("border.subtle")).toEqual([]);
   });
 
+  it("names nothing for a token somebody just added", () => {
+    /* Add token writes `custom.new-token`, or `{folder}.new-token`. A hyphen
+       in the short name already keeps it out of the pair grid; the folder
+       `new` from typing a dotted name is not a signalling group either. None
+       of these ids appear in the Button table, the bridge, or the preview. */
+    expect(usedBy("custom.new-token")).toEqual([]);
+    expect(usedBy("new.token")).toEqual([]);
+    expect(usedBy("action.new-token")).toEqual([]);
+    expect(isLoadBearing("custom.new-token")).toBe(false);
+    expect(isLoadBearing("new.token")).toBe(false);
+  });
+
+  it("does not lock an invented action or status colour", () => {
+    /* The pair grid is a rule over the layer, not a reader of a name. A
+       custom `action.token` would join the grid if it stayed, and leave it
+       if it went — which is not the same as deleting `action.primary` and
+       emptying every primary button. */
+    expect(usedBy("action.token")).toEqual([]);
+    expect(usedBy("status.pending")).toEqual([]);
+    expect(isLoadBearing("action.token")).toBe(false);
+  });
+
   it("names the pair grid for a role that signals by colour", () => {
     expect(usedBy("status.success")).toContain("Colour-vision pair grid");
     /* A part of a control is not a signal — it is the ground under one — and

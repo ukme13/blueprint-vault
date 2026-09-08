@@ -118,6 +118,30 @@ describe("deleteTokens", () => {
     expect(result.layer).toEqual(before);
     expect(result.refusals).toEqual([]);
     expect(result.removed).toEqual([]);
+    expect(result.layer).toBe(before);
+  });
+
+  it("returns the same layer when every named row is refused", () => {
+    const before = layer();
+    const result = deleteTokens(before, ["action.primary"]);
+    expect(result.layer).toBe(before);
+    expect(result.removed).toEqual([]);
+  });
+
+  it("deletes an invented action colour, which nothing reads by name", () => {
+    /* `action.token` signals by colour if it stays, but the pair grid does
+       not ask for that name — it just has one less pair if the row goes. */
+    const invented: SemanticToken = {
+      id: "action.token",
+      name: "token",
+      description: "",
+      light: { trackId: "t-neutral", weight: 500 },
+      dark: { trackId: "t-neutral", weight: 500 },
+    };
+    const result = deleteTokens([...layer(), invented], ["action.token"]);
+    expect(ids(result.layer)).not.toContain("action.token");
+    expect(result.refusals).toEqual([]);
+    expect(result.removed).toEqual(["action.token"]);
   });
 });
 
@@ -237,11 +261,30 @@ describe("moveToGroup", () => {
   });
 
   it("does nothing to a token already in that group", () => {
-    const result = moveToGroup(layer(), ["brand.wash"], "brand");
-    expect(ids(result.layer)).toEqual(ids(layer()));
+    const before = layer();
+    const result = moveToGroup(before, ["brand.wash"], "brand");
+    expect(result.layer).toBe(before);
     expect(result.refusals).toEqual([]);
   });
+
+  it("returns the same layer when every named row is refused", () => {
+    const before = layer();
+    const result = moveToGroup(before, ["action.primary"], "brand");
+    expect(result.layer).toBe(before);
+  });
 });
+
+function brandLayer(): SemanticToken[] {
+  const tokens = layer();
+  const rule = tokens[2]!;
+  return [
+    tokens[0]!,
+    tokens[1]!,
+    rule,
+    { ...rule, id: "brand.tint", name: "Brand tint" },
+    tokens[3]!,
+  ];
+}
 
 describe("reorderToken", () => {
   it("moves a token among its folder siblings", () => {
@@ -257,6 +300,41 @@ describe("reorderToken", () => {
   it("does not turn a row drag into a cross-folder move", () => {
     const result = reorderToken(layer(), "brand.rule", "extra.scrim");
     expect(ids(result.layer)).toEqual(ids(layer()));
+  });
+
+  it("moves a selected block as one piece, in the layer's order", () => {
+    const result = reorderToken(brandLayer(), "brand.wash", "brand.tint", [
+      "brand.rule",
+      "brand.wash",
+    ]);
+    expect(ids(result.layer)).toEqual([
+      "action.primary",
+      "brand.tint",
+      "brand.wash",
+      "brand.rule",
+      "extra.scrim",
+    ]);
+  });
+
+  it("moves only the dragged row when it is not selected", () => {
+    const result = reorderToken(brandLayer(), "brand.rule", "brand.wash", [
+      "brand.tint",
+    ]);
+    expect(ids(result.layer)).toEqual([
+      "action.primary",
+      "brand.rule",
+      "brand.wash",
+      "brand.tint",
+      "extra.scrim",
+    ]);
+  });
+
+  it("does not move a selection that spans more than one folder", () => {
+    const result = reorderToken(brandLayer(), "brand.wash", "brand.tint", [
+      "action.primary",
+      "brand.wash",
+    ]);
+    expect(ids(result.layer)).toEqual(ids(brandLayer()));
   });
 });
 
