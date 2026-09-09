@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Slider } from "@astryxdesign/core/Slider";
+import { Ruler } from "lucide-react";
 import {
   Button,
+  HybridTokenizedInput,
   MAX_SPACING_BASE_UNIT_PX,
   MIN_SPACING_BASE_UNIT_PX,
+  SPACING_BASE_UNIT_PRESETS,
+  resolveHybridValue,
   defaultElevationScale,
   defaultRadiusScale,
   defaultSpacingScale,
@@ -94,6 +97,7 @@ const OFFERED_STEPS = generateSpacingSteps(16);
 
 export function SpacingStudio() {
   const [scale, setScale] = useState<SpacingScale>(defaultSpacingScale());
+  const [detachedBaseUnit, setDetachedBaseUnit] = useState<number | null>(null);
   const [radius, setRadius] = useState<RadiusScale>(defaultRadiusScale());
   const [elevation, setElevation] = useState<ElevationScale>(
     defaultElevationScale(),
@@ -168,25 +172,37 @@ export function SpacingStudio() {
       </header>
 
       <main className="mx-auto flex max-w-4xl flex-col gap-8 px-6 py-10">
-        <section aria-label="Base unit" className="flex flex-col gap-2">
+        <section className="flex flex-col gap-2">
           <h1 className="text-lg font-semibold">Spacing</h1>
           <p className="max-w-2xl text-sm text-[var(--color-text-secondary)]">
             Every step is a multiple of the base unit. This is a grid rather
             than a ratio: a type scale multiplies, and spacing counts.
           </p>
           <div className="max-w-sm">
-            <Slider
-              label={`Base unit: ${scale.baseUnitPx}px`}
+            <HybridTokenizedInput
+              decimals={0}
+              icon={<Ruler aria-hidden className="size-3.5" />}
+              label="Base unit"
               max={MAX_SPACING_BASE_UNIT_PX}
               min={MIN_SPACING_BASE_UNIT_PX}
+              popoverTitle="Base unit presets"
+              presets={SPACING_BASE_UNIT_PRESETS}
+              searchPlaceholder="Search presets..."
               step={1}
-              value={scale.baseUnitPx}
-              onChange={(value: number | [number, number]) =>
+              value={resolveHybridValue(
+                scale.baseUnitPx,
+                SPACING_BASE_UNIT_PRESETS,
+                detachedBaseUnit,
+                0,
+              )}
+              valueSuffix="px"
+              onChange={(next) => {
+                setDetachedBaseUnit(next.isPreset ? null : next.value);
                 setScale((current) => ({
                   ...current,
-                  baseUnitPx: value as number,
-                }))
-              }
+                  baseUnitPx: next.value,
+                }));
+              }}
             />
           </div>
         </section>

@@ -137,7 +137,7 @@ test.describe("Typography scale editing", () => {
   test("shows a warning when the scale ratio grows too fast", async ({
     seededPage: page,
   }) => {
-    await page.getByLabel("Scale ratio").click();
+    await page.getByLabel("Scale ratio", { exact: true }).click();
     await page.getByRole("option", { name: /Golden Ratio/ }).click();
 
     /* The ratio is on Settings and what it raises is a panel over, which is
@@ -788,8 +788,8 @@ test.describe("Where a Selector menu opens", () => {
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    /* The ratio Selector. The script Selector this used to open no longer
-       exists. */
+    /* The ratio field. A bound chip opens the preset list; the option role is
+       what this used to get from a Selector. */
     const trigger = settings.getByLabel("Scale ratio", { exact: true });
 
     await trigger.click();
@@ -803,8 +803,8 @@ test.describe("Where a Selector menu opens", () => {
     // Short enough that the menu has to flip above the trigger.
     await page.setViewportSize({ width: 1280, height: 560 });
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    /* The ratio Selector. The script Selector this used to open no longer
-       exists. */
+    /* The ratio field. A bound chip opens the preset list; the option role is
+       what this used to get from a Selector. */
     const trigger = settings.getByLabel("Scale ratio", { exact: true });
     await trigger.scrollIntoViewIfNeeded();
 

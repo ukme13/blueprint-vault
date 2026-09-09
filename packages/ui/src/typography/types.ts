@@ -68,9 +68,16 @@ export interface TypeScale {
   roles: RoleAssignment[];
 }
 
-export interface TypeScaleRatioPreset {
+/**
+ * A named modular-scale interval: the musical-interval presets Figma-style
+ * ratio fields bind to.
+ */
+export interface ModularScalePreset {
   id: string;
   name: string;
   ratio: number;
+}
+
+export interface TypeScaleRatioPreset extends ModularScalePreset {
   description: string;
 }

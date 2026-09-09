@@ -1,3 +1,4 @@
+import type { HybridTokenPreset } from "../hybrid-tokenized-input";
 import { ROOT_FONT_SIZE_PX } from "../typography/types";
 
 /**
@@ -27,6 +28,18 @@ export const DEFAULT_SPACING_BASE_UNIT_PX = 4;
  */
 export const MIN_SPACING_BASE_UNIT_PX = 1;
 export const MAX_SPACING_BASE_UNIT_PX = 16;
+
+/**
+ * Named bases the hybrid field can bind to.
+ *
+ * 4 is the convention; 2 and 8 are the densities people actually pick. Values
+ * outside this list stay as a raw number — the grid still clamps at 1–16.
+ */
+export const SPACING_BASE_UNIT_PRESETS: readonly HybridTokenPreset[] = [
+  { id: "base-2", name: "Dense", value: 2 },
+  { id: "base-4", name: "Default", value: 4 },
+  { id: "base-8", name: "Comfortable", value: 8 },
+];
 
 /** The largest multiple worth offering, so a generated ramp terminates. */
 export const MAX_SPACING_STEP = 64;

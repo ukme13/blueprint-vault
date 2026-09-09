@@ -10,6 +10,7 @@ import {
 } from "@astryxdesign/core/SegmentedControl";
 import { Selector } from "@astryxdesign/core/Selector";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
+import { Type } from "lucide-react";
 import {
   assessBodyFontSize,
   assessLineHeight,
@@ -33,6 +34,11 @@ import {
   resolveRoleSizePx,
   TYPE_SCALE_UNITS,
   TYPE_SCALE_RATIO_PRESETS,
+  HybridTokenizedInput,
+  hybridPresetsFromModularScale,
+  resolveHybridValue,
+  MAX_RATIO,
+  MIN_RATIO,
   type PaletteProjectData,
   type TypeRole,
   type TypeScaleUnit,
@@ -91,6 +97,10 @@ import { useTypographySystem } from "./use-typography-system";
 import styles from "./typography-workspace.module.css";
 import type { TypographySection } from "./types";
 
+const SCALE_RATIO_PRESETS = hybridPresetsFromModularScale(
+  TYPE_SCALE_RATIO_PRESETS,
+);
+
 export function TypographyStudio() {
   const [project, setProject] = useState<TypographyProject | null>(null);
   const [hasLoadedProject, setHasLoadedProject] = useState(false);
@@ -111,6 +121,7 @@ export function TypographyStudio() {
   const [textShade, setTextShade] = useState<ShadeRef | null>(null);
   const [backgroundShade, setBackgroundShade] = useState<ShadeRef | null>(null);
   const [previewWeight, setPreviewWeight] = useState<number | null>(null);
+  const [detachedRatio, setDetachedRatio] = useState<number | null>(null);
   const inspectorPanel = useResizable({
     autoSaveId: "blueprint-typography-inspector",
     defaultSize: 560,
@@ -618,16 +629,25 @@ export function TypographyStudio() {
                   value={system.baseFontSizePx}
                   onChange={(value) => updateSystem({ baseFontSizePx: value })}
                 />
-                <Selector
+                <HybridTokenizedInput
+                  decimals={3}
+                  icon={<Type aria-hidden className="size-3.5" />}
                   label="Scale ratio"
-                  options={[
-                    ...TYPE_SCALE_RATIO_PRESETS.map((preset) => ({
-                      label: `${preset.name} (${preset.ratio})`,
-                      value: String(preset.ratio),
-                    })),
-                  ]}
-                  value={String(system.ratio)}
-                  onChange={(value) => updateSystem({ ratio: Number(value) })}
+                  max={MAX_RATIO}
+                  min={MIN_RATIO}
+                  popoverTitle="Modular Scale Presets"
+                  presets={SCALE_RATIO_PRESETS}
+                  searchPlaceholder="Search scale presets..."
+                  step={0.001}
+                  value={resolveHybridValue(
+                    system.ratio,
+                    SCALE_RATIO_PRESETS,
+                    detachedRatio,
+                  )}
+                  onChange={(next) => {
+                    setDetachedRatio(next.isPreset ? null : next.value);
+                    updateSystem({ ratio: next.value });
+                  }}
                 />
                 <NumberInput
                   isIntegerOnly

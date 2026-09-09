@@ -2,10 +2,11 @@
 
 import { useState, type FormEvent } from "react";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
-import { Selector } from "@astryxdesign/core/Selector";
 import { TextInput } from "@astryxdesign/core/TextInput";
+import { Type } from "lucide-react";
 import {
   Button,
+  HybridTokenizedInput,
   MAX_BASE_FONT_SIZE_PX,
   MAX_RATIO,
   MAX_STEP_COUNT,
@@ -13,6 +14,8 @@ import {
   MIN_RATIO,
   MIN_STEP_COUNT,
   TYPE_SCALE_RATIO_PRESETS,
+  hybridPresetsFromModularScale,
+  type HybridTokenizedValue,
   type TypeScaleInput,
 } from "@blueprint/ui";
 import { ThemeControl } from "../ThemeControl";
@@ -23,22 +26,25 @@ interface TypographyCreationProps {
   onCreate: (details: { name: string } & TypeScaleInput) => void;
 }
 
+const SCALE_RATIO_PRESETS = hybridPresetsFromModularScale(
+  TYPE_SCALE_RATIO_PRESETS,
+);
+
+const DEFAULT_RATIO: HybridTokenizedValue = {
+  isPreset: true,
+  presetId: "major-third",
+  value: 1.25,
+};
+
 export function TypographyCreation({ onCreate }: TypographyCreationProps) {
   const [name, setName] = useState("My type scale");
   const [fontFamily, setFontFamily] = useState(
     "Geist Sans, ui-sans-serif, system-ui",
   );
   const [baseFontSizePx, setBaseFontSizePx] = useState(16);
-  const [ratioPresetId, setRatioPresetId] = useState("major-third");
-  const [customRatio, setCustomRatio] = useState(1.25);
+  const [ratio, setRatio] = useState<HybridTokenizedValue>(DEFAULT_RATIO);
   const [stepCount, setStepCount] = useState(9);
   const [error, setError] = useState("");
-
-  const preset = TYPE_SCALE_RATIO_PRESETS.find(
-    (candidate) => candidate.id === ratioPresetId,
-  );
-  const ratio =
-    ratioPresetId === "custom" ? customRatio : (preset?.ratio ?? 1.25);
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -51,7 +57,11 @@ export function TypographyCreation({ onCreate }: TypographyCreationProps) {
       setError("Enter a font family.");
       return;
     }
-    if (!Number.isFinite(ratio) || ratio < MIN_RATIO || ratio > MAX_RATIO) {
+    if (
+      !Number.isFinite(ratio.value) ||
+      ratio.value < MIN_RATIO ||
+      ratio.value > MAX_RATIO
+    ) {
       setError(`Ratio must be between ${MIN_RATIO} and ${MAX_RATIO}.`);
       return;
     }
@@ -61,7 +71,7 @@ export function TypographyCreation({ onCreate }: TypographyCreationProps) {
       name: name.trim(),
       fontFamily: fontFamily.trim(),
       baseFontSizePx,
-      ratio,
+      ratio: ratio.value,
       stepCount,
     });
   };
@@ -114,28 +124,19 @@ export function TypographyCreation({ onCreate }: TypographyCreationProps) {
             value={baseFontSizePx}
             onChange={setBaseFontSizePx}
           />
-          <Selector
+          <HybridTokenizedInput
+            decimals={3}
+            icon={<Type aria-hidden className="size-3.5" />}
             label="Scale ratio"
-            options={[
-              ...TYPE_SCALE_RATIO_PRESETS.map((ratioPreset) => ({
-                label: `${ratioPreset.name} (${ratioPreset.ratio})`,
-                value: ratioPreset.id,
-              })),
-              { label: "Custom", value: "custom" },
-            ]}
-            value={ratioPresetId}
-            onChange={setRatioPresetId}
+            max={MAX_RATIO}
+            min={MIN_RATIO}
+            popoverTitle="Modular Scale Presets"
+            presets={SCALE_RATIO_PRESETS}
+            searchPlaceholder="Search scale presets..."
+            step={0.001}
+            value={ratio}
+            onChange={setRatio}
           />
-          {ratioPresetId === "custom" && (
-            <NumberInput
-              label="Custom ratio"
-              min={MIN_RATIO}
-              max={MAX_RATIO}
-              step={0.01}
-              value={customRatio}
-              onChange={setCustomRatio}
-            />
-          )}
           <NumberInput
             isIntegerOnly
             label="Number of steps"

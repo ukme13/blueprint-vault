@@ -3,6 +3,7 @@ import {
   DEFAULT_SPACING_BASE_UNIT_PX,
   MAX_SPACING_BASE_UNIT_PX,
   MIN_SPACING_BASE_UNIT_PX,
+  SPACING_BASE_UNIT_PRESETS,
   defaultSpacingScale,
   generateSpacingSteps,
   normalizeSpacingScale,
@@ -28,6 +29,16 @@ describe("the default scale", () => {
   it("uses 4px, the unit Astryx and Tailwind both use", () => {
     expect(defaultSpacingScale().baseUnitPx).toBe(4);
     expect(DEFAULT_SPACING_BASE_UNIT_PX).toBe(4);
+  });
+
+  it("keeps named bases inside the allowed range", () => {
+    expect(SPACING_BASE_UNIT_PRESETS.map((preset) => preset.value)).toEqual([
+      2, 4, 8,
+    ]);
+    for (const preset of SPACING_BASE_UNIT_PRESETS) {
+      expect(preset.value).toBeGreaterThanOrEqual(MIN_SPACING_BASE_UNIT_PX);
+      expect(preset.value).toBeLessThanOrEqual(MAX_SPACING_BASE_UNIT_PX);
+    }
   });
 
   it("hands back a copy, not the shared list", () => {
