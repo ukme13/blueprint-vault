@@ -8,6 +8,7 @@ import { deleteTokens } from "../color/selection-ops";
 import { defaultElevationScale } from "../scale/elevation";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
+import { defaultPreviewDevices } from "../typography/preview-devices";
 import { defaultSystem } from "../typography/system";
 import {
   BLUEPRINT_WORKSPACE_FILE_VERSION,
@@ -77,6 +78,7 @@ const workspace = (over: Partial<WorkspaceProject> = {}): WorkspaceProject => ({
     unit: "px",
     specimenText: "Sphinx",
     template: "article",
+    previewDevices: defaultPreviewDevices(1.25),
   },
   semantics: null,
   removedSeedRoles: [],

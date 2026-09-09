@@ -14,7 +14,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { SemanticRole } from "./types";
 
-export type PreviewTemplateId = "specimen" | "article" | "marketing";
+export type PreviewTemplateId = "specimen" | "article";
 export type PreviewLanguage = "en" | "th";
 
 export const PREVIEW_TEMPLATES: Array<{
@@ -23,52 +23,44 @@ export const PREVIEW_TEMPLATES: Array<{
 }> = [
   { id: "specimen", label: "Specimen" },
   { id: "article", label: "Article" },
-  { id: "marketing", label: "Marketing page" },
-];
-
-/** Preview widths in px. A template is judged at the width it will ship at. */
-export const PREVIEW_WIDTHS = {
-  mobile: 375,
-  tablet: 768,
-  desktop: 1120,
-} as const;
-
-export type PreviewWidth = keyof typeof PREVIEW_WIDTHS;
-
-export const PREVIEW_WIDTH_OPTIONS: Array<{
-  id: PreviewWidth;
-  label: string;
-}> = [
-  { id: "mobile", label: "Mobile" },
-  { id: "tablet", label: "Tablet" },
-  { id: "desktop", label: "Desktop" },
 ];
 
 /**
  * Layout classes the host supplies.
  *
  * The templates moved here when a second application needed them, and their
- * three layout rules did not: they were a CSS module in the studio, and a
- * package that shipped its own stylesheet would be deciding what a gap is for
- * every app that renders one. This is the same arrangement Button already has
- * — the caller's className is the only thing that draws pixels — and it is
- * what lets the documentation set an article in its own column while the
- * studio sets it inside a resizable preview stage.
+ * layout rules did not: they were a CSS module in the studio, and a package
+ * that shipped its own stylesheet would be deciding what a gap is for every
+ * app that renders one. This is the same arrangement Button already has — the
+ * caller's className is the only thing that draws pixels — and it is what
+ * lets the documentation set an article in its own column while the studio
+ * sets it inside a resizable preview stage.
  *
  * Every field is optional: a template with no classes still renders, in the
  * browser's own block layout, which is the honest default for a specimen.
  */
 export interface TemplateClassNames {
   article?: string;
-  marketing?: string;
-  /** The list wrapping a marketing template's feature cards. */
-  features?: string;
 }
 
 export interface TemplateProps {
   /** Resolved CSS for a role, so templates never do scale maths themselves. */
   styleFor: (role: SemanticRole) => CSSProperties;
-  lang: PreviewLanguage;
+  /**
+   * Canned copy language when `text` is omitted.
+   *
+   * The documentation still ships bilingual articles. The studio passes
+   * `text` instead: one specimen string, whatever the user typed.
+   */
+  lang?: PreviewLanguage;
+  /**
+   * When set, every slot renders this string.
+   *
+   * The studio preview shares the editor's specimen so a person types once
+   * and judges the scale in the same copy, including scripts the canned
+   * English/Thai pair never covered.
+   */
+  text?: string;
   classNames?: TemplateClassNames;
   /**
    * Where the template's own headings sit in the host's outline.
@@ -97,8 +89,9 @@ function headings(level: 1 | 2 | 3 | 4) {
 
 /**
  * Copy is written for Blueprint. Templates exist to show the scale doing a real
- * job, so the text is realistic rather than lorem ipsum, and every template has
- * a Thai version: a scale that reads well in English can still crowd Thai marks.
+ * job, so the text is realistic rather than lorem ipsum, and the documentation
+ * still has a Thai version: a scale that reads well in English can still crowd
+ * Thai marks.
  */
 const ARTICLE = {
   en: {
@@ -134,40 +127,23 @@ const ARTICLE = {
   },
 } as const;
 
-const MARKETING = {
-  en: {
-    eyebrow: "Blueprint",
-    title: "Build a palette and a type scale that agree with each other",
-    subtitle:
-      "One workspace for colour and type, exporting tokens your components can actually use.",
-    featureOneTitle: "Stable intervals",
-    featureOneBody:
-      "Shades land on a fixed grid, so a token means the same thing in every theme.",
-    featureTwoTitle: "Readable by default",
-    featureTwoBody:
-      "Sizes export in rem, so text still respects a reader's browser settings.",
-    featureThreeTitle: "Checked as you go",
-    featureThreeBody:
-      "Contrast and line-height warnings appear while you edit, not after you ship.",
-    smallPrint: "Tokens export as CSS, Tailwind, and design tokens.",
-  },
-  th: {
-    eyebrow: "Blueprint",
-    title: "สร้างชุดสีและสเกลตัวอักษรที่สอดคล้องกัน",
-    subtitle:
-      "พื้นที่ทำงานเดียวสำหรับสีและตัวอักษร ส่งออกโทเคนที่คอมโพเนนต์ใช้งานได้จริง",
-    featureOneTitle: "ช่วงที่คงที่",
-    featureOneBody:
-      "เฉดสีอยู่บนกริดที่กำหนดไว้ โทเคนหนึ่งจึงมีความหมายเดียวกันในทุกธีม",
-    featureTwoTitle: "อ่านง่ายตั้งแต่ต้น",
-    featureTwoBody:
-      "ขนาดส่งออกเป็น rem ข้อความจึงยังเคารพการตั้งค่าเบราว์เซอร์ของผู้อ่าน",
-    featureThreeTitle: "ตรวจสอบระหว่างทาง",
-    featureThreeBody:
-      "คำเตือนเรื่องคอนทราสต์และความสูงบรรทัดแสดงขณะแก้ไข ไม่ใช่หลังส่งงาน",
-    smallPrint: "ส่งออกโทเคนเป็น CSS, Tailwind และ design tokens",
-  },
-} as const;
+type ArticleCopy = { [K in keyof (typeof ARTICLE)["en"]]: string };
+
+function articleCopy(lang: PreviewLanguage, text?: string): ArticleCopy {
+  if (!text) return ARTICLE[lang];
+  return {
+    kicker: text,
+    title: text,
+    standfirst: text,
+    byline: text,
+    headingOne: text,
+    bodyOne: text,
+    headingTwo: text,
+    bodyTwo: text,
+    quote: text,
+    caption: text,
+  };
+}
 
 function Field({
   children,
@@ -181,101 +157,36 @@ function Field({
 
 export function ArticleTemplate({
   styleFor,
-  lang,
+  lang = "en",
+  text,
   classNames,
   headingLevel = 1,
 }: TemplateProps) {
   const { Title, Section } = headings(headingLevel);
-  const copy = ARTICLE[lang];
+  const copy = articleCopy(lang, text);
+  const wrap = (value: string) =>
+    text ? value : <Field lang={lang}>{value}</Field>;
 
   return (
     <article className={classNames?.article}>
-      <p style={styleFor("label")}>
-        <Field lang={lang}>{copy.kicker}</Field>
-      </p>
-      <Title style={styleFor("display")}>
-        <Field lang={lang}>{copy.title}</Field>
-      </Title>
-      <p style={styleFor("title")}>
-        <Field lang={lang}>{copy.standfirst}</Field>
-      </p>
-      <p style={styleFor("caption")}>
-        <Field lang={lang}>{copy.byline}</Field>
-      </p>
+      <p style={styleFor("label")}>{wrap(copy.kicker)}</p>
+      <Title style={styleFor("display")}>{wrap(copy.title)}</Title>
+      <p style={styleFor("title")}>{wrap(copy.standfirst)}</p>
+      <p style={styleFor("caption")}>{wrap(copy.byline)}</p>
 
-      <Section style={styleFor("heading")}>
-        <Field lang={lang}>{copy.headingOne}</Field>
-      </Section>
-      <p style={styleFor("body")}>
-        <Field lang={lang}>{copy.bodyOne}</Field>
-      </p>
+      <Section style={styleFor("heading")}>{wrap(copy.headingOne)}</Section>
+      <p style={styleFor("body")}>{wrap(copy.bodyOne)}</p>
 
-      <blockquote style={styleFor("title")}>
-        <Field lang={lang}>{copy.quote}</Field>
-      </blockquote>
+      <blockquote style={styleFor("title")}>{wrap(copy.quote)}</blockquote>
 
-      <Section style={styleFor("heading")}>
-        <Field lang={lang}>{copy.headingTwo}</Field>
-      </Section>
-      <p style={styleFor("body")}>
-        <Field lang={lang}>{copy.bodyTwo}</Field>
-      </p>
+      <Section style={styleFor("heading")}>{wrap(copy.headingTwo)}</Section>
+      <p style={styleFor("body")}>{wrap(copy.bodyTwo)}</p>
 
       <figure>
         <figcaption style={styleFor("caption")}>
-          <Field lang={lang}>{copy.caption}</Field>
+          {wrap(copy.caption)}
         </figcaption>
       </figure>
-    </article>
-  );
-}
-
-export function MarketingTemplate({
-  styleFor,
-  lang,
-  classNames,
-  headingLevel = 1,
-}: TemplateProps) {
-  const { Title, Section } = headings(headingLevel);
-  const copy = MARKETING[lang];
-  const features = [
-    { title: copy.featureOneTitle, body: copy.featureOneBody },
-    { title: copy.featureTwoTitle, body: copy.featureTwoBody },
-    { title: copy.featureThreeTitle, body: copy.featureThreeBody },
-  ];
-
-  return (
-    <article className={classNames?.marketing}>
-      <header>
-        <p style={styleFor("label")}>
-          <Field lang={lang}>{copy.eyebrow}</Field>
-        </p>
-        <Title style={styleFor("display")}>
-          <Field lang={lang}>{copy.title}</Field>
-        </Title>
-        <p style={styleFor("title")}>
-          <Field lang={lang}>{copy.subtitle}</Field>
-        </p>
-      </header>
-
-      <ul className={classNames?.features}>
-        {features.map((feature) => (
-          <li key={feature.title}>
-            <Section style={styleFor("heading")}>
-              <Field lang={lang}>{feature.title}</Field>
-            </Section>
-            <p style={styleFor("body")}>
-              <Field lang={lang}>{feature.body}</Field>
-            </p>
-          </li>
-        ))}
-      </ul>
-
-      <footer>
-        <p style={styleFor("caption")}>
-          <Field lang={lang}>{copy.smallPrint}</Field>
-        </p>
-      </footer>
     </article>
   );
 }

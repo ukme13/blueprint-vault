@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { defaultElevationScale } from "../scale/elevation";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
+import { defaultPreviewDevices } from "../typography/preview-devices";
 import { defaultSystem } from "../typography/system";
 import {
   DEFAULT_PREVIEW_TEMPLATE,
@@ -50,6 +51,7 @@ function legacyTypography(over: Record<string, unknown> = {}) {
     unit: "px",
     specimenText: "Sphinx of black quartz",
     template: "article",
+    previewDevices: ["phone", "tablet", "desktop"],
     ...over,
   };
 }
@@ -143,6 +145,9 @@ describe("loadWorkspace — what a browser might already hold", () => {
     expect(project?.typography?.unit).toBe(DEFAULT_TYPE_SCALE_UNIT);
     expect(project?.typography?.specimenText).toBe(DEFAULT_SPECIMEN_TEXT);
     expect(project?.typography?.template).toBe(DEFAULT_PREVIEW_TEMPLATE);
+    expect(project?.typography?.previewDevices).toEqual(
+      defaultPreviewDevices(1.25),
+    );
   });
 
   it("prefers a stored workspace over the legacy keys", () => {

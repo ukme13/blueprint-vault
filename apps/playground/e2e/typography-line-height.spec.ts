@@ -1,4 +1,9 @@
-import { expect, showInspectorPanel, test } from "./typography-fixtures";
+import {
+  expect,
+  fillHybridNumber,
+  showInspectorPanel,
+  test,
+} from "./typography-fixtures";
 
 /**
  * The line-height field.
@@ -25,8 +30,6 @@ const SIZE = "body size";
  */
 const lineHeightField = (page: import("@playwright/test").Page) =>
   page.getByRole("spinbutton", { name: LINE_HEIGHT });
-const sizeField = (page: import("@playwright/test").Page) =>
-  page.getByRole("spinbutton", { name: SIZE });
 
 /*
  * Body's line height as the workspace has it stored, not as the field shows it.
@@ -156,21 +159,19 @@ test.describe("The line-height field", () => {
     seededPage: page,
   }) => {
     const field = lineHeightField(page);
-    const size = sizeField(page);
 
     /* The clear button, which is the gesture the placeholder invites. It
        commits on blur like any other edit, so the model does not change until
        focus leaves — `fill("")` looks the same on screen and never gets
        there, because it does not emit the events the input listens for. */
     await page.getByRole("button", { name: `Clear ${LINE_HEIGHT}` }).click();
-    await size.click();
+    await page.getByLabel("body font weight").click();
     await expect(field).toHaveValue("");
 
     /* Cleared really means auto, rather than an empty field still holding the
        old number underneath: only auto follows the size. 18 x 1.5 is 27, and
        auto snaps up to 28 — a pinned 1.5 would sit at 27. */
-    await size.fill("18");
-    await size.blur();
+    await fillHybridNumber(page, SIZE, "18");
     await expect(field).toHaveAttribute("placeholder", "28");
   });
 
@@ -196,7 +197,6 @@ test.describe("The line-height field", () => {
     seededPage: page,
   }) => {
     const field = lineHeightField(page);
-    const size = sizeField(page);
 
     await field.focus();
     await field.press("a");
@@ -205,8 +205,7 @@ test.describe("The line-height field", () => {
     /* 18 x 1.5 is 27, which is on no grid, so auto snaps up to 28. This is
        the point of storing no number: the value tracks the size and lands on
        the 4px rhythm on the way. */
-    await size.fill("18");
-    await size.blur();
+    await fillHybridNumber(page, SIZE, "18");
     await expect(field).toHaveAttribute("placeholder", "28");
 
     /* Pinning is how somebody opts out of that. Against an empty field the
@@ -215,8 +214,7 @@ test.describe("The line-height field", () => {
     await field.blur();
     await expect(field).toHaveValue("28");
 
-    await size.fill("20");
-    await size.blur();
+    await fillHybridNumber(page, SIZE, "20");
     /* 20 x 1.5 snaps to 32, so a value still on auto would move here. */
     await expect(field).toHaveValue("28");
   });

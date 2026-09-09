@@ -61,9 +61,11 @@ test.describe("The spacing studio", () => {
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     await expect(steps.getByText("16px", { exact: true })).toBeVisible();
 
-    const slider = page.getByRole("slider", { name: /Base unit/ });
-    await slider.focus();
-    await slider.press("ArrowRight");
+    await page.getByRole("textbox", { name: "Custom number" }).click();
+    await page.keyboard.type("5");
+    const field = page.getByLabel("Base unit", { exact: true });
+    await expect(field).toHaveValue("5");
+    await field.blur();
 
     await expect(steps.getByText("20px", { exact: true })).toBeVisible();
   });

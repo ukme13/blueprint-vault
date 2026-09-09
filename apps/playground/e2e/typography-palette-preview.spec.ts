@@ -85,18 +85,17 @@ test.describe("Preview against the real palette", () => {
     page,
   }) => {
     await seed(page, true);
-    await pick(page, "Text colour", "neutral 950");
     await pick(page, "Background colour", "neutral 50");
 
-    /* The role cards paint their own surface by default, which would hide the
-       choice and preview the text on studio chrome. */
+    /* The fill is on the card, clipped to its radius. Painting the stage
+       instead showed the colour in the corner cutouts. */
     const card = page
       .getByRole("region", { name: "Type scale preview" })
       .locator("article")
       .first();
     await expect
       .poll(() => card.evaluate((el) => getComputedStyle(el).backgroundColor))
-      .toBe("rgba(0, 0, 0, 0)");
+      .not.toBe("rgba(0, 0, 0, 0)");
   });
 
   test("says what to do when the workspace has no palette", async ({

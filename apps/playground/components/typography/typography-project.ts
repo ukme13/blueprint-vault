@@ -12,6 +12,8 @@ import {
   type TypographyProjectData,
   PREVIEW_TEMPLATES,
   type PreviewTemplateId,
+  type PreviewDevice,
+  normalizePreviewDevices,
 } from "@blueprint/ui";
 
 export const DEFAULT_UNIT: TypeScaleUnit = DEFAULT_TYPE_SCALE_UNIT;
@@ -27,6 +29,8 @@ export interface TypographyProject {
   specimenText: string;
   /** Which preview template the Preview section shows. */
   template: PreviewTemplateId;
+  /** Named frames offered in the preview. Phone, tablet and desktop, plus extra desktops. */
+  previewDevices: PreviewDevice[];
 }
 
 /* The workspace name as this tab last saw it. See the note in PaletteStudio:
@@ -71,6 +75,10 @@ function narrowTemplate(
     template: PREVIEW_TEMPLATES.some((entry) => entry.id === data.template)
       ? (data.template as PreviewTemplateId)
       : DEFAULT_TEMPLATE,
+    previewDevices: normalizePreviewDevices(
+      data.previewDevices,
+      data.system.ratio,
+    ),
   };
 }
 

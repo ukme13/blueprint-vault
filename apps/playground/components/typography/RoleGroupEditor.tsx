@@ -8,22 +8,20 @@ import { Selector } from "@astryxdesign/core/Selector";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import {
   Button,
-  formatLength,
+  HybridTokenizedInput,
   TYPE_INDEXING_LABELS,
+  hybridPresetsFromTypeSteps,
+  hybridValueFromStepOffset,
   type TypeFont,
   type TypeGroup,
   type TypeIndexing,
   type TypeRole,
-  type TypeScaleUnit,
   type TypeStep,
   resolveLineHeight,
   type LineHeightConfig,
 } from "@blueprint/ui";
 import { LineHeightInput } from "./LineHeightInput";
 import styles from "./typography-workspace.module.css";
-
-/** Sentinel for a role that carries its own size rather than following a step. */
-const CUSTOM_STEP = "custom";
 
 export interface RoleGroupEditorProps {
   group: TypeGroup;
@@ -32,7 +30,6 @@ export interface RoleGroupEditorProps {
   fonts: TypeFont[];
   /** Largest first, matching the step list the canvas renders. */
   steps: TypeStep[];
-  unit: TypeScaleUnit;
   canAddRole: boolean;
   onAddRole: () => void;
   onRemove: () => void;
@@ -53,7 +50,6 @@ export function RoleGroupEditor({
   roles,
   fonts,
   steps,
-  unit,
   canAddRole,
   onAddRole,
   onRemove,
@@ -76,6 +72,7 @@ export function RoleGroupEditor({
     transition,
     isDragging,
   } = useSortable({ id: group.id });
+  const sizePresets = hybridPresetsFromTypeSteps(steps);
 
   return (
     <div
@@ -194,52 +191,38 @@ export function RoleGroupEditor({
             <div key={role.id} className={styles.roleTableRow}>
               <span className={styles.roleSettingLabel}>{role.id}</span>
 
-              {/* Value first, preset second — the same shape as binding a
-                  variable in Figma. Type any size, or pick a step off the
-                  ramp. */}
+              {/* A bound chip is a step on the ramp; typing a size unlinks it. */}
               <div className={styles.sizeCell}>
-                <NumberInput
+                <HybridTokenizedInput
+                  decimals={0}
                   isLabelHidden
                   label={`${role.id} size`}
-                  min={1}
                   max={400}
-                  units="px"
-                  value={role.desktop.fontSizePx}
-                  onChange={(value) =>
-                    /* Typing a size unlinks the role from the ramp, so changing
-                       the ratio never overwrites a number someone set
-                       deliberately. */
+                  min={1}
+                  popoverTitle="Type steps"
+                  presets={sizePresets}
+                  searchPlaceholder="Search steps..."
+                  step={1}
+                  value={hybridValueFromStepOffset(
+                    role.stepOffset,
+                    role.desktop.fontSizePx,
+                  )}
+                  valueSuffix="px"
+                  onChange={(next) => {
+                    if (next.isPreset && next.presetId !== undefined) {
+                      onRoleChange(role.id, {
+                        stepOffset: Number(next.presetId),
+                        sameAsRoleId: null,
+                      });
+                      return;
+                    }
                     onRoleChange(role.id, {
                       stepOffset: null,
                       sameAsRoleId: null,
-                      desktop: { ...role.desktop, fontSizePx: value },
-                      mobile: { ...role.mobile, fontSizePx: value },
-                    })
-                  }
-                />
-                <Selector
-                  label={`${role.id} step`}
-                  isLabelHidden
-                  options={[
-                    { label: "Custom", value: CUSTOM_STEP },
-                    ...steps.map((step) => ({
-                      label: `${step.offset >= 0 ? "+" : ""}${step.offset} · ${formatLength(step.fontSizePx, unit)}`,
-                      value: String(step.offset),
-                    })),
-                  ]}
-                  value={
-                    role.stepOffset === null
-                      ? CUSTOM_STEP
-                      : String(role.stepOffset)
-                  }
-                  onChange={(value) =>
-                    onRoleChange(
-                      role.id,
-                      value === CUSTOM_STEP
-                        ? { stepOffset: null, sameAsRoleId: null }
-                        : { stepOffset: Number(value), sameAsRoleId: null },
-                    )
-                  }
+                      desktop: { ...role.desktop, fontSizePx: next.value },
+                      mobile: { ...role.mobile, fontSizePx: next.value },
+                    });
+                  }}
                 />
               </div>
 

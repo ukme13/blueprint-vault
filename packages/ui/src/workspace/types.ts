@@ -3,6 +3,7 @@ import type { SemanticToken } from "../color/semantic";
 import type { ElevationScale } from "../scale/elevation";
 import type { RadiusScale } from "../scale/radius";
 import type { SpacingScale } from "../scale/spacing";
+import type { PreviewDevice } from "../typography/preview-devices";
 import type { TypeScaleUnit } from "../typography/types";
 import type { TypeSystem } from "../typography/system";
 
@@ -19,6 +20,14 @@ export interface TypographyProjectData {
    * them narrows this against the list it actually has.
    */
   template: string;
+  /**
+   * Named frames offered in the typography preview.
+   *
+   * Phone, tablet and desktop are always present. A project may add up to
+   * two extra desktop sizes. Older saves that stored a hide/show id list
+   * gain all three required frames on read.
+   */
+  previewDevices: PreviewDevice[];
 }
 
 /**

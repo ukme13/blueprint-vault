@@ -33,6 +33,7 @@ import {
   resolveRoleSizePx,
   TYPE_SCALE_UNITS,
   TYPE_SCALE_RATIO_PRESETS,
+  hybridPresetsFromModularScale,
   type PaletteProjectData,
   type TypeRole,
   type TypeScaleUnit,
@@ -43,8 +44,12 @@ import {
   localFontKey,
   resolveTemplateSlot,
   type SemanticRole,
-  type PreviewLanguage,
-  type PreviewWidth,
+  defaultPreviewDevices,
+  addExtraDesktop,
+  removePreviewDevice,
+  updatePreviewDevice,
+  resolvePreviewDevice,
+  type HybridTokenizedValue,
 } from "@blueprint/ui";
 import {
   closestCenter,
@@ -68,6 +73,8 @@ import { WorkspaceNav } from "../WorkspaceNav";
 import { FontStackEditor } from "./FontStackEditor";
 import { RoleGroupEditor } from "./RoleGroupEditor";
 import { TypographyPreview } from "./TypographyPreview";
+import { PreviewDeviceBar } from "./PreviewDeviceBar";
+import { PreviewDeviceSettings } from "./PreviewDeviceSettings";
 import type { ShadeRef } from "./PreviewColourControls";
 import {
   DEFAULT_SPECIMEN_TEXT,
@@ -91,6 +98,10 @@ import { useTypographySystem } from "./use-typography-system";
 import styles from "./typography-workspace.module.css";
 import type { TypographySection } from "./types";
 
+const SCALE_RATIO_PRESETS = hybridPresetsFromModularScale(
+  TYPE_SCALE_RATIO_PRESETS,
+);
+
 export function TypographyStudio() {
   const [project, setProject] = useState<TypographyProject | null>(null);
   const [hasLoadedProject, setHasLoadedProject] = useState(false);
@@ -98,10 +109,9 @@ export function TypographyStudio() {
     useState<TypographySection>("editor");
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
-  /* Width and language are ways of looking at the project, not part of it, so
-     they are view state rather than persisted fields. */
-  const [previewWidth, setPreviewWidth] = useState<PreviewWidth>("desktop");
-  const [previewLang, setPreviewLang] = useState<PreviewLanguage>("en");
+  /* The active device is a way of looking at the project, not part of it.
+     Which devices are offered is a setting and persists. */
+  const [previewDevice, setPreviewDevice] = useState("desktop");
   /* Which font entry the step list renders in. The steps are sizes shared by
      several roles, so they have no font of their own to follow. */
   const [previewFontId, setPreviewFontId] = useState<string | null>(null);
@@ -111,6 +121,9 @@ export function TypographyStudio() {
   const [textShade, setTextShade] = useState<ShadeRef | null>(null);
   const [backgroundShade, setBackgroundShade] = useState<ShadeRef | null>(null);
   const [previewWeight, setPreviewWeight] = useState<number | null>(null);
+  const [detachedRatios, setDetachedRatios] = useState<
+    Record<string, number | null>
+  >({});
   const inspectorPanel = useResizable({
     autoSaveId: "blueprint-typography-inspector",
     defaultSize: 560,
@@ -135,17 +148,22 @@ export function TypographyStudio() {
   }, [hasLoadedProject, project]);
 
   const system = project?.system ?? null;
+  const activePreviewDevice = project
+    ? resolvePreviewDevice(previewDevice, project.previewDevices)
+    : undefined;
 
-  /* Steps still come from the base and ratio; roles linked to a step follow
-     them, roles with step: null keep the size someone set by hand. */
+  /* Steps still come from the base and the active device's ratio; roles
+     linked to a step follow them, roles with step: null keep the size
+     someone set by hand. Switching a nav icon changes the ramp, not only
+     the preview frame. */
   const steps = useMemo(() => {
     if (!system) return [];
     return generateTypeSteps(
       system.baseFontSizePx,
-      system.ratio,
+      activePreviewDevice?.ratio ?? system.ratio,
       system.stepCount,
     );
-  }, [system]);
+  }, [system, activePreviewDevice?.ratio]);
 
   const resolvedRoles = useMemo((): TypeRole[] => {
     if (!system) return [];
@@ -208,8 +226,54 @@ export function TypographyStudio() {
 
   /* Unit, specimen and template sit beside the system rather than in it, so
      they do not go through the hook. This is the same guard it keeps, once. */
+  const patchProject = (
+    updater: (current: TypographyProject) => TypographyProject,
+  ) => {
+    setProject((current) => (current ? updater(current) : current));
+  };
+
   const setPreference = (patch: Partial<Omit<TypographyProject, "system">>) =>
-    setProject((current) => (current ? { ...current, ...patch } : current));
+    patchProject((current) => ({ ...current, ...patch }));
+
+  const handleAddDesktop = () => {
+    patchProject((current) => ({
+      ...current,
+      previewDevices: addExtraDesktop(current.previewDevices),
+    }));
+  };
+
+  const handleRemoveDevice = (id: string) => {
+    patchProject((current) => ({
+      ...current,
+      previewDevices: removePreviewDevice(current.previewDevices, id),
+    }));
+  };
+
+  const handleDeviceWidth = (id: string, widthPx: number) => {
+    patchProject((current) => ({
+      ...current,
+      previewDevices: updatePreviewDevice(current.previewDevices, id, {
+        widthPx,
+      }),
+    }));
+  };
+
+  const handleDeviceRatio = (id: string, next: HybridTokenizedValue) => {
+    setDetachedRatios((current) => ({
+      ...current,
+      [id]: next.isPreset ? null : next.value,
+    }));
+    patchProject((current) => ({
+      ...current,
+      previewDevices: updatePreviewDevice(current.previewDevices, id, {
+        ratio: next.value,
+      }),
+      system:
+        id === "desktop"
+          ? { ...current.system, ratio: next.value }
+          : current.system,
+    }));
+  };
 
   /* Defaults to whatever body uses, since that is the size people read most,
      and falls through if the chosen entry has since been removed. */
@@ -303,7 +367,7 @@ export function TypographyStudio() {
     );
   }
 
-  if (!project || !system || !resolvedSystem) {
+  if (!project || !system || !resolvedSystem || !activePreviewDevice) {
     return (
       <TypographyCreation
         onCreate={({ name, fontFamily, baseFontSizePx, ratio, stepCount }) => {
@@ -320,6 +384,7 @@ export function TypographyStudio() {
             unit: DEFAULT_UNIT,
             specimenText: DEFAULT_SPECIMEN_TEXT,
             template: DEFAULT_TEMPLATE,
+            previewDevices: defaultPreviewDevices(ratio),
           });
         }}
       />
@@ -332,6 +397,8 @@ export function TypographyStudio() {
   const rolesLargeToSmall = [...resolvedRoles].sort(
     (first, second) => second.desktop.fontSizePx - first.desktop.fontSizePx,
   );
+  const devices = project.previewDevices;
+  const activeDevice = activePreviewDevice;
 
   /* Templates receive resolved CSS so they never do scale maths themselves.
      Sizes stay in px here: this is a rendered preview, not exported output.
@@ -363,16 +430,6 @@ export function TypographyStudio() {
           name={system.name}
           onChange={(name) => updateSystem({ name })}
         />
-        <nav aria-label="Playground sections" className={styles.navigation}>
-          <TabList
-            size="sm"
-            value={activeSection}
-            onChange={(value) => setActiveSection(value as TypographySection)}
-          >
-            <Tab label="Editor" value="editor" />
-            <Tab label="Preview" value="preview" />
-          </TabList>
-        </nav>
         <span className={styles.headerActions}>
           <ThemeControl />
           <WorkspaceNav active="typography" />
@@ -389,6 +446,21 @@ export function TypographyStudio() {
       </header>
 
       <section aria-label="Typography toolbar" className={styles.toolbar}>
+        <nav aria-label="Typography views" className={styles.navigation}>
+          <TabList
+            size="sm"
+            value={activeSection}
+            onChange={(value) => setActiveSection(value as TypographySection)}
+          >
+            <Tab label="Editor" value="editor" />
+            <Tab label="Preview" value="preview" />
+          </TabList>
+        </nav>
+        <PreviewDeviceBar
+          activeId={activeDevice.id}
+          devices={devices}
+          onChange={setPreviewDevice}
+        />
         <Button
           className={styles.newProjectButton}
           scheme="neutral"
@@ -400,15 +472,15 @@ export function TypographyStudio() {
         </Button>
       </section>
 
-      {activeSection === "editor" && (
-        <section
-          className={styles.editor}
-          style={
-            {
-              "--inspector-width": `${inspectorPanel.size}px`,
-            } as CSSProperties
-          }
-        >
+      <section
+        className={styles.editor}
+        style={
+          {
+            "--inspector-width": `${inspectorPanel.size}px`,
+          } as CSSProperties
+        }
+      >
+        {activeSection === "editor" ? (
           <section aria-label="Generated type steps" className={styles.canvas}>
             {/* Sits above the steps so the unit is chosen where the sizes are
                 read, not buried in the export dialog. */}
@@ -528,32 +600,47 @@ export function TypographyStudio() {
               })}
             </ul>
           </section>
-
-          <ResizeHandle
-            className={styles.resizeHandle}
-            direction="horizontal"
-            hasDivider
-            isReversed
-            label="Resize typography settings"
-            pillPlacement="center"
-            resizable={inspectorPanel.props}
-            onKeyDown={(event) => {
-              if (event.key === "ArrowLeft") {
-                event.preventDefault();
-                inspectorPanel.resize(inspectorPanel.size + 10);
-              }
-              if (event.key === "ArrowRight") {
-                event.preventDefault();
-                inspectorPanel.resize(inspectorPanel.size - 10);
-              }
-            }}
+        ) : (
+          <TypographyPreview
+            device={activeDevice}
+            roles={rolesLargeToSmall}
+            specimenText={project.specimenText}
+            styleFor={styleForRole}
+            styleOf={styleOfRole}
+            system={resolvedSystem}
+            template={project.template}
+            unit={project.unit}
+            onTemplateChange={(template) => setPreference({ template })}
+            backgroundShade={backgroundShade}
+            textShade={textShade}
+            tracks={paletteTracks}
+            onBackgroundShadeChange={setBackgroundShade}
+            onTextShadeChange={setTextShade}
           />
+        )}
 
-          <section
-            aria-label="Type scale settings"
-            className={styles.inspector}
-          >
-            {/* TabList takes no className, so the tabs are reached through a
+        <ResizeHandle
+          className={styles.resizeHandle}
+          direction="horizontal"
+          hasDivider
+          isReversed
+          label="Resize typography settings"
+          pillPlacement="center"
+          resizable={inspectorPanel.props}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowLeft") {
+              event.preventDefault();
+              inspectorPanel.resize(inspectorPanel.size + 10);
+            }
+            if (event.key === "ArrowRight") {
+              event.preventDefault();
+              inspectorPanel.resize(inspectorPanel.size - 10);
+            }
+          }}
+        />
+
+        <section aria-label="Type scale settings" className={styles.inspector}>
+          {/* TabList takes no className, so the tabs are reached through a
                 wrapper.
 
                 Astryx gives a tab a 10px radius, which reads as a pill
@@ -566,273 +653,241 @@ export function TypographyStudio() {
                 span behind the label, sized to the old 32px and rounded to
                 match, so squaring the button alone left a rounded pill
                 floating inside a square tab. */}
-            <div className="[&_.astryx-tab]:h-10 [&_.astryx-tab]:rounded-none [&_.astryx-tab]:py-1 [&_.astryx-tab>span:first-child]:h-full [&_.astryx-tab>span:first-child]:rounded-none">
-              <TabList
-                hasDivider
-                layout="fill"
-                /* The tabs pattern rather than navigation: these switch panels
+          <div className="[&_.astryx-tab]:h-10 [&_.astryx-tab]:rounded-none [&_.astryx-tab]:py-1 [&_.astryx-tab>span:first-child]:h-full [&_.astryx-tab>span:first-child]:rounded-none">
+            <TabList
+              hasDivider
+              layout="fill"
+              /* The tabs pattern rather than navigation: these switch panels
                  in place, and `panelId` is how a screen reader gets from a
                  tab to the panel it opened. */
-                role="tablist"
-                value={inspectorTab}
-                onChange={(value) =>
-                  setInspectorTab(value as typeof inspectorTab)
-                }
-              >
-                <Tab
-                  label="Settings"
-                  panelId="inspector-settings"
-                  value="settings"
-                />
-                <Tab label="Groups" panelId="inspector-groups" value="groups" />
-                <Tab
-                  label="Warnings"
-                  panelId="inspector-warnings"
-                  value="warnings"
-                  /* Counts only, which is what a badge is for. Absent at zero:
+              role="tablist"
+              value={inspectorTab}
+              onChange={(value) =>
+                setInspectorTab(value as typeof inspectorTab)
+              }
+            >
+              <Tab
+                label="Settings"
+                panelId="inspector-settings"
+                value="settings"
+              />
+              <Tab label="Groups" panelId="inspector-groups" value="groups" />
+              <Tab
+                label="Warnings"
+                panelId="inspector-warnings"
+                value="warnings"
+                /* Counts only, which is what a badge is for. Absent at zero:
                    a badge reading 0 is a count of nothing taking up the room
                    of a count of something. */
-                  endContent={
-                    openWarnings > 0 ? (
-                      <Badge label={String(openWarnings)} variant="warning" />
-                    ) : undefined
-                  }
-                />
-              </TabList>
+                endContent={
+                  openWarnings > 0 ? (
+                    <Badge label={String(openWarnings)} variant="warning" />
+                  ) : undefined
+                }
+              />
+            </TabList>
+          </div>
+
+          <div
+            hidden={inspectorTab !== "settings"}
+            id="inspector-settings"
+            role="tabpanel"
+          >
+            <div className={styles.settingGroup}>
+              <h2>Scale</h2>
+              <NumberInput
+                description="Even numbers only."
+                label="Base font size"
+                min={MIN_BASE_FONT_SIZE_PX}
+                max={MAX_BASE_FONT_SIZE_PX}
+                step={2}
+                units="px"
+                value={system.baseFontSizePx}
+                onChange={(value) => updateSystem({ baseFontSizePx: value })}
+              />
+              <NumberInput
+                isIntegerOnly
+                label="Number of steps"
+                min={MIN_STEP_COUNT}
+                max={MAX_STEP_COUNT}
+                value={system.stepCount}
+                onChange={(value) => updateSystem({ stepCount: value })}
+              />
             </div>
 
-            <div
-              hidden={inspectorTab !== "settings"}
-              id="inspector-settings"
-              role="tabpanel"
-            >
-              <div className={styles.settingGroup}>
-                <h2>Scale</h2>
-                <NumberInput
-                  description="Even numbers only."
-                  label="Base font size"
-                  min={MIN_BASE_FONT_SIZE_PX}
-                  max={MAX_BASE_FONT_SIZE_PX}
-                  step={2}
-                  units="px"
-                  value={system.baseFontSizePx}
-                  onChange={(value) => updateSystem({ baseFontSizePx: value })}
-                />
-                <Selector
-                  label="Scale ratio"
-                  options={[
-                    ...TYPE_SCALE_RATIO_PRESETS.map((preset) => ({
-                      label: `${preset.name} (${preset.ratio})`,
-                      value: String(preset.ratio),
-                    })),
-                  ]}
-                  value={String(system.ratio)}
-                  onChange={(value) => updateSystem({ ratio: Number(value) })}
-                />
-                <NumberInput
-                  isIntegerOnly
-                  label="Number of steps"
-                  min={MIN_STEP_COUNT}
-                  max={MAX_STEP_COUNT}
-                  value={system.stepCount}
-                  onChange={(value) => updateSystem({ stepCount: value })}
-                />
-              </div>
+            <PreviewDeviceSettings
+              detachedRatios={detachedRatios}
+              devices={devices}
+              presets={SCALE_RATIO_PRESETS}
+              onAddDesktop={handleAddDesktop}
+              onRatioChange={handleDeviceRatio}
+              onRemove={handleRemoveDevice}
+              onWidthChange={handleDeviceWidth}
+            />
 
-              <div className={styles.settingGroup}>
-                <h2>Fonts</h2>
-                {system.fonts.map((font) => (
-                  <FontStackEditor
-                    key={font.id}
-                    canRemove={system.fonts.length > 1}
-                    font={font}
-                    onPick={(slot, family, generic) => {
-                      /* Picking a Google family for a slot that held a file
+            <div className={styles.settingGroup}>
+              <h2>Fonts</h2>
+              {system.fonts.map((font) => (
+                <FontStackEditor
+                  key={font.id}
+                  canRemove={system.fonts.length > 1}
+                  font={font}
+                  onPick={(slot, family, generic) => {
+                    /* Picking a Google family for a slot that held a file
                        leaves those bytes referenced by nothing — and only
                        that slot's, since the other one may still point at
                        its own. */
-                      if (isLocalSlot(font, slot)) {
-                        void forgetFontSlot(font.id, slot);
-                        setFontFileRevision((current) => current + 1);
-                      }
-                      setGoogleFont(font.id, slot, family, generic);
-                    }}
-                    onRemove={() => {
-                      void forgetFontEntry(font.id);
-                      removeFont(font.id);
-                    }}
-                    onRemoveSlot={(slot) => {
-                      /* The file goes first, then the ones behind it follow
+                    if (isLocalSlot(font, slot)) {
+                      void forgetFontSlot(font.id, slot);
+                      setFontFileRevision((current) => current + 1);
+                    }
+                    setGoogleFont(font.id, slot, family, generic);
+                  }}
+                  onRemove={() => {
+                    void forgetFontEntry(font.id);
+                    removeFont(font.id);
+                  }}
+                  onRemoveSlot={(slot) => {
+                    /* The file goes first, then the ones behind it follow
                        their family forward a slot. Both before the state
                        change, so a reload mid-way finds files under the keys
                        the stored stack names — and in this order, because
                        moving into the slot being emptied would overwrite the
                        file that is on its way out. */
-                      const moves = fallbackFileMoves(font, slot);
-                      if (isLocalSlot(font, slot) || moves.length > 0) {
-                        void forgetFontSlot(font.id, slot)
-                          .then(() =>
-                            Promise.all(
-                              moves.map((move) =>
-                                moveLocalFont(font.id, move.from, move.to),
-                              ),
+                    const moves = fallbackFileMoves(font, slot);
+                    if (isLocalSlot(font, slot) || moves.length > 0) {
+                      void forgetFontSlot(font.id, slot)
+                        .then(() =>
+                          Promise.all(
+                            moves.map((move) =>
+                              moveLocalFont(font.id, move.from, move.to),
                             ),
-                          )
-                          .then(() =>
-                            setFontFileRevision((current) => current + 1),
-                          );
-                      }
-                      removeFontSlot(font.id, slot);
-                    }}
-                    fileStatus={(slot) =>
-                      localFontStatus.get(localFontKey(font.id, slot)) ??
-                      "checking"
+                          ),
+                        )
+                        .then(() =>
+                          setFontFileRevision((current) => current + 1),
+                        );
                     }
-                    uploadError={(slot) =>
-                      uploadErrors[localFontKey(font.id, slot)] ?? ""
-                    }
-                    onRename={(name) => renameFont(font.id, name)}
-                    onUpload={(slot, file) => {
-                      void storeLocalFont(font.id, slot, file).then(
-                        (result) => {
-                          setUploadErrors((current) => ({
-                            ...current,
-                            [localFontKey(font.id, slot)]:
-                              result.rejected ?? "",
-                          }));
-                          if (!result.family) return;
-                          setLocalFont(font.id, slot, result.family);
-                          setFontFileRevision((current) => current + 1);
-                        },
-                      );
-                    }}
-                  />
-                ))}
-                <Button
-                  className={styles.addEntryButton}
-                  scheme="primary"
-                  size="medium"
-                  variant="contained"
-                  onClick={addFont}
-                >
-                  Add font
-                </Button>
-              </div>
+                    removeFontSlot(font.id, slot);
+                  }}
+                  fileStatus={(slot) =>
+                    localFontStatus.get(localFontKey(font.id, slot)) ??
+                    "checking"
+                  }
+                  uploadError={(slot) =>
+                    uploadErrors[localFontKey(font.id, slot)] ?? ""
+                  }
+                  onRename={(name) => renameFont(font.id, name)}
+                  onUpload={(slot, file) => {
+                    void storeLocalFont(font.id, slot, file).then((result) => {
+                      setUploadErrors((current) => ({
+                        ...current,
+                        [localFontKey(font.id, slot)]: result.rejected ?? "",
+                      }));
+                      if (!result.family) return;
+                      setLocalFont(font.id, slot, result.family);
+                      setFontFileRevision((current) => current + 1);
+                    });
+                  }}
+                />
+              ))}
+              <Button
+                className={styles.addEntryButton}
+                scheme="primary"
+                size="medium"
+                variant="contained"
+                onClick={addFont}
+              >
+                Add font
+              </Button>
             </div>
+          </div>
 
-            <div
-              hidden={inspectorTab !== "groups"}
-              id="inspector-groups"
-              role="tabpanel"
-            >
-              {/* Groups are an order somebody arranges, so they are dragged
+          <div
+            hidden={inspectorTab !== "groups"}
+            id="inspector-groups"
+            role="tabpanel"
+          >
+            {/* Groups are an order somebody arranges, so they are dragged
                 rather than stepped. The keyboard sensor is not a nicety here:
                 it is the whole of the keyboard story now that the up and down
                 buttons are gone — focus a handle, space to lift, arrows to
                 move, space to drop. */}
-              <DndContext
-                collisionDetection={closestCenter}
-                sensors={sensors}
-                onDragEnd={({ active, over }) => {
-                  if (!over) return;
-                  reorderGroups(String(active.id), String(over.id));
-                }}
-              >
-                <SortableContext
-                  items={system.groups.map((group) => group.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {system.groups.map((group) => (
-                    <RoleGroupEditor
-                      key={group.id}
-                      canAddRole={canAddRole(system, group)}
-                      fonts={system.fonts}
-                      group={group}
-                      roles={resolvedRoles.filter(
-                        (role) => role.groupId === group.id,
-                      )}
-                      steps={sortedSteps}
-                      unit={project.unit}
-                      onAddRole={() => addRole(group)}
-                      onIndexingChange={(indexing) =>
-                        updateGroup(group.id, { indexing })
-                      }
-                      onLabelChange={(label) =>
-                        updateGroup(group.id, { label })
-                      }
-                      onLabelCommit={() =>
-                        renameGroupById(group.id, group.label)
-                      }
-                      onRemove={() => removeGroup(group.id)}
-                      onRoleChange={updateRole}
-                      onRoleRemove={removeRole}
-                      onRoleValueChange={updateRoleValue}
-                    />
-                  ))}
-                </SortableContext>
-              </DndContext>
-
-              <div className={styles.settingGroup}>
-                <Button
-                  className={styles.addEntryButton}
-                  scheme="primary"
-                  size="medium"
-                  variant="contained"
-                  onClick={addGroup}
-                >
-                  Add group
-                </Button>
-              </div>
-            </div>
-
-            <div
-              hidden={inspectorTab !== "warnings"}
-              id="inspector-warnings"
-              role="tabpanel"
+            <DndContext
+              collisionDetection={closestCenter}
+              sensors={sensors}
+              onDragEnd={({ active, over }) => {
+                if (!over) return;
+                reorderGroups(String(active.id), String(over.id));
+              }}
             >
-              <div className={styles.settingGroup}>
-                <h2>Warnings</h2>
-                <ul className={styles.warningList}>
-                  {warnings
-                    .filter((warning) => warning.status !== "pass")
-                    .map((warning) => (
-                      <li key={warning.id} data-status={warning.status}>
-                        {warning.summary}
-                      </li>
-                    ))}
-                  {openWarnings === 0 && (
-                    <li data-status="pass">
-                      No issues found in this type scale.
-                    </li>
-                  )}
-                </ul>
-              </div>
-            </div>
-          </section>
-        </section>
-      )}
+              <SortableContext
+                items={system.groups.map((group) => group.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                {system.groups.map((group) => (
+                  <RoleGroupEditor
+                    key={group.id}
+                    canAddRole={canAddRole(system, group)}
+                    fonts={system.fonts}
+                    group={group}
+                    roles={resolvedRoles.filter(
+                      (role) => role.groupId === group.id,
+                    )}
+                    steps={sortedSteps}
+                    onAddRole={() => addRole(group)}
+                    onIndexingChange={(indexing) =>
+                      updateGroup(group.id, { indexing })
+                    }
+                    onLabelChange={(label) => updateGroup(group.id, { label })}
+                    onLabelCommit={() => renameGroupById(group.id, group.label)}
+                    onRemove={() => removeGroup(group.id)}
+                    onRoleChange={updateRole}
+                    onRoleRemove={removeRole}
+                    onRoleValueChange={updateRoleValue}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
 
-      {activeSection === "preview" && (
-        <TypographyPreview
-          lang={previewLang}
-          roles={rolesLargeToSmall}
-          specimenText={project.specimenText}
-          styleFor={styleForRole}
-          styleOf={styleOfRole}
-          system={resolvedSystem}
-          template={project.template}
-          unit={project.unit}
-          width={previewWidth}
-          onLangChange={setPreviewLang}
-          onTemplateChange={(template) => setPreference({ template })}
-          backgroundShade={backgroundShade}
-          textShade={textShade}
-          tracks={paletteTracks}
-          onBackgroundShadeChange={setBackgroundShade}
-          onTextShadeChange={setTextShade}
-          onWidthChange={setPreviewWidth}
-        />
-      )}
+            <div className={styles.settingGroup}>
+              <Button
+                className={styles.addEntryButton}
+                scheme="primary"
+                size="medium"
+                variant="contained"
+                onClick={addGroup}
+              >
+                Add group
+              </Button>
+            </div>
+          </div>
+
+          <div
+            hidden={inspectorTab !== "warnings"}
+            id="inspector-warnings"
+            role="tabpanel"
+          >
+            <div className={styles.settingGroup}>
+              <h2>Warnings</h2>
+              <ul className={styles.warningList}>
+                {warnings
+                  .filter((warning) => warning.status !== "pass")
+                  .map((warning) => (
+                    <li key={warning.id} data-status={warning.status}>
+                      {warning.summary}
+                    </li>
+                  ))}
+                {openWarnings === 0 && (
+                  <li data-status="pass">
+                    No issues found in this type scale.
+                  </li>
+                )}
+              </ul>
+            </div>
+          </div>
+        </section>
+      </section>
 
       <TypographyExportDialog
         isOpen={isExportDialogOpen}
