@@ -3,6 +3,7 @@ import {
   normalizeStoredSystem,
   type LegacyTypographyProject,
 } from "../typography/migrate";
+import { normalizePreviewDevices } from "../typography/preview-devices";
 import { TYPE_SCALE_UNITS, type TypeScaleUnit } from "../typography/types";
 import type { TypographyProjectData } from "./types";
 
@@ -10,7 +11,10 @@ export const DEFAULT_TYPE_SCALE_UNIT: TypeScaleUnit = "rem";
 export const DEFAULT_SPECIMEN_TEXT = "How vexingly quick daft zebras jump";
 export const DEFAULT_PREVIEW_TEMPLATE = "specimen";
 
-function readPreferences(value: object): Omit<TypographyProjectData, "system"> {
+function readPreferences(
+  value: object,
+  fallbackRatio: number,
+): Omit<TypographyProjectData, "system"> {
   return {
     unit:
       "unit" in value && TYPE_SCALE_UNITS.includes(value.unit as TypeScaleUnit)
@@ -26,6 +30,12 @@ function readPreferences(value: object): Omit<TypographyProjectData, "system"> {
       "template" in value && typeof value.template === "string"
         ? value.template
         : DEFAULT_PREVIEW_TEMPLATE,
+    previewDevices: normalizePreviewDevices(
+      "previewDevices" in value && Array.isArray(value.previewDevices)
+        ? value.previewDevices
+        : undefined,
+      fallbackRatio,
+    ),
   };
 }
 
@@ -54,8 +64,6 @@ export function readTypographyProjectData(
 ): TypographyProjectData | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
 
-  const preferences = readPreferences(value);
-
   if ("roleStyles" in value && !("system" in value)) {
     const legacy = value as unknown as LegacyTypographyProject;
     if (
@@ -68,7 +76,10 @@ export function readTypographyProjectData(
     ) {
       return null;
     }
-    return { system: migrateLegacyProject(legacy), ...preferences };
+    return {
+      system: migrateLegacyProject(legacy),
+      ...readPreferences(value, legacy.ratio),
+    };
   }
 
   if (!("system" in value)) return null;
@@ -76,5 +87,5 @@ export function readTypographyProjectData(
   const system = normalizeStoredSystem(value.system);
   if (!system) return null;
 
-  return { system, ...preferences };
+  return { system, ...readPreferences(value, system.ratio) };
 }

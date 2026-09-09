@@ -10,6 +10,7 @@
    toolbar take their own height; everything left goes to the panels, which
    scroll independently. */
 .workspace {
+  position: relative;
   height: 100svh;
   overflow: hidden;
   display: grid;
@@ -33,10 +34,10 @@
   /* minmax(0, 1fr), not 1fr: a fr track's floor is its content's min-width,
      so the actions on the right — nav, theme control, export — held the bar
      at 403px on a 375px screen and the whole workspace grid went with it.
-     Symmetric on purpose, so the tabs stay centred; the actions wrap onto a
-     second line where they do not fit. A content-sized right track was
-     tried and moved the groups panel enough to unsettle its keyboard drag. */
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+     Two columns: Editor/Preview live on the local bar, not centred here. A
+     content-sized right track was tried and moved the groups panel enough to
+     unsettle its keyboard drag. */
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 24px;
   padding: 0 24px;
@@ -44,12 +45,8 @@
   background: var(--color-surface-subtle);
 }
 
-.creationHeader {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
 .navigation {
-  align-self: center;
+  min-width: 0;
 }
 
 .headerActions {
@@ -96,8 +93,10 @@
 
 .editor {
   /* min-height: 0 lets a grid child shrink below its content, which is what
-     makes the children scroll rather than the page. */
+     makes the children scroll rather than the page. overflow hidden keeps
+     the inspector and canvas from pushing that height back out. */
   min-height: 0;
+  overflow: hidden;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 1px var(--inspector-width, 340px);
 }
@@ -113,7 +112,7 @@
 
 .stepList {
   display: grid;
-  gap: 10px;
+  gap: var(--spacing-2);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -252,6 +251,63 @@
   font-weight: 650;
 }
 
+.deviceHint {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: 11px;
+}
+
+.deviceList {
+  display: grid;
+  gap: var(--spacing-2);
+}
+
+.deviceTableHead,
+.deviceRow {
+  display: grid;
+  grid-template-columns: 4.75rem minmax(5.5rem, 0.8fr) minmax(0, 1.4fr) 2rem;
+  column-gap: var(--spacing-1);
+  align-items: center;
+}
+
+.deviceRow > * {
+  min-width: 0;
+}
+
+.deviceTableHead {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.deviceName {
+  color: var(--color-fg-secondary);
+  font-size: var(--font-size-base);
+}
+
+.deviceLock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--color-fg-muted);
+}
+
+.deviceRatio {
+  min-width: 0;
+  position: relative;
+}
+
+.deviceRatio :global(label) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .roleSettingLabel {
   color: var(--color-fg-secondary);
   /* --font-size-base is 0.875rem, 14px at a 16px root. */
@@ -288,12 +344,14 @@
 }
 
 .previewPage {
+  min-width: 0;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   display: grid;
+  align-content: start;
   gap: 20px;
-  padding: 32px clamp(20px, 4vw, 64px) 60px;
+  padding: 24px 18px;
   background: var(--color-surface-base);
 }
 
@@ -302,6 +360,9 @@
   border: 1px solid var(--color-border-strong);
   border-radius: 14px;
   background: var(--color-surface-raised);
+  /* Clip the fill to the radius without creating a scroll container — hidden
+     on the stage was what stopped the preview page from scrolling. */
+  overflow: clip;
 }
 
 .previewRole header {
@@ -468,6 +529,11 @@
 
 .visuallyHidden {
   position: absolute;
+  /* Pin to the containing block origin so a hidden control whose parent is
+     not positioned cannot sit at the bottom of a tall panel and stretch the
+     page. Callers click these via ref, never by coordinates. */
+  top: 0;
+  left: 0;
   width: 1px;
   height: 1px;
   overflow: hidden;
@@ -478,25 +544,13 @@
 
 @media (max-width: 900px) {
   .topbar {
-    grid-template-columns: 1fr auto;
     gap: 12px;
     padding-top: 10px;
     padding-bottom: 10px;
   }
 
-  .navigation {
-    grid-row: 2;
-    grid-column: 1 / -1;
-    justify-self: center;
-  }
-
-  .headerActions {
-    grid-row: 1;
-    grid-column: 2;
-  }
-
   .editor {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .resizeHandle {
@@ -504,6 +558,9 @@
   }
 
   .inspector {
+    width: auto;
+    max-width: 100%;
+    min-width: 0;
     height: auto;
     overflow-y: visible;
     border-top: 1px solid var(--color-border-default);
@@ -562,11 +619,11 @@
 .previewStage {
   width: 100%;
   margin-inline: auto;
-  transition: max-width 160ms ease;
+  display: grid;
+  gap: var(--spacing-2);
 }
 
-.templateArticle,
-.templateMarketing {
+.templateArticle {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
@@ -580,15 +637,6 @@
 
 .templateArticle figure {
   margin: 0;
-}
-
-.templateFeatures {
-  display: grid;
-  gap: var(--spacing-5);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
 }
 
 .roleGroupHeader {
@@ -666,10 +714,6 @@
 }
 
 .sizeCell {
-  display: grid;
-  grid-template-columns: minmax(4.5rem, 1fr) minmax(5rem, 1.2fr);
-  gap: var(--spacing-1);
-  align-items: center;
   min-width: 0;
 }
 
@@ -724,16 +768,22 @@
   color: var(--color-status-error);
 }
 
-/* The role cards paint their own surface, which would hide the background
-   someone picked. With a pair chosen the stage is the surface and the cards
-   get out of the way — otherwise the preview shows the text on studio chrome
-   and answers the wrong question. */
-.previewStage[data-preview-colours="true"] .previewRole {
-  background: transparent;
+/* Each pick applies on its own. The cards paint a raised surface that would
+   hide a background, and a hard foreground that would hide a text colour.
+   The fill is on the card so the 16px gaps stay studio chrome and the radius
+   clips. Contrast still waits for the pair. */
+.previewStage[data-preview-background="true"] .previewRole,
+.previewStage[data-preview-background="true"] .templateArticle {
+  background: var(--preview-surface);
 }
 
-.previewStage[data-preview-colours="true"] .previewRole h3,
-.previewStage[data-preview-colours="true"] .previewRole > *:not(header) {
+.previewStage[data-preview-background="true"] .templateArticle {
+  border-radius: 14px;
+  overflow: clip;
+}
+
+.previewStage[data-preview-text="true"] .previewRole h3,
+.previewStage[data-preview-text="true"] .previewRole > *:not(header) {
   /* The heading is near-white by default and would vanish on a light pick. */
   color: inherit;
 }
@@ -749,6 +799,16 @@
 @container inspector (max-width: 360px) {
   /* Below this the panel is narrower than a comfortable row, so the button
      takes the width rather than leaving a stranded gap beside it. */
+  .addEntryButton {
+    justify-self: stretch;
+    width: 100%;
+  }
+}
+
+@media (max-width: 360px) {
+  /* Same stretch when the viewport itself is the constraint. A 320px window
+     still lays the inspector out at --inspector-width if the 900px stack
+     has not applied, and a container query then never sees a narrow panel. */
   .addEntryButton {
     justify-self: stretch;
     width: 100%;

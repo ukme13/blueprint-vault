@@ -1,4 +1,10 @@
-import { expect, showInspectorPanel, test } from "./typography-fixtures";
+import {
+  DEFAULT_SPECIMEN_TEXT,
+  expect,
+  fillHybridNumber,
+  showInspectorPanel,
+  test,
+} from "./typography-fixtures";
 import type { Locator } from "@playwright/test";
 
 /**
@@ -55,22 +61,204 @@ const labelInfo = (scope: Locator, label: string) =>
     .first();
 
 test.describe("Typography scale editing", () => {
-  test("switches between Editor and Preview sections", async ({
+  test("switches between Editor and Preview without leaving the inspector", async ({
     seededPage: page,
   }) => {
+    const views = page.getByRole("navigation", { name: "Typography views" });
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+
+    await expect(views.getByRole("button", { name: "Editor" })).toBeVisible();
+    await expect(
+      page.getByRole("navigation", { name: "Playground sections" }),
+    ).toHaveCount(0);
     await expect(
       page.getByRole("region", { name: "Generated type steps" }),
     ).toBeVisible();
+    await expect(settings).toBeVisible();
 
-    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    await views.getByRole("button", { name: "Preview", exact: true }).click();
     await expect(
       page.getByRole("region", { name: "Type scale preview" }),
     ).toBeVisible();
-    await expect(page.getByText("Design with clarity")).toBeVisible();
-
-    await page.getByRole("button", { name: "Editor" }).click();
+    await expect(page.getByText(DEFAULT_SPECIMEN_TEXT).first()).toBeVisible();
+    await expect(settings).toBeVisible();
     await expect(
       page.getByRole("region", { name: "Generated type steps" }),
+    ).toBeHidden();
+
+    await views.getByRole("button", { name: "Editor" }).click();
+    await expect(
+      page.getByRole("region", { name: "Generated type steps" }),
+    ).toBeVisible();
+    await expect(settings).toBeVisible();
+  });
+
+  test("the preview follows a scale change made in the inspector", async ({
+    seededPage: page,
+  }) => {
+    await page
+      .getByRole("navigation", { name: "Typography views" })
+      .getByRole("button", { name: "Preview", exact: true })
+      .click();
+
+    const preview = page.getByRole("region", { name: "Type scale preview" });
+    const sample = preview.getByText(DEFAULT_SPECIMEN_TEXT).first();
+    await expect(sample).toBeVisible();
+    const before = await sample.evaluate((el) => getComputedStyle(el).fontSize);
+
+    await page.getByLabel("Desktop ratio", { exact: true }).click();
+    await page.getByRole("option", { name: /Golden Ratio/ }).click();
+
+    await expect
+      .poll(() => sample.evaluate((el) => getComputedStyle(el).fontSize))
+      .not.toBe(before);
+  });
+
+  test("workspace nav still reaches Colour and Scale from Preview", async ({
+    seededPage: page,
+  }) => {
+    await page
+      .getByRole("navigation", { name: "Typography views" })
+      .getByRole("button", { name: "Preview", exact: true })
+      .click();
+    await expect(
+      page.getByRole("region", { name: "Type scale settings" }),
+    ).toBeVisible();
+
+    const workspaces = page.getByRole("navigation", {
+      name: "Blueprint workspaces",
+    });
+    await expect(
+      workspaces.getByRole("link", { name: "Preview" }),
+    ).toBeVisible();
+
+    await workspaces.getByRole("link", { name: "Colour" }).click();
+    await expect(page).toHaveURL("/");
+    await expect(
+      page.getByRole("button", { name: "Create palette" }),
+    ).toBeVisible();
+
+    await page
+      .getByRole("navigation", { name: "Blueprint workspaces" })
+      .getByRole("link", { name: "Typography" })
+      .click();
+    await page
+      .getByRole("navigation", { name: "Typography views" })
+      .getByRole("button", { name: "Preview", exact: true })
+      .click();
+
+    await page
+      .getByRole("navigation", { name: "Blueprint workspaces" })
+      .getByRole("link", { name: "Scale" })
+      .click();
+    await expect(page).toHaveURL(/\/scale\/?$/);
+    await expect(
+      page.getByRole("region", { name: "Generated spacing steps" }),
+    ).toBeVisible();
+  });
+
+  test("the preview uses the same specimen the editor was typed with", async ({
+    seededPage: page,
+  }) => {
+    await page.getByLabel("Specimen text").first().fill("ทดสอบ 12px");
+    await page
+      .getByRole("navigation", { name: "Typography views" })
+      .getByRole("button", { name: "Preview", exact: true })
+      .click();
+
+    const preview = page.getByRole("region", { name: "Type scale preview" });
+    await expect(preview.getByText("ทดสอบ 12px").first()).toBeVisible();
+    await expect(preview.getByText(DEFAULT_SPECIMEN_TEXT)).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Article" }).click();
+    await expect(
+      preview.getByRole("heading", { name: "ทดสอบ 12px", level: 1 }),
+    ).toBeVisible();
+  });
+
+  test("offers phone, tablet and desktop frames, not arbitrary widths", async ({
+    seededPage: page,
+  }) => {
+    const devices = page.getByRole("navigation", { name: "Preview devices" });
+    await expect(devices.getByRole("button", { name: "Phone" })).toBeVisible();
+    await expect(devices.getByRole("button", { name: "Tablet" })).toBeVisible();
+    await expect(
+      devices.getByRole("button", { name: "Desktop" }),
+    ).toBeVisible();
+    await expect(devices.getByRole("button")).toHaveCount(3);
+    await expect(
+      page.getByRole("group", { name: "Preview width" }),
+    ).toHaveCount(0);
+
+    await page
+      .getByRole("navigation", { name: "Typography views" })
+      .getByRole("button", { name: "Preview", exact: true })
+      .click();
+    await devices.getByRole("button", { name: "Phone" }).click();
+
+    const stage = page.locator("[data-preview-device='phone']");
+    await expect(stage).toBeVisible();
+    await expect
+      .poll(() => stage.evaluate((el) => getComputedStyle(el).maxWidth))
+      .toBe("375px");
+  });
+
+  test("adds extra desktop frames from settings and keeps the required three", async ({
+    seededPage: page,
+  }) => {
+    const devices = page.getByRole("navigation", { name: "Preview devices" });
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+
+    await expect(
+      settings.getByRole("img", { name: "Phone cannot be removed" }),
+    ).toBeVisible();
+    await expect(
+      settings.getByRole("img", { name: "Tablet cannot be removed" }),
+    ).toBeVisible();
+    await expect(
+      settings.getByRole("img", { name: "Desktop cannot be removed" }),
+    ).toBeVisible();
+    await expect(
+      settings.getByRole("checkbox", { name: "Tablet" }),
+    ).toHaveCount(0);
+    await expect(
+      settings.getByRole("button", { name: "Remove Phone" }),
+    ).toHaveCount(0);
+    await expect(
+      settings.getByRole("button", { name: "Remove Tablet" }),
+    ).toHaveCount(0);
+    await expect(
+      settings.getByRole("button", { name: "Remove Desktop" }),
+    ).toHaveCount(0);
+
+    await settings.getByRole("button", { name: "Add desktop" }).click();
+    await expect(
+      devices.getByRole("button", { name: "Desktop 2" }),
+    ).toBeVisible();
+    await expect(devices.getByRole("button")).toHaveCount(4);
+
+    await settings.getByRole("button", { name: "Add desktop" }).click();
+    await expect(
+      devices.getByRole("button", { name: "Desktop 3" }),
+    ).toBeVisible();
+    await expect(devices.getByRole("button")).toHaveCount(5);
+    await expect(
+      settings.getByRole("button", { name: "Add desktop" }),
+    ).toBeDisabled();
+
+    await settings.getByRole("button", { name: "Remove Desktop 2" }).click();
+    await expect(
+      devices.getByRole("button", { name: "Desktop 2" }),
+    ).toBeVisible();
+    await expect(
+      devices.getByRole("button", { name: "Desktop 3" }),
+    ).toHaveCount(0);
+    await expect(devices.getByRole("button")).toHaveCount(4);
+
+    await expect(devices.getByRole("button", { name: "Phone" })).toBeVisible();
+    await expect(devices.getByRole("button", { name: "Tablet" })).toBeVisible();
+    await expect(
+      devices.getByRole("button", { name: "Desktop", exact: true }),
     ).toBeVisible();
   });
 
@@ -137,7 +325,7 @@ test.describe("Typography scale editing", () => {
   test("shows a warning when the scale ratio grows too fast", async ({
     seededPage: page,
   }) => {
-    await page.getByLabel("Scale ratio", { exact: true }).click();
+    await page.getByLabel("Desktop ratio", { exact: true }).click();
     await page.getByRole("option", { name: /Golden Ratio/ }).click();
 
     /* The ratio is on Settings and what it raises is a panel over, which is
@@ -149,21 +337,24 @@ test.describe("Typography scale editing", () => {
     await expect(page.getByText(/grows quickly/i)).toBeVisible();
   });
 
-  test("switches preview templates and languages", async ({
+  test("switches preview templates using the editor specimen", async ({
     seededPage: page,
   }) => {
     await page.getByRole("button", { name: "Preview", exact: true }).click();
     const preview = page.getByRole("region", { name: "Type scale preview" });
 
-    // Specimen is the default and lists every role.
+    // Specimen is the default and lists every role, in the editor's copy.
     await expect(
       preview.getByRole("heading", { name: "display" }),
+    ).toBeVisible();
+    await expect(
+      preview.getByText(DEFAULT_SPECIMEN_TEXT).first(),
     ).toBeVisible();
 
     await page.getByRole("button", { name: "Article" }).click();
     await expect(
       preview.getByRole("heading", {
-        name: "A type scale is a set of decisions, not a set of sizes",
+        name: DEFAULT_SPECIMEN_TEXT,
         level: 1,
       }),
     ).toBeVisible();
@@ -171,13 +362,10 @@ test.describe("Typography scale editing", () => {
     // Exactly one h1: the mapping puts only `display` at the top level.
     expect(await preview.getByRole("heading", { level: 1 }).count()).toBe(1);
 
-    await page.getByRole("button", { name: "ไทย" }).click();
-    await expect(preview.getByRole("heading", { level: 1 })).toContainText(
-      "สเกลตัวอักษร",
-    );
-
-    await page.getByRole("button", { name: "Marketing page" }).click();
-    await expect(preview.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Marketing page" }),
+    ).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "ไทย" })).toHaveCount(0);
   });
 
   test("keeps the chosen template after a reload", async ({
@@ -344,9 +532,8 @@ test.describe("Typography scale editing", () => {
       .click();
 
     // Reindexed to body-1 and body-2; both sit on the same step.
-    await expect(settings.getByLabel("body-1 size")).toHaveValue(
-      await settings.getByLabel("body-2 size").inputValue(),
-    );
+    await expect(settings.getByLabel("body-1 size")).toContainText("+0");
+    await expect(settings.getByLabel("body-2 size")).toContainText("+0");
   });
 
   test("a size can be typed, which unlinks it from the ramp", async ({
@@ -356,11 +543,10 @@ test.describe("Typography scale editing", () => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
 
     // 14 is not on the default ramp, so this is only reachable by typing.
-    await settings.getByLabel("body size").fill("14");
-    await settings.getByLabel("body size").blur();
+    await fillHybridNumber(page, "body size", "14");
 
     await expect(settings.getByLabel("body size")).toHaveValue("14");
-    await expect(settings.getByLabel("body step")).toContainText("Custom");
+    await expect(settings.getByLabel("body size")).not.toContainText("+");
   });
 
   test("picking a step relinks the size to the ramp", async ({
@@ -368,13 +554,12 @@ test.describe("Typography scale editing", () => {
   }) => {
     await showInspectorPanel(page, "Groups");
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("body size").fill("14");
-    await settings.getByLabel("body size").blur();
+    await fillHybridNumber(page, "body size", "14");
 
-    await settings.getByLabel("body step").click();
-    await page.getByRole("option", { name: /^\+1 / }).click();
+    await settings.getByRole("button", { name: "Apply preset" }).click();
+    await page.getByRole("option", { name: /^\+1/ }).click();
 
-    await expect(settings.getByLabel("body step")).not.toContainText("Custom");
+    await expect(settings.getByLabel("body size")).toContainText("+1");
   });
 
   test("loads a project saved by the previous release", async ({ page }) => {
@@ -479,13 +664,12 @@ test.describe("Typography scale editing", () => {
   }) => {
     await showInspectorPanel(page, "Groups");
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await settings.getByLabel("body step").click();
+    await settings.getByLabel("body size").click();
 
     const options = page.getByRole("option");
-    // Custom heads the list; the steps under it run high to low, matching the
-    // step list on the left.
-    expect(await options.first().textContent()).toContain("Custom");
-    expect(await options.nth(1).textContent()).toContain("+");
+    // Largest first, matching the step list on the left. Typing a size is how
+    // a role leaves the ramp, so Custom is not a row in this list.
+    expect(await options.first().textContent()).toContain("+");
     expect(await options.last().textContent()).toContain("-");
   });
 
@@ -790,7 +974,7 @@ test.describe("Where a Selector menu opens", () => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
     /* The ratio field. A bound chip opens the preset list; the option role is
        what this used to get from a Selector. */
-    const trigger = settings.getByLabel("Scale ratio", { exact: true });
+    const trigger = settings.getByLabel("Desktop ratio", { exact: true });
 
     await trigger.click();
     await expect(page.getByRole("option").first()).toBeVisible();
@@ -805,8 +989,10 @@ test.describe("Where a Selector menu opens", () => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
     /* The ratio field. A bound chip opens the preset list; the option role is
        what this used to get from a Selector. */
-    const trigger = settings.getByLabel("Scale ratio", { exact: true });
-    await trigger.scrollIntoViewIfNeeded();
+    const trigger = settings.getByLabel("Desktop ratio", { exact: true });
+    await trigger.evaluate((el) =>
+      el.scrollIntoView({ block: "center", inline: "nearest" }),
+    );
 
     /* Twice, because the first open was the worst of it: the menu had not been
        laid out, so the margin was measured against a height it did not have. */

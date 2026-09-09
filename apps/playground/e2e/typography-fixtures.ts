@@ -2,6 +2,8 @@ import { expect, test as base, type Page } from "@playwright/test";
 
 export const TYPOGRAPHY_STORAGE_KEY = "blueprint.typography-project.v1";
 
+export const DEFAULT_SPECIMEN_TEXT = "How vexingly quick daft zebras jump";
+
 const SEED_GUARD_KEY = "blueprint.e2e-seeded.typography";
 
 export function defaultTypographyProject() {
@@ -55,6 +57,21 @@ export async function showInspectorPanel(
   name: "Settings" | "Groups" | "Warnings",
 ): Promise<void> {
   await page.getByRole("tab", { name: new RegExp(`^${name}`) }).click();
+}
+
+export async function fillHybridNumber(
+  page: Page,
+  label: string,
+  value: string,
+): Promise<void> {
+  const field = page.getByLabel(label, { exact: true });
+  const tag = await field.evaluate((el) => el.tagName);
+  if (tag === "BUTTON") {
+    await field.dblclick();
+  }
+  const input = page.getByLabel(label, { exact: true });
+  await input.fill(value);
+  await input.blur();
 }
 
 export const test = base.extend<{ seededPage: Page }>({

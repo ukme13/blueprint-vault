@@ -9,6 +9,8 @@ export {
   detachValue,
   filterPresets,
   hybridPresetsFromModularScale,
+  hybridPresetsFromTypeSteps,
+  hybridValueFromStepOffset,
   resolveHybridValue,
 } from "./hybrid-tokenized-input";
 export { HybridTokenizedInput } from "./HybridTokenizedInput";

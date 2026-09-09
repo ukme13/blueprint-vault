@@ -113,29 +113,65 @@ test.describe("Typography studio styles", () => {
     await expect(preview).toBeVisible();
 
     const card = preview.locator("article").first();
-    // Before a pair is picked the card paints its own surface.
+    const before = await styleOf(card, "background-color");
+    // Before a background is picked the card paints its own surface.
+    expect(before).not.toBe("rgba(0, 0, 0, 0)");
+
+    await page.getByLabel("Background colour").click();
+    await page.getByRole("option", { name: "neutral 50", exact: true }).click();
+
+    /* The fill is on the card so the gaps between them stay studio chrome
+       and the radius clips. The stage must not paint, or the colour shows
+       in the corner cutouts — and overflow hidden on the stage ate the
+       wheel, so the preview could not scroll. */
+    await expect.poll(() => styleOf(card, "background-color")).not.toBe(before);
+    await expect.poll(() => styleOf(card, "overflow")).toBe("clip");
+
+    const stage = preview.locator("[data-preview-background='true']");
+    await expect(stage).toHaveCount(1);
     await expect
-      .poll(() => styleOf(card, "background-color"))
-      .not.toBe("rgba(0, 0, 0, 0)");
+      .poll(() => styleOf(stage, "background-color"))
+      .toBe("rgba(0, 0, 0, 0)");
+    await expect.poll(() => styleOf(stage, "overflow")).not.toBe("hidden");
+    await expect.poll(() => styleOf(stage, "row-gap")).toBe("8px");
+  });
+
+  test("the preview page scrolls when the specimen is taller than the canvas", async ({
+    page,
+  }) => {
+    await seed(page);
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    const preview = page.getByRole("region", { name: "Type scale preview" });
+    await expect(preview).toBeVisible();
+
+    await expect
+      .poll(() => preview.evaluate((el) => el.scrollHeight - el.clientHeight))
+      .toBeGreaterThan(1);
+
+    await preview.evaluate((el) => {
+      el.scrollTop = 240;
+    });
+    await expect
+      .poll(() => preview.evaluate((el) => el.scrollTop))
+      .toBeGreaterThan(0);
+  });
+
+  test("a picked preview text colour takes without a background", async ({
+    page,
+  }) => {
+    await seed(page);
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    const preview = page.getByRole("region", { name: "Type scale preview" });
+    const sample = preview.locator("article").first().locator("header + *");
+    const before = await styleOf(sample, "color");
 
     await page.getByLabel("Text colour").click();
     await page
       .getByRole("option", { name: "neutral 950", exact: true })
       .click();
-    await page.getByLabel("Background colour").click();
-    await page.getByRole("option", { name: "neutral 50", exact: true }).click();
 
-    /* With one picked the card has to get out of the way, or the text is
-       previewed on studio chrome and the feature answers the wrong question. */
-    await expect
-      .poll(() => styleOf(card, "background-color"))
-      .toBe("rgba(0, 0, 0, 0)");
-
-    const stage = preview.locator("[data-preview-colours='true']");
-    await expect(stage).toHaveCount(1);
-    await expect
-      .poll(() => styleOf(stage, "background-color"))
-      .not.toBe("rgba(0, 0, 0, 0)");
+    await expect.poll(() => styleOf(sample, "color")).not.toBe(before);
+    await expect(preview.locator("[data-preview-text='true']")).toHaveCount(1);
   });
 
   test("a contrast verdict is coloured by its status", async ({ page }) => {
@@ -158,6 +194,14 @@ test.describe("Typography studio styles", () => {
 
     // Different rules, so a dropped one shows up as the two matching.
     expect(await styleOf(pass, "color")).not.toBe(await styleOf(fail, "color"));
+  });
+
+  test("the editor steps sit 8px apart", async ({ page }) => {
+    await seed(page);
+    const steps = page
+      .getByRole("region", { name: "Generated type steps" })
+      .getByRole("list");
+    await expect.poll(() => styleOf(steps, "row-gap")).toBe("8px");
   });
 });
 

@@ -6,7 +6,7 @@
  * onto Major Third.
  */
 
-import type { ModularScalePreset } from "./typography/types";
+import type { ModularScalePreset, TypeStep } from "./typography/types";
 
 export interface HybridTokenPreset {
   id: string;
@@ -28,6 +28,32 @@ export function hybridPresetsFromModularScale(
     name: preset.name,
     value: preset.ratio,
   }));
+}
+
+/** One preset per generated step, named by offset so a bound chip reads 16 (+0). */
+export function hybridPresetsFromTypeSteps(
+  steps: readonly TypeStep[],
+): HybridTokenPreset[] {
+  return steps.map((step) => ({
+    id: String(step.offset),
+    name: `${step.offset >= 0 ? "+" : ""}${step.offset}`,
+    value: step.fontSizePx,
+  }));
+}
+
+/** Bound when the role follows a step; raw when the size was typed by hand. */
+export function hybridValueFromStepOffset(
+  stepOffset: number | null,
+  fontSizePx: number,
+): HybridTokenizedValue {
+  if (stepOffset === null) {
+    return { isPreset: false, value: fontSizePx };
+  }
+  return {
+    isPreset: true,
+    presetId: String(stepOffset),
+    value: fontSizePx,
+  };
 }
 
 export function bindPreset(preset: HybridTokenPreset): HybridTokenizedValue {

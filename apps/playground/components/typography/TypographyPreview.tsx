@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 import {
   assessTextContrastAtSize,
+  ArticleTemplate,
   Button,
   elementForRole,
   formatLength,
@@ -12,17 +13,9 @@ import {
   type ColorTrack,
   type TypeSystem,
   resolveLineHeight,
-} from "@blueprint/ui";
-import {
-  ArticleTemplate,
-  MarketingTemplate,
   PREVIEW_TEMPLATES,
-  PREVIEW_WIDTH_OPTIONS,
-  PREVIEW_WIDTHS,
-  specimenTextForRole,
-  type PreviewLanguage,
   type PreviewTemplateId,
-  type PreviewWidth,
+  type PreviewDevice,
 } from "@blueprint/ui";
 import {
   PreviewColourControls,
@@ -37,8 +30,6 @@ import styles from "./typography-workspace.module.css";
    nobody else wanted. */
 const TEMPLATE_CLASSES = {
   article: styles.templateArticle,
-  marketing: styles.templateMarketing,
-  features: styles.templateFeatures,
 };
 
 export interface TypographyPreviewProps {
@@ -49,10 +40,9 @@ export interface TypographyPreviewProps {
   template: PreviewTemplateId;
   unit: TypeScaleUnit;
   specimenText: string;
-  /* Width and language stay with the caller. This section unmounts on every
-     tab switch, so state held here would reset each time you looked away. */
-  width: PreviewWidth;
-  lang: PreviewLanguage;
+  /* Device stays with the caller. Switching Editor/Preview unmounts this
+     canvas, so state held here would reset each time you looked away. */
+  device: PreviewDevice;
   /** Resolved CSS per role, so templates never do scale maths themselves. */
   /* Two questions, and they are not the same one. A template asks which role
      should draw its heading slot; the specimen list already has a role and
@@ -62,8 +52,6 @@ export interface TypographyPreviewProps {
   styleFor: (slot: SemanticRole) => CSSProperties;
   styleOf: (role: TypeRole) => CSSProperties;
   onTemplateChange: (template: PreviewTemplateId) => void;
-  onWidthChange: (width: PreviewWidth) => void;
-  onLangChange: (lang: PreviewLanguage) => void;
   /** The palette half of the workspace, generated. Empty when there is none. */
   tracks: ColorTrack[];
   textShade: ShadeRef | null;
@@ -78,13 +66,10 @@ export function TypographyPreview({
   template,
   unit,
   specimenText,
-  width,
-  lang,
+  device,
   styleFor,
   styleOf,
   onTemplateChange,
-  onWidthChange,
-  onLangChange,
   tracks,
   textShade,
   backgroundShade,
@@ -118,42 +103,6 @@ export function TypographyPreview({
             </Button>
           ))}
         </div>
-        <div
-          className={styles.previewControlGroup}
-          role="group"
-          aria-label="Preview width"
-        >
-          {PREVIEW_WIDTH_OPTIONS.map((entry) => (
-            <Button
-              key={entry.id}
-              aria-pressed={width === entry.id}
-              scheme="neutral"
-              size="xs"
-              variant={width === entry.id ? "contained" : "outlined"}
-              onClick={() => onWidthChange(entry.id)}
-            >
-              {entry.label}
-            </Button>
-          ))}
-        </div>
-        <div
-          className={styles.previewControlGroup}
-          role="group"
-          aria-label="Preview language"
-        >
-          {(["en", "th"] as PreviewLanguage[]).map((code) => (
-            <Button
-              key={code}
-              aria-pressed={lang === code}
-              scheme="neutral"
-              size="xs"
-              variant={lang === code ? "contained" : "outlined"}
-              onClick={() => onLangChange(code)}
-            >
-              {code === "en" ? "English" : "ไทย"}
-            </Button>
-          ))}
-        </div>
       </div>
 
       <PreviewColourControls
@@ -166,37 +115,29 @@ export function TypographyPreview({
 
       <div
         className={styles.previewStage}
-        data-preview-colours={textHex && backgroundHex ? "true" : undefined}
+        data-preview-background={backgroundHex ? "true" : undefined}
+        data-preview-text={textHex ? "true" : undefined}
+        data-preview-device={device.id}
         style={{
-          maxWidth: `${PREVIEW_WIDTHS[width]}px`,
-          /* Only set when chosen, so an unpicked colour keeps inheriting the
-             studio chrome rather than being forced to a default. */
-          ...(backgroundHex ? { background: backgroundHex } : {}),
+          maxWidth: `${device.widthPx}px`,
+          /* Colour lives on each card, not on this box. Painting the stage
+             put a square behind the rounded cards and, with overflow hidden,
+             ate the wheel so the page could not scroll. */
+          ...(backgroundHex
+            ? ({ "--preview-surface": backgroundHex } as CSSProperties)
+            : {}),
           ...(textHex ? { color: textHex } : {}),
         }}
       >
         {template === "article" && (
           <ArticleTemplate
             classNames={TEMPLATE_CLASSES}
-            lang={lang}
             styleFor={styleFor}
-          />
-        )}
-        {template === "marketing" && (
-          <MarketingTemplate
-            classNames={TEMPLATE_CLASSES}
-            lang={lang}
-            styleFor={styleFor}
+            text={specimenText}
           />
         )}
         {template === "specimen" &&
           roles.map((role) => {
-            /* Sample copy exists for the six original roles; an arbitrary
-               role falls back through its group to the specimen text. The
-               copy and the chain both live in the package now, because the
-               documentation renders the same specimens and a second copy of
-               the Thai would be a second thing to get right. */
-            const text = specimenTextForRole(role, lang, specimenText);
             const Tag = elementForRole(system, role);
             /* Judged at this role's own size and weight: the same pair of
                colours passes at a heading and fails at a caption. */
@@ -229,7 +170,7 @@ export function TypographyPreview({
                     </p>
                   )}
                 </header>
-                <Tag style={styleOf(role)}>{text}</Tag>
+                <Tag style={styleOf(role)}>{specimenText}</Tag>
               </article>
             );
           })}

@@ -10,7 +10,10 @@ import {
   type ReactNode,
 } from "react";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import { Popover } from "@astryxdesign/core/Popover";
+import {
+  Popover,
+  type PopoverTriggerRenderProps,
+} from "@astryxdesign/core/Popover";
 import {
   bindPreset,
   detachValue,
@@ -39,6 +42,7 @@ export interface HybridTokenizedInputProps {
   valueSuffix?: string;
   popoverTitle?: string;
   searchPlaceholder?: string;
+  isLabelHidden?: boolean;
   onChange: (next: HybridTokenizedValue) => void;
 }
 
@@ -60,6 +64,7 @@ export function HybridTokenizedInput({
   valueSuffix = "",
   popoverTitle = "Presets",
   searchPlaceholder = "Search presets...",
+  isLabelHidden = false,
   onChange,
 }: HybridTokenizedInputProps) {
   const labelId = useId();
@@ -199,9 +204,15 @@ export function HybridTokenizedInput({
   );
 
   return (
-    <div className="flex min-w-0 w-full flex-col gap-1">
+    <div
+      className={
+        isLabelHidden
+          ? "flex min-w-0 w-full flex-col"
+          : "flex min-w-0 w-full flex-col gap-1"
+      }
+    >
       <label
-        className="text-sm text-fg-primary"
+        className={isLabelHidden ? "sr-only" : "text-sm text-fg-primary"}
         htmlFor={controlId}
         id={labelId}
       >
@@ -218,7 +229,7 @@ export function HybridTokenizedInput({
         style={{ padding: "var(--spacing-2)" }}
         onOpenChange={handleOpenChange}
       >
-        {(trigger) => (
+        {(trigger: PopoverTriggerRenderProps) => (
           <div
             className={FIELD_CLASS}
             ref={trigger.ref}

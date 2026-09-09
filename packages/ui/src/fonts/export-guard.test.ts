@@ -9,6 +9,7 @@ import { seedSemanticTokens } from "../color/semantic";
 import { defaultElevationScale } from "../scale/elevation";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
+import { defaultPreviewDevices } from "../typography/preview-devices";
 import { generateTypeSteps } from "../typography/scale";
 import { assignDefaultRoles } from "../typography/scale";
 import {
@@ -195,6 +196,7 @@ describe("no export carries font data", () => {
         unit: "rem",
         specimenText: "",
         template: "specimen",
+        previewDevices: defaultPreviewDevices(1.25),
       },
     };
     const serialised = JSON.stringify(workspace);
@@ -222,6 +224,7 @@ describe("no export carries font data", () => {
         unit: "rem",
         specimenText: "",
         template: "specimen",
+        previewDevices: defaultPreviewDevices(1.25),
       },
     });
 

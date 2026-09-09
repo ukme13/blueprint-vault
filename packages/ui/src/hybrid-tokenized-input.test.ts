@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { generateTypeSteps } from "./typography/scale";
 import { TYPE_SCALE_RATIO_PRESETS } from "./typography/presets";
 import {
   bindPreset,
@@ -9,6 +10,8 @@ import {
   formatListValue,
   formatRawInput,
   hybridPresetsFromModularScale,
+  hybridPresetsFromTypeSteps,
+  hybridValueFromStepOffset,
   moveHighlight,
   nudgeValue,
   parseRawNumber,
@@ -37,6 +40,37 @@ describe("hybridPresetsFromModularScale", () => {
       ["perfect-fifth", 1.5],
       ["golden-ratio", 1.618],
     ]);
+  });
+});
+
+describe("hybridPresetsFromTypeSteps", () => {
+  it("names each step by its offset and keeps the given order", () => {
+    const steps = generateTypeSteps(16, 1.25, 5);
+    const presets = hybridPresetsFromTypeSteps(steps);
+    expect(presets.map((preset) => preset.id)).toEqual(
+      steps.map((step) => String(step.offset)),
+    );
+    expect(presets.map((preset) => preset.value)).toEqual(
+      steps.map((step) => step.fontSizePx),
+    );
+    expect(presets.find((preset) => preset.id === "0")?.name).toBe("+0");
+  });
+});
+
+describe("hybridValueFromStepOffset", () => {
+  it("binds a following role to the step id", () => {
+    expect(hybridValueFromStepOffset(3, 31)).toEqual({
+      isPreset: true,
+      presetId: "3",
+      value: 31,
+    });
+  });
+
+  it("stays raw when the size was typed", () => {
+    expect(hybridValueFromStepOffset(null, 14)).toEqual({
+      isPreset: false,
+      value: 14,
+    });
   });
 });
 
