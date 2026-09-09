@@ -128,6 +128,20 @@ persists with the project, because it is part of what you are designing. Preview
 width and language do not: they are ways of looking at the project, not part of
 it, so they reset on reload.
 
+**Later cut — studio templates and devices.** The studio now offers Specimen and
+Article only. Marketing was a third layout nobody asked to judge a scale with.
+The Thai language toggle went with it: studio preview copy is the editor
+specimen, so one string is judged everywhere, including scripts the canned
+pair never covered. Documentation still renders the canned English and Thai
+articles.
+
+Preview devices are named records — phone, tablet, desktop, plus up to two extra
+desktops — each with a width and a ratio, not hide/show checkboxes. The three
+required frames cannot be removed. `TypeSystem.ratio` stays the canonical
+desktop ratio for export; switching a nav icon regenerates the ramp from that
+frame's ratio. Which frame is active is still view state and resets on reload;
+which frames exist persists with the project.
+
 ## Stage 4 — Preview against the real palette ✅ done
 
 The reference offers two hex inputs for text and background. Blueprint can do
@@ -192,8 +206,9 @@ scale, the tokens, or the export.
 2. Exported line-height still carries no unit.
 3. A user can type their own specimen text, in any script, and see it at every
    step.
-4. A user can preview the scale as an article and as a marketing page, in English
-   and Thai, at mobile, tablet and desktop widths.
+4. A user can preview the scale as a specimen and as an article, in the editor's
+   own copy, at phone, tablet and desktop widths, and can add up to two extra
+   desktop sizes. Documentation still shows the article in English and Thai.
 5. A user can set preview text and background from the project palette and see
    the WCAG result for that pair.
 6. A user gets a line-height warning tuned to Thai when the specimen contains
