@@ -7,12 +7,14 @@ import {
   Button,
   elementForRole,
   formatLength,
+  generateTypeSteps,
   type SemanticRole,
   type TypeRole,
   type TypeScaleUnit,
   type ColorTrack,
   type TypeSystem,
   resolveLineHeight,
+  resolveRoleSizePx,
   PREVIEW_TEMPLATES,
   type PreviewTemplateId,
   type PreviewDevice,
@@ -78,6 +80,11 @@ export function TypographyPreview({
 }: TypographyPreviewProps) {
   const textHex = resolveShadeHex(tracks, textShade);
   const backgroundHex = resolveShadeHex(tracks, backgroundShade);
+  const steps = generateTypeSteps(
+    system.baseFontSizePx,
+    device.ratio,
+    system.stepCount,
+  );
   return (
     <section aria-label="Type scale preview" className={styles.previewPage}>
       <div
@@ -139,6 +146,12 @@ export function TypographyPreview({
         {template === "specimen" &&
           roles.map((role) => {
             const Tag = elementForRole(system, role);
+            const fontSizePx = resolveRoleSizePx(
+              system,
+              steps,
+              role,
+              device.id,
+            );
             /* Judged at this role's own size and weight: the same pair of
                colours passes at a heading and fails at a caption. */
             const contrast =
@@ -146,7 +159,7 @@ export function TypographyPreview({
                 ? assessTextContrastAtSize(
                     textHex,
                     backgroundHex,
-                    role.desktop.fontSizePx,
+                    fontSizePx,
                     role.fontWeight,
                   )
                 : null;
@@ -156,10 +169,13 @@ export function TypographyPreview({
                 <header>
                   <h3>{role.id}</h3>
                   <p>
-                    {formatLength(role.desktop.fontSizePx, unit)} · weight{" "}
-                    {role.fontWeight} · line height{" "}
-                    {resolveLineHeight(role).computedLineHeightPx}px ·{" "}
-                    {elementForRole(system, role)}
+                    {formatLength(fontSizePx, unit)} · weight {role.fontWeight}{" "}
+                    · line height{" "}
+                    {
+                      resolveLineHeight(role, fontSizePx, device.id)
+                        .computedLineHeightPx
+                    }
+                    px · {elementForRole(system, role)}
                   </p>
                   {contrast && (
                     <p

@@ -5,7 +5,12 @@ import {
   splitFontFamily,
   type LegacyTypographyProject,
 } from "./migrate";
-import { elementForRole, resolveLineHeight, slotSource } from "./system";
+import {
+  elementForRole,
+  resolveLineHeight,
+  resolveRoleSizePx,
+  slotSource,
+} from "./system";
 import { generateTypeScale } from "./scale";
 import { SEMANTIC_ROLES } from "./types";
 
@@ -81,20 +86,22 @@ describe("migrateLegacyProject", () => {
       )!;
       // Stored as a distance from base, not the raw index.
       expect(migrated.stepOffset).toBe(step.offset);
-      expect(migrated.desktop.fontSizePx).toBe(step.fontSizePx);
+      expect(resolveRoleSizePx(system, scale.steps, migrated)).toBe(
+        step.fontSizePx,
+      );
     });
   });
 
   it("preserves per-role weight, line height and spacing", () => {
     const body = system.roles.find((role) => role.id === "body")!;
     expect(body.fontWeight).toBe(400);
-    expect(body.desktop.letterSpacingPx).toBe(0);
+    expect(body.letterSpacingPx).toBe(0);
 
     /* `ratio`, not `auto`: this was a value somebody set, and adopting the
        group default instead would change how a saved project renders. The
        resolved ratio is the claim that matters — it is what the export
        emits, and it has to be the 1.5 the project had. */
-    expect(body.desktop.lineHeight).toEqual({ mode: "ratio", value: 1.5 });
+    expect(body.lineHeight).toEqual({ mode: "ratio", value: 1.5 });
     expect(resolveLineHeight(body).computedLineHeightRatio).toBe(1.5);
   });
 
@@ -123,9 +130,10 @@ describe("migrateLegacyProject", () => {
     expect(ids).toContain("body");
   });
 
-  it("starts mobile equal to desktop rather than inventing smaller sizes", () => {
+  it("leaves bound roles without a per-device size, so every frame follows the step", () => {
     system.roles.forEach((role) => {
-      expect(role.mobile).toEqual(role.desktop);
+      expect(role.unlinkedSizes).toEqual({});
+      expect(role.unlinkedLineHeights).toEqual({});
     });
   });
 
@@ -204,8 +212,7 @@ describe("normalizeStoredSystem", () => {
     const system = normalizeStoredSystem(previousRelease)!;
     const body = system.roles[0]!;
 
-    expect(body.desktop.lineHeight).toEqual({ mode: "ratio", value: 1.5 });
-    expect(body.mobile.lineHeight).toEqual({ mode: "ratio", value: 1.5 });
+    expect(body.lineHeight).toEqual({ mode: "ratio", value: 1.5 });
     expect(resolveLineHeight(body).computedLineHeightRatio).toBe(1.5);
     expect(resolveLineHeight(body).computedLineHeightPx).toBe(24);
   });
@@ -223,8 +230,82 @@ describe("normalizeStoredSystem", () => {
     };
     const system = normalizeStoredSystem(damaged)!;
 
-    expect(system.roles[0]!.desktop.lineHeight).toEqual({ mode: "auto" });
-    expect(system.roles[0]!.mobile.lineHeight).toEqual({ mode: "auto" });
+    expect(system.roles[0]!.lineHeight).toEqual({ mode: "auto" });
+  });
+
+  it("keeps a typed mobile size as an unlinked phone size", () => {
+    const stored = {
+      ...previousRelease,
+      roles: [
+        {
+          ...previousRelease.roles[0]!,
+          desktop: { fontSizePx: 16, lineHeight: 1.5, letterSpacingPx: 0 },
+          mobile: { fontSizePx: 14, lineHeight: 1.5, letterSpacingPx: 0 },
+        },
+      ],
+    };
+    const system = normalizeStoredSystem(stored)!;
+    expect(system.roles[0]!.stepOffset).not.toBeNull();
+    expect(system.roles[0]!.unlinkedSizes).toEqual({ phone: 14 });
+  });
+
+  it("stores both frames when a role is fully unlinked", () => {
+    const stored = {
+      ...previousRelease,
+      roles: [
+        {
+          ...previousRelease.roles[0]!,
+          step: undefined,
+          stepOffset: null,
+          desktop: { fontSizePx: 91, lineHeight: 1.5, letterSpacingPx: 0 },
+          mobile: { fontSizePx: 48, lineHeight: 1.5, letterSpacingPx: 0 },
+        },
+      ],
+    };
+    const system = normalizeStoredSystem(stored)!;
+    expect(system.roles[0]!.stepOffset).toBeNull();
+    expect(system.roles[0]!.unlinkedSizes).toEqual({
+      desktop: 91,
+      phone: 48,
+    });
+    expect(system.roles[0]!.unlinkedLineHeights).toEqual({});
+  });
+
+  it("reads a stored per-device line height and ignores a missing map", () => {
+    const withOverride = normalizeStoredSystem({
+      ...previousRelease,
+      groups: [{ id: "body", label: "Body", indexing: "number" }],
+      roles: [
+        {
+          id: "body",
+          name: "body",
+          groupId: "body",
+          fontId: "base",
+          fontWeight: 400,
+          textTransform: "none",
+          stepOffset: 0,
+          sameAsRoleId: null,
+          lineHeight: { mode: "ratio", value: 1.5 },
+          letterSpacingPx: 0,
+          unlinkedSizes: {},
+          unlinkedLineHeights: {
+            mobile: { mode: "px", value: 28 },
+            tablet: { mode: "ratio", value: 1.2 },
+          },
+        },
+      ],
+    })!;
+    expect(withOverride.roles[0]!.lineHeight).toEqual({
+      mode: "ratio",
+      value: 1.5,
+    });
+    expect(withOverride.roles[0]!.unlinkedLineHeights).toEqual({
+      phone: { mode: "px", value: 28 },
+      tablet: { mode: "ratio", value: 1.2 },
+    });
+
+    const without = normalizeStoredSystem(previousRelease)!;
+    expect(without.roles[0]!.unlinkedLineHeights).toEqual({});
   });
 
   it("reads a stored entry source as the primary slot's", () => {

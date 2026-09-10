@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { formatTypeSystemCssExport } from "./system-export";
-import { defaultSystem, type TypeSystem } from "./system";
+import { defaultSystem, resolveRoleSizePx, type TypeSystem } from "./system";
+import { generateTypeSteps } from "./scale";
 import { readTypographyProjectData } from "../workspace/typography-project";
 import {
-  resolveSystemRoles,
   resolveTemplateSlot,
   typeFontRows,
   typeRoleRowGroups,
@@ -26,19 +26,19 @@ const system = (): TypeSystem =>
   defaultSystem("Reference", ["Geist Sans", "ui-sans-serif"], 16, 1.25, 9);
 
 describe("resolving a role's size", () => {
-  it("follows the step offset rather than the stored value", () => {
-    /* The stored size is not the answer. `defaultSystem` writes the base size
-       into every role and lets the offsets decide, which is exactly the shape
-       the reference workspace is in — eight roles stored at 16px with eight
-       different offsets. */
+  it("follows the step offset rather than a stored unlinked size", () => {
+    /* Bound roles keep an empty unlinked map. `defaultSystem` lets the
+       offsets decide, which is exactly the shape the reference workspace is
+       in — eight roles with eight different offsets and no typed sizes. */
     const base = system();
     for (const role of base.roles) {
-      expect(role.desktop.fontSizePx).toBe(16);
+      expect(role.unlinkedSizes).toEqual({});
     }
 
-    const resolved = resolveSystemRoles(base);
     const sizes = new Map(
-      resolved.map((role) => [role.id, role.desktop.fontSizePx]),
+      typeRoleRowGroups(base).flatMap((group) =>
+        group.rows.map((row) => [row.id, row.fontSizePx] as const),
+      ),
     );
 
     expect(sizes.get("body")).toBe(16);
@@ -49,14 +49,63 @@ describe("resolving a role's size", () => {
   });
 
   it("moves every linked role when the base size changes", () => {
-    const before = resolveSystemRoles(system());
-    const after = resolveSystemRoles({ ...system(), baseFontSizePx: 20 });
+    const sizeOf = (sys: TypeSystem, id: string) =>
+      typeRoleRowGroups(sys)
+        .flatMap((group) => group.rows)
+        .find((row) => row.id === id)?.fontSizePx;
 
-    const sizeOf = (roles: typeof before, id: string) =>
-      roles.find((role) => role.id === id)?.desktop.fontSizePx;
+    expect(sizeOf(system(), "body")).toBe(16);
+    expect(sizeOf({ ...system(), baseFontSizePx: 20 }, "body")).toBe(20);
+    expect(sizeOf({ ...system(), baseFontSizePx: 20 }, "h1")).not.toBe(
+      sizeOf(system(), "h1"),
+    );
+  });
 
-    expect(sizeOf(after, "body")).toBe(20);
-    expect(sizeOf(after, "h1")).not.toBe(sizeOf(before, "h1"));
+  it("shows a typed phone size only on the phone rows", () => {
+    const patched: TypeSystem = {
+      ...system(),
+      roles: system().roles.map((role) =>
+        role.id === "body" ? { ...role, unlinkedSizes: { phone: 14 } } : role,
+      ),
+    };
+    const desktop = typeRoleRowGroups(patched, "desktop").flatMap(
+      (group) => group.rows,
+    );
+    const phone = typeRoleRowGroups(patched, "phone").flatMap(
+      (group) => group.rows,
+    );
+    const desktopBody = desktop.find((row) => row.id === "body")!;
+    const phoneBody = phone.find((row) => row.id === "body")!;
+    expect(desktopBody.fontSizePx).toBe(16);
+    expect(desktopBody.stepOffset).toBe(0);
+    expect(phoneBody.fontSizePx).toBe(14);
+    expect(phoneBody.stepOffset).toBeNull();
+  });
+
+  it("shows a typed phone line height only on the phone rows", () => {
+    const patched: TypeSystem = {
+      ...system(),
+      roles: system().roles.map((role) =>
+        role.id === "body"
+          ? {
+              ...role,
+              unlinkedLineHeights: {
+                phone: { mode: "px" as const, value: 28 },
+              },
+            }
+          : role,
+      ),
+    };
+    const desktop = typeRoleRowGroups(patched, "desktop").flatMap(
+      (group) => group.rows,
+    );
+    const phone = typeRoleRowGroups(patched, "phone").flatMap(
+      (group) => group.rows,
+    );
+    const desktopBody = desktop.find((row) => row.id === "body")!;
+    const phoneBody = phone.find((row) => row.id === "body")!;
+    expect(desktopBody.lineHeightPx).toBe(24);
+    expect(phoneBody.lineHeightPx).toBe(28);
   });
 });
 
@@ -254,9 +303,17 @@ describe("which role a template slot draws", () => {
     defaultSystem("Reference", ["Geist Sans", "ui-sans-serif"], 16, 1.25, 9);
 
   const sizeOf = (
-    system: TypeSystem,
+    sys: TypeSystem,
     slot: Parameters<typeof resolveTemplateSlot>[1],
-  ) => resolveTemplateSlot(system, slot)?.desktop.fontSizePx;
+  ) => {
+    const role = resolveTemplateSlot(sys, slot);
+    if (!role) return undefined;
+    return resolveRoleSizePx(
+      sys,
+      generateTypeSteps(sys.baseFontSizePx, sys.ratio, sys.stepCount),
+      role,
+    );
+  };
 
   it("takes label and caption by name, now that a default system has them", () => {
     /* The id path. Two consumers argued these roles into the system — the

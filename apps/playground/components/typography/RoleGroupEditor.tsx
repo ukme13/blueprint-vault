@@ -12,12 +12,17 @@ import {
   TYPE_INDEXING_LABELS,
   hybridPresetsFromTypeSteps,
   hybridValueFromStepOffset,
+  isRoleUnlinkedOnDevice,
+  isLineHeightUnlinkedOnDevice,
+  lineHeightConfigOnDevice,
+  resolveLineHeight,
+  resolveRoleSizePx,
   type TypeFont,
   type TypeGroup,
   type TypeIndexing,
   type TypeRole,
   type TypeStep,
-  resolveLineHeight,
+  type TypeSystem,
   type LineHeightConfig,
 } from "@blueprint/ui";
 import { LineHeightInput } from "./LineHeightInput";
@@ -28,6 +33,9 @@ export interface RoleGroupEditorProps {
   /** This group's roles, already resolved and filtered by the caller. */
   roles: TypeRole[];
   fonts: TypeFont[];
+  system: TypeSystem;
+  /** Which preview device the size field is editing. */
+  deviceId: string;
   /** Largest first, matching the step list the canvas renders. */
   steps: TypeStep[];
   canAddRole: boolean;
@@ -37,9 +45,13 @@ export interface RoleGroupEditorProps {
   onLabelCommit: () => void;
   onIndexingChange: (indexing: TypeIndexing) => void;
   onRoleChange: (id: string, patch: Partial<TypeRole>) => void;
+  onBindStep: (id: string, stepOffset: number) => void;
+  onUnlinkSize: (id: string, fontSizePx: number) => void;
+  onLineHeightOverride: (id: string, lineHeight: LineHeightConfig) => void;
+  onLineHeightRelink: (id: string) => void;
   onRoleValueChange: (
     id: string,
-    patch: Partial<{ lineHeight: LineHeightConfig; letterSpacingPx: number }>,
+    patch: Partial<{ letterSpacingPx: number }>,
   ) => void;
   onRoleRemove: (id: string) => void;
 }
@@ -49,6 +61,8 @@ export function RoleGroupEditor({
   group,
   roles,
   fonts,
+  system,
+  deviceId,
   steps,
   canAddRole,
   onAddRole,
@@ -57,6 +71,10 @@ export function RoleGroupEditor({
   onLabelCommit,
   onIndexingChange,
   onRoleChange,
+  onBindStep,
+  onUnlinkSize,
+  onLineHeightOverride,
+  onLineHeightRelink,
   onRoleValueChange,
   onRoleRemove,
 }: RoleGroupEditorProps) {
@@ -204,24 +222,18 @@ export function RoleGroupEditor({
                   searchPlaceholder="Search steps..."
                   step={1}
                   value={hybridValueFromStepOffset(
-                    role.stepOffset,
-                    role.desktop.fontSizePx,
+                    isRoleUnlinkedOnDevice(role, deviceId)
+                      ? null
+                      : role.stepOffset,
+                    resolveRoleSizePx(system, steps, role, deviceId),
                   )}
                   valueSuffix="px"
                   onChange={(next) => {
                     if (next.isPreset && next.presetId !== undefined) {
-                      onRoleChange(role.id, {
-                        stepOffset: Number(next.presetId),
-                        sameAsRoleId: null,
-                      });
+                      onBindStep(role.id, Number(next.presetId));
                       return;
                     }
-                    onRoleChange(role.id, {
-                      stepOffset: null,
-                      sameAsRoleId: null,
-                      desktop: { ...role.desktop, fontSizePx: next.value },
-                      mobile: { ...role.mobile, fontSizePx: next.value },
-                    });
+                    onUnlinkSize(role.id, next.value);
                   }}
                 />
               </div>
@@ -248,14 +260,40 @@ export function RoleGroupEditor({
                   onRoleChange(role.id, { fontWeight: value })
                 }
               />
-              <LineHeightInput
-                label={`${role.id} line height`}
-                config={role.desktop.lineHeight}
-                computedPx={resolveLineHeight(role).computedLineHeightPx}
-                onChange={(lineHeight) =>
-                  onRoleValueChange(role.id, { lineHeight })
+              <div
+                className={
+                  isLineHeightUnlinkedOnDevice(role, deviceId)
+                    ? styles.lineHeightUnlinked
+                    : undefined
                 }
-              />
+                data-unlinked={
+                  isLineHeightUnlinkedOnDevice(role, deviceId)
+                    ? "true"
+                    : undefined
+                }
+              >
+                <LineHeightInput
+                  label={`${role.id} line height`}
+                  config={lineHeightConfigOnDevice(role, deviceId)}
+                  computedPx={
+                    resolveLineHeight(
+                      role,
+                      resolveRoleSizePx(system, steps, role, deviceId),
+                      deviceId,
+                    ).computedLineHeightPx
+                  }
+                  onChange={(lineHeight) =>
+                    onLineHeightOverride(role.id, lineHeight)
+                  }
+                  onRelink={() => {
+                    if (isLineHeightUnlinkedOnDevice(role, deviceId)) {
+                      onLineHeightRelink(role.id);
+                      return;
+                    }
+                    onRoleChange(role.id, { lineHeight: { mode: "auto" } });
+                  }}
+                />
+              </div>
               <NumberInput
                 isLabelHidden
                 label={`${role.id} letter spacing`}
@@ -263,7 +301,7 @@ export function RoleGroupEditor({
                 max={2}
                 step={0.05}
                 units="px"
-                value={role.desktop.letterSpacingPx}
+                value={role.letterSpacingPx}
                 onChange={(value) =>
                   onRoleValueChange(role.id, { letterSpacingPx: value })
                 }

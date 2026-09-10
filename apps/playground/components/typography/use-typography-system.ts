@@ -3,6 +3,7 @@ import {
   addFont,
   addGroup,
   addRole,
+  bindRoleStepOnDevice,
   moveGroup,
   removeFont,
   removeFontSlot,
@@ -13,6 +14,9 @@ import {
   renameGroup,
   setGoogleFont,
   setLocalFont,
+  unlinkRoleSizeOnDevice,
+  unlinkLineHeightOnDevice,
+  bindLineHeightOnDevice,
   updateGroup,
   updateRole,
   updateRoleValue,
@@ -31,6 +35,14 @@ export interface TypographySystemActions {
     id: string,
     patch: Partial<{ lineHeight: LineHeightConfig; letterSpacingPx: number }>,
   ) => void;
+  bindRoleStep: (id: string, deviceId: string, stepOffset: number) => void;
+  unlinkRoleSize: (id: string, deviceId: string, fontSizePx: number) => void;
+  unlinkLineHeight: (
+    id: string,
+    deviceId: string,
+    lineHeight: LineHeightConfig,
+  ) => void;
+  bindLineHeight: (id: string, deviceId: string) => void;
   addRole: (group: TypeGroup) => void;
   removeRole: (id: string) => void;
   renameGroupById: (groupId: string, label: string) => void;
@@ -83,6 +95,20 @@ export function useTypographySystem(
         editSystem((system) => updateRole(system, id, patch)),
       updateRoleValue: (id, patch) =>
         editSystem((system) => updateRoleValue(system, id, patch)),
+      bindRoleStep: (id, deviceId, stepOffset) =>
+        editSystem((system) =>
+          bindRoleStepOnDevice(system, id, deviceId, stepOffset),
+        ),
+      unlinkRoleSize: (id, deviceId, fontSizePx) =>
+        editSystem((system) =>
+          unlinkRoleSizeOnDevice(system, id, deviceId, fontSizePx),
+        ),
+      unlinkLineHeight: (id, deviceId, lineHeight) =>
+        editSystem((system) =>
+          unlinkLineHeightOnDevice(system, id, deviceId, lineHeight),
+        ),
+      bindLineHeight: (id, deviceId) =>
+        editSystem((system) => bindLineHeightOnDevice(system, id, deviceId)),
       addRole: (group) => editSystem((system) => addRole(system, group)),
       removeRole: (id) => editSystem((system) => removeRole(system, id)),
       /* Renaming a group renames its roles: ids are built from the group id, so

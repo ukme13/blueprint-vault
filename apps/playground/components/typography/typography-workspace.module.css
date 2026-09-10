@@ -31,13 +31,6 @@
 .creationHeader {
   min-height: 64px;
   display: grid;
-  /* minmax(0, 1fr), not 1fr: a fr track's floor is its content's min-width,
-     so the actions on the right — nav, theme control, export — held the bar
-     at 403px on a 375px screen and the whole workspace grid went with it.
-     Two columns: Editor/Preview live on the local bar, not centred here. A
-     content-sized right track was tried and moved the groups panel enough to
-     unsettle its keyboard drag. */
-  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 24px;
   padding: 0 24px;
@@ -45,8 +38,30 @@
   background: var(--color-surface-subtle);
 }
 
+.topbar {
+  /* Same three columns as the colour studio: name | devices | actions.
+     Symmetric 1fr tracks keep the icons centred; minmax(0, 1fr) so the
+     actions cannot hold the bar wider than the viewport. Editor/Preview
+     stay on the local toolbar so the word Preview does not sit next to
+     the workspace Preview link. */
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+
+.creationHeader {
+  /* minmax(0, 1fr), not 1fr: a fr track's floor is its content's min-width,
+     so the actions on the right held the bar at 403px on a 375px screen. */
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
 .navigation {
+  align-self: center;
   min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.navigation::-webkit-scrollbar {
+  display: none;
 }
 
 .headerActions {
@@ -544,9 +559,23 @@
 
 @media (max-width: 900px) {
   .topbar {
+    grid-template-columns: 1fr auto;
     gap: 12px;
     padding-top: 10px;
     padding-bottom: 10px;
+  }
+
+  .navigation {
+    grid-row: 2;
+    grid-column: 1 / -1;
+    /* Stretch, not centre, so extra desktop icons scroll inside the row
+       instead of pushing the page sideways. */
+    justify-self: stretch;
+  }
+
+  .headerActions {
+    grid-row: 1;
+    grid-column: 2;
   }
 
   .editor {
@@ -715,6 +744,11 @@
 
 .sizeCell {
   min-width: 0;
+}
+
+.lineHeightUnlinked :global(.astryx-number-input input),
+.lineHeightUnlinked :global(input) {
+  color: var(--color-fg-accent);
 }
 
 .fontStackRow {

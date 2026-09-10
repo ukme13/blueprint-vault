@@ -1,8 +1,11 @@
 import { formatLength } from "./export";
 import { findGoogleFont } from "./google-fonts";
-import { resolveSystemRoles } from "./role-rows";
 import { generateTypeSteps } from "./scale";
-import { resolveLineHeight, type TypeRole, type TypeSystem } from "./system";
+import {
+  resolveLineHeight,
+  resolveRoleSizePx,
+  type TypeSystem,
+} from "./system";
 import type { TypeScaleUnit } from "./types";
 
 /**
@@ -48,44 +51,49 @@ export function typeTokenId(value: string): string {
  * documentation, because both resolve before they render. Only a client
  * installing the file would have found it.
  *
- * `resolveSystemRoles` is the same function the row builder uses, so the
+ * `resolveRoleSizePx` is the same function the row builder uses, so the
  * table, the specimen and the file cannot disagree about a size.
  */
-function resolved(system: TypeSystem): TypeSystem {
-  return { ...system, roles: resolveSystemRoles(system) };
-}
-
 function hasViewportDifference(system: TypeSystem): boolean {
-  return system.roles.some(
-    (role) =>
-      role.desktop.fontSizePx !== role.mobile.fontSizePx ||
-      /* The resolved ratio, not the config. Two roles both on `auto` hold
-         two different objects, so comparing the configs by identity reports
-         a difference for every role in every system — and every export would
-         gain the media query this function exists to withhold. */
-      resolveLineHeight(role, "desktop").computedLineHeightRatio !==
-        resolveLineHeight(role, "mobile").computedLineHeightRatio ||
-      role.desktop.letterSpacingPx !== role.mobile.letterSpacingPx,
+  const steps = generateTypeSteps(
+    system.baseFontSizePx,
+    system.ratio,
+    system.stepCount,
   );
+  return system.roles.some((role) => {
+    const desktopPx = resolveRoleSizePx(system, steps, role, "desktop");
+    const phonePx = resolveRoleSizePx(system, steps, role, "phone");
+    return (
+      desktopPx !== phonePx ||
+      resolveLineHeight(role, desktopPx, "desktop").computedLineHeightRatio !==
+        resolveLineHeight(role, phonePx, "phone").computedLineHeightRatio
+    );
+  });
 }
 
 function viewportLines(
-  roles: TypeRole[],
-  viewport: "desktop" | "mobile",
+  system: TypeSystem,
+  deviceId: string,
   unit: TypeScaleUnit,
   indentation: string,
 ): string[] {
-  return roles.flatMap((role) => {
-    const value = role[viewport];
+  const steps = generateTypeSteps(
+    system.baseFontSizePx,
+    system.ratio,
+    system.stepCount,
+  );
+  return system.roles.flatMap((role) => {
+    const fontSizePx = resolveRoleSizePx(system, steps, role, deviceId);
     const id = typeTokenId(role.id);
-    /* Unitless, as it has always been: a component that changes its font size
-       keeps a line height in proportion. The config is an intent and would
-       interpolate as "[object Object]". */
-    const { computedLineHeightRatio } = resolveLineHeight(role, viewport);
+    const { computedLineHeightRatio } = resolveLineHeight(
+      role,
+      fontSizePx,
+      deviceId,
+    );
     return [
-      `${indentation}--font-${id}-size: ${formatLength(value.fontSizePx, unit)};`,
+      `${indentation}--font-${id}-size: ${formatLength(fontSizePx, unit)};`,
       `${indentation}--font-${id}-line-height: ${computedLineHeightRatio};`,
-      `${indentation}--font-${id}-letter-spacing: ${formatLength(value.letterSpacingPx, unit)};`,
+      `${indentation}--font-${id}-letter-spacing: ${formatLength(role.letterSpacingPx, unit)};`,
     ];
   });
 }
@@ -153,12 +161,12 @@ function body(
   unit: TypeScaleUnit,
   open: string,
 ): string {
-  const system = resolved(rawSystem);
+  const system = rawSystem;
   const lines = [
     ...googleFontNotice(system),
     open,
     ...sharedLines(system, unit),
-    ...viewportLines(system.roles, "mobile", unit, "  "),
+    ...viewportLines(system, "phone", unit, "  "),
     "}",
   ];
 
@@ -167,7 +175,7 @@ function body(
       "",
       `@media (min-width: ${system.breakpointPx}px) {`,
       `  ${open}`,
-      ...viewportLines(system.roles, "desktop", unit, "    "),
+      ...viewportLines(system, "desktop", unit, "    "),
       "  }",
       "}",
     );

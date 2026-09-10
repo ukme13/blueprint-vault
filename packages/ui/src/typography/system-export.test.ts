@@ -63,16 +63,10 @@ const authored: TypeSystem = {
       textTransform: "uppercase",
       stepOffset: null,
       sameAsRoleId: null,
-      desktop: {
-        fontSizePx: 56,
-        lineHeight: { mode: "ratio", value: 1.1 },
-        letterSpacingPx: 0,
-      },
-      mobile: {
-        fontSizePx: 24,
-        lineHeight: { mode: "ratio", value: 1.2 },
-        letterSpacingPx: 0,
-      },
+      lineHeight: { mode: "ratio", value: 1.1 },
+      letterSpacingPx: 0,
+      unlinkedSizes: { desktop: 56, phone: 24 },
+      unlinkedLineHeights: {},
     },
     {
       id: "body",
@@ -83,16 +77,10 @@ const authored: TypeSystem = {
       textTransform: "none",
       stepOffset: null,
       sameAsRoleId: null,
-      desktop: {
-        fontSizePx: 16,
-        lineHeight: { mode: "ratio", value: 1.6 },
-        letterSpacingPx: 0,
-      },
-      mobile: {
-        fontSizePx: 16,
-        lineHeight: { mode: "ratio", value: 1.6 },
-        letterSpacingPx: 0,
-      },
+      lineHeight: { mode: "ratio", value: 1.6 },
+      letterSpacingPx: 0,
+      unlinkedSizes: { desktop: 16, phone: 16 },
+      unlinkedLineHeights: {},
     },
   ],
 };
@@ -160,9 +148,9 @@ describe("viewport handling", () => {
     const output = formatTypeSystemCssExport(authored, "px");
     const rootBlock = output.slice(0, output.indexOf("@media"));
 
-    expect(rootBlock).toContain(`--font-h1-size: ${h1.mobile.fontSizePx}px;`);
+    expect(rootBlock).toContain(`--font-h1-size: ${h1.unlinkedSizes.phone}px;`);
     expect(rootBlock).not.toContain(
-      `--font-h1-size: ${h1.desktop.fontSizePx}px;`,
+      `--font-h1-size: ${h1.unlinkedSizes.desktop}px;`,
     );
   });
 
@@ -230,7 +218,7 @@ describe("the size a role exports", () => {
       9,
     );
     for (const role of system.roles) {
-      expect(role.desktop.fontSizePx).toBe(16);
+      expect(role.unlinkedSizes).toEqual({});
     }
 
     const css = formatTypeSystemCssExport(system, "px");
@@ -261,8 +249,7 @@ describe("the size a role exports", () => {
               ...role,
               stepOffset: null,
               sameAsRoleId: null,
-              desktop: { ...role.desktop, fontSizePx: 41 },
-              mobile: { ...role.mobile, fontSizePx: 41 },
+              unlinkedSizes: { desktop: 41, phone: 41 },
             }
           : role,
       ),

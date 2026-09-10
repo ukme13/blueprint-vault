@@ -180,6 +180,16 @@ test.describe("Typography scale editing", () => {
     seededPage: page,
   }) => {
     const devices = page.getByRole("navigation", { name: "Preview devices" });
+    /* The icons live in the page header, the same slot Colour uses for
+       Overview / Shade generator — not on the Editor/Preview toolbar.
+       `banner` is not this header: a `header` inside `main` has no banner
+       role. */
+    await expect(page.locator("header").filter({ has: devices })).toBeVisible();
+    await expect(
+      page
+        .getByRole("region", { name: "Typography toolbar" })
+        .getByRole("navigation", { name: "Preview devices" }),
+    ).toHaveCount(0);
     await expect(devices.getByRole("button", { name: "Phone" })).toBeVisible();
     await expect(devices.getByRole("button", { name: "Tablet" })).toBeVisible();
     await expect(
@@ -560,6 +570,22 @@ test.describe("Typography scale editing", () => {
     await page.getByRole("option", { name: /^\+1/ }).click();
 
     await expect(settings.getByLabel("body size")).toContainText("+1");
+  });
+
+  test("typing a size on phone leaves desktop bound to the step", async ({
+    seededPage: page,
+  }) => {
+    await showInspectorPanel(page, "Groups");
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const devices = page.getByRole("navigation", { name: "Preview devices" });
+
+    await devices.getByRole("button", { name: "Phone" }).click();
+    await fillHybridNumber(page, "body size", "14");
+    await expect(settings.getByLabel("body size")).toHaveValue("14");
+    await expect(settings.getByLabel("body size")).not.toContainText("+");
+
+    await devices.getByRole("button", { name: "Desktop", exact: true }).click();
+    await expect(settings.getByLabel("body size")).toContainText("+0");
   });
 
   test("loads a project saved by the previous release", async ({ page }) => {
