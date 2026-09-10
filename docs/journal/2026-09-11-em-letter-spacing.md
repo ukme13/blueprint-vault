@@ -22,8 +22,9 @@ no longer rewrites tracking.
 ## Roadmaps
 
 `typography-preview-and-units.md` Stage 1 no longer defers `em` tracking.
-The later list drops that item. Per-device letter-spacing and a configurable
-rem root remain.
+The later list drops that item. A configurable rem root remains.
+Per-device letter-spacing shipped in `2026-09-11-per-device-letter-spacing.md`.
+Group auto line-height shipped in `2026-09-11-group-auto-line-height.md`.
 
 ## Checks
 

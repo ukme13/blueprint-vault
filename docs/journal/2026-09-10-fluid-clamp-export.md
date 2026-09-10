@@ -61,4 +61,6 @@ was a stale copy. Dropping it is cheaper than teaching it to follow.
 
 ## Still later
 
-Per-device letter-spacing, a configurable rem root.
+A configurable rem root. Per-device letter-spacing shipped in
+`2026-09-11-per-device-letter-spacing.md`. Group auto line-height shipped in
+`2026-09-11-group-auto-line-height.md`.

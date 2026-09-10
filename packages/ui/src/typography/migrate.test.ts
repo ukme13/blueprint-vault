@@ -199,6 +199,35 @@ describe("normalizeStoredSystem", () => {
     expect(system.groups.some((group) => group.id === "body")).toBe(true);
   });
 
+  it("fills a missing group auto line-height from the default table", () => {
+    const system = normalizeStoredSystem({
+      ...previousRelease,
+      groups: [{ id: "body", label: "Body", indexing: "number" }],
+    })!;
+    expect(
+      system.groups.find((group) => group.id === "body")!.autoLineHeightRatio,
+    ).toBe(1.5);
+    expect(
+      system.groups.find((group) => group.id === "display")!
+        .autoLineHeightRatio,
+    ).toBe(1.1);
+
+    const kept = normalizeStoredSystem({
+      ...previousRelease,
+      groups: [
+        {
+          id: "body",
+          label: "Body",
+          indexing: "number",
+          autoLineHeightRatio: 1.8,
+        },
+      ],
+    })!;
+    expect(
+      kept.groups.find((group) => group.id === "body")!.autoLineHeightRatio,
+    ).toBe(1.8);
+  });
+
   it("converts an absolute step into an offset from base", () => {
     // Base sits two steps up from the bottom, so index 4 is offset +2.
     const system = normalizeStoredSystem(previousRelease)!;
@@ -313,6 +342,41 @@ describe("normalizeStoredSystem", () => {
 
     const without = normalizeStoredSystem(previousRelease)!;
     expect(without.roles[0]!.unlinkedLineHeights).toEqual({});
+  });
+
+  it("reads a stored per-device letter-spacing and ignores a missing map", () => {
+    const withOverride = normalizeStoredSystem({
+      ...previousRelease,
+      groups: [{ id: "body", label: "Body", indexing: "number" }],
+      roles: [
+        {
+          id: "body",
+          name: "body",
+          groupId: "body",
+          fontId: "base",
+          fontWeight: 400,
+          textTransform: "none",
+          stepOffset: 0,
+          sameAsRoleId: null,
+          lineHeight: { mode: "ratio", value: 1.5 },
+          letterSpacingPx: 0,
+          unlinkedSizes: {},
+          unlinkedLineHeights: {},
+          unlinkedLetterSpacings: {
+            mobile: -0.5,
+            tablet: 0.1,
+          },
+        },
+      ],
+    })!;
+    expect(withOverride.roles[0]!.letterSpacingPx).toBe(0);
+    expect(withOverride.roles[0]!.unlinkedLetterSpacings).toEqual({
+      phone: -0.5,
+      tablet: 0.1,
+    });
+
+    const without = normalizeStoredSystem(previousRelease)!;
+    expect(without.roles[0]!.unlinkedLetterSpacings).toEqual({});
   });
 
   it("reads a stored entry source as the primary slot's", () => {

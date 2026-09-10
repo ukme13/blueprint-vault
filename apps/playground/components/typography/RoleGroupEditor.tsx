@@ -1,6 +1,11 @@
 "use client";
 
-import { GripVertical, Plus, Trash2, X } from "lucide-react";
+import {
+  AlignVerticalSpaceAround,
+  GripVertical,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
@@ -8,15 +13,10 @@ import { Selector } from "@astryxdesign/core/Selector";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import {
   Button,
-  HybridTokenizedInput,
+  MAX_LINE_HEIGHT_RATIO,
+  MIN_LINE_HEIGHT_RATIO,
   TYPE_INDEXING_LABELS,
   hybridPresetsFromTypeSteps,
-  hybridValueFromStepOffset,
-  isRoleUnlinkedOnDevice,
-  isLineHeightUnlinkedOnDevice,
-  lineHeightConfigOnDevice,
-  resolveLineHeight,
-  resolveRoleSizePx,
   type TypeFont,
   type TypeGroup,
   type TypeIndexing,
@@ -25,7 +25,7 @@ import {
   type TypeSystem,
   type LineHeightConfig,
 } from "@blueprint/ui";
-import { LineHeightInput } from "./LineHeightInput";
+import { RoleRow } from "./RoleRow";
 import styles from "./typography-workspace.module.css";
 
 export interface RoleGroupEditorProps {
@@ -44,158 +44,15 @@ export interface RoleGroupEditorProps {
   onLabelChange: (label: string) => void;
   onLabelCommit: () => void;
   onIndexingChange: (indexing: TypeIndexing) => void;
+  onAutoLineHeightRatioChange: (ratio: number) => void;
   onRoleChange: (id: string, patch: Partial<TypeRole>) => void;
   onBindStep: (id: string, stepOffset: number) => void;
   onUnlinkSize: (id: string, fontSizePx: number) => void;
   onLineHeightOverride: (id: string, lineHeight: LineHeightConfig) => void;
   onLineHeightRelink: (id: string) => void;
-  onRoleValueChange: (
-    id: string,
-    patch: Partial<{ letterSpacingPx: number }>,
-  ) => void;
+  onLetterSpacingOverride: (id: string, letterSpacingPx: number) => void;
+  onLetterSpacingRelink: (id: string) => void;
   onRoleRemove: (id: string) => void;
-}
-
-interface RoleRowProps {
-  role: TypeRole;
-  fonts: TypeFont[];
-  system: TypeSystem;
-  deviceId: string;
-  steps: TypeStep[];
-  sizePresets: ReturnType<typeof hybridPresetsFromTypeSteps>;
-  onBindStep: (id: string, stepOffset: number) => void;
-  onUnlinkSize: (id: string, fontSizePx: number) => void;
-  onLineHeightOverride: (id: string, lineHeight: LineHeightConfig) => void;
-  onLineHeightRelink: (id: string) => void;
-  onRoleChange: (id: string, patch: Partial<TypeRole>) => void;
-  onRoleValueChange: (
-    id: string,
-    patch: Partial<{ letterSpacingPx: number }>,
-  ) => void;
-  onRoleRemove: (id: string) => void;
-}
-
-function RoleRow({
-  role,
-  fonts,
-  system,
-  deviceId,
-  steps,
-  sizePresets,
-  onBindStep,
-  onUnlinkSize,
-  onLineHeightOverride,
-  onLineHeightRelink,
-  onRoleChange,
-  onRoleValueChange,
-  onRoleRemove,
-}: RoleRowProps) {
-  const sizeUnlinked = isRoleUnlinkedOnDevice(role, deviceId);
-  const lineHeightUnlinked = isLineHeightUnlinkedOnDevice(role, deviceId);
-  const fontSizePx = resolveRoleSizePx(system, steps, role, deviceId);
-
-  return (
-    <div className={styles.roleTableRow}>
-      <span className={styles.roleSettingLabel}>{role.id}</span>
-
-      {/* A bound chip is a step on the ramp; typing a size unlinks it. */}
-      <div className={styles.sizeCell}>
-        <HybridTokenizedInput
-          decimals={0}
-          isLabelHidden
-          label={`${role.id} size`}
-          max={400}
-          min={1}
-          popoverTitle="Type steps"
-          presets={sizePresets}
-          searchPlaceholder="Search steps..."
-          step={1}
-          value={hybridValueFromStepOffset(
-            sizeUnlinked ? null : role.stepOffset,
-            fontSizePx,
-          )}
-          valueSuffix="px"
-          onChange={(next) => {
-            if (next.isPreset && next.presetId !== undefined) {
-              onBindStep(role.id, Number(next.presetId));
-              return;
-            }
-            onUnlinkSize(role.id, next.value);
-          }}
-        />
-      </div>
-
-      <Selector
-        label={`${role.id} font`}
-        isLabelHidden
-        options={fonts.map((font) => ({
-          label: font.name,
-          value: font.id,
-        }))}
-        value={role.fontId}
-        onChange={(value) => onRoleChange(role.id, { fontId: value })}
-      />
-      <NumberInput
-        isIntegerOnly
-        isLabelHidden
-        label={`${role.id} font weight`}
-        min={100}
-        max={900}
-        step={100}
-        value={role.fontWeight}
-        onChange={(value) => onRoleChange(role.id, { fontWeight: value })}
-      />
-      <div
-        className={lineHeightUnlinked ? styles.lineHeightUnlinked : undefined}
-        data-unlinked={lineHeightUnlinked ? "true" : undefined}
-      >
-        <LineHeightInput
-          label={`${role.id} line height`}
-          config={lineHeightConfigOnDevice(role, deviceId)}
-          computedPx={
-            resolveLineHeight(role, fontSizePx, deviceId).computedLineHeightPx
-          }
-          onChange={(lineHeight) => onLineHeightOverride(role.id, lineHeight)}
-          onRelink={() => {
-            if (lineHeightUnlinked) {
-              onLineHeightRelink(role.id);
-              return;
-            }
-            onRoleChange(role.id, { lineHeight: { mode: "auto" } });
-          }}
-        />
-      </div>
-      <NumberInput
-        isLabelHidden
-        label={`${role.id} letter spacing`}
-        min={-2}
-        max={2}
-        step={0.05}
-        units="px"
-        value={role.letterSpacingPx}
-        onChange={(value) =>
-          onRoleValueChange(role.id, { letterSpacingPx: value })
-        }
-      />
-      <Button
-        aria-label={`Remove ${role.id}`}
-        /* Down from the icon size's 36px to match the inputs beside
-           it. `cn` here is a plain join rather than tailwind-merge,
-           so the CVA class is still on the element and only source
-           order decides — hence the important suffix. */
-        className="h-8! w-8! [&_svg]:size-4!"
-        scheme="neutral"
-        size="icon"
-        variant="outlined"
-        onClick={() => onRoleRemove(role.id)}
-      >
-        {/* The icon is the label. `size="icon"` takes children as the
-            glyph and the accessible name from aria-label, so the row
-            keeps naming which role it removes. */}
-        <X aria-hidden="true" />
-      </Button>
-    </div>
-  );
 }
 
 /** One group of roles in the inspector: its header, its meta, and its rows. */
@@ -212,12 +69,14 @@ export function RoleGroupEditor({
   onLabelChange,
   onLabelCommit,
   onIndexingChange,
+  onAutoLineHeightRatioChange,
   onRoleChange,
   onBindStep,
   onUnlinkSize,
   onLineHeightOverride,
   onLineHeightRelink,
-  onRoleValueChange,
+  onLetterSpacingOverride,
+  onLetterSpacingRelink,
   onRoleRemove,
 }: RoleGroupEditorProps) {
   /* The card is the sortable, and the handle is the only thing that starts a
@@ -270,7 +129,7 @@ export function RoleGroupEditor({
           <GripVertical aria-hidden="true" />
         </Button>
 
-        <div className="min-w-0 flex-1">
+        <div className={styles.roleGroupMeta}>
           <TextInput
             label={`${group.id} name`}
             isLabelHidden
@@ -290,12 +149,21 @@ export function RoleGroupEditor({
               }
             }}
           />
-        </div>
-
-        {/* Beside the name rather than on a row of its own: it says how this
-            group's roles are numbered, which is a property of the name next
-            to it. Fixed width so the name keeps the space it gains. */}
-        <div className="w-28 shrink-0">
+          {/* Beside the name: the ratio `auto` line height uses for every
+              role in this group. */}
+          <NumberInput
+            isLabelHidden
+            isWheelEnabled={false}
+            label={`${group.id} auto line height`}
+            max={MAX_LINE_HEIGHT_RATIO}
+            min={MIN_LINE_HEIGHT_RATIO}
+            startIcon={AlignVerticalSpaceAround}
+            step={0.1}
+            value={group.autoLineHeightRatio}
+            onChange={onAutoLineHeightRatioChange}
+          />
+          {/* How this group's roles are numbered, a property of the name
+              next to it. */}
           <Selector
             label={`${group.id} indexing`}
             isLabelHidden
@@ -308,27 +176,29 @@ export function RoleGroupEditor({
           />
         </div>
 
-        <Button
-          aria-label={`Add a role to ${group.label}`}
-          className="h-8! w-8! [&_svg]:size-4!"
-          disabled={!canAddRole}
-          scheme="neutral"
-          size="icon"
-          variant="outlined"
-          onClick={onAddRole}
-        >
-          <Plus aria-hidden="true" />
-        </Button>
-        <Button
-          aria-label={`Remove ${group.label} group`}
-          className="h-8! w-8! [&_svg]:size-4!"
-          scheme="neutral"
-          size="icon"
-          variant="outlined"
-          onClick={onRemove}
-        >
-          <Trash2 aria-hidden="true" />
-        </Button>
+        <div className={styles.roleGroupActions}>
+          <Button
+            aria-label={`Add a role to ${group.label}`}
+            className="h-8! w-8! [&_svg]:size-4!"
+            disabled={!canAddRole}
+            scheme="neutral"
+            size="icon"
+            variant="outlined"
+            onClick={onAddRole}
+          >
+            <Plus aria-hidden="true" />
+          </Button>
+          <Button
+            aria-label={`Remove ${group.label} group`}
+            className="h-8! w-8! [&_svg]:size-4!"
+            scheme="neutral"
+            size="icon"
+            variant="outlined"
+            onClick={onRemove}
+          >
+            <Trash2 aria-hidden="true" />
+          </Button>
+        </div>
       </div>
 
       {roles.length === 0 ? (
@@ -359,9 +229,10 @@ export function RoleGroupEditor({
               onBindStep={onBindStep}
               onLineHeightOverride={onLineHeightOverride}
               onLineHeightRelink={onLineHeightRelink}
+              onLetterSpacingOverride={onLetterSpacingOverride}
+              onLetterSpacingRelink={onLetterSpacingRelink}
               onRoleChange={onRoleChange}
               onRoleRemove={onRoleRemove}
-              onRoleValueChange={onRoleValueChange}
               onUnlinkSize={onUnlinkSize}
             />
           ))}

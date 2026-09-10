@@ -291,4 +291,29 @@ test.describe("The line-height field", () => {
         value: 1.5,
       });
   });
+
+  test("the group auto ratio sits beside the name and feeds auto roles", async ({
+    seededPage: page,
+  }) => {
+    const bodyGroup = page.getByRole("group", { name: "Body", exact: true });
+    const ratio = bodyGroup.getByRole("spinbutton", {
+      name: "body auto line height",
+    });
+    await expect(ratio).toHaveValue("1.5");
+
+    const field = lineHeightField(page);
+    await expect(field).toHaveValue("1.5");
+
+    await ratio.fill("1.8");
+    await ratio.blur();
+    /* A pinned body ratio is a decision; changing the group's auto must not
+       overwrite it. */
+    await expect(field).toHaveValue("1.5");
+
+    await field.focus();
+    await field.press("a");
+    await expect(field).toHaveValue("");
+    /* 16 × 1.8 is 28.8, snapped up to 32. */
+    await expect(field).toHaveAttribute("placeholder", "32");
+  });
 });

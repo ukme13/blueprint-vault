@@ -63,6 +63,15 @@ export const MAX_LINE_HEIGHT_RATIO = 2.5;
 /** The ratio a role falls back to when its group has no opinion. */
 export const FALLBACK_AUTO_LINE_HEIGHT_RATIO = 1.5;
 
+/** Keep a stored or typed auto ratio inside the range the editor offers. */
+export function clampLineHeightRatio(value: number): number {
+  if (!Number.isFinite(value)) return FALLBACK_AUTO_LINE_HEIGHT_RATIO;
+  return Math.min(
+    MAX_LINE_HEIGHT_RATIO,
+    Math.max(MIN_LINE_HEIGHT_RATIO, value),
+  );
+}
+
 /*
  * Both numbers are rounded, for different reasons.
  *

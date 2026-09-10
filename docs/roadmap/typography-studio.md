@@ -57,7 +57,11 @@ layout between two named widths is not stuck on the narrower size. Role
 Queries and fluid spans use `device.widthPx`. `TypeSystem.breakpointPx` is
 dropped on read; old files that still name it load. Letter-spacing ships as
 `em` relative to the role's desktop size, so tracking follows the interpolated
-font-size rather than sitting still in px.
+font-size rather than sitting still in px. A typed value on one preview frame
+unlinks that frame the same way line-height does; missing keys follow the
+shared `letterSpacingPx`. Each group's auto line-height ratio is stored on
+the group (Display 1.1, Headings 1.2, Body 1.5, Label 1.3, Caption 1.4) and
+edited beside the name; roles still on auto follow it.
 
 ## Safety and quality rules
 

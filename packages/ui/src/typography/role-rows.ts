@@ -8,6 +8,8 @@ import {
   HEADING_GROUP_ID,
   elementForRole,
   familiesToCss,
+  letterSpacingEmSizePx,
+  letterSpacingPxOnDevice,
   resolveLineHeight,
   resolveRoleSizePx,
   isRoleUnlinkedOnDevice,
@@ -217,10 +219,12 @@ function roleRow(
   const font = fonts.get(role.fontId);
   const fontSizePx = resolveRoleSizePx(system, steps, role, deviceId);
   const desktopSizePx = resolveRoleSizePx(system, steps, role, "desktop");
+  const trackingPx = letterSpacingPxOnDevice(role, deviceId);
   const { computedLineHeightRatio, computedLineHeightPx } = resolveLineHeight(
     role,
     fontSizePx,
     deviceId,
+    system,
   );
 
   return {
@@ -238,8 +242,11 @@ function roleRow(
     lineHeight: computedLineHeightRatio,
     lineHeightPx: computedLineHeightPx,
     fontWeight: role.fontWeight,
-    letterSpacingPx: role.letterSpacingPx,
-    letterSpacingCss: formatLetterSpacing(role.letterSpacingPx, desktopSizePx),
+    letterSpacingPx: trackingPx,
+    letterSpacingCss: formatLetterSpacing(
+      trackingPx,
+      letterSpacingEmSizePx(role, fontSizePx, desktopSizePx, deviceId),
+    ),
     textTransform: role.textTransform,
     stepOffset: isRoleUnlinkedOnDevice(role, deviceId) ? null : role.stepOffset,
     variables: typeRoleVariables(role.id),

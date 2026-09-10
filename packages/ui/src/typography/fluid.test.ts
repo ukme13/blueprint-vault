@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fluidLengthClamp, fluidUnitlessClamp } from "./fluid";
+import { fluidEmClamp, fluidLengthClamp, fluidUnitlessClamp } from "./fluid";
 
 describe("fluidLengthClamp", () => {
   it("interpolates 14px at 375 to 18px at 768", () => {
@@ -29,6 +29,14 @@ describe("fluidUnitlessClamp", () => {
   it("interpolates a line-height ratio without giving it a unit", () => {
     expect(fluidUnitlessClamp(375, 2, 768, 1.1)).toBe(
       "clamp(1.1, calc(2 - 0.9 * (100vw - 375px) / 393px), 2)",
+    );
+  });
+});
+
+describe("fluidEmClamp", () => {
+  it("interpolates tracking already converted to em", () => {
+    expect(fluidEmClamp(375, -0.0208, 768, 0)).toBe(
+      "clamp(-0.0208em, calc(-0.0208em + 0.0208em * (100vw - 375px) / 393px), 0em)",
     );
   });
 });

@@ -5,6 +5,7 @@ import {
 } from "./scale";
 import {
   BODY_GROUP_ID,
+  defaultAutoLineHeightRatio,
   defaultGroups,
   reindexGroup,
   HEADING_GROUP_ID,
@@ -18,7 +19,7 @@ import {
   type TypeSystem,
   canonicalSizeDeviceId,
 } from "./system";
-import { readLineHeightConfig } from "./line-height";
+import { clampLineHeightRatio, readLineHeightConfig } from "./line-height";
 import { SEMANTIC_ROLES, type SemanticRole } from "./types";
 
 /**
@@ -141,6 +142,7 @@ export function migrateLegacyProject(
       letterSpacingPx: value.letterSpacingPx,
       unlinkedSizes: {},
       unlinkedLineHeights: {},
+      unlinkedLetterSpacings: {},
     };
   });
 
@@ -202,7 +204,11 @@ function readRoleLayout(
   stepOffset: number | null,
 ): Pick<
   TypeRole,
-  "lineHeight" | "letterSpacingPx" | "unlinkedSizes" | "unlinkedLineHeights"
+  | "lineHeight"
+  | "letterSpacingPx"
+  | "unlinkedSizes"
+  | "unlinkedLineHeights"
+  | "unlinkedLetterSpacings"
 > {
   if (
     "unlinkedSizes" in role ||
@@ -214,6 +220,7 @@ function readRoleLayout(
         typeof role.letterSpacingPx === "number" ? role.letterSpacingPx : 0,
       unlinkedSizes: readUnlinkedSizes(role.unlinkedSizes),
       unlinkedLineHeights: readUnlinkedLineHeights(role.unlinkedLineHeights),
+      unlinkedLetterSpacings: readUnlinkedSizes(role.unlinkedLetterSpacings),
     };
   }
 
@@ -224,6 +231,7 @@ function readRoleLayout(
     letterSpacingPx: desktop.letterSpacingPx,
     unlinkedSizes: unlinkedSizesFromLegacy(desktop, mobile, stepOffset),
     unlinkedLineHeights: {},
+    unlinkedLetterSpacings: {},
   };
 }
 
@@ -418,6 +426,17 @@ export function normalizeStoredSystem(value: unknown): TypeSystem | null {
   );
 }
 
+/** A stored group ratio, or the default for that group's id. */
+function readStoredAutoLineHeightRatio(
+  value: unknown,
+  groupId: string,
+): number {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return clampLineHeightRatio(value);
+  }
+  return defaultAutoLineHeightRatio(groupId);
+}
+
 function normalizeGroups(value: unknown, roles: TypeRole[]): TypeGroup[] {
   if (Array.isArray(value) && value.length > 0) {
     const groups = (value as Record<string, unknown>[])
@@ -429,6 +448,10 @@ function normalizeGroups(value: unknown, roles: TypeRole[]): TypeGroup[] {
         /* "none" was a mode in an earlier release; a single role now simply
            drops its index, so it collapses to number. */
         indexing: group.indexing === "size" ? "size" : "number",
+        autoLineHeightRatio: readStoredAutoLineHeightRatio(
+          group.autoLineHeightRatio,
+          group.id as string,
+        ),
       }));
     return withFixedGroups(groups);
   }
@@ -444,6 +467,7 @@ function normalizeGroups(value: unknown, roles: TypeRole[]): TypeGroup[] {
       id: role.groupId,
       label: role.groupId.charAt(0).toUpperCase() + role.groupId.slice(1),
       indexing: "number",
+      autoLineHeightRatio: defaultAutoLineHeightRatio(role.groupId),
     });
   });
   return withFixedGroups(derived);

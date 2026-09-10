@@ -26,10 +26,12 @@ pass `previewDevices`. Call sites that omit the list get
 ## Not in this cut
 
 Fluid `clamp()` between consecutive frames (see
-`2026-09-10-fluid-clamp-export.md`). Per-device letter-spacing and a
-configurable rem root. `em` tracking shipped in
-`2026-09-11-em-letter-spacing.md`. `TypeSystem.breakpointPx` is unused by the
-writer in this cut; it is dropped in `2026-09-10-fluid-clamp-export.md`.
+`2026-09-10-fluid-clamp-export.md`). A configurable rem root. `em` tracking
+shipped in `2026-09-11-em-letter-spacing.md`. Per-device letter-spacing
+shipped in `2026-09-11-per-device-letter-spacing.md`. Group auto line-height
+shipped in `2026-09-11-group-auto-line-height.md`. `TypeSystem.breakpointPx`
+is unused by the writer in this cut; it is dropped in
+`2026-09-10-fluid-clamp-export.md`.
 
 ## Checks
 
