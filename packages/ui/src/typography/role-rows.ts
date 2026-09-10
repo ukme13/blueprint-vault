@@ -270,7 +270,6 @@ export interface TypeScaleSummary {
   baseFontSizePx: number;
   ratio: number;
   stepCount: number;
-  breakpointPx: number;
   steps: TypeStep[];
 }
 
@@ -279,7 +278,6 @@ export function typeScaleSummary(system: TypeSystem): TypeScaleSummary {
     baseFontSizePx: system.baseFontSizePx,
     ratio: system.ratio,
     stepCount: system.stepCount,
-    breakpointPx: system.breakpointPx,
     steps: generateTypeSteps(
       system.baseFontSizePx,
       system.ratio,

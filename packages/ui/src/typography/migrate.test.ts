@@ -205,6 +205,13 @@ describe("normalizeStoredSystem", () => {
     expect(system.roles[0]!.stepOffset).toBe(2);
   });
 
+  it("drops a stored breakpointPx; preview widths own that fact now", () => {
+    expect(previousRelease.breakpointPx).toBe(768);
+    expect(normalizeStoredSystem(previousRelease)).not.toHaveProperty(
+      "breakpointPx",
+    );
+  });
+
   it("reads a stored line height as the ratio the number meant", () => {
     /* The path a saved workspace actually takes. Without it every role in
        every existing project silently reverts to the group default — a change

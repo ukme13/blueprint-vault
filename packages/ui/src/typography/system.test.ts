@@ -70,7 +70,6 @@ function system(over: Partial<TypeSystem> = {}): TypeSystem {
     baseFontSizePx: 16,
     ratio: 1.25,
     stepCount: 9,
-    breakpointPx: 768,
     fonts: [
       {
         id: "base",

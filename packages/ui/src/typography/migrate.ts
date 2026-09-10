@@ -151,7 +151,6 @@ export function migrateLegacyProject(
     baseFontSizePx: project.baseFontSizePx,
     ratio: project.ratio,
     stepCount: project.stepCount,
-    breakpointPx: 768,
     fonts: [
       {
         id: LEGACY_FONT_ID,
@@ -406,7 +405,6 @@ export function normalizeStoredSystem(value: unknown): TypeSystem | null {
     baseFontSizePx: raw.baseFontSizePx,
     ratio: raw.ratio,
     stepCount,
-    breakpointPx: typeof raw.breakpointPx === "number" ? raw.breakpointPx : 768,
     fonts: readFonts(raw.fonts),
     roles,
   };
