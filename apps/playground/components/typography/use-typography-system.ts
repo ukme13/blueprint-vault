@@ -17,6 +17,8 @@ import {
   unlinkRoleSizeOnDevice,
   unlinkLineHeightOnDevice,
   bindLineHeightOnDevice,
+  unlinkLetterSpacingOnDevice,
+  bindLetterSpacingOnDevice,
   updateGroup,
   updateRole,
   updateRoleValue,
@@ -43,6 +45,12 @@ export interface TypographySystemActions {
     lineHeight: LineHeightConfig,
   ) => void;
   bindLineHeight: (id: string, deviceId: string) => void;
+  unlinkLetterSpacing: (
+    id: string,
+    deviceId: string,
+    letterSpacingPx: number,
+  ) => void;
+  bindLetterSpacing: (id: string, deviceId: string) => void;
   addRole: (group: TypeGroup) => void;
   removeRole: (id: string) => void;
   renameGroupById: (groupId: string, label: string) => void;
@@ -109,6 +117,12 @@ export function useTypographySystem(
         ),
       bindLineHeight: (id, deviceId) =>
         editSystem((system) => bindLineHeightOnDevice(system, id, deviceId)),
+      unlinkLetterSpacing: (id, deviceId, letterSpacingPx) =>
+        editSystem((system) =>
+          unlinkLetterSpacingOnDevice(system, id, deviceId, letterSpacingPx),
+        ),
+      bindLetterSpacing: (id, deviceId) =>
+        editSystem((system) => bindLetterSpacingOnDevice(system, id, deviceId)),
       addRole: (group) => editSystem((system) => addRole(system, group)),
       removeRole: (id) => editSystem((system) => removeRole(system, id)),
       /* Renaming a group renames its roles: ids are built from the group id, so

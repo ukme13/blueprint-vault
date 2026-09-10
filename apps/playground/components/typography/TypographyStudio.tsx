@@ -32,6 +32,8 @@ import {
   splitFontFamily,
   canAddRole,
   isRoleUnlinkedOnDevice,
+  letterSpacingEmSizePx,
+  letterSpacingPxOnDevice,
   pruneUnlinkedSizes,
   resolveRoleSizePx,
   TYPE_SCALE_UNITS,
@@ -187,6 +189,7 @@ export function TypographyStudio() {
     addGroup,
     addRole,
     bindLineHeight,
+    bindLetterSpacing,
     bindRoleStep,
     removeFont,
     removeFontSlot,
@@ -198,10 +201,10 @@ export function TypographyStudio() {
     setLocalFont,
     reorderGroups,
     unlinkLineHeight,
+    unlinkLetterSpacing,
     unlinkRoleSize,
     updateGroup,
     updateRole,
-    updateRoleValue,
     updateSystem,
   } = useTypographySystem(setProject);
 
@@ -338,8 +341,12 @@ export function TypographyStudio() {
               assessLineHeight(
                 /* The resolved ratio: the validator's thresholds are ratios,
                    and the config is an intent rather than a number. */
-                resolveLineHeight(bodyRole, sizeOnFrame(bodyRole), frameId)
-                  .computedLineHeightRatio,
+                resolveLineHeight(
+                  bodyRole,
+                  sizeOnFrame(bodyRole),
+                  frameId,
+                  system,
+                ).computedLineHeightRatio,
                 project?.specimenText ?? "",
               )
             : null,
@@ -417,6 +424,10 @@ export function TypographyStudio() {
     unlinkLineHeight(id, activeDevice.id, lineHeight);
   const handleLineHeightRelink = (id: string) =>
     bindLineHeight(id, activeDevice.id);
+  const handleLetterSpacingOverride = (id: string, letterSpacingPx: number) =>
+    unlinkLetterSpacing(id, activeDevice.id, letterSpacingPx);
+  const handleLetterSpacingRelink = (id: string) =>
+    bindLetterSpacing(id, activeDevice.id);
 
   /* Templates receive resolved CSS so they never do scale maths themselves.
      Sizes stay in px here: this is a rendered preview, not exported output.
@@ -437,13 +448,17 @@ export function TypographyStudio() {
       role,
       "desktop",
     );
+    const trackingPx = letterSpacingPxOnDevice(role, activeDevice.id);
     return {
       fontFamily: fontFamilyValue(system, role),
       fontSize: `${fontSizePx}px`,
       fontWeight: role.fontWeight,
-      lineHeight: resolveLineHeight(role, fontSizePx, activeDevice.id)
+      lineHeight: resolveLineHeight(role, fontSizePx, activeDevice.id, system)
         .computedLineHeightRatio,
-      letterSpacing: formatLetterSpacing(role.letterSpacingPx, desktopSizePx),
+      letterSpacing: formatLetterSpacing(
+        trackingPx,
+        letterSpacingEmSizePx(role, fontSizePx, desktopSizePx, activeDevice.id),
+      ),
       textTransform: role.textTransform,
     };
   };
@@ -873,14 +888,18 @@ export function TypographyStudio() {
                     onIndexingChange={(indexing) =>
                       updateGroup(group.id, { indexing })
                     }
+                    onAutoLineHeightRatioChange={(autoLineHeightRatio) =>
+                      updateGroup(group.id, { autoLineHeightRatio })
+                    }
                     onLabelChange={(label) => updateGroup(group.id, { label })}
                     onLabelCommit={() => renameGroupById(group.id, group.label)}
                     onRemove={() => removeGroup(group.id)}
                     onRoleChange={updateRole}
                     onRoleRemove={removeRole}
-                    onRoleValueChange={updateRoleValue}
                     onLineHeightOverride={handleLineHeightOverride}
                     onLineHeightRelink={handleLineHeightRelink}
+                    onLetterSpacingOverride={handleLetterSpacingOverride}
+                    onLetterSpacingRelink={handleLetterSpacingRelink}
                     onUnlinkSize={handleUnlinkSize}
                   />
                 ))}

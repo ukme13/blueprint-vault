@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   computeLineHeight,
+  clampLineHeightRatio,
   formatLineHeightInput,
   LINE_HEIGHT_GRID_PX,
   MAX_LINE_HEIGHT_RATIO,
+  MIN_LINE_HEIGHT_RATIO,
   parseLineHeightInput,
   readLineHeightConfig,
   snapLineHeightPx,
@@ -250,5 +252,22 @@ describe("reading stored data", () => {
     expect(readLineHeightConfig({ mode: "px" })).toBeNull();
     expect(readLineHeightConfig({ mode: "nope", value: 1 })).toBeNull();
     expect(readLineHeightConfig([1.5])).toBeNull();
+  });
+});
+
+describe("clampLineHeightRatio", () => {
+  it("keeps a value already in range", () => {
+    expect(clampLineHeightRatio(1.5)).toBe(1.5);
+    expect(clampLineHeightRatio(MIN_LINE_HEIGHT_RATIO)).toBe(
+      MIN_LINE_HEIGHT_RATIO,
+    );
+    expect(clampLineHeightRatio(MAX_LINE_HEIGHT_RATIO)).toBe(
+      MAX_LINE_HEIGHT_RATIO,
+    );
+  });
+
+  it("caps a value outside the range the editor offers", () => {
+    expect(clampLineHeightRatio(0.5)).toBe(MIN_LINE_HEIGHT_RATIO);
+    expect(clampLineHeightRatio(4)).toBe(MAX_LINE_HEIGHT_RATIO);
   });
 });

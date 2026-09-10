@@ -324,6 +324,33 @@ describe("the rows and the exported file", () => {
       formatLetterSpacing(-0.5, desktop.fontSizePx),
     );
   });
+
+  it("uses the phone size for tracking typed on phone", () => {
+    const patched: TypeSystem = {
+      ...system(),
+      roles: system().roles.map((role) =>
+        role.id === "h1"
+          ? {
+              ...role,
+              letterSpacingPx: 0,
+              unlinkedSizes: { phone: 24 },
+              unlinkedLetterSpacings: { phone: -0.5 },
+            }
+          : role,
+      ),
+    };
+    const desktop = typeRoleRowGroups(patched, "desktop")
+      .flatMap((group) => group.rows)
+      .find((row) => row.id === "h1")!;
+    const phone = typeRoleRowGroups(patched, "phone")
+      .flatMap((group) => group.rows)
+      .find((row) => row.id === "h1")!;
+    expect(phone.letterSpacingCss).toBe(formatLetterSpacing(-0.5, 24));
+    expect(desktop.letterSpacingCss).toBe(
+      formatLetterSpacing(0, desktop.fontSizePx),
+    );
+    expect(phone.letterSpacingCss).not.toBe(desktop.letterSpacingCss);
+  });
 });
 
 describe("which role a template slot draws", () => {
@@ -432,7 +459,14 @@ describe("which role a template slot draws", () => {
     const base = seeded();
     const system: TypeSystem = {
       ...base,
-      groups: [{ id: "custom", label: "Custom", indexing: "number" }],
+      groups: [
+        {
+          id: "custom",
+          label: "Custom",
+          indexing: "number",
+          autoLineHeightRatio: 1.5,
+        },
+      ],
       roles: base.roles
         .filter((role) => role.id === "h1")
         .map((role) => ({ ...role, groupId: "custom" })),

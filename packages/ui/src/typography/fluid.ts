@@ -57,3 +57,17 @@ export function fluidUnitlessClamp(
 ): string {
   return fluidClamp(fromWidthPx, fromValue, toWidthPx, toValue, cssNumber);
 }
+
+function cssEm(value: number): string {
+  return `${cssNumber(value)}em`;
+}
+
+/** Interpolate tracking already converted to em. Viewport span stays px. */
+export function fluidEmClamp(
+  fromWidthPx: number,
+  fromEm: number,
+  toWidthPx: number,
+  toEm: number,
+): string {
+  return fluidClamp(fromWidthPx, fromEm, toWidthPx, toEm, cssEm);
+}

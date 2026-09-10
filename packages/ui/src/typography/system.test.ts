@@ -6,6 +6,7 @@ import {
   canAddRole,
   elementForRole,
   defaultGroups,
+  defaultAutoLineHeightRatio,
   moveGroup,
   groupCapacity,
   addFont,
@@ -33,9 +34,14 @@ import {
   unlinkRoleSizeOnDevice,
   unlinkLineHeightOnDevice,
   bindLineHeightOnDevice,
+  unlinkLetterSpacingOnDevice,
+  bindLetterSpacingOnDevice,
   pruneUnlinkedSizes,
   isRoleUnlinkedOnDevice,
   isLineHeightUnlinkedOnDevice,
+  isLetterSpacingUnlinkedOnDevice,
+  letterSpacingPxOnDevice,
+  letterSpacingEmSizePx,
   lineHeightConfigOnDevice,
   resolveLineHeight,
   canonicalSizeDeviceId,
@@ -58,6 +64,7 @@ function role(id: string, groupId: string, over: Partial<TypeRole> = {}) {
     letterSpacingPx: 0,
     unlinkedSizes: {},
     unlinkedLineHeights: {},
+    unlinkedLetterSpacings: {},
     ...over,
   };
 }
@@ -87,6 +94,7 @@ const free = (id: string, indexing: TypeGroup["indexing"]): TypeGroup => ({
   id,
   label: id,
   indexing,
+  autoLineHeightRatio: defaultAutoLineHeightRatio(id),
 });
 
 describe("roleIdsForGroup", () => {
@@ -418,6 +426,77 @@ describe("per-device line height", () => {
   });
 });
 
+describe("per-device letter spacing", () => {
+  it("follows the shared value when no device has an override", () => {
+    const body = role("body", "body");
+    expect(letterSpacingPxOnDevice(body, "phone")).toBe(0);
+    expect(letterSpacingPxOnDevice(body, "desktop")).toBe(0);
+    expect(isLetterSpacingUnlinkedOnDevice(body, "phone")).toBe(false);
+  });
+
+  it("types tracking on one device without moving the others", () => {
+    const after = unlinkLetterSpacingOnDevice(system(), "body", "phone", -0.5);
+    const body = after.roles[0]!;
+    expect(body.letterSpacingPx).toBe(0);
+    expect(body.unlinkedLetterSpacings).toEqual({ phone: -0.5 });
+    expect(letterSpacingPxOnDevice(body, "phone")).toBe(-0.5);
+    expect(letterSpacingPxOnDevice(body, "desktop")).toBe(0);
+  });
+
+  it("converts typed tracking against that frame's size, shared against desktop", () => {
+    const after = unlinkLetterSpacingOnDevice(system(), "body", "phone", -0.5);
+    const body = after.roles[0]!;
+    expect(letterSpacingEmSizePx(body, 13, 16, "phone")).toBe(13);
+    expect(letterSpacingEmSizePx(body, 13, 16, "desktop")).toBe(16);
+  });
+
+  it("relinks one device and leaves other typed frames", () => {
+    const typed = unlinkLetterSpacingOnDevice(
+      unlinkLetterSpacingOnDevice(system(), "body", "phone", -0.5),
+      "body",
+      "tablet",
+      0.2,
+    );
+    const after = bindLetterSpacingOnDevice(typed, "body", "phone");
+    expect(after.roles[0]!.unlinkedLetterSpacings).toEqual({ tablet: 0.2 });
+    expect(isLetterSpacingUnlinkedOnDevice(after.roles[0]!, "phone")).toBe(
+      false,
+    );
+    expect(letterSpacingPxOnDevice(after.roles[0]!, "phone")).toBe(0);
+  });
+
+  it("prunes typed tracking for frames that no longer exist", () => {
+    const withExtra = unlinkLetterSpacingOnDevice(
+      system(),
+      "body",
+      "desktop-2",
+      0.1,
+    );
+    expect(withExtra.roles[0]!.unlinkedLetterSpacings).toEqual({
+      "desktop-2": 0.1,
+    });
+    const pruned = pruneUnlinkedSizes(withExtra, [
+      "phone",
+      "tablet",
+      "desktop",
+    ]);
+    expect(pruned.roles[0]!.unlinkedLetterSpacings).toEqual({});
+  });
+
+  it("treats legacy mobile as phone", () => {
+    const after = unlinkLetterSpacingOnDevice(
+      system(),
+      "body",
+      "mobile",
+      -0.25,
+    );
+    expect(after.roles[0]!.unlinkedLetterSpacings).toEqual({ phone: -0.25 });
+    expect(isLetterSpacingUnlinkedOnDevice(after.roles[0]!, "mobile")).toBe(
+      true,
+    );
+  });
+});
+
 describe("renameGroup", () => {
   it("renames the group's roles with it", () => {
     // Ids are built from the group id, so the label and the exported token
@@ -657,6 +736,7 @@ describe("updateRole", () => {
     expect(after.roles[0]!.lineHeight).toEqual({ mode: "ratio", value: 1.5 });
     expect(after.roles[0]!.unlinkedSizes).toEqual({});
     expect(after.roles[0]!.unlinkedLineHeights).toEqual({});
+    expect(after.roles[0]!.unlinkedLetterSpacings).toEqual({});
   });
 });
 
@@ -701,6 +781,50 @@ describe("addGroup", () => {
   it("adds no roles, so a new group starts empty", () => {
     const before = system();
     expect(addGroup(before).roles).toEqual(before.roles);
+  });
+
+  it("starts a new group on body's auto ratio", () => {
+    expect(addGroup(system()).groups.at(-1)!.autoLineHeightRatio).toBe(1.5);
+  });
+});
+
+describe("group auto line-height ratio", () => {
+  it("seeds the five defaults", () => {
+    expect(
+      defaultGroups().map((group) => [group.id, group.autoLineHeightRatio]),
+    ).toEqual([
+      ["display", 1.1],
+      ["h", 1.2],
+      ["body", 1.5],
+      ["label", 1.3],
+      ["caption", 1.4],
+    ]);
+  });
+
+  it("lets a group change what auto resolves to", () => {
+    const auto = role("body", "body", { lineHeight: { mode: "auto" } });
+    const after = updateGroup(system({ roles: [auto] }), "body", {
+      autoLineHeightRatio: 1.8,
+    });
+    /* 16 × 1.8 is 28.8, and auto snaps up to the 4px grid. */
+    expect(
+      resolveLineHeight(auto, 16, "desktop", after).computedLineHeightPx,
+    ).toBe(32);
+  });
+
+  it("does not move a pinned ratio when the group auto changes", () => {
+    const after = updateGroup(system(), "body", { autoLineHeightRatio: 1.8 });
+    expect(
+      resolveLineHeight(after.roles[0]!, 16, "desktop", after)
+        .computedLineHeightRatio,
+    ).toBe(1.5);
+  });
+
+  it("clamps a typed ratio to the range the editor offers", () => {
+    const after = updateGroup(system(), "body", { autoLineHeightRatio: 4 });
+    expect(
+      after.groups.find((group) => group.id === "body")!.autoLineHeightRatio,
+    ).toBe(2.5);
   });
 });
 
@@ -1030,10 +1154,10 @@ describe("reorderGroups", () => {
   const ordered = () =>
     system({
       groups: [
-        { id: "display", label: "Display", indexing: "number" },
-        { id: "h", label: "H", indexing: "number" },
-        { id: "body", label: "Body", indexing: "number" },
-        { id: "caption", label: "Caption", indexing: "number" },
+        free("display", "number"),
+        free("h", "number"),
+        free("body", "number"),
+        free("caption", "number"),
       ],
     });
 

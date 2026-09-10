@@ -172,7 +172,7 @@ export function TypographyPreview({
                     {formatLength(fontSizePx, unit)} · weight {role.fontWeight}{" "}
                     · line height{" "}
                     {
-                      resolveLineHeight(role, fontSizePx, device.id)
+                      resolveLineHeight(role, fontSizePx, device.id, system)
                         .computedLineHeightPx
                     }
                     px · {elementForRole(system, role)}

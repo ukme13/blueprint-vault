@@ -1,5 +1,5 @@
-import { formatLength, formatLetterSpacing } from "./export";
-import { fluidLengthClamp, fluidUnitlessClamp } from "./fluid";
+import { formatLength, letterSpacingEm } from "./export";
+import { fluidEmClamp, fluidLengthClamp, fluidUnitlessClamp } from "./fluid";
 import { findGoogleFont } from "./google-fonts";
 import {
   defaultPreviewDevices,
@@ -8,6 +8,8 @@ import {
 } from "./preview-devices";
 import { generateTypeSteps } from "./scale";
 import {
+  letterSpacingEmSizePx,
+  letterSpacingPxOnDevice,
   resolveLineHeight,
   resolveRoleSizePx,
   type TypeSystem,
@@ -25,7 +27,8 @@ import type { TypeScaleUnit } from "./types";
  *
  * Queries and the `100vw` span use the frame's `widthPx`. Bound roles resolve
  * against that frame's ratio so the file matches the preview. Letter-spacing
- * stays shared, as `em` relative to the role's desktop size.
+ * is `em`: shared tracking uses the desktop size; a typed frame uses that
+ * frame's size. Frames that differ interpolate like size and line-height.
  */
 
 /**
@@ -49,7 +52,7 @@ interface RoleViewportTokens {
   tokenId: string;
   fontSizePx: number;
   lineHeight: number;
-  letterSpacingPx: number;
+  letterSpacingEm: number;
 }
 
 interface FrameSnapshot {
@@ -71,6 +74,7 @@ function stackedPreviewDevices(
 function roleViewportTokens(
   system: TypeSystem,
   device: PreviewDevice,
+  desktopSizeByRoleId: ReadonlyMap<string, number>,
 ): RoleViewportTokens[] {
   const steps = generateTypeSteps(
     system.baseFontSizePx,
@@ -79,12 +83,17 @@ function roleViewportTokens(
   );
   return system.roles.map((role) => {
     const fontSizePx = resolveRoleSizePx(system, steps, role, device.id);
+    const trackingPx = letterSpacingPxOnDevice(role, device.id);
+    const desktopSizePx = desktopSizeByRoleId.get(role.id) ?? fontSizePx;
     return {
       tokenId: typeTokenId(role.id),
       fontSizePx,
-      lineHeight: resolveLineHeight(role, fontSizePx, device.id)
+      lineHeight: resolveLineHeight(role, fontSizePx, device.id, system)
         .computedLineHeightRatio,
-      letterSpacingPx: role.letterSpacingPx,
+      letterSpacingEm: letterSpacingEm(
+        trackingPx,
+        letterSpacingEmSizePx(role, fontSizePx, desktopSizePx, device.id),
+      ),
     };
   });
 }
@@ -97,8 +106,7 @@ function indentFor(frameIndex: number): string {
  * Write a size or line-height across the stacked frames.
  *
  * A pair that differs becomes a clamp starting on the earlier frame. A run
- * that never changes is a static token in `:root`. Letter-spacing is not
- * handled here — it is still shared, as `em`.
+ * that never changes is a static token in `:root`.
  */
 function emitFluidProperty(
   linesByFrame: string[][],
@@ -155,8 +163,6 @@ function fluidRoleLines(
   const linesByFrame = frames.map((): string[] => []);
   const widths = frames.map((frame) => frame.device.widthPx);
   const first = frames[0]!;
-  const desktop =
-    frames.find((frame) => frame.device.id === "desktop") ?? frames.at(-1)!;
 
   for (const role of first.roles) {
     const across = frames.map((frame) =>
@@ -181,11 +187,14 @@ function fluidRoleLines(
       fluidUnitlessClamp,
       (value) => `${Number(value.toFixed(4))}`,
     );
-    const desktopSizePx = desktop.roles.find(
-      (entry) => entry.tokenId === role.tokenId,
-    )!.fontSizePx;
-    linesByFrame[0]!.push(
-      `  --font-${role.tokenId}-letter-spacing: ${formatLetterSpacing(role.letterSpacingPx, desktopSizePx)};`,
+    emitFluidProperty(
+      linesByFrame,
+      widths,
+      across.map((entry) => entry.letterSpacingEm),
+      role.tokenId,
+      "letter-spacing",
+      fluidEmClamp,
+      (value) => `${Number(value.toFixed(4))}em`,
     );
   }
 
@@ -258,12 +267,24 @@ function body(
   open: string,
   devices?: readonly PreviewDevice[],
 ): string {
-  const snapshots: FrameSnapshot[] = stackedPreviewDevices(system, devices).map(
-    (device) => ({
-      device,
-      roles: roleViewportTokens(system, device),
-    }),
+  const stacked = stackedPreviewDevices(system, devices);
+  const desktop =
+    stacked.find((device) => device.id === "desktop") ?? stacked.at(-1)!;
+  const desktopSteps = generateTypeSteps(
+    system.baseFontSizePx,
+    desktop.ratio,
+    system.stepCount,
   );
+  const desktopSizeByRoleId = new Map(
+    system.roles.map((role) => [
+      role.id,
+      resolveRoleSizePx(system, desktopSteps, role, desktop.id),
+    ]),
+  );
+  const snapshots: FrameSnapshot[] = stacked.map((device) => ({
+    device,
+    roles: roleViewportTokens(system, device, desktopSizeByRoleId),
+  }));
   const roleLines = fluidRoleLines(snapshots, unit);
 
   const lines = [

@@ -1,4 +1,5 @@
 import {
+  clampLineHeightRatio,
   computeLineHeight,
   FALLBACK_AUTO_LINE_HEIGHT_RATIO,
   type ComputedLineHeight,
@@ -53,6 +54,14 @@ export interface TypeGroup {
   id: string;
   label: string;
   indexing: TypeIndexing;
+  /**
+   * The ratio `auto` line height uses for roles in this group.
+   *
+   * Seeded from `AUTO_LINE_HEIGHT_RATIOS` for the five defaults; a custom
+   * group starts at body's 1.5. Changing it does not move a role that has
+   * already pinned a ratio or a pixel height.
+   */
+  autoLineHeightRatio: number;
 }
 
 /**
@@ -88,14 +97,64 @@ export const CAPTION_GROUP_ID = "caption";
 export const DISPLAY_FONT_ID = "display";
 export const MAIN_FONT_ID = "main";
 
+/**
+ * The ratio `auto` uses, by group, until a project edits it.
+ *
+ * The same numbers the default system shipped as hand-set values, which is
+ * what makes `auto` the honest default rather than a new opinion. Stored on
+ * each `TypeGroup` after that, so the Groups tab can change them. A custom
+ * group, or a role whose group is missing, falls back to body's.
+ */
+export const AUTO_LINE_HEIGHT_RATIOS: Readonly<Record<string, number>> = {
+  [DISPLAY_GROUP_ID]: 1.1,
+  [HEADING_GROUP_ID]: 1.2,
+  [BODY_GROUP_ID]: 1.5,
+  /* Tighter than body, because supporting text is short. Left at body's 1.5
+     they came out on a 20px line — `auto` ceils to the 4px grid, so 12 × 1.5
+     is 18 and rounds up — which is a paragraph's leading on a caption. Both
+     land on 16px here: a label is nearly always one line and a caption is
+     rarely more than two. */
+  [LABEL_GROUP_ID]: 1.3,
+  [CAPTION_GROUP_ID]: 1.4,
+};
+
+/** The ratio a new or unknown group starts from. */
+export function defaultAutoLineHeightRatio(groupId: string): number {
+  return AUTO_LINE_HEIGHT_RATIOS[groupId] ?? FALLBACK_AUTO_LINE_HEIGHT_RATIO;
+}
+
+/** The ratio a role's `auto` resolves against. */
+export function autoRatioForRole(
+  role: Pick<TypeRole, "groupId">,
+  group?: Pick<TypeGroup, "autoLineHeightRatio">,
+): number {
+  if (typeof group?.autoLineHeightRatio === "number") {
+    return group.autoLineHeightRatio;
+  }
+  return defaultAutoLineHeightRatio(role.groupId);
+}
+
+function defineGroup(
+  id: string,
+  label: string,
+  indexing: TypeIndexing = "number",
+): TypeGroup {
+  return {
+    id,
+    label,
+    indexing,
+    autoLineHeightRatio: defaultAutoLineHeightRatio(id),
+  };
+}
+
 /** Groups a new or reset scale starts with. None is special afterwards. */
 export function defaultGroups(): TypeGroup[] {
   return [
-    { id: DISPLAY_GROUP_ID, label: "Display", indexing: "number" },
-    { id: HEADING_GROUP_ID, label: "H", indexing: "number" },
-    { id: BODY_GROUP_ID, label: "Body", indexing: "number" },
-    { id: LABEL_GROUP_ID, label: "Label", indexing: "number" },
-    { id: CAPTION_GROUP_ID, label: "Caption", indexing: "number" },
+    defineGroup(DISPLAY_GROUP_ID, "Display"),
+    defineGroup(HEADING_GROUP_ID, "H"),
+    defineGroup(BODY_GROUP_ID, "Body"),
+    defineGroup(LABEL_GROUP_ID, "Label"),
+    defineGroup(CAPTION_GROUP_ID, "Caption"),
   ];
 }
 
@@ -117,6 +176,7 @@ export function defaultSystem(
     letterSpacingPx: 0,
     unlinkedSizes: {} as Record<string, number>,
     unlinkedLineHeights: {} as Record<string, LineHeightConfig>,
+    unlinkedLetterSpacings: {} as Record<string, number>,
   };
 
   /* One display role, not six. A full parallel set to h1-h6 would start every
@@ -370,33 +430,6 @@ export interface TypeRoleValue {
 }
 
 /**
- * The ratio `auto` uses, by group.
- *
- * The same numbers the default system shipped as hand-set values, which is
- * what makes `auto` the honest default rather than a new opinion. Groups are
- * user-editable, so a custom group falls back to body's.
- */
-export const AUTO_LINE_HEIGHT_RATIOS: Readonly<Record<string, number>> = {
-  [DISPLAY_GROUP_ID]: 1.1,
-  [HEADING_GROUP_ID]: 1.2,
-  [BODY_GROUP_ID]: 1.5,
-  /* Tighter than body, because supporting text is short. Left at body's 1.5
-     they came out on a 20px line — `auto` ceils to the 4px grid, so 12 × 1.5
-     is 18 and rounds up — which is a paragraph's leading on a caption. Both
-     land on 16px here: a label is nearly always one line and a caption is
-     rarely more than two. */
-  [LABEL_GROUP_ID]: 1.3,
-  [CAPTION_GROUP_ID]: 1.4,
-};
-
-/** The ratio a role's `auto` resolves against. */
-export function autoRatioForRole(role: Pick<TypeRole, "groupId">): number {
-  return (
-    AUTO_LINE_HEIGHT_RATIOS[role.groupId] ?? FALLBACK_AUTO_LINE_HEIGHT_RATIO
-  );
-}
-
-/**
  * The line-height config this device uses: a typed override, else the shared
  * default.
  */
@@ -417,19 +450,24 @@ export function lineHeightConfigOnDevice(
  * The one place anything outside this module should be reading a line height
  * from. Pass the resolved font size when you have it — auto snaps to the 4px
  * grid from that size. Without it, a typed desktop or phone size is used, then
- * 16. `deviceId` selects a per-frame override when one exists.
+ * 16. `deviceId` selects a per-frame override when one exists. Pass `system`
+ * so `auto` reads the group's stored ratio rather than the seed table.
  */
 export function resolveLineHeight(
   role: TypeRole,
   fontSizePx?: number,
   deviceId = "desktop",
+  system?: Pick<TypeSystem, "groups">,
 ): ComputedLineHeight {
   const size =
     fontSizePx ?? role.unlinkedSizes.desktop ?? role.unlinkedSizes.phone ?? 16;
+  const group = system?.groups.find(
+    (candidate) => candidate.id === role.groupId,
+  );
   return computeLineHeight(
     size,
     lineHeightConfigOnDevice(role, deviceId),
-    autoRatioForRole(role),
+    autoRatioForRole(role, group),
   );
 }
 
@@ -461,6 +499,10 @@ export interface TypeRole {
    * `unlinkedLineHeights` instead.
    */
   lineHeight: LineHeightConfig;
+  /**
+   * Shared tracking, in px. A typed value on one preview frame lives in
+   * `unlinkedLetterSpacings` instead.
+   */
   letterSpacingPx: number;
   /**
    * Hand-set px keyed by preview device id (`phone`, `tablet`, `desktop`,
@@ -472,6 +514,11 @@ export interface TypeRole {
    * the shared `lineHeight`.
    */
   unlinkedLineHeights: Record<string, LineHeightConfig>;
+  /**
+   * Hand-set tracking keyed by preview device id. A missing key follows
+   * the shared `letterSpacingPx`.
+   */
+  unlinkedLetterSpacings: Record<string, number>;
 }
 
 export interface TypeSystem {
@@ -781,6 +828,45 @@ export function isLineHeightUnlinkedOnDevice(
   return hasDeviceKey(role.unlinkedLineHeights, deviceId);
 }
 
+export function isLetterSpacingUnlinkedOnDevice(
+  role: TypeRole,
+  deviceId: string,
+): boolean {
+  return hasDeviceKey(role.unlinkedLetterSpacings, deviceId);
+}
+
+/**
+ * Tracking this device uses: a typed override, else the shared default.
+ */
+export function letterSpacingPxOnDevice(
+  role: TypeRole,
+  deviceId = "desktop",
+): number {
+  const id = canonicalSizeDeviceId(deviceId);
+  if (isLetterSpacingUnlinkedOnDevice(role, id)) {
+    return role.unlinkedLetterSpacings[id]!;
+  }
+  return role.letterSpacingPx;
+}
+
+/**
+ * Font size the em conversion uses for this frame.
+ *
+ * Shared tracking is a proportion of the desktop size, so interpolated frames
+ * inherit it. A typed value on this frame was authored against the size on
+ * screen, so that frame's size is the divisor.
+ */
+export function letterSpacingEmSizePx(
+  role: TypeRole,
+  fontSizePx: number,
+  desktopSizePx: number,
+  deviceId: string,
+): number {
+  return isLetterSpacingUnlinkedOnDevice(role, deviceId)
+    ? fontSizePx
+    : desktopSizePx;
+}
+
 /**
  * Resolve a role's font size in px on one named device.
  *
@@ -867,6 +953,10 @@ export function pruneUnlinkedSizes(
       ...role,
       unlinkedSizes: pruneDeviceMap(role.unlinkedSizes, allowed),
       unlinkedLineHeights: pruneDeviceMap(role.unlinkedLineHeights, allowed),
+      unlinkedLetterSpacings: pruneDeviceMap(
+        role.unlinkedLetterSpacings,
+        allowed,
+      ),
     })),
   };
 }
@@ -897,6 +987,38 @@ export function bindLineHeightOnDevice(
   return mapRole(system, roleId, (role) => ({
     ...role,
     unlinkedLineHeights: omitDeviceKey(role.unlinkedLineHeights, deviceId),
+  }));
+}
+
+/** Type tracking on one device; the shared value still drives the rest. */
+export function unlinkLetterSpacingOnDevice(
+  system: TypeSystem,
+  roleId: string,
+  deviceId: string,
+  letterSpacingPx: number,
+): TypeSystem {
+  return mapRole(system, roleId, (role) => ({
+    ...role,
+    unlinkedLetterSpacings: setDeviceKey(
+      role.unlinkedLetterSpacings,
+      deviceId,
+      letterSpacingPx,
+    ),
+  }));
+}
+
+/** Restore this device to the shared tracking. Other overrides stay. */
+export function bindLetterSpacingOnDevice(
+  system: TypeSystem,
+  roleId: string,
+  deviceId: string,
+): TypeSystem {
+  return mapRole(system, roleId, (role) => ({
+    ...role,
+    unlinkedLetterSpacings: omitDeviceKey(
+      role.unlinkedLetterSpacings,
+      deviceId,
+    ),
   }));
 }
 
@@ -951,6 +1073,7 @@ export function addRole(system: TypeSystem, group: TypeGroup): TypeSystem {
         sameAsRoleId: null,
         unlinkedSizes: {},
         unlinkedLineHeights: {},
+        unlinkedLetterSpacings: {},
       },
     ],
   };
@@ -982,9 +1105,14 @@ export function updateGroup(
 ): TypeSystem {
   const updated: TypeSystem = {
     ...system,
-    groups: system.groups.map((group) =>
-      group.id === groupId ? { ...group, ...patch } : group,
-    ),
+    groups: system.groups.map((group) => {
+      if (group.id !== groupId) return group;
+      const next = { ...group, ...patch };
+      return {
+        ...next,
+        autoLineHeightRatio: clampLineHeightRatio(next.autoLineHeightRatio),
+      };
+    }),
   };
   /* Switching a group between number and size renames its roles, so the ids
      follow the mode rather than whatever they were created under. */
@@ -999,10 +1127,7 @@ export function addGroup(system: TypeSystem): TypeSystem {
   }
   return {
     ...system,
-    groups: [
-      ...system.groups,
-      { id: `group-${index}`, label: `Group ${index}`, indexing: "number" },
-    ],
+    groups: [...system.groups, defineGroup(`group-${index}`, `Group ${index}`)],
   };
 }
 

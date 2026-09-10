@@ -47,8 +47,18 @@ const authored: TypeSystem = {
   ratio: 1.25,
   stepCount: 5,
   groups: [
-    { id: "heading", label: "Heading", indexing: "number" },
-    { id: "body", label: "Body", indexing: "number" },
+    {
+      id: "heading",
+      label: "Heading",
+      indexing: "number",
+      autoLineHeightRatio: 1.2,
+    },
+    {
+      id: "body",
+      label: "Body",
+      indexing: "number",
+      autoLineHeightRatio: 1.5,
+    },
   ],
   fonts: [
     {
@@ -78,6 +88,7 @@ const authored: TypeSystem = {
       letterSpacingPx: 0,
       unlinkedSizes: { desktop: 56, phone: 24 },
       unlinkedLineHeights: {},
+      unlinkedLetterSpacings: {},
     },
     {
       id: "body",
@@ -92,12 +103,18 @@ const authored: TypeSystem = {
       letterSpacingPx: 0,
       unlinkedSizes: { desktop: 16, phone: 16 },
       unlinkedLineHeights: {},
+      unlinkedLetterSpacings: {},
     },
   ],
 };
 
 function withH1(
-  patch: Partial<Pick<TypeRole, "unlinkedSizes" | "unlinkedLineHeights">>,
+  patch: Partial<
+    Pick<
+      TypeRole,
+      "unlinkedSizes" | "unlinkedLineHeights" | "unlinkedLetterSpacings"
+    >
+  >,
 ): TypeSystem {
   return {
     ...authored,
@@ -225,6 +242,18 @@ describe("viewport handling", () => {
     expect(output).not.toContain(
       `--font-h1-letter-spacing: ${formatLetterSpacing(-0.5, 24)};`,
     );
+  });
+
+  it("interpolates a letter-spacing override from the frame it was typed on", () => {
+    const system = withH1({
+      unlinkedLetterSpacings: { phone: -0.5 },
+    });
+    const output = formatTypeSystemCssExport(system, "px");
+    expect(output).toContain(
+      `--font-h1-letter-spacing: clamp(${formatLetterSpacing(-0.5, 24)},`,
+    );
+    expect(output).toContain(", 0em)");
+    expect(output).not.toContain("@media (min-width: 768px)");
   });
 
   it("starts the next pair at the earlier frame's width", () => {
