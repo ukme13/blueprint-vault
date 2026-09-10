@@ -341,7 +341,6 @@ describe("per-device line height", () => {
 
   it("follows the shared config when no device has an override", () => {
     const body = role("body", "body");
-    const s = system({ roles: [body] });
     expect(lineHeightConfigOnDevice(body, "phone")).toEqual(body.lineHeight);
     expect(lineHeightConfigOnDevice(body, "desktop")).toEqual(body.lineHeight);
     expect(isLineHeightUnlinkedOnDevice(body, "phone")).toBe(false);
