@@ -54,9 +54,9 @@ Add `rem`, `px` and `pt` output. Engine work plus one control.
   - `pt` — multiply by `0.75` (96 px/inch against 72 pt/inch).
   - `px` — unchanged.
 - Line-height stays unitless. It is already correct.
-- Letter-spacing converts with the same unit. `em` is arguably better for
-  letter-spacing because it tracks the size it is applied to; that is deliberately
-  out of scope here and noted under later improvements.
+- Letter-spacing ships as `em` relative to the role's desktop size, so it
+  tracks fluid type. The editor still stores px; conversion is at the preview
+  and export edges, the same rule as size units.
 - Show the unit in the preview next to each step, as the reference does, so the
   computed value is visible without opening the export dialog.
 - Persist the chosen unit with the project.
@@ -187,6 +187,10 @@ Viewport widths in the `100vw` span stay in px whatever size unit the file
 uses. `TypeSystem.breakpointPx` is dropped on read; old files that still name
 it load.
 
+Letter-spacing is the exception to the size unit. It ships as `em` against the
+role's desktop size, so a clamp on `--font-h1-size` also scales tracking.
+The editor still stores and edits px.
+
 ## Not doing
 
 - The reference's Boards, Bookmarks, Likes and Explore rail. That is a hosted
@@ -198,7 +202,6 @@ it load.
 
 ## Later improvements
 
-- `em` letter-spacing, which tracks the size it applies to.
 - A configurable root font size for `rem`, rather than assuming 16.
 - Per-device letter-spacing.
 - More templates: dashboard, documentation, email.
@@ -220,7 +223,7 @@ scale, the tokens, or the export.
 
 1. A user can switch the generated scale between `rem`, `px` and `pt`, see the
    change in the preview, and export in that unit.
-2. Exported line-height still carries no unit.
+2. Exported line-height still carries no unit. Letter-spacing is always `em`.
 3. A user can type their own specimen text, in any script, and see it at every
    step.
 4. A user can preview the scale as a specimen and as an article, in the editor's

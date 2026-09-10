@@ -61,4 +61,4 @@ was a stale copy. Dropping it is cheaper than teaching it to follow.
 
 ## Still later
 
-Per-device letter-spacing, `em` tracking, a configurable rem root.
+Per-device letter-spacing, a configurable rem root.

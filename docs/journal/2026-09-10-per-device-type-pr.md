@@ -68,7 +68,7 @@ override has to restore 1.5, not invent auto.
 
 ## Still later
 
-Per-device letter-spacing, `em` tracking, a configurable rem root.
+Per-device letter-spacing, a configurable rem root.
 `TypeSystem.breakpointPx` is unused by the writer. Fluid `clamp()` between
 named frames shipped in `2026-09-10-fluid-clamp-export.md`, which also drops
-the field.
+the field. `em` tracking shipped in `2026-09-11-em-letter-spacing.md`.
