@@ -203,7 +203,6 @@ The editor still stores and edits px.
 ## Later improvements
 
 - A configurable root font size for `rem`, rather than assuming 16.
-- Per-device letter-spacing.
 - More templates: dashboard, documentation, email.
 
 ## Safety and quality rules
