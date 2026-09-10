@@ -302,7 +302,6 @@ describe("viewport handling", () => {
 
     const output = formatTypeSystemCssExport(system, "px", devices);
     const lo = Math.min(phonePx, tabletPx);
-    const hi = Math.max(phonePx, tabletPx);
     const rootBlock = output.slice(0, output.indexOf("@media"));
     expect(rootBlock).toContain(`--font-h1-size: clamp(${lo}px,`);
     expect(rootBlock).toContain(`${phonePx}px`);
