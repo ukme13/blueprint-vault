@@ -26,12 +26,21 @@ test.describe("Typography export", () => {
 
     const preview = page.getByRole("region", { name: "Export preview" });
     await expect(preview.getByText("--font-body-size: 1rem;")).toBeVisible();
+    await expect(
+      preview.getByText("--font-body-letter-spacing: 0em;"),
+    ).toBeVisible();
 
     await page.getByRole("button", { name: "pt", exact: true }).click();
     await expect(preview.getByText("--font-body-size: 12pt;")).toBeVisible();
+    await expect(
+      preview.getByText("--font-body-letter-spacing: 0em;"),
+    ).toBeVisible();
 
     await page.getByRole("button", { name: "px", exact: true }).click();
     await expect(preview.getByText("--font-body-size: 16px;")).toBeVisible();
+    await expect(
+      preview.getByText("--font-body-letter-spacing: 0em;"),
+    ).toBeVisible();
   });
 
   test("interpolates body size with clamp between preview frames", async ({

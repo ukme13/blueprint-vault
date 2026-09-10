@@ -156,12 +156,13 @@ export function TypeRoleTable({ system }: TypeRoleTableProps) {
                   <TableCell>
                     <VStack gap={0}>
                       <Text hasTabularNumbers>{row.fontWeight}</Text>
+                      <Text hasTabularNumbers>{row.letterSpacingCss}</Text>
                       <Text
                         color="secondary"
                         hasTabularNumbers
                         textWrap="nowrap"
                       >
-                        {row.letterSpacingPx}px tracking
+                        {row.letterSpacingPx}px
                       </Text>
                     </VStack>
                   </TableCell>

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { formatTypeSystemCssExport } from "./system-export";
+import { formatLetterSpacing } from "./export";
 import { defaultSystem, resolveRoleSizePx, type TypeSystem } from "./system";
 import { generateTypeSteps } from "./scale";
 import { readTypographyProjectData } from "../workspace/typography-project";
@@ -293,8 +294,35 @@ describe("the rows and the exported file", () => {
         expect(css, `${row.id} is ${row.fontSizePx}px on the page`).toContain(
           `${row.variables.size}: ${row.fontSizePx}px;`,
         );
+        expect(
+          css,
+          `${row.id} tracking is ${row.letterSpacingCss} on the page`,
+        ).toContain(`${row.variables.letterSpacing}: ${row.letterSpacingCss};`);
       }
     }
+  });
+
+  it("keeps the same em tracking on phone rows as on desktop", () => {
+    const patched: TypeSystem = {
+      ...system(),
+      roles: system().roles.map((role) =>
+        role.id === "h1"
+          ? { ...role, letterSpacingPx: -0.5, unlinkedSizes: { phone: 24 } }
+          : role,
+      ),
+    };
+    const desktop = typeRoleRowGroups(patched, "desktop")
+      .flatMap((group) => group.rows)
+      .find((row) => row.id === "h1")!;
+    const phone = typeRoleRowGroups(patched, "phone")
+      .flatMap((group) => group.rows)
+      .find((row) => row.id === "h1")!;
+    expect(phone.fontSizePx).toBe(24);
+    expect(desktop.fontSizePx).not.toBe(24);
+    expect(phone.letterSpacingCss).toBe(desktop.letterSpacingCss);
+    expect(phone.letterSpacingCss).toBe(
+      formatLetterSpacing(-0.5, desktop.fontSizePx),
+    );
   });
 });
 

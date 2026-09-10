@@ -55,7 +55,9 @@ and line-height. Export interpolates consecutive frames with `clamp()`, so a
 layout between two named widths is not stuck on the narrower size. Role
 `--font-size-N` tokens stay on the canonical desktop ramp (`TypeSystem.ratio`).
 Queries and fluid spans use `device.widthPx`. `TypeSystem.breakpointPx` is
-dropped on read; old files that still name it load.
+dropped on read; old files that still name it load. Letter-spacing ships as
+`em` relative to the role's desktop size, so tracking follows the interpolated
+font-size rather than sitting still in px.
 
 ## Safety and quality rules
 

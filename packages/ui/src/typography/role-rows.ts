@@ -1,5 +1,6 @@
 import { findGoogleFont } from "./google-fonts";
 import { generateTypeSteps } from "./scale";
+import { formatLetterSpacing } from "./export";
 import { typeTokenId } from "./system-export";
 import {
   BODY_GROUP_ID,
@@ -161,6 +162,8 @@ export interface TypeRoleRow {
   lineHeightPx: number;
   fontWeight: number;
   letterSpacingPx: number;
+  /** Tracking as the export writes it: em relative to the desktop size. */
+  letterSpacingCss: string;
   textTransform: string;
   /** Distance from base, or null when the size is hand-set. */
   stepOffset: number | null;
@@ -213,6 +216,7 @@ function roleRow(
 ): TypeRoleRow {
   const font = fonts.get(role.fontId);
   const fontSizePx = resolveRoleSizePx(system, steps, role, deviceId);
+  const desktopSizePx = resolveRoleSizePx(system, steps, role, "desktop");
   const { computedLineHeightRatio, computedLineHeightPx } = resolveLineHeight(
     role,
     fontSizePx,
@@ -235,6 +239,7 @@ function roleRow(
     lineHeightPx: computedLineHeightPx,
     fontWeight: role.fontWeight,
     letterSpacingPx: role.letterSpacingPx,
+    letterSpacingCss: formatLetterSpacing(role.letterSpacingPx, desktopSizePx),
     textTransform: role.textTransform,
     stepOffset: isRoleUnlinkedOnDevice(role, deviceId) ? null : role.stepOffset,
     variables: typeRoleVariables(role.id),
