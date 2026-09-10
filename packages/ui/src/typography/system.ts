@@ -209,7 +209,6 @@ export function defaultSystem(
     baseFontSizePx,
     ratio,
     stepCount,
-    breakpointPx: 768,
     fonts: [
       {
         id: DISPLAY_FONT_ID,
@@ -482,7 +481,6 @@ export interface TypeSystem {
   baseFontSizePx: number;
   ratio: number;
   stepCount: number;
-  breakpointPx: number;
   fonts: TypeFont[];
   roles: TypeRole[];
 }

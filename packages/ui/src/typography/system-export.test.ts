@@ -45,7 +45,6 @@ const authored: TypeSystem = {
   baseFontSizePx: 16,
   ratio: 1.25,
   stepCount: 5,
-  breakpointPx: 768,
   groups: [
     { id: "heading", label: "Heading", indexing: "number" },
     { id: "body", label: "Body", indexing: "number" },
@@ -163,57 +162,58 @@ describe("formatTypeSystemCssExport", () => {
 });
 
 describe("viewport handling", () => {
-  it("omits the media query when no role differs between viewports", () => {
-    // A migrated single-viewport project must not gain an empty media query.
+  it("omits clamp and media queries when no role differs between viewports", () => {
     const output = formatTypeSystemCssExport(migratedLegacy);
+    expect(output).not.toContain("clamp(");
     expect(output).not.toContain("@media");
   });
 
-  it("emits the first wider frame that differs, at that frame's width", () => {
+  it("interpolates the first differing pair in :root, from that frame's width", () => {
     /* Authored phone 24 / desktop 56 with no tablet key: tablet falls back
-       to the desktop typed size, so the query lands at tablet 768px — the
-       same number `breakpointPx` used to name, for a different reason. */
-    const output = formatTypeSystemCssExport(authored);
-    expect(output).toContain("@media (min-width: 768px)");
-    expect(output).not.toContain("@media (min-width: 1120px)");
+       to the desktop typed size, so the clamp runs from 375px to 768px. */
+    const output = formatTypeSystemCssExport(authored, "px");
+    expect(output).toContain(
+      "--font-h1-size: clamp(24px, calc(24px + 32px * (100vw - 375px) / 393px), 56px);",
+    );
+    expect(output).not.toContain("@media");
   });
 
-  it("puts the narrowest frame in :root, so the smallest layout is the default", () => {
+  it("puts the narrowest size in the clamp min, so the smallest layout is the floor", () => {
     const h1 = authored.roles.find((role) => role.id === "h1")!;
     const output = formatTypeSystemCssExport(authored, "px");
-    const rootBlock = output.slice(0, output.indexOf("@media"));
-
-    expect(rootBlock).toContain(`--font-h1-size: ${h1.unlinkedSizes.phone}px;`);
-    expect(rootBlock).not.toContain(
+    expect(output).toContain(`clamp(${h1.unlinkedSizes.phone}px,`);
+    expect(output).toContain(`, ${h1.unlinkedSizes.desktop}px)`);
+    expect(output).not.toContain(
       `--font-h1-size: ${h1.unlinkedSizes.desktop}px;`,
     );
   });
 
-  it("keeps the breakpoint in px whatever the size unit", () => {
+  it("keeps the viewport span in px whatever the size unit", () => {
     const output = formatTypeSystemCssExport(authored, "rem");
-    expect(output).toContain("@media (min-width: 768px)");
+    expect(output).toContain("(100vw - 375px) / 393px");
   });
 
-  it("does not repeat letter-spacing in an override that only changes size", () => {
+  it("does not put letter-spacing inside a size clamp", () => {
     const output = formatTypeSystemCssExport(authored, "px");
-    const override = output.slice(output.indexOf("@media"));
-    expect(override).toContain("--font-h1-size: 56px;");
-    expect(override).not.toContain("letter-spacing");
+    expect(output).toContain("--font-h1-letter-spacing: 0px;");
+    expect(output).not.toMatch(/--font-h1-size: clamp\([^)]*letter-spacing/);
   });
 
-  it("stacks a query per named frame that actually changed", () => {
+  it("starts the next pair at the earlier frame's width", () => {
     const system = withH1({
       unlinkedSizes: { phone: 24, tablet: 40, desktop: 56 },
     });
     const output = formatTypeSystemCssExport(system, "px");
     const rootBlock = output.slice(0, output.indexOf("@media"));
 
-    expect(rootBlock).toContain("--font-h1-size: 24px;");
+    expect(rootBlock).toContain(
+      "--font-h1-size: clamp(24px, calc(24px + 16px * (100vw - 375px) / 393px), 40px);",
+    );
     expect(output).toContain("@media (min-width: 768px)");
-    expect(output).toContain("@media (min-width: 1120px)");
-    expect(blockAt(output, 768)).toContain("--font-h1-size: 40px;");
-    expect(blockAt(output, 1120)).toContain("--font-h1-size: 56px;");
-    expect(blockAt(output, 768)).not.toContain("--font-h1-size: 56px;");
+    expect(output).not.toContain("@media (min-width: 1120px)");
+    expect(blockAt(output, 768)).toContain(
+      "--font-h1-size: clamp(40px, calc(40px + 16px * (100vw - 768px) / 352px), 56px);",
+    );
   });
 
   it("skips a frame that matches the one before it", () => {
@@ -221,8 +221,21 @@ describe("viewport handling", () => {
       unlinkedSizes: { phone: 24, tablet: 56, desktop: 56 },
     });
     const output = formatTypeSystemCssExport(system, "px");
+    expect(output).toContain("clamp(24px,");
+    expect(output).not.toContain("@media");
+  });
+
+  it("holds the narrowest size until a later frame actually changes", () => {
+    const system = withH1({
+      unlinkedSizes: { phone: 24, tablet: 24, desktop: 56 },
+    });
+    const output = formatTypeSystemCssExport(system, "px");
+    const rootBlock = output.slice(0, output.indexOf("@media"));
+    expect(rootBlock).toContain("--font-h1-size: 24px;");
     expect(output).toContain("@media (min-width: 768px)");
-    expect(output).not.toContain("@media (min-width: 1120px)");
+    expect(blockAt(output, 768)).toContain(
+      "--font-h1-size: clamp(24px, calc(24px + 32px * (100vw - 768px) / 352px), 56px);",
+    );
   });
 
   it("includes an extra desktop when its tokens differ", () => {
@@ -239,11 +252,14 @@ describe("viewport handling", () => {
       },
     });
     const output = formatTypeSystemCssExport(system, "px", devices);
-    expect(output).toContain(`@media (min-width: ${extra.widthPx}px)`);
-    expect(blockAt(output, extra.widthPx)).toContain("--font-h1-size: 64px;");
+    const desktop = devices.find((device) => device.id === "desktop")!;
+    expect(output).toContain(`@media (min-width: ${desktop.widthPx}px)`);
+    expect(blockAt(output, desktop.widthPx)).toContain(
+      `clamp(56px, calc(56px + 8px * (100vw - ${desktop.widthPx}px) / ${extra.widthPx - desktop.widthPx}px), 64px)`,
+    );
   });
 
-  it("emits a line-height override without repeating unchanged sizes", () => {
+  it("interpolates a line-height override without repeating unchanged sizes", () => {
     const system = withH1({
       unlinkedSizes: { phone: 24, desktop: 24 },
       unlinkedLineHeights: {
@@ -251,12 +267,11 @@ describe("viewport handling", () => {
       },
     });
     const output = formatTypeSystemCssExport(system, "px");
-    const rootBlock = output.slice(0, output.indexOf("@media"));
-    expect(rootBlock).toContain("--font-h1-line-height: 2;");
-    expect(output).toContain("@media (min-width: 768px)");
-    expect(output).not.toContain("@media (min-width: 1120px)");
-    expect(blockAt(output, 768)).toContain("--font-h1-line-height: 1.1;");
-    expect(blockAt(output, 768)).not.toContain("--font-h1-size:");
+    expect(output).toContain("--font-h1-size: 24px;");
+    expect(output).toContain(
+      "--font-h1-line-height: clamp(1.1, calc(2 - 0.9 * (100vw - 375px) / 393px), 2);",
+    );
+    expect(output).not.toContain("@media");
   });
 
   it("resolves bound roles against that frame's ratio, not the desktop ramp", () => {
@@ -286,10 +301,13 @@ describe("viewport handling", () => {
     expect(tabletPx).not.toBe(phonePx);
 
     const output = formatTypeSystemCssExport(system, "px", devices);
+    const lo = Math.min(phonePx, tabletPx);
     const rootBlock = output.slice(0, output.indexOf("@media"));
-    expect(rootBlock).toContain(`--font-h1-size: ${phonePx}px;`);
-    expect(blockAt(output, 768)).toContain(`--font-h1-size: ${tabletPx}px;`);
-    expect(blockAt(output, 1120)).toContain(`--font-h1-size: ${phonePx}px;`);
+    expect(rootBlock).toContain(`--font-h1-size: clamp(${lo}px,`);
+    expect(rootBlock).toContain(`${phonePx}px`);
+    expect(blockAt(output, 768)).toContain(`${tabletPx}px`);
+    expect(blockAt(output, 768)).toContain(`${phonePx}px`);
+    expect(output).not.toContain("@media (min-width: 1120px)");
   });
 });
 
@@ -300,11 +318,13 @@ describe("formatTypeSystemTailwindExport", () => {
     expect(output).toContain("--font-body-size:");
   });
 
-  it("nests later frames in stacked @theme blocks", () => {
+  it("uses clamp inside the theme block when frames differ", () => {
     const output = formatTypeSystemTailwindExport(authored, "px");
-    expect(output).toContain("@media (min-width: 768px)");
-    expect(blockAt(output, 768)).toContain("@theme static {");
-    expect(blockAt(output, 768)).toContain("--font-h1-size: 56px;");
+    expect(output).toContain("@theme static {");
+    expect(output).toContain(
+      "--font-h1-size: clamp(24px, calc(24px + 32px * (100vw - 375px) / 393px), 56px);",
+    );
+    expect(output).not.toContain("@media");
   });
 });
 

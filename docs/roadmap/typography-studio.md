@@ -43,13 +43,19 @@ The workspace interface belongs in `apps/playground/components/typography`.
 
 After the first version is stable, consider:
 
-- Fluid typography between viewport sizes.
-- Mobile, tablet, and desktop overrides.
 - JSON design-token export.
 - Project-file import and export.
 - Additional product, editorial, and marketing presets.
 - Font loading and performance guidance.
 - More detailed readability and accessibility checks.
+
+**Shipped after the first version.** Named preview devices (phone, tablet,
+desktop, extra desktops) each hold a width, a ratio, and optional typed size
+and line-height. Export interpolates consecutive frames with `clamp()`, so a
+layout between two named widths is not stuck on the narrower size. Role
+`--font-size-N` tokens stay on the canonical desktop ramp (`TypeSystem.ratio`).
+Queries and fluid spans use `device.widthPx`. `TypeSystem.breakpointPx` is
+dropped on read; old files that still name it load.
 
 ## Safety and quality rules
 

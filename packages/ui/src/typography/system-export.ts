@@ -1,4 +1,5 @@
 import { formatLength } from "./export";
+import { fluidLengthClamp, fluidUnitlessClamp } from "./fluid";
 import { findGoogleFont } from "./google-fonts";
 import {
   defaultPreviewDevices,
@@ -16,14 +17,15 @@ import type { TypeScaleUnit } from "./types";
 /**
  * Export for the merged model.
  *
- * `:root` is the narrowest preview frame. Each wider frame that actually
- * changes a role token gets its own `@media (min-width: widthPx)` block.
- * Identical consecutive frames are skipped, so a tablet that already matches
- * desktop does not earn an empty query at 1120px, and a project whose frames
- * all resolve equal still ships no media query at all.
+ * `:root` is the narrowest preview frame. Consecutive frames that differ
+ * interpolate with `clamp()`, so a 500px layout is not stuck on the phone
+ * size until 768. A later pair starts at `@media (min-width: that frame)`.
+ * Identical consecutive frames are skipped, and a project whose frames all
+ * resolve equal still ships no clamp and no media query.
  *
- * Queries use the frame's `widthPx`, not `system.breakpointPx`. Bound roles
- * resolve against that frame's ratio so the file matches the preview.
+ * Queries and the `100vw` span use the frame's `widthPx`. Bound roles resolve
+ * against that frame's ratio so the file matches the preview. Letter-spacing
+ * stays shared.
  */
 
 /**
@@ -48,6 +50,11 @@ interface RoleViewportTokens {
   fontSizePx: number;
   lineHeight: number;
   letterSpacingPx: number;
+}
+
+interface FrameSnapshot {
+  device: PreviewDevice;
+  roles: RoleViewportTokens[];
 }
 
 function stackedPreviewDevices(
@@ -82,56 +89,102 @@ function roleViewportTokens(
   });
 }
 
-/**
- * Role size, line-height and letter-spacing for one frame.
- *
- * When `previous` is set, only tokens that changed from the last emitted
- * cascade are written. Letter-spacing is still shared, so override blocks
- * normally omit it.
- */
-function roleTokenLines(
-  role: RoleViewportTokens,
-  unit: TypeScaleUnit,
-  indent: string,
-  previous: RoleViewportTokens | undefined,
-): string[] {
-  const tokens = [
-    {
-      changed: !previous || previous.fontSizePx !== role.fontSizePx,
-      name: "size",
-      value: formatLength(role.fontSizePx, unit),
-    },
-    {
-      changed: !previous || previous.lineHeight !== role.lineHeight,
-      name: "line-height",
-      value: String(role.lineHeight),
-    },
-    {
-      changed: !previous || previous.letterSpacingPx !== role.letterSpacingPx,
-      name: "letter-spacing",
-      value: formatLength(role.letterSpacingPx, unit),
-    },
-  ];
-  return tokens
-    .filter((token) => token.changed)
-    .map(
-      (token) =>
-        `${indent}--font-${role.tokenId}-${token.name}: ${token.value};`,
-    );
+function indentFor(frameIndex: number): string {
+  return frameIndex === 0 ? "  " : "    ";
 }
 
-function emitRoleTokens(
-  roles: RoleViewportTokens[],
+/**
+ * Write a size or line-height across the stacked frames.
+ *
+ * A pair that differs becomes a clamp starting on the earlier frame. A run
+ * that never changes is a static token in `:root`. Letter-spacing is not
+ * handled here — it is still shared.
+ */
+function emitFluidProperty(
+  linesByFrame: string[][],
+  widths: readonly number[],
+  values: readonly number[],
+  tokenId: string,
+  name: string,
+  clamp: (
+    fromWidth: number,
+    fromValue: number,
+    toWidth: number,
+    toValue: number,
+  ) => string,
+  formatStatic: (value: number) => string,
+): void {
+  const starts: number[] = [];
+  for (let i = 0; i < values.length - 1; i += 1) {
+    if (values[i] !== values[i + 1] && widths[i] !== widths[i + 1]) {
+      starts.push(i);
+    }
+  }
+
+  if (starts.length === 0) {
+    linesByFrame[0]!.push(
+      `${indentFor(0)}--font-${tokenId}-${name}: ${formatStatic(values[0]!)};`,
+    );
+    return;
+  }
+
+  if (starts[0] !== 0) {
+    linesByFrame[0]!.push(
+      `${indentFor(0)}--font-${tokenId}-${name}: ${formatStatic(values[0]!)};`,
+    );
+  }
+
+  for (const i of starts) {
+    const from = i;
+    const to = i + 1;
+    linesByFrame[from]!.push(
+      `${indentFor(from)}--font-${tokenId}-${name}: ${clamp(
+        widths[from]!,
+        values[from]!,
+        widths[to]!,
+        values[to]!,
+      )};`,
+    );
+  }
+}
+
+function fluidRoleLines(
+  frames: FrameSnapshot[],
   unit: TypeScaleUnit,
-  indent: string,
-  previous: RoleViewportTokens[] | null,
-): string[] {
-  const prevById = previous
-    ? new Map(previous.map((role) => [role.tokenId, role]))
-    : null;
-  return roles.flatMap((role) =>
-    roleTokenLines(role, unit, indent, prevById?.get(role.tokenId)),
-  );
+): string[][] {
+  const linesByFrame = frames.map((): string[] => []);
+  const widths = frames.map((frame) => frame.device.widthPx);
+  const first = frames[0]!;
+
+  for (const role of first.roles) {
+    const across = frames.map((frame) =>
+      frame.roles.find((entry) => entry.tokenId === role.tokenId)!,
+    );
+    emitFluidProperty(
+      linesByFrame,
+      widths,
+      across.map((entry) => entry.fontSizePx),
+      role.tokenId,
+      "size",
+      (fromWidth, fromValue, toWidth, toValue) =>
+        fluidLengthClamp(fromWidth, fromValue, toWidth, toValue, unit),
+      (value) => formatLength(value, unit),
+    );
+    emitFluidProperty(
+      linesByFrame,
+      widths,
+      across.map((entry) => entry.lineHeight),
+      role.tokenId,
+      "line-height",
+      fluidUnitlessClamp,
+      (value) => `${Number(value.toFixed(4))}`,
+    );
+    linesByFrame[0]!.push(
+      `  --font-${role.tokenId}-letter-spacing: ${formatLength(role.letterSpacingPx, unit)};`,
+    );
+  }
+
+  return linesByFrame;
 }
 
 function sharedLines(system: TypeSystem, unit: TypeScaleUnit): string[] {
@@ -200,33 +253,33 @@ function body(
   open: string,
   devices?: readonly PreviewDevice[],
 ): string {
-  const frames = stackedPreviewDevices(system, devices);
-  const base = frames[0]!;
-  const baseRoles = roleViewportTokens(system, base);
+  const snapshots: FrameSnapshot[] = stackedPreviewDevices(system, devices).map(
+    (device) => ({
+      device,
+      roles: roleViewportTokens(system, device),
+    }),
+  );
+  const roleLines = fluidRoleLines(snapshots, unit);
 
   const lines = [
     ...googleFontNotice(system),
     open,
     ...sharedLines(system, unit),
-    ...emitRoleTokens(baseRoles, unit, "  ", null),
+    ...roleLines[0]!,
     "}",
   ];
 
-  let previous = baseRoles;
-  for (const device of frames.slice(1)) {
-    const current = roleViewportTokens(system, device);
-    const changed = emitRoleTokens(current, unit, "    ", previous);
-    if (changed.length > 0) {
-      lines.push(
-        "",
-        `@media (min-width: ${device.widthPx}px) {`,
-        `  ${open}`,
-        ...changed,
-        "  }",
-        "}",
-      );
-    }
-    previous = current;
+  for (let i = 1; i < snapshots.length; i += 1) {
+    const changed = roleLines[i]!;
+    if (changed.length === 0) continue;
+    lines.push(
+      "",
+      `@media (min-width: ${snapshots[i]!.device.widthPx}px) {`,
+      `  ${open}`,
+      ...changed,
+      "  }",
+      "}",
+    );
   }
 
   return lines.join("\n");

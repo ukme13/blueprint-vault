@@ -48,7 +48,9 @@ bar, not next to Editor/Preview on the local toolbar.
 
 The file still writes phone in `:root` and desktop in one min-width block.
 Tablet and extra desktops are stored and previewed, then dropped. Stacked
-min-width export is the next cut.
+min-width export, then fluid `clamp()`, followed the same day
+(`2026-09-10-stacked-min-width-export.md`,
+`2026-09-10-fluid-clamp-export.md`).
 
 ## Checks
 

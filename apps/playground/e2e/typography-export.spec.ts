@@ -34,7 +34,7 @@ test.describe("Typography export", () => {
     await expect(preview.getByText("--font-body-size: 16px;")).toBeVisible();
   });
 
-  test("stacks a min-width query for each preview frame that changed", async ({
+  test("interpolates body size with clamp between preview frames", async ({
     seededPage: page,
   }) => {
     await showInspectorPanel(page, "Groups");
@@ -53,11 +53,13 @@ test.describe("Typography export", () => {
     await page.getByRole("button", { name: "px", exact: true }).click();
 
     const preview = page.getByRole("region", { name: "Export preview" });
-    await expect(preview.getByText("--font-body-size: 14px;")).toBeVisible();
+    await expect(preview.getByText("clamp(14px,")).toBeVisible();
     await expect(preview.getByText("@media (min-width: 768px)")).toBeVisible();
-    await expect(preview.getByText("--font-body-size: 18px;")).toBeVisible();
-    await expect(preview.getByText("@media (min-width: 1120px)")).toBeVisible();
-    await expect(preview.getByText("--font-body-size: 20px;")).toBeVisible();
+    await expect(preview.getByText("clamp(18px,")).toBeVisible();
+    await expect(preview.getByText("20px)")).toBeVisible();
+    await expect(preview.getByText("@media (min-width: 1120px)")).toHaveCount(
+      0,
+    );
   });
 
   test("downloads the generated CSS file", async ({ seededPage: page }) => {
