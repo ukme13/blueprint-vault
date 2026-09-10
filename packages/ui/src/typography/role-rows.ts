@@ -9,6 +9,7 @@ import {
   familiesToCss,
   resolveLineHeight,
   resolveRoleSizePx,
+  isRoleUnlinkedOnDevice,
   type RoleElement,
   type TypeFont,
   type TypeRole,
@@ -45,31 +46,13 @@ import type { SemanticRole, TypeStep } from "./types";
  * different step offset. Anything that prints the stored number shows eight
  * roles at one size and calls it a scale.
  *
- * Each viewport is resolved against its own value rather than desktop's being
- * copied into both. For a linked role that changes nothing, because both
- * viewports share the offset; for a role somebody authored at two sizes it is
- * the difference between keeping their mobile size and silently replacing it
- * with the desktop one. The studio's own version of this loop copied desktop
- * across, which was invisible there because it only ever renders desktop, and
- * became a regression the moment the export started calling it.
+ * Each device is resolved against its own unlinked size or the ramp `steps`
+ * describes. Bound roles share an offset; a typed size on one frame stays
+ * on that frame. Sizes are not written back onto the role — read them with
+ * `resolveRoleSizePx` or `typeRoleRowGroups`.
  */
 export function resolveSystemRoles(system: TypeSystem): TypeRole[] {
-  const steps = generateTypeSteps(
-    system.baseFontSizePx,
-    system.ratio,
-    system.stepCount,
-  );
-  return system.roles.map((role) => ({
-    ...role,
-    desktop: {
-      ...role.desktop,
-      fontSizePx: resolveRoleSizePx(system, steps, role, "desktop"),
-    },
-    mobile: {
-      ...role.mobile,
-      fontSizePx: resolveRoleSizePx(system, steps, role, "mobile"),
-    },
-  }));
+  return system.roles;
 }
 
 /** The variables the export emits for one role. */
@@ -200,9 +183,9 @@ export interface TypeRoleRowGroup {
  */
 export function typeRoleRowGroups(
   system: TypeSystem,
-  viewport: "desktop" | "mobile" = "desktop",
+  deviceId = "desktop",
 ): TypeRoleRowGroup[] {
-  const resolved = resolveSystemRoles(system);
+  const roles = system.roles;
   const steps = generateTypeSteps(
     system.baseFontSizePx,
     system.ratio,
@@ -214,9 +197,9 @@ export function typeRoleRowGroups(
     .map((group) => ({
       id: group.id,
       label: group.label,
-      rows: resolved
+      rows: roles
         .filter((role) => role.groupId === group.id)
-        .map((role) => roleRow(system, role, steps, fonts, viewport)),
+        .map((role) => roleRow(system, role, steps, fonts, deviceId)),
     }))
     .filter((group) => group.rows.length > 0);
 }
@@ -226,13 +209,14 @@ function roleRow(
   role: TypeRole,
   steps: TypeStep[],
   fonts: Map<string, TypeFontRow>,
-  viewport: "desktop" | "mobile",
+  deviceId: string,
 ): TypeRoleRow {
-  const value = role[viewport];
   const font = fonts.get(role.fontId);
+  const fontSizePx = resolveRoleSizePx(system, steps, role, deviceId);
   const { computedLineHeightRatio, computedLineHeightPx } = resolveLineHeight(
     role,
-    viewport,
+    fontSizePx,
+    deviceId,
   );
 
   return {
@@ -245,14 +229,14 @@ function roleRow(
     element: elementForRole(system, role),
     fontName: font?.name ?? role.fontId,
     fontStack: font?.stack ?? "inherit",
-    fontSizePx: value.fontSizePx,
-    exactFontSizePx: exactSizeIfRounded(role, steps),
+    fontSizePx,
+    exactFontSizePx: exactSizeIfRounded(role, steps, deviceId),
     lineHeight: computedLineHeightRatio,
     lineHeightPx: computedLineHeightPx,
     fontWeight: role.fontWeight,
-    letterSpacingPx: value.letterSpacingPx,
+    letterSpacingPx: role.letterSpacingPx,
     textTransform: role.textTransform,
-    stepOffset: role.stepOffset,
+    stepOffset: isRoleUnlinkedOnDevice(role, deviceId) ? null : role.stepOffset,
     variables: typeRoleVariables(role.id),
   };
 }
@@ -264,8 +248,14 @@ function roleRow(
  * somebody typed, and rounding applies to sizes the scale generates rather
  * than to decisions a person made.
  */
-function exactSizeIfRounded(role: TypeRole, steps: TypeStep[]): number | null {
-  if (role.stepOffset === null) return null;
+function exactSizeIfRounded(
+  role: TypeRole,
+  steps: TypeStep[],
+  deviceId: string,
+): number | null {
+  if (isRoleUnlinkedOnDevice(role, deviceId) || role.stepOffset === null) {
+    return null;
+  }
   const step = steps.find((candidate) => candidate.offset === role.stepOffset);
   if (!step) return null;
   /* A hair of tolerance rather than !==, because an exact value that lands on
@@ -353,7 +343,7 @@ export function resolveTemplateSlot(
   system: TypeSystem,
   slot: SemanticRole,
 ): TypeRole | null {
-  const roles = resolveSystemRoles(system);
+  const roles = system.roles;
   if (roles.length === 0) return null;
 
   /* An exact id first, so a workspace that has named a role after the slot is
@@ -365,8 +355,16 @@ export function resolveTemplateSlot(
   const inGroup = roles.filter((role) => role.groupId === rule.groupId);
   if (inGroup.length > 0) {
     if (rule.at === "smallest") {
+      const steps = generateTypeSteps(
+        system.baseFontSizePx,
+        system.ratio,
+        system.stepCount,
+      );
       return inGroup.reduce((smallest, role) =>
-        role.desktop.fontSizePx < smallest.desktop.fontSizePx ? role : smallest,
+        resolveRoleSizePx(system, steps, role) <
+        resolveRoleSizePx(system, steps, smallest)
+          ? role
+          : smallest,
       );
     }
     /* A group shorter than the rule asks for falls to its last role rather

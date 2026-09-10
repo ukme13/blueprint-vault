@@ -184,8 +184,7 @@ function withRoleSize(system: TypeSystem, id: string, fontSizePx: number) {
                scale on the next read and the change would not survive to the
                page. */
             stepOffset: null,
-            desktop: { ...role.desktop, fontSizePx },
-            mobile: { ...role.mobile, fontSizePx },
+            unlinkedSizes: { desktop: fontSizePx, phone: fontSizePx },
           }
         : role,
     ),

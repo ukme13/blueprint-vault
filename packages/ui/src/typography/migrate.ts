@@ -16,6 +16,7 @@ import {
   type TypeRole,
   type TypeRoleValue,
   type TypeSystem,
+  canonicalSizeDeviceId,
 } from "./system";
 import { readLineHeightConfig } from "./line-height";
 import { SEMANTIC_ROLES, type SemanticRole } from "./types";
@@ -136,8 +137,10 @@ export function migrateLegacyProject(
          not move this role onto a different size. */
       stepOffset: step?.offset ?? 0,
       sameAsRoleId: null,
-      desktop: value,
-      mobile: { ...value },
+      lineHeight: value.lineHeight,
+      letterSpacingPx: value.letterSpacingPx,
+      unlinkedSizes: {},
+      unlinkedLineHeights: {},
     };
   });
 
@@ -169,16 +172,74 @@ export function splitFontFamily(value: string): string[] {
     .filter((family) => family.length > 0);
 }
 
-/**
- * Bring a stored system up to the current shape.
- *
- * An earlier release persisted a system with no `groups`, roles keyed by
- * `group` rather than `groupId`, and an absolute `step` rather than an offset.
- * Reading one of those without upgrading it crashes on `system.groups.map`, so
- * every field the model now requires is backfilled here rather than assumed.
- *
- * Returns null only when the value is not recognisably a system at all.
- */
+/** Typed sizes from a save that still stored a desktop / mobile pair. */
+function unlinkedSizesFromLegacy(
+  desktop: TypeRoleValue,
+  mobile: TypeRoleValue,
+  stepOffset: number | null,
+): Record<string, number> {
+  if (stepOffset === null) {
+    return { desktop: desktop.fontSizePx, phone: mobile.fontSizePx };
+  }
+  if (mobile.fontSizePx !== desktop.fontSizePx) {
+    return { phone: mobile.fontSizePx };
+  }
+  return {};
+}
+
+function readUnlinkedSizes(value: unknown): Record<string, number> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const sizes: Record<string, number> = {};
+  for (const [key, size] of Object.entries(value as Record<string, unknown>)) {
+    if (typeof size === "number" && Number.isFinite(size)) {
+      sizes[canonicalSizeDeviceId(key)] = size;
+    }
+  }
+  return sizes;
+}
+
+function readRoleLayout(
+  role: Record<string, unknown>,
+  stepOffset: number | null,
+): Pick<
+  TypeRole,
+  "lineHeight" | "letterSpacingPx" | "unlinkedSizes" | "unlinkedLineHeights"
+> {
+  if (
+    "unlinkedSizes" in role ||
+    ("lineHeight" in role && !("desktop" in role))
+  ) {
+    return {
+      lineHeight: readLineHeightConfig(role.lineHeight) ?? { mode: "auto" },
+      letterSpacingPx:
+        typeof role.letterSpacingPx === "number" ? role.letterSpacingPx : 0,
+      unlinkedSizes: readUnlinkedSizes(role.unlinkedSizes),
+      unlinkedLineHeights: readUnlinkedLineHeights(role.unlinkedLineHeights),
+    };
+  }
+
+  const desktop = readRoleValue(role.desktop);
+  const mobile = readRoleValue(role.mobile ?? role.desktop);
+  return {
+    lineHeight: desktop.lineHeight,
+    letterSpacingPx: desktop.letterSpacingPx,
+    unlinkedSizes: unlinkedSizesFromLegacy(desktop, mobile, stepOffset),
+    unlinkedLineHeights: {},
+  };
+}
+
+function readUnlinkedLineHeights(
+  value: unknown,
+): Record<string, TypeRole["lineHeight"]> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const heights: Record<string, TypeRole["lineHeight"]> = {};
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    const config = readLineHeightConfig(raw);
+    if (config) heights[canonicalSizeDeviceId(key)] = config;
+  }
+  return heights;
+}
+
 /**
  * One breakpoint's values, out of stored data.
  *
@@ -254,6 +315,16 @@ function readFonts(value: unknown): TypeFont[] {
   });
 }
 
+/**
+ * Bring a stored system up to the current shape.
+ *
+ * An earlier release persisted a system with no `groups`, roles keyed by
+ * `group` rather than `groupId`, and an absolute `step` rather than an offset.
+ * Reading one of those without upgrading it crashes on `system.groups.map`, so
+ * every field the model now requires is backfilled here rather than assumed.
+ *
+ * Returns null only when the value is not recognisably a system at all.
+ */
 export function normalizeStoredSystem(value: unknown): TypeSystem | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Record<string, unknown>;
@@ -314,8 +385,7 @@ export function normalizeStoredSystem(value: unknown): TypeSystem | null {
         stepOffset,
         sameAsRoleId:
           typeof role.sameAsRoleId === "string" ? role.sameAsRoleId : null,
-        desktop: readRoleValue(role.desktop),
-        mobile: readRoleValue(role.mobile ?? role.desktop),
+        ...readRoleLayout(role, stepOffset),
       };
     },
   );

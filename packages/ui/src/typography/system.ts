@@ -112,15 +112,12 @@ export function defaultSystem(
   stepCount: number,
 ): TypeSystem {
   const groups = defaultGroups();
-  /* `auto` rather than the ratio each group used to be given literally.
-     AUTO_LINE_HEIGHT_RATIOS holds the same numbers, so a new system renders
-     identically — but the roles now follow their group when the size moves,
-     and land on the 4px grid on the way. */
-  const value = (fontSizePx: number): TypeRoleValue => ({
-    fontSizePx,
-    lineHeight: { mode: "auto" },
+  const metrics = {
+    lineHeight: { mode: "auto" } as const,
     letterSpacingPx: 0,
-  });
+    unlinkedSizes: {} as Record<string, number>,
+    unlinkedLineHeights: {} as Record<string, LineHeightConfig>,
+  };
 
   /* One display role, not six. A full parallel set to h1-h6 would start every
      project with thirteen roles, and most use one or two display sizes. */
@@ -133,8 +130,7 @@ export function defaultSystem(
     textTransform: "none",
     stepOffset: 6,
     sameAsRoleId: null,
-    desktop: value(baseFontSizePx),
-    mobile: value(baseFontSizePx),
+    ...metrics,
   };
 
   const headings: TypeRole[] = Array.from({ length: 6 }, (_, index) => ({
@@ -149,8 +145,7 @@ export function defaultSystem(
     /* Largest heading at the top of the ramp, stepping down to base. */
     stepOffset: Math.max(6 - index, 0),
     sameAsRoleId: null,
-    desktop: value(baseFontSizePx),
-    mobile: value(baseFontSizePx),
+    ...metrics,
   }));
 
   const body: TypeRole = {
@@ -162,8 +157,7 @@ export function defaultSystem(
     textTransform: "none",
     stepOffset: 0,
     sameAsRoleId: null,
-    desktop: value(baseFontSizePx),
-    mobile: value(baseFontSizePx),
+    ...metrics,
   };
 
   /**
@@ -193,8 +187,7 @@ export function defaultSystem(
     textTransform: "none",
     stepOffset: -1,
     sameAsRoleId: null,
-    desktop: value(baseFontSizePx),
-    mobile: value(baseFontSizePx),
+    ...metrics,
   };
 
   const caption: TypeRole = {
@@ -206,8 +199,7 @@ export function defaultSystem(
     textTransform: "none",
     stepOffset: -2,
     sameAsRoleId: null,
-    desktop: value(baseFontSizePx),
-    mobile: value(baseFontSizePx),
+    ...metrics,
   };
 
   return {
@@ -370,31 +362,10 @@ export interface TypeRoleValue {
   /**
    * The size somebody typed, which is not the size the role renders at.
    *
-   * Only meaningful when the role is unlinked — `stepOffset` and
-   * `sameAsRoleId` both null — because typing a size is what unlinks it. A
-   * linked role keeps whatever was last written here and takes its size from
-   * the ramp, so in a freshly seeded system every role holds the base size and
-   * the offsets decide what is drawn.
-   *
-   * Ask `resolveRoleSizePx`, or `resolveSystemRoles` for a whole system.
-   * Reading this field directly is how the CSS export came to write
-   * `--font-h1-size: 16px` for every role in a file a client installs, while
-   * the studio and the documentation both rendered the scale correctly because
-   * both resolve before they render.
-   *
-   * It cannot be dropped, though every value in a seeded system is inert: it
-   * is the only record of a hand-set size, and the studio's size input writes
-   * here and nowhere else.
+   * Kept so a save that still has `desktop` / `mobile` objects can be read.
+   * New roles store typed sizes on `unlinkedSizes` instead.
    */
   fontSizePx: number;
-  /**
-   * How the line height was chosen, not what it works out to.
-   *
-   * A bare number here used to mean a ratio. It still reads as one —
-   * `readLineHeightConfig` detects the old shape — but a role can now pin a
-   * pixel height or follow its group's default instead. Ask
-   * `resolveLineHeight` for the numbers.
-   */
   lineHeight: LineHeightConfig;
   letterSpacingPx: number;
 }
@@ -427,20 +398,38 @@ export function autoRatioForRole(role: Pick<TypeRole, "groupId">): number {
 }
 
 /**
- * A role's line height at one breakpoint, in both units.
+ * The line-height config this device uses: a typed override, else the shared
+ * default.
+ */
+export function lineHeightConfigOnDevice(
+  role: TypeRole,
+  deviceId = "desktop",
+): LineHeightConfig {
+  const id = canonicalSizeDeviceId(deviceId);
+  if (isLineHeightUnlinkedOnDevice(role, id)) {
+    return role.unlinkedLineHeights[id]!;
+  }
+  return role.lineHeight;
+}
+
+/**
+ * A role's line height, in both units.
  *
  * The one place anything outside this module should be reading a line height
- * from. Reading `role.desktop.lineHeight` directly gets the config, which is
- * an intent rather than a value.
+ * from. Pass the resolved font size when you have it — auto snaps to the 4px
+ * grid from that size. Without it, a typed desktop or phone size is used, then
+ * 16. `deviceId` selects a per-frame override when one exists.
  */
 export function resolveLineHeight(
   role: TypeRole,
-  breakpoint: "desktop" | "mobile" = "desktop",
+  fontSizePx?: number,
+  deviceId = "desktop",
 ): ComputedLineHeight {
-  const value = role[breakpoint];
+  const size =
+    fontSizePx ?? role.unlinkedSizes.desktop ?? role.unlinkedSizes.phone ?? 16;
   return computeLineHeight(
-    value.fontSizePx,
-    value.lineHeight,
+    size,
+    lineHeightConfigOnDevice(role, deviceId),
     autoRatioForRole(role),
   );
 }
@@ -453,10 +442,12 @@ export interface TypeRole {
   fontWeight: number;
   textTransform: TypographyTextTransform;
   /**
-   * Distance from the base step, or null when the size is hand-set.
+   * Distance from the base step, or null when every frame is hand-set.
    *
    * An offset rather than an index: base is the midpoint of the ramp, so an
    * absolute index points at a different size as soon as the step count changes.
+   * A typed size on one preview device does not clear this — that frame lives
+   * in `unlinkedSizes` instead.
    */
   stepOffset: number | null;
   /**
@@ -464,8 +455,24 @@ export interface TypeRole {
    * adjustment", and recording that intent keeps them in step when body moves.
    */
   sameAsRoleId: string | null;
-  desktop: TypeRoleValue;
-  mobile: TypeRoleValue;
+  /**
+   * How the line height was chosen, not what it works out to.
+   *
+   * Shared across devices. A typed leading on one preview frame lives in
+   * `unlinkedLineHeights` instead.
+   */
+  lineHeight: LineHeightConfig;
+  letterSpacingPx: number;
+  /**
+   * Hand-set px keyed by preview device id (`phone`, `tablet`, `desktop`,
+   * extra desktops). A missing key follows `stepOffset` on that device's ramp.
+   */
+  unlinkedSizes: Record<string, number>;
+  /**
+   * Hand-set line height keyed by preview device id. A missing key follows
+   * the shared `lineHeight`.
+   */
+  unlinkedLineHeights: Record<string, LineHeightConfig>;
 }
 
 export interface TypeSystem {
@@ -708,27 +715,102 @@ export function moveGroup(
   return groups;
 }
 
+/** Legacy `mobile` viewport is the phone frame. */
+export function canonicalSizeDeviceId(deviceId: string): string {
+  return deviceId === "mobile" ? "phone" : deviceId;
+}
+
+function hasDeviceKey(
+  map: Record<string, unknown> | undefined,
+  deviceId: string,
+): boolean {
+  return Object.prototype.hasOwnProperty.call(
+    map ?? {},
+    canonicalSizeDeviceId(deviceId),
+  );
+}
+
+function pruneDeviceMap<T>(
+  map: Record<string, T> | undefined,
+  allowed: Set<string>,
+): Record<string, T> {
+  return Object.fromEntries(
+    Object.entries(map ?? {}).filter(([key]) => allowed.has(key)),
+  );
+}
+
+function omitDeviceKey<T>(
+  map: Record<string, T> | undefined,
+  deviceId: string,
+): Record<string, T> {
+  const next = { ...(map ?? {}) };
+  delete next[canonicalSizeDeviceId(deviceId)];
+  return next;
+}
+
+function setDeviceKey<T>(
+  map: Record<string, T> | undefined,
+  deviceId: string,
+  value: T,
+): Record<string, T> {
+  return { ...(map ?? {}), [canonicalSizeDeviceId(deviceId)]: value };
+}
+
+function mapRole(
+  system: TypeSystem,
+  roleId: string,
+  update: (role: TypeRole) => TypeRole,
+): TypeSystem {
+  return {
+    ...system,
+    roles: system.roles.map((role) =>
+      role.id === roleId ? update(role) : role,
+    ),
+  };
+}
+
+export function isRoleUnlinkedOnDevice(
+  role: TypeRole,
+  deviceId: string,
+): boolean {
+  return hasDeviceKey(role.unlinkedSizes, deviceId);
+}
+
+export function isLineHeightUnlinkedOnDevice(
+  role: TypeRole,
+  deviceId: string,
+): boolean {
+  return hasDeviceKey(role.unlinkedLineHeights, deviceId);
+}
+
 /**
- * Resolve a role's font size in px.
+ * Resolve a role's font size in px on one named device.
  *
- * Precedence: follow another role, else a step offset, else the value already
- * stored. `seen` breaks a cycle if two roles somehow point at each other.
+ * Precedence: follow another role, else a typed size for this device, else a
+ * step offset on the ramp `steps` describes, else another typed size (desktop,
+ * then phone), else 16. `seen` breaks a cycle if two roles point at each other.
  */
 export function resolveRoleSizePx(
   system: TypeSystem,
   steps: TypeStep[],
   role: TypeRole,
-  viewport: "desktop" | "mobile" = "desktop",
+  deviceId = "desktop",
   seen: Set<string> = new Set(),
 ): number {
+  const id = canonicalSizeDeviceId(deviceId);
+
   if (role.sameAsRoleId && !seen.has(role.id)) {
     seen.add(role.id);
     const target = system.roles.find(
       (candidate) => candidate.id === role.sameAsRoleId,
     );
     if (target) {
-      return resolveRoleSizePx(system, steps, target, viewport, seen);
+      return resolveRoleSizePx(system, steps, target, id, seen);
     }
+  }
+
+  if (isRoleUnlinkedOnDevice(role, id)) {
+    return role.unlinkedSizes[id]!;
   }
 
   if (role.stepOffset !== null) {
@@ -738,15 +820,88 @@ export function resolveRoleSizePx(
     if (step) return step.fontSizePx;
   }
 
-  return role[viewport].fontSizePx;
+  return (
+    role.unlinkedSizes.desktop ??
+    role.unlinkedSizes.phone ??
+    Object.values(role.unlinkedSizes)[0] ??
+    16
+  );
 }
 
-/**
- * Resolve a role's font stack to a CSS font-family value.
- *
- * Families that are not valid CSS identifiers are quoted, which is what makes a
- * stack like `Noto Sans Thai` valid rather than three bare identifiers.
- */
+/** Bind this device to a step. Other devices that were typed stay typed. */
+export function bindRoleStepOnDevice(
+  system: TypeSystem,
+  roleId: string,
+  deviceId: string,
+  stepOffset: number,
+): TypeSystem {
+  return mapRole(system, roleId, (role) => ({
+    ...role,
+    stepOffset,
+    sameAsRoleId: null,
+    unlinkedSizes: omitDeviceKey(role.unlinkedSizes, deviceId),
+  }));
+}
+
+/** Type a size on one device; the role's step still drives every other frame. */
+export function unlinkRoleSizeOnDevice(
+  system: TypeSystem,
+  roleId: string,
+  deviceId: string,
+  fontSizePx: number,
+): TypeSystem {
+  return mapRole(system, roleId, (role) => ({
+    ...role,
+    sameAsRoleId: null,
+    unlinkedSizes: setDeviceKey(role.unlinkedSizes, deviceId, fontSizePx),
+  }));
+}
+
+/** Drop typed sizes and line heights for frames that no longer exist. */
+export function pruneUnlinkedSizes(
+  system: TypeSystem,
+  deviceIds: readonly string[],
+): TypeSystem {
+  const allowed = new Set(deviceIds.map(canonicalSizeDeviceId));
+  return {
+    ...system,
+    roles: system.roles.map((role) => ({
+      ...role,
+      unlinkedSizes: pruneDeviceMap(role.unlinkedSizes, allowed),
+      unlinkedLineHeights: pruneDeviceMap(role.unlinkedLineHeights, allowed),
+    })),
+  };
+}
+
+/** Type a line height on one device; the shared config still drives the rest. */
+export function unlinkLineHeightOnDevice(
+  system: TypeSystem,
+  roleId: string,
+  deviceId: string,
+  lineHeight: LineHeightConfig,
+): TypeSystem {
+  return mapRole(system, roleId, (role) => ({
+    ...role,
+    unlinkedLineHeights: setDeviceKey(
+      role.unlinkedLineHeights,
+      deviceId,
+      lineHeight,
+    ),
+  }));
+}
+
+/** Restore this device to the shared line height. Other overrides stay. */
+export function bindLineHeightOnDevice(
+  system: TypeSystem,
+  roleId: string,
+  deviceId: string,
+): TypeSystem {
+  return mapRole(system, roleId, (role) => ({
+    ...role,
+    unlinkedLineHeights: omitDeviceKey(role.unlinkedLineHeights, deviceId),
+  }));
+}
+
 /* The edits a studio makes to a system, as TypeSystem -> TypeSystem. They sit
    here rather than in the app because they are the same species as addFont and
    reindexGroup beside them, and several call those directly. */
@@ -756,12 +911,7 @@ export function updateRole(
   id: string,
   patch: Partial<TypeRole>,
 ): TypeSystem {
-  return {
-    ...system,
-    roles: system.roles.map((role) =>
-      role.id === id ? { ...role, ...patch } : role,
-    ),
-  };
+  return mapRole(system, id, (role) => ({ ...role, ...patch }));
 }
 
 /** Line height and letter spacing are always per-role and never linked. */
@@ -770,18 +920,7 @@ export function updateRoleValue(
   id: string,
   patch: Partial<{ lineHeight: LineHeightConfig; letterSpacingPx: number }>,
 ): TypeSystem {
-  return {
-    ...system,
-    roles: system.roles.map((role) =>
-      role.id === id
-        ? {
-            ...role,
-            desktop: { ...role.desktop, ...patch },
-            mobile: { ...role.mobile, ...patch },
-          }
-        : role,
-    ),
-  };
+  return updateRole(system, id, patch);
 }
 
 /** A group at capacity is returned unchanged, so callers need no guard. */
@@ -808,9 +947,12 @@ export function addRole(system: TypeSystem, group: TypeGroup): TypeSystem {
         name: placeholder,
         groupId: group.id,
         /* A new role reuses its sibling's step rather than claiming one of its
-           own. Adding roles must never force the ramp to grow. */
+           own. Adding roles must never force the ramp to grow. Typed sizes
+           stay with the sibling — a new frame starts bound. */
         stepOffset: template.stepOffset,
         sameAsRoleId: null,
+        unlinkedSizes: {},
+        unlinkedLineHeights: {},
       },
     ],
   };

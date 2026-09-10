@@ -13,16 +13,23 @@ const DEVICE_ICONS = {
 interface PreviewDeviceBarProps {
   activeId: string;
   devices: readonly PreviewDevice[];
+  className?: string;
   onChange: (id: string) => void;
 }
 
 export function PreviewDeviceBar({
   activeId,
   devices,
+  className,
   onChange,
 }: PreviewDeviceBarProps) {
   return (
-    <nav aria-label="Preview devices" className="flex items-center gap-1">
+    <nav
+      aria-label="Preview devices"
+      className={["flex items-center gap-1", className]
+        .filter(Boolean)
+        .join(" ")}
+    >
       {devices.map((device) => {
         const Icon = DEVICE_ICONS[device.kind];
         const isActive = device.id === activeId;

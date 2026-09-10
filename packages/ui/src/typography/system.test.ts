@@ -29,6 +29,16 @@ import {
   updateRoleValue,
   roleIdsForGroup,
   resolveRoleSizePx,
+  bindRoleStepOnDevice,
+  unlinkRoleSizeOnDevice,
+  unlinkLineHeightOnDevice,
+  bindLineHeightOnDevice,
+  pruneUnlinkedSizes,
+  isRoleUnlinkedOnDevice,
+  isLineHeightUnlinkedOnDevice,
+  lineHeightConfigOnDevice,
+  resolveLineHeight,
+  canonicalSizeDeviceId,
   type TypeGroup,
   type TypeRole,
   type TypeSystem,
@@ -41,13 +51,15 @@ function role(id: string, groupId: string, over: Partial<TypeRole> = {}) {
     groupId,
     fontId: "base",
     fontWeight: 400,
-    textTransform: "number",
+    textTransform: "none" as const,
     stepOffset: 0,
     sameAsRoleId: null,
-    desktop: { fontSizePx: 16, lineHeight: 1.5, letterSpacingPx: 0 },
-    mobile: { fontSizePx: 16, lineHeight: 1.5, letterSpacingPx: 0 },
+    lineHeight: { mode: "ratio" as const, value: 1.5 },
+    letterSpacingPx: 0,
+    unlinkedSizes: {},
+    unlinkedLineHeights: {},
     ...over,
-  } as TypeRole;
+  };
 }
 
 function system(over: Partial<TypeSystem> = {}): TypeSystem {
@@ -239,11 +251,7 @@ describe("resolveRoleSizePx", () => {
   it("falls back to the stored size when the role is unlinked", () => {
     const hand = role("hero", "body", {
       stepOffset: null,
-      desktop: {
-        fontSizePx: 91,
-        lineHeight: { mode: "ratio", value: 1 },
-        letterSpacingPx: 0,
-      },
+      unlinkedSizes: { desktop: 91 },
     });
     expect(resolveRoleSizePx(system({ roles: [hand] }), steps, hand)).toBe(91);
   });
@@ -253,6 +261,161 @@ describe("resolveRoleSizePx", () => {
     const b = role("b", "body", { sameAsRoleId: "a" });
     const s = system({ roles: [a, b] });
     expect(() => resolveRoleSizePx(s, steps, a)).not.toThrow();
+  });
+});
+
+describe("per-device size", () => {
+  const desktopSteps = generateTypeSteps(16, 1.25, 9);
+  const phoneSteps = generateTypeSteps(16, 1.2, 9);
+
+  it("resolves a bound role against the ramp the caller passed", () => {
+    const heading = role("h1", "h", { stepOffset: 6 });
+    const s = system({ roles: [heading] });
+    const desktopPx = resolveRoleSizePx(s, desktopSteps, heading, "desktop");
+    const phonePx = resolveRoleSizePx(s, phoneSteps, heading, "phone");
+    expect(desktopPx).toBe(
+      desktopSteps.find((step) => step.offset === 6)!.fontSizePx,
+    );
+    expect(phonePx).toBe(
+      phoneSteps.find((step) => step.offset === 6)!.fontSizePx,
+    );
+    expect(desktopPx).not.toBe(phonePx);
+  });
+
+  it("types a size on one device without unlinking the others", () => {
+    const heading = role("h1", "h", { stepOffset: 6 });
+    const after = unlinkRoleSizeOnDevice(
+      system({ roles: [heading] }),
+      "h1",
+      "phone",
+      14,
+    );
+    expect(after.roles[0]!.stepOffset).toBe(6);
+    expect(after.roles[0]!.unlinkedSizes).toEqual({ phone: 14 });
+    expect(
+      resolveRoleSizePx(after, desktopSteps, after.roles[0]!, "desktop"),
+    ).toBe(desktopSteps.find((step) => step.offset === 6)!.fontSizePx);
+    expect(resolveRoleSizePx(after, phoneSteps, after.roles[0]!, "phone")).toBe(
+      14,
+    );
+  });
+
+  it("relinks one device and leaves other typed frames", () => {
+    const heading = role("h1", "h", { stepOffset: 6 });
+    const typed = unlinkRoleSizeOnDevice(
+      unlinkRoleSizeOnDevice(system({ roles: [heading] }), "h1", "phone", 14),
+      "h1",
+      "tablet",
+      18,
+    );
+    const after = bindRoleStepOnDevice(typed, "h1", "phone", 6);
+    expect(after.roles[0]!.stepOffset).toBe(6);
+    expect(after.roles[0]!.unlinkedSizes).toEqual({ tablet: 18 });
+    expect(isRoleUnlinkedOnDevice(after.roles[0]!, "phone")).toBe(false);
+    expect(resolveRoleSizePx(after, phoneSteps, after.roles[0]!, "phone")).toBe(
+      phoneSteps.find((step) => step.offset === 6)!.fontSizePx,
+    );
+  });
+
+  it("prunes typed sizes for frames that no longer exist", () => {
+    const withExtra = unlinkRoleSizeOnDevice(system(), "body", "desktop-2", 20);
+    expect(withExtra.roles[0]!.unlinkedSizes).toEqual({ "desktop-2": 20 });
+    const pruned = pruneUnlinkedSizes(withExtra, [
+      "phone",
+      "tablet",
+      "desktop",
+    ]);
+    expect(pruned.roles[0]!.unlinkedSizes).toEqual({});
+  });
+
+  it("treats legacy mobile as phone", () => {
+    expect(canonicalSizeDeviceId("mobile")).toBe("phone");
+    const after = unlinkRoleSizeOnDevice(system(), "body", "mobile", 13);
+    expect(after.roles[0]!.unlinkedSizes).toEqual({ phone: 13 });
+    expect(isRoleUnlinkedOnDevice(after.roles[0]!, "mobile")).toBe(true);
+  });
+});
+
+describe("per-device line height", () => {
+  const override = { mode: "px" as const, value: 28 };
+
+  it("follows the shared config when no device has an override", () => {
+    const body = role("body", "body");
+    expect(lineHeightConfigOnDevice(body, "phone")).toEqual(body.lineHeight);
+    expect(lineHeightConfigOnDevice(body, "desktop")).toEqual(body.lineHeight);
+    expect(isLineHeightUnlinkedOnDevice(body, "phone")).toBe(false);
+  });
+
+  it("types a line height on one device without moving the others", () => {
+    const after = unlinkLineHeightOnDevice(system(), "body", "phone", override);
+    const body = after.roles[0]!;
+    expect(body.lineHeight).toEqual({ mode: "ratio", value: 1.5 });
+    expect(body.unlinkedLineHeights).toEqual({ phone: override });
+    expect(lineHeightConfigOnDevice(body, "phone")).toEqual(override);
+    expect(lineHeightConfigOnDevice(body, "desktop")).toEqual(body.lineHeight);
+    expect(resolveLineHeight(body, 16, "phone").computedLineHeightPx).toBe(28);
+    expect(resolveLineHeight(body, 16, "desktop").computedLineHeightRatio).toBe(
+      1.5,
+    );
+  });
+
+  it("relinks one device and leaves other typed frames", () => {
+    const typed = unlinkLineHeightOnDevice(
+      unlinkLineHeightOnDevice(system(), "body", "phone", override),
+      "body",
+      "tablet",
+      { mode: "ratio", value: 1.2 },
+    );
+    const after = bindLineHeightOnDevice(typed, "body", "phone");
+    expect(after.roles[0]!.unlinkedLineHeights).toEqual({
+      tablet: { mode: "ratio", value: 1.2 },
+    });
+    expect(isLineHeightUnlinkedOnDevice(after.roles[0]!, "phone")).toBe(false);
+    expect(lineHeightConfigOnDevice(after.roles[0]!, "phone")).toEqual({
+      mode: "ratio",
+      value: 1.5,
+    });
+  });
+
+  it("prunes typed line heights for frames that no longer exist", () => {
+    const withExtra = unlinkLineHeightOnDevice(
+      system(),
+      "body",
+      "desktop-2",
+      override,
+    );
+    expect(withExtra.roles[0]!.unlinkedLineHeights).toEqual({
+      "desktop-2": override,
+    });
+    const pruned = pruneUnlinkedSizes(withExtra, [
+      "phone",
+      "tablet",
+      "desktop",
+    ]);
+    expect(pruned.roles[0]!.unlinkedLineHeights).toEqual({});
+  });
+
+  it("treats legacy mobile as phone", () => {
+    const after = unlinkLineHeightOnDevice(
+      system(),
+      "body",
+      "mobile",
+      override,
+    );
+    expect(after.roles[0]!.unlinkedLineHeights).toEqual({ phone: override });
+    expect(isLineHeightUnlinkedOnDevice(after.roles[0]!, "mobile")).toBe(true);
+  });
+
+  it("lets auto on a device follow that device's font size", () => {
+    const after = unlinkLineHeightOnDevice(system(), "body", "phone", {
+      mode: "auto",
+    });
+    expect(
+      resolveLineHeight(after.roles[0]!, 16, "phone").computedLineHeightPx,
+    ).toBe(24);
+    expect(
+      resolveLineHeight(after.roles[0]!, 18, "phone").computedLineHeightPx,
+    ).toBe(28);
   });
 });
 
@@ -481,19 +644,20 @@ describe("updateRole", () => {
     expect(after.roles.map((r) => r.fontWeight)).toEqual([400, 700]);
   });
 
-  it("writes a value to both breakpoints, which are never edited apart", () => {
+  it("writes line height and spacing on the role, not per breakpoint", () => {
     const before = system();
     const lineHeight = { mode: "ratio", value: 1.2 } as const;
     const after = updateRoleValue(before, "body", { lineHeight });
-    expect(after.roles[0]!.desktop.lineHeight).toEqual(lineHeight);
-    expect(after.roles[0]!.mobile.lineHeight).toEqual(lineHeight);
+    expect(after.roles[0]!.lineHeight).toEqual(lineHeight);
   });
 
-  it("leaves the rest of the value alone", () => {
+  it("leaves the rest of the role alone", () => {
     const before = system();
     const after = updateRoleValue(before, "body", { letterSpacingPx: 0.5 });
-    expect(after.roles[0]!.desktop.fontSizePx).toBe(16);
-    expect(after.roles[0]!.desktop.lineHeight).toBe(1.5);
+    expect(after.roles[0]!.letterSpacingPx).toBe(0.5);
+    expect(after.roles[0]!.lineHeight).toEqual({ mode: "ratio", value: 1.5 });
+    expect(after.roles[0]!.unlinkedSizes).toEqual({});
+    expect(after.roles[0]!.unlinkedLineHeights).toEqual({});
   });
 });
 

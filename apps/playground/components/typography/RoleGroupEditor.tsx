@@ -12,12 +12,17 @@ import {
   TYPE_INDEXING_LABELS,
   hybridPresetsFromTypeSteps,
   hybridValueFromStepOffset,
+  isRoleUnlinkedOnDevice,
+  isLineHeightUnlinkedOnDevice,
+  lineHeightConfigOnDevice,
+  resolveLineHeight,
+  resolveRoleSizePx,
   type TypeFont,
   type TypeGroup,
   type TypeIndexing,
   type TypeRole,
   type TypeStep,
-  resolveLineHeight,
+  type TypeSystem,
   type LineHeightConfig,
 } from "@blueprint/ui";
 import { LineHeightInput } from "./LineHeightInput";
@@ -28,6 +33,9 @@ export interface RoleGroupEditorProps {
   /** This group's roles, already resolved and filtered by the caller. */
   roles: TypeRole[];
   fonts: TypeFont[];
+  system: TypeSystem;
+  /** Which preview device the size field is editing. */
+  deviceId: string;
   /** Largest first, matching the step list the canvas renders. */
   steps: TypeStep[];
   canAddRole: boolean;
@@ -37,11 +45,157 @@ export interface RoleGroupEditorProps {
   onLabelCommit: () => void;
   onIndexingChange: (indexing: TypeIndexing) => void;
   onRoleChange: (id: string, patch: Partial<TypeRole>) => void;
+  onBindStep: (id: string, stepOffset: number) => void;
+  onUnlinkSize: (id: string, fontSizePx: number) => void;
+  onLineHeightOverride: (id: string, lineHeight: LineHeightConfig) => void;
+  onLineHeightRelink: (id: string) => void;
   onRoleValueChange: (
     id: string,
-    patch: Partial<{ lineHeight: LineHeightConfig; letterSpacingPx: number }>,
+    patch: Partial<{ letterSpacingPx: number }>,
   ) => void;
   onRoleRemove: (id: string) => void;
+}
+
+interface RoleRowProps {
+  role: TypeRole;
+  fonts: TypeFont[];
+  system: TypeSystem;
+  deviceId: string;
+  steps: TypeStep[];
+  sizePresets: ReturnType<typeof hybridPresetsFromTypeSteps>;
+  onBindStep: (id: string, stepOffset: number) => void;
+  onUnlinkSize: (id: string, fontSizePx: number) => void;
+  onLineHeightOverride: (id: string, lineHeight: LineHeightConfig) => void;
+  onLineHeightRelink: (id: string) => void;
+  onRoleChange: (id: string, patch: Partial<TypeRole>) => void;
+  onRoleValueChange: (
+    id: string,
+    patch: Partial<{ letterSpacingPx: number }>,
+  ) => void;
+  onRoleRemove: (id: string) => void;
+}
+
+function RoleRow({
+  role,
+  fonts,
+  system,
+  deviceId,
+  steps,
+  sizePresets,
+  onBindStep,
+  onUnlinkSize,
+  onLineHeightOverride,
+  onLineHeightRelink,
+  onRoleChange,
+  onRoleValueChange,
+  onRoleRemove,
+}: RoleRowProps) {
+  const sizeUnlinked = isRoleUnlinkedOnDevice(role, deviceId);
+  const lineHeightUnlinked = isLineHeightUnlinkedOnDevice(role, deviceId);
+  const fontSizePx = resolveRoleSizePx(system, steps, role, deviceId);
+
+  return (
+    <div className={styles.roleTableRow}>
+      <span className={styles.roleSettingLabel}>{role.id}</span>
+
+      {/* A bound chip is a step on the ramp; typing a size unlinks it. */}
+      <div className={styles.sizeCell}>
+        <HybridTokenizedInput
+          decimals={0}
+          isLabelHidden
+          label={`${role.id} size`}
+          max={400}
+          min={1}
+          popoverTitle="Type steps"
+          presets={sizePresets}
+          searchPlaceholder="Search steps..."
+          step={1}
+          value={hybridValueFromStepOffset(
+            sizeUnlinked ? null : role.stepOffset,
+            fontSizePx,
+          )}
+          valueSuffix="px"
+          onChange={(next) => {
+            if (next.isPreset && next.presetId !== undefined) {
+              onBindStep(role.id, Number(next.presetId));
+              return;
+            }
+            onUnlinkSize(role.id, next.value);
+          }}
+        />
+      </div>
+
+      <Selector
+        label={`${role.id} font`}
+        isLabelHidden
+        options={fonts.map((font) => ({
+          label: font.name,
+          value: font.id,
+        }))}
+        value={role.fontId}
+        onChange={(value) => onRoleChange(role.id, { fontId: value })}
+      />
+      <NumberInput
+        isIntegerOnly
+        isLabelHidden
+        label={`${role.id} font weight`}
+        min={100}
+        max={900}
+        step={100}
+        value={role.fontWeight}
+        onChange={(value) => onRoleChange(role.id, { fontWeight: value })}
+      />
+      <div
+        className={lineHeightUnlinked ? styles.lineHeightUnlinked : undefined}
+        data-unlinked={lineHeightUnlinked ? "true" : undefined}
+      >
+        <LineHeightInput
+          label={`${role.id} line height`}
+          config={lineHeightConfigOnDevice(role, deviceId)}
+          computedPx={
+            resolveLineHeight(role, fontSizePx, deviceId).computedLineHeightPx
+          }
+          onChange={(lineHeight) => onLineHeightOverride(role.id, lineHeight)}
+          onRelink={() => {
+            if (lineHeightUnlinked) {
+              onLineHeightRelink(role.id);
+              return;
+            }
+            onRoleChange(role.id, { lineHeight: { mode: "auto" } });
+          }}
+        />
+      </div>
+      <NumberInput
+        isLabelHidden
+        label={`${role.id} letter spacing`}
+        min={-2}
+        max={2}
+        step={0.05}
+        units="px"
+        value={role.letterSpacingPx}
+        onChange={(value) =>
+          onRoleValueChange(role.id, { letterSpacingPx: value })
+        }
+      />
+      <Button
+        aria-label={`Remove ${role.id}`}
+        /* Down from the icon size's 36px to match the inputs beside
+           it. `cn` here is a plain join rather than tailwind-merge,
+           so the CVA class is still on the element and only source
+           order decides — hence the important suffix. */
+        className="h-8! w-8! [&_svg]:size-4!"
+        scheme="neutral"
+        size="icon"
+        variant="outlined"
+        onClick={() => onRoleRemove(role.id)}
+      >
+        {/* The icon is the label. `size="icon"` takes children as the
+            glyph and the accessible name from aria-label, so the row
+            keeps naming which role it removes. */}
+        <X aria-hidden="true" />
+      </Button>
+    </div>
+  );
 }
 
 /** One group of roles in the inspector: its header, its meta, and its rows. */
@@ -49,6 +203,8 @@ export function RoleGroupEditor({
   group,
   roles,
   fonts,
+  system,
+  deviceId,
   steps,
   canAddRole,
   onAddRole,
@@ -57,6 +213,10 @@ export function RoleGroupEditor({
   onLabelCommit,
   onIndexingChange,
   onRoleChange,
+  onBindStep,
+  onUnlinkSize,
+  onLineHeightOverride,
+  onLineHeightRelink,
   onRoleValueChange,
   onRoleRemove,
 }: RoleGroupEditorProps) {
@@ -188,104 +348,22 @@ export function RoleGroupEditor({
           </div>
 
           {roles.map((role) => (
-            <div key={role.id} className={styles.roleTableRow}>
-              <span className={styles.roleSettingLabel}>{role.id}</span>
-
-              {/* A bound chip is a step on the ramp; typing a size unlinks it. */}
-              <div className={styles.sizeCell}>
-                <HybridTokenizedInput
-                  decimals={0}
-                  isLabelHidden
-                  label={`${role.id} size`}
-                  max={400}
-                  min={1}
-                  popoverTitle="Type steps"
-                  presets={sizePresets}
-                  searchPlaceholder="Search steps..."
-                  step={1}
-                  value={hybridValueFromStepOffset(
-                    role.stepOffset,
-                    role.desktop.fontSizePx,
-                  )}
-                  valueSuffix="px"
-                  onChange={(next) => {
-                    if (next.isPreset && next.presetId !== undefined) {
-                      onRoleChange(role.id, {
-                        stepOffset: Number(next.presetId),
-                        sameAsRoleId: null,
-                      });
-                      return;
-                    }
-                    onRoleChange(role.id, {
-                      stepOffset: null,
-                      sameAsRoleId: null,
-                      desktop: { ...role.desktop, fontSizePx: next.value },
-                      mobile: { ...role.mobile, fontSizePx: next.value },
-                    });
-                  }}
-                />
-              </div>
-
-              <Selector
-                label={`${role.id} font`}
-                isLabelHidden
-                options={fonts.map((font) => ({
-                  label: font.name,
-                  value: font.id,
-                }))}
-                value={role.fontId}
-                onChange={(value) => onRoleChange(role.id, { fontId: value })}
-              />
-              <NumberInput
-                isIntegerOnly
-                isLabelHidden
-                label={`${role.id} font weight`}
-                min={100}
-                max={900}
-                step={100}
-                value={role.fontWeight}
-                onChange={(value) =>
-                  onRoleChange(role.id, { fontWeight: value })
-                }
-              />
-              <LineHeightInput
-                label={`${role.id} line height`}
-                config={role.desktop.lineHeight}
-                computedPx={resolveLineHeight(role).computedLineHeightPx}
-                onChange={(lineHeight) =>
-                  onRoleValueChange(role.id, { lineHeight })
-                }
-              />
-              <NumberInput
-                isLabelHidden
-                label={`${role.id} letter spacing`}
-                min={-2}
-                max={2}
-                step={0.05}
-                units="px"
-                value={role.desktop.letterSpacingPx}
-                onChange={(value) =>
-                  onRoleValueChange(role.id, { letterSpacingPx: value })
-                }
-              />
-              <Button
-                aria-label={`Remove ${role.id}`}
-                /* Down from the icon size's 36px to match the inputs beside
-                   it. `cn` here is a plain join rather than tailwind-merge,
-                   so the CVA class is still on the element and only source
-                   order decides — hence the important suffix. */
-                className="h-8! w-8! [&_svg]:size-4!"
-                scheme="neutral"
-                size="icon"
-                variant="outlined"
-                onClick={() => onRoleRemove(role.id)}
-              >
-                {/* The icon is the label. `size="icon"` takes children as the
-                    glyph and the accessible name from aria-label, so the row
-                    keeps naming which role it removes. */}
-                <X aria-hidden="true" />
-              </Button>
-            </div>
+            <RoleRow
+              key={role.id}
+              deviceId={deviceId}
+              fonts={fonts}
+              role={role}
+              sizePresets={sizePresets}
+              steps={steps}
+              system={system}
+              onBindStep={onBindStep}
+              onLineHeightOverride={onLineHeightOverride}
+              onLineHeightRelink={onLineHeightRelink}
+              onRoleChange={onRoleChange}
+              onRoleRemove={onRoleRemove}
+              onRoleValueChange={onRoleValueChange}
+              onUnlinkSize={onUnlinkSize}
+            />
           ))}
         </div>
       )}

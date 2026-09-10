@@ -67,7 +67,12 @@ export async function fillHybridNumber(
   const field = page.getByLabel(label, { exact: true });
   const tag = await field.evaluate((el) => el.tagName);
   if (tag === "BUTTON") {
-    await field.dblclick();
+    /* A bound chip does not detach on double-click. The 1ch caret next to
+       it does, on Backspace, the same way a person types a custom size. */
+    await field
+      .locator("..")
+      .getByRole("textbox", { name: "Custom number" })
+      .press("Backspace");
   }
   const input = page.getByLabel(label, { exact: true });
   await input.fill(value);

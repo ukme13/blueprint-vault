@@ -46,7 +46,10 @@ interface LineHeightInputProps {
   config: LineHeightConfig;
   /** What `auto` resolves to, shown as the placeholder. */
   computedPx: number;
+  /** Typed value on this device, not the shared default. */
   onChange: (config: LineHeightConfig) => void;
+  /** Empty the field: drop this device's override, or hand shared back to auto. */
+  onRelink: () => void;
 }
 
 export function LineHeightInput({
@@ -54,6 +57,7 @@ export function LineHeightInput({
   config,
   computedPx,
   onChange,
+  onRelink,
 }: LineHeightInputProps) {
   /* A ratio is shown as itself and carries no unit, because it has none — it
      is a multiple of the font size rather than a length. */
@@ -99,13 +103,20 @@ export function LineHeightInput({
     setEdit(resetLineHeightEdit(committed));
   }
 
-  /* Only what somebody typed. A blur is not an edit. */
+  /* Only what somebody typed. A blur is not an edit. Empty writes relink,
+     not auto: auto is the shared default, and clearing an override puts this
+     device back on it. */
   const commit = () => {
     const { edit: next, config: committedConfig } = commitLineHeightEdit(
       editRef.current,
     );
     applyEdit(next);
-    if (committedConfig) onChange(committedConfig);
+    if (!committedConfig) return;
+    if (committedConfig.mode === "auto") {
+      onRelink();
+      return;
+    }
+    onChange(committedConfig);
   };
 
   return (
@@ -136,7 +147,7 @@ export function LineHeightInput({
            focus left, then corrected itself to 24. */
         if (value === null || Number.isNaN(value)) {
           applyEdit(clearLineHeightEdit());
-          onChange({ mode: "auto" });
+          onRelink();
           return;
         }
         applyEdit(typeLineHeight(value));
@@ -154,7 +165,7 @@ export function LineHeightInput({
            whoever would rather not reach for the mouse. */
         event.preventDefault();
         applyEdit(settleLineHeightEdit(editRef.current));
-        onChange({ mode: "auto" });
+        onRelink();
       }}
     />
   );

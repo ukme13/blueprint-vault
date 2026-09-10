@@ -240,11 +240,6 @@ export function HybridTokenizedInput({
               }
               caretRef.current?.focus();
             }}
-            onDoubleClick={(event) => {
-              if (!value.isPreset) return;
-              event.preventDefault();
-              beginRaw(formatRawInput(value.value, decimals));
-            }}
           >
             {icon ? (
               <span
@@ -269,11 +264,6 @@ export function HybridTokenizedInput({
                     trigger.onClick();
                     queueMicrotask(() => caretRef.current?.focus());
                   }}
-                  onDoubleClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    beginRaw(formatRawInput(value.value, decimals));
-                  }}
                   onKeyDown={(event) => {
                     if (event.key === "Enter") {
                       event.preventDefault();
@@ -291,6 +281,9 @@ export function HybridTokenizedInput({
                   ) : null}
                   <ChevronDownIcon />
                 </button>
+                {/* Bound stays bound on click and on double-click. Detach by
+                    typing here or with Backspace / Delete — a double-click
+                    on the chip was too easy to hit by accident. */}
                 <input
                   aria-label="Custom number"
                   className="m-0 w-[1ch] flex-none appearance-none border-0 bg-transparent p-0 font-mono text-xs text-fg-primary outline-none"

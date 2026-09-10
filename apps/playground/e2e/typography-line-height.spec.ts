@@ -44,9 +44,28 @@ const storedLineHeight = (page: import("@playwright/test").Page) =>
     if (!raw) return null;
     const roles = JSON.parse(raw).typography.system.roles as {
       id: string;
-      desktop: { lineHeight: { mode: string; value?: number } };
+      lineHeight: { mode: string; value?: number };
+      unlinkedLineHeights?: Record<string, { mode: string; value?: number }>;
     }[];
-    return roles.find((role) => role.id === "body")?.desktop.lineHeight ?? null;
+    const body = roles.find((role) => role.id === "body");
+    if (!body) return null;
+    return body.unlinkedLineHeights?.desktop ?? body.lineHeight;
+  });
+
+const storedSharedLineHeight = (page: import("@playwright/test").Page) =>
+  page.evaluate(() => {
+    const raw = window.localStorage.getItem("blueprint.workspace.v1");
+    if (!raw) return null;
+    const roles = JSON.parse(raw).typography.system.roles as {
+      id: string;
+      lineHeight: { mode: string; value?: number };
+    }[];
+    return roles.find((role) => role.id === "body")?.lineHeight ?? null;
+  });
+
+const unlinkedMarker = (page: import("@playwright/test").Page) =>
+  page.locator("[data-unlinked='true']").filter({
+    has: lineHeightField(page),
   });
 
 test.describe("The line-height field", () => {
@@ -80,6 +99,13 @@ test.describe("The line-height field", () => {
         mode: "px",
         value: 28,
       });
+    await expect
+      .poll(() => storedSharedLineHeight(page))
+      .toEqual({
+        mode: "ratio",
+        value: 1.5,
+      });
+    await expect(unlinkedMarker(page)).toBeVisible();
 
     await field.fill("1.25");
     await field.blur();
@@ -155,7 +181,7 @@ test.describe("The line-height field", () => {
     await expect(field).toHaveAttribute("placeholder", "24");
   });
 
-  test("returns to auto when the field is cleared", async ({
+  test("returns to auto when a shared value is cleared", async ({
     seededPage: page,
   }) => {
     const field = lineHeightField(page);
@@ -175,19 +201,17 @@ test.describe("The line-height field", () => {
     await expect(field).toHaveAttribute("placeholder", "28");
   });
 
-  test("returns to auto the moment it is cleared, without waiting for a blur", async ({
+  test("returns to auto the moment a shared value is cleared, without waiting for a blur", async ({
     seededPage: page,
   }) => {
     const field = lineHeightField(page);
 
-    await field.fill("30");
     await page.getByRole("button", { name: `Clear ${LINE_HEIGHT}` }).click();
 
     /* Still focused: clearing is an answer, not a step towards one.
 
        The placeholder is the tell, because it is computed from the model. 24
-       is what `auto` gives body at 16px; 30 would mean the typed value was
-       committed and the field is only pretending to be empty. */
+       is what `auto` gives body at 16px. */
     await expect(field).toHaveValue("");
     await expect(field).toHaveAttribute("placeholder", "24");
     await expect(field).toBeFocused();
@@ -217,5 +241,54 @@ test.describe("The line-height field", () => {
     await fillHybridNumber(page, SIZE, "20");
     /* 20 x 1.5 snaps to 32, so a value still on auto would move here. */
     await expect(field).toHaveValue("28");
+  });
+
+  test("typing a line height on phone leaves desktop on the shared value", async ({
+    seededPage: page,
+  }) => {
+    const field = lineHeightField(page);
+    const devices = page.getByRole("navigation", { name: "Preview devices" });
+
+    await devices.getByRole("button", { name: "Phone" }).click();
+    await field.fill("28");
+    await field.blur();
+    await expect(field).toHaveValue("28");
+    await expect(unlinkedMarker(page)).toBeVisible();
+
+    await devices.getByRole("button", { name: "Desktop", exact: true }).click();
+    await expect(field).toHaveValue("1.5");
+    await expect(unlinkedMarker(page)).toHaveCount(0);
+    await expect
+      .poll(() => storedSharedLineHeight(page))
+      .toEqual({
+        mode: "ratio",
+        value: 1.5,
+      });
+  });
+
+  test("clearing an override restores the shared line height", async ({
+    seededPage: page,
+  }) => {
+    const field = lineHeightField(page);
+
+    await field.fill("28");
+    await field.blur();
+    await expect(unlinkedMarker(page)).toBeVisible();
+
+    await page.getByRole("button", { name: `Clear ${LINE_HEIGHT}` }).click();
+    await expect(field).toHaveValue("1.5");
+    await expect(unlinkedMarker(page)).toHaveCount(0);
+    await expect
+      .poll(() => storedSharedLineHeight(page))
+      .toEqual({
+        mode: "ratio",
+        value: 1.5,
+      });
+    await expect
+      .poll(() => storedLineHeight(page))
+      .toEqual({
+        mode: "ratio",
+        value: 1.5,
+      });
   });
 });

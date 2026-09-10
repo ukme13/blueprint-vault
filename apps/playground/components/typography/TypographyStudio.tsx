@@ -30,6 +30,8 @@ import {
   defaultSystem,
   splitFontFamily,
   canAddRole,
+  isRoleUnlinkedOnDevice,
+  pruneUnlinkedSizes,
   resolveRoleSizePx,
   TYPE_SCALE_UNITS,
   TYPE_SCALE_RATIO_PRESETS,
@@ -37,7 +39,6 @@ import {
   type PaletteProjectData,
   type TypeRole,
   type TypeScaleUnit,
-  type TypeSystem,
   resolveLineHeight,
   fallbackFileMoves,
   isLocalSlot,
@@ -50,6 +51,7 @@ import {
   updatePreviewDevice,
   resolvePreviewDevice,
   type HybridTokenizedValue,
+  type LineHeightConfig,
 } from "@blueprint/ui";
 import {
   closestCenter,
@@ -165,31 +167,17 @@ export function TypographyStudio() {
     );
   }, [system, activePreviewDevice?.ratio]);
 
-  const resolvedRoles = useMemo((): TypeRole[] => {
-    if (!system) return [];
-    return system.roles.map((role) => {
-      const size = resolveRoleSizePx(system, steps, role);
-      return {
-        ...role,
-        desktop: { ...role.desktop, fontSizePx: size },
-        mobile: { ...role.mobile, fontSizePx: size },
-      };
-    });
-  }, [system, steps]);
-
   const paletteTracks = useMemo(
     () => (palette ? generatePalettes(palette) : []),
     [palette],
   );
 
-  const resolvedSystem: TypeSystem | null = system
-    ? { ...system, roles: resolvedRoles }
-    : null;
-
   const {
     addFont,
     addGroup,
     addRole,
+    bindLineHeight,
+    bindRoleStep,
     removeFont,
     removeFontSlot,
     removeGroup,
@@ -199,6 +187,8 @@ export function TypographyStudio() {
     setGoogleFont,
     setLocalFont,
     reorderGroups,
+    unlinkLineHeight,
+    unlinkRoleSize,
     updateGroup,
     updateRole,
     updateRoleValue,
@@ -243,10 +233,17 @@ export function TypographyStudio() {
   };
 
   const handleRemoveDevice = (id: string) => {
-    patchProject((current) => ({
-      ...current,
-      previewDevices: removePreviewDevice(current.previewDevices, id),
-    }));
+    patchProject((current) => {
+      const previewDevices = removePreviewDevice(current.previewDevices, id);
+      return {
+        ...current,
+        previewDevices,
+        system: pruneUnlinkedSizes(
+          current.system,
+          previewDevices.map((device) => device.id),
+        ),
+      };
+    });
   };
 
   const handleDeviceWidth = (id: string, widthPx: number) => {
@@ -306,9 +303,13 @@ export function TypographyStudio() {
   const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
   const localFontStatus = useLocalFonts(system, fontFileRevision);
 
+  const roles = system?.roles ?? [];
+  const frameId = activePreviewDevice?.id ?? "desktop";
+  const sizeOnFrame = (role: TypeRole) =>
+    system ? resolveRoleSizePx(system, steps, role, frameId) : 16;
   const bodyRole =
-    resolvedRoles.find((role) => role.id === "body") ??
-    resolvedRoles.find((role) => role.groupId === "body");
+    roles.find((role) => role.id === "body") ??
+    roles.find((role) => role.groupId === "body");
 
   /* Each assessment is named, so a row keeps its identity as others come and
      go with the scale. Keying on position reuses whichever row happened to sit
@@ -317,9 +318,7 @@ export function TypographyStudio() {
     ? [
         {
           id: "body-size",
-          result: bodyRole
-            ? assessBodyFontSize(bodyRole.desktop.fontSizePx)
-            : null,
+          result: bodyRole ? assessBodyFontSize(sizeOnFrame(bodyRole)) : null,
         },
         {
           id: "line-height",
@@ -329,7 +328,8 @@ export function TypographyStudio() {
               assessLineHeight(
                 /* The resolved ratio: the validator's thresholds are ratios,
                    and the config is an intent rather than a number. */
-                resolveLineHeight(bodyRole).computedLineHeightRatio,
+                resolveLineHeight(bodyRole, sizeOnFrame(bodyRole), frameId)
+                  .computedLineHeightRatio,
                 project?.specimenText ?? "",
               )
             : null,
@@ -339,7 +339,7 @@ export function TypographyStudio() {
         {
           id: "role-weights",
           result: assessRoleWeights(
-            resolvedRoles.map((role) => ({
+            roles.map((role) => ({
               role: role.id,
               fontWeight: role.fontWeight,
             })),
@@ -367,7 +367,7 @@ export function TypographyStudio() {
     );
   }
 
-  if (!project || !system || !resolvedSystem || !activePreviewDevice) {
+  if (!project || !system || !activePreviewDevice) {
     return (
       <TypographyCreation
         onCreate={({ name, fontFamily, baseFontSizePx, ratio, stepCount }) => {
@@ -394,11 +394,19 @@ export function TypographyStudio() {
   const sortedSteps = [...steps].sort(
     (first, second) => second.fontSizePx - first.fontSizePx,
   );
-  const rolesLargeToSmall = [...resolvedRoles].sort(
-    (first, second) => second.desktop.fontSizePx - first.desktop.fontSizePx,
+  const rolesLargeToSmall = [...roles].sort(
+    (first, second) => sizeOnFrame(second) - sizeOnFrame(first),
   );
   const devices = project.previewDevices;
   const activeDevice = activePreviewDevice;
+  const handleBindStep = (id: string, stepOffset: number) =>
+    bindRoleStep(id, activeDevice.id, stepOffset);
+  const handleUnlinkSize = (id: string, fontSizePx: number) =>
+    unlinkRoleSize(id, activeDevice.id, fontSizePx);
+  const handleLineHeightOverride = (id: string, lineHeight: LineHeightConfig) =>
+    unlinkLineHeight(id, activeDevice.id, lineHeight);
+  const handleLineHeightRelink = (id: string) =>
+    bindLineHeight(id, activeDevice.id);
 
   /* Templates receive resolved CSS so they never do scale maths themselves.
      Sizes stay in px here: this is a rendered preview, not exported output.
@@ -409,17 +417,21 @@ export function TypographyStudio() {
      built on the merged model, because it has none of the names a template asks
      for except `body`. The article rendered its kicker, hero, standfirst,
      byline and section headings all at 16px. */
-  const styleOfRole = (role: TypeRole): CSSProperties => ({
-    fontFamily: fontFamilyValue(resolvedSystem, role),
-    fontSize: `${role.desktop.fontSizePx}px`,
-    fontWeight: role.fontWeight,
-    lineHeight: resolveLineHeight(role).computedLineHeightRatio,
-    letterSpacing: `${role.desktop.letterSpacingPx}px`,
-    textTransform: role.textTransform,
-  });
+  const styleOfRole = (role: TypeRole): CSSProperties => {
+    const fontSizePx = sizeOnFrame(role);
+    return {
+      fontFamily: fontFamilyValue(system, role),
+      fontSize: `${fontSizePx}px`,
+      fontWeight: role.fontWeight,
+      lineHeight: resolveLineHeight(role, fontSizePx, activeDevice.id)
+        .computedLineHeightRatio,
+      letterSpacing: `${role.letterSpacingPx}px`,
+      textTransform: role.textTransform,
+    };
+  };
 
   const styleForRole = (slot: SemanticRole): CSSProperties => {
-    const role = resolveTemplateSlot(resolvedSystem, slot);
+    const role = resolveTemplateSlot(system, slot);
     return role ? styleOfRole(role) : {};
   };
 
@@ -429,6 +441,12 @@ export function TypographyStudio() {
         <WorkspaceBrand
           name={system.name}
           onChange={(name) => updateSystem({ name })}
+        />
+        <PreviewDeviceBar
+          className={styles.navigation}
+          activeId={activeDevice.id}
+          devices={devices}
+          onChange={setPreviewDevice}
         />
         <span className={styles.headerActions}>
           <ThemeControl />
@@ -446,7 +464,7 @@ export function TypographyStudio() {
       </header>
 
       <section aria-label="Typography toolbar" className={styles.toolbar}>
-        <nav aria-label="Typography views" className={styles.navigation}>
+        <nav aria-label="Typography views">
           <TabList
             size="sm"
             value={activeSection}
@@ -456,11 +474,6 @@ export function TypographyStudio() {
             <Tab label="Preview" value="preview" />
           </TabList>
         </nav>
-        <PreviewDeviceBar
-          activeId={activeDevice.id}
-          devices={devices}
-          onChange={setPreviewDevice}
-        />
         <Button
           className={styles.newProjectButton}
           scheme="neutral"
@@ -538,8 +551,10 @@ export function TypographyStudio() {
             </div>
             <ul className={styles.stepList}>
               {sortedSteps.map((step) => {
-                const stepRoles = resolvedRoles.filter(
-                  (role) => role.stepOffset === step.offset,
+                const stepRoles = roles.filter(
+                  (role) =>
+                    !isRoleUnlinkedOnDevice(role, activeDevice.id) &&
+                    role.stepOffset === step.offset,
                 );
                 return (
                   <li key={step.step} className={styles.stepRow}>
@@ -607,7 +622,7 @@ export function TypographyStudio() {
             specimenText={project.specimenText}
             styleFor={styleForRole}
             styleOf={styleOfRole}
-            system={resolvedSystem}
+            system={system}
             template={project.template}
             unit={project.unit}
             onTemplateChange={(template) => setPreference({ template })}
@@ -829,13 +844,14 @@ export function TypographyStudio() {
                   <RoleGroupEditor
                     key={group.id}
                     canAddRole={canAddRole(system, group)}
+                    deviceId={activeDevice.id}
                     fonts={system.fonts}
                     group={group}
-                    roles={resolvedRoles.filter(
-                      (role) => role.groupId === group.id,
-                    )}
+                    roles={roles.filter((role) => role.groupId === group.id)}
                     steps={sortedSteps}
+                    system={system}
                     onAddRole={() => addRole(group)}
+                    onBindStep={handleBindStep}
                     onIndexingChange={(indexing) =>
                       updateGroup(group.id, { indexing })
                     }
@@ -845,6 +861,9 @@ export function TypographyStudio() {
                     onRoleChange={updateRole}
                     onRoleRemove={removeRole}
                     onRoleValueChange={updateRoleValue}
+                    onLineHeightOverride={handleLineHeightOverride}
+                    onLineHeightRelink={handleLineHeightRelink}
+                    onUnlinkSize={handleUnlinkSize}
                   />
                 ))}
               </SortableContext>
@@ -892,8 +911,9 @@ export function TypographyStudio() {
       <TypographyExportDialog
         isOpen={isExportDialogOpen}
         projectName={system.name}
-        system={resolvedSystem}
+        system={system}
         unit={project.unit}
+        devices={project.previewDevices}
         onOpenChange={setIsExportDialogOpen}
         onUnitChange={(unit) => setPreference({ unit })}
       />

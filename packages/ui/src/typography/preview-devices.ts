@@ -79,6 +79,23 @@ export function defaultPreviewDevices(ratio = DEFAULT_RATIO): PreviewDevice[] {
   return REQUIRED_PREVIEW_DEVICE_IDS.map((id) => requiredTemplate(id, ratio));
 }
 
+/**
+ * Narrowest first, then id when two frames share a width.
+ *
+ * Export walks this order so `:root` is the smallest layout and each later
+ * min-width query stacks on top of the last. List order on the project is
+ * phone / tablet / desktop / extras, which is usually the same, but a custom
+ * extra at 500px has to land between phone and tablet, not after desktop.
+ */
+export function sortPreviewDevicesByWidth(
+  devices: readonly PreviewDevice[],
+): PreviewDevice[] {
+  return [...devices].sort((a, b) => {
+    if (a.widthPx !== b.widthPx) return a.widthPx - b.widthPx;
+    return a.id.localeCompare(b.id);
+  });
+}
+
 function extraDesktopCount(devices: readonly PreviewDevice[]): number {
   return devices.filter((device) => !isRequiredPreviewDevice(device.id)).length;
 }

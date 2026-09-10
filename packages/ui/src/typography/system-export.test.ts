@@ -1,6 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { migrateLegacyProject, type LegacyTypographyProject } from "./migrate";
-import { defaultSystem, type TypeSystem } from "./system";
+import {
+  addExtraDesktop,
+  defaultPreviewDevices,
+  type PreviewDevice,
+} from "./preview-devices";
+import { generateTypeSteps } from "./scale";
+import {
+  defaultSystem,
+  resolveRoleSizePx,
+  type TypeRole,
+  type TypeSystem,
+} from "./system";
 import {
   formatTypeSystemCssExport,
   formatTypeSystemTailwindExport,
@@ -63,16 +74,10 @@ const authored: TypeSystem = {
       textTransform: "uppercase",
       stepOffset: null,
       sameAsRoleId: null,
-      desktop: {
-        fontSizePx: 56,
-        lineHeight: { mode: "ratio", value: 1.1 },
-        letterSpacingPx: 0,
-      },
-      mobile: {
-        fontSizePx: 24,
-        lineHeight: { mode: "ratio", value: 1.2 },
-        letterSpacingPx: 0,
-      },
+      lineHeight: { mode: "ratio", value: 1.1 },
+      letterSpacingPx: 0,
+      unlinkedSizes: { desktop: 56, phone: 24 },
+      unlinkedLineHeights: {},
     },
     {
       id: "body",
@@ -83,19 +88,33 @@ const authored: TypeSystem = {
       textTransform: "none",
       stepOffset: null,
       sameAsRoleId: null,
-      desktop: {
-        fontSizePx: 16,
-        lineHeight: { mode: "ratio", value: 1.6 },
-        letterSpacingPx: 0,
-      },
-      mobile: {
-        fontSizePx: 16,
-        lineHeight: { mode: "ratio", value: 1.6 },
-        letterSpacingPx: 0,
-      },
+      lineHeight: { mode: "ratio", value: 1.6 },
+      letterSpacingPx: 0,
+      unlinkedSizes: { desktop: 16, phone: 16 },
+      unlinkedLineHeights: {},
     },
   ],
 };
+
+function withH1(
+  patch: Partial<Pick<TypeRole, "unlinkedSizes" | "unlinkedLineHeights">>,
+): TypeSystem {
+  return {
+    ...authored,
+    roles: authored.roles.map((role) =>
+      role.id === "h1" ? { ...role, ...patch } : role,
+    ),
+  };
+}
+
+/** The inner @theme / :root of the media query that opens at `widthPx`. */
+function blockAt(css: string, widthPx: number): string {
+  const needle = `@media (min-width: ${widthPx}px)`;
+  const start = css.indexOf(needle);
+  expect(start, `expected ${needle}`).toBeGreaterThanOrEqual(0);
+  const next = css.indexOf("@media (min-width:", start + needle.length);
+  return next === -1 ? css.slice(start) : css.slice(start, next);
+}
 
 describe("formatTypeSystemCssExport", () => {
   it("keeps the token names the previous export produced", () => {
@@ -150,25 +169,127 @@ describe("viewport handling", () => {
     expect(output).not.toContain("@media");
   });
 
-  it("emits desktop as a min-width override when roles differ", () => {
+  it("emits the first wider frame that differs, at that frame's width", () => {
+    /* Authored phone 24 / desktop 56 with no tablet key: tablet falls back
+       to the desktop typed size, so the query lands at tablet 768px — the
+       same number `breakpointPx` used to name, for a different reason. */
     const output = formatTypeSystemCssExport(authored);
-    expect(output).toContain(`@media (min-width: ${authored.breakpointPx}px)`);
+    expect(output).toContain("@media (min-width: 768px)");
+    expect(output).not.toContain("@media (min-width: 1120px)");
   });
 
-  it("puts mobile in :root, so the smallest layout is the default", () => {
+  it("puts the narrowest frame in :root, so the smallest layout is the default", () => {
     const h1 = authored.roles.find((role) => role.id === "h1")!;
     const output = formatTypeSystemCssExport(authored, "px");
     const rootBlock = output.slice(0, output.indexOf("@media"));
 
-    expect(rootBlock).toContain(`--font-h1-size: ${h1.mobile.fontSizePx}px;`);
+    expect(rootBlock).toContain(`--font-h1-size: ${h1.unlinkedSizes.phone}px;`);
     expect(rootBlock).not.toContain(
-      `--font-h1-size: ${h1.desktop.fontSizePx}px;`,
+      `--font-h1-size: ${h1.unlinkedSizes.desktop}px;`,
     );
   });
 
   it("keeps the breakpoint in px whatever the size unit", () => {
     const output = formatTypeSystemCssExport(authored, "rem");
     expect(output).toContain("@media (min-width: 768px)");
+  });
+
+  it("does not repeat letter-spacing in an override that only changes size", () => {
+    const output = formatTypeSystemCssExport(authored, "px");
+    const override = output.slice(output.indexOf("@media"));
+    expect(override).toContain("--font-h1-size: 56px;");
+    expect(override).not.toContain("letter-spacing");
+  });
+
+  it("stacks a query per named frame that actually changed", () => {
+    const system = withH1({
+      unlinkedSizes: { phone: 24, tablet: 40, desktop: 56 },
+    });
+    const output = formatTypeSystemCssExport(system, "px");
+    const rootBlock = output.slice(0, output.indexOf("@media"));
+
+    expect(rootBlock).toContain("--font-h1-size: 24px;");
+    expect(output).toContain("@media (min-width: 768px)");
+    expect(output).toContain("@media (min-width: 1120px)");
+    expect(blockAt(output, 768)).toContain("--font-h1-size: 40px;");
+    expect(blockAt(output, 1120)).toContain("--font-h1-size: 56px;");
+    expect(blockAt(output, 768)).not.toContain("--font-h1-size: 56px;");
+  });
+
+  it("skips a frame that matches the one before it", () => {
+    const system = withH1({
+      unlinkedSizes: { phone: 24, tablet: 56, desktop: 56 },
+    });
+    const output = formatTypeSystemCssExport(system, "px");
+    expect(output).toContain("@media (min-width: 768px)");
+    expect(output).not.toContain("@media (min-width: 1120px)");
+  });
+
+  it("includes an extra desktop when its tokens differ", () => {
+    const devices = addExtraDesktop(defaultPreviewDevices(authored.ratio));
+    const extra = devices.find((device) =>
+      device.id.startsWith("desktop-extra"),
+    )!;
+    const system = withH1({
+      unlinkedSizes: {
+        phone: 24,
+        tablet: 40,
+        desktop: 56,
+        [extra.id]: 64,
+      },
+    });
+    const output = formatTypeSystemCssExport(system, "px", devices);
+    expect(output).toContain(`@media (min-width: ${extra.widthPx}px)`);
+    expect(blockAt(output, extra.widthPx)).toContain("--font-h1-size: 64px;");
+  });
+
+  it("emits a line-height override without repeating unchanged sizes", () => {
+    const system = withH1({
+      unlinkedSizes: { phone: 24, desktop: 24 },
+      unlinkedLineHeights: {
+        phone: { mode: "ratio", value: 2 },
+      },
+    });
+    const output = formatTypeSystemCssExport(system, "px");
+    const rootBlock = output.slice(0, output.indexOf("@media"));
+    expect(rootBlock).toContain("--font-h1-line-height: 2;");
+    expect(output).toContain("@media (min-width: 768px)");
+    expect(output).not.toContain("@media (min-width: 1120px)");
+    expect(blockAt(output, 768)).toContain("--font-h1-line-height: 1.1;");
+    expect(blockAt(output, 768)).not.toContain("--font-h1-size:");
+  });
+
+  it("resolves bound roles against that frame's ratio, not the desktop ramp", () => {
+    const system = defaultSystem(
+      "Reference",
+      ["Geist Sans", "ui-sans-serif"],
+      16,
+      1.25,
+      9,
+    );
+    const h1 = system.roles.find((role) => role.id === "h1")!;
+    const devices: PreviewDevice[] = defaultPreviewDevices(1.25).map(
+      (device) => (device.id === "tablet" ? { ...device, ratio: 1.5 } : device),
+    );
+    const phonePx = resolveRoleSizePx(
+      system,
+      generateTypeSteps(16, 1.25, 9),
+      h1,
+      "phone",
+    );
+    const tabletPx = resolveRoleSizePx(
+      system,
+      generateTypeSteps(16, 1.5, 9),
+      h1,
+      "tablet",
+    );
+    expect(tabletPx).not.toBe(phonePx);
+
+    const output = formatTypeSystemCssExport(system, "px", devices);
+    const rootBlock = output.slice(0, output.indexOf("@media"));
+    expect(rootBlock).toContain(`--font-h1-size: ${phonePx}px;`);
+    expect(blockAt(output, 768)).toContain(`--font-h1-size: ${tabletPx}px;`);
+    expect(blockAt(output, 1120)).toContain(`--font-h1-size: ${phonePx}px;`);
   });
 });
 
@@ -177,6 +298,13 @@ describe("formatTypeSystemTailwindExport", () => {
     const output = formatTypeSystemTailwindExport(migratedLegacy);
     expect(output.startsWith("@theme static {")).toBe(true);
     expect(output).toContain("--font-body-size:");
+  });
+
+  it("nests later frames in stacked @theme blocks", () => {
+    const output = formatTypeSystemTailwindExport(authored, "px");
+    expect(output).toContain("@media (min-width: 768px)");
+    expect(blockAt(output, 768)).toContain("@theme static {");
+    expect(blockAt(output, 768)).toContain("--font-h1-size: 56px;");
   });
 });
 
@@ -230,7 +358,7 @@ describe("the size a role exports", () => {
       9,
     );
     for (const role of system.roles) {
-      expect(role.desktop.fontSizePx).toBe(16);
+      expect(role.unlinkedSizes).toEqual({});
     }
 
     const css = formatTypeSystemCssExport(system, "px");
@@ -261,8 +389,7 @@ describe("the size a role exports", () => {
               ...role,
               stepOffset: null,
               sameAsRoleId: null,
-              desktop: { ...role.desktop, fontSizePx: 41 },
-              mobile: { ...role.mobile, fontSizePx: 41 },
+              unlinkedSizes: { desktop: 41, phone: 41 },
             }
           : role,
       ),
