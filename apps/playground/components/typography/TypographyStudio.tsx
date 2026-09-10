@@ -27,6 +27,7 @@ import {
   findGoogleFont,
   fontFamilyValue,
   formatLength,
+  formatLetterSpacing,
   defaultSystem,
   splitFontFamily,
   canAddRole,
@@ -166,6 +167,15 @@ export function TypographyStudio() {
       system.stepCount,
     );
   }, [system, activePreviewDevice?.ratio]);
+
+  const desktopSteps = useMemo(() => {
+    if (!system) return [];
+    return generateTypeSteps(
+      system.baseFontSizePx,
+      system.ratio,
+      system.stepCount,
+    );
+  }, [system]);
 
   const paletteTracks = useMemo(
     () => (palette ? generatePalettes(palette) : []),
@@ -410,6 +420,8 @@ export function TypographyStudio() {
 
   /* Templates receive resolved CSS so they never do scale maths themselves.
      Sizes stay in px here: this is a rendered preview, not exported output.
+     Letter-spacing is the exported em (desktop size), so tracking scales with
+     the previewed size the same way the file will.
 
      Which role a slot draws is `resolveTemplateSlot` in the package, shared
      with the documentation page. The chain that used to be here — exact id,
@@ -419,13 +431,19 @@ export function TypographyStudio() {
      byline and section headings all at 16px. */
   const styleOfRole = (role: TypeRole): CSSProperties => {
     const fontSizePx = sizeOnFrame(role);
+    const desktopSizePx = resolveRoleSizePx(
+      system,
+      desktopSteps,
+      role,
+      "desktop",
+    );
     return {
       fontFamily: fontFamilyValue(system, role),
       fontSize: `${fontSizePx}px`,
       fontWeight: role.fontWeight,
       lineHeight: resolveLineHeight(role, fontSizePx, activeDevice.id)
         .computedLineHeightRatio,
-      letterSpacing: `${role.letterSpacingPx}px`,
+      letterSpacing: formatLetterSpacing(role.letterSpacingPx, desktopSizePx),
       textTransform: role.textTransform,
     };
   };

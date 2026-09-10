@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   convertLength,
   formatLength,
+  formatLetterSpacing,
   formatTypeScaleCssExport,
   formatTypeScaleTailwindExport,
 } from "./export";
@@ -85,6 +86,18 @@ describe("formatLength", () => {
   });
 });
 
+describe("formatLetterSpacing", () => {
+  it("divides stored px by the size it ships against", () => {
+    expect(formatLetterSpacing(-0.5, 56)).toBe("-0.0089em");
+    expect(formatLetterSpacing(0.2, 12)).toBe("0.0167em");
+    expect(formatLetterSpacing(0, 16)).toBe("0em");
+  });
+
+  it("does not invent a value when the size is zero", () => {
+    expect(formatLetterSpacing(-0.5, 0)).toBe("0em");
+  });
+});
+
 describe("export units", () => {
   it("defaults to rem", () => {
     expect(formatTypeScaleCssExport(scale)).toContain(
@@ -92,13 +105,16 @@ describe("export units", () => {
     );
   });
 
-  it("emits the requested unit for sizes and letter-spacing", () => {
+  it("emits the requested unit for sizes and em for letter-spacing", () => {
     TYPE_SCALE_UNITS.forEach((unit) => {
       const output = formatTypeScaleCssExport(scale, unit);
       expect(output).toContain(`--font-body-size: ${formatLength(16, unit)};`);
       scale.roles.forEach((role) => {
+        const step = scale.steps.find(
+          (candidate) => candidate.step === role.step,
+        )!;
         expect(output).toContain(
-          `--font-${role.role}-letter-spacing: ${formatLength(role.letterSpacingPx, unit)};`,
+          `--font-${role.role}-letter-spacing: ${formatLetterSpacing(role.letterSpacingPx, step.fontSizePx)};`,
         );
       });
     });

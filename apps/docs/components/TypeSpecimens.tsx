@@ -41,7 +41,7 @@ export function specimenStyle(row: TypeRoleRow): CSSProperties {
     fontSize: `${row.fontSizePx}px`,
     fontWeight: row.fontWeight,
     lineHeight: row.lineHeight,
-    letterSpacing: `${row.letterSpacingPx}px`,
+    letterSpacing: row.letterSpacingCss,
     textTransform: row.textTransform as CSSProperties["textTransform"],
     margin: 0,
   };

@@ -25,6 +25,29 @@ export function formatLength(px: number, unit: TypeScaleUnit): string {
   return `${Number(convertLength(px, unit).toFixed(4))}${unit}`;
 }
 
+/**
+ * Convert stored tracking to em relative to the size it ships against.
+ *
+ * Letter-spacing that stays in px (or rem, or pt) is a fixed gap while the
+ * size interpolates. `em` tracks the computed font-size, which is what the
+ * optical value was for.
+ */
+export function letterSpacingEm(
+  letterSpacingPx: number,
+  fontSizePx: number,
+): number {
+  if (fontSizePx === 0) return 0;
+  return letterSpacingPx / fontSizePx;
+}
+
+/** Format stored tracking as em, trimming trailing zeros. */
+export function formatLetterSpacing(
+  letterSpacingPx: number,
+  fontSizePx: number,
+): string {
+  return `${Number(letterSpacingEm(letterSpacingPx, fontSizePx).toFixed(4))}em`;
+}
+
 function tokenLines(
   scale: TypeScale,
   unit: TypeScaleUnit,
@@ -41,7 +64,7 @@ function tokenLines(
       `${indentation}--font-${role.role}-size: ${formatLength(step.fontSizePx, unit)};`,
       `${indentation}--font-${role.role}-weight: ${role.fontWeight};`,
       `${indentation}--font-${role.role}-line-height: ${role.lineHeight};`,
-      `${indentation}--font-${role.role}-letter-spacing: ${formatLength(role.letterSpacingPx, unit)};`,
+      `${indentation}--font-${role.role}-letter-spacing: ${formatLetterSpacing(role.letterSpacingPx, step.fontSizePx)};`,
     ];
   });
 

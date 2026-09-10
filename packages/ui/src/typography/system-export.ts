@@ -1,4 +1,4 @@
-import { formatLength } from "./export";
+import { formatLength, formatLetterSpacing } from "./export";
 import { fluidLengthClamp, fluidUnitlessClamp } from "./fluid";
 import { findGoogleFont } from "./google-fonts";
 import {
@@ -25,7 +25,7 @@ import type { TypeScaleUnit } from "./types";
  *
  * Queries and the `100vw` span use the frame's `widthPx`. Bound roles resolve
  * against that frame's ratio so the file matches the preview. Letter-spacing
- * stays shared.
+ * stays shared, as `em` relative to the role's desktop size.
  */
 
 /**
@@ -98,7 +98,7 @@ function indentFor(frameIndex: number): string {
  *
  * A pair that differs becomes a clamp starting on the earlier frame. A run
  * that never changes is a static token in `:root`. Letter-spacing is not
- * handled here — it is still shared.
+ * handled here — it is still shared, as `em`.
  */
 function emitFluidProperty(
   linesByFrame: string[][],
@@ -155,6 +155,8 @@ function fluidRoleLines(
   const linesByFrame = frames.map((): string[] => []);
   const widths = frames.map((frame) => frame.device.widthPx);
   const first = frames[0]!;
+  const desktop =
+    frames.find((frame) => frame.device.id === "desktop") ?? frames.at(-1)!;
 
   for (const role of first.roles) {
     const across = frames.map((frame) =>
@@ -179,8 +181,11 @@ function fluidRoleLines(
       fluidUnitlessClamp,
       (value) => `${Number(value.toFixed(4))}`,
     );
+    const desktopSizePx = desktop.roles.find(
+      (entry) => entry.tokenId === role.tokenId,
+    )!.fontSizePx;
     linesByFrame[0]!.push(
-      `  --font-${role.tokenId}-letter-spacing: ${formatLength(role.letterSpacingPx, unit)};`,
+      `  --font-${role.tokenId}-letter-spacing: ${formatLetterSpacing(role.letterSpacingPx, desktopSizePx)};`,
     );
   }
 

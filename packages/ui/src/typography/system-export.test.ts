@@ -6,6 +6,7 @@ import {
   type PreviewDevice,
 } from "./preview-devices";
 import { generateTypeSteps } from "./scale";
+import { formatLetterSpacing } from "./export";
 import {
   defaultSystem,
   resolveRoleSizePx,
@@ -195,8 +196,35 @@ describe("viewport handling", () => {
 
   it("does not put letter-spacing inside a size clamp", () => {
     const output = formatTypeSystemCssExport(authored, "px");
-    expect(output).toContain("--font-h1-letter-spacing: 0px;");
+    expect(output).toContain("--font-h1-letter-spacing: 0em;");
     expect(output).not.toMatch(/--font-h1-size: clamp\([^)]*letter-spacing/);
+  });
+
+  it("writes letter-spacing as em against the desktop size, in every unit", () => {
+    const h1 = authored.roles.find((role) => role.id === "h1")!;
+    const expected = `--font-h1-letter-spacing: ${formatLetterSpacing(
+      h1.letterSpacingPx,
+      h1.unlinkedSizes.desktop!,
+    )};`;
+    expect(formatTypeSystemCssExport(authored, "px")).toContain(expected);
+    expect(formatTypeSystemCssExport(authored, "rem")).toContain(expected);
+    expect(formatTypeSystemCssExport(authored, "pt")).toContain(expected);
+  });
+
+  it("divides tracking by the desktop size, not the phone size", () => {
+    const system: TypeSystem = {
+      ...authored,
+      roles: authored.roles.map((role) =>
+        role.id === "h1" ? { ...role, letterSpacingPx: -0.5 } : role,
+      ),
+    };
+    const output = formatTypeSystemCssExport(system, "px");
+    expect(output).toContain(
+      `--font-h1-letter-spacing: ${formatLetterSpacing(-0.5, 56)};`,
+    );
+    expect(output).not.toContain(
+      `--font-h1-letter-spacing: ${formatLetterSpacing(-0.5, 24)};`,
+    );
   });
 
   it("starts the next pair at the earlier frame's width", () => {
