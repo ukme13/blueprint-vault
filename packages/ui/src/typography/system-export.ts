@@ -1,6 +1,10 @@
 import { formatLength } from "./export";
 import { findGoogleFont } from "./google-fonts";
-import { defaultPreviewDevices, type PreviewDevice } from "./preview-devices";
+import {
+  defaultPreviewDevices,
+  sortPreviewDevicesByWidth,
+  type PreviewDevice,
+} from "./preview-devices";
 import { generateTypeSteps } from "./scale";
 import {
   resolveLineHeight,
@@ -54,10 +58,7 @@ function stackedPreviewDevices(
     devices && devices.length > 0
       ? devices
       : defaultPreviewDevices(system.ratio);
-  return [...list].sort((a, b) => {
-    if (a.widthPx !== b.widthPx) return a.widthPx - b.widthPx;
-    return a.id.localeCompare(b.id);
-  });
+  return sortPreviewDevicesByWidth(list);
 }
 
 function roleViewportTokens(
@@ -88,6 +89,37 @@ function roleViewportTokens(
  * cascade are written. Letter-spacing is still shared, so override blocks
  * normally omit it.
  */
+function roleTokenLines(
+  role: RoleViewportTokens,
+  unit: TypeScaleUnit,
+  indent: string,
+  previous: RoleViewportTokens | undefined,
+): string[] {
+  const tokens = [
+    {
+      changed: !previous || previous.fontSizePx !== role.fontSizePx,
+      name: "size",
+      value: formatLength(role.fontSizePx, unit),
+    },
+    {
+      changed: !previous || previous.lineHeight !== role.lineHeight,
+      name: "line-height",
+      value: String(role.lineHeight),
+    },
+    {
+      changed: !previous || previous.letterSpacingPx !== role.letterSpacingPx,
+      name: "letter-spacing",
+      value: formatLength(role.letterSpacingPx, unit),
+    },
+  ];
+  return tokens
+    .filter((token) => token.changed)
+    .map(
+      (token) =>
+        `${indent}--font-${role.tokenId}-${token.name}: ${token.value};`,
+    );
+}
+
 function emitRoleTokens(
   roles: RoleViewportTokens[],
   unit: TypeScaleUnit,
@@ -97,26 +129,9 @@ function emitRoleTokens(
   const prevById = previous
     ? new Map(previous.map((role) => [role.tokenId, role]))
     : null;
-  return roles.flatMap((role) => {
-    const prev = prevById?.get(role.tokenId);
-    const lines: string[] = [];
-    if (!prev || prev.fontSizePx !== role.fontSizePx) {
-      lines.push(
-        `${indent}--font-${role.tokenId}-size: ${formatLength(role.fontSizePx, unit)};`,
-      );
-    }
-    if (!prev || prev.lineHeight !== role.lineHeight) {
-      lines.push(
-        `${indent}--font-${role.tokenId}-line-height: ${role.lineHeight};`,
-      );
-    }
-    if (!prev || prev.letterSpacingPx !== role.letterSpacingPx) {
-      lines.push(
-        `${indent}--font-${role.tokenId}-letter-spacing: ${formatLength(role.letterSpacingPx, unit)};`,
-      );
-    }
-    return lines;
-  });
+  return roles.flatMap((role) =>
+    roleTokenLines(role, unit, indent, prevById?.get(role.tokenId)),
+  );
 }
 
 function sharedLines(system: TypeSystem, unit: TypeScaleUnit): string[] {
@@ -201,18 +216,16 @@ function body(
   for (const device of frames.slice(1)) {
     const current = roleViewportTokens(system, device);
     const changed = emitRoleTokens(current, unit, "    ", previous);
-    if (changed.length === 0) {
-      previous = current;
-      continue;
+    if (changed.length > 0) {
+      lines.push(
+        "",
+        `@media (min-width: ${device.widthPx}px) {`,
+        `  ${open}`,
+        ...changed,
+        "  }",
+        "}",
+      );
     }
-    lines.push(
-      "",
-      `@media (min-width: ${device.widthPx}px) {`,
-      `  ${open}`,
-      ...changed,
-      "  }",
-      "}",
-    );
     previous = current;
   }
 

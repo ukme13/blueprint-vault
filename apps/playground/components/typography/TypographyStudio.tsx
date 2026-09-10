@@ -51,6 +51,7 @@ import {
   updatePreviewDevice,
   resolvePreviewDevice,
   type HybridTokenizedValue,
+  type LineHeightConfig,
 } from "@blueprint/ui";
 import {
   closestCenter,
@@ -398,6 +399,14 @@ export function TypographyStudio() {
   );
   const devices = project.previewDevices;
   const activeDevice = activePreviewDevice;
+  const handleBindStep = (id: string, stepOffset: number) =>
+    bindRoleStep(id, activeDevice.id, stepOffset);
+  const handleUnlinkSize = (id: string, fontSizePx: number) =>
+    unlinkRoleSize(id, activeDevice.id, fontSizePx);
+  const handleLineHeightOverride = (id: string, lineHeight: LineHeightConfig) =>
+    unlinkLineHeight(id, activeDevice.id, lineHeight);
+  const handleLineHeightRelink = (id: string) =>
+    bindLineHeight(id, activeDevice.id);
 
   /* Templates receive resolved CSS so they never do scale maths themselves.
      Sizes stay in px here: this is a rendered preview, not exported output.
@@ -842,9 +851,7 @@ export function TypographyStudio() {
                     steps={sortedSteps}
                     system={system}
                     onAddRole={() => addRole(group)}
-                    onBindStep={(id, stepOffset) =>
-                      bindRoleStep(id, activeDevice.id, stepOffset)
-                    }
+                    onBindStep={handleBindStep}
                     onIndexingChange={(indexing) =>
                       updateGroup(group.id, { indexing })
                     }
@@ -854,15 +861,9 @@ export function TypographyStudio() {
                     onRoleChange={updateRole}
                     onRoleRemove={removeRole}
                     onRoleValueChange={updateRoleValue}
-                    onLineHeightOverride={(id, lineHeight) =>
-                      unlinkLineHeight(id, activeDevice.id, lineHeight)
-                    }
-                    onLineHeightRelink={(id) =>
-                      bindLineHeight(id, activeDevice.id)
-                    }
-                    onUnlinkSize={(id, fontSizePx) =>
-                      unlinkRoleSize(id, activeDevice.id, fontSizePx)
-                    }
+                    onLineHeightOverride={handleLineHeightOverride}
+                    onLineHeightRelink={handleLineHeightRelink}
+                    onUnlinkSize={handleUnlinkSize}
                   />
                 ))}
               </SortableContext>

@@ -6,7 +6,12 @@ import {
   type PreviewDevice,
 } from "./preview-devices";
 import { generateTypeSteps } from "./scale";
-import { defaultSystem, resolveRoleSizePx, type TypeSystem } from "./system";
+import {
+  defaultSystem,
+  resolveRoleSizePx,
+  type TypeRole,
+  type TypeSystem,
+} from "./system";
 import {
   formatTypeSystemCssExport,
   formatTypeSystemTailwindExport,
@@ -90,6 +95,17 @@ const authored: TypeSystem = {
     },
   ],
 };
+
+function withH1(
+  patch: Partial<Pick<TypeRole, "unlinkedSizes" | "unlinkedLineHeights">>,
+): TypeSystem {
+  return {
+    ...authored,
+    roles: authored.roles.map((role) =>
+      role.id === "h1" ? { ...role, ...patch } : role,
+    ),
+  };
+}
 
 /** The inner @theme / :root of the media query that opens at `widthPx`. */
 function blockAt(css: string, widthPx: number): string {
@@ -186,17 +202,9 @@ describe("viewport handling", () => {
   });
 
   it("stacks a query per named frame that actually changed", () => {
-    const system: TypeSystem = {
-      ...authored,
-      roles: authored.roles.map((role) =>
-        role.id === "h1"
-          ? {
-              ...role,
-              unlinkedSizes: { phone: 24, tablet: 40, desktop: 56 },
-            }
-          : role,
-      ),
-    };
+    const system = withH1({
+      unlinkedSizes: { phone: 24, tablet: 40, desktop: 56 },
+    });
     const output = formatTypeSystemCssExport(system, "px");
     const rootBlock = output.slice(0, output.indexOf("@media"));
 
@@ -209,17 +217,9 @@ describe("viewport handling", () => {
   });
 
   it("skips a frame that matches the one before it", () => {
-    const system: TypeSystem = {
-      ...authored,
-      roles: authored.roles.map((role) =>
-        role.id === "h1"
-          ? {
-              ...role,
-              unlinkedSizes: { phone: 24, tablet: 56, desktop: 56 },
-            }
-          : role,
-      ),
-    };
+    const system = withH1({
+      unlinkedSizes: { phone: 24, tablet: 56, desktop: 56 },
+    });
     const output = formatTypeSystemCssExport(system, "px");
     expect(output).toContain("@media (min-width: 768px)");
     expect(output).not.toContain("@media (min-width: 1120px)");
@@ -230,42 +230,26 @@ describe("viewport handling", () => {
     const extra = devices.find((device) =>
       device.id.startsWith("desktop-extra"),
     )!;
-    const system: TypeSystem = {
-      ...authored,
-      roles: authored.roles.map((role) =>
-        role.id === "h1"
-          ? {
-              ...role,
-              unlinkedSizes: {
-                phone: 24,
-                tablet: 40,
-                desktop: 56,
-                [extra.id]: 64,
-              },
-            }
-          : role,
-      ),
-    };
+    const system = withH1({
+      unlinkedSizes: {
+        phone: 24,
+        tablet: 40,
+        desktop: 56,
+        [extra.id]: 64,
+      },
+    });
     const output = formatTypeSystemCssExport(system, "px", devices);
     expect(output).toContain(`@media (min-width: ${extra.widthPx}px)`);
     expect(blockAt(output, extra.widthPx)).toContain("--font-h1-size: 64px;");
   });
 
   it("emits a line-height override without repeating unchanged sizes", () => {
-    const system: TypeSystem = {
-      ...authored,
-      roles: authored.roles.map((role) =>
-        role.id === "h1"
-          ? {
-              ...role,
-              unlinkedSizes: { phone: 24, desktop: 24 },
-              unlinkedLineHeights: {
-                phone: { mode: "ratio" as const, value: 2 },
-              },
-            }
-          : role,
-      ),
-    };
+    const system = withH1({
+      unlinkedSizes: { phone: 24, desktop: 24 },
+      unlinkedLineHeights: {
+        phone: { mode: "ratio", value: 2 },
+      },
+    });
     const output = formatTypeSystemCssExport(system, "px");
     const rootBlock = output.slice(0, output.indexOf("@media"));
     expect(rootBlock).toContain("--font-h1-line-height: 2;");

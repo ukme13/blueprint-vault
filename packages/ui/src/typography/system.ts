@@ -720,24 +720,67 @@ export function canonicalSizeDeviceId(deviceId: string): string {
   return deviceId === "mobile" ? "phone" : deviceId;
 }
 
+function hasDeviceKey(
+  map: Record<string, unknown> | undefined,
+  deviceId: string,
+): boolean {
+  return Object.prototype.hasOwnProperty.call(
+    map ?? {},
+    canonicalSizeDeviceId(deviceId),
+  );
+}
+
+function pruneDeviceMap<T>(
+  map: Record<string, T> | undefined,
+  allowed: Set<string>,
+): Record<string, T> {
+  return Object.fromEntries(
+    Object.entries(map ?? {}).filter(([key]) => allowed.has(key)),
+  );
+}
+
+function omitDeviceKey<T>(
+  map: Record<string, T> | undefined,
+  deviceId: string,
+): Record<string, T> {
+  const next = { ...(map ?? {}) };
+  delete next[canonicalSizeDeviceId(deviceId)];
+  return next;
+}
+
+function setDeviceKey<T>(
+  map: Record<string, T> | undefined,
+  deviceId: string,
+  value: T,
+): Record<string, T> {
+  return { ...(map ?? {}), [canonicalSizeDeviceId(deviceId)]: value };
+}
+
+function mapRole(
+  system: TypeSystem,
+  roleId: string,
+  update: (role: TypeRole) => TypeRole,
+): TypeSystem {
+  return {
+    ...system,
+    roles: system.roles.map((role) =>
+      role.id === roleId ? update(role) : role,
+    ),
+  };
+}
+
 export function isRoleUnlinkedOnDevice(
   role: TypeRole,
   deviceId: string,
 ): boolean {
-  return Object.prototype.hasOwnProperty.call(
-    role.unlinkedSizes,
-    canonicalSizeDeviceId(deviceId),
-  );
+  return hasDeviceKey(role.unlinkedSizes, deviceId);
 }
 
 export function isLineHeightUnlinkedOnDevice(
   role: TypeRole,
   deviceId: string,
 ): boolean {
-  return Object.prototype.hasOwnProperty.call(
-    role.unlinkedLineHeights ?? {},
-    canonicalSizeDeviceId(deviceId),
-  );
+  return hasDeviceKey(role.unlinkedLineHeights, deviceId);
 }
 
 /**
@@ -792,21 +835,12 @@ export function bindRoleStepOnDevice(
   deviceId: string,
   stepOffset: number,
 ): TypeSystem {
-  const id = canonicalSizeDeviceId(deviceId);
-  return {
-    ...system,
-    roles: system.roles.map((role) => {
-      if (role.id !== roleId) return role;
-      const unlinkedSizes = { ...role.unlinkedSizes };
-      delete unlinkedSizes[id];
-      return {
-        ...role,
-        stepOffset,
-        sameAsRoleId: null,
-        unlinkedSizes,
-      };
-    }),
-  };
+  return mapRole(system, roleId, (role) => ({
+    ...role,
+    stepOffset,
+    sameAsRoleId: null,
+    unlinkedSizes: omitDeviceKey(role.unlinkedSizes, deviceId),
+  }));
 }
 
 /** Type a size on one device; the role's step still drives every other frame. */
@@ -816,19 +850,11 @@ export function unlinkRoleSizeOnDevice(
   deviceId: string,
   fontSizePx: number,
 ): TypeSystem {
-  const id = canonicalSizeDeviceId(deviceId);
-  return {
-    ...system,
-    roles: system.roles.map((role) =>
-      role.id === roleId
-        ? {
-            ...role,
-            sameAsRoleId: null,
-            unlinkedSizes: { ...role.unlinkedSizes, [id]: fontSizePx },
-          }
-        : role,
-    ),
-  };
+  return mapRole(system, roleId, (role) => ({
+    ...role,
+    sameAsRoleId: null,
+    unlinkedSizes: setDeviceKey(role.unlinkedSizes, deviceId, fontSizePx),
+  }));
 }
 
 /** Drop typed sizes and line heights for frames that no longer exist. */
@@ -841,14 +867,8 @@ export function pruneUnlinkedSizes(
     ...system,
     roles: system.roles.map((role) => ({
       ...role,
-      unlinkedSizes: Object.fromEntries(
-        Object.entries(role.unlinkedSizes).filter(([key]) => allowed.has(key)),
-      ),
-      unlinkedLineHeights: Object.fromEntries(
-        Object.entries(role.unlinkedLineHeights ?? {}).filter(([key]) =>
-          allowed.has(key),
-        ),
-      ),
+      unlinkedSizes: pruneDeviceMap(role.unlinkedSizes, allowed),
+      unlinkedLineHeights: pruneDeviceMap(role.unlinkedLineHeights, allowed),
     })),
   };
 }
@@ -860,21 +880,14 @@ export function unlinkLineHeightOnDevice(
   deviceId: string,
   lineHeight: LineHeightConfig,
 ): TypeSystem {
-  const id = canonicalSizeDeviceId(deviceId);
-  return {
-    ...system,
-    roles: system.roles.map((role) =>
-      role.id === roleId
-        ? {
-            ...role,
-            unlinkedLineHeights: {
-              ...role.unlinkedLineHeights,
-              [id]: lineHeight,
-            },
-          }
-        : role,
+  return mapRole(system, roleId, (role) => ({
+    ...role,
+    unlinkedLineHeights: setDeviceKey(
+      role.unlinkedLineHeights,
+      deviceId,
+      lineHeight,
     ),
-  };
+  }));
 }
 
 /** Restore this device to the shared line height. Other overrides stay. */
@@ -883,16 +896,10 @@ export function bindLineHeightOnDevice(
   roleId: string,
   deviceId: string,
 ): TypeSystem {
-  const id = canonicalSizeDeviceId(deviceId);
-  return {
-    ...system,
-    roles: system.roles.map((role) => {
-      if (role.id !== roleId) return role;
-      const unlinkedLineHeights = { ...role.unlinkedLineHeights };
-      delete unlinkedLineHeights[id];
-      return { ...role, unlinkedLineHeights };
-    }),
-  };
+  return mapRole(system, roleId, (role) => ({
+    ...role,
+    unlinkedLineHeights: omitDeviceKey(role.unlinkedLineHeights, deviceId),
+  }));
 }
 
 /* The edits a studio makes to a system, as TypeSystem -> TypeSystem. They sit
@@ -904,12 +911,7 @@ export function updateRole(
   id: string,
   patch: Partial<TypeRole>,
 ): TypeSystem {
-  return {
-    ...system,
-    roles: system.roles.map((role) =>
-      role.id === id ? { ...role, ...patch } : role,
-    ),
-  };
+  return mapRole(system, id, (role) => ({ ...role, ...patch }));
 }
 
 /** Line height and letter spacing are always per-role and never linked. */
@@ -918,12 +920,7 @@ export function updateRoleValue(
   id: string,
   patch: Partial<{ lineHeight: LineHeightConfig; letterSpacingPx: number }>,
 ): TypeSystem {
-  return {
-    ...system,
-    roles: system.roles.map((role) =>
-      role.id === id ? { ...role, ...patch } : role,
-    ),
-  };
+  return updateRole(system, id, patch);
 }
 
 /** A group at capacity is returned unchanged, so callers need no guard. */

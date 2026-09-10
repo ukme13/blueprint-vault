@@ -6,6 +6,7 @@ import {
   canAddExtraDesktop,
   defaultPreviewDevices,
   isRequiredPreviewDevice,
+  sortPreviewDevicesByWidth,
   normalizePreviewDevices,
   removePreviewDevice,
   resolvePreviewDevice,
@@ -174,5 +175,23 @@ describe("resolvePreviewDevice", () => {
     expect(
       resolvePreviewDevice(extra.id, defaultPreviewDevices(RATIO)).id,
     ).toBe("desktop");
+  });
+});
+
+describe("sortPreviewDevicesByWidth", () => {
+  it("orders by width, then id", () => {
+    const [phone, tablet, desktop] = defaultPreviewDevices(RATIO);
+    const extra = {
+      id: "desktop-extra-1",
+      kind: "desktop" as const,
+      name: "Desktop 2",
+      widthPx: 500,
+      ratio: RATIO,
+    };
+    expect(
+      sortPreviewDevicesByWidth([desktop!, extra, phone!, tablet!]).map(
+        (device) => device.id,
+      ),
+    ).toEqual(["phone", "desktop-extra-1", "tablet", "desktop"]);
   });
 });
