@@ -1,4 +1,9 @@
-import { expect, test } from "./typography-fixtures";
+import {
+  expect,
+  fillHybridNumber,
+  showInspectorPanel,
+  test,
+} from "./typography-fixtures";
 
 test.describe("Typography export", () => {
   test("shows CSS and Tailwind export output", async ({ seededPage: page }) => {
@@ -27,6 +32,32 @@ test.describe("Typography export", () => {
 
     await page.getByRole("button", { name: "px", exact: true }).click();
     await expect(preview.getByText("--font-body-size: 16px;")).toBeVisible();
+  });
+
+  test("stacks a min-width query for each preview frame that changed", async ({
+    seededPage: page,
+  }) => {
+    await showInspectorPanel(page, "Groups");
+    const devices = page.getByRole("navigation", { name: "Preview devices" });
+
+    await devices.getByRole("button", { name: "Phone" }).click();
+    await fillHybridNumber(page, "body size", "14");
+
+    await devices.getByRole("button", { name: "Tablet" }).click();
+    await fillHybridNumber(page, "body size", "18");
+
+    await devices.getByRole("button", { name: "Desktop", exact: true }).click();
+    await fillHybridNumber(page, "body size", "20");
+
+    await page.getByRole("button", { name: "Export type scale" }).click();
+    await page.getByRole("button", { name: "px", exact: true }).click();
+
+    const preview = page.getByRole("region", { name: "Export preview" });
+    await expect(preview.getByText("--font-body-size: 14px;")).toBeVisible();
+    await expect(preview.getByText("@media (min-width: 768px)")).toBeVisible();
+    await expect(preview.getByText("--font-body-size: 18px;")).toBeVisible();
+    await expect(preview.getByText("@media (min-width: 1120px)")).toBeVisible();
+    await expect(preview.getByText("--font-body-size: 20px;")).toBeVisible();
   });
 
   test("downloads the generated CSS file", async ({ seededPage: page }) => {

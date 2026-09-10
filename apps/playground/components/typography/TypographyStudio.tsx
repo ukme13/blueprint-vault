@@ -912,6 +912,7 @@ export function TypographyStudio() {
         projectName={system.name}
         system={system}
         unit={project.unit}
+        devices={project.previewDevices}
         onOpenChange={setIsExportDialogOpen}
         onUnitChange={(unit) => setPreference({ unit })}
       />

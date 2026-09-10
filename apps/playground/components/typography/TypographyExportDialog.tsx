@@ -10,6 +10,7 @@ import {
   formatTypeSystemCssExport,
   formatTypeSystemTailwindExport,
   TYPE_SCALE_UNITS,
+  type PreviewDevice,
   type TypeSystem,
   type TypeScaleUnit,
   localSlots,
@@ -34,6 +35,7 @@ interface TypographyExportDialogProps {
   projectName: string;
   system: TypeSystem;
   unit: TypeScaleUnit;
+  devices: readonly PreviewDevice[];
   onOpenChange: (isOpen: boolean) => void;
   onUnitChange: (unit: TypeScaleUnit) => void;
 }
@@ -43,6 +45,7 @@ export function TypographyExportDialog({
   projectName,
   system,
   unit,
+  devices,
   onOpenChange,
   onUnitChange,
 }: TypographyExportDialogProps) {
@@ -55,9 +58,9 @@ export function TypographyExportDialog({
   const output = useMemo(
     () =>
       exportFormat === "tailwind"
-        ? formatTypeSystemTailwindExport(system, unit)
-        : formatTypeSystemCssExport(system, unit),
-    [exportFormat, system, unit],
+        ? formatTypeSystemTailwindExport(system, unit, devices)
+        : formatTypeSystemCssExport(system, unit, devices),
+    [devices, exportFormat, system, unit],
   );
 
   const filename = `${

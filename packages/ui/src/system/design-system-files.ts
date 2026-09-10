@@ -87,6 +87,7 @@ export function designSystemFiles(
       ? formatTypeSystemCssExport(
           project.typography.system,
           options.typeScaleUnit,
+          project.typography.previewDevices,
         )
       : "",
     "blueprint.tailwind.css": formatDesignSystemTailwind(system),

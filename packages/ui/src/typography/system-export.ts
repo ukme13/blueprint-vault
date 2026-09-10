@@ -1,5 +1,6 @@
 import { formatLength } from "./export";
 import { findGoogleFont } from "./google-fonts";
+import { defaultPreviewDevices, type PreviewDevice } from "./preview-devices";
 import { generateTypeSteps } from "./scale";
 import {
   resolveLineHeight,
@@ -11,10 +12,14 @@ import type { TypeScaleUnit } from "./types";
 /**
  * Export for the merged model.
  *
- * Mobile values go in `:root` and desktop overrides go in a min-width block, so
- * the smallest layout is the default. The block is only emitted when a role
- * actually differs between viewports — a migrated single-viewport project should
- * not gain an empty media query it never asked for.
+ * `:root` is the narrowest preview frame. Each wider frame that actually
+ * changes a role token gets its own `@media (min-width: widthPx)` block.
+ * Identical consecutive frames are skipped, so a tablet that already matches
+ * desktop does not earn an empty query at 1120px, and a project whose frames
+ * all resolve equal still ships no media query at all.
+ *
+ * Queries use the frame's `widthPx`, not `system.breakpointPx`. Bound roles
+ * resolve against that frame's ratio so the file matches the preview.
  */
 
 /**
@@ -34,67 +39,83 @@ export function typeTokenId(value: string): string {
     .replace(/^-|-$/g, "");
 }
 
-/**
- * The system with every role's size resolved.
- *
- * The one thing this file must do before writing a number. A role's stored
- * `fontSizePx` is only its own answer when somebody unlinked it by typing a
- * size; a role linked to a step keeps whatever was in the field when it was
- * last written, and the studio resolves on read and never writes back. So
- * `defaultSystem` leaves every role holding the base size and the offsets
- * decide what is drawn.
- *
- * Exported unresolved, that shipped a design system in which every text role
- * was 16px — measured on the reference workspace's own generated file,
- * `--font-h1-size`, `--font-h2-size` and `--font-display-size` all 16px beside
- * a correct `--font-size-8: 62px`. Invisible from the studio and from the
- * documentation, because both resolve before they render. Only a client
- * installing the file would have found it.
- *
- * `resolveRoleSizePx` is the same function the row builder uses, so the
- * table, the specimen and the file cannot disagree about a size.
- */
-function hasViewportDifference(system: TypeSystem): boolean {
-  const steps = generateTypeSteps(
-    system.baseFontSizePx,
-    system.ratio,
-    system.stepCount,
-  );
-  return system.roles.some((role) => {
-    const desktopPx = resolveRoleSizePx(system, steps, role, "desktop");
-    const phonePx = resolveRoleSizePx(system, steps, role, "phone");
-    return (
-      desktopPx !== phonePx ||
-      resolveLineHeight(role, desktopPx, "desktop").computedLineHeightRatio !==
-        resolveLineHeight(role, phonePx, "phone").computedLineHeightRatio
-    );
+interface RoleViewportTokens {
+  tokenId: string;
+  fontSizePx: number;
+  lineHeight: number;
+  letterSpacingPx: number;
+}
+
+function stackedPreviewDevices(
+  system: TypeSystem,
+  devices: readonly PreviewDevice[] | undefined,
+): PreviewDevice[] {
+  const list =
+    devices && devices.length > 0
+      ? devices
+      : defaultPreviewDevices(system.ratio);
+  return [...list].sort((a, b) => {
+    if (a.widthPx !== b.widthPx) return a.widthPx - b.widthPx;
+    return a.id.localeCompare(b.id);
   });
 }
 
-function viewportLines(
+function roleViewportTokens(
   system: TypeSystem,
-  deviceId: string,
-  unit: TypeScaleUnit,
-  indentation: string,
-): string[] {
+  device: PreviewDevice,
+): RoleViewportTokens[] {
   const steps = generateTypeSteps(
     system.baseFontSizePx,
-    system.ratio,
+    device.ratio,
     system.stepCount,
   );
-  return system.roles.flatMap((role) => {
-    const fontSizePx = resolveRoleSizePx(system, steps, role, deviceId);
-    const id = typeTokenId(role.id);
-    const { computedLineHeightRatio } = resolveLineHeight(
-      role,
+  return system.roles.map((role) => {
+    const fontSizePx = resolveRoleSizePx(system, steps, role, device.id);
+    return {
+      tokenId: typeTokenId(role.id),
       fontSizePx,
-      deviceId,
-    );
-    return [
-      `${indentation}--font-${id}-size: ${formatLength(fontSizePx, unit)};`,
-      `${indentation}--font-${id}-line-height: ${computedLineHeightRatio};`,
-      `${indentation}--font-${id}-letter-spacing: ${formatLength(role.letterSpacingPx, unit)};`,
-    ];
+      lineHeight: resolveLineHeight(role, fontSizePx, device.id)
+        .computedLineHeightRatio,
+      letterSpacingPx: role.letterSpacingPx,
+    };
+  });
+}
+
+/**
+ * Role size, line-height and letter-spacing for one frame.
+ *
+ * When `previous` is set, only tokens that changed from the last emitted
+ * cascade are written. Letter-spacing is still shared, so override blocks
+ * normally omit it.
+ */
+function emitRoleTokens(
+  roles: RoleViewportTokens[],
+  unit: TypeScaleUnit,
+  indent: string,
+  previous: RoleViewportTokens[] | null,
+): string[] {
+  const prevById = previous
+    ? new Map(previous.map((role) => [role.tokenId, role]))
+    : null;
+  return roles.flatMap((role) => {
+    const prev = prevById?.get(role.tokenId);
+    const lines: string[] = [];
+    if (!prev || prev.fontSizePx !== role.fontSizePx) {
+      lines.push(
+        `${indent}--font-${role.tokenId}-size: ${formatLength(role.fontSizePx, unit)};`,
+      );
+    }
+    if (!prev || prev.lineHeight !== role.lineHeight) {
+      lines.push(
+        `${indent}--font-${role.tokenId}-line-height: ${role.lineHeight};`,
+      );
+    }
+    if (!prev || prev.letterSpacingPx !== role.letterSpacingPx) {
+      lines.push(
+        `${indent}--font-${role.tokenId}-letter-spacing: ${formatLength(role.letterSpacingPx, unit)};`,
+      );
+    }
+    return lines;
   });
 }
 
@@ -109,7 +130,9 @@ function sharedLines(system: TypeSystem, unit: TypeScaleUnit): string[] {
   );
 
   /* Step tokens are kept because the previous main-studio export emitted them.
-     Dropping them would silently break anyone consuming --font-size-N. */
+     Dropping them would silently break anyone consuming --font-size-N.
+     They stay on the canonical desktop ramp (`system.ratio`); per-frame
+     ratio only changes how bound roles resolve inside each viewport. */
   const steps = generateTypeSteps(
     system.baseFontSizePx,
     system.ratio,
@@ -157,28 +180,40 @@ function googleFontNotice(system: TypeSystem): string[] {
 }
 
 function body(
-  rawSystem: TypeSystem,
+  system: TypeSystem,
   unit: TypeScaleUnit,
   open: string,
+  devices?: readonly PreviewDevice[],
 ): string {
-  const system = rawSystem;
+  const frames = stackedPreviewDevices(system, devices);
+  const base = frames[0]!;
+  const baseRoles = roleViewportTokens(system, base);
+
   const lines = [
     ...googleFontNotice(system),
     open,
     ...sharedLines(system, unit),
-    ...viewportLines(system, "phone", unit, "  "),
+    ...emitRoleTokens(baseRoles, unit, "  ", null),
     "}",
   ];
 
-  if (hasViewportDifference(system)) {
+  let previous = baseRoles;
+  for (const device of frames.slice(1)) {
+    const current = roleViewportTokens(system, device);
+    const changed = emitRoleTokens(current, unit, "    ", previous);
+    if (changed.length === 0) {
+      previous = current;
+      continue;
+    }
     lines.push(
       "",
-      `@media (min-width: ${system.breakpointPx}px) {`,
+      `@media (min-width: ${device.widthPx}px) {`,
       `  ${open}`,
-      ...viewportLines(system, "desktop", unit, "    "),
+      ...changed,
       "  }",
       "}",
     );
+    previous = current;
   }
 
   return lines.join("\n");
@@ -187,13 +222,15 @@ function body(
 export function formatTypeSystemCssExport(
   system: TypeSystem,
   unit: TypeScaleUnit = "rem",
+  devices?: readonly PreviewDevice[],
 ): string {
-  return body(system, unit, ":root {");
+  return body(system, unit, ":root {", devices);
 }
 
 export function formatTypeSystemTailwindExport(
   system: TypeSystem,
   unit: TypeScaleUnit = "rem",
+  devices?: readonly PreviewDevice[],
 ): string {
-  return body(system, unit, "@theme static {");
+  return body(system, unit, "@theme static {", devices);
 }
