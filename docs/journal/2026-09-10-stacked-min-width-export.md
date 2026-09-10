@@ -25,9 +25,10 @@ pass `previewDevices`. Call sites that omit the list get
 
 ## Not in this cut
 
-Fluid `clamp()`, per-device letter-spacing, `em` tracking, and a configurable
-rem root. `TypeSystem.breakpointPx` is unused by the writer; it remains on
-the model until something else needs it.
+Fluid `clamp()` between consecutive frames (see
+`2026-09-10-fluid-clamp-export.md`). Per-device letter-spacing, `em` tracking,
+and a configurable rem root. `TypeSystem.breakpointPx` is unused by the
+writer in this cut; it is dropped in `2026-09-10-fluid-clamp-export.md`.
 
 ## Checks
 

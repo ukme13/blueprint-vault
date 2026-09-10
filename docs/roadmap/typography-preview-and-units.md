@@ -138,9 +138,12 @@ articles.
 Preview devices are named records — phone, tablet, desktop, plus up to two extra
 desktops — each with a width and a ratio, not hide/show checkboxes. The three
 required frames cannot be removed. `TypeSystem.ratio` stays the canonical
-desktop ratio for export; switching a nav icon regenerates the ramp from that
-frame's ratio. Which frame is active is still view state and resets on reload;
-which frames exist persists with the project.
+desktop ratio for `--font-size-N` step tokens. Switching a nav icon regenerates
+the ramp from that frame's ratio, and bound role sizes in the export resolve
+against the same ramp. Consecutive frames that differ interpolate with
+`clamp()`; a later pair starts at `@media (min-width: that frame)`. Which frame
+is active is still view state and resets on reload; which frames exist persists
+with the project.
 
 ## Stage 4 — Preview against the real palette ✅ done
 
@@ -170,6 +173,20 @@ vertical space, so the current check does not implement its own stated rule.
 
 Depends on Stage 2, which is where the specimen text comes from.
 
+## Stage 6 — Fluid `clamp()` export ✅ done
+
+Stacked min-width queries jumped from one named size to the next. A 500px
+layout stayed on the phone size until 768. Consecutive frames that differ now
+write `clamp()`: the min and max are those two sizes, and the preferred value
+is linear between their `widthPx`. A later pair starts at
+`@media (min-width: the earlier frame)`. Identical consecutive frames are
+skipped. Letter-spacing stays shared. `--font-size-N` stays on the desktop
+ramp.
+
+Viewport widths in the `100vw` span stay in px whatever size unit the file
+uses. `TypeSystem.breakpointPx` is dropped on read; old files that still name
+it load.
+
 ## Not doing
 
 - The reference's Boards, Bookmarks, Likes and Explore rail. That is a hosted
@@ -183,7 +200,7 @@ Depends on Stage 2, which is where the specimen text comes from.
 
 - `em` letter-spacing, which tracks the size it applies to.
 - A configurable root font size for `rem`, rather than assuming 16.
-- Fluid `clamp()` output, still missing and tracked in `typography-studio.md`.
+- Per-device letter-spacing.
 - More templates: dashboard, documentation, email.
 
 ## Safety and quality rules
