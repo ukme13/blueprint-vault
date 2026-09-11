@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { BUTTON_TONES } from "../button-tones";
+import { BUTTON_SCHEMES, BUTTON_TONES } from "../button-tones";
 import { generatePalettes } from "./palette";
 import {
   ASTRYX_BRIDGE_ROLE_VARIABLES,
@@ -181,5 +181,22 @@ describe("usedBy", () => {
         expect(usedBy(id), `${scheme}: ${value}`).not.toEqual([]);
       }
     }
+  });
+
+  it("stops naming Button, the bridge and the preview once a tone is dropped", () => {
+    /* The lock is the workspace's scheme list, not the component table.
+       A client with no info status has no Button info tone, and the bridge
+       mapping for those roles would simply be absent — the same way it already
+       skips a token that is not in the layer. */
+    const withoutInfo = BUTTON_SCHEMES.filter((scheme) => scheme !== "info");
+    const options = { buttonSchemes: withoutInfo };
+
+    expect(usedBy("status.info", options)).toEqual([]);
+    expect(usedBy("status.info-hover", options)).toEqual([]);
+    expect(usedBy("fg.on-info", options)).toEqual([]);
+    expect(isLoadBearing("status.info", options)).toBe(false);
+
+    expect(usedBy("status.info")).toContain("Button info tone");
+    expect(usedBy("action.primary", options)).toContain("Button primary tone");
   });
 });

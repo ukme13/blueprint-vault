@@ -1,6 +1,7 @@
 import { createHistory, type History } from "../history";
 import type { SemanticToken } from "../color/semantic";
 import { rememberRemovedSeedRoles } from "../color/semantic";
+import { normalizeButtonSchemes, type ButtonScheme } from "../button-tones";
 import type { WorkspaceProject } from "./types";
 import { emptyWorkspace } from "./workspace";
 
@@ -18,17 +19,15 @@ import { emptyWorkspace } from "./workspace";
 /**
  * One undoable state of the semantic slice.
  *
- * The layer **and** the removed-seed list, because the two are one fact.
- * Undoing a delete has to put the token back *and* forget that it was removed:
- * a history that held only the token array would restore the role, leave
- * `border.subtle` on the removed list, and the next read would take it straight
- * back out again — an undo that appears to work and is gone after a reload.
- *
- * That is the whole reason this type exists rather than `SemanticToken[]`.
+ * The layer, the removed-seed list, **and** which button tones still exist.
+ * Dropping a tone writes all three; undoing it has to put the eight roles
+ * back *and* put `info` back on the scheme list, or the next delete would
+ * still see the Button as a consumer of roles that just returned.
  */
 export interface SemanticsSnapshot {
   tokens: SemanticToken[] | null;
   removedSeedRoles: string[];
+  buttonSchemes: ButtonScheme[];
 }
 
 /** How many undo steps the semantic slice keeps. */
@@ -41,6 +40,7 @@ export function semanticsSnapshotOf(
   return {
     tokens: project?.semantics ?? null,
     removedSeedRoles: project?.removedSeedRoles ?? [],
+    buttonSchemes: normalizeButtonSchemes(project?.buttonSchemes),
   };
 }
 
@@ -62,6 +62,7 @@ export function workspaceWithSnapshot(
     ...(current ?? emptyWorkspace()),
     semantics: snapshot.tokens,
     removedSeedRoles: snapshot.removedSeedRoles,
+    buttonSchemes: snapshot.buttonSchemes,
   };
 }
 
@@ -76,6 +77,7 @@ export function snapshotAfterEdit(
   previous: SemanticsSnapshot,
   tokens: SemanticToken[] | null,
   justRemoved: readonly string[] = [],
+  buttonSchemes?: readonly ButtonScheme[],
 ): SemanticsSnapshot {
   return {
     tokens,
@@ -84,6 +86,10 @@ export function snapshotAfterEdit(
       tokens,
       justRemoved,
     ),
+    buttonSchemes:
+      buttonSchemes === undefined
+        ? previous.buttonSchemes
+        : normalizeButtonSchemes(buttonSchemes),
   };
 }
 
@@ -114,7 +120,11 @@ export interface SemanticsHistory {
    */
   commit(
     tokens: SemanticToken[] | null,
-    options?: { key?: EditKey; justRemoved?: readonly string[] },
+    options?: {
+      key?: EditKey;
+      justRemoved?: readonly string[];
+      buttonSchemes?: readonly ButtonScheme[];
+    },
   ): SemanticsSnapshot;
   /** The slice as it stands, which is what the next edit is computed from. */
   readonly present: SemanticsSnapshot;
@@ -166,6 +176,7 @@ export function createSemanticsHistory(
         history.present ?? initial,
         tokens,
         options?.justRemoved,
+        options?.buttonSchemes,
       );
       const coalesces = key !== undefined && key === openEdit;
       openEdit = key;

@@ -1,4 +1,9 @@
-import { BUTTON_SCHEMES, BUTTON_TONES } from "../button-tones";
+import {
+  BUTTON_TONES,
+  buttonSchemeForRoleId,
+  normalizeButtonSchemes,
+  type ButtonScheme,
+} from "../button-tones";
 import {
   isSignallingRole,
   PREVIEW_REQUIRED_TOKENS,
@@ -92,10 +97,12 @@ export const STUDIO_CHROME_ROLE_VARIABLES: readonly string[] = [
 ];
 
 /** Every variable one button scheme reads, and the words for that scheme. */
-function buttonToneVariables(): Map<string, string> {
+function buttonToneVariables(
+  schemes: readonly ButtonScheme[],
+): Map<string, string> {
   const byVariable = new Map<string, string>();
 
-  for (const scheme of BUTTON_SCHEMES) {
+  for (const scheme of schemes) {
     /* A scheme listed with no row is a table mid-edit, and `button-tones.test.ts`
        is where that is somebody's problem. Here it is one tone's worth of
        consumers missing, not a module that throws on import and takes every
@@ -117,11 +124,28 @@ function buttonToneVariables(): Map<string, string> {
   return byVariable;
 }
 
-const BUTTON_TONE_VARIABLES = buttonToneVariables();
 const BRIDGE = new Set(ASTRYX_BRIDGE_ROLE_VARIABLES);
 const STUDIO_CHROME = new Set(STUDIO_CHROME_ROLE_VARIABLES);
 const PREVIEW = new Set(PREVIEW_ROLE_IDS);
 const PREVIEW_REQUIRED = new Set(PREVIEW_REQUIRED_TOKENS);
+
+/**
+ * Which button schemes this workspace still has.
+ *
+ * Absent means the seed set, so every existing caller and every file written
+ * before schemes were data keeps the same locks it has today.
+ */
+export interface RoleConsumerOptions {
+  buttonSchemes?: readonly ButtonScheme[];
+}
+
+function toneIsEnabled(
+  id: string,
+  schemes: ReadonlySet<ButtonScheme>,
+): boolean {
+  const scheme = buttonSchemeForRoleId(id);
+  return scheme === undefined || schemes.has(scheme);
+}
 
 /**
  * What reads this role, in the words somebody should be shown.
@@ -133,16 +157,25 @@ const PREVIEW_REQUIRED = new Set(PREVIEW_REQUIRED_TOKENS);
  * Ordered from the most concrete consumer to the most general, because that is
  * the order somebody wants to read it in: a named component first, then the
  * things that measure.
+ *
+ * Button schemes are workspace data. A workspace that dropped `info` no
+ * longer has a Button info tone, and the bridge and the preview stop naming
+ * those roles too — they would simply have one less mapping, the same way
+ * they already skip a token that is not in the layer.
  */
-export function usedBy(id: string): string[] {
+export function usedBy(id: string, options?: RoleConsumerOptions): string[] {
+  const schemes = normalizeButtonSchemes(options?.buttonSchemes);
+  const enabled = new Set(schemes);
   const variable = semanticVariableName(id);
   const consumers: string[] = [];
 
-  const tone = BUTTON_TONE_VARIABLES.get(variable);
+  const tone = buttonToneVariables(schemes).get(variable);
   if (tone) consumers.push(tone);
-  if (BRIDGE.has(variable)) consumers.push("Astryx bridge");
+  if (BRIDGE.has(variable) && toneIsEnabled(id, enabled)) {
+    consumers.push("Astryx bridge");
+  }
   if (STUDIO_CHROME.has(variable)) consumers.push("Studio chrome");
-  if (PREVIEW.has(id)) {
+  if (PREVIEW.has(id) && toneIsEnabled(id, enabled)) {
     /* The four the preview cannot do without are worth saying differently:
        without one of them `previewShadesFor` returns null and the whole panel
        disappears, rather than one check going missing from it. */
@@ -161,8 +194,11 @@ export function usedBy(id: string): string[] {
 }
 
 /** Whether anything reads this role by name. */
-export function isLoadBearing(id: string): boolean {
-  return usedBy(id).length > 0;
+export function isLoadBearing(
+  id: string,
+  options?: RoleConsumerOptions,
+): boolean {
+  return usedBy(id, options).length > 0;
 }
 
 /** `["Astryx bridge", "Studio chrome"]` as "the Astryx bridge and the …". */

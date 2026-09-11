@@ -20,6 +20,7 @@ import { readTypographyProjectData } from "./typography-project";
 import type { TypographyProjectData, WorkspaceProject } from "./types";
 import type { PaletteProjectData } from "../color/export";
 import { rememberRemovedSeedRoles } from "../color/semantic";
+import { normalizeButtonSchemes, type ButtonScheme } from "../button-tones";
 import type { SemanticToken } from "../color/semantic";
 import type { ElevationScale } from "../scale/elevation";
 import type { RadiusScale } from "../scale/radius";
@@ -113,6 +114,9 @@ export function readWorkspaceProject(value: unknown): WorkspaceProject | null {
         removedSeedRoles,
       ) ?? semanticsForPalette(palette),
     removedSeedRoles,
+    buttonSchemes: normalizeButtonSchemes(
+      (value as { buttonSchemes?: unknown }).buttonSchemes,
+    ),
     spacing: spacingOrDefault(value.spacing),
     radius: radiusOrDefault(value.radius),
     elevation: elevationOrDefault(value.elevation),
@@ -152,6 +156,7 @@ export function workspaceFromLegacy(
     typography,
     semantics: semanticsForPalette(palette),
     removedSeedRoles: [],
+    buttonSchemes: normalizeButtonSchemes(undefined),
     spacing: defaultSpacingScale(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
@@ -231,6 +236,7 @@ export function emptyWorkspace(
     typography: null,
     semantics: null,
     removedSeedRoles: [],
+    buttonSchemes: normalizeButtonSchemes(undefined),
     spacing: defaultSpacingScale(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
@@ -312,14 +318,15 @@ export function withElevationSlice(
  * something this user threw away. So a deletion says so, and everything else
  * is a layer that changed.
  *
- * Nothing calls it with a value yet. The editor's own delete is stage 4's,
- * which is why deleting a seed role in the studio today still behaves exactly
- * as it did before this list existed.
+ * `buttonSchemes` is the other half of a tone deletion. Omit it and the list
+ * stays as it was; pass it when a scheme has been dropped, so the eight roles
+ * that fed that tone are no longer load-bearing on the next read.
  */
 export function withSemanticsSlice(
   current: WorkspaceProject | null,
   semantics: SemanticToken[] | null,
   justRemoved: readonly string[] = [],
+  buttonSchemes?: readonly ButtonScheme[],
 ): WorkspaceProject {
   const base = current ?? emptyWorkspace();
   return {
@@ -330,6 +337,10 @@ export function withSemanticsSlice(
       semantics,
       justRemoved,
     ),
+    buttonSchemes:
+      buttonSchemes === undefined
+        ? base.buttonSchemes
+        : normalizeButtonSchemes(buttonSchemes),
   };
 }
 

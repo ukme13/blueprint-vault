@@ -1,5 +1,6 @@
 import type { PaletteProjectData } from "../color/export";
 import type { SemanticToken } from "../color/semantic";
+import type { ButtonScheme } from "../button-tones";
 import type { ElevationScale } from "../scale/elevation";
 import type { RadiusScale } from "../scale/radius";
 import type { SpacingScale } from "../scale/spacing";
@@ -67,6 +68,15 @@ export interface WorkspaceProject {
    * thing, and a nullable one would be three states for two facts.
    */
   removedSeedRoles: string[];
+  /**
+   * Which button tones this workspace still has.
+   *
+   * Part of the semantic slice: the Button reads these schemes, and a client
+   * with no info status needs them gone so the eight roles feeding that tone
+   * are no longer load-bearing. Missing on an older save is every seed
+   * scheme. `primary` cannot be omitted.
+   */
+  buttonSchemes: ButtonScheme[];
   /**
    * The spacing scale.
    *

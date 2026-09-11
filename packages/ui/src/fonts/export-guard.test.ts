@@ -9,6 +9,7 @@ import { seedSemanticTokens } from "../color/semantic";
 import { defaultElevationScale } from "../scale/elevation";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
+import { normalizeButtonSchemes } from "../button-tones";
 import { defaultPreviewDevices } from "../typography/preview-devices";
 import { generateTypeSteps } from "../typography/scale";
 import { assignDefaultRoles } from "../typography/scale";
@@ -217,6 +218,7 @@ describe("no export carries font data", () => {
       palette: null,
       semantics: null,
       removedSeedRoles: [],
+      buttonSchemes: normalizeButtonSchemes(undefined),
       spacing: defaultSpacingScale(),
       radius: defaultRadiusScale(),
       elevation: defaultElevationScale(),

@@ -4,15 +4,18 @@ import { useCallback, useState } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { useToast, type ShowToastFn } from "@astryxdesign/core/Toast";
 import {
+  BUTTON_SCHEME_LABELS,
   deleteTokens,
   describeRefusals,
   describeSemanticEdit,
+  dropButtonScheme,
   duplicateTokens,
   formatSemanticClipboard,
   groupSemanticTokens,
   moveToGroup,
   parseSemanticClipboard,
   pasteTokens,
+  type ButtonScheme,
   type SemanticEdit,
   type SemanticToken,
 } from "@blueprint/ui";
@@ -32,6 +35,7 @@ import type { SemanticRowActions } from "./SemanticRowMenu";
 export interface SemanticWriteOptions {
   editKey?: string;
   justRemoved?: readonly string[];
+  buttonSchemes?: readonly ButtonScheme[];
 }
 
 interface UseSemanticActions {
@@ -43,11 +47,15 @@ interface UseSemanticActions {
   onNewGroup: (ids: string[]) => void;
   /** Reverse the last recorded semantic write. */
   onUndo?: () => void;
+  /** Which button tones this workspace still has. */
+  buttonSchemes: readonly ButtonScheme[];
 }
 
 export interface SemanticActions {
   /** Apply an edit: store the layer, and say what it would not do. */
   apply: (result: SemanticEdit) => void;
+  /** Drop a button tone and the eight roles that only existed to feed it. */
+  dropScheme: (scheme: ButtonScheme) => void;
   /** The menu for a row, or for the selection when no row is named. */
   actionsFor: (id?: string) => SemanticRowActions;
   /** The rows an action applies to, given the row it was opened on. */
@@ -89,6 +97,7 @@ export function useSemanticActions({
   onChange,
   onNewGroup,
   onUndo,
+  buttonSchemes,
 }: UseSemanticActions): SemanticActions {
   const toast = useToast();
   /* The clipboard as this page last saw it. The system clipboard is written
@@ -108,6 +117,29 @@ export function useSemanticActions({
       if (body) announceEdit(toast, body, success ? onUndo : undefined);
     },
     [onChange, onUndo, toast, tokens],
+  );
+
+  const dropScheme = useCallback(
+    (scheme: ButtonScheme) => {
+      /* Schemes first, then the roles: deleteTokens still sees the Button as
+         a consumer if the tone is on the list, and would refuse every row. */
+      const dropped = dropButtonScheme(tokens, buttonSchemes, scheme);
+      const schemesChanged =
+        dropped.buttonSchemes.join(",") !== buttonSchemes.join(",");
+      if (dropped.edit.layer !== tokens || schemesChanged) {
+        onChange(dropped.edit.layer, {
+          justRemoved: dropped.edit.removed,
+          buttonSchemes: dropped.buttonSchemes,
+        });
+      }
+      const success = schemesChanged
+        ? `Removed the ${BUTTON_SCHEME_LABELS[scheme]} tone.`
+        : describeSemanticEdit(tokens, dropped.edit);
+      const refusal = describeRefusals(dropped.edit.refusals);
+      const body = [success, refusal].filter(Boolean).join(" ");
+      if (body) announceEdit(toast, body, success ? onUndo : undefined);
+    },
+    [buttonSchemes, onChange, onUndo, toast, tokens],
   );
 
   const target = useCallback(
@@ -131,17 +163,18 @@ export function useSemanticActions({
         },
         paste: () => apply(pasteTokens(tokens, clipboard, ids.at(-1) ?? null)),
         newGroup: () => onNewGroup(ids),
-        moveToGroup: (group) => apply(moveToGroup(tokens, ids, group)),
+        moveToGroup: (group) =>
+          apply(moveToGroup(tokens, ids, group, { buttonSchemes })),
         groups: groupSemanticTokens(tokens).map(({ group, label }) => ({
           id: group,
           label,
         })),
         duplicate: () => apply(duplicateTokens(tokens, ids)),
-        remove: () => apply(deleteTokens(tokens, ids)),
+        remove: () => apply(deleteTokens(tokens, ids, { buttonSchemes })),
       };
     },
-    [apply, clipboard, onNewGroup, target, tokens],
+    [apply, buttonSchemes, clipboard, onNewGroup, target, tokens],
   );
 
-  return { apply, actionsFor, target };
+  return { apply, dropScheme, actionsFor, target };
 }

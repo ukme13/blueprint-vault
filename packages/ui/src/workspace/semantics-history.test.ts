@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { generatePalettes } from "../color/palette";
-import { deleteTokens } from "../color/selection-ops";
+import { deleteTokens, dropButtonScheme } from "../color/selection-ops";
 import { seedSemanticTokens, type SemanticToken } from "../color/semantic";
 import {
   createSemanticsHistory,
@@ -17,6 +17,7 @@ import {
 import { defaultElevationScale } from "../scale/elevation";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
+import { normalizeButtonSchemes } from "../button-tones";
 import type { ColorTrack } from "../color/types";
 import type { WorkspaceProject } from "./types";
 
@@ -53,6 +54,7 @@ function workspace(over: Partial<WorkspaceProject> = {}): WorkspaceProject {
     typography: null,
     semantics: seedSemanticTokens(palette()),
     removedSeedRoles: [],
+    buttonSchemes: normalizeButtonSchemes(undefined),
     spacing: defaultSpacingScale(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
@@ -82,6 +84,7 @@ describe("a snapshot is the layer and the removed list together", () => {
     const after = workspaceWithSnapshot(before, {
       tokens: [],
       removedSeedRoles: ["border.subtle"],
+      buttonSchemes: normalizeButtonSchemes(undefined),
     });
 
     expect(after.semantics).toEqual([]);
@@ -101,9 +104,16 @@ describe("a snapshot is the layer and the removed list together", () => {
     const after = workspaceWithSnapshot(workspace(), {
       tokens,
       removedSeedRoles: ["border.subtle"],
+      buttonSchemes: normalizeButtonSchemes(undefined),
     });
 
-    expect(ids({ tokens, removedSeedRoles: [] })).toContain("border.subtle");
+    expect(
+      ids({
+        tokens,
+        removedSeedRoles: [],
+        buttonSchemes: [],
+      }),
+    ).toContain("border.subtle");
     expect(after.removedSeedRoles).toEqual(["border.subtle"]);
   });
 });
@@ -118,6 +128,7 @@ describe("undo over the selection operations", () => {
     const history = createSemanticsHistory({
       tokens: layer,
       removedSeedRoles: [],
+      buttonSchemes: normalizeButtonSchemes(undefined),
     });
 
     const gone = deleteTokens(layer, ["brand.beta", "brand.delta"]);
@@ -139,6 +150,7 @@ describe("undo over the selection operations", () => {
     const history = createSemanticsHistory({
       tokens: layer,
       removedSeedRoles: [],
+      buttonSchemes: normalizeButtonSchemes(undefined),
     });
     const gone = deleteTokens(layer, [
       "brand.beta",
@@ -158,6 +170,7 @@ describe("what counts as a step", () => {
   const snapshot = (tokens: SemanticToken[]): SemanticsSnapshot => ({
     tokens,
     removedSeedRoles: [],
+    buttonSchemes: normalizeButtonSchemes(undefined),
   });
 
   it("coalesces consecutive writes under the same edit key", () => {
@@ -358,5 +371,29 @@ describe("an undone delete survives a reload", () => {
       "border.subtle",
     );
     expect(after.removedSeedRoles).toEqual(["border.subtle"]);
+  });
+
+  it("puts the scheme back with the eight roles when a dropped tone is undone", () => {
+    const start = workspace();
+    const history = createSemanticsHistory(semanticsSnapshotOf(start));
+    const dropped = dropButtonScheme(
+      start.semantics!,
+      start.buttonSchemes,
+      "info",
+    );
+
+    history.commit(dropped.edit.layer, {
+      justRemoved: dropped.edit.removed,
+      buttonSchemes: dropped.buttonSchemes,
+    });
+    expect(history.present.buttonSchemes).not.toContain("info");
+    expect(history.present.tokens!.map((token) => token.id)).not.toContain(
+      "status.info",
+    );
+
+    const undone = history.undo()!;
+    expect(undone.buttonSchemes).toContain("info");
+    expect(undone.tokens!.map((token) => token.id)).toContain("status.info");
+    expect(undone.removedSeedRoles).not.toContain("status.info");
   });
 });

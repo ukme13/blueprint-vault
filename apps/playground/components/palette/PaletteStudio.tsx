@@ -19,6 +19,7 @@ import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { useToast } from "@astryxdesign/core/Toast";
 import {
   BLUEPRINT_20_PRESET,
+  BUTTON_SCHEMES,
   Button,
   DEFAULT_WORKSPACE_NAME,
   MAX_SHADE_COUNT,
@@ -41,6 +42,7 @@ import {
   normalizeTrackName,
   parseBlueprintWorkspace,
   resizeLightnessArray,
+  type ButtonScheme,
   type PaletteProjectData,
   type SemanticToken,
 } from "@blueprint/ui";
@@ -140,7 +142,7 @@ function readStoredProject(): StoredPalette {
    the editor delete a seed role and then write a stale list back over it. */
 type ForeignSlices = Omit<
   WorkspaceProject,
-  "name" | "palette" | "semantics" | "removedSeedRoles"
+  "name" | "palette" | "semantics" | "removedSeedRoles" | "buttonSchemes"
 >;
 
 function emptyForeignSlices(): ForeignSlices {
@@ -244,7 +246,11 @@ function PaletteStudioContent() {
   const semanticsHistory = useSemanticsHistory(workspace);
   const setSemantics = (
     next: SemanticToken[] | null,
-    options?: { editKey?: string; justRemoved?: readonly string[] },
+    options?: {
+      editKey?: string;
+      justRemoved?: readonly string[];
+      buttonSchemes?: readonly ButtonScheme[];
+    },
   ) => semanticsHistory.write(next, options);
   const [pendingImport, setPendingImport] = useState<WorkspaceProject | null>(
     null,
@@ -819,6 +825,9 @@ function PaletteStudioContent() {
 
       {activeSection === "semantics" && (
         <SemanticEditor
+          buttonSchemes={
+            workspace.project?.buttonSchemes ?? [...BUTTON_SCHEMES]
+          }
           palettes={palettes}
           tokens={semantics ?? []}
           onChange={setSemantics}
@@ -927,6 +936,9 @@ function PaletteStudioContent() {
           palette: project,
           semantics,
           removedSeedRoles: workspace.project?.removedSeedRoles ?? [],
+          buttonSchemes: workspace.project?.buttonSchemes ?? [
+            ...BUTTON_SCHEMES,
+          ],
         }}
         onOpenChange={setIsExportDialogOpen}
       />
@@ -942,7 +954,9 @@ function PaletteStudioContent() {
              below only ever writes its own slice. */
           writeImportedWorkspace(pendingImport);
           setForeign(pendingImport);
-          setSemantics(pendingImport.semantics);
+          setSemantics(pendingImport.semantics, {
+            buttonSchemes: pendingImport.buttonSchemes,
+          });
           /* The name comes off the workspace now, not out of the palette
              slice it used to ride in on. */
           setName(pendingImport.name);

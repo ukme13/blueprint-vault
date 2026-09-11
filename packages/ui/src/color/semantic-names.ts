@@ -1,6 +1,6 @@
 import { semanticId, type SemanticToken } from "./semantic";
 import type { SemanticEdit } from "./selection-ops";
-import { usedBy } from "./role-consumers";
+import { usedBy, type RoleConsumerOptions } from "./role-consumers";
 
 /** The first identifier segment is the folder shown in the semantic table. */
 export function groupOf(id: string): string {
@@ -26,6 +26,7 @@ export function renameTokenFromCell(
   layer: SemanticToken[],
   id: string,
   value: string,
+  options?: RoleConsumerOptions,
 ): SemanticEdit {
   const token = layer.find((candidate) => candidate.id === id);
   if (!token) return { layer, refusals: [], removed: [], added: [] };
@@ -36,7 +37,7 @@ export function renameTokenFromCell(
   const target = value.includes(".") ? wanted : withGroup(wanted, groupOf(id));
   if (target === id) return { layer, refusals: [], removed: [], added: [] };
 
-  if (usedBy(id).length > 0) {
+  if (usedBy(id, options).length > 0) {
     return {
       layer,
       refusals: [
@@ -47,7 +48,7 @@ export function renameTokenFromCell(
               ? "renamed"
               : "moved to another group"
           }: it is read by name. Repoint it instead.`,
-          usedBy: usedBy(id),
+          usedBy: usedBy(id, options),
         },
       ],
       removed: [],

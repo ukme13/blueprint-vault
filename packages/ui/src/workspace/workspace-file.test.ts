@@ -4,10 +4,11 @@ import {
   rememberRemovedSeedRoles,
   seedSemanticTokens,
 } from "../color/semantic";
-import { deleteTokens } from "../color/selection-ops";
+import { deleteTokens, dropButtonScheme } from "../color/selection-ops";
 import { defaultElevationScale } from "../scale/elevation";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
+import { normalizeButtonSchemes } from "../button-tones";
 import { defaultPreviewDevices } from "../typography/preview-devices";
 import { defaultSystem } from "../typography/system";
 import {
@@ -82,6 +83,7 @@ const workspace = (over: Partial<WorkspaceProject> = {}): WorkspaceProject => ({
   },
   semantics: null,
   removedSeedRoles: [],
+  buttonSchemes: normalizeButtonSchemes(undefined),
   spacing: defaultSpacingScale(),
   radius: defaultRadiusScale(),
   elevation: defaultElevationScale(),
@@ -604,5 +606,42 @@ describe("a seed role somebody deleted stays deleted", () => {
     );
 
     expect(after.removedSeedRoles).toEqual(["border.subtle"]);
+  });
+});
+
+describe("buttonSchemes", () => {
+  it("treats a missing field as every seed scheme", () => {
+    const file = JSON.parse(formatBlueprintWorkspace(workspace())) as {
+      project: Record<string, unknown>;
+    };
+    delete file.project.buttonSchemes;
+    const after = parseBlueprintWorkspace(JSON.stringify(file));
+    expect(after.buttonSchemes).toEqual(normalizeButtonSchemes(undefined));
+  });
+
+  it("keeps a dropped tone dropped through the file", () => {
+    const base = workspace();
+    const tracks = generatePalettes({
+      tracks: base.palette!.tracks,
+      lightnessValues: base.palette!.lightnessValues,
+    });
+    const dropped = dropButtonScheme(
+      seedSemanticTokens(tracks),
+      normalizeButtonSchemes(undefined),
+      "info",
+    );
+    const after = parseBlueprintWorkspace(
+      formatBlueprintWorkspace({
+        ...base,
+        semantics: dropped.edit.layer,
+        removedSeedRoles: dropped.edit.removed,
+        buttonSchemes: dropped.buttonSchemes,
+      }),
+    );
+
+    expect(after.buttonSchemes).not.toContain("info");
+    expect(after.semantics!.map((token) => token.id)).not.toContain(
+      "status.info",
+    );
   });
 });

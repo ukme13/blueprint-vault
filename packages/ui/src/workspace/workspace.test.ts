@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { defaultElevationScale } from "../scale/elevation";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
+import { normalizeButtonSchemes } from "../button-tones";
 import { defaultPreviewDevices } from "../typography/preview-devices";
 import { defaultSystem } from "../typography/system";
 import {
@@ -246,6 +247,7 @@ describe("readWorkspaceProject", () => {
       typography: null,
       semantics: null,
       removedSeedRoles: [],
+      buttonSchemes: normalizeButtonSchemes(undefined),
       spacing: defaultSpacingScale(),
       radius: defaultRadiusScale(),
       elevation: defaultElevationScale(),

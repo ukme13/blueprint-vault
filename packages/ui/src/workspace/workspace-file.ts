@@ -20,6 +20,7 @@ import {
 import { readTypographyProjectData } from "./typography-project";
 import { DEFAULT_WORKSPACE_NAME } from "./workspace";
 import type { WorkspaceProject } from "./types";
+import { normalizeButtonSchemes } from "../button-tones";
 
 export const BLUEPRINT_WORKSPACE_FILE_VERSION = 7;
 
@@ -99,6 +100,7 @@ function paletteOnlyWorkspace(
     typography: null,
     semantics: semanticsForPalette(project),
     removedSeedRoles: [],
+    buttonSchemes: normalizeButtonSchemes(undefined),
     spacing: spacingOrDefault(undefined),
     radius: radiusOrDefault(undefined),
     elevation: elevationOrDefault(undefined),
@@ -207,6 +209,7 @@ function readWorkspaceFileProject(value: unknown): WorkspaceProject {
        which way it came in — the fault the semantic top-up itself shipped
        once. */
     removedSeedRoles,
+    buttonSchemes: normalizeButtonSchemes(raw.buttonSchemes),
     spacing: spacingOrDefault(raw.spacing),
     radius: radiusOrDefault(raw.radius),
     elevation: elevationOrDefault(raw.elevation),

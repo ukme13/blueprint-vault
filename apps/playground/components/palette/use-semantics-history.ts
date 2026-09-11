@@ -5,6 +5,7 @@ import {
   createSemanticsHistory,
   semanticsSnapshotOf,
   workspaceWithSnapshot,
+  type ButtonScheme,
   type SemanticsSnapshot,
   type SemanticToken,
   type WorkspaceStore,
@@ -39,7 +40,11 @@ export interface SemanticsHistoryBinding {
    */
   write: (
     tokens: SemanticToken[] | null,
-    options?: { editKey?: string; justRemoved?: readonly string[] },
+    options?: {
+      editKey?: string;
+      justRemoved?: readonly string[];
+      buttonSchemes?: readonly ButtonScheme[];
+    },
   ) => void;
   /**
    * Undo and redo, ready for a keyboard.
@@ -62,7 +67,11 @@ export function useSemanticsHistory(
   /* A ref, not state: the history is a mutable object whose identity never
      changes, and holding it in state would replace it on every keystroke. */
   const history = useRef(
-    createSemanticsHistory({ tokens: null, removedSeedRoles: [] }),
+    createSemanticsHistory({
+      tokens: null,
+      removedSeedRoles: [],
+      buttonSchemes: [],
+    }),
   );
   const [available, setAvailable] = useState({
     canUndo: false,
@@ -103,12 +112,17 @@ export function useSemanticsHistory(
   const write = useCallback(
     (
       tokens: SemanticToken[] | null,
-      options?: { editKey?: string; justRemoved?: readonly string[] },
+      options?: {
+        editKey?: string;
+        justRemoved?: readonly string[];
+        buttonSchemes?: readonly ButtonScheme[];
+      },
     ) => {
       store_(
         history.current.commit(tokens, {
           key: options?.editKey,
           justRemoved: options?.justRemoved,
+          buttonSchemes: options?.buttonSchemes,
         }),
       );
     },
