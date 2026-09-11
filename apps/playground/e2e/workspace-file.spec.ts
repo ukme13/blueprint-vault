@@ -62,7 +62,7 @@ async function importOnCreationScreen(
  */
 async function exportedFile(page: Page): Promise<string> {
   await page.getByRole("button", { name: "Export palette" }).click();
-  await page.getByRole("button", { name: "Blueprint Workspace" }).click();
+  await page.getByRole("button", { name: "Blueprint" }).click();
   await expect(
     page.getByRole("region", { name: "Export preview" }),
   ).toBeVisible();

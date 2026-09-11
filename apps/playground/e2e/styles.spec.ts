@@ -213,7 +213,11 @@ test.describe("The step specimen", () => {
        cropping the thing it exists to show. */
     await seed(page);
     const steps = page.getByRole("region", { name: "Generated type steps" });
-    const sample = steps.locator("input").first();
+    /* Named rather than `input.first()`: the rem-root NumberInput sits in this
+       region too, and filling that instead measured a spinbutton. */
+    const sample = steps
+      .getByRole("textbox", { name: "Specimen text" })
+      .first();
     await sample.fill("How vexingly zebra ทดสอบ");
 
     const fits = async () =>

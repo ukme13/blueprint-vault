@@ -49,7 +49,7 @@ trip in and act on linear RGB directly. See stage 1.
 computing anything new.
 
 **The export dialog already has a format switch** — CSS, Tailwind, Design
-Tokens, Blueprint Workspace — so the report is another entry beside them rather
+Tokens, Blueprint — so the report is another entry beside them rather
 than new UI.
 
 **Gap: the contrast mode is not persisted.** `isContrastModeOpen` is component

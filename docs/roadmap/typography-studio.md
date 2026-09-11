@@ -61,7 +61,10 @@ font-size rather than sitting still in px. A typed value on one preview frame
 unlinks that frame the same way line-height does; missing keys follow the
 shared `letterSpacingPx`. Each group's auto line-height ratio is stored on
 the group (Display 1.1, Headings 1.2, Body 1.5, Label 1.3, Caption 1.4) and
-edited beside the name; roles still on auto follow it.
+edited beside the name; roles still on auto follow it. `rem` divides by a
+project `remRootPx` (default 16, range 10–24) rather than a hardcoded 16.
+The CSS names a non-default root as a comment and never writes
+`html { font-size }`.
 
 ## Safety and quality rules
 

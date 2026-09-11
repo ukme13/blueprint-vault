@@ -5,10 +5,15 @@ import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Dialog } from "@astryxdesign/core/Dialog";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
+import { NumberInput } from "@astryxdesign/core/NumberInput";
 import {
   Button,
+  clampRemRootPx,
   formatTypeSystemCssExport,
   formatTypeSystemTailwindExport,
+  MAX_REM_ROOT_PX,
+  MIN_REM_ROOT_PX,
+  ROOT_FONT_SIZE_PX,
   TYPE_SCALE_UNITS,
   type PreviewDevice,
   type TypeSystem,
@@ -35,9 +40,11 @@ interface TypographyExportDialogProps {
   projectName: string;
   system: TypeSystem;
   unit: TypeScaleUnit;
+  remRootPx: number;
   devices: readonly PreviewDevice[];
   onOpenChange: (isOpen: boolean) => void;
   onUnitChange: (unit: TypeScaleUnit) => void;
+  onRemRootChange: (remRootPx: number) => void;
 }
 
 export function TypographyExportDialog({
@@ -45,9 +52,11 @@ export function TypographyExportDialog({
   projectName,
   system,
   unit,
+  remRootPx,
   devices,
   onOpenChange,
   onUnitChange,
+  onRemRootChange,
 }: TypographyExportDialogProps) {
   const [exportFormat, setExportFormat] = useState<ExportFormat>("css");
 
@@ -58,9 +67,9 @@ export function TypographyExportDialog({
   const output = useMemo(
     () =>
       exportFormat === "tailwind"
-        ? formatTypeSystemTailwindExport(system, unit, devices)
-        : formatTypeSystemCssExport(system, unit, devices),
-    [devices, exportFormat, system, unit],
+        ? formatTypeSystemTailwindExport(system, unit, devices, remRootPx)
+        : formatTypeSystemCssExport(system, unit, devices, remRootPx),
+    [devices, exportFormat, remRootPx, system, unit],
   );
 
   const filename = `${
@@ -136,9 +145,25 @@ export function TypographyExportDialog({
               </Button>
             ))}
           </div>
+          {unit === "rem" && (
+            <NumberInput
+              isIntegerOnly
+              isWheelEnabled={false}
+              label="rem root"
+              labelTooltip="The html font-size rem divides by. Default 16. The file names this as a comment when it is not 16; it does not set html { font-size }."
+              max={MAX_REM_ROOT_PX}
+              min={MIN_REM_ROOT_PX}
+              size="sm"
+              units="px"
+              value={remRootPx}
+              width="100%"
+              onChange={(value) => onRemRootChange(clampRemRootPx(value))}
+            />
+          )}
           <p className={styles.exportUnitHint}>
-            rem scales with the reader&rsquo;s browser font-size setting. px and
-            pt do not.
+            {unit === "rem" && remRootPx !== ROOT_FONT_SIZE_PX
+              ? `These rem values assume a ${remRootPx}px root. They still scale with the reader's browser font-size if that root is not forced on html.`
+              : "rem scales with the reader's browser font-size setting. px and pt do not."}
           </p>
           {localFamilies.length > 0 && (
             /* Said here as well as where the file was added, because this is

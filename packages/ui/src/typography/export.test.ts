@@ -6,7 +6,7 @@ import {
   formatTypeScaleCssExport,
   formatTypeScaleTailwindExport,
 } from "./export";
-import { ROOT_FONT_SIZE_PX, TYPE_SCALE_UNITS } from "./types";
+import { ROOT_FONT_SIZE_PX, TYPE_SCALE_UNITS, clampRemRootPx } from "./types";
 import { generateTypeScale } from "./scale";
 
 const scale = generateTypeScale({
@@ -55,6 +55,16 @@ describe("convertLength", () => {
     expect(convertLength(18, "rem")).toBe(1.125);
   });
 
+  it("divides by a configured rem root rather than always 16", () => {
+    expect(convertLength(18, "rem", 18)).toBe(1);
+    expect(convertLength(16, "rem", 18)).toBeCloseTo(16 / 18, 10);
+  });
+
+  it("falls back to 16 when the rem root is not a usable number", () => {
+    expect(convertLength(16, "rem", 0)).toBe(1);
+    expect(convertLength(16, "rem", Number.NaN)).toBe(1);
+  });
+
   it("uses 72pt per inch against 96px per inch", () => {
     expect(convertLength(16, "pt")).toBe(12);
     expect(convertLength(96, "pt")).toBe(72);
@@ -75,6 +85,7 @@ describe("convertLength", () => {
             : converted;
       expect(back).toBeCloseTo(20, 10);
     });
+    expect(convertLength(20, "rem", 18) * 18).toBeCloseTo(20, 10);
   });
 });
 
@@ -83,6 +94,11 @@ describe("formatLength", () => {
     expect(formatLength(16, "rem")).toBe("1rem");
     expect(formatLength(16, "px")).toBe("16px");
     expect(formatLength(16, "pt")).toBe("12pt");
+  });
+
+  it("divides rem by the configured root", () => {
+    expect(formatLength(18, "rem", 18)).toBe("1rem");
+    expect(formatLength(16, "rem", 18)).toBe("0.8889rem");
   });
 });
 
@@ -132,6 +148,19 @@ describe("export units", () => {
     });
   });
 
+  it("comments on a non-default rem root and leaves 16 unspoken", () => {
+    expect(formatTypeScaleCssExport(scale, "rem", 18)).toContain(
+      "/* Lengths in rem assume html { font-size: 18px }. */",
+    );
+    expect(formatTypeScaleCssExport(scale, "rem", 18)).toContain(
+      "--font-body-size: 0.8889rem;",
+    );
+    expect(formatTypeScaleCssExport(scale)).not.toContain("assume html");
+    expect(formatTypeScaleCssExport(scale, "px", 18)).not.toContain(
+      "assume html",
+    );
+  });
+
   it("applies the unit to the Tailwind export too", () => {
     expect(formatTypeScaleTailwindExport(scale, "pt")).toContain(
       "--font-body-size: 12pt;",
@@ -142,5 +171,22 @@ describe("export units", () => {
     const before = JSON.stringify(scale);
     TYPE_SCALE_UNITS.forEach((unit) => formatTypeScaleCssExport(scale, unit));
     expect(JSON.stringify(scale)).toBe(before);
+  });
+});
+
+describe("clampRemRootPx", () => {
+  it("keeps a value in range, rounded to an integer", () => {
+    expect(clampRemRootPx(18)).toBe(18);
+    expect(clampRemRootPx(16.4)).toBe(16);
+  });
+
+  it("clamps to 10 and 24", () => {
+    expect(clampRemRootPx(4)).toBe(10);
+    expect(clampRemRootPx(40)).toBe(24);
+  });
+
+  it("falls back to 16 when the value is not a number", () => {
+    expect(clampRemRootPx(Number.NaN)).toBe(ROOT_FONT_SIZE_PX);
+    expect(clampRemRootPx(Number.POSITIVE_INFINITY)).toBe(ROOT_FONT_SIZE_PX);
   });
 });

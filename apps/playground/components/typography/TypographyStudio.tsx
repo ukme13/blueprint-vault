@@ -20,8 +20,10 @@ import {
   generatePalettes,
   generateTypeSteps,
   MAX_BASE_FONT_SIZE_PX,
+  MAX_REM_ROOT_PX,
   MAX_STEP_COUNT,
   MIN_BASE_FONT_SIZE_PX,
+  MIN_REM_ROOT_PX,
   MIN_STEP_COUNT,
   familiesToCss,
   findGoogleFont,
@@ -38,6 +40,7 @@ import {
   resolveRoleSizePx,
   TYPE_SCALE_UNITS,
   TYPE_SCALE_RATIO_PRESETS,
+  clampRemRootPx,
   hybridPresetsFromModularScale,
   type PaletteProjectData,
   type TypeRole,
@@ -85,6 +88,7 @@ import {
   DEFAULT_SPECIMEN_TEXT,
   DEFAULT_TEMPLATE,
   DEFAULT_UNIT,
+  DEFAULT_REM_ROOT_PX,
   readStoredPalette,
   readStoredProject,
   writeStoredProject,
@@ -399,6 +403,7 @@ export function TypographyStudio() {
               stepCount,
             ),
             unit: DEFAULT_UNIT,
+            remRootPx: DEFAULT_REM_ROOT_PX,
             specimenText: DEFAULT_SPECIMEN_TEXT,
             template: DEFAULT_TEMPLATE,
             previewDevices: defaultPreviewDevices(ratio),
@@ -530,7 +535,7 @@ export function TypographyStudio() {
           <section aria-label="Generated type steps" className={styles.canvas}>
             {/* Sits above the steps so the unit is chosen where the sizes are
                 read, not buried in the export dialog. */}
-            <div className="flex flex-wrap items-center gap-2 pb-3">
+            <div className="flex flex-wrap items-end gap-2 pb-3">
               <SegmentedControl
                 label="Size unit"
                 size="sm"
@@ -547,6 +552,23 @@ export function TypographyStudio() {
                   />
                 ))}
               </SegmentedControl>
+              {project.unit === "rem" && (
+                <NumberInput
+                  isIntegerOnly
+                  isWheelEnabled={false}
+                  label="rem root"
+                  labelTooltip="The html font-size rem divides by. Default 16. The export names this as a comment when it is not 16; it does not set html { font-size }."
+                  max={MAX_REM_ROOT_PX}
+                  min={MIN_REM_ROOT_PX}
+                  size="sm"
+                  units="px"
+                  value={project.remRootPx}
+                  width={112}
+                  onChange={(value) =>
+                    setPreference({ remRootPx: clampRemRootPx(value) })
+                  }
+                />
+              )}
 
               {/* Only worth showing once there is a choice to make. */}
               {system.fonts.length > 1 && (
@@ -628,7 +650,13 @@ export function TypographyStudio() {
                       />
                     </span>
                     <span className={styles.stepMeta}>
-                      <code>{formatLength(step.fontSizePx, project.unit)}</code>
+                      <code>
+                        {formatLength(
+                          step.fontSizePx,
+                          project.unit,
+                          project.remRootPx,
+                        )}
+                      </code>
                       {Math.abs(step.exactFontSizePx - step.fontSizePx) >
                         0.01 && (
                         <small
@@ -658,6 +686,7 @@ export function TypographyStudio() {
             system={system}
             template={project.template}
             unit={project.unit}
+            remRootPx={project.remRootPx}
             onTemplateChange={(template) => setPreference({ template })}
             backgroundShade={backgroundShade}
             textShade={textShade}
@@ -950,9 +979,11 @@ export function TypographyStudio() {
         projectName={system.name}
         system={system}
         unit={project.unit}
+        remRootPx={project.remRootPx}
         devices={project.previewDevices}
         onOpenChange={setIsExportDialogOpen}
         onUnitChange={(unit) => setPreference({ unit })}
+        onRemRootChange={(remRootPx) => setPreference({ remRootPx })}
       />
 
       <AlertDialog

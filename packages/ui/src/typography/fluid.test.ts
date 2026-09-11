@@ -14,6 +14,10 @@ describe("fluidLengthClamp", () => {
     );
   });
 
+  it("divides rem by a configured root", () => {
+    expect(fluidLengthClamp(375, 18, 768, 18, "rem", 18)).toBe("1rem");
+  });
+
   it("puts the smaller size first when type shrinks as the viewport grows", () => {
     expect(fluidLengthClamp(375, 24, 768, 16, "px")).toBe(
       "clamp(16px, calc(24px - 8px * (100vw - 375px) / 393px), 24px)",
