@@ -2,7 +2,13 @@ import { describe, expect, it } from "vitest";
 import { generatePalettes } from "./palette";
 import { usedBy } from "./role-consumers";
 import {
+  BUTTON_SCHEMES,
+  buttonSchemeRoleIds,
+  normalizeButtonSchemes,
+} from "../button-tones";
+import {
   deleteTokens,
+  dropButtonScheme,
   formatSemanticClipboard,
   parseSemanticClipboard,
   pasteTokens,
@@ -579,5 +585,39 @@ describe("pasteTokens", () => {
     const result = pasteTokens(before, []);
     expect(result.layer).toBe(before);
     expect(result.added).toEqual([]);
+  });
+});
+
+describe("dropButtonScheme", () => {
+  it("deletes the eight roles that fed a tone, once the scheme is off the list", () => {
+    /* Deleting the rows first still sees the Button as a consumer. The
+       operation exists to lift that lock: shrink the list, then delete. */
+    const tokens = seedSemanticTokens(palette());
+    const schemes = normalizeButtonSchemes(undefined);
+    const infoIds = buttonSchemeRoleIds("info");
+
+    const refused = deleteTokens(tokens, infoIds);
+    expect(refused.layer).toBe(tokens);
+    expect(refused.refusals).toHaveLength(infoIds.length);
+
+    const dropped = dropButtonScheme(tokens, schemes, "info");
+    expect(dropped.buttonSchemes).not.toContain("info");
+    expect(dropped.buttonSchemes).toContain("primary");
+    expect(dropped.edit.refusals).toEqual([]);
+    expect(dropped.edit.removed).toEqual(infoIds);
+    for (const id of infoIds) {
+      expect(dropped.edit.layer.map((token) => token.id)).not.toContain(id);
+    }
+  });
+
+  it("refuses to drop primary, and leaves the layer alone", () => {
+    const tokens = seedSemanticTokens(palette());
+    const schemes = [...BUTTON_SCHEMES];
+    const dropped = dropButtonScheme(tokens, schemes, "primary");
+
+    expect(dropped.buttonSchemes).toEqual(schemes);
+    expect(dropped.edit.layer).toBe(tokens);
+    expect(dropped.edit.refusals).toHaveLength(1);
+    expect(dropped.edit.refusals[0]!.reason).toContain("cannot be removed");
   });
 });

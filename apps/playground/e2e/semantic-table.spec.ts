@@ -653,3 +653,35 @@ test.describe("Folder names and spreadsheet editing", () => {
     await expect(separator).not.toHaveAttribute("aria-valuenow", before ?? "");
   });
 });
+
+test.describe("Button tones", () => {
+  test("removing Info deletes those roles and keeps them gone after reload", async ({
+    seededPage: page,
+  }) => {
+    const editor = await openSemantics(page);
+    const tones = editor.getByRole("region", { name: "Button tones" });
+
+    await expect(tones.getByText("Primary", { exact: true })).toBeVisible();
+    await expect(
+      tones.getByRole("button", { name: "Remove Primary tone" }),
+    ).toHaveCount(0);
+
+    await tones.getByRole("button", { name: "Remove Info tone" }).click();
+    await expect(editor.locator('[data-token="status.info"]')).toHaveCount(0);
+    await expect(
+      tones.getByRole("button", { name: "Remove Info tone" }),
+    ).toHaveCount(0);
+
+    await page.reload();
+    await expect(
+      page.getByRole("region", { name: "Palette toolbar" }),
+    ).toBeVisible();
+    const after = await openSemantics(page);
+    await expect(after.locator('[data-token="status.info"]')).toHaveCount(0);
+    await expect(
+      after
+        .getByRole("region", { name: "Button tones" })
+        .getByRole("button", { name: "Remove Info tone" }),
+    ).toHaveCount(0);
+  });
+});

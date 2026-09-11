@@ -115,3 +115,82 @@ export function buttonToneStyle(scheme: ButtonScheme): Record<string, string> {
     "--btn-soft-hover": roles.surfaceHover,
   };
 }
+
+/**
+ * Schemes the studio chrome and the palette preview cannot open without.
+ *
+ * `primary` is the fill of every contained control that does not name a tone,
+ * and `action.primary` is one of the four tokens `previewShadesFor` requires.
+ * The others are a client's vocabulary: a workspace with no info status
+ * should be able to throw that tone away.
+ */
+export const REQUIRED_BUTTON_SCHEMES: readonly ButtonScheme[] = ["primary"];
+
+export const BUTTON_SCHEME_LABELS: Record<ButtonScheme, string> = {
+  primary: "Primary",
+  secondary: "Secondary",
+  neutral: "Neutral",
+  success: "Success",
+  warning: "Warning",
+  error: "Error",
+  info: "Info",
+};
+
+/** `--color-action-primary-hover` → `action.primary-hover`. */
+export function roleIdFromColorVariable(variable: string): string {
+  const body = variable.replace(/^--color-/, "");
+  return body.replace(/^([a-z]+)-/, "$1.");
+}
+
+function roleIdsFromTone(roles: ButtonToneRoles): string[] {
+  const ids = new Set<string>();
+  for (const value of Object.values(roles) as string[]) {
+    for (const [, name] of value.matchAll(/var\((--color-[a-z0-9-]+)\)/g)) {
+      ids.add(roleIdFromColorVariable(name!));
+    }
+  }
+  return [...ids];
+}
+
+/** Every semantic role one scheme reads, fill and companions. */
+export function buttonSchemeRoleIds(scheme: ButtonScheme): string[] {
+  const roles = BUTTON_TONES[scheme];
+  return roles ? roleIdsFromTone(roles) : [];
+}
+
+const SCHEME_BY_ROLE_ID: ReadonlyMap<string, ButtonScheme> = (() => {
+  const map = new Map<string, ButtonScheme>();
+  for (const scheme of BUTTON_SCHEMES) {
+    for (const id of buttonSchemeRoleIds(scheme)) {
+      map.set(id, scheme);
+    }
+  }
+  return map;
+})();
+
+/** Which scheme reads this role, if any. */
+export function buttonSchemeForRoleId(id: string): ButtonScheme | undefined {
+  return SCHEME_BY_ROLE_ID.get(id);
+}
+
+/**
+ * A stored scheme list, or the seed set when a file never named one.
+ *
+ * Unknown strings are dropped. `primary` cannot be omitted: a workspace
+ * without it has no default action colour. Order follows `BUTTON_SCHEMES`
+ * so two files that name the same tones compare equal.
+ */
+export function normalizeButtonSchemes(value: unknown): ButtonScheme[] {
+  if (value === undefined || value === null) return [...BUTTON_SCHEMES];
+  const allowed = new Set<string>(BUTTON_SCHEMES);
+  const named = new Set(
+    Array.isArray(value)
+      ? value.filter(
+          (entry): entry is ButtonScheme =>
+            typeof entry === "string" && allowed.has(entry),
+        )
+      : BUTTON_SCHEMES,
+  );
+  for (const scheme of REQUIRED_BUTTON_SCHEMES) named.add(scheme);
+  return BUTTON_SCHEMES.filter((scheme) => named.has(scheme));
+}

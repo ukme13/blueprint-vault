@@ -1,4 +1,15 @@
-import { listConsumers, usedBy } from "./role-consumers";
+import {
+  BUTTON_SCHEME_LABELS,
+  buttonSchemeRoleIds,
+  normalizeButtonSchemes,
+  REQUIRED_BUTTON_SCHEMES,
+  type ButtonScheme,
+} from "../button-tones";
+import {
+  listConsumers,
+  usedBy,
+  type RoleConsumerOptions,
+} from "./role-consumers";
 import { semanticGroupOf } from "./token-rows";
 import type { SemanticReference, SemanticToken } from "./semantic";
 import type { ColourMode } from "./semantic";
@@ -126,8 +137,12 @@ function notHere(id: string): SemanticRefusal {
 }
 
 /** The refusal for a role something reads by name. */
-function loadBearing(id: string, verb: string): SemanticRefusal {
-  const consumers = usedBy(id);
+function loadBearing(
+  id: string,
+  verb: string,
+  options?: RoleConsumerOptions,
+): SemanticRefusal {
+  const consumers = usedBy(id, options);
   return {
     id,
     reason: `${id} cannot be ${verb}: ${listConsumers(consumers)} ${consumers.length === 1 ? "reads" : "read"} it by name. Repoint it instead.`,
@@ -148,6 +163,7 @@ function loadBearing(id: string, verb: string): SemanticRefusal {
 export function deleteTokens(
   layer: SemanticToken[],
   ids: readonly string[],
+  options?: RoleConsumerOptions,
 ): SemanticEdit {
   const present = new Set(layer.map((token) => token.id));
   const refusals: SemanticRefusal[] = [];
@@ -158,8 +174,8 @@ export function deleteTokens(
       refusals.push(notHere(id));
       continue;
     }
-    if (usedBy(id).length > 0) {
-      refusals.push(loadBearing(id, "deleted"));
+    if (usedBy(id, options).length > 0) {
+      refusals.push(loadBearing(id, "deleted", options));
       continue;
     }
     deleting.add(id);
@@ -172,6 +188,46 @@ export function deleteTokens(
     refusals,
     [...deleting],
   );
+}
+
+/**
+ * Drop a button tone from the workspace: the scheme goes, and so do the
+ * roles that only existed to feed it.
+ *
+ * The scheme list is updated first, then the roles are deleted against that
+ * list. Doing it the other way round would still see the Button and the
+ * bridge as consumers and refuse every row — which is the lock this
+ * operation exists to lift.
+ *
+ * `primary` cannot be dropped. Everything else is a client's vocabulary.
+ */
+export function dropButtonScheme(
+  layer: SemanticToken[],
+  schemes: readonly ButtonScheme[],
+  scheme: ButtonScheme,
+): { buttonSchemes: ButtonScheme[]; edit: SemanticEdit } {
+  const current = normalizeButtonSchemes(schemes);
+  if (REQUIRED_BUTTON_SCHEMES.includes(scheme)) {
+    return {
+      buttonSchemes: current,
+      edit: edit(layer, [
+        {
+          id: scheme,
+          reason: `${BUTTON_SCHEME_LABELS[scheme]} cannot be removed: the palette preview and the studio chrome read it by name.`,
+          usedBy: usedBy(buttonSchemeRoleIds(scheme)[0] ?? "action.primary"),
+        },
+      ]),
+    };
+  }
+  if (!current.includes(scheme)) {
+    return { buttonSchemes: current, edit: edit(layer) };
+  }
+  const buttonSchemes = current.filter((entry) => entry !== scheme);
+  const ids = buttonSchemeRoleIds(scheme);
+  return {
+    buttonSchemes,
+    edit: deleteTokens(layer, ids, { buttonSchemes }),
+  };
 }
 
 /**
@@ -271,6 +327,7 @@ export function moveToGroup(
   layer: SemanticToken[],
   ids: readonly string[],
   group: string,
+  options?: RoleConsumerOptions,
 ): SemanticEdit {
   const present = new Set(layer.map((token) => token.id));
   const refusals: SemanticRefusal[] = [];
@@ -286,8 +343,8 @@ export function moveToGroup(
     const next = regroup(id, group);
     if (next === id) continue;
 
-    if (usedBy(id).length > 0) {
-      refusals.push(loadBearing(id, "moved to another group"));
+    if (usedBy(id, options).length > 0) {
+      refusals.push(loadBearing(id, "moved to another group", options));
       continue;
     }
     if (taken.has(next)) {

@@ -9,6 +9,7 @@ import {
   semanticVariableName,
   shortName,
   usedBy,
+  type ButtonScheme,
   type ColorTrack,
   type SemanticToken,
 } from "@blueprint/ui";
@@ -33,6 +34,7 @@ interface SemanticRowProps {
   editing: SemanticCell | null;
   actions: SemanticRowActions;
   canReorder: boolean;
+  buttonSchemes: readonly ButtonScheme[];
   onRowClick: (event: MouseEvent<HTMLTableRowElement>) => void;
   onEdit: (cell: SemanticCell) => void;
   onCancel: () => void;
@@ -57,7 +59,7 @@ export function SemanticRow(props: SemanticRowProps) {
     canReorder: props.canReorder,
     onRowClick: props.onRowClick,
   });
-  const consumers = usedBy(token.id);
+  const consumers = usedBy(token.id, { buttonSchemes: props.buttonSchemes });
   const cell = (key: SemanticColumnKey) => {
     if (key === "name")
       return (

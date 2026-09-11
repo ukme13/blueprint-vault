@@ -8,6 +8,7 @@ import { defaultSystem } from "../typography/system";
 import { splitFontFamily } from "../typography/migrate";
 import { defaultLightnessValues } from "./palette-project";
 import { semanticsForPalette } from "./semantics";
+import { normalizeButtonSchemes } from "../button-tones";
 import {
   DEFAULT_PREVIEW_TEMPLATE,
   DEFAULT_SPECIMEN_TEXT,
@@ -109,6 +110,7 @@ export function seedWorkspaceProject(name: string): WorkspaceProject {
     palette,
     semantics: semanticsForPalette(palette),
     removedSeedRoles: [],
+    buttonSchemes: normalizeButtonSchemes(undefined),
     spacing: defaultSpacingScale(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),

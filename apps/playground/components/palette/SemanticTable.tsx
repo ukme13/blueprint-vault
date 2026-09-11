@@ -18,6 +18,7 @@ import {
   groupSemanticTokens,
   semanticVariableName,
   shortName,
+  type ButtonScheme,
   type ColorTrack,
   type SemanticToken,
 } from "@blueprint/ui";
@@ -38,6 +39,7 @@ interface SemanticTableProps {
   isSelected: (id: string) => boolean;
   editing: { id: string; cell: SemanticCell } | null;
   actionsFor: (id: string) => SemanticRowActions;
+  buttonSchemes: readonly ButtonScheme[];
   onRowClick: (id: string, event: MouseEvent<HTMLTableRowElement>) => void;
   onEdit: (id: string, cell: SemanticCell) => void;
   onCancel: () => void;
@@ -101,6 +103,7 @@ export function SemanticTable(props: SemanticTableProps) {
       selected={props.isSelected(token.id)}
       editing={props.editing?.id === token.id ? props.editing.cell : null}
       actions={props.actionsFor(token.id)}
+      buttonSchemes={props.buttonSchemes}
       canReorder={canReorder}
       onRowClick={(event) => props.onRowClick(token.id, event)}
       onEdit={(cell) => props.onEdit(token.id, cell)}

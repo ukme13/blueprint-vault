@@ -1,7 +1,12 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { BUTTON_SCHEMES, BUTTON_TONES, buttonToneStyle } from "./button-tones";
+import {
+  BUTTON_SCHEMES,
+  BUTTON_TONES,
+  buttonToneStyle,
+  normalizeButtonSchemes,
+} from "./button-tones";
 import { generatePalettes } from "./color/palette";
 import { seedSemanticTokens } from "./color/semantic";
 import { seedWorkspaceProject } from "./workspace/seed-project";
@@ -96,5 +101,28 @@ describe("the Button's colours", () => {
        nothing else. */
     expect(BUTTON_SCHEMES).toContain("secondary");
     expect(BUTTON_SCHEMES).not.toContain("tertiary");
+  });
+});
+
+describe("normalizeButtonSchemes", () => {
+  it("treats a missing field as every seed scheme", () => {
+    expect(normalizeButtonSchemes(undefined)).toEqual([...BUTTON_SCHEMES]);
+    expect(normalizeButtonSchemes(null)).toEqual([...BUTTON_SCHEMES]);
+  });
+
+  it("cannot omit primary, and drops names the table does not have", () => {
+    expect(normalizeButtonSchemes([])).toEqual(["primary"]);
+    expect(normalizeButtonSchemes(["info", "tertiary", "primary"])).toEqual([
+      "primary",
+      "info",
+    ]);
+  });
+
+  it("keeps BUTTON_SCHEMES order so two files that name the same tones compare", () => {
+    expect(normalizeButtonSchemes(["info", "error", "primary"])).toEqual([
+      "primary",
+      "error",
+      "info",
+    ]);
   });
 });

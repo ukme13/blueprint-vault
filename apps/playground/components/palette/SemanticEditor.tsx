@@ -8,6 +8,7 @@ import {
   moveToGroup,
   reorderToken,
   renameTokenFromCell,
+  type ButtonScheme,
   type ColorTrack,
   type SemanticToken,
 } from "@blueprint/ui";
@@ -30,6 +31,7 @@ const RAIL_BELOW = 1024;
 interface SemanticEditorProps {
   tokens: SemanticToken[];
   palettes: ColorTrack[];
+  buttonSchemes: readonly ButtonScheme[];
   onChange: (next: SemanticToken[], options?: SemanticWriteOptions) => void;
   onUndo?: () => void;
   onRedo?: () => void;
@@ -38,6 +40,7 @@ interface SemanticEditorProps {
 export function SemanticEditor({
   tokens,
   palettes,
+  buttonSchemes,
   onChange,
   onUndo,
   onRedo,
@@ -51,7 +54,9 @@ export function SemanticEditor({
   const isRail = useMediaQuery(`(max-width: ${RAIL_BELOW - 1}px)`);
   const region = useRef<HTMLDivElement>(null);
 
-  const { apply, actionsFor } = useSemanticActions({
+  const consumers = { buttonSchemes };
+  const { apply, dropScheme, actionsFor } = useSemanticActions({
+    buttonSchemes,
     isSelected: selection.isSelected,
     onChange,
     onNewGroup: setGrouping,
@@ -80,6 +85,7 @@ export function SemanticEditor({
     selected: selection.selected,
     tokens,
     visible: selection.visible,
+    buttonSchemes,
   });
 
   if (palettes.length === 0) {
@@ -103,7 +109,7 @@ export function SemanticEditor({
     const currentToken = tokens[currentIndex];
     const result =
       cell === "name"
-        ? renameTokenFromCell(tokens, id, value)
+        ? renameTokenFromCell(tokens, id, value, consumers)
         : {
             layer: tokens.map((token) =>
               token.id === id ? { ...token, description: value } : token,
@@ -133,13 +139,15 @@ export function SemanticEditor({
     <>
       <section aria-label="Semantic tokens" className={styles.editor}>
         <SemanticSidebar
+          buttonSchemes={buttonSchemes}
           group={selection.group}
           isCollapsed={isRail}
           tokens={tokens}
           onGroupChange={selection.setGroup}
           onNewGroup={(name) =>
-            apply(moveToGroup(tokens, selection.selected, name))
+            apply(moveToGroup(tokens, selection.selected, name, consumers))
           }
+          onRemoveScheme={dropScheme}
         />
         <div
           ref={region}
@@ -171,6 +179,7 @@ export function SemanticEditor({
             <div className={styles.tableWrap}>
               <SemanticTable
                 actionsFor={actionsFor}
+                buttonSchemes={buttonSchemes}
                 editing={editing}
                 group={selection.group}
                 isSelected={selection.isSelected}
@@ -231,7 +240,7 @@ export function SemanticEditor({
         count={grouping?.length ?? 0}
         isOpen={grouping !== null}
         onCommit={(name) => {
-          if (grouping) apply(moveToGroup(tokens, grouping, name));
+          if (grouping) apply(moveToGroup(tokens, grouping, name, consumers));
           setGrouping(null);
         }}
         onOpenChange={(isOpen) => {
