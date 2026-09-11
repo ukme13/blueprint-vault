@@ -24,9 +24,28 @@ export const TYPE_SCALE_UNITS: TypeScaleUnit[] = ["rem", "px", "pt"];
  * Root font size that `rem` is measured against.
  *
  * This is the browser default, deliberately not the scale's own base size: a
- * scale with an 18px base should read as 1.125rem for body, not 1rem.
+ * scale with an 18px base should read as 1.125rem for body, not 1rem. A
+ * project may pick a different root; conversion still happens at the edges,
+ * and the CSS never writes `html { font-size }` — that would freeze the
+ * reader's own setting. A non-default root is a contract with whoever
+ * installs the file.
  */
 export const ROOT_FONT_SIZE_PX = 16;
+
+/** Smallest html root the rem field will accept. 10px is the 62.5% trick. */
+export const MIN_REM_ROOT_PX = 10;
+
+/** Largest html root the rem field will accept. */
+export const MAX_REM_ROOT_PX = 24;
+
+/** Clamp a stored or typed rem root onto the allowed integer range. */
+export function clampRemRootPx(value: number): number {
+  if (!Number.isFinite(value)) return ROOT_FONT_SIZE_PX;
+  return Math.min(
+    MAX_REM_ROOT_PX,
+    Math.max(MIN_REM_ROOT_PX, Math.round(value)),
+  );
+}
 
 export interface TypeStep {
   step: number;

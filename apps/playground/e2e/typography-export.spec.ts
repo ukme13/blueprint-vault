@@ -43,6 +43,24 @@ test.describe("Typography export", () => {
     ).toBeVisible();
   });
 
+  test("divides rem by a configured root", async ({ seededPage: page }) => {
+    const root = page
+      .getByRole("region", { name: "Generated type steps" })
+      .getByLabel("rem root");
+    await root.fill("18");
+    await root.blur();
+
+    await page.getByRole("button", { name: "Export type scale" }).click();
+
+    const preview = page.getByRole("region", { name: "Export preview" });
+    await expect(
+      preview.getByText("--font-body-size: 0.8889rem;"),
+    ).toBeVisible();
+    await expect(
+      preview.getByText("Lengths in rem assume html { font-size: 18px }."),
+    ).toBeVisible();
+  });
+
   test("interpolates body size with clamp between preview frames", async ({
     seededPage: page,
   }) => {

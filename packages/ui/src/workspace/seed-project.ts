@@ -3,6 +3,7 @@ import { defaultElevationScale } from "../scale/elevation";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { defaultPreviewDevices } from "../typography/preview-devices";
+import { ROOT_FONT_SIZE_PX } from "../typography/types";
 import { defaultSystem } from "../typography/system";
 import { splitFontFamily } from "../typography/migrate";
 import { defaultLightnessValues } from "./palette-project";
@@ -123,6 +124,7 @@ export function seedWorkspaceProject(name: string): WorkspaceProject {
       specimenText: DEFAULT_SPECIMEN_TEXT,
       template: DEFAULT_PREVIEW_TEMPLATE,
       previewDevices: defaultPreviewDevices(SEED_TYPOGRAPHY.ratio),
+      remRootPx: ROOT_FONT_SIZE_PX,
     },
   };
 }

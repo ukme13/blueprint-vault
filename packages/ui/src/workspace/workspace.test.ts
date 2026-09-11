@@ -148,6 +148,44 @@ describe("loadWorkspace — what a browser might already hold", () => {
     expect(project?.typography?.previewDevices).toEqual(
       defaultPreviewDevices(1.25),
     );
+    expect(project?.typography?.remRootPx).toBe(16);
+  });
+
+  it("keeps a stored rem root", () => {
+    const { project } = loadWorkspace({
+      workspace: json({
+        name: "Workspace",
+        palette: null,
+        typography: { ...legacyTypography(), remRootPx: 18 },
+      }),
+      legacyPalette: null,
+      legacyTypography: null,
+    });
+    expect(project?.typography?.remRootPx).toBe(18);
+  });
+
+  it("clamps a stored rem root onto the allowed range", () => {
+    const tooSmall = loadWorkspace({
+      workspace: json({
+        name: "Workspace",
+        palette: null,
+        typography: { ...legacyTypography(), remRootPx: 4 },
+      }),
+      legacyPalette: null,
+      legacyTypography: null,
+    });
+    expect(tooSmall.project?.typography?.remRootPx).toBe(10);
+
+    const tooLarge = loadWorkspace({
+      workspace: json({
+        name: "Workspace",
+        palette: null,
+        typography: { ...legacyTypography(), remRootPx: 40 },
+      }),
+      legacyPalette: null,
+      legacyTypography: null,
+    });
+    expect(tooLarge.project?.typography?.remRootPx).toBe(24);
   });
 
   it("prefers a stored workspace over the legacy keys", () => {

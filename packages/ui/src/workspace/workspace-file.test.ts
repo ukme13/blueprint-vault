@@ -79,6 +79,7 @@ const workspace = (over: Partial<WorkspaceProject> = {}): WorkspaceProject => ({
     specimenText: "Sphinx",
     template: "article",
     previewDevices: defaultPreviewDevices(1.25),
+    remRootPx: 16,
   },
   semantics: null,
   removedSeedRoles: [],
@@ -100,6 +101,7 @@ describe("a workspace file carries both halves", () => {
     expect(after.typography?.system.name).toBe("Brand");
     expect(after.typography?.unit).toBe("px");
     expect(after.typography?.specimenText).toBe("Sphinx");
+    expect(after.typography?.remRootPx).toBe(16);
   });
 
   it("keeps a workspace whose typography has never been opened", () => {

@@ -1,4 +1,8 @@
-import { formatLength, letterSpacingEm } from "./export";
+import {
+  formatLength,
+  letterSpacingEm,
+  remRootContractComment,
+} from "./export";
 import { fluidEmClamp, fluidLengthClamp, fluidUnitlessClamp } from "./fluid";
 import { findGoogleFont } from "./google-fonts";
 import {
@@ -14,7 +18,7 @@ import {
   resolveRoleSizePx,
   type TypeSystem,
 } from "./system";
-import type { TypeScaleUnit } from "./types";
+import { ROOT_FONT_SIZE_PX, type TypeScaleUnit } from "./types";
 
 /**
  * Export for the merged model.
@@ -159,6 +163,7 @@ function emitFluidProperty(
 function fluidRoleLines(
   frames: FrameSnapshot[],
   unit: TypeScaleUnit,
+  remRootPx: number,
 ): string[][] {
   const linesByFrame = frames.map((): string[] => []);
   const widths = frames.map((frame) => frame.device.widthPx);
@@ -175,8 +180,15 @@ function fluidRoleLines(
       role.tokenId,
       "size",
       (fromWidth, fromValue, toWidth, toValue) =>
-        fluidLengthClamp(fromWidth, fromValue, toWidth, toValue, unit),
-      (value) => formatLength(value, unit),
+        fluidLengthClamp(
+          fromWidth,
+          fromValue,
+          toWidth,
+          toValue,
+          unit,
+          remRootPx,
+        ),
+      (value) => formatLength(value, unit, remRootPx),
     );
     emitFluidProperty(
       linesByFrame,
@@ -201,7 +213,11 @@ function fluidRoleLines(
   return linesByFrame;
 }
 
-function sharedLines(system: TypeSystem, unit: TypeScaleUnit): string[] {
+function sharedLines(
+  system: TypeSystem,
+  unit: TypeScaleUnit,
+  remRootPx: number,
+): string[] {
   const fonts = system.fonts.map(
     (font) =>
       `  --font-family-${typeTokenId(font.id)}: ${font.families
@@ -221,7 +237,7 @@ function sharedLines(system: TypeSystem, unit: TypeScaleUnit): string[] {
     system.stepCount,
   ).map(
     (step) =>
-      `  --font-size-${step.step}: ${formatLength(step.fontSizePx, unit)};`,
+      `  --font-size-${step.step}: ${formatLength(step.fontSizePx, unit, remRootPx)};`,
   );
 
   const perRole = system.roles.flatMap((role) => {
@@ -265,7 +281,8 @@ function body(
   system: TypeSystem,
   unit: TypeScaleUnit,
   open: string,
-  devices?: readonly PreviewDevice[],
+  devices: readonly PreviewDevice[] | undefined,
+  remRootPx: number,
 ): string {
   const stacked = stackedPreviewDevices(system, devices);
   const desktop =
@@ -285,12 +302,14 @@ function body(
     device,
     roles: roleViewportTokens(system, device, desktopSizeByRoleId),
   }));
-  const roleLines = fluidRoleLines(snapshots, unit);
+  const roleLines = fluidRoleLines(snapshots, unit, remRootPx);
+  const remComment = remRootContractComment(unit, remRootPx);
 
   const lines = [
     ...googleFontNotice(system),
+    ...(remComment ? [remComment] : []),
     open,
-    ...sharedLines(system, unit),
+    ...sharedLines(system, unit, remRootPx),
     ...roleLines[0]!,
     "}",
   ];
@@ -315,14 +334,16 @@ export function formatTypeSystemCssExport(
   system: TypeSystem,
   unit: TypeScaleUnit = "rem",
   devices?: readonly PreviewDevice[],
+  remRootPx: number = ROOT_FONT_SIZE_PX,
 ): string {
-  return body(system, unit, ":root {", devices);
+  return body(system, unit, ":root {", devices, remRootPx);
 }
 
 export function formatTypeSystemTailwindExport(
   system: TypeSystem,
   unit: TypeScaleUnit = "rem",
   devices?: readonly PreviewDevice[],
+  remRootPx: number = ROOT_FONT_SIZE_PX,
 ): string {
-  return body(system, unit, "@theme static {", devices);
+  return body(system, unit, "@theme static {", devices, remRootPx);
 }

@@ -41,7 +41,7 @@ const FORMATS: Array<{ value: ExportFormat; label: string }> = [
   { value: "css", label: "CSS" },
   { value: "tailwind", label: "Tailwind CSS" },
   { value: "tokens", label: "Design Tokens" },
-  { value: "project", label: "Blueprint Workspace" },
+  { value: "project", label: "Blueprint" },
   { value: "report-md", label: "Report (Markdown)" },
   { value: "report-json", label: "Report (JSON)" },
   { value: "handover", label: "Handover (.zip)" },

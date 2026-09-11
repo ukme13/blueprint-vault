@@ -1,6 +1,7 @@
 import {
   DEFAULT_SPECIMEN_TEXT as PACKAGE_SPECIMEN_TEXT,
   DEFAULT_TYPE_SCALE_UNIT,
+  ROOT_FONT_SIZE_PX,
   browserWorkspaceStorage,
   loadStoredWorkspace,
   updateStoredWorkspace,
@@ -19,12 +20,15 @@ import {
 export const DEFAULT_UNIT: TypeScaleUnit = DEFAULT_TYPE_SCALE_UNIT;
 export const DEFAULT_SPECIMEN_TEXT = PACKAGE_SPECIMEN_TEXT;
 export const DEFAULT_TEMPLATE: PreviewTemplateId = "specimen";
+export const DEFAULT_REM_ROOT_PX = ROOT_FONT_SIZE_PX;
 
 export interface TypographyProject {
   /** The typography system itself. Everything else here is a preference. */
   system: TypeSystem;
   /** Output unit. Optional in storage: projects saved before units existed. */
   unit: TypeScaleUnit;
+  /** Pixel size rem divides by. Optional in storage: projects saved before it. */
+  remRootPx: number;
   /** Text shown at every step so a scale can be judged in real copy. */
   specimenText: string;
   /** Which preview template the Preview section shows. */

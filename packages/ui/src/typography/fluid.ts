@@ -1,5 +1,5 @@
 import { formatLength } from "./export";
-import type { TypeScaleUnit } from "./types";
+import { ROOT_FONT_SIZE_PX, type TypeScaleUnit } from "./types";
 
 function cssNumber(value: number): string {
   return `${Number(value.toFixed(4))}`;
@@ -43,9 +43,10 @@ export function fluidLengthClamp(
   toWidthPx: number,
   toPx: number,
   unit: TypeScaleUnit,
+  remRootPx: number = ROOT_FONT_SIZE_PX,
 ): string {
   return fluidClamp(fromWidthPx, fromPx, toWidthPx, toPx, (value) =>
-    formatLength(value, unit),
+    formatLength(value, unit, remRootPx),
   );
 }
 

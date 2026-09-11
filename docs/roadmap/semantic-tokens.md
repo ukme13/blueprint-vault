@@ -80,7 +80,7 @@ has `article`, `card` and `marketing`. They are typography-only and live in the
 app. The demo page is the generalisation of these, not a fresh start.
 
 **The export dialog already has a format switch** — CSS, Tailwind, Design
-Tokens, Blueprint Workspace, plus the report as Markdown and JSON. Semantic
+Tokens, Blueprint, plus the report as Markdown and JSON. Semantic
 output is entries beside those rather than new UI.
 
 **Gap: the workspace file rejects any version but 1.** `workspace-file.ts:79`

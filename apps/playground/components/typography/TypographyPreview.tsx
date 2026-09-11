@@ -41,6 +41,7 @@ export interface TypographyPreviewProps {
   roles: TypeRole[];
   template: PreviewTemplateId;
   unit: TypeScaleUnit;
+  remRootPx: number;
   specimenText: string;
   /* Device stays with the caller. Switching Editor/Preview unmounts this
      canvas, so state held here would reset each time you looked away. */
@@ -67,6 +68,7 @@ export function TypographyPreview({
   roles,
   template,
   unit,
+  remRootPx,
   specimenText,
   device,
   styleFor,
@@ -169,8 +171,8 @@ export function TypographyPreview({
                 <header>
                   <h3>{role.id}</h3>
                   <p>
-                    {formatLength(fontSizePx, unit)} · weight {role.fontWeight}{" "}
-                    · line height{" "}
+                    {formatLength(fontSizePx, unit, remRootPx)} · weight{" "}
+                    {role.fontWeight} · line height{" "}
                     {
                       resolveLineHeight(role, fontSizePx, device.id, system)
                         .computedLineHeightPx

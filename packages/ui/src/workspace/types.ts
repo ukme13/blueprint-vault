@@ -11,6 +11,14 @@ import type { TypeSystem } from "../typography/system";
 export interface TypographyProjectData {
   system: TypeSystem;
   unit: TypeScaleUnit;
+  /**
+   * Pixel size `rem` divides by at preview and export.
+   *
+   * Lives here with `unit`, not on the system: sizes stay in px, and a
+   * missing field on an older save is 16. The CSS names this as a comment
+   * when it is not 16; it never writes `html { font-size }`.
+   */
+  remRootPx: number;
   specimenText: string;
   /**
    * Which preview template the Preview section shows.

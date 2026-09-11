@@ -198,6 +198,7 @@ describe("no export carries font data", () => {
         specimenText: "",
         template: "specimen",
         previewDevices: defaultPreviewDevices(1.25),
+        remRootPx: 16,
       },
     };
     const serialised = JSON.stringify(workspace);
@@ -226,6 +227,7 @@ describe("no export carries font data", () => {
         specimenText: "",
         template: "specimen",
         previewDevices: defaultPreviewDevices(1.25),
+        remRootPx: 16,
       },
     });
 

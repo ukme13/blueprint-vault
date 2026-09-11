@@ -173,6 +173,22 @@ describe("formatTypeSystemCssExport", () => {
     );
   });
 
+  it("divides rem by a configured root and names the contract", () => {
+    const output = formatTypeSystemCssExport(
+      migratedLegacy,
+      "rem",
+      undefined,
+      18,
+    );
+    expect(output).toContain("--font-body-size: 0.8889rem;");
+    expect(output).toContain(
+      "/* Lengths in rem assume html { font-size: 18px }. */",
+    );
+    expect(formatTypeSystemCssExport(migratedLegacy)).not.toContain(
+      "assume html",
+    );
+  });
+
   it("never gives line-height a unit", () => {
     const output = formatTypeSystemCssExport(authored, "pt");
     expect(output).not.toMatch(/line-height: [\d.]+(rem|px|pt)/);

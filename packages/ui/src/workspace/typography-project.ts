@@ -4,7 +4,12 @@ import {
   type LegacyTypographyProject,
 } from "../typography/migrate";
 import { normalizePreviewDevices } from "../typography/preview-devices";
-import { TYPE_SCALE_UNITS, type TypeScaleUnit } from "../typography/types";
+import {
+  clampRemRootPx,
+  ROOT_FONT_SIZE_PX,
+  TYPE_SCALE_UNITS,
+  type TypeScaleUnit,
+} from "../typography/types";
 import type { TypographyProjectData } from "./types";
 
 export const DEFAULT_TYPE_SCALE_UNIT: TypeScaleUnit = "rem";
@@ -36,6 +41,10 @@ function readPreferences(
         : undefined,
       fallbackRatio,
     ),
+    remRootPx:
+      "remRootPx" in value && typeof value.remRootPx === "number"
+        ? clampRemRootPx(value.remRootPx)
+        : ROOT_FONT_SIZE_PX,
   };
 }
 

@@ -191,6 +191,14 @@ Letter-spacing is the exception to the size unit. It ships as `em` against the
 role's desktop size, so a clamp on `--font-h1-size` also scales tracking.
 The editor still stores and edits px.
 
+## Stage 7 — Configurable rem root ✅ done
+
+`rem` always divided by 16. A project now picks the html root rem is measured
+against (10–24px, default 16). Sizes stay in px; conversion stays at preview
+and export. A missing field on an older save is 16. The CSS names a
+non-default root as a comment and does not write `html { font-size }`, so the
+reader's browser setting still works. Spacing rem is unchanged.
+
 ## Not doing
 
 - The reference's Boards, Bookmarks, Likes and Explore rail. That is a hosted
@@ -202,7 +210,6 @@ The editor still stores and edits px.
 
 ## Later improvements
 
-- A configurable root font size for `rem`, rather than assuming 16.
 - More templates: dashboard, documentation, email.
 
 ## Safety and quality rules
@@ -210,10 +217,10 @@ The editor still stores and edits px.
 Changing the unit must never change the stored scale. Conversion happens at the
 preview and export edges only, so switching units and switching back is lossless.
 
-Persisted projects must keep loading. `unit`, `specimenText` and `template` are
-new optional fields; `readStoredProject` must default them rather than reject a
-project saved before this work. No storage-key version bump should be needed —
-confirm that before merging.
+Persisted projects must keep loading. `unit`, `specimenText`, `template` and
+`remRootPx` are optional fields; `readStoredProject` must default them rather
+than reject a project saved before this work. No storage-key version bump
+should be needed — confirm that before merging.
 
 Preview templates are for judging type. They must never influence the generated
 scale, the tokens, or the export.
