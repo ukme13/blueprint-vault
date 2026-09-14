@@ -1,3 +1,5 @@
+import { readPreviewDocument } from "../typography/preview-document";
+import { readPreviewTemplate } from "../typography/preview-template-shared";
 import {
   migrateLegacyProject,
   normalizeStoredSystem,
@@ -19,7 +21,7 @@ export const DEFAULT_PREVIEW_TEMPLATE = "specimen";
 function readPreferences(
   value: object,
   fallbackRatio: number,
-): Omit<TypographyProjectData, "system"> {
+): Omit<TypographyProjectData, "system" | "previewDocument"> {
   return {
     unit:
       "unit" in value && TYPE_SCALE_UNITS.includes(value.unit as TypeScaleUnit)
@@ -29,12 +31,12 @@ function readPreferences(
       "specimenText" in value && typeof value.specimenText === "string"
         ? value.specimenText
         : DEFAULT_SPECIMEN_TEXT,
-    /* Only checked to be a string. The list of templates lives in the app, so
-       the caller narrows this against the one it has. */
-    template:
+    /* Retired names (documentation) become the layout they actually were. */
+    template: readPreviewTemplate(
       "template" in value && typeof value.template === "string"
         ? value.template
-        : DEFAULT_PREVIEW_TEMPLATE,
+        : undefined,
+    ),
     previewDevices: normalizePreviewDevices(
       "previewDevices" in value && Array.isArray(value.previewDevices)
         ? value.previewDevices
@@ -85,9 +87,14 @@ export function readTypographyProjectData(
     ) {
       return null;
     }
+    const system = migrateLegacyProject(legacy);
     return {
-      system: migrateLegacyProject(legacy),
+      system,
       ...readPreferences(value, legacy.ratio),
+      previewDocument: readPreviewDocument(
+        "previewDocument" in value ? value.previewDocument : undefined,
+        system,
+      ),
     };
   }
 
@@ -96,5 +103,12 @@ export function readTypographyProjectData(
   const system = normalizeStoredSystem(value.system);
   if (!system) return null;
 
-  return { system, ...readPreferences(value, system.ratio) };
+  return {
+    system,
+    ...readPreferences(value, system.ratio),
+    previewDocument: readPreviewDocument(
+      "previewDocument" in value ? value.previewDocument : undefined,
+      system,
+    ),
+  };
 }

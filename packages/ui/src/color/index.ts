@@ -8,6 +8,7 @@ export * from "./machado2009";
 export * from "./palette-view";
 export * from "./palette";
 export * from "./presets";
+export * from "./shade-ref";
 export * from "./semantic";
 export * from "./semantic-contrast";
 export * from "./semantic-export";

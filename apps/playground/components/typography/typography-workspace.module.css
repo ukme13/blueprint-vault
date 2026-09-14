@@ -632,17 +632,28 @@
   line-height: 1.4;
 }
 
-.previewControls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-4);
-  align-items: center;
-  padding-bottom: var(--spacing-3);
+.previewToolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: var(--spacing-1);
+  background: var(--color-surface-overlay);
+  border-radius: var(--radius-inner);
 }
 
-.previewControlGroup {
-  display: flex;
-  gap: var(--spacing-1);
+.previewToolbar > :global(*) {
+  margin: 0;
+}
+
+.previewToolbar :global(.astryx-section) {
+  padding: 0;
+}
+
+.previewToolbar :global([role="combobox"]) {
+  outline: none;
+  box-shadow: none;
+  border-color: transparent;
+  background: transparent;
 }
 
 .previewStage {
@@ -652,20 +663,30 @@
   gap: var(--spacing-2);
 }
 
-.templateArticle {
+.templateSurface {
+  min-width: 0;
+}
+
+.templateDocument {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
 }
 
-.templateArticle blockquote {
-  margin: 0;
-  padding-inline-start: var(--spacing-4);
-  border-inline-start: var(--border-width) solid var(--color-border);
+.previewDocument {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
 }
 
-.templateArticle figure {
+.previewDocument [data-preview-block] {
   margin: 0;
+  outline: none;
+}
+
+.previewDocument [data-preview-block]:focus,
+.previewDocument [data-preview-block]:focus-visible {
+  outline: none;
 }
 
 .roleGroupHeader {
@@ -772,18 +793,34 @@
 .previewColourControls {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-3);
-  align-items: end;
-  padding-bottom: var(--spacing-2);
+  gap: var(--spacing-1);
+  align-items: center;
 }
 
-.previewColourControls > * {
-  /* Wide enough for "neutral 950" without the two fighting for the row. */
-  width: 12rem;
+.previewColourSwatch {
+  display: block;
+  width: var(--spacing-4);
+  height: var(--spacing-4);
+  box-sizing: border-box;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--preview-swatch);
+}
+
+.previewColourSwatch[data-empty] {
+  background:
+    linear-gradient(
+      to bottom right,
+      transparent calc(50% - var(--border-width)),
+      var(--color-border) calc(50% - var(--border-width)),
+      var(--color-border) calc(50% + var(--border-width)),
+      transparent calc(50% + var(--border-width))
+    ),
+    var(--color-surface-raised);
 }
 
 .previewColourEmpty {
-  margin: 0 0 var(--spacing-2);
+  margin: 0;
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
 }
@@ -812,19 +849,23 @@
    The fill is on the card so the 16px gaps stay studio chrome and the radius
    clips. Contrast still waits for the pair. */
 .previewStage[data-preview-background="true"] .previewRole,
-.previewStage[data-preview-background="true"] .templateArticle {
+.previewStage[data-preview-background="true"] .templateSurface {
   background: var(--preview-surface);
 }
 
-.previewStage[data-preview-background="true"] .templateArticle {
+.previewStage[data-preview-background="true"] .templateSurface {
   border-radius: 14px;
   overflow: clip;
 }
 
 .previewStage[data-preview-text="true"] .previewRole h3,
-.previewStage[data-preview-text="true"] .previewRole > *:not(header) {
-  /* The heading is near-white by default and would vanish on a light pick. */
-  color: inherit;
+.previewStage[data-preview-text="true"] .previewRole > *:not(header),
+.previewStage[data-preview-text="true"] .previewDocument [data-preview-block],
+.previewStage[data-preview-text="true"] .templateSurface {
+  /* Cards and editable blocks paint a hard foreground that would hide a
+     picked ink. Specimen headings are near-white by default and vanish on
+     a light pick. */
+  color: var(--preview-ink);
 }
 
 /* "Add font" and "Add group" are siblings in the reader's mind, so they are one

@@ -3,6 +3,7 @@ import { defaultElevationScale } from "../scale/elevation";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { defaultPreviewDevices } from "../typography/preview-devices";
+import { seedPreviewDocument } from "../typography/preview-document";
 import { ROOT_FONT_SIZE_PX } from "../typography/types";
 import { defaultSystem } from "../typography/system";
 import { splitFontFamily } from "../typography/migrate";
@@ -104,6 +105,13 @@ const SEED_TYPOGRAPHY = {
  */
 export function seedWorkspaceProject(name: string): WorkspaceProject {
   const palette = seedPaletteProject();
+  const system = defaultSystem(
+    name,
+    splitFontFamily(SEED_TYPOGRAPHY.fontFamily),
+    SEED_TYPOGRAPHY.baseFontSizePx,
+    SEED_TYPOGRAPHY.ratio,
+    SEED_TYPOGRAPHY.stepCount,
+  );
 
   return {
     name,
@@ -115,15 +123,10 @@ export function seedWorkspaceProject(name: string): WorkspaceProject {
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
     typography: {
-      system: defaultSystem(
-        name,
-        splitFontFamily(SEED_TYPOGRAPHY.fontFamily),
-        SEED_TYPOGRAPHY.baseFontSizePx,
-        SEED_TYPOGRAPHY.ratio,
-        SEED_TYPOGRAPHY.stepCount,
-      ),
+      system,
       unit: DEFAULT_TYPE_SCALE_UNIT,
       specimenText: DEFAULT_SPECIMEN_TEXT,
+      previewDocument: seedPreviewDocument(system),
       template: DEFAULT_PREVIEW_TEMPLATE,
       previewDevices: defaultPreviewDevices(SEED_TYPOGRAPHY.ratio),
       remRootPx: ROOT_FONT_SIZE_PX,

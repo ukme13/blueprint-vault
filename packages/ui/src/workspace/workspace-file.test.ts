@@ -10,6 +10,7 @@ import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { normalizeButtonSchemes } from "../button-tones";
 import { defaultPreviewDevices } from "../typography/preview-devices";
+import { seedPreviewDocument } from "../typography/preview-document";
 import { defaultSystem } from "../typography/system";
 import {
   BLUEPRINT_WORKSPACE_FILE_VERSION,
@@ -71,25 +72,29 @@ const LEGACY_PALETTE_FILE = JSON.stringify({
   },
 });
 
-const workspace = (over: Partial<WorkspaceProject> = {}): WorkspaceProject => ({
-  name: "Brand",
-  palette: palette(),
-  typography: {
-    system: defaultSystem("Brand", ["Inter"], 16, 1.25, 9),
-    unit: "px",
-    specimenText: "Sphinx",
-    template: "article",
-    previewDevices: defaultPreviewDevices(1.25),
-    remRootPx: 16,
-  },
-  semantics: null,
-  removedSeedRoles: [],
-  buttonSchemes: normalizeButtonSchemes(undefined),
-  spacing: defaultSpacingScale(),
-  radius: defaultRadiusScale(),
-  elevation: defaultElevationScale(),
-  ...over,
-});
+const workspace = (over: Partial<WorkspaceProject> = {}): WorkspaceProject => {
+  const system = defaultSystem("Brand", ["Inter"], 16, 1.25, 9);
+  return {
+    name: "Brand",
+    palette: palette(),
+    typography: {
+      system,
+      unit: "px",
+      specimenText: "Sphinx",
+      previewDocument: seedPreviewDocument(system),
+      template: "article",
+      previewDevices: defaultPreviewDevices(1.25),
+      remRootPx: 16,
+    },
+    semantics: null,
+    removedSeedRoles: [],
+    buttonSchemes: normalizeButtonSchemes(undefined),
+    spacing: defaultSpacingScale(),
+    radius: defaultRadiusScale(),
+    elevation: defaultElevationScale(),
+    ...over,
+  };
+};
 
 describe("a workspace file carries both halves", () => {
   it("round-trips a whole workspace", () => {

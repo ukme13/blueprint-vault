@@ -5,6 +5,7 @@ import type { ElevationScale } from "../scale/elevation";
 import type { RadiusScale } from "../scale/radius";
 import type { SpacingScale } from "../scale/spacing";
 import type { PreviewDevice } from "../typography/preview-devices";
+import type { PreviewDocument } from "../typography/preview-document";
 import type { TypeScaleUnit } from "../typography/types";
 import type { TypeSystem } from "../typography/system";
 
@@ -22,11 +23,18 @@ export interface TypographyProjectData {
   remRootPx: number;
   specimenText: string;
   /**
-   * Which preview template the Preview section shows.
+   * Editable document judged in Preview.
    *
-   * A string here rather than a union: templates are layouts that live in the
-   * app, and the engine is not meant to know what they are. Whoever renders
-   * them narrows this against the list it actually has.
+   * Blocks of copy tagged with workspace roles. Missing on an older save is
+   * the article starter. It never writes into the generated scale.
+   */
+  previewDocument: PreviewDocument;
+  /**
+   * Last specimen or article view.
+   *
+   * Stored as a string so a retired name can still be read. `readPreviewTemplate`
+   * turns it into a layout the studio still has. Email and documentation
+   * become article.
    */
   template: string;
   /**

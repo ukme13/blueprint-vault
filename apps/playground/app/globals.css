@@ -68,3 +68,11 @@
 :root {
   font-family: var(--font-sans);
 }
+
+/* Selector group titles ship as `--color-text-secondary`. On this palette
+   that is as dark as the options, so Display / H / Body read as another
+   row of choices. Mute them so they recede. Unlayered and two classes so
+   the rule beats StyleX's one-class colour on the heading. */
+[data-astryx-theme] .astryx-selector-section-heading {
+  color: var(--color-fg-muted);
+}
