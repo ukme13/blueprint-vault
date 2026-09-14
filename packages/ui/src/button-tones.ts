@@ -117,7 +117,7 @@ export function buttonToneStyle(scheme: ButtonScheme): Record<string, string> {
 }
 
 /**
- * Schemes the studio chrome and the palette preview cannot open without.
+ * Schemes the studio chrome and the accessibility report cannot open without.
  *
  * `primary` is the fill of every contained control that does not name a tone,
  * and `action.primary` is one of the four tokens `previewShadesFor` requires.

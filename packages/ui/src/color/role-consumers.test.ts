@@ -83,9 +83,9 @@ describe("usedBy", () => {
 
     expect(consumers).toContain("Button primary tone");
     expect(consumers).toContain("Astryx bridge");
-    /* And it is one of the four the preview cannot open without, which is a
+    /* And it is one of the four the report cannot open without, which is a
        different severity and says so. */
-    expect(consumers).toContain("Palette preview (required)");
+    expect(consumers).toContain("Accessibility report (required)");
     expect(isLoadBearing("action.primary")).toBe(true);
   });
 

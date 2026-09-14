@@ -1,15 +1,9 @@
-import { Badge } from "@astryxdesign/core/Badge";
-import {
-  describeSemanticPair,
-  readableText,
-  type PreviewAssessment,
-} from "@blueprint/ui";
+import { describeSemanticPair, type PreviewAssessment } from "@blueprint/ui";
 import { AccessibilityRow } from "./AccessibilityRow";
 import styles from "./palette-workspace.module.css";
 
 interface PreviewAccessibilityProps {
   assessment: PreviewAssessment;
-  isSimulating: boolean;
 }
 
 /**
@@ -20,10 +14,11 @@ interface PreviewAccessibilityProps {
  * report a pass the design does not have. The one thing simulation contributes
  * is the semantic-pair warning at the bottom, which is a separate claim and
  * says which deficiency it is about.
+ *
+ * The page owns the title and the warning total, so this is the grid only.
  */
 export function PreviewAccessibility({
   assessment,
-  isSimulating,
 }: PreviewAccessibilityProps) {
   const {
     shades,
@@ -32,32 +27,13 @@ export function PreviewAccessibility({
     nonTextChecks,
     focusCheck,
     semanticPairs,
-    issueCount,
   } = assessment;
 
   return (
-    <article
-      className={`${styles.previewPanel} ${styles.accessibilityPanel}`}
-      id="preview-accessibility"
-    >
-      <header className={styles.accessibilityHeader}>
-        <span>
-          <h2>Accessibility</h2>
-          <p>
-            WCAG 2.2 contrast checks for important colour pairs.
-            {isSimulating &&
-              " Measured on the real palette, not the simulated one."}
-          </p>
-        </span>
-        <Badge
-          label={issueCount === 0 ? "No warnings" : `${issueCount} warnings`}
-          variant={issueCount === 0 ? "success" : "warning"}
-        />
-      </header>
-
+    <div className={styles.previewPanel}>
       <section className={styles.accessibilityGrid}>
         <section aria-labelledby="text-contrast-heading">
-          <h3 id="text-contrast-heading">Text contrast</h3>
+          <h2 id="text-contrast-heading">Text contrast</h2>
           <p className={styles.accessibilityNote}>
             Checks each foreground and background pair for normal and large text
             requirements.
@@ -90,7 +66,7 @@ export function PreviewAccessibility({
         </section>
 
         <section aria-labelledby="recommendation-heading">
-          <h3 id="recommendation-heading">White or dark text</h3>
+          <h2 id="recommendation-heading">White or dark text</h2>
           <p className={styles.accessibilityNote}>
             Compares white and dark text, then recommends the option with
             stronger contrast.
@@ -124,7 +100,7 @@ export function PreviewAccessibility({
         </section>
 
         <section aria-labelledby="non-text-heading">
-          <h3 id="non-text-heading">Controls and focus</h3>
+          <h2 id="non-text-heading">Controls and focus</h2>
           <p className={styles.accessibilityNote}>
             Checks the 3:1 requirement for visible boundaries and keyboard focus
             colours. Decorative surfaces are advisory only.
@@ -173,7 +149,7 @@ export function PreviewAccessibility({
         </section>
 
         <section aria-labelledby="similarity-heading">
-          <h3 id="similarity-heading">Semantic colour distinction</h3>
+          <h2 id="similarity-heading">Semantic colour distinction</h2>
           <p className={styles.accessibilityNote}>
             This is perceptual design guidance, not a WCAG pass or fail. Always
             pair status colour with text, an icon, or another cue.
@@ -193,20 +169,20 @@ export function PreviewAccessibility({
                         : "Distinct"
                   }
                   detail={`${check.first.hex} and ${check.second.hex}`}
-                  foreground={readableText(check.first.hex)}
+                  foreground={check.second.hex}
                   label={check.label}
                   ratioLabel={`Distance ${(check.result.difference * 100).toFixed(1)}`}
                   status={
                     check.result.isTooSimilar || collapses ? "partial" : "pass"
                   }
                   summary={describeSemanticPair(check)}
-                  swatchLabel="A/B"
+                  swatchType="pair"
                 />
               );
             })}
           </section>
         </section>
       </section>
-    </article>
+    </div>
   );
 }

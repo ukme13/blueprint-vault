@@ -66,6 +66,21 @@ function channels(colour: string): number[] {
   return found.slice(0, 3).map(Number);
 }
 
+function relativeLuminance(rgb: number[]): number {
+  const [r, g, b] = rgb.map((channel) => {
+    const s = channel / 255;
+    return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!;
+}
+
+function contrastAgainst(rgb: number[], other: number[]): number {
+  const [hi, lo] = [relativeLuminance(rgb), relativeLuminance(other)].sort(
+    (a, b) => b - a,
+  );
+  return (hi! + 0.05) / (lo! + 0.05);
+}
+
 test.describe("The Vision chip", () => {
   test("is off until pressed, and turns itself off again", async ({
     seededPage: page,
@@ -133,6 +148,46 @@ test.describe("The Vision chip", () => {
     expect(options.x).toBeCloseTo(chip.x + chip.width, 0);
   });
 
+  test("keeps the dropdown chevron inside the pill on the longest label", async ({
+    seededPage: page,
+  }) => {
+    /* The trigger's default min-width is the label, so it would not share the
+       pill with the chevron. Partial achromatopsia is the longest option. */
+    await turnVisionOn(page);
+    await chooseDeficiency(page, "Achromatopsia (no colour)");
+
+    const pill = page
+      .getByLabel("Vision type")
+      .locator("xpath=ancestor::span[contains(@class,'visionOptions')][1]");
+    const chevron = pill.locator(".astryx-selector-indicator-icon");
+
+    await expect(chevron).toBeVisible();
+    const [box, icon] = await Promise.all([
+      pill.boundingBox(),
+      chevron.boundingBox(),
+    ]);
+    expect(icon!.width).toBeGreaterThan(0);
+    expect(icon!.x + icon!.width).toBeLessThanOrEqual(box!.x + box!.width + 1);
+
+    /* Partial achromatopsia (reduced colour) is longer still. */
+    const slider = page.getByRole("slider", { name: "Vision severity" });
+    await slider.focus();
+    for (let step = 0; step < 4; step += 1) {
+      await page.keyboard.press("ArrowLeft");
+    }
+    await expect(page.getByLabel("Vision type")).toContainText(
+      "Partial achromatopsia",
+    );
+    const [boxAtHalf, iconAtHalf] = await Promise.all([
+      pill.boundingBox(),
+      chevron.boundingBox(),
+    ]);
+    expect(iconAtHalf!.width).toBeGreaterThan(0);
+    expect(iconAtHalf!.x + iconAtHalf!.width).toBeLessThanOrEqual(
+      boxAtHalf!.x + boxAtHalf!.width + 1,
+    );
+  });
+
   test("applies the simulation to the palette swatches", async ({
     seededPage: page,
   }) => {
@@ -162,6 +217,35 @@ test.describe("The Vision chip", () => {
 
     await visionChip(page).click();
     expect(await shadeBackground(page)).toBe(normal);
+  });
+
+  test("swatch ink follows the colour on screen", async ({
+    seededPage: page,
+  }) => {
+    /* White vs black is chosen for the swatch being shown. Recommending from
+       the real hex and painting that on a simulated primary is how a cell that
+       had gone lighter still carried white text. */
+    await turnVisionOn(page);
+    await chooseDeficiency(page, "Deuteranopia (green-blind)");
+
+    const white = [255, 255, 255];
+    const black = [0, 0, 0];
+
+    for (const name of [/^Select primary 500/, /^Select error 500/]) {
+      const shade = page.getByRole("button", { name }).first();
+      const { bg, fg } = await shade.evaluate((node) => {
+        const cs = getComputedStyle(node);
+        return { bg: cs.backgroundColor, fg: cs.color };
+      });
+      const background = channels(bg);
+      const ink = channels(fg);
+      const used = contrastAgainst(ink, background);
+      const better = Math.max(
+        contrastAgainst(white, background),
+        contrastAgainst(black, background),
+      );
+      expect(used).toBeCloseTo(better, 2);
+    }
   });
 
   test("keeps the real hex in the label while the swatch is simulated", async ({
@@ -351,7 +435,7 @@ test.describe("Semantic pairs under simulation", () => {
        apart to normal vision and collide under the most common deficiency.
        The warning is present with the chip off, because otherwise it is only
        found by somebody who already went looking. */
-    await page.getByRole("button", { name: "Preview" }).click();
+    await page.getByRole("button", { name: "Accessibility" }).click();
 
     const successError = page
       .getByText("Success and error", { exact: true })
@@ -372,7 +456,7 @@ test.describe("Semantic pairs under simulation", () => {
   test("counts a collapsing pair in the warning total", async ({
     seededPage: page,
   }) => {
-    await page.getByRole("button", { name: "Preview" }).click();
+    await page.getByRole("button", { name: "Accessibility" }).click();
 
     const badge = page
       .getByRole("heading", { name: "Accessibility" })
@@ -461,7 +545,7 @@ test.describe("Contrast under simulation", () => {
   test("shows no simulated ratio while the chip is off", async ({
     seededPage: page,
   }) => {
-    await page.getByRole("button", { name: "Preview" }).click();
+    await page.getByRole("button", { name: "Accessibility" }).click();
     await expect(errorRow(page)).toContainText("Passes AA");
     await expect(errorRow(page)).not.toContainText("under deuteranopia");
   });
@@ -471,7 +555,7 @@ test.describe("Contrast under simulation", () => {
   }) => {
     /* What was asked for: the number follows the colour. */
     await turnVisionOn(page);
-    await page.getByRole("button", { name: "Preview" }).click();
+    await page.getByRole("button", { name: "Accessibility" }).click();
 
     await expect(errorRow(page)).toContainText("under deuteranopia");
     await expect(errorRow(page)).toContainText(/\d+\.\d\d:1 under/);
@@ -484,7 +568,7 @@ test.describe("Contrast under simulation", () => {
        measurement and must never read as a pass or a fail — the verdict above
        it belongs to the real palette and stays there. */
     await turnVisionOn(page);
-    await page.getByRole("button", { name: "Preview" }).click();
+    await page.getByRole("button", { name: "Accessibility" }).click();
 
     const simulated = errorRow(page).getByText(/under deuteranopia/);
     await expect(simulated).toBeVisible();
@@ -498,7 +582,7 @@ test.describe("Contrast under simulation", () => {
     seededPage: page,
   }) => {
     await turnVisionOn(page);
-    await page.getByRole("button", { name: "Preview" }).click();
+    await page.getByRole("button", { name: "Accessibility" }).click();
 
     const ratio = async () => {
       const text = await errorRow(page).innerText();
@@ -579,7 +663,7 @@ test.describe("Where the simulated numbers show", () => {
        `.contrastList small`, and nothing in the suite could tell the line was
        there but unreadable. Comparing the two colours is what catches that. */
     await turnVisionOn(page);
-    await page.getByRole("button", { name: "Preview" }).click();
+    await page.getByRole("button", { name: "Accessibility" }).click();
 
     const row = page
       .getByText("Error action text", { exact: true })

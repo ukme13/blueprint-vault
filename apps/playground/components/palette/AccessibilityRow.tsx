@@ -21,7 +21,7 @@ interface AccessibilityRowProps {
   status: AccessibilityStatus;
   summary: string;
   swatchLabel?: string;
-  swatchType?: "text" | "border" | "focus";
+  swatchType?: "text" | "border" | "focus" | "pair";
   /** The ratio under the mode being previewed, when one is. */
   simulated?: SimulatedContrast | null;
   /** Deficiencies that take this pair below its threshold. */
@@ -59,9 +59,19 @@ export function AccessibilityRow({
       <span
         aria-hidden="true"
         className={styles.contrastSwatch}
-        style={{ backgroundColor: background, color: foreground }}
+        data-pair={swatchType === "pair" ? "true" : undefined}
+        style={
+          swatchType === "pair"
+            ? undefined
+            : { backgroundColor: background, color: foreground }
+        }
       >
-        {swatchType === "border" ? (
+        {swatchType === "pair" ? (
+          <>
+            <i style={{ backgroundColor: background }} />
+            <i style={{ backgroundColor: foreground }} />
+          </>
+        ) : swatchType === "border" ? (
           <i className={styles.controlContrastExample} />
         ) : swatchType === "focus" ? (
           <i className={styles.focusContrastExample} />

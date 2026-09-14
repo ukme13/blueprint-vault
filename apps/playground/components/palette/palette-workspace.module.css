@@ -770,12 +770,6 @@
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  color: var(--color-neutral-100);
-}
-
-.anchorIcon[data-light-shade="true"],
-.manualIcon[data-light-shade="true"] {
-  color: var(--color-neutral-950);
 }
 
 .shadeContent {
@@ -1197,12 +1191,12 @@
   line-height: 1.6;
 }
 
-/* Only the preview header carries a control beside its title. The other two
-   headers share .sectionPageHeader and must keep their block layout. */
+/* The accessibility header carries the warning total beside its title. The
+   other two headers share .sectionPageHeader and must keep their block layout. */
 .previewPageHeader {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
 }
@@ -1261,27 +1255,27 @@
   padding: 24px;
 }
 
-.sourceSection > header,
-.previewPanel > header {
+.previewPanel {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 22px;
+}
+
+.sourceSection > header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-}
-
-.sourceSection > header {
   margin-bottom: 20px;
 }
 
-.sourceSection h2,
-.previewPanel h2 {
+.sourceSection h2 {
   margin: 0;
   color: var(--color-fg-primary);
   font-size: 15px;
 }
 
-.sourceSection header p,
-.previewPanel header p {
+.sourceSection header p {
   margin: 6px 0 0;
   color: var(--color-fg-muted);
   font-size: 10px;
@@ -1364,23 +1358,6 @@
   font-size: 9px;
 }
 
-.previewGrid {
-  max-width: 1280px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
-  margin: 0 auto;
-}
-
-.previewPanel {
-  min-width: 0;
-  padding: 22px;
-}
-
-.previewPanel > header {
-  margin-bottom: 20px;
-}
-
 .previewEmptyState {
   max-width: 720px;
   margin: 0 auto;
@@ -1393,99 +1370,9 @@
   text-align: center;
 }
 
-.buttonPreview {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  min-height: 116px;
-  padding: 20px;
-  border-radius: 10px;
-  background: var(--color-surface-subtle);
-}
-
-.textPreview {
-  min-height: 116px;
-  padding: 24px;
-  border-radius: 10px;
-}
-
-.textPreview h3 {
-  margin: 14px 0 8px;
-  font-size: 23px;
-  letter-spacing: -0.03em;
-}
-
-.textPreview p {
-  max-width: 460px;
-  margin: 0 0 14px;
-  font-size: 12px;
-  line-height: 1.6;
-}
-
-.textPreview a {
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.surfacePreview {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  padding: 16px;
-  border-radius: 10px;
-}
-
-.surfacePreview article {
-  min-height: 104px;
-  display: flex;
-  align-items: flex-start;
-  flex-direction: column;
-  padding: 18px;
-  border-radius: 8px;
-}
-
-.surfacePreview small {
-  font-size: 9px;
-}
-
-.surfacePreview strong {
-  margin: 10px 0 auto;
-  font-size: 16px;
-}
-
-.surfacePreview span {
-  margin-top: 12px;
-  font-size: 10px;
-  font-weight: 700;
-}
-
 .contrastList {
   display: grid;
   gap: 8px;
-}
-
-.accessibilityPanel {
-  grid-column: 1 / -1;
-}
-
-.accessibilityPanel > .accessibilityHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.accessibilityHeader h2,
-.accessibilityHeader p {
-  margin: 0;
-}
-
-.accessibilityHeader p {
-  margin-top: 6px;
-  color: var(--color-fg-muted);
-  font-size: 11px;
-  line-height: 1.5;
 }
 
 .accessibilityGrid {
@@ -1498,7 +1385,7 @@
   min-width: 0;
 }
 
-.accessibilityGrid > section > h3 {
+.accessibilityGrid > section > h2 {
   margin: 0 0 9px;
   color: var(--color-fg-muted);
   font-size: 11px;
@@ -1531,9 +1418,20 @@
   height: 42px;
   display: grid;
   place-items: center;
+  overflow: hidden;
   border-radius: 7px;
   font-size: 14px;
   font-weight: 750;
+}
+
+.contrastSwatch[data-pair="true"] {
+  grid-template-columns: 1fr 1fr;
+  place-items: stretch;
+}
+
+.contrastSwatch[data-pair="true"] i {
+  display: block;
+  min-width: 0;
 }
 
 .controlContrastExample,
@@ -1844,7 +1742,6 @@
 
   .projectSummary,
   .sourceGrid,
-  .previewGrid,
   .accessibilityGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1880,9 +1777,7 @@
 
   .projectSummary,
   .sourceGrid,
-  .previewGrid,
-  .accessibilityGrid,
-  .surfacePreview {
+  .accessibilityGrid {
     grid-template-columns: 1fr;
   }
 

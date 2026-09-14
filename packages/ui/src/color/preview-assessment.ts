@@ -67,7 +67,7 @@ const TOKENS = {
  * The same ids as a list, for whoever needs to ask about a role by name.
  *
  * `usedBy` needs to say that deleting one of these takes a check out of the
- * palette preview. Derived from the table above rather than written beside it,
+ * accessibility report. Derived from the table above rather than written beside it,
  * because two lists that must agree are one list too many — the mistake this
  * module's own history is made of.
  */
@@ -138,11 +138,11 @@ export type PreviewShades = Record<string, ShadeItem>;
  *
  * Null when the palette is empty or the layer is missing something every check
  * needs — see `PREVIEW_REQUIRED_TOKENS`. A caller gets nothing to render rather
- * than a preview built from whatever happened to resolve.
+ * than a report built from whatever happened to resolve.
  *
- * Light mode, because this is the palette preview: the studio shows one palette
- * and the mode toggle belongs to the page that shows a whole system. The
- * parameter is here so the report can ask for the other one.
+ * Light mode, because the Colour studio shows one palette and the mode toggle
+ * belongs to the page that shows a whole system. The parameter is here so the
+ * report can ask for the other one.
  */
 export function previewShadesFor(
   tokens: SemanticToken[],

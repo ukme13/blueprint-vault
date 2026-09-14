@@ -213,7 +213,7 @@ export function dropButtonScheme(
       edit: edit(layer, [
         {
           id: scheme,
-          reason: `${BUTTON_SCHEME_LABELS[scheme]} cannot be removed: the palette preview and the studio chrome read it by name.`,
+          reason: `${BUTTON_SCHEME_LABELS[scheme]} cannot be removed: the accessibility report and the studio chrome read it by name.`,
           usedBy: usedBy(buttonSchemeRoleIds(scheme)[0] ?? "action.primary"),
         },
       ]),

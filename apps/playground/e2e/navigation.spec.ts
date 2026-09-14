@@ -1,7 +1,7 @@
 import { expect, test } from "./fixtures";
 
 test.describe("Playground navigation", () => {
-  test("switches between Overview, Shade generator, and Preview", async ({
+  test("switches between Overview, Shade generator, and Accessibility", async ({
     seededPage: page,
   }) => {
     await expect(
@@ -13,9 +13,9 @@ test.describe("Playground navigation", () => {
       page.getByRole("heading", { name: "My colour system" }),
     ).toBeVisible();
 
-    await page.getByRole("button", { name: "Preview" }).click();
+    await page.getByRole("button", { name: "Accessibility" }).click();
     await expect(
-      page.getByRole("heading", { name: "Palette in context" }),
+      page.getByRole("heading", { name: "Accessibility" }),
     ).toBeVisible();
 
     await page.getByRole("button", { name: "Shade generator" }).click();
@@ -27,9 +27,9 @@ test.describe("Playground navigation", () => {
   test("resets to Shade generator after a full reload", async ({
     seededPage: page,
   }) => {
-    await page.getByRole("button", { name: "Preview" }).click();
+    await page.getByRole("button", { name: "Accessibility" }).click();
     await expect(
-      page.getByRole("heading", { name: "Palette in context" }),
+      page.getByRole("heading", { name: "Accessibility" }),
     ).toBeVisible();
 
     await page.reload();
