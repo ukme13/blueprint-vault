@@ -34,6 +34,7 @@ export function PaletteShade({
   onSourceChange,
 }: PaletteShadeProps) {
   const { seen, simulation } = usePaletteView();
+  const displayBackground = seen(shade.hex);
 
   /* The ratio is measured on the colours being shown, so the number on a
      simulated swatch is the contrast a person with that deficiency gets rather
@@ -45,9 +46,12 @@ export function PaletteShade({
      The verdict is elsewhere. This is a number on a swatch, not a WCAG pass —
      the AA and AAA badges live in the preview and stay on the real palette. */
   const ratio = contrastReferenceHex
-    ? contrastRatio(seen(shade.hex), seen(contrastReferenceHex))
+    ? contrastRatio(displayBackground, seen(contrastReferenceHex))
     : null;
-  const foreground = recommendTextColour(shade.hex).colour;
+  /* Ink follows the swatch on screen. Recommending from the real hex and then
+     painting it on a simulated one is how a dark primary that turns lighter
+     under deuteranopia still got white text. */
+  const foreground = recommendTextColour(displayBackground).colour;
   const ratioLabel = ratio?.toFixed(1);
   const ratioDescription = ratioLabel
     ? `, contrast ${ratioLabel} to 1${
@@ -88,7 +92,7 @@ export function PaletteShade({
         /* Simulated for the eye only. The label, the title and the contrast
            ratio above all keep the real hex, because that is the token this
            swatch stands for and the value somebody copies out of it. */
-        style={{ backgroundColor: seen(shade.hex), color: seen(foreground) }}
+        style={{ backgroundColor: displayBackground, color: foreground }}
         title={`${shade.weight} · ${shade.hex}`}
         type="button"
       >
@@ -106,8 +110,6 @@ export function PaletteShade({
                   : "Colour anchor"
               }
               className={styles.anchorIcon}
-              data-anchor-type={shade.anchorType}
-              data-light-shade={shade.weight <= 400}
             >
               {shade.anchorType === "source" ? (
                 <svg
@@ -140,11 +142,7 @@ export function PaletteShade({
             </span>
           )}
           {!shade.isAnchor && shade.isOverridden && (
-            <span
-              aria-label="Manual colour"
-              className={styles.manualIcon}
-              data-light-shade={shade.weight <= 400}
-            >
+            <span aria-label="Manual colour" className={styles.manualIcon}>
               <svg
                 aria-hidden="true"
                 fill="none"

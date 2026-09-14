@@ -50,15 +50,39 @@
 }
 
 .visionOptions > * {
+  min-width: 0;
   width: 100%;
 }
 
 /* The selector fills the group rather than floating inside it, so the two
    halves share one outline instead of showing two. */
-.visionOptions button {
+.visionOptions :global(.astryx-selector) {
+  min-width: 0;
+  width: 100%;
+}
+
+.visionOptions :global(.astryx-selector) > button {
+  /* Base size 0 so the label can shrink. Default min-width: auto is the
+     string, which left no room for the chevron and overflow clipped it. */
+  flex: 1 1 0%;
   height: 26px;
   min-height: 0;
-  border-radius: 0 7px 7px 0;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: 0;
+}
+
+.visionOptions :global(.astryx-selector) > button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Last child is the chevron span. Pin it so a long label cannot shrink it. */
+.visionOptions :global(.astryx-selector) > :last-child {
+  flex: none;
+  margin-inline-start: auto;
+  color: var(--color-fg-primary);
 }
 
 /* The severity dial sits outside the joined pair rather than inside it: it

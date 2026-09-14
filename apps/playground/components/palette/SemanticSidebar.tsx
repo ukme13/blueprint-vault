@@ -106,7 +106,7 @@ export function SemanticSidebar({
                 <li key={scheme} className={styles.toneRow}>
                   <span className={styles.toneName}>{label}</span>
                   {required ? (
-                    <Tooltip content="Required by the palette preview and the studio chrome.">
+                    <Tooltip content="Required by the accessibility report and the studio chrome.">
                       <span
                         aria-label={`${label} cannot be removed`}
                         className={styles.lock}

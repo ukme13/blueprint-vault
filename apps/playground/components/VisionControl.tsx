@@ -107,6 +107,7 @@ export function VisionControl() {
             size="sm"
             value={deficiency}
             variant="ghost"
+            width="100%"
             onChange={(value) => setDeficiency(value as ColourVisionDeficiency)}
           />
         </span>

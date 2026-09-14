@@ -73,7 +73,7 @@ import { PaletteViewProvider, usePaletteView } from "./PaletteViewContext";
 type ContrastTarget = "white" | "black" | "custom";
 
 type PlaygroundSection =
-  "overview" | "shade-generator" | "semantics" | "preview";
+  "overview" | "shade-generator" | "semantics" | "accessibility";
 
 type PaletteProject = PaletteProjectData;
 
@@ -681,7 +681,7 @@ function PaletteStudioContent() {
             <Tab label="Overview" value="overview" />
             <Tab label="Shade generator" value="shade-generator" />
             <Tab label="Semantics" value="semantics" />
-            <Tab label="Preview" value="preview" />
+            <Tab label="Accessibility" value="accessibility" />
           </TabList>
         </nav>
         <span className={styles.headerActions}>
@@ -836,7 +836,7 @@ function PaletteStudioContent() {
         />
       )}
 
-      {activeSection === "preview" && (
+      {activeSection === "accessibility" && (
         <PalettePreview palettes={palettes} semantics={semantics ?? []} />
       )}
 

@@ -176,13 +176,13 @@ export function usedBy(id: string, options?: RoleConsumerOptions): string[] {
   }
   if (STUDIO_CHROME.has(variable)) consumers.push("Studio chrome");
   if (PREVIEW.has(id) && toneIsEnabled(id, enabled)) {
-    /* The four the preview cannot do without are worth saying differently:
+    /* The four the report cannot do without are worth saying differently:
        without one of them `previewShadesFor` returns null and the whole panel
        disappears, rather than one check going missing from it. */
     consumers.push(
       PREVIEW_REQUIRED.has(id)
-        ? "Palette preview (required)"
-        : "Palette preview",
+        ? "Accessibility report (required)"
+        : "Accessibility report",
     );
     /* The pair grid measures signalling roles that already exist. It does not
        read a name, so an invented `action.token` must not inherit a lock from
