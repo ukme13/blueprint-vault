@@ -8,8 +8,8 @@
  * third biggest.
  *
  * One multiplier scales the named ones together, because "make the whole thing
- * rounder" is a single decision and editing five values to express it is how
- * they drift apart.
+ * rounder" is a single decision. A use can still unlink — typing a px holds
+ * that corner while the rest keep following roundness.
  *
  * See docs/roadmap/scale-studio.md.
  */
@@ -29,6 +29,14 @@ export interface RadiusToken {
    * multiplied by a number that cannot change them meaningfully.
    */
   scales: boolean;
+  /**
+   * A px value that no longer follows the multiplier.
+   *
+   * Missing means this use still scales (or never did). Present means it was
+   * typed by hand — squarer buttons, rounder cards — and roundness leaves it
+   * alone until it is bound again.
+   */
+  unlinkedPx?: number;
 }
 
 export interface RadiusScale {
@@ -51,6 +59,15 @@ export const MAX_RADIUS_MULTIPLIER = 3;
 
 /** The pixel value that means "as round as this box can be". */
 export const RADIUS_FULL_PX = 9999;
+
+/**
+ * Bounds on a typed (unlinked) radius.
+ *
+ * Zero is a square corner, which is a real override. 128 is past where a
+ * container stops reading as a corner; past that, use `full`.
+ */
+export const MIN_RADIUS_PX = 0;
+export const MAX_RADIUS_PX = 128;
 
 /**
  * The tokens a new scale starts with.
@@ -122,6 +139,31 @@ export interface ResolvedRadius {
   variable: string;
   px: number;
   scales: boolean;
+  /** True while this use still follows `basePx * multiplier`. */
+  linked: boolean;
+}
+
+/**
+ * The px this token would have if it still followed the multiplier.
+ *
+ * Used by the editor's "Follow roundness" preset: bind snaps back to this,
+ * not to whatever was typed.
+ */
+export function scaledRadiusPx(
+  token: Pick<RadiusToken, "basePx">,
+  multiplier: number,
+): number {
+  return Math.round(token.basePx * multiplier);
+}
+
+function resolveTokenPx(token: RadiusToken, multiplier: number): number {
+  if (typeof token.unlinkedPx === "number") {
+    return Math.round(token.unlinkedPx);
+  }
+  if (token.scales) {
+    return scaledRadiusPx(token, multiplier);
+  }
+  return token.basePx;
 }
 
 /**
@@ -131,6 +173,9 @@ export interface ResolvedRadius {
  * says 10.5 invites somebody to wonder which half-pixel matters, and none of
  * them do at this scale. In px rather than rem, per the plan — spacing should
  * grow with the reader's font size, a 4px corner should not.
+ *
+ * An unlinked use ignores the multiplier and keeps the typed px, so a 20px
+ * button stays 20px when the cards get rounder.
  */
 export function resolveRadius(scale: RadiusScale): ResolvedRadius[] {
   return scale.tokens.map((token) => ({
@@ -138,11 +183,24 @@ export function resolveRadius(scale: RadiusScale): ResolvedRadius[] {
     name: token.name,
     description: token.description,
     variable: radiusVariableName(token.id),
-    px: token.scales
-      ? Math.round(token.basePx * scale.multiplier)
-      : token.basePx,
+    px: resolveTokenPx(token, scale.multiplier),
     scales: token.scales,
+    linked: token.scales && typeof token.unlinkedPx !== "number",
   }));
+}
+
+function readUnlinkedPx(
+  raw: Record<string, unknown>,
+  scales: boolean,
+): number | undefined {
+  if (!scales) return undefined;
+  if (typeof raw.unlinkedPx !== "number" || !Number.isFinite(raw.unlinkedPx)) {
+    return undefined;
+  }
+  return Math.min(
+    MAX_RADIUS_PX,
+    Math.max(MIN_RADIUS_PX, Math.round(raw.unlinkedPx)),
+  );
 }
 
 function readToken(value: unknown): RadiusToken | null {
@@ -154,6 +212,9 @@ function readToken(value: unknown): RadiusToken | null {
   }
   if (raw.basePx < 0) return null;
 
+  const scales = raw.scales !== false;
+  const unlinkedPx = readUnlinkedPx(raw, scales);
+
   return {
     id: raw.id,
     name: typeof raw.name === "string" && raw.name ? raw.name : raw.id,
@@ -161,7 +222,8 @@ function readToken(value: unknown): RadiusToken | null {
     basePx: raw.basePx,
     /* Defaults to scaling. A token stored before `scales` existed is a named
        size, and named sizes are the ones the multiplier is for. */
-    scales: raw.scales !== false,
+    scales,
+    ...(unlinkedPx !== undefined ? { unlinkedPx } : {}),
   };
 }
 

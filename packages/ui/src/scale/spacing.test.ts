@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_SPACING_BASE_UNIT_PX,
+  DEFAULT_SPACING_DENSITY,
   MAX_SPACING_BASE_UNIT_PX,
+  MAX_SPACING_DENSITY,
   MIN_SPACING_BASE_UNIT_PX,
+  MIN_SPACING_DENSITY,
   SPACING_BASE_UNIT_PRESETS,
   defaultSpacingScale,
   generateSpacingSteps,
@@ -55,7 +58,11 @@ describe("resolveSpacing", () => {
     /* A page with an 18px body still has 16px rems unless somebody moved the
        root, and spacing that assumed otherwise would be an eighth too large
        everywhere. */
-    const tokens = resolveSpacing({ baseUnitPx: 4, steps: [1, 4] });
+    const tokens = resolveSpacing({
+      baseUnitPx: 4,
+      density: 1,
+      steps: [1, 4],
+    });
     expect(tokens[0]!.rem).toBe(0.25);
     expect(tokens[1]!.rem).toBe(1);
   });
@@ -67,13 +74,49 @@ describe("resolveSpacing", () => {
   });
 
   it("follows the base unit", () => {
-    const tokens = resolveSpacing({ baseUnitPx: 8, steps: [1, 2] });
+    const tokens = resolveSpacing({
+      baseUnitPx: 8,
+      density: 1,
+      steps: [1, 2],
+    });
     expect(tokens.map((token) => token.px)).toEqual([8, 16]);
   });
 
   it("gives no rem a long tail of floating point", () => {
-    const tokens = resolveSpacing({ baseUnitPx: 7, steps: [3] });
+    const tokens = resolveSpacing({
+      baseUnitPx: 7,
+      density: 1,
+      steps: [3],
+    });
     expect(String(tokens[0]!.rem).length).toBeLessThan(8);
+  });
+
+  it("scales layout gaps and leaves the fine grid", () => {
+    /* Switching the base from 4 to 8 doubles the 2px hairline. Density is
+       the control that makes the page roomier without doing that. */
+    const tokens = resolveSpacing({
+      baseUnitPx: 4,
+      density: 2,
+      steps: [0.5, 1, 1.5, 2, 4],
+    });
+    const byStep = new Map(tokens.map((token) => [token.step, token]));
+
+    expect(byStep.get(0.5)).toMatchObject({
+      px: 2,
+      followsDensity: false,
+    });
+    expect(byStep.get(1)).toMatchObject({ px: 4, followsDensity: false });
+    expect(byStep.get(1.5)).toMatchObject({ px: 6, followsDensity: false });
+    expect(byStep.get(2)).toMatchObject({ px: 16, followsDensity: true });
+    expect(byStep.get(4)).toMatchObject({ px: 32, followsDensity: true });
+  });
+
+  it("treats a missing density as 1, so an old file does not jump", () => {
+    const tokens = resolveSpacing({
+      baseUnitPx: 4,
+      steps: [0.5, 4],
+    } as never);
+    expect(tokens.map((token) => token.px)).toEqual([2, 16]);
   });
 });
 
@@ -93,6 +136,7 @@ describe("normalizeSpacingScale", () => {
   it("sorts and de-duplicates a stored list", () => {
     const scale = normalizeSpacingScale({
       baseUnitPx: 4,
+      density: 1,
       steps: [4, 1, 4, 0.5, 2],
     });
     expect(scale.steps).toEqual([0.5, 1, 2, 4]);
@@ -102,16 +146,25 @@ describe("normalizeSpacingScale", () => {
     /* A 20px experiment comes back as 16, not as 4: the intent was a roomy
        system, and resetting to the default loses it. */
     expect(
-      normalizeSpacingScale({ baseUnitPx: 20, steps: [1] }).baseUnitPx,
+      normalizeSpacingScale({
+        baseUnitPx: 20,
+        density: 1,
+        steps: [1],
+      }).baseUnitPx,
     ).toBe(MAX_SPACING_BASE_UNIT_PX);
     expect(
-      normalizeSpacingScale({ baseUnitPx: 0, steps: [1] }).baseUnitPx,
+      normalizeSpacingScale({
+        baseUnitPx: 0,
+        density: 1,
+        steps: [1],
+      }).baseUnitPx,
     ).toBe(MIN_SPACING_BASE_UNIT_PX);
   });
 
   it("drops a step that is not a usable multiple", () => {
     const scale = normalizeSpacingScale({
       baseUnitPx: 4,
+      density: 1,
       steps: [1, -2, Number.NaN, 999, 2],
     });
     expect(scale.steps).toEqual([1, 2]);
@@ -120,8 +173,38 @@ describe("normalizeSpacingScale", () => {
   it("falls back rather than leaving a scale with nothing in it", () => {
     /* An empty scale renders nothing and cannot be edited back into existence
        from the UI. */
-    expect(normalizeSpacingScale({ baseUnitPx: 4, steps: [] }).steps).toEqual(
-      defaultSpacingScale().steps,
-    );
+    expect(
+      normalizeSpacingScale({
+        baseUnitPx: 4,
+        density: 1,
+        steps: [],
+      }).steps,
+    ).toEqual(defaultSpacingScale().steps);
+  });
+
+  it("clamps density rather than replacing it", () => {
+    expect(
+      normalizeSpacingScale({
+        baseUnitPx: 4,
+        density: 4,
+        steps: [1],
+      }).density,
+    ).toBe(MAX_SPACING_DENSITY);
+    expect(
+      normalizeSpacingScale({
+        baseUnitPx: 4,
+        density: 0,
+        steps: [1],
+      }).density,
+    ).toBe(MIN_SPACING_DENSITY);
+  });
+
+  it("fills a missing density so an old file stays at 1", () => {
+    expect(
+      normalizeSpacingScale({
+        baseUnitPx: 4,
+        steps: [1],
+      } as never).density,
+    ).toBe(DEFAULT_SPACING_DENSITY);
   });
 });

@@ -32,10 +32,15 @@ export interface ReferenceWorkspace {
     light: { trackId: string; weight: number };
     dark: { trackId: string; weight: number };
   }>;
-  spacing: { baseUnitPx: number; steps: number[] };
+  spacing: { baseUnitPx: number; density?: number; steps: number[] };
   radius: {
     multiplier: number;
-    tokens: Array<{ id: string; basePx: number; scales: boolean }>;
+    tokens: Array<{
+      id: string;
+      basePx: number;
+      scales: boolean;
+      unlinkedPx?: number;
+    }>;
   };
   elevation: {
     colour: { trackId: string; weight: number };

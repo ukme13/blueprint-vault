@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { WORKSPACE_STORAGE_KEY } from "./fixtures";
-import { expect, test } from "./scale-fixtures";
+import { expect, showScaleView, test } from "./scale-fixtures";
+import { fillHybridNumber } from "./typography-fixtures";
 
 /**
  * The spacing scale, edited.
@@ -69,6 +70,43 @@ test.describe("The spacing studio", () => {
 
     await expect(steps.getByText("20px", { exact: true })).toBeVisible();
   });
+
+  test("moves layout gaps and leaves the fine grid", async ({
+    seededPage: page,
+  }) => {
+    /* Density is the control that makes the page roomier without turning a
+       2px hairline into 4px, which is what switching the base unit does. */
+
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    const hairline = steps.locator("li", {
+      has: page.getByText("--spacing-0-5", { exact: true }),
+    });
+    const padding = steps.locator("li", {
+      has: page.getByText("--spacing-4", { exact: true }),
+    });
+
+    await expect(hairline).toContainText("2px");
+    await expect(padding).toContainText("16px");
+
+    const slider = page.getByRole("slider", { name: /Density/ });
+    await slider.focus();
+    await slider.press("ArrowRight");
+
+    await expect(hairline).toContainText("2px");
+    await expect(padding).toContainText("20px");
+    await expect(hairline).toContainText("grid");
+
+    await expect
+      .poll(() =>
+        page.evaluate((key) => {
+          const raw = window.localStorage.getItem(key);
+          if (!raw) return null;
+          return (JSON.parse(raw) as { spacing?: { density?: number } }).spacing
+            ?.density;
+        }, WORKSPACE_STORAGE_KEY),
+      )
+      .toBe(1.25);
+  });
 });
 
 test.describe("The radius editor", () => {
@@ -78,8 +116,11 @@ test.describe("The radius editor", () => {
     /* Zero scaled is still zero and half a pill is still a pill, so the
        multiplier says nothing useful about either. */
 
-    const radius = page.getByRole("region", { name: "Radius" });
-    await expect(radius.getByText("8px", { exact: true })).toBeVisible();
+    await showScaleView(page, "Radius");
+    const radius = page.getByRole("region", { name: "Radius", exact: true });
+    await expect(page.getByLabel("Element", { exact: true })).toContainText(
+      "8",
+    );
     await expect(radius.getByText(/9999px/)).toBeVisible();
 
     const slider = page.getByRole("slider", { name: /Roundness/ });
@@ -87,11 +128,14 @@ test.describe("The radius editor", () => {
     await slider.press("ArrowRight");
 
     // 0.25 up from 1: element goes 8 -> 10, and the pill does not move.
-    await expect(radius.getByText("10px", { exact: true })).toBeVisible();
+    await expect(page.getByLabel("Element", { exact: true })).toContainText(
+      "10",
+    );
     await expect(radius.getByText(/9999px/)).toBeVisible();
   });
 
   test("keeps the roundness across a reload", async ({ seededPage: page }) => {
+    await showScaleView(page, "Radius");
     const slider = page.getByRole("slider", { name: /Roundness/ });
     await slider.focus();
     await slider.press("ArrowRight");
@@ -108,9 +152,71 @@ test.describe("The radius editor", () => {
       .toBe(1.25);
 
     await page.reload();
+    await showScaleView(page, "Radius");
     await expect(
       page.getByRole("slider", { name: /Roundness: 1.25/ }),
     ).toBeVisible();
+  });
+
+  test("unlinks a named use from the multiplier", async ({
+    seededPage: page,
+  }) => {
+    /* Squarer buttons, rounder cards: typing 20 on Element holds that use
+       while Container still follows roundness. */
+
+    await showScaleView(page, "Radius");
+    const radius = page.getByRole("region", { name: "Radius", exact: true });
+
+    await fillHybridNumber(page, "Element", "20");
+    await expect(page.getByLabel("Element", { exact: true })).toHaveValue("20");
+
+    const slider = page.getByRole("slider", { name: /Roundness/ });
+    await slider.focus();
+    await slider.press("ArrowRight");
+
+    await expect(page.getByLabel("Element", { exact: true })).toHaveValue("20");
+    await expect(page.getByLabel("Container", { exact: true })).toContainText(
+      "15",
+    );
+    await expect(radius.getByText(/9999px/)).toBeVisible();
+    await expect(radius.getByText("0px · fixed")).toBeVisible();
+
+    await expect
+      .poll(() =>
+        page.evaluate((key) => {
+          const raw = window.localStorage.getItem(key);
+          if (!raw) return null;
+          const tokens = (
+            JSON.parse(raw) as {
+              radius?: { tokens: Array<{ id: string; unlinkedPx?: number }> };
+            }
+          ).radius?.tokens;
+          return tokens?.find((token) => token.id === "element")?.unlinkedPx;
+        }, WORKSPACE_STORAGE_KEY),
+      )
+      .toBe(20);
+  });
+
+  test("picking Follow roundness binds a use again", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Radius");
+    await fillHybridNumber(page, "Element", "20");
+
+    await page.getByRole("button", { name: "Apply preset" }).click();
+    await page.getByRole("option", { name: /Follow roundness/ }).click();
+
+    await expect(page.getByLabel("Element", { exact: true })).toContainText(
+      "Follow roundness",
+    );
+
+    const slider = page.getByRole("slider", { name: /Roundness/ });
+    await slider.focus();
+    await slider.press("ArrowRight");
+
+    await expect(page.getByLabel("Element", { exact: true })).toContainText(
+      "10",
+    );
   });
 });
 
@@ -120,6 +226,7 @@ test.describe("The elevation editor", () => {
        alpha reads as nothing once the background is already dark, and one
        preview would hide it. */
 
+    await showScaleView(page, "Elevation");
     const elevation = page.getByRole("region", { name: "Elevation" });
     await expect(elevation.getByLabel("Low on light")).toBeVisible();
     await expect(elevation.getByLabel("Low on dark")).toBeVisible();
@@ -129,6 +236,7 @@ test.describe("The elevation editor", () => {
   test("casts the same colour in both modes, more strongly in dark", async ({
     seededPage: page,
   }) => {
+    await showScaleView(page, "Elevation");
     const elevation = page.getByRole("region", { name: "Elevation" });
     const shadowOf = (name: string) =>
       elevation
@@ -154,7 +262,8 @@ test.describe("The elevation editor", () => {
   test("keeps an edited strength across a reload", async ({
     seededPage: page,
   }) => {
-    const slider = page.getByRole("slider", { name: "Low light strength" });
+    await showScaleView(page, "Elevation");
+    const slider = page.getByRole("slider", { name: "Low contact light" });
     await slider.focus();
     await slider.press("ArrowRight");
 
@@ -178,15 +287,170 @@ test.describe("The elevation editor", () => {
       .toBeCloseTo(0.15, 5);
 
     await page.reload();
+    await showScaleView(page, "Elevation");
     await expect(
       page
         .getByRole("region", { name: "Elevation" })
         .getByLabel("Low on light"),
     ).toBeVisible();
   });
+
+  test("edits the cast without moving the contact", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Elevation");
+    const slider = page.getByRole("slider", { name: "High cast dark" });
+    await slider.focus();
+    await slider.press("ArrowRight");
+
+    await expect
+      .poll(async () =>
+        page.evaluate((key) => {
+          const raw = window.localStorage.getItem(key);
+          if (!raw) return null;
+          const stored = JSON.parse(raw) as {
+            elevation?: {
+              levels: Array<{
+                id: string;
+                layers: Array<{ opacity: { dark: number } }>;
+              }>;
+            };
+          };
+          const high = stored.elevation?.levels.find(
+            (level) => level.id === "high",
+          );
+          return {
+            contact: Number(high?.layers[0]?.opacity.dark.toFixed(2)),
+            cast: Number(high?.layers[1]?.opacity.dark.toFixed(2)),
+          };
+        }, WORKSPACE_STORAGE_KEY),
+      )
+      .toEqual({ contact: 0.2, cast: 0.35 });
+  });
+
+  test("paints the dark sample with a dark card", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Elevation");
+    const elevation = page.getByRole("region", { name: "Elevation" });
+    const fillOf = (name: string) =>
+      elevation
+        .getByLabel(name)
+        .evaluate((node) => getComputedStyle(node).backgroundColor);
+
+    expect(await fillOf("Low on dark")).not.toBe(await fillOf("Low on light"));
+  });
+
+  test("picks the shadow colour from the palette", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Elevation");
+    const sample = page
+      .getByRole("region", { name: "Elevation" })
+      .getByLabel("Low on light");
+    const channels = (value: string) =>
+      [...value.matchAll(/rgba?\((\d+, \d+, \d+)/g)].map((m) => m[1]);
+    const before = channels(
+      await sample.evaluate((node) => getComputedStyle(node).boxShadow),
+    );
+
+    await page.getByLabel("Shadow colour track").click();
+    await page.getByRole("option", { name: "primary", exact: true }).click();
+
+    await expect
+      .poll(async () =>
+        channels(
+          await sample.evaluate((node) => getComputedStyle(node).boxShadow),
+        ),
+      )
+      .not.toEqual(before);
+  });
 });
 
 test.describe("The scale studio's chrome", () => {
+  test("switches Spacing, Radius and Elevation from the header", async ({
+    seededPage: page,
+  }) => {
+    const views = page.getByRole("navigation", { name: "Scale views" });
+    await expect(views.getByRole("button", { name: "Spacing" })).toBeVisible();
+    await expect(views.getByRole("button", { name: "Radius" })).toBeVisible();
+    await expect(
+      views.getByRole("button", { name: "Elevation" }),
+    ).toBeVisible();
+    await expect(views.getByRole("button", { name: "Preview" })).toBeVisible();
+
+    await showScaleView(page, "Radius");
+    await expect(
+      page.getByRole("region", { name: "Radius", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Generated spacing steps" }),
+    ).toHaveCount(0);
+
+    await showScaleView(page, "Elevation");
+    await expect(
+      page.getByRole("region", { name: "Elevation", exact: true }),
+    ).toBeVisible();
+
+    await showScaleView(page, "Preview");
+    await expect(
+      page.getByRole("region", { name: "Layout preview" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Generated spacing steps" }),
+    ).toHaveCount(0);
+  });
+
+  test("undoes a prune, and redo puts it back", async ({
+    seededPage: page,
+  }) => {
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    const before = await steps.getByRole("listitem").count();
+
+    await page
+      .getByRole("region", { name: "Steps" })
+      .getByRole("button", { name: "10", exact: true })
+      .click();
+    await expect(steps.getByRole("listitem")).toHaveCount(before - 1);
+
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(steps.getByRole("listitem")).toHaveCount(before);
+
+    await page.getByRole("button", { name: "Redo" }).click();
+    await expect(steps.getByRole("listitem")).toHaveCount(before - 1);
+  });
+
+  test("undoes the last action on the page, not only this view", async ({
+    seededPage: page,
+  }) => {
+    /* Spacing, radius and elevation share one history: an undo is the last
+       thing done in this studio, even after switching views. */
+
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    const before = await steps.getByRole("listitem").count();
+    await page
+      .getByRole("region", { name: "Steps" })
+      .getByRole("button", { name: "10", exact: true })
+      .click();
+
+    await showScaleView(page, "Radius");
+    const slider = page.getByRole("slider", { name: /Roundness/ });
+    await slider.focus();
+    await slider.press("ArrowRight");
+    await expect(page.getByLabel("Element", { exact: true })).toContainText(
+      "10",
+    );
+
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(page.getByLabel("Element", { exact: true })).toContainText(
+      "8",
+    );
+
+    await showScaleView(page, "Spacing");
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(steps.getByRole("listitem")).toHaveCount(before);
+  });
+
   test("exports the whole system, not only the scales", async ({
     seededPage: page,
   }) => {
@@ -235,5 +499,75 @@ test.describe("The scale studio's chrome", () => {
 
     await page.goto("/");
     await expect(page.getByLabel("Project name")).toHaveValue("Renamed here");
+  });
+});
+
+test.describe("The scale layout preview", () => {
+  test("paints a card, a form and a section from the live scale", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Preview");
+
+    await expect(
+      page.getByRole("region", { name: "Layout preview" }),
+    ).toBeVisible();
+    await expect(page.getByRole("region", { name: "Section" })).toBeVisible();
+    await expect(
+      page.getByRole("article", { name: "Resting card" }),
+    ).toBeVisible();
+    await expect(page.getByRole("region", { name: "Form row" })).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Elevation stack" }),
+    ).toBeVisible();
+  });
+
+  test("moves the card when the base unit or the roundness changes", async ({
+    seededPage: page,
+  }) => {
+    /* The jobs are why the inspector stays on this tab: neighbouring steps
+       look different as bars, and the card is how you tell whether they still
+       do as padding. */
+
+    await showScaleView(page, "Preview");
+    const card = page.getByRole("article", { name: "Resting card" });
+
+    await expect
+      .poll(() => card.evaluate((node) => getComputedStyle(node).paddingTop))
+      .toBe("16px");
+    await expect
+      .poll(() =>
+        card.evaluate((node) => getComputedStyle(node).borderTopLeftRadius),
+      )
+      .toBe("12px");
+
+    await page.getByRole("textbox", { name: "Custom number" }).click();
+    await page.keyboard.type("5");
+    await page.getByLabel("Base unit", { exact: true }).blur();
+
+    await expect
+      .poll(() => card.evaluate((node) => getComputedStyle(node).paddingTop))
+      .toBe("20px");
+
+    await page.getByRole("slider", { name: /Roundness/ }).focus();
+    await page.getByRole("slider", { name: /Roundness/ }).press("ArrowRight");
+
+    await expect
+      .poll(() =>
+        card.evaluate((node) => getComputedStyle(node).borderTopLeftRadius),
+      )
+      .toBe("15px");
+  });
+
+  test("warns when a job still names a pruned step", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Preview");
+
+    await page
+      .getByRole("region", { name: "Steps" })
+      .getByRole("button", { name: "10", exact: true })
+      .click();
+
+    await expect(page.getByText("Missing --spacing-10")).toBeVisible();
   });
 });

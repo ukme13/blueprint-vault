@@ -342,10 +342,16 @@ describe("a version 2 file still opens", () => {
   it("round-trips an edited scale rather than defaulting it", () => {
     const after = parseBlueprintWorkspace(
       formatBlueprintWorkspace(
-        workspace({ spacing: { baseUnitPx: 8, steps: [1, 2, 4] } }),
+        workspace({
+          spacing: { baseUnitPx: 8, density: 1, steps: [1, 2, 4] },
+        }),
       ),
     );
-    expect(after.spacing).toEqual({ baseUnitPx: 8, steps: [1, 2, 4] });
+    expect(after.spacing).toEqual({
+      baseUnitPx: 8,
+      density: 1,
+      steps: [1, 2, 4],
+    });
   });
 });
 

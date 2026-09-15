@@ -33,6 +33,7 @@ import {
 /** The scale's rule, for a page that has to state it before listing it. */
 export interface SpacingScaleSummary {
   baseUnitPx: number;
+  density: number;
   /** The multiples, in order. Data rather than a formula. */
   steps: number[];
   tokens: SpacingToken[];
@@ -44,6 +45,7 @@ export function spacingScaleSummary(scale: SpacingScale): SpacingScaleSummary {
   const tokens = resolveSpacing(scale);
   return {
     baseUnitPx: scale.baseUnitPx,
+    density: Number.isFinite(scale.density) ? scale.density : 1,
     steps: [...scale.steps],
     tokens,
     maxPx: tokens.reduce((largest, token) => Math.max(largest, token.px), 0),

@@ -14,6 +14,11 @@ import { ROOT_FONT_SIZE_PX } from "../typography/types";
  * both earn their place. `generateSpacingSteps` gives somewhere to start; the
  * editor prunes.
  *
+ * Density is a second pass on layout gaps (step 2 and up), the way radius has
+ * a multiplier. Changing the base unit from 4 to 8 doubles everything,
+ * including the hairline the half-step exists to keep. Density makes the page
+ * roomier without melting that grid.
+ *
  * See docs/roadmap/scale-studio.md.
  */
 
@@ -60,9 +65,36 @@ export const DEFAULT_SPACING_STEPS: readonly number[] = [
   0, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 8, 10, 12, 16,
 ];
 
+/**
+ * Bounds on density.
+ *
+ * 1 is the stored scale as written. Below 1 is compact layout with the same
+ * grid; above 1 is roomier. 0.5 is as tight as a page can go without the
+ * gaps disappearing; 2 is twice the air, which is as far as "comfortable"
+ * needs to reach.
+ */
+export const DEFAULT_SPACING_DENSITY = 1;
+export const MIN_SPACING_DENSITY = 0.5;
+export const MAX_SPACING_DENSITY = 2;
+
+/**
+ * Layout steps are this multiple and up.
+ *
+ * Halves below 2 exist because 2px is visible on a border or an icon gap.
+ * Density is for padding and section spacing; applying it to the fine grid
+ * is how switching the base unit from 4 to 8 melts a hairline into 4px.
+ */
+export const SPACING_DENSITY_FROM_STEP = 2;
+
 export interface SpacingScale {
   /** Every step is this many pixels, times its own multiple. */
   baseUnitPx: number;
+  /**
+   * Applied to layout steps (2 and up). The fine grid ignores it.
+   *
+   * Missing on a file written before density existed, and treated as 1.
+   */
+  density: number;
   /** Multiples of the base unit, ascending and unique. */
   steps: number[];
 }
@@ -70,8 +102,14 @@ export interface SpacingScale {
 export function defaultSpacingScale(): SpacingScale {
   return {
     baseUnitPx: DEFAULT_SPACING_BASE_UNIT_PX,
+    density: DEFAULT_SPACING_DENSITY,
     steps: [...DEFAULT_SPACING_STEPS],
   };
+}
+
+/** Whether density moves this step, or it stays on the grid. */
+export function spacingStepFollowsDensity(step: number): boolean {
+  return step >= SPACING_DENSITY_FROM_STEP;
 }
 
 /**
@@ -101,12 +139,19 @@ export interface SpacingToken {
    * an eighth too large everywhere.
    */
   rem: number;
+  /** False for the fine grid, which density must not melt. */
+  followsDensity: boolean;
 }
 
 /** Every step as a token, in order. */
 export function resolveSpacing(scale: SpacingScale): SpacingToken[] {
+  const density = Number.isFinite(scale.density)
+    ? scale.density
+    : DEFAULT_SPACING_DENSITY;
+
   return scale.steps.map((step) => {
-    const px = step * scale.baseUnitPx;
+    const followsDensity = spacingStepFollowsDensity(step);
+    const px = step * scale.baseUnitPx * (followsDensity ? density : 1);
     return {
       step,
       name: spacingStepName(step),
@@ -116,6 +161,7 @@ export function resolveSpacing(scale: SpacingScale): SpacingToken[] {
          0.375 exactly, but 7 / 16 × 3 is not, and a token file full of
          0.4374999999999999 helps nobody. */
       rem: Number((px / ROOT_FONT_SIZE_PX).toFixed(4)),
+      followsDensity,
     };
   });
 }
@@ -153,6 +199,14 @@ export function normalizeSpacingScale(scale: SpacingScale): SpacingScale {
     MAX_SPACING_BASE_UNIT_PX,
   );
 
+  const density = Math.min(
+    Math.max(
+      Number.isFinite(scale.density) ? scale.density : DEFAULT_SPACING_DENSITY,
+      MIN_SPACING_DENSITY,
+    ),
+    MAX_SPACING_DENSITY,
+  );
+
   const steps = [
     ...new Set(
       scale.steps.filter(
@@ -166,6 +220,7 @@ export function normalizeSpacingScale(scale: SpacingScale): SpacingScale {
      existence from the UI, so it falls back rather than staying empty. */
   return {
     baseUnitPx,
+    density,
     steps: steps.length > 0 ? steps : [...DEFAULT_SPACING_STEPS],
   };
 }

@@ -32,6 +32,7 @@ export function readSpacingScale(value: unknown): SpacingScale | null {
 
   return normalizeSpacingScale({
     baseUnitPx: raw.baseUnitPx,
+    density: raw.density as number,
     steps: raw.steps.filter((step): step is number => typeof step === "number"),
   });
 }
