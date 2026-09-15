@@ -6,12 +6,12 @@ import {
   type CSSProperties,
   type KeyboardEvent,
 } from "react";
-import type { PreviewDocumentBlock } from "@blueprint/ui";
+import { blockElementForRole, type PreviewDocumentBlock } from "@blueprint/ui";
 import { caretOffsetIn } from "./preview-document-dom";
 
 interface PreviewEditableBlockProps {
   block: PreviewDocumentBlock;
-  tag: keyof HTMLElementTagNameMap;
+  tag: ReturnType<typeof blockElementForRole>;
   style: CSSProperties;
   selected: boolean;
   onSelect: (blockId: string) => void;
