@@ -13,6 +13,7 @@ import {
   canAddExtraDesktop,
   isRequiredPreviewDevice,
   resolveHybridValue,
+  sortPreviewDevicesLargestFirst,
   type HybridTokenizedValue,
   type HybridTokenPreset,
   type PreviewDevice,
@@ -121,7 +122,7 @@ export function PreviewDeviceSettings({
           <span>Ratio</span>
           <span />
         </div>
-        {devices.map((device) => (
+        {sortPreviewDevicesLargestFirst(devices).map((device) => (
           <DeviceRow
             key={device.id}
             detachedRatio={detachedRatios[device.id] ?? null}

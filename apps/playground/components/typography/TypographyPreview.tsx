@@ -68,7 +68,7 @@ export function TypographyPreview({
   const documentOpen = view === "preview";
 
   const preview = (
-    <section aria-label="Type scale preview" className={styles.previewPage}>
+    <div className={styles.previewShell}>
       <div className={styles.previewToolbar}>
         <Toolbar
           gap={1}
@@ -89,46 +89,48 @@ export function TypographyPreview({
         />
       </div>
 
-      <div
-        className={styles.previewStage}
-        data-preview-background={backgroundHex ? "true" : undefined}
-        data-preview-text={textHex ? "true" : undefined}
-        data-preview-device={device.id}
-        style={{
-          maxWidth: `${device.widthPx}px`,
-          /* Colour lives on each card, not on this box. Painting the stage
-             put a square behind the rounded cards and, with overflow hidden,
-             ate the wheel so the page could not scroll. */
-          ...(backgroundHex
-            ? ({ "--preview-surface": backgroundHex } as CSSProperties)
-            : {}),
-          ...(textHex
-            ? ({ color: textHex, "--preview-ink": textHex } as CSSProperties)
-            : {}),
-        }}
-      >
-        {documentOpen ? (
-          <article
-            className={`${styles.templateSurface} ${styles.templateDocument}`}
-          >
-            <PreviewDocumentCanvas />
-          </article>
-        ) : (
-          <PreviewSpecimenList
-            backgroundHex={backgroundHex}
-            device={device}
-            remRootPx={remRootPx}
-            roles={roles}
-            specimenText={specimenText}
-            onSpecimenTextChange={onSpecimenTextChange}
-            styleOf={styleOf}
-            system={system}
-            textHex={textHex}
-            unit={unit}
-          />
-        )}
-      </div>
-    </section>
+      <section aria-label="Type scale preview" className={styles.previewPage}>
+        <div
+          className={styles.previewStage}
+          data-preview-background={backgroundHex ? "true" : undefined}
+          data-preview-text={textHex ? "true" : undefined}
+          data-preview-device={device.id}
+          style={{
+            maxWidth: `${device.widthPx}px`,
+            /* Colour lives on each card, not on this box. Painting the stage
+               put a square behind the rounded cards and, with overflow hidden,
+               ate the wheel so the page could not scroll. */
+            ...(backgroundHex
+              ? ({ "--preview-surface": backgroundHex } as CSSProperties)
+              : {}),
+            ...(textHex
+              ? ({ color: textHex, "--preview-ink": textHex } as CSSProperties)
+              : {}),
+          }}
+        >
+          {documentOpen ? (
+            <article
+              className={`${styles.templateSurface} ${styles.templateDocument}`}
+            >
+              <PreviewDocumentCanvas />
+            </article>
+          ) : (
+            <PreviewSpecimenList
+              backgroundHex={backgroundHex}
+              device={device}
+              remRootPx={remRootPx}
+              roles={roles}
+              specimenText={specimenText}
+              onSpecimenTextChange={onSpecimenTextChange}
+              styleOf={styleOf}
+              system={system}
+              textHex={textHex}
+              unit={unit}
+            />
+          )}
+        </div>
+      </section>
+    </div>
   );
 
   if (!documentOpen) return preview;

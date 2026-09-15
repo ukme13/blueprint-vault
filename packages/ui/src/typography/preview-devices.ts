@@ -87,13 +87,30 @@ export function defaultPreviewDevices(ratio = DEFAULT_RATIO): PreviewDevice[] {
  * phone / tablet / desktop / extras, which is usually the same, but a custom
  * extra at 500px has to land between phone and tablet, not after desktop.
  */
+function comparePreviewDeviceWidth(
+  a: PreviewDevice,
+  b: PreviewDevice,
+  direction: 1 | -1,
+): number {
+  if (a.widthPx !== b.widthPx) return direction * (a.widthPx - b.widthPx);
+  return a.id.localeCompare(b.id);
+}
+
 export function sortPreviewDevicesByWidth(
   devices: readonly PreviewDevice[],
 ): PreviewDevice[] {
-  return [...devices].sort((a, b) => {
-    if (a.widthPx !== b.widthPx) return a.widthPx - b.widthPx;
-    return a.id.localeCompare(b.id);
-  });
+  return [...devices].sort((a, b) => comparePreviewDeviceWidth(a, b, 1));
+}
+
+/**
+ * Widest first. The studio icons read large to small — desktop, then tablet,
+ * then phone — while export still walks the ascending sort so `:root` is the
+ * smallest layout.
+ */
+export function sortPreviewDevicesLargestFirst(
+  devices: readonly PreviewDevice[],
+): PreviewDevice[] {
+  return [...devices].sort((a, b) => comparePreviewDeviceWidth(a, b, -1));
 }
 
 function extraDesktopCount(devices: readonly PreviewDevice[]): number {

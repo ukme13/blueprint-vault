@@ -2,7 +2,10 @@
 
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Monitor, Smartphone, Tablet } from "lucide-react";
-import type { PreviewDevice } from "@blueprint/ui";
+import {
+  sortPreviewDevicesLargestFirst,
+  type PreviewDevice,
+} from "@blueprint/ui";
 
 const DEVICE_ICONS = {
   phone: Smartphone,
@@ -30,7 +33,7 @@ export function PreviewDeviceBar({
         .filter(Boolean)
         .join(" ")}
     >
-      {devices.map((device) => {
+      {sortPreviewDevicesLargestFirst(devices).map((device) => {
         const Icon = DEVICE_ICONS[device.kind];
         const isActive = device.id === activeId;
         const tooltip = `${device.name} · ${device.widthPx}px`;

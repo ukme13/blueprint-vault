@@ -183,6 +183,36 @@ test.describe("Typography studio styles", () => {
     expect(await styleOf(option, "color")).not.toBe(muted);
   });
 
+  test("the default colour swatch is muted ink, not the hairline border", async ({
+    page,
+  }) => {
+    await seed(page);
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    await page.getByLabel("Text colour").click();
+
+    const swatch = page
+      .getByRole("option", { name: "Default" })
+      .locator("[data-empty]");
+    await expect(swatch).toBeVisible();
+
+    const token = async (value: string) =>
+      page.evaluate((color) => {
+        const probe = document.createElement("span");
+        probe.style.color = color;
+        document.body.appendChild(probe);
+        const computed = getComputedStyle(probe).color;
+        probe.remove();
+        return computed;
+      }, value);
+
+    const ink = await styleOf(swatch, "border-top-color");
+    expect(ink).toBe(await token("var(--color-fg-muted)"));
+    expect(ink).not.toBe(await token("var(--color-border)"));
+    expect(ink).not.toBe(
+      await styleOf(page.getByRole("listbox"), "background-color"),
+    );
+  });
+
   test("a picked preview text colour takes without a background", async ({
     page,
   }) => {
