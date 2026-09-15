@@ -230,6 +230,18 @@ test.describe("Typography scale editing", () => {
       devices.getByRole("button", { name: "Desktop" }),
     ).toBeVisible();
     await expect(devices.getByRole("button")).toHaveCount(3);
+    const [desktop, tablet, phone] = await Promise.all([
+      devices
+        .getByRole("button", { name: "Desktop", exact: true })
+        .boundingBox(),
+      devices.getByRole("button", { name: "Tablet" }).boundingBox(),
+      devices.getByRole("button", { name: "Phone" }).boundingBox(),
+    ]);
+    expect(desktop).toBeTruthy();
+    expect(tablet).toBeTruthy();
+    expect(phone).toBeTruthy();
+    expect(desktop!.x).toBeLessThan(tablet!.x);
+    expect(tablet!.x).toBeLessThan(phone!.x);
     await expect(
       page.getByRole("group", { name: "Preview width" }),
     ).toHaveCount(0);
@@ -280,6 +292,15 @@ test.describe("Typography scale editing", () => {
       devices.getByRole("button", { name: "Desktop 2" }),
     ).toBeVisible();
     await expect(devices.getByRole("button")).toHaveCount(4);
+    const extra = await devices
+      .getByRole("button", { name: "Desktop 2" })
+      .boundingBox();
+    const desktop = await devices
+      .getByRole("button", { name: "Desktop", exact: true })
+      .boundingBox();
+    expect(extra).toBeTruthy();
+    expect(desktop).toBeTruthy();
+    expect(extra!.x).toBeLessThan(desktop!.x);
 
     await settings.getByRole("button", { name: "Add desktop" }).click();
     await expect(
@@ -435,15 +456,27 @@ test.describe("Typography scale editing", () => {
       ),
     ).toBeVisible();
 
+    const tabs = page.getByRole("navigation", { name: "Typography views" });
+    const previewBox = await preview.boundingBox();
+    const toolbarBox = await toolbar.boundingBox();
+    const tabsBox = await tabs.boundingBox();
+    expect(previewBox).toBeTruthy();
+    expect(toolbarBox).toBeTruthy();
+    expect(tabsBox).toBeTruthy();
+    expect(toolbarBox!.y).toBeGreaterThan(tabsBox!.y);
+    expect(previewBox!.y).toBeGreaterThan(toolbarBox!.y);
+    await expect(toolbar.locator("xpath=..")).not.toHaveCSS(
+      "position",
+      "sticky",
+    );
+
+    const before = toolbarBox!.y;
     await preview.evaluate((el) => {
       el.scrollTop = el.scrollHeight;
     });
-    const previewBox = await preview.boundingBox();
-    const toolbarBox = await toolbar.boundingBox();
-    expect(previewBox).toBeTruthy();
-    expect(toolbarBox).toBeTruthy();
-    expect(toolbarBox!.y).toBeGreaterThanOrEqual(previewBox!.y - 1);
-    expect(toolbarBox!.y).toBeLessThan(previewBox!.y + 80);
+    const after = await toolbar.boundingBox();
+    expect(after).toBeTruthy();
+    expect(after!.y).toBe(before);
   });
 
   test("applies a workspace role to the selected block", async ({

@@ -358,6 +358,14 @@
   color: var(--color-status-success);
 }
 
+.previewShell {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
 .previewPage {
   min-width: 0;
   min-height: 0;
@@ -633,12 +641,12 @@
 }
 
 .previewToolbar {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  padding: var(--spacing-1);
-  background: var(--color-surface-overlay);
-  border-radius: var(--radius-inner);
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--color-border-default);
+  background: var(--color-surface-raised);
 }
 
 .previewToolbar > :global(*) {
@@ -808,15 +816,18 @@
 }
 
 .previewColourSwatch[data-empty] {
+  /* Ink, not the hairline border: in dark mode --color-border sits on the
+     overlay and the slash disappears. Muted foreground is the empty mark. */
+  border-color: var(--color-fg-muted);
   background:
     linear-gradient(
       to bottom right,
       transparent calc(50% - var(--border-width)),
-      var(--color-border) calc(50% - var(--border-width)),
-      var(--color-border) calc(50% + var(--border-width)),
+      var(--color-fg-muted) calc(50% - var(--border-width)),
+      var(--color-fg-muted) calc(50% + var(--border-width)),
       transparent calc(50% + var(--border-width))
     ),
-    var(--color-surface-raised);
+    var(--color-surface-base);
 }
 
 .previewColourEmpty {

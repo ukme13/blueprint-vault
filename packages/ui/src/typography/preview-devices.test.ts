@@ -7,6 +7,7 @@ import {
   defaultPreviewDevices,
   isRequiredPreviewDevice,
   sortPreviewDevicesByWidth,
+  sortPreviewDevicesLargestFirst,
   normalizePreviewDevices,
   removePreviewDevice,
   resolvePreviewDevice,
@@ -193,5 +194,15 @@ describe("sortPreviewDevicesByWidth", () => {
         (device) => device.id,
       ),
     ).toEqual(["phone", "desktop-extra-1", "tablet", "desktop"]);
+  });
+});
+
+describe("sortPreviewDevicesLargestFirst", () => {
+  it("orders desktop, tablet, then phone", () => {
+    expect(
+      sortPreviewDevicesLargestFirst(defaultPreviewDevices(RATIO)).map(
+        (device) => device.id,
+      ),
+    ).toEqual(["desktop", "tablet", "phone"]);
   });
 });
