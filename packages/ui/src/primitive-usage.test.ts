@@ -276,6 +276,10 @@ const CHROME_ALLOWED: ReadonlyArray<[RegExp, RegExp]> = [
   ],
   // The shadow demo shows each level on a light and on a dark ground.
   [/scale[\\/]ElevationEditor\.tsx$/, /^--color-neutral-(?:50|900)$/],
+  // Elevation opacity thumbs sit on a pale well and a dark one. A semantic
+  // border follows the studio mode and vanishes on one of the two; the same
+  // mid grey the colour rails use does not follow the mode.
+  [/scale[\\/]scale-workspace\.module\.css$/, /^--color-neutral-300$/],
   // The hue slider is a rainbow: its stops are literal by definition.
   // The lightness rails are a true L scale (black to white), not a
   // theme colour — `--color-neutral-*` is tinted and would follow the mode.

@@ -107,6 +107,26 @@ test.describe("The spacing studio", () => {
       )
       .toBe(1.25);
   });
+
+  test("keeps the grid label and the bar on one row", async ({
+    seededPage: page,
+  }) => {
+    /* The word "grid" is a fifth child if it is its own cell in a four-column
+       row, and the bar wraps under the token name as a 2px tick. */
+
+    const hairline = page
+      .getByRole("region", { name: "Generated spacing steps" })
+      .locator("li", { has: page.getByText("--spacing-0-5", { exact: true }) });
+    const label = hairline.getByText("grid", { exact: true });
+    const bar = hairline.locator("[aria-hidden='true']");
+
+    const labelBox = await label.boundingBox();
+    const barBox = await bar.boundingBox();
+    expect(labelBox).toBeTruthy();
+    expect(barBox).toBeTruthy();
+    expect(Math.abs((labelBox?.y ?? 0) - (barBox?.y ?? 0))).toBeLessThan(4);
+    expect(barBox?.x ?? 0).toBeGreaterThan(labelBox?.x ?? 0);
+  });
 });
 
 test.describe("The radius editor", () => {
@@ -339,6 +359,39 @@ test.describe("The elevation editor", () => {
         .evaluate((node) => getComputedStyle(node).backgroundColor);
 
     expect(await fillOf("Low on dark")).not.toBe(await fillOf("Low on light"));
+  });
+
+  test("paints contact sharp and cast soft, each mode on its surface", async ({
+    seededPage: page,
+  }) => {
+    /* The track is the axis: this mode's surface, with the shadow colour
+       mixed in. Contact keeps a hard edge; Cast is a pill. A shared grey
+       ramp would make the four sliders look like copies. */
+
+    await showScaleView(page, "Elevation");
+    const trackOf = (name: string) =>
+      page
+        .getByRole("slider", { name })
+        .locator("xpath=ancestor::*[@data-elevation-opacity][1]")
+        .locator(".astryx-slider-track");
+
+    const paint = (name: string) =>
+      trackOf(name).evaluate((node) => {
+        const style = getComputedStyle(node);
+        return {
+          image: style.backgroundImage,
+          color: style.backgroundColor,
+          radius: style.borderRadius,
+        };
+      });
+
+    const contactLight = await paint("Low contact light");
+    const contactDark = await paint("Low contact dark");
+    const castLight = await paint("Low cast light");
+
+    expect(contactLight.image).toMatch(/gradient/i);
+    expect(contactDark.color).not.toBe(contactLight.color);
+    expect(castLight.radius).not.toBe(contactLight.radius);
   });
 
   test("picks the shadow colour from the palette", async ({

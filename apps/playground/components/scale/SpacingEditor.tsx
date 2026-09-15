@@ -114,9 +114,9 @@ export function SpacingCanvas({ tokens }: { tokens: SpacingToken[] }) {
             <code>{token.variable}</code>
             <span>{token.px}px</span>
             <span className={styles.tokenMeta}>{token.rem}rem</span>
-            {!token.followsDensity && token.step > 0 ? (
-              <span className={styles.tokenMeta}>grid</span>
-            ) : null}
+            <span className={styles.tokenMeta}>
+              {!token.followsDensity && token.step > 0 ? "grid" : null}
+            </span>
             <span
               aria-hidden="true"
               className={styles.tokenBar}

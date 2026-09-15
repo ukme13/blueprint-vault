@@ -1,11 +1,13 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { Selector } from "@astryxdesign/core/Selector";
 import { Slider } from "@astryxdesign/core/Slider";
 import {
   COLOUR_MODES,
   elevationColourOnTrack,
   elevationLayerName,
+  elevationPreviewSurfaces,
   resolveElevationColour,
   setElevationColour,
   setLayerOpacity,
@@ -31,6 +33,7 @@ export function ElevationInspector({
   const colour = resolveElevationColour(scale, palettes);
   const track =
     palettes.find((item) => item.id === colour.trackId) ?? palettes[0];
+  const surfaces = elevationPreviewSurfaces(palettes);
 
   return (
     <>
@@ -108,21 +111,51 @@ export function ElevationInspector({
               <div key={index} className={styles.elevationLayer}>
                 <span className={styles.elevationLayerName}>{layerName}</span>
                 {COLOUR_MODES.map((mode) => (
-                  <Slider
+                  <div
                     key={mode}
-                    formatValue={(value) => `${Math.round(value * 100)}%`}
-                    label={`${level.name} ${layerName.toLowerCase()} ${mode}`}
-                    max={OPACITY_MAX}
-                    min={0}
-                    step={OPACITY_STEP}
-                    value={layer.opacity[mode]}
-                    onChange={(value: number) =>
-                      onChange(
-                        setLayerOpacity(scale, level.id, index, mode, value),
-                        `elevation:opacity:${level.id}:${index}:${mode}`,
-                      )
+                    className={styles.elevationOpacity}
+                    data-elevation-opacity=""
+                    data-layer={layerName.toLowerCase()}
+                    data-mode={mode}
+                    style={
+                      {
+                        "--elevation-surface": surfaces[mode].card,
+                        "--elevation-shadow": colour.hex,
+                        "--elevation-opacity": String(layer.opacity[mode]),
+                        "--elevation-mix": String(
+                          Math.round(OPACITY_MAX * 100),
+                        ),
+                      } as CSSProperties
                     }
-                  />
+                  >
+                    <span className={styles.elevationMode} aria-hidden="true">
+                      {mode === "light" ? "Light" : "Dark"}
+                    </span>
+                    <span className={styles.elevationSlider}>
+                      <Slider
+                        formatValue={(value) => `${Math.round(value * 100)}%`}
+                        isLabelHidden
+                        label={`${level.name} ${layerName.toLowerCase()} ${mode}`}
+                        max={OPACITY_MAX}
+                        min={0}
+                        step={OPACITY_STEP}
+                        value={layer.opacity[mode]}
+                        width="100%"
+                        onChange={(value: number) =>
+                          onChange(
+                            setLayerOpacity(
+                              scale,
+                              level.id,
+                              index,
+                              mode,
+                              value,
+                            ),
+                            `elevation:opacity:${level.id}:${index}:${mode}`,
+                          )
+                        }
+                      />
+                    </span>
+                  </div>
                 ))}
               </div>
             );
