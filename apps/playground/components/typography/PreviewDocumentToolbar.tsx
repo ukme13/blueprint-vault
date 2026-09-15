@@ -1,24 +1,26 @@
 "use client";
 
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { Selector } from "@astryxdesign/core/Selector";
 import {
   applyRoleToBlocks,
   previewDocumentRoleOptions,
   selectedDocumentBlocks,
 } from "@blueprint/ui";
-import { usePreviewDocumentSession } from "./PreviewDocumentPane";
+import {
+  usePreviewDocumentActions,
+  usePreviewDocumentView,
+} from "./PreviewDocumentPane";
 
 export function PreviewDocumentToolbar() {
-  const session = usePreviewDocumentSession();
+  const view = usePreviewDocumentView();
+  const actions = usePreviewDocumentActions();
   const selected = useMemo(
-    () => selectedDocumentBlocks(session.document, session.selectedIds),
-    [session.document, session.selectedIds],
+    () => selectedDocumentBlocks(view.document, view.selectedIds),
+    [view.document, view.selectedIds],
   );
-  const selectedRef = useRef(selected);
-  selectedRef.current = selected;
   const roleValue = selected.roleIds.length === 1 ? selected.roleIds[0] : "";
-  const options = previewDocumentRoleOptions(session.system).map((group) => ({
+  const options = previewDocumentRoleOptions(view.system).map((group) => ({
     type: "section" as const,
     title: group.groupLabel,
     options: group.roles.map((role) => ({
@@ -37,9 +39,10 @@ export function PreviewDocumentToolbar() {
       value={roleValue || undefined}
       variant="ghost"
       onChange={(value) => {
-        const ids = selectedRef.current.ids;
-        if (!value || ids.length === 0) return;
-        session.patch((current) => applyRoleToBlocks(current, ids, value));
+        if (!value || selected.ids.length === 0) return;
+        actions.current.patch((current) =>
+          applyRoleToBlocks(current, selected.ids, value),
+        );
       }}
     />
   );

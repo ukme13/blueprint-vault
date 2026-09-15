@@ -11,6 +11,7 @@ import {
   useState,
   type CSSProperties,
   type ReactNode,
+  type RefObject,
 } from "react";
 import {
   blockElementForRole,
@@ -28,26 +29,46 @@ import { PreviewEditableBlock } from "./PreviewEditableBlock";
 import { blockIdsIntersectingSelection } from "./preview-document-dom";
 import styles from "./typography-workspace.module.css";
 
-export interface PreviewDocumentSessionValue {
+export interface PreviewDocumentViewValue {
   system: TypeSystem;
   document: PreviewDocument;
   selectedIds: string[];
+  focusId: string | null;
   styleOf: (role: TypeRole) => CSSProperties;
-  canvasRef: { current: HTMLDivElement | null };
   selectIds: (ids: string[]) => void;
+}
+
+export interface PreviewDocumentActions {
   patch: (fn: (document: PreviewDocument) => PreviewDocument) => void;
   enter: (blockId: string, offset: number) => void;
   backspaceAtStart: (blockId: string) => void;
 }
 
-const SessionContext = createContext<PreviewDocumentSessionValue | null>(null);
+const ViewContext = createContext<PreviewDocumentViewValue | null>(null);
+const ActionsContext = createContext<RefObject<PreviewDocumentActions> | null>(
+  null,
+);
 
-export function usePreviewDocumentSession(): PreviewDocumentSessionValue {
-  const session = useContext(SessionContext);
-  if (!session) {
+const EMPTY_ACTIONS: PreviewDocumentActions = {
+  patch: () => undefined,
+  enter: () => undefined,
+  backspaceAtStart: () => undefined,
+};
+
+export function usePreviewDocumentView(): PreviewDocumentViewValue {
+  const view = useContext(ViewContext);
+  if (!view) {
     throw new Error("Preview document chrome is missing its session.");
   }
-  return session;
+  return view;
+}
+
+export function usePreviewDocumentActions(): RefObject<PreviewDocumentActions> {
+  const actions = useContext(ActionsContext);
+  if (!actions) {
+    throw new Error("Preview document chrome is missing its session.");
+  }
+  return actions;
 }
 
 export interface PreviewDocumentSessionProps {
@@ -65,9 +86,8 @@ export function PreviewDocumentSession({
   onDocumentChange,
   children,
 }: PreviewDocumentSessionProps) {
-  const canvasRef = useRef<HTMLDivElement>(null);
   const documentRef = useRef(document);
-  documentRef.current = document;
+  const actionsRef = useRef<PreviewDocumentActions>(EMPTY_ACTIONS);
   const [selectedIds, setSelectedIds] = useState<string[]>(() =>
     document[0] ? [document[0].id] : [],
   );
@@ -86,114 +106,131 @@ export function PreviewDocumentSession({
     },
     [change],
   );
+  const enter = useCallback(
+    (blockId: string, offset: number) => {
+      const current = documentRef.current.find((entry) => entry.id === blockId);
+      if (!current) return;
+      const newId = createPreviewBlockId();
+      change(
+        splitBlock(
+          documentRef.current,
+          blockId,
+          offset,
+          newId,
+          roleForInsertedBlock(system, current.roleId),
+        ),
+      );
+      setFocusId(newId);
+      setSelectedIds([newId]);
+    },
+    [change, system],
+  );
+  const backspaceAtStart = useCallback(
+    (blockId: string) => {
+      const index = documentRef.current.findIndex(
+        (entry) => entry.id === blockId,
+      );
+      const previous = index > 0 ? documentRef.current[index - 1] : null;
+      change(mergeBlockWithPrevious(documentRef.current, blockId));
+      if (previous) {
+        setFocusId(previous.id);
+        setSelectedIds([previous.id]);
+        return;
+      }
+      setSelectedIds([blockId]);
+    },
+    [change],
+  );
 
   useLayoutEffect(() => {
-    if (!focusId) return;
-    const el = canvasRef.current?.querySelector(
-      `[data-preview-block="${CSS.escape(focusId)}"]`,
-    );
-    if (el instanceof HTMLElement) {
-      el.focus();
-      const range = window.document.createRange();
-      range.selectNodeContents(el);
-      range.collapse(true);
-      const selection = window.getSelection();
-      selection?.removeAllRanges();
-      selection?.addRange(range);
-    }
-    setFocusId(null);
-  }, [focusId]);
+    documentRef.current = document;
+  }, [document]);
 
-  const session = useMemo<PreviewDocumentSessionValue>(
+  useLayoutEffect(() => {
+    actionsRef.current = { patch, enter, backspaceAtStart };
+  }, [patch, enter, backspaceAtStart]);
+
+  const view = useMemo<PreviewDocumentViewValue>(
     () => ({
       system,
       document,
       selectedIds,
+      focusId,
       styleOf,
-      canvasRef,
       selectIds: setSelectedIds,
-      patch,
-      enter: (blockId, offset) => {
-        const current = documentRef.current.find(
-          (entry) => entry.id === blockId,
-        );
-        if (!current) return;
-        const newId = createPreviewBlockId();
-        change(
-          splitBlock(
-            documentRef.current,
-            blockId,
-            offset,
-            newId,
-            roleForInsertedBlock(system, current.roleId),
-          ),
-        );
-        setFocusId(newId);
-        setSelectedIds([newId]);
-      },
-      backspaceAtStart: (blockId) => {
-        const index = documentRef.current.findIndex(
-          (entry) => entry.id === blockId,
-        );
-        const previous = index > 0 ? documentRef.current[index - 1] : null;
-        change(mergeBlockWithPrevious(documentRef.current, blockId));
-        if (previous) {
-          setFocusId(previous.id);
-          setSelectedIds([previous.id]);
-          return;
-        }
-        setSelectedIds([blockId]);
-      },
     }),
-    [system, document, selectedIds, styleOf, change, patch],
+    [system, document, selectedIds, focusId, styleOf],
   );
 
   return (
-    <SessionContext.Provider value={session}>
-      {children}
-    </SessionContext.Provider>
+    <ViewContext.Provider value={view}>
+      <ActionsContext.Provider value={actionsRef}>
+        {children}
+      </ActionsContext.Provider>
+    </ViewContext.Provider>
   );
 }
 
 export function PreviewDocumentCanvas() {
-  const session = usePreviewDocumentSession();
+  const view = usePreviewDocumentView();
+  const actions = usePreviewDocumentActions();
+  const canvasRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!view.focusId) return;
+    const el = canvasRef.current?.querySelector(
+      `[data-preview-block="${CSS.escape(view.focusId)}"]`,
+    );
+    if (!(el instanceof HTMLElement)) return;
+    el.focus();
+    const range = window.document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(true);
+    const selection = window.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  }, [view.focusId]);
 
   useEffect(() => {
     const onSelectionChange = () => {
-      const ids = blockIdsIntersectingSelection(session.canvasRef.current);
-      if (ids.length > 0) session.selectIds(ids);
+      const ids = blockIdsIntersectingSelection(canvasRef.current);
+      if (ids.length > 0) view.selectIds(ids);
     };
     window.document.addEventListener("selectionchange", onSelectionChange);
     return () =>
       window.document.removeEventListener("selectionchange", onSelectionChange);
-  }, [session]);
+  }, [view]);
 
   return (
     <div
-      ref={session.canvasRef}
+      ref={canvasRef}
       className={styles.previewDocument}
       onMouseUp={() => {
-        const ids = blockIdsIntersectingSelection(session.canvasRef.current);
+        const ids = blockIdsIntersectingSelection(canvasRef.current);
         if (ids.length === 0) return;
-        session.selectIds(ids);
+        view.selectIds(ids);
       }}
     >
-      {session.document.map((block) => {
-        const role = resolveDocumentRole(session.system, block.roleId);
+      {view.document.map((block) => {
+        const role = resolveDocumentRole(view.system, block.roleId);
         if (!role) return null;
-        const Tag = blockElementForRole(session.system, role);
+        const Tag = blockElementForRole(view.system, role);
         return (
           <PreviewEditableBlock
             key={block.id}
             block={block}
-            selected={session.selectedIds.includes(block.id)}
-            style={session.styleOf(role)}
+            selected={view.selectedIds.includes(block.id)}
+            style={view.styleOf(role)}
             tag={Tag}
-            onBackspaceAtStart={session.backspaceAtStart}
-            onEnter={session.enter}
-            onSelect={(blockId) => session.selectIds([blockId])}
+            onBackspaceAtStart={(blockId) =>
+              actions.current.backspaceAtStart(blockId)
+            }
+            onEnter={(blockId, offset) =>
+              actions.current.enter(blockId, offset)
+            }
+            onSelect={(blockId) => view.selectIds([blockId])}
             onTextChange={(blockId, text) =>
-              session.patch((current) =>
+              actions.current.patch((current) =>
                 updateBlockText(current, blockId, text),
               )
             }
