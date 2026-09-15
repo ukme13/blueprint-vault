@@ -186,8 +186,15 @@ introduced to prevent.
 
 - Motion tokens: duration and easing, the fourth family Astryx defines.
 - Size tokens for control heights, which currently follow spacing by convention.
-- A density multiplier over spacing, the way radius has one.
 - Per-breakpoint spacing, if the preview page argues for it.
+
+**Shipped after the first version.** Density is a multiplier on layout
+steps (2 and up). Fine steps stay on the base unit, labelled `grid` on
+the canvas, so a 2px hairline does not melt when the page gets roomier.
+Elevation opacity is painted per layer and per mode: the track sits on
+that mode’s surface with the shadow colour mixed in. Contact is a hard
+edge; Cast is a pill. Control heights are still later — they follow
+spacing until a product page is wrong without them.
 
 ## Safety and quality rules
 

@@ -281,11 +281,11 @@ unnoticed (see `.github/workflows/ci.yml`).
 
 The next priorities are:
 
-1. Define the first product scope before creating a product application such as
-   `apps/ferre`. The foundations are documented and handed over; what is
-   missing is a decision about what the first product is for, which is the
-   thing that will argue the next set of components into existence the way the
-   pages argued the token vocabulary into shape.
+1. First product application — see
+   [First product application](docs/roadmap/first-product.md). The job proposed
+   there is a bilingual (English / Thai) public practice site at `apps/ferre`,
+   consuming the handover the way `apps/docs` does, so the next components are
+   argued by four screens rather than by a catalog.
 2. Component documentation beyond Button, driven by that product rather than by
    the component library.
 
