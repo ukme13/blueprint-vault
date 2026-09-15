@@ -46,16 +46,33 @@ describe("the spacing rows", () => {
     const summary = spacingScaleSummary(project().spacing);
 
     expect(summary.baseUnitPx).toBe(4);
+    expect(summary.density).toBe(1);
     for (const token of summary.tokens) {
       expect(token.px % summary.baseUnitPx === 0 || token.px % 2 === 0).toBe(
         true,
       );
       expect(Number.isInteger(token.px)).toBe(true);
     }
-    /* And every step is the base times its own multiple, exactly. */
+    /* Layout steps take density; the fine grid stays on the base unit. */
     for (const token of summary.tokens) {
-      expect(token.px).toBe(token.step * summary.baseUnitPx);
+      expect(token.px).toBe(
+        token.step *
+          summary.baseUnitPx *
+          (token.followsDensity ? summary.density : 1),
+      );
     }
+  });
+
+  it("leaves the fine grid when density moves the layout gaps", () => {
+    const doubled = spacingScaleSummary({
+      ...project().spacing,
+      density: 2,
+    });
+    const hairline = doubled.tokens.find((token) => token.step === 0.5)!;
+    const padding = doubled.tokens.find((token) => token.step === 4)!;
+
+    expect(hairline.px).toBe(2);
+    expect(padding.px).toBe(32);
   });
 });
 
@@ -74,11 +91,30 @@ describe("the radius rows", () => {
 
     for (const token of doubled.tokens) {
       const before = once.tokens.find((each) => each.id === token.id)!;
-      if (token.scales) expect(token.px).toBe(before.px * 2);
-      /* Zero scaled is still zero and half a pill is still a pill. */
+      if (token.linked) expect(token.px).toBe(before.px * 2);
+      /* Zero scaled is still zero, half a pill is still a pill, and a typed
+         use stays where it was typed. */
       else expect(token.px).toBe(before.px);
     }
     expect(doubled.tokens.some((token) => !token.scales)).toBe(true);
+  });
+
+  it("leaves an unlinked use where it was typed", () => {
+    const base = project().radius;
+    const unlinked = {
+      ...base,
+      tokens: base.tokens.map((token) =>
+        token.id === "element" ? { ...token, unlinkedPx: 20 } : token,
+      ),
+    };
+    const doubled = radiusScaleSummary({ ...unlinked, multiplier: 2 });
+
+    expect(
+      doubled.tokens.find((token) => token.id === "element"),
+    ).toMatchObject({ px: 20, linked: false });
+    expect(doubled.tokens.find((token) => token.id === "container")!.px).toBe(
+      24,
+    );
   });
 });
 

@@ -558,6 +558,7 @@ describe("the spacing slice", () => {
     })!;
 
     expect(stored.spacing.baseUnitPx).toBe(8);
+    expect(stored.spacing.density).toBe(1);
     expect(stored.spacing.steps).toEqual([1, 2, 4]);
   });
 
@@ -574,7 +575,11 @@ describe("the spacing slice", () => {
 
   it("replaces only its own slice", () => {
     const base = withPaletteSlice(null, legacyPalette() as never);
-    const next = withSpacingSlice(base, { baseUnitPx: 8, steps: [1, 2] });
+    const next = withSpacingSlice(base, {
+      baseUnitPx: 8,
+      density: 1,
+      steps: [1, 2],
+    });
 
     expect(next.spacing.baseUnitPx).toBe(8);
     expect(next.palette).toBe(base.palette);

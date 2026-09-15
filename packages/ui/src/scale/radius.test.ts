@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   MAX_RADIUS_MULTIPLIER,
+  MAX_RADIUS_PX,
   MIN_RADIUS_MULTIPLIER,
   RADIUS_FULL_PX,
   defaultRadiusScale,
   normalizeRadiusScale,
   radiusCssVariables,
   resolveRadius,
+  type RadiusScale,
 } from "./radius";
 
 function byId(scale = defaultRadiusScale(), multiplier?: number) {
@@ -14,6 +16,19 @@ function byId(scale = defaultRadiusScale(), multiplier?: number) {
     multiplier === undefined ? scale : { ...scale, multiplier },
   );
   return new Map(resolved.map((token) => [token.id, token]));
+}
+
+function withUnlinked(
+  id: string,
+  px: number,
+  scale = defaultRadiusScale(),
+): RadiusScale {
+  return {
+    ...scale,
+    tokens: scale.tokens.map((token) =>
+      token.id === id ? { ...token, unlinkedPx: px } : token,
+    ),
+  };
 }
 
 describe("the default scale", () => {
@@ -70,6 +85,32 @@ describe("the multiplier", () => {
     expect(byId(undefined, 1.1).get("inner")!.px).toBe(4);
     expect(byId(undefined, 1.5).get("page")!.px).toBe(42);
   });
+
+  it("leaves an unlinked use where it was typed", () => {
+    /* Squarer buttons, rounder cards: typing 20 on element is a decision
+       about that use, not a request to freeze the rest of the scale. */
+    const unlinked = withUnlinked("element", 20);
+    expect(byId(unlinked, 2).get("element")).toMatchObject({
+      px: 20,
+      linked: false,
+      scales: true,
+    });
+    expect(byId(unlinked, 2).get("container")).toMatchObject({
+      px: 24,
+      linked: true,
+    });
+  });
+
+  it("does not rebind when the typed px matches the multiplier by coincidence", () => {
+    /* Element's seed is 8. Unlinking at 8 and then doubling must still be 8,
+       or typing the current value would be a no-op that silently rebinds. */
+    const unlinked = withUnlinked("element", 8);
+    expect(byId(unlinked).get("element")).toMatchObject({
+      px: 8,
+      linked: false,
+    });
+    expect(byId(unlinked, 2).get("element")!.px).toBe(8);
+  });
 });
 
 describe("normalizeRadiusScale", () => {
@@ -112,6 +153,61 @@ describe("normalizeRadiusScale", () => {
     expect(
       normalizeRadiusScale({ multiplier: 1, tokens: [] }).tokens,
     ).toHaveLength(6);
+  });
+
+  it("keeps a typed px on a named use", () => {
+    const scale = normalizeRadiusScale({
+      multiplier: 1,
+      tokens: [
+        {
+          id: "element",
+          name: "E",
+          description: "",
+          basePx: 8,
+          scales: true,
+          unlinkedPx: 20,
+        },
+      ],
+    });
+    expect(scale.tokens[0]!.unlinkedPx).toBe(20);
+    expect(resolveRadius(scale)[0]!.px).toBe(20);
+  });
+
+  it("drops a typed px on a token that cannot scale", () => {
+    /* None and full are not sizes. An unlinked 20 on none would export a
+       rounded square, which is a different token. */
+    const scale = normalizeRadiusScale({
+      multiplier: 1,
+      tokens: [
+        {
+          id: "none",
+          name: "None",
+          description: "",
+          basePx: 0,
+          scales: false,
+          unlinkedPx: 20,
+        },
+      ],
+    });
+    expect(scale.tokens[0]!.unlinkedPx).toBeUndefined();
+    expect(resolveRadius(scale)[0]!.px).toBe(0);
+  });
+
+  it("clamps a typed px rather than storing a value a corner cannot use", () => {
+    const scale = normalizeRadiusScale({
+      multiplier: 1,
+      tokens: [
+        {
+          id: "element",
+          name: "E",
+          description: "",
+          basePx: 8,
+          scales: true,
+          unlinkedPx: 400,
+        },
+      ],
+    });
+    expect(scale.tokens[0]!.unlinkedPx).toBe(MAX_RADIUS_PX);
   });
 });
 

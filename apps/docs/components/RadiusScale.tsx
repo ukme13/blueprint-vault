@@ -34,8 +34,9 @@ export function RadiusTable({ scale }: RadiusScaleProps) {
   return (
     <VStack gap={3}>
       <Text as="p" color="secondary" display="block">
-        Multiplier {summary.multiplier}. It applies to the named radii and not
-        to the two that are not sizes.
+        Multiplier {summary.multiplier}. It applies to the named radii that
+        still follow it, not to a square corner, a pill, or a use that has been
+        unlinked.
       </Text>
 
       <Table density="compact" dividers="grid" hasHover verticalAlign="top">
@@ -65,6 +66,10 @@ export function RadiusTable({ scale }: RadiusScaleProps) {
                     /* Said rather than left to be inferred from a value that
                        does not move when the multiplier does. */
                     <Text color="secondary">fixed</Text>
+                  )}
+                  {token.scales && !token.linked && (
+                    /* Typed by hand: roundness no longer moves this use. */
+                    <Text color="secondary">unlinked</Text>
                   )}
                 </VStack>
               </TableCell>

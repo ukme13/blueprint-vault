@@ -65,10 +65,10 @@ test("typography: the scale's base and ratio reach the table", async ({
 });
 
 test("spacing: a step is its multiple of the base unit", async ({ page }) => {
-  const { baseUnitPx, steps } = workspace.spacing;
+  const { baseUnitPx, density = 1, steps } = workspace.spacing;
   /* The largest, because it is the one no other step's value collides with. */
   const step = Math.max(...steps);
-  const px = step * baseUnitPx;
+  const px = step * baseUnitPx * (step >= 2 ? density : 1);
 
   await page.goto("/foundations/spacing");
 
@@ -81,9 +81,12 @@ test("spacing: a step is its multiple of the base unit", async ({ page }) => {
 test("radius: a token is its base times the multiplier", async ({ page }) => {
   const { multiplier, tokens } = workspace.radius;
   const token = tokens.find((each) => each.id === "container")!;
-  const px = token.scales
-    ? Math.round(token.basePx * multiplier)
-    : token.basePx;
+  const px =
+    typeof token.unlinkedPx === "number"
+      ? Math.round(token.unlinkedPx)
+      : token.scales
+        ? Math.round(token.basePx * multiplier)
+        : token.basePx;
 
   await page.goto("/foundations/radius");
 

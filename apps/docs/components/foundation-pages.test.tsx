@@ -339,6 +339,20 @@ describe("the spacing page is a template over the scale", () => {
     expect(after).not.toBe(before);
   });
 
+  it("moves layout gaps with density and leaves the fine grid", () => {
+    const base = scaleProject().spacing;
+    const before = renderToStaticMarkup(<SpacingTable scale={base} />);
+    const after = renderToStaticMarkup(
+      <SpacingTable scale={{ ...base, density: 1.25 }} />,
+    );
+
+    /* Step 3 at 4px × 1.25 is 15px, which the seeded scale cannot produce. */
+    expect(before).not.toContain("15px");
+    expect(after).toContain("15px");
+    expect(after).toContain("2px");
+    expect(after).toContain("grid");
+  });
+
   it("draws the bars from the same values", () => {
     /* The table and the specimen read one resolution. A bar wired to its own
        maths would keep drawing the old width beside a table showing the new
@@ -377,11 +391,29 @@ describe("the radius page is a template over the scale", () => {
     const markup = renderToStaticMarkup(<RadiusSpecimen scale={base} />);
 
     for (const token of base.tokens) {
-      const px = token.scales
-        ? Math.round(token.basePx * base.multiplier)
-        : token.basePx;
+      const px =
+        typeof token.unlinkedPx === "number"
+          ? Math.round(token.unlinkedPx)
+          : token.scales
+            ? Math.round(token.basePx * base.multiplier)
+            : token.basePx;
       expect(markup, `${token.id} is drawn`).toContain(`border-radius:${px}px`);
     }
+  });
+
+  it("says when a named radius no longer follows the multiplier", () => {
+    const base = scaleProject().radius;
+    const unlinked = {
+      ...base,
+      tokens: base.tokens.map((token) =>
+        token.id === "element" ? { ...token, unlinkedPx: 20 } : token,
+      ),
+    };
+    const markup = renderToStaticMarkup(<RadiusTable scale={unlinked} />);
+
+    expect(markup).toContain("20px");
+    expect(markup).toContain("unlinked");
+    expect(markup).not.toContain("40px");
   });
 });
 

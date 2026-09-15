@@ -33,8 +33,9 @@ export function SpacingTable({ scale }: SpacingScaleProps) {
   return (
     <VStack gap={3}>
       <Text as="p" color="secondary" display="block">
-        Base unit {summary.baseUnitPx}px, {summary.steps.length} steps, counted
-        rather than multiplied.
+        Base unit {summary.baseUnitPx}px, density {summary.density}×,{" "}
+        {summary.steps.length} steps. Layout gaps follow density; the fine grid
+        stays on the base unit.
       </Text>
 
       <Table density="compact" dividers="grid" hasHover verticalAlign="middle">
@@ -61,9 +62,14 @@ export function SpacingTable({ scale }: SpacingScaleProps) {
                 <Text type="code">{token.variable}</Text>
               </TableCell>
               <TableCell>
-                <Text hasTabularNumbers weight="medium">
-                  {token.px}px
-                </Text>
+                <VStack gap={0}>
+                  <Text hasTabularNumbers weight="medium">
+                    {token.px}px
+                  </Text>
+                  {!token.followsDensity && token.step > 0 && (
+                    <Text color="secondary">grid</Text>
+                  )}
+                </VStack>
               </TableCell>
               <TableCell>
                 {/* rem, so a step grows when a reader enlarges their text. */}

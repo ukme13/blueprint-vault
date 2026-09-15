@@ -36,6 +36,25 @@ describe("the CSS export", () => {
     expect(css).toContain("--radius-element: 8px;");
   });
 
+  it("writes denser layout rem and leaves the fine grid", () => {
+    const spacing = { ...defaultSpacingScale(), density: 1.25 };
+    const css = formatScaleCss({ ...input(), spacing });
+    expect(css).toContain("--spacing-4: 1.25rem;");
+    expect(css).toContain("--spacing-0-5: 0.125rem;");
+  });
+
+  it("writes the typed px when a token is unlinked", () => {
+    const radius = {
+      ...defaultRadiusScale(),
+      tokens: defaultRadiusScale().tokens.map((token) =>
+        token.id === "element" ? { ...token, unlinkedPx: 20 } : token,
+      ),
+    };
+    const css = formatScaleCss({ ...input(), radius });
+    expect(css).toContain("--radius-element: 20px;");
+    expect(css).toContain("--radius-container: 12px;");
+  });
+
   it("writes spacing and radius once, and elevation in every block", () => {
     /* Repeating spacing in a dark block would say it might change with the
        mode. Elevation's strength does. */
