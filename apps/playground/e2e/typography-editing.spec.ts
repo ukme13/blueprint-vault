@@ -61,13 +61,17 @@ const labelInfo = (scope: Locator, label: string) =>
     .first();
 
 test.describe("Typography scale editing", () => {
-  test("switches between Editor and Preview without leaving the inspector", async ({
+  test("switches between Editor, Specimen and Preview without leaving the inspector", async ({
     seededPage: page,
   }) => {
     const views = page.getByRole("navigation", { name: "Typography views" });
     const settings = page.getByRole("region", { name: "Type scale settings" });
 
     await expect(views.getByRole("button", { name: "Editor" })).toBeVisible();
+    await expect(views.getByRole("button", { name: "Specimen" })).toBeVisible();
+    await expect(
+      views.getByRole("button", { name: "Preview", exact: true }),
+    ).toBeVisible();
     await expect(
       page.getByRole("navigation", { name: "Playground sections" }),
     ).toHaveCount(0);
@@ -76,15 +80,29 @@ test.describe("Typography scale editing", () => {
     ).toBeVisible();
     await expect(settings).toBeVisible();
 
-    await views.getByRole("button", { name: "Preview", exact: true }).click();
+    await views.getByRole("button", { name: "Specimen" }).click();
+    const preview = page.getByRole("region", { name: "Type scale preview" });
+    await expect(preview).toBeVisible();
     await expect(
-      page.getByRole("region", { name: "Type scale preview" }),
-    ).toBeVisible();
-    await expect(page.getByText(DEFAULT_SPECIMEN_TEXT).first()).toBeVisible();
+      preview.getByRole("textbox", { name: "Specimen text" }).first(),
+    ).toHaveValue(DEFAULT_SPECIMEN_TEXT);
     await expect(settings).toBeVisible();
     await expect(
       page.getByRole("region", { name: "Generated type steps" }),
     ).toBeHidden();
+
+    await views.getByRole("button", { name: "Preview", exact: true }).click();
+    await expect(preview).toBeVisible();
+    await expect(
+      preview.getByRole("heading", {
+        name: "A type scale is a set of decisions, not a set of sizes",
+        level: 1,
+      }),
+    ).toBeVisible();
+    await expect(preview.getByRole("heading", { name: "display" })).toHaveCount(
+      0,
+    );
+    await expect(settings).toBeVisible();
 
     await views.getByRole("button", { name: "Editor" }).click();
     await expect(
@@ -98,11 +116,13 @@ test.describe("Typography scale editing", () => {
   }) => {
     await page
       .getByRole("navigation", { name: "Typography views" })
-      .getByRole("button", { name: "Preview", exact: true })
+      .getByRole("button", { name: "Specimen" })
       .click();
 
     const preview = page.getByRole("region", { name: "Type scale preview" });
-    const sample = preview.getByText(DEFAULT_SPECIMEN_TEXT).first();
+    const sample = preview
+      .getByRole("textbox", { name: "Specimen text" })
+      .first();
     await expect(sample).toBeVisible();
     const before = await sample.evaluate((el) => getComputedStyle(el).fontSize);
 
@@ -160,20 +180,34 @@ test.describe("Typography scale editing", () => {
   test("the preview uses the same specimen the editor was typed with", async ({
     seededPage: page,
   }) => {
+    const views = page.getByRole("navigation", { name: "Typography views" });
     await page.getByLabel("Specimen text").first().fill("ทดสอบ 12px");
-    await page
-      .getByRole("navigation", { name: "Typography views" })
-      .getByRole("button", { name: "Preview", exact: true })
-      .click();
+    await views.getByRole("button", { name: "Specimen" }).click();
 
     const preview = page.getByRole("region", { name: "Type scale preview" });
-    await expect(preview.getByText("ทดสอบ 12px").first()).toBeVisible();
-    await expect(preview.getByText(DEFAULT_SPECIMEN_TEXT)).toHaveCount(0);
+    const fields = preview.getByRole("textbox", { name: "Specimen text" });
+    await expect(fields.first()).toHaveValue("ทดสอบ 12px");
+    await expect(fields.nth(1)).toHaveValue("ทดสอบ 12px");
 
-    await page.getByRole("button", { name: "Article" }).click();
+    await fields.first().fill("How vexingly ไฟ");
+    await expect(fields.nth(1)).toHaveValue("How vexingly ไฟ");
+
+    await views.getByRole("button", { name: "Editor" }).click();
     await expect(
-      preview.getByRole("heading", { name: "ทดสอบ 12px", level: 1 }),
+      page
+        .getByRole("region", { name: "Generated type steps" })
+        .getByRole("textbox", { name: "Specimen text" })
+        .first(),
+    ).toHaveValue("How vexingly ไฟ");
+
+    await views.getByRole("button", { name: "Preview", exact: true }).click();
+    await expect(
+      preview.getByRole("heading", {
+        name: "A type scale is a set of decisions, not a set of sizes",
+        level: 1,
+      }),
     ).toBeVisible();
+    await expect(preview.getByText("How vexingly ไฟ")).toHaveCount(0);
   });
 
   test("offers phone, tablet and desktop frames, not arbitrary widths", async ({
@@ -347,42 +381,99 @@ test.describe("Typography scale editing", () => {
     await expect(page.getByText(/grows quickly/i)).toBeVisible();
   });
 
-  test("switches preview templates using the editor specimen", async ({
+  test("switches between Specimen and Preview from the view tabs", async ({
     seededPage: page,
   }) => {
-    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    const views = page.getByRole("navigation", { name: "Typography views" });
+    await views.getByRole("button", { name: "Specimen" }).click();
     const preview = page.getByRole("region", { name: "Type scale preview" });
 
-    // Specimen is the default and lists every role, in the editor's copy.
     await expect(
       preview.getByRole("heading", { name: "display" }),
     ).toBeVisible();
     await expect(
-      preview.getByText(DEFAULT_SPECIMEN_TEXT).first(),
-    ).toBeVisible();
+      preview.getByRole("textbox", { name: "Specimen text" }).first(),
+    ).toHaveValue(DEFAULT_SPECIMEN_TEXT);
 
-    await page.getByRole("button", { name: "Article" }).click();
+    const title = "A type scale is a set of decisions, not a set of sizes";
+    await views.getByRole("button", { name: "Preview", exact: true }).click();
     await expect(
-      preview.getByRole("heading", {
-        name: DEFAULT_SPECIMEN_TEXT,
-        level: 1,
-      }),
+      preview.getByRole("heading", { name: title, level: 1 }),
     ).toBeVisible();
-
-    // Exactly one h1: the mapping puts only `display` at the top level.
     expect(await preview.getByRole("heading", { level: 1 }).count()).toBe(1);
+    await expect(preview.getByText(DEFAULT_SPECIMEN_TEXT)).toHaveCount(0);
+    await expect(preview.getByText("From: Blueprint")).toHaveCount(0);
 
+    await expect(page.getByRole("button", { name: "Article" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Email" })).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Documentation" }),
+    ).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Dashboard" })).toHaveCount(
+      0,
+    );
     await expect(
       page.getByRole("button", { name: "Marketing page" }),
     ).toHaveCount(0);
     await expect(page.getByRole("button", { name: "ไทย" })).toHaveCount(0);
   });
 
-  test("keeps the chosen template after a reload", async ({
+  test("shows text colour, background colour and the preset on one toolbar", async ({
     seededPage: page,
   }) => {
     await page.getByRole("button", { name: "Preview", exact: true }).click();
-    await page.getByRole("button", { name: "Article" }).click();
+    const preview = page.getByRole("region", { name: "Type scale preview" });
+    const toolbar = page.getByRole("toolbar", { name: "Preview" });
+    await expect(
+      toolbar.getByRole("combobox", { name: "Text preset" }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Article" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Email" })).toHaveCount(0);
+    await expect(
+      page.getByText(
+        "Create a palette to preview this scale on your own colours.",
+      ),
+    ).toBeVisible();
+
+    await preview.evaluate((el) => {
+      el.scrollTop = el.scrollHeight;
+    });
+    const previewBox = await preview.boundingBox();
+    const toolbarBox = await toolbar.boundingBox();
+    expect(previewBox).toBeTruthy();
+    expect(toolbarBox).toBeTruthy();
+    expect(toolbarBox!.y).toBeGreaterThanOrEqual(previewBox!.y - 1);
+    expect(toolbarBox!.y).toBeLessThan(previewBox!.y + 80);
+  });
+
+  test("applies a workspace role to the selected block", async ({
+    seededPage: page,
+  }) => {
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    const preview = page.getByRole("region", { name: "Type scale preview" });
+    const paragraph = preview.getByText(
+      "Body text is the size most people spend the most time with",
+    );
+    await paragraph.click();
+    const stylePicker = page.getByRole("combobox", { name: "Text preset" });
+    await expect(stylePicker).toBeVisible();
+    await stylePicker.click();
+    await page.getByRole("option", { name: "h2", exact: true }).click();
+
+    await expect(
+      preview.getByRole("heading", {
+        name: /Body text is the size most people spend the most time with/,
+        level: 2,
+      }),
+    ).toBeVisible();
+  });
+
+  test("keeps document edits after a reload", async ({ seededPage: page }) => {
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    const preview = page.getByRole("region", { name: "Type scale preview" });
+    const title = preview.getByRole("heading", { level: 1 });
+    await title.click();
+    await title.fill("A scale I actually wrote");
 
     await page.reload();
     await page.getByRole("button", { name: "Preview", exact: true }).click();
@@ -390,12 +481,25 @@ test.describe("Typography scale editing", () => {
     await expect(
       page
         .getByRole("region", { name: "Type scale preview" })
+        .getByRole("heading", {
+          name: "A scale I actually wrote",
+          level: 1,
+        }),
+    ).toBeVisible();
+  });
+
+  test("Preview is the article document, not a template chip", async ({
+    seededPage: page,
+  }) => {
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+
+    await expect(
+      page
+        .getByRole("region", { name: "Type scale preview" })
         .getByRole("heading", { level: 1 }),
     ).toBeVisible();
-    await expect(page.getByRole("button", { name: "Article" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await expect(page.getByRole("button", { name: "Article" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Email" })).toHaveCount(0);
   });
 
   test("migrates a project saved before the merged model", async ({
@@ -460,7 +564,7 @@ test.describe("Typography scale editing", () => {
   test("derives heading elements from position", async ({
     seededPage: page,
   }) => {
-    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    await page.getByRole("button", { name: "Specimen" }).click();
     const preview = page.getByRole("region", { name: "Type scale preview" });
 
     // Migrated legacy heading and title become h1 and h2.

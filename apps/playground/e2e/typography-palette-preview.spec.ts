@@ -20,7 +20,7 @@ async function seed(page: Page, withPalette: boolean) {
     },
   );
   await page.goto("/typography");
-  await page.getByRole("button", { name: "Preview", exact: true }).click();
+  await page.getByRole("button", { name: "Specimen" }).click();
   await expect(
     page.getByRole("region", { name: "Type scale preview" }),
   ).toBeVisible();
@@ -79,6 +79,24 @@ test.describe("Preview against the real palette", () => {
       "fail",
     );
     await expect(body.locator("[data-status]")).toContainText("4.5:1");
+  });
+
+  test("a picked text colour reaches the article document", async ({
+    page,
+  }) => {
+    await seed(page, true);
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    const preview = page.getByRole("region", { name: "Type scale preview" });
+    const sample = preview.getByText(
+      "Body text is the size most people spend the most time with",
+    );
+    const before = await sample.evaluate((el) => getComputedStyle(el).color);
+
+    await pick(page, "Text colour", "primary 500");
+
+    await expect
+      .poll(() => sample.evaluate((el) => getComputedStyle(el).color))
+      .not.toBe(before);
   });
 
   test("shows the picked background rather than the studio's own", async ({

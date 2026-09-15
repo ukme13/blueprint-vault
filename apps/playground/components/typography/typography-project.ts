@@ -11,8 +11,9 @@ import {
   type TypeScaleUnit,
   type TypeSystem,
   type TypographyProjectData,
-  PREVIEW_TEMPLATES,
+  readPreviewTemplate,
   type PreviewTemplateId,
+  type PreviewDocument,
   type PreviewDevice,
   normalizePreviewDevices,
 } from "@blueprint/ui";
@@ -31,7 +32,9 @@ export interface TypographyProject {
   remRootPx: number;
   /** Text shown at every step so a scale can be judged in real copy. */
   specimenText: string;
-  /** Which preview template the Preview section shows. */
+  /** Editable document judged in Preview. */
+  previewDocument: PreviewDocument;
+  /** Last specimen or article view. Email and documentation become article. */
   template: PreviewTemplateId;
   /** Named frames offered in the preview. Phone, tablet and desktop, plus extra desktops. */
   previewDevices: PreviewDevice[];
@@ -76,13 +79,12 @@ function narrowTemplate(
   if (!data) return null;
   return {
     ...data,
-    template: PREVIEW_TEMPLATES.some((entry) => entry.id === data.template)
-      ? (data.template as PreviewTemplateId)
-      : DEFAULT_TEMPLATE,
+    template: readPreviewTemplate(data.template),
     previewDevices: normalizePreviewDevices(
       data.previewDevices,
       data.system.ratio,
     ),
+    previewDocument: data.previewDocument,
   };
 }
 

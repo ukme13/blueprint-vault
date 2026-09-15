@@ -1,53 +1,85 @@
 "use client";
 
+import type { CSSProperties, ReactNode } from "react";
 import { Selector } from "@astryxdesign/core/Selector";
-import { findShade, type ColorTrack } from "@blueprint/ui";
+import { resolveShadeHex, type ColorTrack, type ShadeRef } from "@blueprint/ui";
+import { PaintBucket, Type } from "lucide-react";
 import styles from "./typography-workspace.module.css";
-
-/**
- * Which shade a preview colour points at.
- *
- * A reference rather than a hex: the palette is the other half of the same
- * workspace and is still being edited, so "primary 500" has to keep meaning
- * primary 500 after someone changes what that is.
- */
-export interface ShadeRef {
-  trackId: string;
-  weight: number;
-}
 
 const NONE = "none";
 
-export function refToValue(ref: ShadeRef | null): string {
+function refToValue(ref: ShadeRef | null): string {
   return ref ? `${ref.trackId}:${ref.weight}` : NONE;
 }
 
-export function valueToRef(value: string): ShadeRef | null {
+function valueToRef(value: string): ShadeRef | null {
   if (value === NONE) return null;
   const [trackId, weight] = value.split(":");
   if (!trackId || !weight) return null;
   return { trackId, weight: Number(weight) };
 }
 
-/** The hex a reference resolves to now, or null if the palette dropped it. */
-export function resolveShadeHex(
-  tracks: ColorTrack[],
-  ref: ShadeRef | null,
-): string | null {
-  if (!ref) return null;
-  return findShade(tracks, ref.trackId, ref.weight)?.hex ?? null;
+function ColourSwatch({ hex }: { hex: string | null }) {
+  return (
+    <i
+      aria-hidden
+      className={styles.previewColourSwatch}
+      data-empty={hex ? undefined : "true"}
+      style={hex ? ({ "--preview-swatch": hex } as CSSProperties) : undefined}
+    />
+  );
 }
 
-function shadeOptions(tracks: ColorTrack[], noneLabel: string) {
+function shadeOptions(tracks: ColorTrack[]) {
   return [
-    { label: noneLabel, value: NONE },
-    ...tracks.flatMap((track) =>
-      track.shades.map((shade) => ({
+    {
+      label: "Default",
+      value: NONE,
+      icon: <ColourSwatch hex={null} />,
+    },
+    ...tracks.map((track) => ({
+      type: "section" as const,
+      title: track.name,
+      options: track.shades.map((shade) => ({
         label: `${track.name} ${shade.weight}`,
         value: `${track.id}:${shade.weight}`,
+        icon: <ColourSwatch hex={shade.hex} />,
       })),
-    ),
+    })),
   ];
+}
+
+function PaletteColourSelector({
+  label,
+  icon,
+  tracks,
+  value,
+  onChange,
+}: {
+  label: string;
+  icon: ReactNode;
+  tracks: ColorTrack[];
+  value: ShadeRef | null;
+  onChange: (ref: ShadeRef | null) => void;
+}) {
+  return (
+    <Selector
+      hasSearch
+      isLabelHidden
+      label={label}
+      options={shadeOptions(tracks)}
+      renderValue={(option) => (
+        <ColourSwatch hex={resolveShadeHex(tracks, valueToRef(option.value))} />
+      )}
+      searchPlaceholder="Search shades"
+      size="sm"
+      startIcon={icon}
+      statusVariant="tooltip"
+      value={refToValue(value)}
+      variant="ghost"
+      onChange={(next) => onChange(valueToRef(next))}
+    />
+  );
 }
 
 export interface PreviewColourControlsProps {
@@ -81,19 +113,19 @@ export function PreviewColourControls({
       role="group"
       aria-label="Preview colours"
     >
-      <Selector
+      <PaletteColourSelector
+        icon={<Type aria-hidden className="size-3.5" />}
         label="Text colour"
-        options={shadeOptions(tracks, "Default")}
-        size="sm"
-        value={refToValue(text)}
-        onChange={(value) => onTextChange(valueToRef(value))}
+        tracks={tracks}
+        value={text}
+        onChange={onTextChange}
       />
-      <Selector
+      <PaletteColourSelector
+        icon={<PaintBucket aria-hidden className="size-3.5" />}
         label="Background colour"
-        options={shadeOptions(tracks, "Default")}
-        size="sm"
-        value={refToValue(background)}
-        onChange={(value) => onBackgroundChange(valueToRef(value))}
+        tracks={tracks}
+        value={background}
+        onChange={onBackgroundChange}
       />
     </div>
   );

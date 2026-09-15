@@ -4,6 +4,7 @@ import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { normalizeButtonSchemes } from "../button-tones";
 import { defaultPreviewDevices } from "../typography/preview-devices";
+import { ARTICLE_COPY } from "../typography/article-copy";
 import { defaultSystem } from "../typography/system";
 import {
   DEFAULT_PREVIEW_TEMPLATE,
@@ -150,6 +151,11 @@ describe("loadWorkspace — what a browser might already hold", () => {
       defaultPreviewDevices(1.25),
     );
     expect(project?.typography?.remRootPx).toBe(16);
+    expect(
+      project?.typography?.previewDocument.find(
+        (block) => block.id === "preview-title",
+      )?.text,
+    ).toBe(ARTICLE_COPY.en.title);
   });
 
   it("keeps a stored rem root", () => {

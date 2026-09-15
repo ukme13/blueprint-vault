@@ -210,17 +210,19 @@ reader's browser setting still works. Spacing rem is unchanged.
 
 ## Later improvements
 
-- More templates: dashboard, documentation, email.
+- Dashboard as a skin on `/preview`, not on the typography picker.
+  Article, Documentation and Email now share an editable document.
+  Dashboard is product chrome and waits for the system preview page.
 
 ## Safety and quality rules
 
 Changing the unit must never change the stored scale. Conversion happens at the
 preview and export edges only, so switching units and switching back is lossless.
 
-Persisted projects must keep loading. `unit`, `specimenText`, `template` and
-`remRootPx` are optional fields; `readStoredProject` must default them rather
-than reject a project saved before this work. No storage-key version bump
-should be needed — confirm that before merging.
+Persisted projects must keep loading. `unit`, `specimenText`, `template`,
+`previewDocument` and `remRootPx` are optional fields; `readStoredProject`
+must default them rather than reject a project saved before this work. No
+storage-key version bump should be needed — confirm that before merging.
 
 Preview templates are for judging type. They must never influence the generated
 scale, the tokens, or the export.
@@ -232,9 +234,12 @@ scale, the tokens, or the export.
 2. Exported line-height still carries no unit. Letter-spacing is always `em`.
 3. A user can type their own specimen text, in any script, and see it at every
    step.
-4. A user can preview the scale as a specimen and as an article, in the editor's
-   own copy, at phone, tablet and desktop widths, and can add up to two extra
-   desktop sizes. Documentation still shows the article in English and Thai.
+4. A user can preview the scale as a specimen list, or as an article,
+   documentation page or email around an editable document. Selecting a block
+   and applying a workspace role restyles that block. Dashboard is not on this
+   picker. Phone, tablet and desktop widths still apply, and a user can add up
+   to two extra desktop sizes. Documentation still shows the canned article in
+   English and Thai.
 5. A user can set preview text and background from the project palette and see
    the WCAG result for that pair.
 6. A user gets a line-height warning tuned to Thai when the specimen contains

@@ -49,8 +49,7 @@ import {
   fallbackFileMoves,
   isLocalSlot,
   localFontKey,
-  resolveTemplateSlot,
-  type SemanticRole,
+  seedPreviewDocument,
   defaultPreviewDevices,
   addExtraDesktop,
   removePreviewDevice,
@@ -58,6 +57,7 @@ import {
   resolvePreviewDevice,
   type HybridTokenizedValue,
   type LineHeightConfig,
+  type ShadeRef,
 } from "@blueprint/ui";
 import {
   closestCenter,
@@ -83,7 +83,7 @@ import { RoleGroupEditor } from "./RoleGroupEditor";
 import { TypographyPreview } from "./TypographyPreview";
 import { PreviewDeviceBar } from "./PreviewDeviceBar";
 import { PreviewDeviceSettings } from "./PreviewDeviceSettings";
-import type { ShadeRef } from "./PreviewColourControls";
+import { SpecimenTextField } from "./SpecimenTextField";
 import {
   DEFAULT_SPECIMEN_TEXT,
   DEFAULT_TEMPLATE,
@@ -105,7 +105,7 @@ import {
 } from "./use-local-fonts";
 import { useTypographySystem } from "./use-typography-system";
 import styles from "./typography-workspace.module.css";
-import type { TypographySection } from "./types";
+import { storedTemplateForSection, type TypographySection } from "./types";
 
 const SCALE_RATIO_PRESETS = hybridPresetsFromModularScale(
   TYPE_SCALE_RATIO_PRESETS,
@@ -392,19 +392,21 @@ export function TypographyStudio() {
     return (
       <TypographyCreation
         onCreate={({ name, fontFamily, baseFontSizePx, ratio, stepCount }) => {
+          const system = defaultSystem(
+            name,
+            splitFontFamily(fontFamily),
+            baseFontSizePx,
+            ratio,
+            stepCount,
+          );
           setProject({
             /* A new scale starts with six headings and one body. Neither group
                is special afterwards. */
-            system: defaultSystem(
-              name,
-              splitFontFamily(fontFamily),
-              baseFontSizePx,
-              ratio,
-              stepCount,
-            ),
+            system,
             unit: DEFAULT_UNIT,
             remRootPx: DEFAULT_REM_ROOT_PX,
             specimenText: DEFAULT_SPECIMEN_TEXT,
+            previewDocument: seedPreviewDocument(system),
             template: DEFAULT_TEMPLATE,
             previewDevices: defaultPreviewDevices(ratio),
           });
@@ -437,14 +439,7 @@ export function TypographyStudio() {
   /* Templates receive resolved CSS so they never do scale maths themselves.
      Sizes stay in px here: this is a rendered preview, not exported output.
      Letter-spacing is the exported em (desktop size), so tracking scales with
-     the previewed size the same way the file will.
-
-     Which role a slot draws is `resolveTemplateSlot` in the package, shared
-     with the documentation page. The chain that used to be here — exact id,
-     then group, then body — put five of the six slots on body for any workspace
-     built on the merged model, because it has none of the names a template asks
-     for except `body`. The article rendered its kicker, hero, standfirst,
-     byline and section headings all at 16px. */
+     the previewed size the same way the file will. */
   const styleOfRole = (role: TypeRole): CSSProperties => {
     const fontSizePx = sizeOnFrame(role);
     const desktopSizePx = resolveRoleSizePx(
@@ -466,11 +461,6 @@ export function TypographyStudio() {
       ),
       textTransform: role.textTransform,
     };
-  };
-
-  const styleForRole = (slot: SemanticRole): CSSProperties => {
-    const role = resolveTemplateSlot(system, slot);
-    return role ? styleOfRole(role) : {};
   };
 
   return (
@@ -506,9 +496,15 @@ export function TypographyStudio() {
           <TabList
             size="sm"
             value={activeSection}
-            onChange={(value) => setActiveSection(value as TypographySection)}
+            onChange={(value) => {
+              const section = value as TypographySection;
+              setActiveSection(section);
+              const template = storedTemplateForSection(section);
+              if (template) setPreference({ template });
+            }}
           >
             <Tab label="Editor" value="editor" />
+            <Tab label="Specimen" value="specimen" />
             <Tab label="Preview" value="preview" />
           </TabList>
         </nav>
@@ -613,42 +609,17 @@ export function TypographyStudio() {
                 );
                 return (
                   <li key={step.step} className={styles.stepRow}>
-                    {/* Editable in place: type in any row and every row
-                        follows, so the scale is judged in your own copy without
-                        a separate field to find. */}
-                    <span
-                      className={styles.stepSampleBox}
+                    <SpecimenTextField
                       style={{
                         fontFamily: familiesToCss(previewFont?.families ?? []),
                         fontSize: `${step.fontSizePx}px`,
                         fontWeight: resolvedPreviewWeight,
                       }}
-                    >
-                      {/* The measurement, not a duplicate.
-
-                          An input's box is the line box of its primary family,
-                          and it clips — so a fallback covering another script
-                          sits taller than the box and loses the marks above
-                          and below. A span is sized by every font that ends up
-                          drawing, which is the height the row actually needs.
-                          It sets the height and the input fills it. */}
-                      <span
-                        aria-hidden="true"
-                        className={styles.stepSampleMirror}
-                      >
-                        {project.specimenText || DEFAULT_SPECIMEN_TEXT}
-                      </span>
-                      <input
-                        aria-label="Specimen text"
-                        className={styles.stepSample}
-                        placeholder={DEFAULT_SPECIMEN_TEXT}
-                        spellCheck={false}
-                        value={project.specimenText}
-                        onChange={(event) =>
-                          setPreference({ specimenText: event.target.value })
-                        }
-                      />
-                    </span>
+                      value={project.specimenText}
+                      onChange={(specimenText) =>
+                        setPreference({ specimenText })
+                      }
+                    />
                     <span className={styles.stepMeta}>
                       <code>
                         {formatLength(
@@ -681,13 +652,18 @@ export function TypographyStudio() {
             device={activeDevice}
             roles={rolesLargeToSmall}
             specimenText={project.specimenText}
-            styleFor={styleForRole}
+            onSpecimenTextChange={(specimenText) =>
+              setPreference({ specimenText })
+            }
+            previewDocument={project.previewDocument}
+            onPreviewDocumentChange={(previewDocument) =>
+              setPreference({ previewDocument })
+            }
             styleOf={styleOfRole}
             system={system}
-            template={project.template}
+            view={activeSection === "preview" ? "preview" : "specimen"}
             unit={project.unit}
             remRootPx={project.remRootPx}
-            onTemplateChange={(template) => setPreference({ template })}
             backgroundShade={backgroundShade}
             textShade={textShade}
             tracks={paletteTracks}

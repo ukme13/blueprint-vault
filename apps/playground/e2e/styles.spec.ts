@@ -108,7 +108,7 @@ test.describe("Typography studio styles", () => {
     page,
   }) => {
     await seed(page);
-    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    await page.getByRole("button", { name: "Specimen" }).click();
     const preview = page.getByRole("region", { name: "Type scale preview" });
     await expect(preview).toBeVisible();
 
@@ -140,7 +140,7 @@ test.describe("Typography studio styles", () => {
     page,
   }) => {
     await seed(page);
-    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    await page.getByRole("button", { name: "Specimen" }).click();
     const preview = page.getByRole("region", { name: "Type scale preview" });
     await expect(preview).toBeVisible();
 
@@ -156,11 +156,38 @@ test.describe("Typography studio styles", () => {
       .toBeGreaterThan(0);
   });
 
-  test("a picked preview text colour takes without a background", async ({
+  test("text preset group titles are muted against the options", async ({
     page,
   }) => {
     await seed(page);
     await page.getByRole("button", { name: "Preview", exact: true }).click();
+    await page.getByRole("combobox", { name: "Text preset" }).click();
+
+    const listbox = page.getByRole("listbox");
+    await expect(listbox).toBeVisible();
+    const heading = listbox.locator(".astryx-selector-section-heading").first();
+    const option = listbox.getByRole("option", { name: "h2", exact: true });
+    await expect(option).toBeVisible();
+    await expect(heading).toHaveText("Display");
+
+    const muted = await page.evaluate(() => {
+      const probe = document.createElement("span");
+      probe.style.color = "var(--color-fg-muted)";
+      document.body.appendChild(probe);
+      const color = getComputedStyle(probe).color;
+      probe.remove();
+      return color;
+    });
+
+    expect(await styleOf(heading, "color")).toBe(muted);
+    expect(await styleOf(option, "color")).not.toBe(muted);
+  });
+
+  test("a picked preview text colour takes without a background", async ({
+    page,
+  }) => {
+    await seed(page);
+    await page.getByRole("button", { name: "Specimen" }).click();
     const preview = page.getByRole("region", { name: "Type scale preview" });
     const sample = preview.locator("article").first().locator("header + *");
     const before = await styleOf(sample, "color");
@@ -176,7 +203,7 @@ test.describe("Typography studio styles", () => {
 
   test("a contrast verdict is coloured by its status", async ({ page }) => {
     await seed(page);
-    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    await page.getByRole("button", { name: "Specimen" }).click();
     const preview = page.getByRole("region", { name: "Type scale preview" });
     await expect(preview).toBeVisible();
 
