@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import "./globals.css";
+import { WorkspaceShell } from "../components/shell/WorkspaceShell";
 import { applySavedColourModeScript } from "./theme-mode";
 import { ThemeProvider } from "./theme-provider";
 
@@ -96,7 +97,9 @@ export default function RootLayout({
         <Script id="apply-saved-theme" strategy="beforeInteractive">
           {APPLY_SAVED_MODE}
         </Script>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <WorkspaceShell>{children}</WorkspaceShell>
+        </ThemeProvider>
       </body>
     </html>
   );

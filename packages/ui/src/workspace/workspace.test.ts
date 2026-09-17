@@ -15,6 +15,7 @@ import {
   readLegacyPaletteName,
   readPaletteProjectData,
 } from "./palette-project";
+import { seedWorkspaceProject } from "./seed-project";
 import {
   DEFAULT_WORKSPACE_NAME,
   LEGACY_PALETTE_STORAGE_KEY,
@@ -30,6 +31,8 @@ import {
   withSharedName,
   withTypographySlice,
   workspaceFromLegacy,
+  workspaceHasStudios,
+  emptyWorkspace,
 } from "./workspace";
 
 const LIGHTNESS = [
@@ -340,6 +343,31 @@ describe("slice writes", () => {
     expect(withPaletteSlice(both, both.palette, "Renamed").name).toBe(
       "Renamed",
     );
+  });
+});
+
+describe("workspaceHasStudios", () => {
+  it("is false for nothing stored and for an empty workspace", () => {
+    expect(workspaceHasStudios(null)).toBe(false);
+    expect(workspaceHasStudios(emptyWorkspace())).toBe(false);
+  });
+
+  it("is true once a palette or a type scale is present", () => {
+    const seeded = seedWorkspaceProject("First system");
+    expect(workspaceHasStudios(withPaletteSlice(null, seeded.palette))).toBe(
+      true,
+    );
+    expect(
+      workspaceHasStudios(withTypographySlice(null, seeded.typography)),
+    ).toBe(true);
+  });
+
+  it("is true of a Blueprint seed, which fills both studios", () => {
+    const seeded = seedWorkspaceProject("First system");
+    expect(workspaceHasStudios(seeded)).toBe(true);
+    expect(seeded.palette).not.toBeNull();
+    expect(seeded.typography).not.toBeNull();
+    expect(seeded.semantics).toHaveLength(72);
   });
 });
 

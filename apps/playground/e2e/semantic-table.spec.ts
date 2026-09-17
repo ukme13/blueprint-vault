@@ -227,10 +227,23 @@ test.describe("Reference transparency", () => {
 
     await expect(alpha).toHaveValue("100%");
     await expect(alphaField).toHaveCSS("opacity", "0");
-    const before = await reference.boundingBox();
+    /* Offset inside the row, not the viewport. The rail stole a column, so
+       focusing a field at the right edge used to scroll the table and move
+       the chip in page coordinates even when it had not moved in the row. */
+    const offsetInRow = async () => {
+      const rowBox = await row.boundingBox();
+      const chip = await reference.boundingBox();
+      return {
+        x: (chip?.x ?? 0) - (rowBox?.x ?? 0),
+        y: (chip?.y ?? 0) - (rowBox?.y ?? 0),
+        width: chip?.width,
+        height: chip?.height,
+      };
+    };
+    const before = await offsetInRow();
     await alpha.focus();
     await expect(alphaField).toHaveCSS("opacity", "1");
-    expect(await reference.boundingBox()).toEqual(before);
+    expect(await offsetInRow()).toEqual(before);
 
     await reference.focus();
     await page.keyboard.press("Tab");

@@ -48,7 +48,7 @@ test.describe("Two tabs on one workspace", () => {
   }) => {
     const paletteTab = await context.newPage();
     await seed(paletteTab);
-    await paletteTab.goto("/");
+    await paletteTab.goto("/colour");
     await expect(
       paletteTab.getByRole("region", { name: "Palette toolbar" }),
     ).toBeVisible();
@@ -99,7 +99,7 @@ test.describe("Two tabs on one workspace", () => {
     ).toBeVisible();
 
     const paletteTab = await context.newPage();
-    await paletteTab.goto("/");
+    await paletteTab.goto("/colour");
     await expect(
       paletteTab.getByRole("region", { name: "Palette toolbar" }),
     ).toBeVisible();

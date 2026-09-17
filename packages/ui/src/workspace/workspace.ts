@@ -243,6 +243,18 @@ export function emptyWorkspace(
   };
 }
 
+/**
+ * Whether a person has opened a studio in this workspace.
+ *
+ * Empty workspaces still carry default spacing, radius and elevation, so those
+ * slices cannot answer this. Palette or typography being present is what Home
+ * uses to show the current workspace rather than create.
+ */
+export function workspaceHasStudios(project: WorkspaceProject | null): boolean {
+  if (!project) return false;
+  return project.palette !== null || project.typography !== null;
+}
+
 /*
  * Replacing one slice, keeping whatever the other holds.
  *

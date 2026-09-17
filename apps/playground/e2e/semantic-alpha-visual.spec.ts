@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { expect, openTheme, test } from "./fixtures";
 
 for (const width of [1280, 1024]) {
   for (const mode of ["Light", "Dark"] as const) {
@@ -6,7 +6,7 @@ for (const width of [1280, 1024]) {
       seededPage: page,
     }, testInfo) => {
       await page.setViewportSize({ width, height: 900 });
-      await page.getByRole("radio", { name: mode }).click();
+      await (await openTheme(page)).getByRole("radio", { name: mode }).click();
       await page.getByRole("button", { name: "Semantics" }).click();
       const editor = page.getByRole("region", { name: "Semantic tokens" });
       await expect(editor).toBeVisible();

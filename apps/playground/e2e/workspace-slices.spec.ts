@@ -43,7 +43,7 @@ test.describe("Workspace slices", () => {
     page,
   }) => {
     await seedBoth(page);
-    await page.goto("/");
+    await page.goto("/colour");
     await expect(
       page.getByRole("region", { name: "Palette toolbar" }),
     ).toBeVisible();
@@ -72,7 +72,7 @@ test.describe("Workspace slices", () => {
     expect(workspace.palette).not.toBeNull();
 
     // And the palette studio still opens the palette rather than onboarding.
-    await page.goto("/");
+    await page.goto("/colour");
     await expect(page.getByLabel("Project name")).toHaveValue(
       "My colour system",
     );
@@ -82,7 +82,7 @@ test.describe("Workspace slices", () => {
     page,
   }) => {
     await seedBoth(page);
-    await page.goto("/");
+    await page.goto("/colour");
     await expect(
       page.getByRole("region", { name: "Palette toolbar" }),
     ).toBeVisible();
@@ -112,7 +112,7 @@ test.describe("Workspace slices", () => {
        Removed only once the workspace reads back on its own, so a migration
        that has not been persisted yet still has its source. */
     await seedBoth(page);
-    await page.goto("/");
+    await page.goto("/colour");
     await expect(
       page.getByRole("region", { name: "Palette toolbar" }),
     ).toBeVisible();
@@ -146,7 +146,7 @@ test.describe("Workspace slices", () => {
        and silently resetting four — which looked like it had worked. Starting
        over is now starting over. */
     await seedBoth(page);
-    await page.goto("/");
+    await page.goto("/colour");
     await expect(
       page.getByRole("region", { name: "Palette toolbar" }),
     ).toBeVisible();
@@ -182,7 +182,7 @@ test.describe("One workspace name", () => {
     await typographyName.fill("Brand system");
     await typographyName.blur();
 
-    await page.goto("/");
+    await page.goto("/colour");
     await expect(page.getByLabel("Project name")).toHaveValue("Brand system");
   });
 
@@ -190,7 +190,7 @@ test.describe("One workspace name", () => {
     page,
   }) => {
     await seedBoth(page);
-    await page.goto("/");
+    await page.goto("/colour");
     await expect(
       page.getByRole("region", { name: "Palette toolbar" }),
     ).toBeVisible();

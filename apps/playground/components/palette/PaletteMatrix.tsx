@@ -4,6 +4,14 @@ import { PaletteRow } from "./PaletteRow";
 import styles from "./palette-workspace.module.css";
 import type { ActiveShade } from "./types";
 
+/** Track label column — room for rename + seed without eating the ramp. */
+const MATRIX_TRACK_COLUMN_PX = 168;
+/**
+ * Narrowest shade column before the matrix scrolls.
+ * Sized so Blueprint 20 fits beside a ~350px inspector at 1280.
+ */
+const MATRIX_SHADE_MIN_PX = 36;
+
 interface PaletteMatrixProps {
   palettes: ColorTrack[];
   weights: number[];
@@ -53,7 +61,9 @@ export function PaletteMatrix({
         style={
           {
             "--shade-count": weights.length,
-            "--matrix-min-width": `${190 + weights.length * 54}px`,
+            "--matrix-track-column": `${MATRIX_TRACK_COLUMN_PX}px`,
+            "--matrix-shade-min": `${MATRIX_SHADE_MIN_PX}px`,
+            "--matrix-min-width": `${MATRIX_TRACK_COLUMN_PX + weights.length * MATRIX_SHADE_MIN_PX}px`,
           } as CSSProperties
         }
       >

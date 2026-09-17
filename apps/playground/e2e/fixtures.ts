@@ -59,7 +59,20 @@ export async function seedProject(
     },
     { key: PROJECT_STORAGE_KEY, value: project, guard: SEED_GUARD_KEY },
   );
-  await page.goto("/");
+  await page.goto("/colour");
+  await expect(
+    page.getByRole("region", { name: "Palette toolbar" }),
+  ).toBeVisible();
+}
+
+/** Theme lives under Settings in the app shell. */
+export async function openTheme(page: Page) {
+  const theme = page.getByRole("radiogroup", { name: "Theme" });
+  if (!(await theme.isVisible())) {
+    await page.getByRole("button", { name: "Settings" }).click({ force: true });
+  }
+  await expect(theme).toBeVisible();
+  return theme;
 }
 
 export const test = base.extend<{ seededPage: Page }>({

@@ -18,8 +18,6 @@ import {
   type HybridTokenizedValue,
   type TypeScaleInput,
 } from "@blueprint/ui";
-import { ThemeControl } from "../ThemeControl";
-import { WorkspaceNav } from "../WorkspaceNav";
 import styles from "./typography-workspace.module.css";
 
 interface TypographyCreationProps {
@@ -77,18 +75,7 @@ export function TypographyCreation({ onCreate }: TypographyCreationProps) {
   };
 
   return (
-    <main className={styles.creationPage}>
-      <header className={styles.creationHeader}>
-        <p className={styles.brand}>
-          <span aria-hidden="true" className={styles.brandMark}>
-            B
-          </span>
-          Blueprint
-        </p>
-        <ThemeControl />
-        <WorkspaceNav active="typography" />
-      </header>
-
+    <div className={styles.creationPage}>
       <form className={styles.creationCard} onSubmit={submit}>
         <h1>Create your type scale</h1>
         <p className={styles.creationIntro}>
@@ -163,6 +150,6 @@ export function TypographyCreation({ onCreate }: TypographyCreationProps) {
           </Button>
         </footer>
       </form>
-    </main>
+    </div>
   );
 }

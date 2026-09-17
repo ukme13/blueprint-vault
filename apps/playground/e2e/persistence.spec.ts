@@ -42,7 +42,7 @@ test.describe("Persistence after reload", () => {
   }) => {
     await page
       .getByRole("button", { name: "Open primary colour details" })
-      .press("Enter");
+      .click();
     const colourDialog = page.locator("dialog").filter({
       has: page.getByLabel("Colour name"),
     });

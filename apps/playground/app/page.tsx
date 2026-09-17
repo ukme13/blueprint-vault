@@ -1,7 +1,7 @@
 "use client";
 
-import { PaletteStudio } from "../components/palette/PaletteStudio";
+import { WorkspaceHome } from "../components/home/WorkspaceHome";
 
 export default function Page() {
-  return <PaletteStudio />;
+  return <WorkspaceHome />;
 }

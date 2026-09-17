@@ -28,6 +28,7 @@ import {
   loadStoredWorkspace,
   saveStoredWorkspace,
   seedPaletteTracks,
+  semanticsForPalette,
   updateStoredWorkspace,
   withPaletteSlice,
   useWorkspaceStore,
@@ -49,13 +50,10 @@ import {
 import { SystemExportDialog } from "../SystemExportDialog";
 import { VisionControl } from "../VisionControl";
 import { WorkspaceBrand } from "../WorkspaceBrand";
-import { ThemeControl } from "../ThemeControl";
-import { WorkspaceNav } from "../WorkspaceNav";
 import { PaletteCreation } from "./PaletteCreation";
 import { PaletteControls } from "./PaletteControls";
 import { ColourPicker } from "./ColourPicker";
 import { PaletteMatrix } from "./PaletteMatrix";
-import { PaletteOverview } from "./PaletteOverview";
 import { PalettePreview } from "./PalettePreview";
 import { SemanticEditor } from "./SemanticEditor";
 import { useSemanticsHistory } from "./use-semantics-history";
@@ -72,8 +70,7 @@ import { PaletteViewProvider, usePaletteView } from "./PaletteViewContext";
 
 type ContrastTarget = "white" | "black" | "custom";
 
-type PlaygroundSection =
-  "overview" | "shade-generator" | "semantics" | "accessibility";
+type PlaygroundSection = "shade-generator" | "semantics" | "accessibility";
 
 type PaletteProject = PaletteProjectData;
 
@@ -334,14 +331,14 @@ function PaletteStudioContent() {
 
   if (!hasLoadedProject) {
     return (
-      <main
+      <div
         aria-busy="true"
         aria-live="polite"
         className={styles.loadingPage}
         role="status"
       >
         Loading palette…
-      </main>
+      </div>
     );
   }
 
@@ -364,12 +361,18 @@ function PaletteStudioContent() {
           const secondarySeed = generated
             ? undefined
             : normalizeHex(secondaryHex);
-          setName(chosenName);
-          setProject({
+          const palette: PaletteProject = {
             tracks: seedPaletteTracks(primarySeed, secondarySeed),
             lightnessPattern: "custom",
             lightnessValues: createPatternValues("custom"),
-          });
+          };
+          /* Seed through the store, not only through withPaletteSlice on the
+             next persist: the Semantics tab and Accessibility read the store,
+             and writeStoredProject never pushes its result back into React. */
+          setName(chosenName);
+          setProject(palette);
+          setSemantics(semanticsForPalette(palette));
+          setActiveSection("shade-generator");
         }}
       />
     );
@@ -665,7 +668,7 @@ function PaletteStudioContent() {
   };
 
   return (
-    <main className={styles.workspace}>
+    <div className={styles.workspace}>
       <header className={styles.topbar}>
         <WorkspaceBrand
           name={name}
@@ -676,17 +679,20 @@ function PaletteStudioContent() {
           <TabList
             size="sm"
             value={activeSection}
-            onChange={(value) => setActiveSection(value as PlaygroundSection)}
+            onChange={(value) => {
+              const next = value as PlaygroundSection;
+              /* Close measuring chrome before leaving the bench. Unmounting
+                 Vision/Tooltip portals mid-flight throws removeChild on null. */
+              if (next !== "shade-generator") closeContrastMode();
+              setActiveSection(next);
+            }}
           >
-            <Tab label="Overview" value="overview" />
             <Tab label="Shade generator" value="shade-generator" />
             <Tab label="Semantics" value="semantics" />
             <Tab label="Accessibility" value="accessibility" />
           </TabList>
         </nav>
         <span className={styles.headerActions}>
-          <ThemeControl />
-          <WorkspaceNav active="colour" />
           <input
             ref={headerImportInputRef}
             className={styles.visuallyHidden}
@@ -713,10 +719,26 @@ function PaletteStudioContent() {
           >
             Export
           </Button>
+          <Button
+            className={styles.newProjectButton}
+            scheme="neutral"
+            size="xs"
+            variant="text"
+            onClick={() => setIsNewProjectDialogOpen(true)}
+          >
+            New project
+          </Button>
         </span>
       </header>
 
-      <section aria-label="Palette toolbar" className={styles.toolbar}>
+      <section
+        aria-label="Palette toolbar"
+        className={styles.toolbar}
+        hidden={activeSection === "semantics"}
+        data-tools={
+          activeSection === "shade-generator" ? "bench" : "vision-only"
+        }
+      >
         <Button
           className={styles.addButton}
           scheme="neutral"
@@ -801,27 +823,7 @@ function PaletteStudioContent() {
         >
           Reset preset
         </Button>
-        <Button
-          className={styles.newProjectButton}
-          scheme="neutral"
-          size="xs"
-          variant="text"
-          onClick={() => setIsNewProjectDialogOpen(true)}
-        >
-          New project
-        </Button>
       </section>
-
-      {activeSection === "overview" && (
-        <PaletteOverview
-          projectName={name}
-          palettes={palettes}
-          lightnessPattern={project.lightnessPattern}
-          onSourceColourChange={(id, value) =>
-            updateTrack(id, "seedHex", value)
-          }
-        />
-      )}
 
       {activeSection === "semantics" && (
         <SemanticEditor
@@ -980,12 +982,17 @@ function PaletteStudioContent() {
         onAction={() => {
           setIsNewProjectDialogOpen(false);
           setProject(null);
+          /* Null rather than leaving the previous layer: an empty array would
+             also clear the UI, but withPaletteSlice treats [] as deliberate
+             and would not reseed on the next Create. */
+          setSemantics(null);
           setActiveShade(null);
           setActiveTrackId(null);
+          setActiveSection("shade-generator");
           closeContrastMode();
         }}
         onOpenChange={setIsNewProjectDialogOpen}
       />
-    </main>
+    </div>
   );
 }

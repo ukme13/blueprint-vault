@@ -39,13 +39,16 @@ async function importFile(page: Page, name: string, contents: string) {
   });
 }
 
-/** Onboarding offers a plain file input rather than the header button. */
+/** Onboarding offers Import project rather than a bare file control. */
 async function importOnCreationScreen(
   page: Page,
   name: string,
   contents: string,
 ) {
-  await page.getByRole("button", { name: "Choose File" }).setInputFiles({
+  const chooserPromise = page.waitForEvent("filechooser");
+  await page.getByRole("button", { name: "Import project" }).click();
+  const chooser = await chooserPromise;
+  await chooser.setFiles({
     name,
     mimeType: "application/json",
     buffer: Buffer.from(contents),
@@ -79,7 +82,7 @@ test.describe("The Blueprint workspace file", () => {
     page,
   }) => {
     await seedBoth(page);
-    await page.goto("/");
+    await page.goto("/colour");
     await expect(
       page.getByRole("region", { name: "Palette toolbar" }),
     ).toBeVisible();
@@ -95,7 +98,7 @@ test.describe("The Blueprint workspace file", () => {
 
   test("restores both halves after storage is cleared", async ({ page }) => {
     await seedBoth(page);
-    await page.goto("/");
+    await page.goto("/colour");
     await expect(
       page.getByRole("region", { name: "Palette toolbar" }),
     ).toBeVisible();
@@ -133,7 +136,7 @@ test.describe("The Blueprint workspace file", () => {
 
   test("still accepts an older palette-only file", async ({ page }) => {
     await seedBoth(page);
-    await page.goto("/");
+    await page.goto("/colour");
     await expect(
       page.getByRole("region", { name: "Palette toolbar" }),
     ).toBeVisible();
@@ -161,7 +164,7 @@ test.describe("The Blueprint workspace file", () => {
     page,
   }) => {
     await seedBoth(page);
-    await page.goto("/");
+    await page.goto("/colour");
     await expect(
       page.getByRole("region", { name: "Palette toolbar" }),
     ).toBeVisible();

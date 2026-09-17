@@ -70,7 +70,7 @@ test.describe("The semantic editor", () => {
     const editor = await openSemantics(page);
     const before = await swatch(editor, "action.primary", "light");
 
-    await page.getByRole("button", { name: "Overview" }).click();
+    await page.getByRole("button", { name: "Shade generator" }).click();
     await page
       .getByRole("button", { name: "Choose primary source colour" })
       .click();

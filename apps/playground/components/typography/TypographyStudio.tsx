@@ -76,8 +76,6 @@ import { Badge } from "@astryxdesign/core/Badge";
 import { TypographyCreation } from "./TypographyCreation";
 import { TypographyExportDialog } from "./TypographyExportDialog";
 import { WorkspaceBrand } from "../WorkspaceBrand";
-import { ThemeControl } from "../ThemeControl";
-import { WorkspaceNav } from "../WorkspaceNav";
 import { FontStackEditor } from "./FontStackEditor";
 import { RoleGroupEditor } from "./RoleGroupEditor";
 import { TypographyPreview } from "./TypographyPreview";
@@ -377,14 +375,14 @@ export function TypographyStudio() {
 
   if (!hasLoadedProject) {
     return (
-      <main
+      <div
         aria-busy="true"
         aria-live="polite"
         className={styles.loadingPage}
         role="status"
       >
         Loading type scale…
-      </main>
+      </div>
     );
   }
 
@@ -464,7 +462,7 @@ export function TypographyStudio() {
   };
 
   return (
-    <main className={styles.workspace}>
+    <div className={styles.workspace}>
       <header className={styles.topbar}>
         <WorkspaceBrand
           name={system.name}
@@ -477,8 +475,6 @@ export function TypographyStudio() {
           onChange={setPreviewDevice}
         />
         <span className={styles.headerActions}>
-          <ThemeControl />
-          <WorkspaceNav active="typography" />
           <Button
             aria-label="Export type scale"
             scheme="neutral"
@@ -976,6 +972,6 @@ export function TypographyStudio() {
         }}
         onOpenChange={setIsNewProjectDialogOpen}
       />
-    </main>
+    </div>
   );
 }

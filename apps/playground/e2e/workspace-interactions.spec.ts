@@ -240,10 +240,11 @@ test.describe("Shade details", () => {
 
     await page
       .getByRole("button", { name: "Open primary colour details" })
-      .press("Enter");
+      .click();
     const colourDialog = page.locator("dialog").filter({
       has: page.getByLabel("Colour name"),
     });
+    await expect(colourDialog).toBeVisible();
     const transitionWarnings = colourDialog.getByRole("list", {
       name: "Transition warnings",
     });
@@ -332,7 +333,7 @@ test.describe("Colour track actions", () => {
     const trackRows = page.locator("article[data-track-id]");
     await page
       .getByRole("button", { name: "Open primary colour details" })
-      .press("Enter");
+      .click();
 
     let colourDialog = page.locator("dialog").filter({
       has: page.getByLabel("Colour name"),
@@ -353,7 +354,7 @@ test.describe("Colour track actions", () => {
 
     await page
       .getByRole("button", { name: "Open brand colour details" })
-      .press("Enter");
+      .click();
     colourDialog = page.locator("dialog").filter({
       has: page.getByLabel("Colour name"),
     });
@@ -368,7 +369,7 @@ test.describe("Colour track actions", () => {
 
     await page
       .getByRole("button", { name: "Open custom-8 colour details" })
-      .press("Enter");
+      .click();
     await page.getByRole("button", { name: "Delete", exact: true }).click();
     const deleteConfirmation = page.getByRole("alertdialog", {
       name: "Delete custom-8?",
@@ -524,13 +525,13 @@ test.describe("Interface feedback", () => {
     await page.reload();
 
     await page.getByLabel("Project name").fill("");
-    await page.getByRole("button", { name: "Create palette" }).click();
+    await page.getByRole("button", { name: "Create workspace" }).click();
 
     const error = page.getByText("Enter a project name.", { exact: true });
     await expect(error).toHaveAttribute("role", "alert");
   });
 
-  test("imports a saved project from the creation screen", async ({ page }) => {
+  test("imports a saved project from Home", async ({ page }) => {
     await page.goto("/");
     await page.evaluate(() => window.localStorage.clear());
     await page.reload();
@@ -540,12 +541,16 @@ test.describe("Interface feedback", () => {
       version: 1,
       project: { ...defaultProject(), name: "Opened project" },
     };
-    await page.getByRole("button", { name: "Choose File" }).setInputFiles({
+    const chooserPromise = page.waitForEvent("filechooser");
+    await page.getByRole("button", { name: "Import project" }).click();
+    const chooser = await chooserPromise;
+    await chooser.setFiles({
       name: "opened.blueprint.json",
       mimeType: "application/json",
       buffer: Buffer.from(JSON.stringify(importedProject)),
     });
 
+    await expect(page).toHaveURL(/\/colour\/?$/);
     await expect(page.getByLabel("Project name")).toHaveValue("Opened project");
   });
 });

@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
-import { SelectableCard } from "@astryxdesign/core/SelectableCard";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import {
   Button,
@@ -9,8 +8,6 @@ import {
   parseBlueprintWorkspace,
   type WorkspaceProject,
 } from "@blueprint/ui";
-import { ThemeControl } from "../ThemeControl";
-import { WorkspaceNav } from "../WorkspaceNav";
 import { ColourPicker } from "./ColourPicker";
 import styles from "./palette-workspace.module.css";
 
@@ -35,7 +32,6 @@ export function PaletteCreation({ onCreate, onImport }: PaletteCreationProps) {
   const [name, setName] = useState("My colour system");
   const [seedHex, setSeedHex] = useState("#7646ab");
   const [secondaryHex, setSecondaryHex] = useState("#0f9d8f");
-  const [method, setMethod] = useState<CreationMethod>("brand");
   const [error, setError] = useState("");
   const importInputRef = useRef<HTMLInputElement>(null);
 
@@ -51,9 +47,7 @@ export function PaletteCreation({ onCreate, onImport }: PaletteCreationProps) {
     }
   };
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
+  const create = (method: CreationMethod) => {
     try {
       const normalizedSeed = normalizeHex(seedHex);
       const normalizedSecondary = normalizeHex(secondaryHex);
@@ -73,28 +67,15 @@ export function PaletteCreation({ onCreate, onImport }: PaletteCreationProps) {
     }
   };
 
-  return (
-    <main className={styles.creationPage}>
-      <header className={styles.creationHeader}>
-        <p className={styles.brand}>
-          <span aria-hidden="true" className={styles.brandMark}>
-            B
-          </span>
-          Blueprint
-        </p>
-        <span className={styles.creationHeaderActions}>
-          <ThemeControl />
-          <WorkspaceNav active="colour" />
-          <a href="http://localhost:3001">Documentation</a>
-        </span>
-      </header>
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    create("brand");
+  };
 
+  return (
+    <div className={styles.creationPage}>
       <form className={styles.creationCard} onSubmit={submit}>
-        <h1>Create your colour system</h1>
-        <p className={styles.creationIntro}>
-          Start with your two brand colours. Blueprint will build 20 stable
-          OKLCH shades for each and the semantic tracks around them.
-        </p>
+        <h1>New colour system</h1>
 
         <section className={styles.astryxField}>
           <TextInput
@@ -105,90 +86,41 @@ export function PaletteCreation({ onCreate, onImport }: PaletteCreationProps) {
           />
         </section>
 
-        <fieldset className={styles.methodFieldset}>
-          <legend>How do you want to start?</legend>
-          <section className={styles.methodGrid}>
-            <span className={styles.methodCard}>
-              <SelectableCard
-                label="Start with a brand colour"
-                isSelected={method === "brand"}
-                onChange={() => setMethod("brand")}
-              >
-                <strong>Brand colour</strong>
-                <span>Use your own main colour as the source.</span>
-              </SelectableCard>
-            </span>
-            <span className={styles.methodCard}>
-              <SelectableCard
-                label="Start with a generated set"
-                isSelected={method === "generated"}
-                onChange={() => setMethod("generated")}
-              >
-                <strong>Generated set</strong>
-                <span>Start from a ready-made Blueprint set.</span>
-              </SelectableCard>
-            </span>
-            <span className={styles.methodCard}>
-              <SelectableCard
-                label="Import Blueprint project"
-                isSelected={false}
-                onChange={() => importInputRef.current?.click()}
-              >
-                <strong>Import project</strong>
-                <span>Continue editing a saved Blueprint palette.</span>
-              </SelectableCard>
-              <input
-                ref={importInputRef}
-                className={styles.visuallyHidden}
-                type="file"
-                accept=".json,.blueprint.json,application/json"
-                onChange={importProject}
-              />
-            </span>
-          </section>
-        </fieldset>
+        <section className={styles.field}>
+          <span>Source colour</span>
+          <span className={styles.colourInput}>
+            <ColourPicker
+              label="source colour"
+              value={/^#[0-9a-f]{6}$/i.test(seedHex) ? seedHex : "#7646ab"}
+              onChange={setSeedHex}
+            />
+            <TextInput
+              isLabelHidden
+              label="Source colour HEX value"
+              value={seedHex}
+              onChange={setSeedHex}
+            />
+          </span>
+        </section>
 
-        {method === "brand" && (
-          <section className={styles.field}>
-            <span>Source colour</span>
-            <span className={styles.colourInput}>
-              <ColourPicker
-                label="source colour"
-                value={/^#[0-9a-f]{6}$/i.test(seedHex) ? seedHex : "#7646ab"}
-                onChange={setSeedHex}
-              />
-              <TextInput
-                isLabelHidden
-                label="Source colour HEX value"
-                value={seedHex}
-                onChange={setSeedHex}
-              />
-            </span>
-          </section>
-        )}
-
-        {method === "brand" && (
-          <section className={styles.field}>
-            <span>Secondary colour</span>
-            <span className={styles.colourInput}>
-              <ColourPicker
-                label="secondary colour"
-                value={
-                  /^#[0-9a-f]{6}$/i.test(secondaryHex)
-                    ? secondaryHex
-                    : "#0f9d8f"
-                }
-                onChange={setSecondaryHex}
-              />
-              <TextInput
-                isLabelHidden
-                label="Secondary colour HEX value"
-                value={secondaryHex}
-                onChange={setSecondaryHex}
-              />
-            </span>
-          </section>
-        )}
+        <section className={styles.field}>
+          <span>Secondary colour</span>
+          <span className={styles.colourInput}>
+            <ColourPicker
+              label="secondary colour"
+              value={
+                /^#[0-9a-f]{6}$/i.test(secondaryHex) ? secondaryHex : "#0f9d8f"
+              }
+              onChange={setSecondaryHex}
+            />
+            <TextInput
+              isLabelHidden
+              label="Secondary colour HEX value"
+              value={secondaryHex}
+              onChange={setSecondaryHex}
+            />
+          </span>
+        </section>
 
         {error && (
           <p className={styles.formError} role="alert">
@@ -197,14 +129,38 @@ export function PaletteCreation({ onCreate, onImport }: PaletteCreationProps) {
         )}
 
         <footer className={styles.creationFooter}>
-          <p>
-            Preset: <strong>Blueprint 20</strong>
-          </p>
+          <span className={styles.creationSecondaryActions}>
+            <Button
+              scheme="neutral"
+              size="small"
+              type="button"
+              variant="text"
+              onClick={() => create("generated")}
+            >
+              Use Blueprint seed
+            </Button>
+            <Button
+              scheme="neutral"
+              size="small"
+              type="button"
+              variant="text"
+              onClick={() => importInputRef.current?.click()}
+            >
+              Import project
+            </Button>
+            <input
+              ref={importInputRef}
+              className={styles.visuallyHidden}
+              type="file"
+              accept=".json,.blueprint.json,application/json"
+              onChange={importProject}
+            />
+          </span>
           <Button scheme="primary" type="submit">
             Create palette
           </Button>
         </footer>
       </form>
-    </main>
+    </div>
   );
 }
