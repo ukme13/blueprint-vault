@@ -49,6 +49,10 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
+    /* Reading localStorage must happen in an effect: a useState initializer
+       would run during SSR, where window does not exist, and desync
+       hydration. */
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCollapsed(window.localStorage.getItem(RAIL_COLLAPSED_KEY) === "1");
   }, []);
 
