@@ -53,7 +53,10 @@ the old 1280 viewport used to give the canvas.
 - Playwright `workspace-home`, `workspace-shell`, `palette-creation`,
   `studio-theme`, `preview-page`, `navigation`, `responsive-layout`,
   plus path updates on the existing studio specs. Theme specs open
-  Settings first. `PLAYWRIGHT_BASE_URL` lets local runs hit port 4000.
+  Settings first. `semantic-alpha-visual` does too. The docked-alpha
+  assertion measures the chip inside its row, because a 1280 viewport
+  now scrolls the table when the rail is present. `PLAYWRIGHT_BASE_URL`
+  lets local runs hit port 4000.
 
 ## Lessons
 
