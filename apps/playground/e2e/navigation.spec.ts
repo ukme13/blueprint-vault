@@ -1,26 +1,42 @@
 import { expect, test } from "./fixtures";
 
 test.describe("Playground navigation", () => {
-  test("switches between Overview, Shade generator, and Accessibility", async ({
+  test("switches between Shade generator, Semantics, and Accessibility", async ({
     seededPage: page,
   }) => {
     await expect(
       page.getByRole("region", { name: "Generated colour shades" }),
     ).toBeVisible();
 
-    await page.getByRole("button", { name: "Overview" }).click();
+    await page.getByRole("button", { name: "Semantics" }).click();
     await expect(
-      page.getByRole("heading", { name: "My colour system" }),
+      page.getByRole("region", { name: "Semantic tokens" }),
     ).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Palette toolbar" }),
+    ).toBeHidden();
 
     await page.getByRole("button", { name: "Accessibility" }).click();
     await expect(
       page.getByRole("heading", { name: "Accessibility" }),
     ).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Palette toolbar" }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Add colour" })).toBeHidden();
+    await expect(
+      page.getByRole("button", { name: "Vision", exact: true }),
+    ).toBeVisible();
 
     await page.getByRole("button", { name: "Shade generator" }).click();
     await expect(
       page.getByRole("region", { name: "Generated colour shades" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Palette toolbar" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Add colour" }),
     ).toBeVisible();
   });
 

@@ -131,12 +131,6 @@ export function PaletteRow({
           </svg>
         </button>
         <div className={styles.trackCard}>
-          <button
-            aria-label={`Open ${palette.name} colour details`}
-            className={styles.trackCardOpenButton}
-            type="button"
-            onClick={() => onTrackOpen(palette.id)}
-          />
           <span className={styles.trackCardColourPicker}>
             <ColourPicker
               label={`${palette.name} source colour`}
@@ -159,6 +153,27 @@ export function PaletteRow({
             }}
             onKeyDown={handleNameKeyDown}
           />
+          <button
+            aria-label={`Open ${palette.name} colour details`}
+            className={styles.trackCardOpenButton}
+            title="Colour details"
+            type="button"
+            onClick={() => onTrackOpen(palette.id)}
+          >
+            <svg
+              aria-hidden="true"
+              fill="none"
+              height="14"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+              width="14"
+            >
+              <path d="M9 6l6 6-6 6" />
+            </svg>
+          </button>
         </div>
       </section>
 

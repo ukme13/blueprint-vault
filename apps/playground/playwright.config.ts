@@ -1,5 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
+const playgroundOrigin =
+  process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -8,7 +11,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : 4,
   reporter: "list",
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: playgroundOrigin,
     trace: "on-first-retry",
     /*
      * Tests run with motion reduced, which the components honour.
@@ -50,7 +53,7 @@ export default defineConfig({
   ],
   webServer: {
     command: process.env.CI ? "pnpm build && pnpm start" : "pnpm dev",
-    url: "http://localhost:3000",
+    url: playgroundOrigin,
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
   },

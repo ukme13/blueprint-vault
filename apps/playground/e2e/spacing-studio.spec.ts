@@ -550,7 +550,7 @@ test.describe("The scale studio's chrome", () => {
     await field.fill("Renamed here");
     await field.blur();
 
-    await page.goto("/");
+    await page.goto("/colour");
     await expect(page.getByLabel("Project name")).toHaveValue("Renamed here");
   });
 });

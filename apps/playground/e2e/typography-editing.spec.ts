@@ -153,7 +153,7 @@ test.describe("Typography scale editing", () => {
     ).toBeVisible();
 
     await workspaces.getByRole("link", { name: "Colour" }).click();
-    await expect(page).toHaveURL("/");
+    await expect(page).toHaveURL(/\/colour\/?$/);
     await expect(
       page.getByRole("button", { name: "Create palette" }),
     ).toBeVisible();

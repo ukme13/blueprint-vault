@@ -1,4 +1,4 @@
-import { expect, test } from "./fixtures";
+import { expect, test, openTheme } from "./fixtures";
 import { openPreview } from "./preview-fixtures";
 
 /**
@@ -45,10 +45,7 @@ test.describe("The system preview", () => {
 
     /* Light, because the studio opens dark and the canvas now follows the
        studio. Clicking the mode it is already in would assert nothing. */
-    await page
-      .getByRole("radiogroup", { name: "Theme" })
-      .getByRole("radio", { name: "Light" })
-      .click();
+    await (await openTheme(page)).getByRole("radio", { name: "Light" }).click();
     await expect(page.getByText("in light mode")).toBeVisible();
 
     /* The same token, a different primitive. A layer that held one value per
@@ -98,7 +95,7 @@ test.describe("The preview's vision control", () => {
     await page.getByRole("button", { name: "Vision" }).click();
     await expect(page.getByLabel("Vision type")).toBeVisible();
 
-    await page.goto("/");
+    await page.goto("/colour");
     await expect(page.getByRole("button", { name: "Vision" })).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -119,11 +116,11 @@ test.describe("The preview's theme control", () => {
     await expect(
       page.getByRole("radiogroup", { name: "Colour mode" }),
     ).toHaveCount(0);
-    const control = page.getByRole("radiogroup", { name: "Theme" });
+    const control = await openTheme(page);
     await expect(control).toBeVisible();
     await expect(control.getByRole("radio", { name: "System" })).toBeVisible();
 
-    const bar = page.getByRole("banner");
+    const bar = page.locator("header[aria-label='Preview']");
     const chrome = () =>
       bar.evaluate((el) => getComputedStyle(el).backgroundColor);
     const canvas = () =>
@@ -147,18 +144,13 @@ test.describe("The preview's theme control", () => {
     /* Chosen in the palette studio, read on the preview. The complaint this
        answers was exactly this crossing: picking dark left the preview light,
        because the preview's mode was a second piece of state. */
-    await page
-      .getByRole("radiogroup", { name: "Theme" })
-      .getByRole("radio", { name: "Light" })
-      .click();
+    await (await openTheme(page)).getByRole("radio", { name: "Light" }).click();
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 
     await page.goto("/preview");
     await expect(page.getByText("in light mode")).toBeVisible();
     await expect(
-      page
-        .getByRole("radiogroup", { name: "Theme" })
-        .getByRole("radio", { name: "Light" }),
+      (await openTheme(page)).getByRole("radio", { name: "Light" }),
     ).toBeChecked();
   });
 });

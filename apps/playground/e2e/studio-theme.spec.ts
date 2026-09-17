@@ -1,3 +1,4 @@
+import { openTheme } from "./fixtures";
 import { expect, test } from "./typography-fixtures";
 
 /*
@@ -15,11 +16,10 @@ const topbarBackground = (page: import("@playwright/test").Page) =>
     .getByRole("region", { name: "Type scale settings" })
     .evaluate((el) => getComputedStyle(el).backgroundColor);
 
-const pick = (page: import("@playwright/test").Page, mode: string) =>
-  page
-    .getByRole("radiogroup", { name: "Theme" })
-    .getByRole("radio", { name: mode })
-    .click();
+const pick = async (page: import("@playwright/test").Page, mode: string) => {
+  const theme = await openTheme(page);
+  await theme.getByRole("radio", { name: mode }).click();
+};
 
 test.describe("The studio theme", () => {
   test("repaints the chrome, not just the controls", async ({
@@ -47,9 +47,7 @@ test.describe("The studio theme", () => {
        inline script is what sets this, and it runs before any React does. */
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     await expect(
-      page
-        .getByRole("radiogroup", { name: "Theme" })
-        .getByRole("radio", { name: "Light" }),
+      (await openTheme(page)).getByRole("radio", { name: "Light" }),
     ).toBeChecked();
   });
 

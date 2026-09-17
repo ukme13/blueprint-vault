@@ -2,9 +2,7 @@
 
 import type { ReactNode } from "react";
 import type { ColourMode } from "@blueprint/ui";
-import { ThemeControl } from "./ThemeControl";
 import { VisionControl } from "./VisionControl";
-import { WorkspaceNav } from "./WorkspaceNav";
 
 /**
  * The tool around the preview, which is not part of what is being previewed.
@@ -46,12 +44,13 @@ export function PreviewChrome({
   children,
 }: PreviewChromeProps) {
   return (
-    <div className="flex min-h-dvh flex-col" style={{ colorScheme: mode }}>
-      <header className="flex flex-wrap items-center gap-3 border-b border-border-default bg-surface-subtle px-6 py-3 text-fg-primary">
+    <div className="flex h-full min-h-0 flex-col" style={{ colorScheme: mode }}>
+      <header
+        aria-label="Preview"
+        className="flex flex-wrap items-center gap-3 border-b border-border-default bg-surface-subtle px-6 py-3 text-fg-primary"
+      >
         <strong className="mr-auto text-sm">{name}</strong>
-        <ThemeControl />
         <VisionControl />
-        <WorkspaceNav active="preview" />
       </header>
 
       {/* The canvas. Everything inside it is drawn from the workspace's own

@@ -181,7 +181,7 @@ test.describe("An alias with a transparency", () => {
     await page.keyboard.press("Escape");
     await expect(exportDialog).toBeHidden();
 
-    await page.getByRole("button", { name: "Overview" }).click();
+    await page.getByRole("button", { name: "Shade generator" }).click();
     await page
       .getByRole("button", { name: "Choose primary source colour" })
       .click();

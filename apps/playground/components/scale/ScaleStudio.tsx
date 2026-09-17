@@ -24,9 +24,7 @@ import {
   type HybridTokenizedValue,
 } from "@blueprint/ui";
 import { SystemExportDialog } from "../SystemExportDialog";
-import { ThemeControl } from "../ThemeControl";
 import { WorkspaceBrand } from "../WorkspaceBrand";
-import { WorkspaceNav } from "../WorkspaceNav";
 import { ElevationCanvas } from "./ElevationEditor";
 import { ElevationInspector } from "./ElevationInspector";
 import { RadiusCanvas, RadiusInspector } from "./RadiusEditor";
@@ -129,19 +127,19 @@ export function ScaleStudio() {
 
   if (!store.hasLoaded || !nameReady) {
     return (
-      <main
+      <div
         aria-busy="true"
         aria-live="polite"
         className={styles.loadingPage}
         role="status"
       >
         Loading workspace…
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className={styles.workspace} onKeyDown={onKeyDown}>
+    <div className={styles.workspace} onKeyDown={onKeyDown}>
       <header className={styles.topbar}>
         <WorkspaceBrand name={name} onChange={setName} onCommit={commitName} />
         <nav aria-label="Scale views" className={styles.navigation}>
@@ -157,8 +155,6 @@ export function ScaleStudio() {
           </TabList>
         </nav>
         <span className={styles.headerActions}>
-          <ThemeControl />
-          <WorkspaceNav active="scale" />
           <Button
             scheme="neutral"
             size="small"
@@ -306,6 +302,6 @@ export function ScaleStudio() {
         }}
         onOpenChange={setIsExportOpen}
       />
-    </main>
+    </div>
   );
 }

@@ -1,0 +1,90 @@
+.page,
+.loadingPage {
+  min-height: 100%;
+  background: var(--color-surface-base);
+  color: var(--color-fg-primary);
+  font-family: var(--font-sans);
+}
+
+.loadingPage {
+  display: grid;
+  place-items: center;
+  color: var(--color-fg-muted);
+  font-size: 12px;
+}
+
+.card {
+  width: min(440px, calc(100% - 40px));
+  margin: 48px auto 0;
+  padding: 28px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-container, 12px);
+  background: var(--color-surface-subtle);
+}
+
+.card h1 {
+  margin: 0 0 8px;
+  color: var(--color-fg-primary);
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+}
+
+.lede {
+  margin: 0 0 8px;
+  color: var(--color-fg-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.field {
+  margin-top: 22px;
+}
+
+.preset {
+  margin: 18px 0 0;
+  color: var(--color-fg-muted);
+  font-size: 12px;
+}
+
+.preset strong {
+  color: var(--color-fg-secondary);
+  font-weight: 650;
+}
+
+.formError {
+  margin: 12px 0 0;
+  color: var(--color-status-error);
+  font-size: 11px;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid var(--color-border-default);
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .card {
+    margin-top: 30px;
+    padding: 24px 18px;
+  }
+
+  .footer {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+}

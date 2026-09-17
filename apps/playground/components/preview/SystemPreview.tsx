@@ -84,7 +84,7 @@ export function SystemPreview() {
 
   if (hasLoaded && tokens.length === 0) {
     return (
-      <main
+      <div
         className="mx-auto max-w-2xl"
         style={{ paddingInline: space("6"), paddingBlock: space("16") }}
       >
@@ -96,7 +96,7 @@ export function SystemPreview() {
           This page is drawn entirely from the semantic layer. Build a palette,
           then open the Semantics tab to see it here.
         </p>
-      </main>
+      </div>
     );
   }
 
@@ -116,7 +116,7 @@ export function SystemPreview() {
           { ...variables, background: SURFACE, color: TEXT } as CSSProperties
         }
       >
-        <main
+        <article
           className="mx-auto flex max-w-4xl flex-col"
           style={{
             gap: space("10"),
@@ -283,7 +283,7 @@ export function SystemPreview() {
               </button>
             </div>
           </section>
-        </main>
+        </article>
       </div>
     </PreviewChrome>
   );
