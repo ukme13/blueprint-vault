@@ -6,29 +6,25 @@ import {
 } from "./fixtures";
 
 test.describe("Workspace settings", () => {
-  test("Home and the studio rail open the same preview frames", async ({
+  test("Home has no Settings; the studio rail opens this workspace's frames", async ({
     page,
   }) => {
     await page.goto("/");
     await page.evaluate(() => window.localStorage.clear());
     await page.reload();
     await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
-
-    const homeSettings = await openWorkspaceSettings(page);
     await expect(
-      homeSettings.getByRole("region", { name: "Preview frames" }),
-    ).toBeVisible();
-    await expect(
-      homeSettings.getByRole("table", { name: "Layout tokens" }),
+      page.getByRole("button", { name: "Settings", exact: true }),
     ).toHaveCount(0);
-    await expect(
-      homeSettings.getByText("Container inset", { exact: true }),
-    ).toHaveCount(0);
-    await page.keyboard.press("Escape");
-    await expect(homeSettings).toBeHidden();
 
     await createWorkspaceFromHome(page);
     const railSettings = await openWorkspaceSettings(page);
+    await expect(
+      railSettings.getByRole("region", { name: "Preview frames" }),
+    ).toBeVisible();
+    await expect(
+      railSettings.getByRole("table", { name: "Layout tokens" }),
+    ).toHaveCount(0);
     await expect(
       railSettings.getByRole("img", { name: "Phone cannot be removed" }),
     ).toBeVisible();

@@ -28,6 +28,9 @@ test.describe("Workspace home", () => {
     await expect(
       page.getByRole("navigation", { name: "Blueprint workspaces" }),
     ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Settings", exact: true }),
+    ).toHaveCount(0);
   });
 
   test("creates a seeded workspace and opens Shade generator", async ({
