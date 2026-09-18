@@ -465,14 +465,18 @@ describe("a version 5 file still opens, and a version 6 file carries alpha", () 
       widthPx: 1440,
       ratio: 1.25,
     };
-    const { previewDevices: _root, layout: _layout, ...rest } = workspace();
+    const seeded = workspace();
     const source = JSON.stringify({
       kind: "blueprint-workspace",
       version: 7,
       project: {
-        ...rest,
+        ...seeded,
+        /* A v7 file has no root list. `undefined` is omitted from JSON, which
+           is the shape this reader has to lift from. */
+        previewDevices: undefined,
+        layout: undefined,
         typography: {
-          ...rest.typography!,
+          ...seeded.typography!,
           previewDevices: [...defaultPreviewDevices(1.25), extra],
         },
       },
