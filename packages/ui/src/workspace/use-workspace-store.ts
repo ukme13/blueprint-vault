@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import {
+  createContext,
+  createElement,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   browserWorkspaceStorage,
   loadStoredWorkspace,
@@ -30,18 +38,20 @@ export interface WorkspaceStore {
   reload: () => void;
 }
 
+const WorkspaceStoreContext = createContext<WorkspaceStore | null>(null);
+
 /**
  * The workspace, bound to React.
  *
- * Every read goes through `store`, which is the only thing that touches
- * storage. This adds what React needs on top of it and nothing else: when the
- * first read is allowed to happen, and how a write gets back into state.
+ * One store for the tree: the rail name, Home, and the studios all read and
+ * write the same document. Separate hook instances used to each keep their
+ * own copy, so a rename in one place was invisible to the others until reload.
  *
  * The read is in an effect because there is no localStorage during a server
  * render, and reading one in a state initializer desyncs hydration — which is
  * the note every studio carries at its own read.
  */
-export function useWorkspaceStore(): WorkspaceStore {
+function useWorkspaceStoreState(): WorkspaceStore {
   const [project, setProject] = useState<WorkspaceProject | null>(null);
   const [hasLoaded, setHasLoaded] = useState(false);
 
@@ -74,4 +84,25 @@ export function useWorkspaceStore(): WorkspaceStore {
   );
 
   return { project, hasLoaded, save, update, reload };
+}
+
+/** One workspace store for Home, the rail, and the studios. */
+export function WorkspaceStoreProvider({ children }: { children: ReactNode }) {
+  const store = useWorkspaceStoreState();
+  return createElement(
+    WorkspaceStoreContext.Provider,
+    { value: store },
+    children,
+  );
+}
+
+/** The workspace, bound to React. Must sit under `WorkspaceStoreProvider`. */
+export function useWorkspaceStore(): WorkspaceStore {
+  const store = useContext(WorkspaceStoreContext);
+  if (!store) {
+    throw new Error(
+      "useWorkspaceStore must be used within WorkspaceStoreProvider",
+    );
+  }
+  return store;
 }

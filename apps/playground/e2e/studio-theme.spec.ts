@@ -47,6 +47,9 @@ test.describe("The studio theme", () => {
        inline script is what sets this, and it runs before any React does. */
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
     await expect(
+      page.getByRole("region", { name: "Type scale settings" }),
+    ).toBeVisible();
+    await expect(
       (await openTheme(page)).getByRole("radio", { name: "Light" }),
     ).toBeChecked();
   });

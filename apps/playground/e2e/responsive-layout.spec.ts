@@ -4,9 +4,10 @@ test.describe("Responsive palette workspace", () => {
   test("shows the full 25–950 ramp beside the sliders at desktop width", async ({
     seededPage: page,
   }) => {
-    /* The left rail takes a column. 1540 leaves the colour bench the same
+    /* The left rail takes a column; the track names need 220px so
+       "secondary" is not ellipsized. 1600 leaves the colour bench the same
        width this assertion had at 1280 before the shell. */
-    await page.setViewportSize({ width: 1540, height: 800 });
+    await page.setViewportSize({ width: 1600, height: 800 });
 
     await expect(
       page.getByRole("region", { name: "Generated colour shades" }),
@@ -47,6 +48,17 @@ test.describe("Responsive palette workspace", () => {
     expect(layout!.visible).toContain("25");
     expect(layout!.visible).toContain("950");
     expect(layout!.last).toBe("950");
+  });
+
+  test("fits the seed name secondary in the track column", async ({
+    seededPage: page,
+  }) => {
+    const field = page.getByLabel("Rename secondary colour");
+    await expect(field).toHaveValue("secondary");
+    const overflow = await field.evaluate(
+      (el) => (el as HTMLInputElement).scrollWidth - el.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
   });
 
   test("keeps wide palette content inside its scroller on a small screen", async ({

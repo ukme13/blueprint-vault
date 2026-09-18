@@ -8,6 +8,7 @@ import {
   formatDesignSystemTailwind,
 } from "./design-system-export";
 import { formatTypeSystemCssExport } from "../typography/system-export";
+import { formatLayoutCss } from "../scale/layout-tokens";
 
 /**
  * A whole workspace as the set of files somebody installs.
@@ -82,12 +83,17 @@ export function designSystemFiles(
   };
 
   return {
-    "blueprint.css": formatDesignSystemCss(system),
+    "blueprint.css": [
+      formatDesignSystemCss(system),
+      formatLayoutCss(project.layout, project.previewDevices),
+    ]
+      .filter((part) => part.trim().length > 0)
+      .join("\n"),
     "blueprint-typography.css": project.typography
       ? formatTypeSystemCssExport(
           project.typography.system,
           options.typeScaleUnit,
-          project.typography.previewDevices,
+          project.previewDevices,
           project.typography.remRootPx,
         )
       : "",

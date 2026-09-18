@@ -6,6 +6,7 @@ import {
 } from "../color/semantic";
 import { deleteTokens, dropButtonScheme } from "../color/selection-ops";
 import { defaultElevationScale } from "../scale/elevation";
+import { defaultLayoutTokens } from "../scale/layout-tokens";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { normalizeButtonSchemes } from "../button-tones";
@@ -83,7 +84,6 @@ const workspace = (over: Partial<WorkspaceProject> = {}): WorkspaceProject => {
       specimenText: "Sphinx",
       previewDocument: seedPreviewDocument(system),
       template: "article",
-      previewDevices: defaultPreviewDevices(1.25),
       remRootPx: 16,
     },
     semantics: null,
@@ -92,6 +92,8 @@ const workspace = (over: Partial<WorkspaceProject> = {}): WorkspaceProject => {
     spacing: defaultSpacingScale(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
+    previewDevices: defaultPreviewDevices(1.25),
+    layout: defaultLayoutTokens(),
     ...over,
   };
 };
@@ -440,11 +442,10 @@ describe("a version 5 file still opens, and a version 6 file carries alpha", () 
 
   it("moved the version, and kept the ones before it", () => {
     /* Spelled out once, because this is the test about the bumps themselves.
-       Six was alpha and seven is the removed-seed list; every earlier version
-       stays supported, because each is still a file this build understands
-       completely. */
-    expect(BLUEPRINT_WORKSPACE_FILE_VERSION).toBe(7);
-    expect(SUPPORTED_WORKSPACE_FILE_VERSIONS).toEqual([1, 2, 3, 4, 5, 6, 7]);
+       Six was alpha, seven is the removed-seed list, eight is frames and
+       layout uses on the root; every earlier version stays supported. */
+    expect(BLUEPRINT_WORKSPACE_FILE_VERSION).toBe(8);
+    expect(SUPPORTED_WORKSPACE_FILE_VERSIONS).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
 
     /* And the reason the number moved at all. A build handed a file from
        after it must refuse the file rather than read the parts it recognises
@@ -454,6 +455,41 @@ describe("a version 5 file still opens, and a version 6 file carries alpha", () 
         fileAt(BLUEPRINT_WORKSPACE_FILE_VERSION + 1, 0.12),
       ),
     ).toThrow(TypeError);
+  });
+
+  it("lifts preview devices off the typography slice of a version-7 file", () => {
+    const extra = {
+      id: "desktop-extra-1",
+      kind: "desktop" as const,
+      name: "Desktop 2",
+      widthPx: 1440,
+      ratio: 1.25,
+    };
+    const seeded = workspace();
+    const source = JSON.stringify({
+      kind: "blueprint-workspace",
+      version: 7,
+      project: {
+        ...seeded,
+        /* A v7 file has no root list. `undefined` is omitted from JSON, which
+           is the shape this reader has to lift from. */
+        previewDevices: undefined,
+        layout: undefined,
+        typography: {
+          ...seeded.typography!,
+          previewDevices: [...defaultPreviewDevices(1.25), extra],
+        },
+      },
+    });
+
+    const after = parseBlueprintWorkspace(source);
+    expect(after.previewDevices.map((device) => device.id)).toEqual([
+      "phone",
+      "tablet",
+      "desktop",
+      "desktop-extra-1",
+    ]);
+    expect(after.typography).not.toHaveProperty("previewDevices");
   });
 
   it("keeps an out-of-range alpha rather than dropping the token", () => {

@@ -31,34 +31,33 @@
 .topbar,
 .creationHeader {
   min-height: 64px;
-  display: grid;
+  display: flex;
   align-items: center;
   gap: 24px;
-  padding: 0 24px;
+  padding: 0 18px;
   border-bottom: 1px solid var(--color-border-default);
   background: var(--color-surface-subtle);
-}
-
-.topbar {
-  /* Same three columns as the colour studio: name | devices | actions.
-     Symmetric 1fr tracks keep the icons centred; minmax(0, 1fr) so the
-     actions cannot hold the bar wider than the viewport. Editor/Preview
-     stay on the local toolbar so the word Preview does not sit next to
-     the workspace Preview link. */
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
 }
 
 .creationHeader {
   /* minmax(0, 1fr), not 1fr: a fr track's floor is its content's min-width,
      so the actions on the right held the bar at 403px on a 375px screen. */
+  display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .navigation {
-  align-self: center;
+  align-self: stretch;
+  display: flex;
+  align-items: flex-end;
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
+  /* Gap between the labels and the header hairline. The selected indicator
+     drops through it onto that rail — TabList `hasDivider` does the same. */
+  padding-bottom: var(--spacing-2);
+  --_tab-indicator-bottom: calc(-1 * (var(--spacing-2) + 1px));
+  /* Tabs pad spacing-3 in; pull the strip so Editor sits on the same 18px
+     line as the device bar. */
+  margin-inline-start: calc(-1 * var(--spacing-3));
 }
 
 .navigation::-webkit-scrollbar {
@@ -66,7 +65,7 @@
 }
 
 .headerActions {
-  justify-self: end;
+  margin-left: auto;
   min-width: 0;
   display: flex;
   /* Wraps rather than overflows: on a narrow screen the theme control drops
@@ -101,10 +100,6 @@
   padding: 0 18px;
   border-bottom: 1px solid var(--color-border-default);
   background: var(--color-surface-raised);
-}
-
-.newProjectButton {
-  margin-left: auto;
 }
 
 .editor {
@@ -281,7 +276,7 @@
 .deviceTableHead,
 .deviceRow {
   display: grid;
-  grid-template-columns: 4.75rem minmax(5.5rem, 0.8fr) minmax(0, 1.4fr) 2rem;
+  grid-template-columns: 4.75rem minmax(0, 1fr);
   column-gap: var(--spacing-1);
   align-items: center;
 }
@@ -568,23 +563,22 @@
 
 @media (max-width: 900px) {
   .topbar {
-    grid-template-columns: 1fr auto;
+    flex-wrap: wrap;
     gap: 12px;
     padding-top: 10px;
     padding-bottom: 10px;
   }
 
   .navigation {
-    grid-row: 2;
-    grid-column: 1 / -1;
-    /* Stretch, not centre, so extra desktop icons scroll inside the row
-       instead of pushing the page sideways. */
-    justify-self: stretch;
+    flex: 1 1 100%;
+    order: 2;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 
   .headerActions {
-    grid-row: 1;
-    grid-column: 2;
+    order: 1;
+    margin-left: auto;
   }
 
   .editor {
@@ -614,6 +608,10 @@
   .headerActions nav,
   .creationHeader nav {
     display: none;
+  }
+
+  .toolbar {
+    padding: 0 14px;
   }
 
   .creationCard {

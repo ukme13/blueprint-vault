@@ -6,6 +6,7 @@ import { LayerProvider } from "@astryxdesign/core/Layer";
 import { neutralTheme } from "@astryxdesign/theme-neutral/built";
 import {
   useColourModePreference,
+  WorkspaceStoreProvider,
   type ColourModePreference,
 } from "@blueprint/ui";
 
@@ -42,7 +43,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     <ThemeModeContext.Provider value={preference}>
       <Theme theme={neutralTheme} mode={preference.mode}>
         <LayerProvider toast={{ position: "bottomEnd", maxVisible: 2 }}>
-          {children}
+          <WorkspaceStoreProvider>{children}</WorkspaceStoreProvider>
         </LayerProvider>
       </Theme>
     </ThemeModeContext.Provider>

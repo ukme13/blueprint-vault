@@ -1,4 +1,5 @@
 import { expect, test } from "./typography-fixtures";
+import { createWorkspaceFromHome } from "./fixtures";
 
 const FILE = "e2e/fixtures-files/Brand-Regular.woff2";
 /* A second file, because a stack dedupes its families: the same file in two
@@ -401,8 +402,11 @@ test.describe("A file nothing references", () => {
     seededPage: page,
   }) => {
     await upload(page);
-    await page.getByRole("button", { name: "New project" }).click();
-    await page.getByRole("button", { name: "Start new project" }).click();
+    await page
+      .getByRole("navigation", { name: "Blueprint workspaces" })
+      .getByRole("link", { name: "Blueprint" })
+      .click();
+    await createWorkspaceFromHome(page);
 
     await expect.poll(() => storedFontIds(page)).toEqual([]);
   });

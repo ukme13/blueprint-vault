@@ -50,8 +50,10 @@ After the first version is stable, consider:
 - More detailed readability and accessibility checks.
 
 **Shipped after the first version.** Named preview devices (phone, tablet,
-desktop, extra desktops) each hold a width, a ratio, and optional typed size
-and line-height. Export interpolates consecutive frames with `clamp()`, so a
+desktop, extra desktops) each hold a width and a ratio, and optional typed
+size and line-height. Widths live on the workspace root and are edited in
+Settings; Typography only edits per-frame ratio. Layout uses consume the
+same list. Export interpolates consecutive frames with `clamp()`, so a
 layout between two named widths is not stuck on the narrower size. Role
 `--font-size-N` tokens stay on the canonical desktop ramp (`TypeSystem.ratio`).
 Queries and fluid spans use `device.widthPx`. `TypeSystem.breakpointPx` is

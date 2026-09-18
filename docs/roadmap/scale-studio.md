@@ -186,15 +186,19 @@ introduced to prevent.
 
 - Motion tokens: duration and easing, the fourth family Astryx defines.
 - Size tokens for control heights, which currently follow spacing by convention.
-- Per-breakpoint spacing, if the preview page argues for it.
+- Per-breakpoint spacing, if the preview page argues for it. Layout
+  uses (inset / gap / radius per frame) shipped instead; they alias
+  primitives rather than growing a second spacing grid.
 
 **Shipped after the first version.** Density is a multiplier on layout
 steps (2 and up). Fine steps stay on the base unit, labelled `grid` on
 the canvas, so a 2px hairline does not melt when the page gets roomier.
-Elevation opacity is painted per layer and per mode: the track sits on
-that mode’s surface with the shadow colour mixed in. Contact is a hard
-edge; Cast is a pill. Control heights are still later — they follow
-spacing until a product page is wrong without them.
+Elevation opacity is a 2D pad per mode (contact X, cast Y) writing the
+two stored layers; light and dark stay separate. Named layout uses
+(`--inset-container`, `--gap-section`, `--radius-surface`) point at
+those primitives per workspace preview frame, and are edited in
+Settings, not as extra knobs on this studio. Control heights are still
+later — they follow spacing until a product page is wrong without them.
 
 ## Safety and quality rules
 

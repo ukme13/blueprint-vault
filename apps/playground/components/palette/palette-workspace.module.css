@@ -18,29 +18,26 @@
 .topbar,
 .creationHeader {
   min-height: 64px;
-  display: grid;
-  /* minmax(0, 1fr), not 1fr: a fr track's floor is its content's min-width,
-     so the actions on the right — nav, theme control, import — held the bar
-     wider than a 375px screen and the workspace grid went with it.
-     Symmetric on purpose, so the tabs stay centred; the actions wrap onto a
-     second line where they do not fit. */
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  display: flex;
   align-items: center;
   gap: 24px;
-  padding: 0 24px;
+  padding: 0 18px;
   border-bottom: 1px solid var(--color-border-default);
   background: var(--color-surface-subtle);
 }
 
 .navigation {
-  align-self: center;
-  /* The tab strip scrolls rather than widening the page. A fourth tab pushed
-     the document past a 375px viewport, which is how the whole workspace
-     starts scrolling sideways — min-width: 0 is what lets a grid child shrink
-     below its content at all. */
+  align-self: stretch;
+  display: flex;
+  align-items: flex-end;
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
+  /* Gap between the labels and the header hairline. The selected indicator
+     drops through it onto that rail — TabList `hasDivider` does the same. */
+  padding-bottom: var(--spacing-2);
+  --_tab-indicator-bottom: calc(-1 * (var(--spacing-2) + 1px));
+  /* Tabs pad spacing-3 in; pull the strip so Shade generator sits on the
+     same 18px line as Add colour. */
+  margin-inline-start: calc(-1 * var(--spacing-3));
 }
 
 .navigation::-webkit-scrollbar {
@@ -48,7 +45,7 @@
 }
 
 .headerActions {
-  justify-self: end;
+  margin-left: auto;
   min-width: 0;
   display: flex;
   /* Wraps rather than overflows: on a narrow screen the theme control drops
@@ -130,10 +127,6 @@
   margin-left: auto;
 }
 
-.headerActions .newProjectButton {
-  margin-left: 0;
-}
-
 .contrastModeButton[data-active="true"] {
   border-color: var(--color-action-primary);
   background: var(--color-action-muted);
@@ -177,10 +170,6 @@
   height: 22px;
   border-radius: 6px;
   box-shadow: none;
-}
-
-.newProjectDialog h2 {
-  margin-bottom: 8px;
 }
 
 .trackDialogHeader {
@@ -360,7 +349,7 @@
 .paletteRow {
   display: grid;
   grid-template-columns:
-    var(--matrix-track-column, 168px)
+    var(--matrix-track-column, 220px)
     repeat(var(--shade-count, 20), minmax(var(--matrix-shade-min, 36px), 1fr));
 }
 
@@ -456,6 +445,11 @@
   cursor: grabbing;
 }
 
+.trackDragHandle svg {
+  width: 14px;
+  height: 14px;
+}
+
 .trackCard {
   position: relative;
   min-width: 0;
@@ -512,7 +506,7 @@
 
 .trackCard input {
   position: relative;
-  min-width: 0;
+  min-width: 10ch;
   width: 100%;
   padding: 3px 4px;
   overflow: hidden;
@@ -1534,25 +1528,22 @@
 
 @media (max-width: 900px) {
   .topbar {
-    grid-template-columns: 1fr auto;
+    flex-wrap: wrap;
     gap: 12px;
     padding-top: 10px;
     padding-bottom: 10px;
   }
 
   .navigation {
-    grid-row: 2;
-    grid-column: 1 / -1;
-    /* Stretch, not centre. justify-self: center sizes the strip to its own
-       content, so a fourth tab made it 404px inside a 375px viewport and took
-       the whole page sideways with it. Stretched, it fills the row and the
-       overflow-x above does the scrolling. */
-    justify-self: stretch;
+    flex: 1 1 100%;
+    order: 2;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 
   .headerActions {
-    grid-row: 1;
-    grid-column: 2;
+    order: 1;
+    margin-left: auto;
   }
 
   .editor {
@@ -1588,6 +1579,7 @@
 
   .toolbar {
     overflow-x: auto;
+    padding: 0 14px;
   }
 
   .creationCard {

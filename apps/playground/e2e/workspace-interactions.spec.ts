@@ -27,7 +27,7 @@ test.describe("Shade details", () => {
     ).toBeVisible();
     await contrastMode.click();
     await expect(contrastMode).toHaveAttribute("aria-pressed", "true");
-    await expect(contrastRatios).toHaveCount(120);
+    await expect(contrastRatios).toHaveCount(140);
 
     const ratioAgainstWhite = await shade.getAttribute("data-contrast-ratio");
     expect(ratioAgainstWhite).not.toBe("1.0");
@@ -349,7 +349,10 @@ test.describe("Colour track actions", () => {
     });
     await brandHandle.focus();
     await page.keyboard.press("ArrowDown");
-    await expect(trackRows.nth(0)).toHaveAttribute("data-track-id", "neutral");
+    await expect(trackRows.nth(0)).toHaveAttribute(
+      "data-track-id",
+      "secondary",
+    );
     await expect(trackRows.nth(1)).toHaveAttribute("data-track-id", "primary");
 
     await page
@@ -359,25 +362,25 @@ test.describe("Colour track actions", () => {
       has: page.getByLabel("Colour name"),
     });
     await colourDialog.getByRole("button", { name: "Duplicate" }).click();
-    await expect(trackRows).toHaveCount(7);
+    await expect(trackRows).toHaveCount(8);
     await expect(
       page.getByRole("button", { name: "Open brand-copy colour details" }),
     ).toBeVisible();
 
     await page.getByRole("button", { name: "Add colour" }).click();
-    await expect(trackRows).toHaveCount(8);
+    await expect(trackRows).toHaveCount(9);
 
     await page
-      .getByRole("button", { name: "Open custom-8 colour details" })
+      .getByRole("button", { name: "Open custom-9 colour details" })
       .click();
     await page.getByRole("button", { name: "Delete", exact: true }).click();
     const deleteConfirmation = page.getByRole("alertdialog", {
-      name: "Delete custom-8?",
+      name: "Delete custom-9?",
     });
     await deleteConfirmation
       .getByRole("button", { name: "Delete colour" })
       .click();
-    await expect(trackRows).toHaveCount(7);
+    await expect(trackRows).toHaveCount(8);
   });
 
   test("supports quick name and source colour edits on the card", async ({
@@ -411,26 +414,26 @@ test.describe("Colour track actions", () => {
 });
 
 test.describe("Interface feedback", () => {
-  test("asks before starting a new project", async ({ seededPage: page }) => {
-    const newProject = page.getByRole("button", { name: "New project" });
-    await newProject.click();
+  test("studios do not start a new project", async ({ seededPage: page }) => {
+    await expect(page.getByRole("button", { name: "New project" })).toHaveCount(
+      0,
+    );
 
-    const confirmation = page.getByRole("alertdialog", {
-      name: "Start a new project?",
-    });
-    await expect(confirmation).toBeVisible();
-
-    await confirmation.getByRole("button", { name: "Cancel" }).click();
-    await expect(confirmation).toBeHidden();
-    await expect(
-      page.getByRole("region", { name: "Palette toolbar" }),
-    ).toBeVisible();
-
-    await newProject.click();
-    await confirmation
-      .getByRole("button", { name: "Start new project" })
+    await page
+      .getByRole("navigation", { name: "Blueprint workspaces" })
+      .getByRole("link", { name: "Typography" })
       .click();
-    await expect(page.getByLabel("Project name")).toBeVisible();
+    await expect(page).toHaveURL(/\/typography\/?$/);
+    /* Palette-only seeds still land on the leftover type-scale form. Home is
+       the create door either way; this page must not grow a New project. */
+    await expect(
+      page
+        .getByRole("heading", { name: "Create your type scale" })
+        .or(page.getByRole("region", { name: "Generated type steps" })),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "New project" })).toHaveCount(
+      0,
+    );
   });
 
   test("previews CSS and Design Tokens exports", async ({
@@ -524,10 +527,13 @@ test.describe("Interface feedback", () => {
     await page.evaluate(() => window.localStorage.clear());
     await page.reload();
 
-    await page.getByLabel("Project name").fill("");
-    await page.getByRole("button", { name: "Create workspace" }).click();
+    await page.getByRole("button", { name: "New project" }).click();
+    const dialog = page.getByRole("dialog", { name: "New project" });
+    await expect(dialog).toBeVisible();
+    await dialog.getByLabel("Project name").fill("");
+    await dialog.getByRole("button", { name: "Create workspace" }).click();
 
-    const error = page.getByText("Enter a project name.", { exact: true });
+    const error = dialog.getByText("Enter a project name.", { exact: true });
     await expect(error).toHaveAttribute("role", "alert");
   });
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultElevationScale } from "../scale/elevation";
+import { defaultLayoutTokens } from "../scale/layout-tokens";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { normalizeButtonSchemes } from "../button-tones";
@@ -30,6 +31,7 @@ import {
   withSpacingSlice,
   withSharedName,
   withTypographySlice,
+  withPreviewDevices,
   workspaceFromLegacy,
   workspaceHasStudios,
   emptyWorkspace,
@@ -150,9 +152,8 @@ describe("loadWorkspace — what a browser might already hold", () => {
     expect(project?.typography?.unit).toBe(DEFAULT_TYPE_SCALE_UNIT);
     expect(project?.typography?.specimenText).toBe(DEFAULT_SPECIMEN_TEXT);
     expect(project?.typography?.template).toBe(DEFAULT_PREVIEW_TEMPLATE);
-    expect(project?.typography?.previewDevices).toEqual(
-      defaultPreviewDevices(1.25),
-    );
+    expect(project?.previewDevices).toEqual(defaultPreviewDevices(1.25));
+    expect(project?.typography).not.toHaveProperty("previewDevices");
     expect(project?.typography?.remRootPx).toBe(16);
     expect(
       project?.typography?.previewDocument.find(
@@ -298,6 +299,8 @@ describe("readWorkspaceProject", () => {
       spacing: defaultSpacingScale(),
       radius: defaultRadiusScale(),
       elevation: defaultElevationScale(),
+      previewDevices: defaultPreviewDevices(),
+      layout: defaultLayoutTokens(),
     });
   });
 
@@ -648,6 +651,79 @@ describe("the radius slice", () => {
     expect(next.radius.multiplier).toBe(0);
     expect(next.spacing).toBe(base.spacing);
     expect(next.palette).toBe(base.palette);
+  });
+});
+
+describe("preview devices live on the workspace", () => {
+  it("lifts a list stored on the typography slice", () => {
+    const extra = {
+      id: "desktop-extra-1",
+      kind: "desktop" as const,
+      name: "Desktop 2",
+      widthPx: 1440,
+      ratio: 1.2,
+    };
+    const project = readWorkspaceProject({
+      name: "Lifted",
+      palette: null,
+      typography: {
+        ...legacyTypography(),
+        previewDevices: [...defaultPreviewDevices(1.25), extra],
+      },
+    });
+    expect(project?.previewDevices.map((device) => device.id)).toEqual([
+      "phone",
+      "tablet",
+      "desktop",
+      "desktop-extra-1",
+    ]);
+    expect(project?.previewDevices.at(-1)?.widthPx).toBe(1440);
+    expect(project?.typography).not.toHaveProperty("previewDevices");
+    expect(
+      project?.layout.find((token) => token.id === "inset-container")?.byDevice[
+        "desktop-extra-1"
+      ],
+    ).toBe("10");
+  });
+
+  it("prefers the root list over a leftover typography copy", () => {
+    const project = readWorkspaceProject({
+      name: "Root wins",
+      palette: null,
+      typography: {
+        ...legacyTypography(),
+        previewDevices: [
+          ...defaultPreviewDevices(1.25),
+          {
+            id: "desktop-extra-1",
+            kind: "desktop",
+            name: "Desktop 2",
+            widthPx: 1440,
+            ratio: 1.25,
+          },
+        ],
+      },
+      previewDevices: defaultPreviewDevices(1.25),
+    });
+    expect(project?.previewDevices).toHaveLength(3);
+  });
+
+  it("drops layout cells for a removed extra desktop", () => {
+    const withExtra = withPreviewDevices(emptyWorkspace(), [
+      ...defaultPreviewDevices(),
+      {
+        id: "desktop-extra-1",
+        kind: "desktop",
+        name: "Desktop 2",
+        widthPx: 1440,
+        ratio: 1.25,
+      },
+    ]);
+    expect(withExtra.layout[0]?.byDevice["desktop-extra-1"]).toBeDefined();
+
+    const without = withPreviewDevices(withExtra, defaultPreviewDevices());
+    expect(without.previewDevices).toHaveLength(3);
+    expect(without.layout[0]?.byDevice).not.toHaveProperty("desktop-extra-1");
   });
 });
 

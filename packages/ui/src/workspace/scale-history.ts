@@ -8,10 +8,11 @@ import { emptyWorkspace } from "./workspace";
 /**
  * Undo for the three scale slices.
  *
- * Spacing, radius and elevation are one history because they are one studio:
- * an undo means the last thing I did on this page, not "the last spacing
- * edit, ignoring the roundness I just dragged". The generic stack holds the
- * values; this file only decides when a write is a new step.
+ * Spacing, radius and elevation are one history because they are one
+ * scale system: an undo means the last thing I did on any of those
+ * pages, not "the last spacing edit, ignoring the roundness I just
+ * dragged". The generic stack holds the values; this file only decides
+ * when a write is a new step.
  *
  * See docs/roadmap/scale-studio.md.
  */

@@ -120,6 +120,15 @@ export async function forgetLocalFonts(fontIds: string[]): Promise<void> {
   for (const fontId of fontIds) await forgetFontEntry(fontId);
 }
 
+/** Wipe every stored face. A new workspace does not inherit the last one's files. */
+export async function forgetAllLocalFonts(): Promise<void> {
+  try {
+    await fontFileStore().clear();
+  } catch {
+    /* Storage unavailable. */
+  }
+}
+
 /**
  * Whether a slot's file has been found yet.
  *

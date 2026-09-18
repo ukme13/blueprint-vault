@@ -1,7 +1,7 @@
 import { useState, type DragEvent, type KeyboardEvent } from "react";
 import type { ColorTrack } from "@blueprint/ui";
-import { ColourPicker } from "./ColourPicker";
 import { PaletteShade } from "./PaletteShade";
+import { TrackLabel } from "./TrackLabel";
 import styles from "./palette-workspace.module.css";
 import type { ActiveShade } from "./types";
 
@@ -92,90 +92,16 @@ export function PaletteRow({
       onDragOver={handleDragOver}
       onDrop={handleDrop}
     >
-      <section className={styles.trackLabel}>
-        <button
-          aria-label={`Drag ${palette.name} track to reorder`}
-          className={styles.trackDragHandle}
-          draggable
-          title="Drag to reorder"
-          type="button"
-          onDragEnd={() => setDropPosition(null)}
-          onDragStart={(event) => {
-            event.dataTransfer.effectAllowed = "move";
-            event.dataTransfer.setData("text/plain", palette.id);
-          }}
-          onKeyDown={(event) => {
-            if (event.key === "ArrowUp" && canMoveUp) {
-              event.preventDefault();
-              onTrackMove(palette.id, -1);
-            }
-            if (event.key === "ArrowDown" && canMoveDown) {
-              event.preventDefault();
-              onTrackMove(palette.id, 1);
-            }
-          }}
-        >
-          <svg
-            aria-hidden="true"
-            fill="currentColor"
-            height="16"
-            viewBox="0 0 12 16"
-            width="12"
-          >
-            <circle cx="3" cy="3" r="1.2" />
-            <circle cx="9" cy="3" r="1.2" />
-            <circle cx="3" cy="8" r="1.2" />
-            <circle cx="9" cy="8" r="1.2" />
-            <circle cx="3" cy="13" r="1.2" />
-            <circle cx="9" cy="13" r="1.2" />
-          </svg>
-        </button>
-        <div className={styles.trackCard}>
-          <span className={styles.trackCardColourPicker}>
-            <ColourPicker
-              label={`${palette.name} source colour`}
-              value={palette.seedHex}
-              onChange={(value) => onTrackChange(palette.id, "seedHex", value)}
-            />
-          </span>
-          <input
-            key={palette.name}
-            aria-label={`Rename ${palette.name} colour`}
-            defaultValue={palette.name}
-            maxLength={40}
-            onBlur={(event) => {
-              const nextName = event.currentTarget.value.trim();
-              if (nextName && nextName !== palette.name) {
-                onTrackChange(palette.id, "name", nextName);
-              } else {
-                event.currentTarget.value = palette.name;
-              }
-            }}
-            onKeyDown={handleNameKeyDown}
-          />
-          <button
-            aria-label={`Open ${palette.name} colour details`}
-            className={styles.trackCardOpenButton}
-            title="Colour details"
-            type="button"
-            onClick={() => onTrackOpen(palette.id)}
-          >
-            <svg
-              aria-hidden="true"
-              fill="none"
-              height="14"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-              width="14"
-            >
-              <path d="M9 6l6 6-6 6" />
-            </svg>
-          </button>
-        </div>
-      </section>
+      <TrackLabel
+        canMoveDown={canMoveDown}
+        canMoveUp={canMoveUp}
+        palette={palette}
+        onDragEnd={() => setDropPosition(null)}
+        onNameKeyDown={handleNameKeyDown}
+        onTrackChange={onTrackChange}
+        onTrackMove={onTrackMove}
+        onTrackOpen={onTrackOpen}
+      />
 
       {palette.shades.map((shade) => {
         const isSelected =

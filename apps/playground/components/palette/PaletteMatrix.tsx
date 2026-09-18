@@ -4,8 +4,8 @@ import { PaletteRow } from "./PaletteRow";
 import styles from "./palette-workspace.module.css";
 import type { ActiveShade } from "./types";
 
-/** Track label column — room for rename + seed without eating the ramp. */
-const MATRIX_TRACK_COLUMN_PX = 168;
+/** Track label column — wide enough that "secondary" is not ellipsized. */
+const MATRIX_TRACK_COLUMN_PX = 220;
 /**
  * Narrowest shade column before the matrix scrolls.
  * Sized so Blueprint 20 fits beside a ~350px inspector at 1280.

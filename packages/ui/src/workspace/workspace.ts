@@ -14,8 +14,20 @@ import {
   spacingOrDefault,
 } from "./scale-slices";
 import { defaultElevationScale } from "../scale/elevation";
+import {
+  defaultLayoutTokens,
+  normalizeLayoutTokens,
+  pruneLayoutDevices,
+  type LayoutToken,
+} from "../scale/layout-tokens";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
+import {
+  defaultPreviewDevices,
+  normalizePreviewDevices,
+  type PreviewDevice,
+} from "../typography/preview-devices";
+import { pruneUnlinkedSizes } from "../typography/system";
 import { readTypographyProjectData } from "./typography-project";
 import type { TypographyProjectData, WorkspaceProject } from "./types";
 import type { PaletteProjectData } from "../color/export";
@@ -89,6 +101,50 @@ function isWorkspaceShape(value: unknown): value is Record<string, unknown> {
   );
 }
 
+/**
+ * Frames the typography preview and the layout table share.
+ *
+ * Root wins. A save from before this field moved still carries the list on
+ * the typography slice; lifting here keeps extra desktops instead of
+ * snapping back to the three defaults.
+ */
+export function readWorkspacePreviewDevices(
+  rootValue: unknown,
+  typographyValue: unknown,
+  fallbackRatio: number,
+): PreviewDevice[] {
+  if (Array.isArray(rootValue)) {
+    return normalizePreviewDevices(rootValue, fallbackRatio);
+  }
+  if (
+    typographyValue &&
+    typeof typographyValue === "object" &&
+    !Array.isArray(typographyValue) &&
+    "previewDevices" in typographyValue
+  ) {
+    return normalizePreviewDevices(
+      (typographyValue as { previewDevices: unknown }).previewDevices,
+      fallbackRatio,
+    );
+  }
+  return defaultPreviewDevices(fallbackRatio);
+}
+
+export function readWorkspaceFrames(
+  raw: Record<string, unknown>,
+  typography: TypographyProjectData | null,
+): Pick<WorkspaceProject, "previewDevices" | "layout"> {
+  const previewDevices = readWorkspacePreviewDevices(
+    raw.previewDevices,
+    raw.typography,
+    typography?.system.ratio ?? 1.25,
+  );
+  return {
+    previewDevices,
+    layout: normalizeLayoutTokens(raw.layout, previewDevices),
+  };
+}
+
 /** Read a stored workspace, salvaging each slice on its own. */
 export function readWorkspaceProject(value: unknown): WorkspaceProject | null {
   if (!isWorkspaceShape(value)) return null;
@@ -96,13 +152,14 @@ export function readWorkspaceProject(value: unknown): WorkspaceProject | null {
   /* Slices are read independently: a corrupt palette must not cost someone
      their type scale, and the reverse. */
   const palette = readPaletteProjectData(value.palette);
+  const typography = readTypographyProjectData(value.typography);
   const removedSeedRoles = readRemovedSeedRoles(
     (value as { removedSeedRoles?: unknown }).removedSeedRoles,
   );
   return {
     name: value.name as string,
     palette,
-    typography: readTypographyProjectData(value.typography),
+    typography,
     /* A stored layer is brought up to the current seed set on the way in, the
        same way a version 1 file gained one at all: a role added since the
        save is seeded against this palette and appended — except the ones this
@@ -120,6 +177,7 @@ export function readWorkspaceProject(value: unknown): WorkspaceProject | null {
     spacing: spacingOrDefault(value.spacing),
     radius: radiusOrDefault(value.radius),
     elevation: elevationOrDefault(value.elevation),
+    ...readWorkspaceFrames(value, typography),
   };
 }
 
@@ -160,6 +218,10 @@ export function workspaceFromLegacy(
     spacing: defaultSpacingScale(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
+    ...readWorkspaceFrames(
+      { typography: typographyValue } as Record<string, unknown>,
+      typography,
+    ),
   };
 }
 
@@ -240,6 +302,8 @@ export function emptyWorkspace(
     spacing: defaultSpacingScale(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
+    previewDevices: defaultPreviewDevices(),
+    layout: defaultLayoutTokens(),
   };
 }
 
@@ -364,6 +428,47 @@ export function withTypographySlice(
   const base = current ?? emptyWorkspace();
   const next = name?.trim() || base.name;
   return { ...base, name: next, typography };
+}
+
+/**
+ * Replace the shared preview frames, keeping every studio slice.
+ *
+ * Layout cells for a dropped extra desktop go with it. Type sizes unlinked
+ * onto that frame are pruned the same way the old typography settings did.
+ */
+export function withPreviewDevices(
+  current: WorkspaceProject | null,
+  previewDevices: readonly PreviewDevice[],
+): WorkspaceProject {
+  const base = current ?? emptyWorkspace();
+  const next = normalizePreviewDevices(
+    previewDevices,
+    base.typography?.system.ratio ?? 1.25,
+  );
+  const ids = next.map((device) => device.id);
+  return {
+    ...base,
+    previewDevices: next,
+    layout: normalizeLayoutTokens(pruneLayoutDevices(base.layout, ids), next),
+    typography: base.typography
+      ? {
+          ...base.typography,
+          system: pruneUnlinkedSizes(base.typography.system, ids),
+        }
+      : null,
+  };
+}
+
+/** Replace the layout uses, keeping the frames they point through. */
+export function withLayoutTokens(
+  current: WorkspaceProject | null,
+  layout: readonly LayoutToken[],
+): WorkspaceProject {
+  const base = current ?? emptyWorkspace();
+  return {
+    ...base,
+    layout: normalizeLayoutTokens(layout, base.previewDevices),
+  };
 }
 
 /**

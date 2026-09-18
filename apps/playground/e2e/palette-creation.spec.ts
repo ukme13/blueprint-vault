@@ -42,23 +42,4 @@ test.describe("Creating a palette", () => {
       )
       .toBe(72);
   });
-
-  test("reseeds after starting a new project", async ({ page }) => {
-    await page.getByRole("button", { name: "Create palette" }).click();
-    await expect(
-      page.getByRole("region", { name: "Palette toolbar" }),
-    ).toBeVisible();
-
-    await page.getByRole("button", { name: "New project" }).click();
-    await page.getByRole("button", { name: "Start new project" }).click();
-    await expect(page.getByLabel("Project name")).toBeVisible();
-
-    await page.getByRole("button", { name: "Create palette" }).click();
-    await page.getByRole("button", { name: "Semantics" }).click();
-    await expect(
-      page
-        .getByRole("region", { name: "Semantic tokens" })
-        .locator("tr:has([data-token])"),
-    ).toHaveCount(72);
-  });
 });

@@ -24,6 +24,7 @@ export function defaultProject() {
     name: "My colour system",
     tracks: [
       { id: "primary", name: "primary", seedHex: "#7646ab" },
+      { id: "secondary", name: "secondary", seedHex: "#0f9d8f" },
       { id: "neutral", name: "neutral", seedHex: "#737373" },
       { id: "success", name: "success", seedHex: "#2f7d32" },
       { id: "warning", name: "warning", seedHex: "#b87503" },
@@ -65,14 +66,40 @@ export async function seedProject(
   ).toBeVisible();
 }
 
-/** Theme lives under Settings in the app shell. */
+/** Theme is a button group on the expanded rail, a menu when collapsed. */
 export async function openTheme(page: Page) {
-  const theme = page.getByRole("radiogroup", { name: "Theme" });
-  if (!(await theme.isVisible())) {
-    await page.getByRole("button", { name: "Settings" }).click({ force: true });
+  const radios = page.getByRole("radiogroup", { name: "Theme" });
+  if (await radios.isVisible()) {
+    return radios;
   }
-  await expect(theme).toBeVisible();
-  return theme;
+  const light = page.getByRole("menuitem", { name: "Light" });
+  if (!(await light.isVisible())) {
+    const theme = page.getByRole("button", { name: "Theme" });
+    await expect(theme).toBeVisible();
+    await theme.click();
+  }
+  await expect(light).toBeVisible();
+  return page.getByRole("menu");
+}
+
+/** Home create lives in a dialog, not on the page. */
+export async function createWorkspaceFromHome(page: Page, name?: string) {
+  await page.getByRole("button", { name: "New project" }).click();
+  const dialog = page.getByRole("dialog", { name: "New project" });
+  await expect(dialog).toBeVisible();
+  if (name !== undefined) {
+    await dialog.getByLabel("Project name").fill(name);
+  }
+  await dialog.getByRole("button", { name: "Create workspace" }).click();
+  await expect(page).toHaveURL(/\/colour\/?$/);
+}
+
+/** Workspace frames and layout uses. Same gear on Home and the studio rail. */
+export async function openWorkspaceSettings(page: Page) {
+  await page.getByRole("button", { name: "Workspace settings" }).click();
+  const dialog = page.getByRole("dialog", { name: "Workspace settings" });
+  await expect(dialog).toBeVisible();
+  return dialog;
 }
 
 export const test = base.extend<{ seededPage: Page }>({

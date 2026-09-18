@@ -4,6 +4,7 @@ import {
   ROOT_FONT_SIZE_PX,
   browserWorkspaceStorage,
   loadStoredWorkspace,
+  pruneUnlinkedSizes,
   updateStoredWorkspace,
   withSharedName,
   withTypographySlice,
@@ -14,8 +15,6 @@ import {
   readPreviewTemplate,
   type PreviewTemplateId,
   type PreviewDocument,
-  type PreviewDevice,
-  normalizePreviewDevices,
 } from "@blueprint/ui";
 
 export const DEFAULT_UNIT: TypeScaleUnit = DEFAULT_TYPE_SCALE_UNIT;
@@ -36,13 +35,7 @@ export interface TypographyProject {
   previewDocument: PreviewDocument;
   /** Last specimen or article view. Email and documentation become article. */
   template: PreviewTemplateId;
-  /** Named frames offered in the preview. Phone, tablet and desktop, plus extra desktops. */
-  previewDevices: PreviewDevice[];
 }
-
-/* The workspace name as this tab last saw it. See the note in PaletteStudio:
-   only the tab that changed the name may write it. */
-let adoptedName: string | null = null;
 
 /** The palette half of the workspace, for previewing type on real colours. */
 export function readStoredPalette(): PaletteProjectData | null {
@@ -59,7 +52,6 @@ export function readStoredPalette(): PaletteProjectData | null {
 export function readStoredProject(): TypographyProject | null {
   try {
     const workspace = loadStoredWorkspace(browserWorkspaceStorage());
-    adoptedName = workspace?.name ?? null;
     /* Adopt the workspace name: it is one name, and the other studio may have
        set it. */
     return narrowTemplate(
@@ -80,10 +72,6 @@ function narrowTemplate(
   return {
     ...data,
     template: readPreviewTemplate(data.template),
-    previewDevices: normalizePreviewDevices(
-      data.previewDevices,
-      data.system.ratio,
-    ),
     previewDocument: data.previewDocument,
   };
 }
@@ -97,15 +85,22 @@ function narrowTemplate(
  * new type scale never costs someone their palette.
  */
 export function writeStoredProject(project: TypographyProject | null): void {
-  const next = updateStoredWorkspace(browserWorkspaceStorage(), (current) => {
-    const renamedHere = !!project && project.system.name !== adoptedName;
-    return withSharedName(
-      withTypographySlice(
-        current,
-        project,
-        renamedHere ? project.system.name : undefined,
-      ),
-    );
+  updateStoredWorkspace(browserWorkspaceStorage(), (current) => {
+    /* Name lives on the rail. Passing the in-memory system name would
+       overwrite a rename the shell already wrote. */
+    const next = withSharedName(withTypographySlice(current, project));
+    if (!next.typography) return next;
+    /* Frames live on the workspace. A persist from this studio must not
+       resurrect sizes unlinked onto a desktop Settings just removed. */
+    return {
+      ...next,
+      typography: {
+        ...next.typography,
+        system: pruneUnlinkedSizes(
+          next.typography.system,
+          next.previewDevices.map((device) => device.id),
+        ),
+      },
+    };
   });
-  if (next) adoptedName = next.name;
 }

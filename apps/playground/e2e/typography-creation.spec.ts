@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { createWorkspaceFromHome, expect, test } from "./fixtures";
 
 test.describe("Typography after Home create", () => {
   test("opens the seeded type scale without a second create door", async ({
@@ -8,8 +8,7 @@ test.describe("Typography after Home create", () => {
     await page.evaluate(() => window.localStorage.clear());
     await page.reload();
 
-    await page.getByLabel("Project name").fill("Ferre Type");
-    await page.getByRole("button", { name: "Create workspace" }).click();
+    await createWorkspaceFromHome(page, "Ferre Type");
     await expect(page).toHaveURL(/\/colour\/?$/);
 
     await page.goto("/typography");
