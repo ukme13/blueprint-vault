@@ -109,8 +109,11 @@ export interface WorkspaceProject {
   /**
    * Named layout uses that change with viewport width.
    *
-   * Each row points at a spacing step or radius token per preview device.
-   * Missing on an older save is the seed set, filled against the frames.
+   * Each row points at a spacing step or radius token per preview device,
+   * or a typed px when the cell is unlinked. Missing on an older save is
+   * the seed set, filled against the frames. A stored list is author data:
+   * custom rows keep their order across save and reload, and an empty list
+   * stays empty.
    */
   layout: LayoutToken[];
 }

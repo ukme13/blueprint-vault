@@ -2,6 +2,7 @@
 
 import { Lock, Settings, X } from "lucide-react";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
+import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Layout, LayoutContent, VStack } from "@astryxdesign/core/Layout";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
@@ -15,22 +16,20 @@ import {
   emptyWorkspace,
   isRequiredPreviewDevice,
   removePreviewDevice,
-  setLayoutReference,
   sortPreviewDevicesLargestFirst,
   updatePreviewDevice,
   useWorkspaceStore,
-  withLayoutTokens,
   withPreviewDevices,
   type PreviewDevice,
 } from "@blueprint/ui";
-import { LayoutTokenTable } from "./LayoutTokenTable";
 import styles from "./workspace-settings.module.css";
 
+/** Home TopNav only. Studios open Settings as a SideNav row. */
 export function WorkspaceSettingsButton({ onClick }: { onClick: () => void }) {
   return (
     <IconButton
-      icon={<Settings aria-hidden className="size-4" />}
-      label="Workspace settings"
+      icon={<Icon icon={Settings} size="sm" />}
+      label="Settings"
       size="sm"
       tooltip="Settings"
       variant="ghost"
@@ -65,13 +64,13 @@ export function WorkspaceSettingsDialog({
     <Dialog
       isOpen={isOpen}
       purpose="form"
-      width={840}
+      width={420}
       onOpenChange={onOpenChange}
     >
       <Layout
         header={
           <DialogHeader
-            subtitle="Preview frames are shared. Typography reads their ratios; layout uses point at spacing and radius on each width."
+            subtitle="Phone, tablet and desktop stay. Typography and layout uses read these widths."
             title="Workspace settings"
             onOpenChange={onOpenChange}
           />
@@ -88,25 +87,6 @@ export function WorkspaceSettingsDialog({
                 onWidthChange={(id, widthPx) =>
                   patchDevices((current) =>
                     updatePreviewDevice(current, id, { widthPx }),
-                  )
-                }
-              />
-              <LayoutTokenTable
-                devices={devices}
-                radius={project.radius}
-                spacing={project.spacing}
-                tokens={project.layout}
-                onChange={(tokenId, deviceId, primitiveId) =>
-                  workspace.update((current) =>
-                    withLayoutTokens(
-                      current,
-                      setLayoutReference(
-                        (current ?? emptyWorkspace()).layout,
-                        tokenId,
-                        deviceId,
-                        primitiveId,
-                      ),
-                    ),
                   )
                 }
               />

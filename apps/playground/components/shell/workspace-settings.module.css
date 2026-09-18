@@ -49,19 +49,3 @@
   justify-content: center;
   color: var(--color-fg-muted);
 }
-
-.tokenName {
-  display: block;
-  color: var(--color-fg-primary);
-}
-
-.tokenVar,
-.columnWidth {
-  display: block;
-  color: var(--color-fg-muted);
-  font-size: 11px;
-}
-
-.columnWidth {
-  font-weight: 400;
-}

@@ -74,6 +74,7 @@ const VALUE_FORMATTERS = [
   "formatColour",
   "formatAlpha",
   "formatLength",
+  "formatLayoutRawPx",
   "formatLetterSpacing",
   /* Renders a line height for a text field. It never sees a font, and its
      output goes to an input's value rather than to a file. */

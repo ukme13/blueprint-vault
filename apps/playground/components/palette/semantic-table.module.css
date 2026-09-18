@@ -212,7 +212,7 @@
   align-items: center;
   gap: var(--spacing-2);
   min-width: 0;
-  width: 11rem;
+  width: 100%;
 }
 
 /* A mark, not a badge: it sits beside a name in a dense row, and Astryx's

@@ -1,5 +1,12 @@
 import type { SVGProps } from "react";
-import { Layers, Paintbrush, Radius, Ruler, Type } from "lucide-react";
+import {
+  Layers,
+  Paintbrush,
+  Radius,
+  Ruler,
+  Settings,
+  Type,
+} from "lucide-react";
 
 type MarkProps = SVGProps<SVGSVGElement>;
 
@@ -51,6 +58,11 @@ export function RadiusStudioIcon(props: MarkProps) {
 /** Stacked layers — elevation. */
 export function ElevationStudioIcon(props: MarkProps) {
   return <Layers aria-hidden {...props} />;
+}
+
+/** A cog — preview frames, not a studio. */
+export function SettingsMark(props: MarkProps) {
+  return <Settings aria-hidden {...props} />;
 }
 
 /** A specimen page. */

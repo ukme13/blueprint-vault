@@ -40,10 +40,11 @@ These are product decisions, not open questions:
 5. **Blueprint** (mark / wordmark) navigates to Home.
 6. **Theme** is Light / Dark / System on the expanded studio rail, and a
    sun/moon menu when the rail is collapsed. Home has a TopNav (mark + name)
-   and no tool rail. **Settings** (preview frames and layout uses) is a gear
-   beside Theme on studios and on the Home TopNav. No profile avatar and no
-   Logout until there is real auth — storage is still this browser’s
-   `localStorage`.
+   and no tool rail. **Settings** is preview frames only (a gear beside
+   Theme on studios and on the Home TopNav). Layout uses live on Spacing
+   and Radius as a Uses section, like Semantics on Colour. No profile
+   avatar and no Logout until there is real auth — storage is still this
+   browser’s `localStorage`.
 7. **Do not bring back Colour Overview** as a vanity dashboard. Opening Colour
    still lands on the shade bench. A later optional **System** rail item for
    handover readiness is allowed only if it argues export / a11y / slices, not
@@ -62,7 +63,7 @@ These are product decisions, not open questions:
   spacing. Studios render inside `WorkspaceShell` with the left rail.
   Studio section tabs stay in each studio topbar. Home create is a
   dialog. The workspace name sits under Blueprint on the rail. Preview
-  frames and layout uses live in Settings.
+  frames live in Settings. Layout uses live on Spacing / Radius → Uses.
 - Persistence: one workspace key; studios write their own slices via
   `updateStoredWorkspace`. Home must create through that path, not invent a
   second document type.
@@ -112,7 +113,7 @@ the shell. Section tooling stays local. `WorkspaceNav` is gone.
 
 - Multiple named workspaces in this browser (switcher on Home).
 - Settings grows (density, reduced motion preference if not OS-driven).
-  Preview frames and layout uses already live there.
+  Preview frames already live there. Layout uses are Spacing / Radius → Uses.
 - Auth / profile / logout — only with a backend.
 - Optional System page for handover readiness.
 - Export clarify: Handover primary (separate from this plan; see colour-studio

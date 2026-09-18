@@ -94,9 +94,9 @@ export async function createWorkspaceFromHome(page: Page, name?: string) {
   await expect(page).toHaveURL(/\/colour\/?$/);
 }
 
-/** Workspace frames and layout uses. Same gear on Home and the studio rail. */
+/** Preview frames. Same control on Home and the studio rail. */
 export async function openWorkspaceSettings(page: Page) {
-  await page.getByRole("button", { name: "Workspace settings" }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Workspace settings" });
   await expect(dialog).toBeVisible();
   return dialog;

@@ -492,6 +492,28 @@ describe("a version 5 file still opens, and a version 6 file carries alpha", () 
     expect(after.typography).not.toHaveProperty("previewDevices");
   });
 
+  it("keeps a custom layout use through a file round-trip", () => {
+    const custom = {
+      id: "inset-hero",
+      name: "Hero inset",
+      description: "Hero padding.",
+      kind: "spacing" as const,
+      byDevice: { phone: "8", tablet: "10", desktop: "16" },
+    };
+    const after = parseBlueprintWorkspace(
+      formatBlueprintWorkspace(
+        workspace({ layout: [...defaultLayoutTokens(), custom] }),
+      ),
+    );
+    expect(after.layout.map((token) => token.id)).toEqual([
+      "inset-container",
+      "gap-section",
+      "radius-surface",
+      "inset-hero",
+    ]);
+    expect(after.layout.at(-1)?.byDevice.desktop).toBe("16");
+  });
+
   it("keeps an out-of-range alpha rather than dropping the token", () => {
     /* Reading is not the place to correct it. The value stays as stored, is
        clamped where it resolves, and is reported there — so the studio can say
