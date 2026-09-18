@@ -135,9 +135,7 @@ test.describe("Workspace slices", () => {
     );
     await page.reload();
 
-    await expect(
-      page.getByRole("heading", { name: /Start|Create|New/ }).first(),
-    ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
   });
 });
 
