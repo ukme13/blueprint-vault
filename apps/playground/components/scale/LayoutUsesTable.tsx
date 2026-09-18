@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, type KeyboardEvent, type ReactNode } from "react";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -62,13 +62,17 @@ export function LayoutUsesTable({
   spacing,
   tokens,
   onChange,
+  onRedo,
+  onUndo,
 }: {
   devices: readonly PreviewDevice[];
   kind: LayoutTokenKind;
   radius: RadiusScale;
   spacing: SpacingScale;
   tokens: readonly LayoutToken[];
-  onChange: (next: LayoutToken[]) => void;
+  onChange: (next: LayoutToken[], editKey?: string) => void;
+  onRedo: () => void;
+  onUndo: () => void;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const columns = sortPreviewDevicesLargestFirst(devices);
@@ -109,8 +113,30 @@ export function LayoutUsesTable({
     if (added) setEditingId(added.id);
   };
 
+  const onUsesKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    /* Same as Semantics: Ctrl+Z is the document, not the input. Name fields
+       stay native because they hold an uncommitted draft until blur. */
+    const meta = event.ctrlKey || event.metaKey;
+    if (!meta || event.key.toLowerCase() !== "z") return;
+    const target = event.target as HTMLElement;
+    if (
+      target instanceof HTMLInputElement &&
+      target.getAttribute("aria-label")?.endsWith(" name")
+    ) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    if (event.shiftKey) onRedo();
+    else onUndo();
+  };
+
   return (
-    <section className={styles.uses} aria-label={label}>
+    <section
+      className={styles.uses}
+      aria-label={label}
+      onKeyDown={onUsesKeyDown}
+    >
       <header className={styles.usesToolbar}>
         <div>
           <h2>Uses</h2>
@@ -175,6 +201,7 @@ export function LayoutUsesTable({
                     onReferenceChange={(deviceId, cell) =>
                       onChange(
                         setLayoutReference(tokens, token.id, deviceId, cell),
+                        `layout:cell:${token.id}:${deviceId}`,
                       )
                     }
                     onRemove={() => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { defaultElevationScale } from "../scale/elevation";
 import { defaultLayoutTokens } from "../scale/layout-tokens";
-import { setLayoutReference } from "../scale/layout-edit";
+import { removeLayoutToken, setLayoutReference } from "../scale/layout-edit";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import {
@@ -121,5 +121,49 @@ describe("createScaleHistory", () => {
     expect(history.present.layout[1]?.byDevice.phone).toBe("8");
     expect(history.undo()?.layout[1]?.byDevice.phone).toBe("6");
     expect(history.present.spacing.steps).toEqual(defaultSpacingScale().steps);
+  });
+
+  it("coalesces consecutive writes to the same layout cell", () => {
+    const history = createScaleHistory(snapshot());
+    const key = "layout:cell:inset-container:phone";
+    history.commit(
+      {
+        layout: setLayoutReference(
+          history.present.layout,
+          "inset-container",
+          "phone",
+          "8",
+        ),
+      },
+      { key },
+    );
+    history.commit(
+      {
+        layout: setLayoutReference(
+          history.present.layout,
+          "inset-container",
+          "phone",
+          "20px",
+        ),
+      },
+      { key },
+    );
+
+    expect(history.size).toBe(1);
+    expect(history.undo()?.layout[0]?.byDevice.phone).toBe("4");
+  });
+
+  it("puts a deleted use back in its old slot", () => {
+    const history = createScaleHistory(snapshot());
+    const before = history.present.layout.map((token) => token.id);
+    history.commit({
+      layout: removeLayoutToken(history.present.layout, "gap-section"),
+    });
+
+    expect(history.present.layout.map((token) => token.id)).toEqual([
+      "inset-container",
+      "radius-surface",
+    ]);
+    expect(history.undo()?.layout.map((token) => token.id)).toEqual(before);
   });
 });

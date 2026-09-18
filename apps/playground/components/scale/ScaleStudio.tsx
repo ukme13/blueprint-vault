@@ -203,7 +203,11 @@ export function ScaleStudio() {
             radius={radius}
             spacing={spacing}
             tokens={layout}
-            onChange={(next) => history.write({ layout: next })}
+            onChange={(next, editKey) =>
+              history.write({ layout: next }, { editKey })
+            }
+            onRedo={history.redo}
+            onUndo={history.undo}
           />
         ) : (
           <>
