@@ -88,11 +88,9 @@ test.describe("Workspace settings", () => {
       page.getByRole("columnheader", { name: /Desktop 2/ }),
     ).toBeVisible();
     const uses = page.getByRole("region", { name: "Spacing uses" });
-    await expect(
-      uses.getByText("Container inset", { exact: true }),
-    ).toBeVisible();
-    await expect(uses.getByText("Surface radius", { exact: true })).toHaveCount(
-      0,
+    await expect(uses.getByLabel("inset-container name")).toHaveValue(
+      "Container inset",
     );
+    await expect(uses.getByLabel("radius-surface name")).toHaveCount(0);
   });
 });
