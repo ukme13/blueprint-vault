@@ -29,8 +29,6 @@ import {
   fontFamilyValue,
   formatLength,
   formatLetterSpacing,
-  defaultSystem,
-  splitFontFamily,
   canAddRole,
   isRoleUnlinkedOnDevice,
   letterSpacingEmSizePx,
@@ -47,13 +45,14 @@ import {
   fallbackFileMoves,
   isLocalSlot,
   localFontKey,
-  seedPreviewDocument,
   defaultPreviewDevices,
   emptyWorkspace,
   updatePreviewDevice,
   resolvePreviewDevice,
   useWorkspaceStore,
   withPreviewDevices,
+  withSeededTypographySlice,
+  workspaceHasStudios,
   type HybridTokenizedValue,
   type LineHeightConfig,
   type ShadeRef,
@@ -72,7 +71,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { Badge } from "@astryxdesign/core/Badge";
-import { TypographyCreation } from "./TypographyCreation";
+import { StudioSliceEmpty } from "../shell/StudioSliceEmpty";
 import { TypographyExportDialog } from "./TypographyExportDialog";
 import { FontStackEditor } from "./FontStackEditor";
 import { RoleGroupEditor } from "./RoleGroupEditor";
@@ -81,10 +80,6 @@ import { PreviewDeviceBar } from "./PreviewDeviceBar";
 import { PreviewDeviceSettings } from "./PreviewDeviceSettings";
 import { SpecimenTextField } from "./SpecimenTextField";
 import {
-  DEFAULT_SPECIMEN_TEXT,
-  DEFAULT_TEMPLATE,
-  DEFAULT_UNIT,
-  DEFAULT_REM_ROOT_PX,
   readStoredPalette,
   readStoredProject,
   writeStoredProject,
@@ -146,7 +141,7 @@ export function TypographyStudio() {
   }, []);
 
   useEffect(() => {
-    if (!hasLoadedProject) return;
+    if (!hasLoadedProject || !project) return;
 
     writeStoredProject(project);
   }, [hasLoadedProject, project]);
@@ -362,25 +357,13 @@ export function TypographyStudio() {
 
   if (!project || !system || !activePreviewDevice) {
     return (
-      <TypographyCreation
-        onCreate={({ name, fontFamily, baseFontSizePx, ratio, stepCount }) => {
-          const system = defaultSystem(
-            name,
-            splitFontFamily(fontFamily),
-            baseFontSizePx,
-            ratio,
-            stepCount,
-          );
-          setProject({
-            /* A new scale starts with six headings and one body. Neither group
-               is special afterwards. */
-            system,
-            unit: DEFAULT_UNIT,
-            remRootPx: DEFAULT_REM_ROOT_PX,
-            specimenText: DEFAULT_SPECIMEN_TEXT,
-            previewDocument: seedPreviewDocument(system),
-            template: DEFAULT_TEMPLATE,
-          });
+      <StudioSliceEmpty
+        slice="Typography"
+        onSeed={() => {
+          const current = workspace.project;
+          if (!current || !workspaceHasStudios(current)) return;
+          workspace.save(withSeededTypographySlice(current));
+          setProject(readStoredProject());
         }}
       />
     );

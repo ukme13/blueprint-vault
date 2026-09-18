@@ -17,22 +17,23 @@ import {
   DEFAULT_TYPE_SCALE_UNIT,
 } from "./typography-project";
 import type { PaletteProjectData } from "../color/export";
-import type { WorkspaceProject } from "./types";
+import { withPaletteSlice, withTypographySlice } from "./workspace";
+import type { TypographyProjectData, WorkspaceProject } from "./types";
 
 /**
  * A whole workspace, seeded — every slice filled, nothing null.
  *
  * `emptyWorkspace` is the other one, and the difference matters: it leaves
  * both studios' slices null because a workspace nobody has opened must land on
- * the creation screen rather than on somebody else's defaults. This one is for
- * the callers that need a complete system without a person: the docs app's
+ * Home rather than on somebody else's defaults. This one is for the callers
+ * that need a complete system without a person: Home create, the docs app's
  * reference workspace, and any test or fixture that would otherwise assemble
  * six defaults by hand and drift from the studio while doing it.
  *
- * The values are the ones the studio's own creation screens start from. They
- * live here rather than in the app for the reason every rule in this package
- * does — a second copy of the default track list is a second thing to keep in
- * step — and because a script with no browser has to be able to build one.
+ * The values are the ones Home create starts from. They live here rather than
+ * in the app for the reason every rule in this package does — a second copy of
+ * the default track list is a second thing to keep in step — and because a
+ * script with no browser has to be able to build one.
  */
 
 /**
@@ -88,7 +89,7 @@ export function seedPaletteProject(
   };
 }
 
-/** What the typography creation screen offers before anybody changes it. */
+/** What Home create offers for type before anybody changes it. */
 const SEED_TYPOGRAPHY = {
   fontFamily: "Geist Sans, ui-sans-serif, system-ui",
   baseFontSizePx: 16,
@@ -96,6 +97,25 @@ const SEED_TYPOGRAPHY = {
   ratio: 1.25,
   stepCount: 9,
 };
+
+/** The typography slice a new project starts with. */
+export function seedTypographyProject(name: string): TypographyProjectData {
+  const system = defaultSystem(
+    name,
+    splitFontFamily(SEED_TYPOGRAPHY.fontFamily),
+    SEED_TYPOGRAPHY.baseFontSizePx,
+    SEED_TYPOGRAPHY.ratio,
+    SEED_TYPOGRAPHY.stepCount,
+  );
+  return {
+    system,
+    unit: DEFAULT_TYPE_SCALE_UNIT,
+    specimenText: DEFAULT_SPECIMEN_TEXT,
+    previewDocument: seedPreviewDocument(system),
+    template: DEFAULT_PREVIEW_TEMPLATE,
+    remRootPx: ROOT_FONT_SIZE_PX,
+  };
+}
 
 /**
  * Every slice, filled from the studio's own defaults.
@@ -106,13 +126,6 @@ const SEED_TYPOGRAPHY = {
  */
 export function seedWorkspaceProject(name: string): WorkspaceProject {
   const palette = seedPaletteProject();
-  const system = defaultSystem(
-    name,
-    splitFontFamily(SEED_TYPOGRAPHY.fontFamily),
-    SEED_TYPOGRAPHY.baseFontSizePx,
-    SEED_TYPOGRAPHY.ratio,
-    SEED_TYPOGRAPHY.stepCount,
-  );
 
   return {
     name,
@@ -125,13 +138,31 @@ export function seedWorkspaceProject(name: string): WorkspaceProject {
     elevation: defaultElevationScale(),
     previewDevices: defaultPreviewDevices(SEED_TYPOGRAPHY.ratio),
     layout: defaultLayoutTokens(),
-    typography: {
-      system,
-      unit: DEFAULT_TYPE_SCALE_UNIT,
-      specimenText: DEFAULT_SPECIMEN_TEXT,
-      previewDocument: seedPreviewDocument(system),
-      template: DEFAULT_PREVIEW_TEMPLATE,
-      remRootPx: ROOT_FONT_SIZE_PX,
-    },
+    typography: seedTypographyProject(name),
   };
+}
+
+/**
+ * Open Colour in an existing workspace that never got a palette.
+ *
+ * Home create fills every slice. This is only for a leftover half-document,
+ * and it must not replace the type scale that is already there.
+ */
+export function withSeededPaletteSlice(
+  current: WorkspaceProject,
+): WorkspaceProject {
+  if (current.palette) return current;
+  return withPaletteSlice(current, seedPaletteProject());
+}
+
+/**
+ * Open Typography in an existing workspace that never got a type scale.
+ *
+ * Same leftover case as `withSeededPaletteSlice`, the other way around.
+ */
+export function withSeededTypographySlice(
+  current: WorkspaceProject,
+): WorkspaceProject {
+  if (current.typography) return current;
+  return withTypographySlice(current, seedTypographyProject(current.name));
 }

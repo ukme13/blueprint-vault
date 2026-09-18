@@ -1,24 +1,43 @@
-import { expect, test, WORKSPACE_STORAGE_KEY } from "./fixtures";
+import { expect, test } from "./fixtures";
+import { seedTypographyProject } from "./typography-fixtures";
 
 /**
- * The colour studio still has a create door when its slice is empty.
- * Home is the intended path; this covers the leftover door until Stage 3.
+ * Home is the only create path. Colour without a workspace returns there.
+ * A leftover type-only document can seed this slice, not start a second project.
  */
 
-test.describe("Creating a palette", () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto("/colour");
+test.describe("Colour without a workspace", () => {
+  test("returns Home instead of opening a create door", async ({ page }) => {
+    await page.goto("/");
     await page.evaluate(() => window.localStorage.clear());
-    await page.reload();
-    await expect(page.getByLabel("Project name")).toBeVisible();
-  });
+    await page.goto("/colour");
 
-  test("seeds the seventy-two roles and opens on Shade generator", async ({
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Create palette" }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "New project" }),
+    ).toBeVisible();
+  });
+});
+
+test.describe("A leftover type-only workspace", () => {
+  test("seeds Colour from Blueprint without a second create form", async ({
     page,
   }) => {
-    await page.getByLabel("Project name").fill("First system");
-    await page.getByRole("button", { name: "Create palette" }).click();
+    await seedTypographyProject(page);
+    await page.goto("/colour");
 
+    await expect(
+      page.getByRole("heading", { name: "This slice isn't open yet" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Create palette" }),
+    ).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Seed from Blueprint" }).click();
     await expect(
       page.getByRole("region", { name: "Palette toolbar" }),
     ).toBeVisible();
@@ -27,19 +46,10 @@ test.describe("Creating a palette", () => {
     ).toBeVisible();
 
     await page.getByRole("button", { name: "Semantics" }).click();
-    const editor = page.getByRole("region", { name: "Semantic tokens" });
-    await expect(editor).toBeVisible();
-    await expect(editor.locator("tr:has([data-token])")).toHaveCount(72);
-
-    await expect
-      .poll(async () =>
-        page.evaluate((key) => {
-          const raw = window.localStorage.getItem(key);
-          if (!raw) return 0;
-          const stored = JSON.parse(raw) as { semantics?: unknown[] };
-          return Array.isArray(stored.semantics) ? stored.semantics.length : 0;
-        }, WORKSPACE_STORAGE_KEY),
-      )
-      .toBe(72);
+    await expect(
+      page
+        .getByRole("region", { name: "Semantic tokens" })
+        .locator("tr:has([data-token])"),
+    ).toHaveCount(72);
   });
 });

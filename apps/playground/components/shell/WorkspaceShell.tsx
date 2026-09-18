@@ -18,6 +18,8 @@ import {
 import {
   previewShortcutDestination,
   previewShortcutReturnPath,
+  useWorkspaceStore,
+  workspaceHasStudios,
 } from "@blueprint/ui";
 import { ThemeControl } from "../ThemeControl";
 import {
@@ -71,6 +73,7 @@ function shouldIgnorePreviewShortcut(target: EventTarget | null): boolean {
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const workspace = useWorkspaceStore();
   const isHome = pathname === "/";
   const [collapsed, setCollapsed] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -114,6 +117,12 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isHome, pathname, router]);
+
+  useEffect(() => {
+    if (isHome || !workspace.hasLoaded) return;
+    if (workspaceHasStudios(workspace.project)) return;
+    router.replace("/");
+  }, [isHome, router, workspace.hasLoaded, workspace.project]);
 
   return (
     <LinkProvider component={Link}>

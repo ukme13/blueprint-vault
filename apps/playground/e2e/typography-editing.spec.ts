@@ -5,7 +5,7 @@ import {
   showInspectorPanel,
   test,
 } from "./typography-fixtures";
-import { openWorkspaceSettings } from "./fixtures";
+import { createWorkspaceFromHome, openWorkspaceSettings } from "./fixtures";
 import type { Locator } from "@playwright/test";
 
 /**
@@ -156,7 +156,7 @@ test.describe("Typography scale editing", () => {
     await workspaces.getByRole("link", { name: "Colour" }).click();
     await expect(page).toHaveURL(/\/colour\/?$/);
     await expect(
-      page.getByRole("button", { name: "Create palette" }),
+      page.getByRole("heading", { name: "This slice isn't open yet" }),
     ).toBeVisible();
 
     await page
@@ -884,10 +884,16 @@ test.describe("Typography scale editing", () => {
 
   test("a new scale ships a Display group and two fonts", async ({ page }) => {
     /* Display is the expressive brand face used big; headings and body use the
-       readable one, because a blog still needs a legible h1. */
+       readable one, because a blog still needs a legible h1. Home create is
+       the only door; the leftover type form is gone. */
+    await page.goto("/");
+    await page.evaluate(() => window.localStorage.clear());
+    await page.reload();
+    await createWorkspaceFromHome(page, "Pairing");
     await page.goto("/typography");
-    await page.getByLabel("Project name").fill("Pairing");
-    await page.getByRole("button", { name: "Create type scale" }).click();
+    await expect(
+      page.getByRole("region", { name: "Generated type steps" }),
+    ).toBeVisible();
 
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await showInspectorPanel(page, "Groups");
@@ -895,7 +901,7 @@ test.describe("Typography scale editing", () => {
       settings.getByRole("group", { name: "Display" }),
     ).toBeVisible();
     await expect(
-      settings.getByLabel("display-1 font", { exact: true }),
+      settings.getByLabel("display font", { exact: true }),
     ).toContainText("Display");
     await expect(settings.getByLabel("h1 font", { exact: true })).toContainText(
       "Main",
