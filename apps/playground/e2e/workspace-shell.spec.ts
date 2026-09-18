@@ -20,6 +20,9 @@ test.describe("Workspace shell", () => {
     await expect(
       page.getByRole("navigation", { name: "Blueprint workspaces" }),
     ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Settings", exact: true }),
+    ).toHaveCount(0);
 
     await createWorkspaceFromHome(page);
     await expect(page).toHaveURL(/\/colour\/?$/);
@@ -78,6 +81,9 @@ test.describe("Workspace shell", () => {
     ).toBeVisible();
     await expect(
       page.getByRole("navigation", { name: "Blueprint workspaces" }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Settings", exact: true }),
     ).toHaveCount(0);
     await expect(
       page.getByRole("heading", { name: "Untitled workspace" }),
