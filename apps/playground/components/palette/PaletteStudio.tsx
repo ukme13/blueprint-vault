@@ -27,7 +27,6 @@ import {
   emptyWorkspace,
   loadStoredWorkspace,
   saveStoredWorkspace,
-  semanticsForPalette,
   updateStoredWorkspace,
   withPaletteSlice,
   useWorkspaceStore,
