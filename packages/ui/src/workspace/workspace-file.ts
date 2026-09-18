@@ -18,11 +18,11 @@ import {
   spacingOrDefault,
 } from "./scale-slices";
 import { readTypographyProjectData } from "./typography-project";
-import { DEFAULT_WORKSPACE_NAME } from "./workspace";
+import { DEFAULT_WORKSPACE_NAME, readWorkspaceFrames } from "./workspace";
 import type { WorkspaceProject } from "./types";
 import { normalizeButtonSchemes } from "../button-tones";
 
-export const BLUEPRINT_WORKSPACE_FILE_VERSION = 7;
+export const BLUEPRINT_WORKSPACE_FILE_VERSION = 8;
 
 /**
  * Versions this build can open.
@@ -52,9 +52,16 @@ export const BLUEPRINT_WORKSPACE_FILE_VERSION = 7;
  * the role missing from the layer and puts it back — undoing a decision
  * somebody made, in the one direction the reader was built to be helpful in.
  * An alpha silently lost changes a colour; this silently reverses an edit.
+ *
+ * Eight is preview frames and layout uses on the workspace root. A file
+ * written at 7 still has devices on the typography slice, and this reader
+ * lifts them, so the extra desktops survive. A build that only knows 7,
+ * handed a v8 file, never sees the root list: typography falls back to the
+ * three defaults, layout tokens disappear, and the person's breakpoints are
+ * gone without a warning. Refusing the file is the honest failure.
  */
 export const SUPPORTED_WORKSPACE_FILE_VERSIONS: readonly number[] = [
-  1, 2, 3, 4, 5, 6, 7,
+  1, 2, 3, 4, 5, 6, 7, 8,
 ];
 
 export interface BlueprintWorkspaceFile {
@@ -104,6 +111,7 @@ function paletteOnlyWorkspace(
     spacing: spacingOrDefault(undefined),
     radius: radiusOrDefault(undefined),
     elevation: elevationOrDefault(undefined),
+    ...readWorkspaceFrames({}, null),
   };
 }
 
@@ -213,5 +221,6 @@ function readWorkspaceFileProject(value: unknown): WorkspaceProject {
     spacing: spacingOrDefault(raw.spacing),
     radius: radiusOrDefault(raw.radius),
     elevation: elevationOrDefault(raw.elevation),
+    ...readWorkspaceFrames(raw, typography),
   };
 }

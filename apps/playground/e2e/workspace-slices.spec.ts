@@ -55,49 +55,23 @@ test.describe("Workspace slices", () => {
     expect(workspace.typography).not.toBeNull();
   });
 
-  test("starting a new type scale leaves the palette alone", async ({
-    page,
-  }) => {
-    await seedBoth(page);
-    await page.goto("/typography");
-    await expect(
-      page.getByRole("region", { name: "Type scale settings" }),
-    ).toBeVisible();
-
-    await page.getByRole("button", { name: "New project" }).click();
-    await page.getByRole("button", { name: "Start new project" }).click();
-
-    const workspace = await readWorkspace(page);
-    expect(workspace.typography).toBeNull();
-    expect(workspace.palette).not.toBeNull();
-
-    // And the palette studio still opens the palette rather than onboarding.
-    await page.goto("/colour");
-    await expect(page.getByLabel("Project name")).toHaveValue(
-      "My colour system",
-    );
-  });
-
-  test("starting a new palette leaves the type scale alone", async ({
-    page,
-  }) => {
+  test("studios do not start a new project of their own", async ({ page }) => {
     await seedBoth(page);
     await page.goto("/colour");
     await expect(
       page.getByRole("region", { name: "Palette toolbar" }),
     ).toBeVisible();
-
-    await page.getByRole("button", { name: "New project" }).click();
-    await page.getByRole("button", { name: "Start new project" }).click();
-
-    const workspace = await readWorkspace(page);
-    expect(workspace.palette).toBeNull();
-    expect(workspace.typography).not.toBeNull();
+    await expect(page.getByRole("button", { name: "New project" })).toHaveCount(
+      0,
+    );
 
     await page.goto("/typography");
     await expect(
       page.getByRole("region", { name: "Type scale settings" }),
     ).toBeVisible();
+    await expect(page.getByRole("button", { name: "New project" })).toHaveCount(
+      0,
+    );
   });
 
   test("retires the legacy keys once the workspace has taken over", async ({

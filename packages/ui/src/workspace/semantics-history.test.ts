@@ -15,9 +15,11 @@ import {
   parseBlueprintWorkspace,
 } from "./workspace-file";
 import { defaultElevationScale } from "../scale/elevation";
+import { defaultLayoutTokens } from "../scale/layout-tokens";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { normalizeButtonSchemes } from "../button-tones";
+import { defaultPreviewDevices } from "../typography/preview-devices";
 import type { ColorTrack } from "../color/types";
 import type { WorkspaceProject } from "./types";
 
@@ -58,6 +60,8 @@ function workspace(over: Partial<WorkspaceProject> = {}): WorkspaceProject {
     spacing: defaultSpacingScale(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
+    previewDevices: defaultPreviewDevices(),
+    layout: defaultLayoutTokens(),
     ...over,
   };
 }

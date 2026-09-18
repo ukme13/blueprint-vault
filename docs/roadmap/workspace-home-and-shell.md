@@ -34,12 +34,16 @@ These are product decisions, not open questions:
    instrument. Edit type and scale later from the rail.
 3. **Import** is secondary on Home (“Open a `.blueprint.json`”), not a create
    method.
-4. **Left rail** holds Colour / Typography / Scale / Preview. Collapsible to
-   icons only. Studio-specific tools (Add colour, WCAG, Vision, Reset) stay
-   inside the studio, not in the rail.
+4. **Left rail** holds Colour / Typography / Spacing / Radius / Elevation /
+   Preview. Collapsible to icons only. Studio-specific tools stay inside the
+   studio, not in the rail. `/scale` redirects to Spacing.
 5. **Blueprint** (mark / wordmark) navigates to Home.
-6. **Theme** lives under a Settings control. No profile avatar and no Logout
-   until there is real auth — storage is still this browser’s `localStorage`.
+6. **Theme** is Light / Dark / System on the expanded studio rail, and a
+   sun/moon menu when the rail is collapsed. Home has a TopNav (mark + name)
+   and no tool rail. **Settings** (preview frames and layout uses) is a gear
+   beside Theme on studios and on the Home TopNav. No profile avatar and no
+   Logout until there is real auth — storage is still this browser’s
+   `localStorage`.
 7. **Do not bring back Colour Overview** as a vanity dashboard. Opening Colour
    still lands on the shade bench. A later optional **System** rail item for
    handover readiness is allowed only if it argues export / a11y / slices, not
@@ -53,9 +57,12 @@ These are product decisions, not open questions:
 - Colour create now seeds semantics same-session and opens Shade generator
   (Impeccable onboard). Creation UI was distilled to a short form; this plan
   moves that responsibility to Home and retires per-studio doors.
-- Routes: `/` Home, `/colour`, `/typography`, `/scale`, `/preview`. One
-  `WorkspaceShell` (Astryx AppShell + SideNav). Studio section tabs stay in
-  each studio topbar.
+- Routes: `/` Home (project list, no rail), `/colour`, `/typography`,
+  `/spacing`, `/radius`, `/elevation`, `/preview`. `/scale` redirects to
+  spacing. Studios render inside `WorkspaceShell` with the left rail.
+  Studio section tabs stay in each studio topbar. Home create is a
+  dialog. The workspace name sits under Blueprint on the rail. Preview
+  frames and layout uses live in Settings.
 - Persistence: one workspace key; studios write their own slices via
   `updateStoredWorkspace`. Home must create through that path, not invent a
   second document type.
@@ -87,9 +94,11 @@ browser workspace.
 
 ### Stage 2 — App shell ✅ done
 
-Shared shell: Blueprint → Home, collapsible left rail (Colour / Typography /
-Scale / Preview), Settings (Theme). Studio pages render inside the shell.
-Section tooling stays local. `WorkspaceNav` is gone.
+Shared shell: Blueprint → Home, collapsible left rail on studios (Colour /
+Typography / Spacing / Radius / Elevation / Preview), theme as a segmented
+control on the expanded rail and a sun/moon menu when collapsed, project
+name under Blueprint. Home has no tool rail. Studio pages render inside
+the shell. Section tooling stays local. `WorkspaceNav` is gone.
 
 ### Stage 3 — Retire studio create doors
 
@@ -103,6 +112,7 @@ Section tooling stays local. `WorkspaceNav` is gone.
 
 - Multiple named workspaces in this browser (switcher on Home).
 - Settings grows (density, reduced motion preference if not OS-driven).
+  Preview frames and layout uses already live there.
 - Auth / profile / logout — only with a backend.
 - Optional System page for handover readiness.
 - Export clarify: Handover primary (separate from this plan; see colour-studio
@@ -117,7 +127,9 @@ One coherent option:
 | `/`           | Home (create / import / open current)             |
 | `/colour`     | Colour studio (shade / semantics / accessibility) |
 | `/typography` | Typography studio                                 |
-| `/scale`      | Scale studio                                      |
+| `/spacing`    | Spacing scale                                     |
+| `/radius`     | Radius scale                                      |
+| `/elevation`  | Elevation scale                                   |
 | `/preview`    | Preview                                           |
 
 Redirect legacy `/` colour deep-links if the app today treats `/` as Colour.
@@ -135,7 +147,7 @@ Exact paths are an implementation choice; the table is the product intent.
 
 - An author can create a named workspace with one preset and be editing colour
   shades without visiting typography create.
-- Colour, Typography, Scale, and Preview are reachable from one collapsible
-  rail; Blueprint returns to Home.
+- Colour, Typography, Spacing, Radius, Elevation, and Preview are reachable
+  from one collapsible rail; Blueprint returns to Home.
 - Theme is available without a fake logged-in profile.
 - Studio create doors no longer fork the workspace into half-built documents.

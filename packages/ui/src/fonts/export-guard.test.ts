@@ -7,6 +7,7 @@ import {
 import { formatSemanticClipboard } from "../color/selection-ops";
 import { seedSemanticTokens } from "../color/semantic";
 import { defaultElevationScale } from "../scale/elevation";
+import { defaultLayoutTokens } from "../scale/layout-tokens";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { normalizeButtonSchemes } from "../button-tones";
@@ -47,6 +48,7 @@ const DOCUMENT_FORMATTERS = [
   "formatDesignSystemTailwind",
   "formatAccessibilityReportMarkdown",
   "formatBlueprintWorkspace",
+  "formatLayoutCss",
   "formatPaletteCss",
   "formatPaletteCssExport",
   "formatPaletteDesignTokens",
@@ -224,13 +226,14 @@ describe("no export carries font data", () => {
       spacing: defaultSpacingScale(),
       radius: defaultRadiusScale(),
       elevation: defaultElevationScale(),
+      previewDevices: defaultPreviewDevices(1.25),
+      layout: defaultLayoutTokens(),
       typography: {
         system: systemWithLocalFont(),
         unit: "rem",
         specimenText: "",
         previewDocument: [],
         template: "specimen",
-        previewDevices: defaultPreviewDevices(1.25),
         remRootPx: 16,
       },
     });

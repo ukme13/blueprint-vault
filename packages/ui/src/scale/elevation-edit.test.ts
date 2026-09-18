@@ -8,6 +8,8 @@ import {
   elevationPreviewSurfaces,
   setElevationColour,
   setLayerOpacity,
+  setLevelModeOpacities,
+  snapElevationOpacity,
 } from "./elevation-edit";
 
 function palette(): ColorTrack[] {
@@ -43,6 +45,35 @@ describe("setLayerOpacity", () => {
   it("clamps rather than storing an alpha a shadow cannot use", () => {
     const next = setLayerOpacity(defaultElevationScale(), "low", 0, "light", 4);
     expect(next.levels[0]!.layers[0]!.opacity.light).toBe(1);
+  });
+});
+
+describe("setLevelModeOpacities", () => {
+  it("writes contact and cast of one mode and leaves the other", () => {
+    const start = defaultElevationScale();
+    const next = setLevelModeOpacities(start, "high", "dark", 0.15, 0.45);
+    const high = next.levels.find((level) => level.id === "high")!;
+
+    expect(high.layers[0]!.opacity.dark).toBe(0.15);
+    expect(high.layers[1]!.opacity.dark).toBe(0.45);
+    expect(high.layers[0]!.opacity.light).toBe(0.1);
+    expect(high.layers[1]!.opacity.light).toBe(0.1);
+    expect(
+      next.levels.find((level) => level.id === "low")!.layers[1]!.opacity.dark,
+    ).toBe(0.2);
+  });
+
+  it("leaves a missing level alone", () => {
+    const start = defaultElevationScale();
+    expect(setLevelModeOpacities(start, "none", "light", 0.4, 0.4)).toBe(start);
+  });
+});
+
+describe("snapElevationOpacity", () => {
+  it("lands on the editor step and will not pass the ceiling", () => {
+    expect(snapElevationOpacity(0.12)).toBe(0.1);
+    expect(snapElevationOpacity(0.13)).toBe(0.15);
+    expect(snapElevationOpacity(4)).toBe(0.6);
   });
 });
 

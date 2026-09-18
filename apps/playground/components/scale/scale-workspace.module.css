@@ -21,8 +21,7 @@
 
 .topbar {
   min-height: 64px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  display: flex;
   align-items: center;
   gap: 24px;
   padding: 0 24px;
@@ -30,19 +29,8 @@
   background: var(--color-surface-subtle);
 }
 
-.navigation {
-  align-self: center;
-  min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.navigation::-webkit-scrollbar {
-  display: none;
-}
-
 .headerActions {
-  justify-self: end;
+  margin-left: auto;
   min-width: 0;
   display: flex;
   flex-wrap: wrap;
@@ -271,6 +259,111 @@
   gap: 8px;
 }
 
+.elevationPads {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.elevationPadBlock {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.elevationPadLabel {
+  color: var(--color-fg-muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.elevationPad {
+  position: relative;
+  aspect-ratio: 1;
+  width: 100%;
+  display: block;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-page);
+  background-color: var(--elevation-surface);
+  background-image:
+    linear-gradient(
+      to top,
+      transparent,
+      color-mix(
+        in oklch,
+        var(--elevation-shadow) calc(var(--elevation-cast) * 1%),
+        transparent
+      )
+    ),
+    linear-gradient(
+      to right,
+      var(--elevation-surface),
+      color-mix(
+        in oklch,
+        var(--elevation-shadow) calc(var(--elevation-contact) * 1%),
+        var(--elevation-surface)
+      )
+    );
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.elevationPad:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.elevationPadDots {
+  position: absolute;
+  inset: 10%;
+  background-image: radial-gradient(
+    circle,
+    color-mix(in oklch, var(--color-fg-primary) 45%, transparent) 1.1px,
+    transparent 1.3px
+  );
+  background-position: center;
+  background-size: 10% 10%;
+  pointer-events: none;
+}
+
+.elevationPadOrigin {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border: 1px solid
+    color-mix(in oklch, var(--color-fg-primary) 55%, transparent);
+  border-radius: 50%;
+  pointer-events: none;
+  translate: -50% -50%;
+}
+
+.elevationPadThumb {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--color-neutral-50);
+  border-radius: 50%;
+  background: color-mix(
+    in oklch,
+    var(--elevation-shadow)
+      calc((var(--elevation-contact) + var(--elevation-cast)) * 0.5%),
+    var(--elevation-surface)
+  );
+  box-shadow: 0 0 0 1px
+    color-mix(in oklch, var(--color-neutral-950) 35%, transparent);
+  pointer-events: none;
+  translate: -50% -50%;
+}
+
+.elevationPadReadout {
+  color: var(--color-fg-muted);
+  font-size: 11px;
+}
+
 .elevationLayerName {
   color: var(--color-fg-muted);
   font-size: 12px;
@@ -440,21 +533,13 @@
 
 @media (max-width: 900px) {
   .topbar {
-    grid-template-columns: 1fr auto;
     gap: 12px;
     padding-top: 10px;
     padding-bottom: 10px;
   }
 
-  .navigation {
-    grid-row: 2;
-    grid-column: 1 / -1;
-    justify-self: stretch;
-  }
-
   .headerActions {
-    grid-row: 1;
-    grid-column: 2;
+    margin-left: auto;
   }
 
   .editor {

@@ -408,3 +408,24 @@
   --shadow-med: 0px 1px 2px 0px rgba(0, 1, 0, 0.2), 0px 2px 12px 0px rgba(0, 1, 0, 0.2);
   --shadow-high: 0px 2px 2px 0px rgba(0, 1, 0, 0.2), 0px 8px 24px 0px rgba(0, 1, 0, 0.3);
 }
+:root {
+  --inset-container: var(--spacing-4);
+  --gap-section: var(--spacing-6);
+  --radius-surface: var(--radius-container);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --inset-container: var(--spacing-6);
+    --gap-section: var(--spacing-10);
+    --radius-surface: var(--radius-container);
+  }
+}
+
+@media (min-width: 1120px) {
+  :root {
+    --inset-container: var(--spacing-10);
+    --gap-section: var(--spacing-16);
+    --radius-surface: var(--radius-page);
+  }
+}

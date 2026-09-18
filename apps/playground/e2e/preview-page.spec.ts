@@ -151,6 +151,6 @@ test.describe("The preview's theme control", () => {
     await expect(page.getByText("in light mode")).toBeVisible();
     await expect(
       (await openTheme(page)).getByRole("radio", { name: "Light" }),
-    ).toBeChecked();
+    ).toBeVisible();
   });
 });

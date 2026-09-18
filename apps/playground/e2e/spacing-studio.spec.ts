@@ -283,7 +283,9 @@ test.describe("The elevation editor", () => {
     seededPage: page,
   }) => {
     await showScaleView(page, "Elevation");
-    const slider = page.getByRole("slider", { name: "Low contact light" });
+    const slider = page.getByRole("button", {
+      name: "Low light contact and cast",
+    });
     await slider.focus();
     await slider.press("ArrowRight");
 
@@ -319,9 +321,11 @@ test.describe("The elevation editor", () => {
     seededPage: page,
   }) => {
     await showScaleView(page, "Elevation");
-    const slider = page.getByRole("slider", { name: "High cast dark" });
+    const slider = page.getByRole("button", {
+      name: "High dark contact and cast",
+    });
     await slider.focus();
-    await slider.press("ArrowRight");
+    await slider.press("ArrowUp");
 
     await expect
       .poll(async () =>
@@ -361,22 +365,15 @@ test.describe("The elevation editor", () => {
     expect(await fillOf("Low on dark")).not.toBe(await fillOf("Low on light"));
   });
 
-  test("paints contact sharp and cast soft, each mode on its surface", async ({
+  test("paints light and dark pads on their own surfaces", async ({
     seededPage: page,
   }) => {
-    /* The track is the axis: this mode's surface, with the shadow colour
-       mixed in. Contact keeps a hard edge; Cast is a pill. A shared grey
-       ramp would make the four sliders look like copies. */
+    /* Contact is X, cast is Y, so one pad holds both layers. Each mode still
+       paints on its own card colour, or the two pads would look like copies. */
 
     await showScaleView(page, "Elevation");
-    const trackOf = (name: string) =>
-      page
-        .getByRole("slider", { name })
-        .locator("xpath=ancestor::*[@data-elevation-opacity][1]")
-        .locator(".astryx-slider-track");
-
     const paint = (name: string) =>
-      trackOf(name).evaluate((node) => {
+      page.getByRole("button", { name }).evaluate((node) => {
         const style = getComputedStyle(node);
         return {
           image: style.backgroundImage,
@@ -385,13 +382,12 @@ test.describe("The elevation editor", () => {
         };
       });
 
-    const contactLight = await paint("Low contact light");
-    const contactDark = await paint("Low contact dark");
-    const castLight = await paint("Low cast light");
+    const light = await paint("Low light contact and cast");
+    const dark = await paint("Low dark contact and cast");
 
-    expect(contactLight.image).toMatch(/gradient/i);
-    expect(contactDark.color).not.toBe(contactLight.color);
-    expect(castLight.radius).not.toBe(contactLight.radius);
+    expect(light.image).toMatch(/gradient/i);
+    expect(dark.color).not.toBe(light.color);
+    expect(Number.parseFloat(light.radius)).toBeGreaterThan(12);
   });
 
   test("picks the shadow colour from the palette", async ({
@@ -421,16 +417,14 @@ test.describe("The elevation editor", () => {
 });
 
 test.describe("The scale studio's chrome", () => {
-  test("switches Spacing, Radius and Elevation from the header", async ({
+  test("switches Spacing, Radius and Elevation from the rail", async ({
     seededPage: page,
   }) => {
-    const views = page.getByRole("navigation", { name: "Scale views" });
-    await expect(views.getByRole("button", { name: "Spacing" })).toBeVisible();
-    await expect(views.getByRole("button", { name: "Radius" })).toBeVisible();
-    await expect(
-      views.getByRole("button", { name: "Elevation" }),
-    ).toBeVisible();
-    await expect(views.getByRole("button", { name: "Preview" })).toBeVisible();
+    const rail = page.getByRole("navigation", { name: "Blueprint workspaces" });
+    await expect(rail.getByRole("link", { name: "Spacing" })).toBeVisible();
+    await expect(rail.getByRole("link", { name: "Radius" })).toBeVisible();
+    await expect(rail.getByRole("link", { name: "Elevation" })).toBeVisible();
+    await expect(rail.getByRole("link", { name: "Preview" })).toBeVisible();
 
     await showScaleView(page, "Radius");
     await expect(
@@ -444,14 +438,6 @@ test.describe("The scale studio's chrome", () => {
     await expect(
       page.getByRole("region", { name: "Elevation", exact: true }),
     ).toBeVisible();
-
-    await showScaleView(page, "Preview");
-    await expect(
-      page.getByRole("region", { name: "Layout preview" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("region", { name: "Generated spacing steps" }),
-    ).toHaveCount(0);
   });
 
   test("undoes a prune, and redo puts it back", async ({
@@ -552,75 +538,5 @@ test.describe("The scale studio's chrome", () => {
 
     await page.goto("/colour");
     await expect(page.getByLabel("Project name")).toHaveValue("Renamed here");
-  });
-});
-
-test.describe("The scale layout preview", () => {
-  test("paints a card, a form and a section from the live scale", async ({
-    seededPage: page,
-  }) => {
-    await showScaleView(page, "Preview");
-
-    await expect(
-      page.getByRole("region", { name: "Layout preview" }),
-    ).toBeVisible();
-    await expect(page.getByRole("region", { name: "Section" })).toBeVisible();
-    await expect(
-      page.getByRole("article", { name: "Resting card" }),
-    ).toBeVisible();
-    await expect(page.getByRole("region", { name: "Form row" })).toBeVisible();
-    await expect(
-      page.getByRole("region", { name: "Elevation stack" }),
-    ).toBeVisible();
-  });
-
-  test("moves the card when the base unit or the roundness changes", async ({
-    seededPage: page,
-  }) => {
-    /* The jobs are why the inspector stays on this tab: neighbouring steps
-       look different as bars, and the card is how you tell whether they still
-       do as padding. */
-
-    await showScaleView(page, "Preview");
-    const card = page.getByRole("article", { name: "Resting card" });
-
-    await expect
-      .poll(() => card.evaluate((node) => getComputedStyle(node).paddingTop))
-      .toBe("16px");
-    await expect
-      .poll(() =>
-        card.evaluate((node) => getComputedStyle(node).borderTopLeftRadius),
-      )
-      .toBe("12px");
-
-    await page.getByRole("textbox", { name: "Custom number" }).click();
-    await page.keyboard.type("5");
-    await page.getByLabel("Base unit", { exact: true }).blur();
-
-    await expect
-      .poll(() => card.evaluate((node) => getComputedStyle(node).paddingTop))
-      .toBe("20px");
-
-    await page.getByRole("slider", { name: /Roundness/ }).focus();
-    await page.getByRole("slider", { name: /Roundness/ }).press("ArrowRight");
-
-    await expect
-      .poll(() =>
-        card.evaluate((node) => getComputedStyle(node).borderTopLeftRadius),
-      )
-      .toBe("15px");
-  });
-
-  test("warns when a job still names a pruned step", async ({
-    seededPage: page,
-  }) => {
-    await showScaleView(page, "Preview");
-
-    await page
-      .getByRole("region", { name: "Steps" })
-      .getByRole("button", { name: "10", exact: true })
-      .click();
-
-    await expect(page.getByText("Missing --spacing-10")).toBeVisible();
   });
 });

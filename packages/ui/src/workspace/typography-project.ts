@@ -5,7 +5,6 @@ import {
   normalizeStoredSystem,
   type LegacyTypographyProject,
 } from "../typography/migrate";
-import { normalizePreviewDevices } from "../typography/preview-devices";
 import {
   clampRemRootPx,
   ROOT_FONT_SIZE_PX,
@@ -20,7 +19,6 @@ export const DEFAULT_PREVIEW_TEMPLATE = "specimen";
 
 function readPreferences(
   value: object,
-  fallbackRatio: number,
 ): Omit<TypographyProjectData, "system" | "previewDocument"> {
   return {
     unit:
@@ -36,12 +34,6 @@ function readPreferences(
       "template" in value && typeof value.template === "string"
         ? value.template
         : undefined,
-    ),
-    previewDevices: normalizePreviewDevices(
-      "previewDevices" in value && Array.isArray(value.previewDevices)
-        ? value.previewDevices
-        : undefined,
-      fallbackRatio,
     ),
     remRootPx:
       "remRootPx" in value && typeof value.remRootPx === "number"
@@ -90,7 +82,7 @@ export function readTypographyProjectData(
     const system = migrateLegacyProject(legacy);
     return {
       system,
-      ...readPreferences(value, legacy.ratio),
+      ...readPreferences(value),
       previewDocument: readPreviewDocument(
         "previewDocument" in value ? value.previewDocument : undefined,
         system,
@@ -105,7 +97,7 @@ export function readTypographyProjectData(
 
   return {
     system,
-    ...readPreferences(value, system.ratio),
+    ...readPreferences(value),
     previewDocument: readPreviewDocument(
       "previewDocument" in value ? value.previewDocument : undefined,
       system,

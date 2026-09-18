@@ -1,14 +1,9 @@
 "use client";
 
-import {
-  useEffect,
-  useState,
-  type CSSProperties,
-  type KeyboardEvent,
-} from "react";
+import { useState, type CSSProperties, type KeyboardEvent } from "react";
+import { usePathname } from "next/navigation";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
-import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Redo2, Undo2 } from "lucide-react";
 import {
   Button,
@@ -20,29 +15,34 @@ import {
   generatePalettes,
   resolveSpacing,
   useWorkspaceStore,
-  withSharedName,
   type HybridTokenizedValue,
 } from "@blueprint/ui";
 import { SystemExportDialog } from "../SystemExportDialog";
-import { WorkspaceBrand } from "../WorkspaceBrand";
 import { ElevationCanvas } from "./ElevationEditor";
 import { ElevationInspector } from "./ElevationInspector";
 import { RadiusCanvas, RadiusInspector } from "./RadiusEditor";
-import { ScalePreviewCanvas } from "./ScalePreview";
-import { ScalePreviewInspector } from "./ScalePreviewInspector";
 import { SpacingCanvas, SpacingInspector } from "./SpacingEditor";
 import { useScaleHistory } from "./use-scale-history";
 import styles from "./scale-workspace.module.css";
 
-type ScaleSection = "spacing" | "radius" | "elevation" | "preview";
+type ScaleSection = "spacing" | "radius" | "elevation";
+
+function sectionFromPath(pathname: string): ScaleSection {
+  if (pathname === "/radius" || pathname.startsWith("/radius/")) {
+    return "radius";
+  }
+  if (pathname === "/elevation" || pathname.startsWith("/elevation/")) {
+    return "elevation";
+  }
+  return "spacing";
+}
 
 export function ScaleStudio() {
+  const pathname = usePathname();
+  const activeSection = sectionFromPath(pathname);
   const store = useWorkspaceStore();
   const history = useScaleHistory(store);
-  const [name, setName] = useState(DEFAULT_WORKSPACE_NAME);
-  const [nameReady, setNameReady] = useState(false);
   const [detachedBaseUnit, setDetachedBaseUnit] = useState<number | null>(null);
-  const [activeSection, setActiveSection] = useState<ScaleSection>("spacing");
   const [isExportOpen, setIsExportOpen] = useState(false);
   const settingsPanel = useResizable({
     autoSaveId: "blueprint-scale-settings",
@@ -57,24 +57,6 @@ export function ScaleStudio() {
   const elevation = project?.elevation ?? defaultElevationScale();
   const palettes = project?.palette ? generatePalettes(project.palette) : [];
   const tokens = resolveSpacing(spacing);
-
-  useEffect(() => {
-    /* Adopt the workspace name once the store has read. The field is not on
-       the scale snapshot: another studio may have renamed, and this page
-       should show that name rather than invent one. */
-    if (!store.hasLoaded || nameReady) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setName(project?.name ?? DEFAULT_WORKSPACE_NAME);
-    setNameReady(true);
-  }, [store.hasLoaded, nameReady, project?.name]);
-
-  const commitName = () => {
-    const next = name.trim() || DEFAULT_WORKSPACE_NAME;
-    setName(next);
-    store.update((current) =>
-      withSharedName({ ...(current ?? emptyWorkspace()), name: next }),
-    );
-  };
 
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     const target = event.target as HTMLElement;
@@ -125,7 +107,7 @@ export function ScaleStudio() {
     />
   );
 
-  if (!store.hasLoaded || !nameReady) {
+  if (!store.hasLoaded) {
     return (
       <div
         aria-busy="true"
@@ -141,19 +123,6 @@ export function ScaleStudio() {
   return (
     <div className={styles.workspace} onKeyDown={onKeyDown}>
       <header className={styles.topbar}>
-        <WorkspaceBrand name={name} onChange={setName} onCommit={commitName} />
-        <nav aria-label="Scale views" className={styles.navigation}>
-          <TabList
-            size="sm"
-            value={activeSection}
-            onChange={(value) => setActiveSection(value as ScaleSection)}
-          >
-            <Tab label="Spacing" value="spacing" />
-            <Tab label="Radius" value="radius" />
-            <Tab label="Elevation" value="elevation" />
-            <Tab label="Preview" value="preview" />
-          </TabList>
-        </nav>
         <span className={styles.headerActions}>
           <Button
             scheme="neutral"
@@ -203,9 +172,7 @@ export function ScaleStudio() {
               ? "Spacing canvas"
               : activeSection === "radius"
                 ? "Radius canvas"
-                : activeSection === "elevation"
-                  ? "Elevation canvas"
-                  : "Preview canvas"
+                : "Elevation canvas"
           }
           className={styles.canvas}
         >
@@ -220,15 +187,6 @@ export function ScaleStudio() {
           )}
           {activeSection === "elevation" && (
             <ElevationCanvas palettes={palettes} scale={elevation} />
-          )}
-          {activeSection === "preview" && (
-            <ScalePreviewCanvas
-              elevation={elevation}
-              palettes={palettes}
-              radius={radius}
-              semantics={project?.semantics ?? []}
-              spacing={spacing}
-            />
           )}
         </section>
 
@@ -265,7 +223,6 @@ export function ScaleStudio() {
             {activeSection === "spacing" && "Spacing settings"}
             {activeSection === "radius" && "Radius settings"}
             {activeSection === "elevation" && "Elevation settings"}
-            {activeSection === "preview" && "Layout jobs"}
           </div>
           {activeSection === "spacing" && spacingInspector}
           {activeSection === "radius" && radiusInspector}
@@ -278,24 +235,14 @@ export function ScaleStudio() {
               }
             />
           )}
-          {activeSection === "preview" && (
-            <ScalePreviewInspector
-              elevation={elevation}
-              radius={radius}
-              spacing={spacing}
-            >
-              {spacingInspector}
-              {radiusInspector}
-            </ScalePreviewInspector>
-          )}
         </aside>
       </section>
 
       <SystemExportDialog
         isOpen={isExportOpen}
         workspace={{
-          ...(project ?? emptyWorkspace(name)),
-          name,
+          ...(project ?? emptyWorkspace()),
+          name: project?.name ?? DEFAULT_WORKSPACE_NAME,
           spacing,
           radius,
           elevation,

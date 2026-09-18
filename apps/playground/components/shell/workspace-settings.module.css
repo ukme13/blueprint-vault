@@ -1,0 +1,67 @@
+.group {
+  display: grid;
+  gap: var(--spacing-3);
+}
+
+.group h2 {
+  margin: 0;
+  color: var(--color-fg-primary);
+  font-size: var(--font-size-base);
+  font-weight: 650;
+}
+
+.hint {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: 11px;
+}
+
+.deviceList {
+  display: grid;
+  gap: var(--spacing-2);
+}
+
+.deviceTableHead,
+.deviceRow {
+  display: grid;
+  grid-template-columns: 4.75rem minmax(5.5rem, 1fr) 2rem;
+  column-gap: var(--spacing-1);
+  align-items: center;
+}
+
+.deviceRow > * {
+  min-width: 0;
+}
+
+.deviceTableHead {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.deviceName {
+  color: var(--color-fg-secondary);
+  font-size: var(--font-size-base);
+}
+
+.deviceLock {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-fg-muted);
+}
+
+.tokenName {
+  display: block;
+  color: var(--color-fg-primary);
+}
+
+.tokenVar,
+.columnWidth {
+  display: block;
+  color: var(--color-fg-muted);
+  font-size: 11px;
+}
+
+.columnWidth {
+  font-weight: 400;
+}

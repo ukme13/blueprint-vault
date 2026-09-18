@@ -1,9 +1,9 @@
 "use client";
 
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertDialog } from "@astryxdesign/core/AlertDialog";
-import { TextInput } from "@astryxdesign/core/TextInput";
 import {
   Button,
   DEFAULT_WORKSPACE_NAME,
@@ -14,32 +14,48 @@ import {
   workspaceHasStudios,
   type WorkspaceProject,
 } from "@blueprint/ui";
+import { NewProjectDialog } from "./NewProjectDialog";
+import { ProjectMosaic } from "./ProjectMosaic";
+import { forgetAllLocalFonts } from "../typography/use-local-fonts";
 import styles from "./home.module.css";
 
+function projectCountLabel(count: number) {
+  if (count === 1) return "You have 1 project.";
+  return `You have ${count} projects.`;
+}
+
+function familyCountLabel(count: number) {
+  if (count === 1) return "1 colour family";
+  return `${count} colour families`;
+}
+
 /**
- * One create path for the whole workspace.
+ * The project list for this browser.
  *
- * Name and the Blueprint seed. Colour, type and scale are filled together so
- * the author does not invent the same system twice. After create, the colour
- * bench is next — edit the other slices from there.
+ * v1 still stores one workspace. The card is that document; New project opens
+ * a dialog rather than another page. After create, the colour bench is next.
  */
 export function WorkspaceHome() {
   const router = useRouter();
   const workspace = useWorkspaceStore();
   const [name, setName] = useState(DEFAULT_WORKSPACE_NAME);
   const [error, setError] = useState("");
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [pendingImport, setPendingImport] = useState<WorkspaceProject | null>(
     null,
   );
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const openColour = () => {
+  const applyWorkspace = (project: WorkspaceProject) => {
+    void forgetAllLocalFonts();
+    workspace.save(withSharedName(project));
     router.push("/colour");
   };
 
-  const applyWorkspace = (project: WorkspaceProject) => {
-    workspace.save(withSharedName(project));
-    router.push("/colour");
+  const openCreate = () => {
+    setError("");
+    setName(DEFAULT_WORKSPACE_NAME);
+    setIsCreateOpen(true);
   };
 
   const create = (event: FormEvent<HTMLFormElement>) => {
@@ -49,6 +65,7 @@ export function WorkspaceHome() {
       return;
     }
     setError("");
+    setIsCreateOpen(false);
     applyWorkspace(seedWorkspaceProject(name.trim()));
   };
 
@@ -79,79 +96,55 @@ export function WorkspaceHome() {
 
   const current = workspace.project;
   const hasWorkspace = workspaceHasStudios(current);
+  const familyCount = current?.palette?.tracks.length ?? 0;
 
   return (
     <div className={styles.page}>
+      <header className={styles.header}>
+        <div>
+          <h1>Projects</h1>
+          <p className={styles.count}>
+            {projectCountLabel(hasWorkspace ? 1 : 0)}
+          </p>
+        </div>
+        <div className={styles.actions}>
+          <Button
+            scheme="neutral"
+            size="small"
+            type="button"
+            variant="text"
+            onClick={() => importInputRef.current?.click()}
+          >
+            Import project
+          </Button>
+          <Button
+            scheme="primary"
+            size="small"
+            type="button"
+            onClick={openCreate}
+          >
+            New project
+          </Button>
+        </div>
+      </header>
+
+      {error && !isCreateOpen ? (
+        <p className={styles.formError} role="alert">
+          {error}
+        </p>
+      ) : null}
+
       {hasWorkspace ? (
-        <section className={styles.card} aria-labelledby="home-title">
-          <h1 id="home-title">{current?.name ?? DEFAULT_WORKSPACE_NAME}</h1>
-          <p className={styles.lede}>
-            This workspace is stored in this browser. Open colour to keep
-            editing, or import a project file to replace it.
-          </p>
-          {error && (
-            <p className={styles.formError} role="alert">
-              {error}
-            </p>
-          )}
-          <footer className={styles.footer}>
-            <Button
-              scheme="neutral"
-              size="small"
-              type="button"
-              variant="text"
-              onClick={() => importInputRef.current?.click()}
-            >
-              Import project
-            </Button>
-            <Button scheme="primary" type="button" onClick={openColour}>
-              Open colour
-            </Button>
-          </footer>
-        </section>
-      ) : (
-        <form className={styles.card} onSubmit={create}>
-          <h1>New workspace</h1>
-          <p className={styles.lede}>
-            Name it. The Blueprint seed fills colour, type, and scale — edit
-            those after.
-          </p>
-
-          <section className={styles.field}>
-            <TextInput
-              label="Project name"
-              value={name}
-              onChange={setName}
-              placeholder={DEFAULT_WORKSPACE_NAME}
-            />
-          </section>
-
-          <p className={styles.preset}>
-            Preset: <strong>Blueprint seed</strong>
-          </p>
-
-          {error && (
-            <p className={styles.formError} role="alert">
-              {error}
-            </p>
-          )}
-
-          <footer className={styles.footer}>
-            <Button
-              scheme="neutral"
-              size="small"
-              type="button"
-              variant="text"
-              onClick={() => importInputRef.current?.click()}
-            >
-              Import project
-            </Button>
-            <Button scheme="primary" type="submit">
-              Create workspace
-            </Button>
-          </footer>
-        </form>
-      )}
+        <ul className={styles.grid}>
+          <li>
+            <Link className={styles.card} href="/colour">
+              <ProjectMosaic palette={current?.palette} />
+              <h2>{current?.name ?? DEFAULT_WORKSPACE_NAME}</h2>
+              <p>{familyCountLabel(familyCount)}</p>
+            </Link>
+          </li>
+        </ul>
+      ) : null}
 
       <input
         ref={importInputRef}
@@ -159,6 +152,19 @@ export function WorkspaceHome() {
         type="file"
         accept=".json,.blueprint.json,application/json"
         onChange={importProject}
+      />
+
+      <NewProjectDialog
+        error={error}
+        hasWorkspace={hasWorkspace}
+        isOpen={isCreateOpen}
+        name={name}
+        onNameChange={setName}
+        onOpenChange={(open) => {
+          setIsCreateOpen(open);
+          if (!open) setError("");
+        }}
+        onSubmit={create}
       />
 
       <AlertDialog

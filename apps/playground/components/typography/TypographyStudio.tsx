@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { AlertDialog } from "@astryxdesign/core/AlertDialog";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
 import {
@@ -36,7 +35,6 @@ import {
   isRoleUnlinkedOnDevice,
   letterSpacingEmSizePx,
   letterSpacingPxOnDevice,
-  pruneUnlinkedSizes,
   resolveRoleSizePx,
   TYPE_SCALE_UNITS,
   TYPE_SCALE_RATIO_PRESETS,
@@ -51,10 +49,11 @@ import {
   localFontKey,
   seedPreviewDocument,
   defaultPreviewDevices,
-  addExtraDesktop,
-  removePreviewDevice,
+  emptyWorkspace,
   updatePreviewDevice,
   resolvePreviewDevice,
+  useWorkspaceStore,
+  withPreviewDevices,
   type HybridTokenizedValue,
   type LineHeightConfig,
   type ShadeRef,
@@ -75,7 +74,6 @@ import {
 import { Badge } from "@astryxdesign/core/Badge";
 import { TypographyCreation } from "./TypographyCreation";
 import { TypographyExportDialog } from "./TypographyExportDialog";
-import { WorkspaceBrand } from "../WorkspaceBrand";
 import { FontStackEditor } from "./FontStackEditor";
 import { RoleGroupEditor } from "./RoleGroupEditor";
 import { TypographyPreview } from "./TypographyPreview";
@@ -97,7 +95,6 @@ import {
   forgetFontEntry,
   forgetFontSlot,
   moveLocalFont,
-  forgetLocalFonts,
   storeLocalFont,
   useLocalFonts,
 } from "./use-local-fonts";
@@ -110,12 +107,12 @@ const SCALE_RATIO_PRESETS = hybridPresetsFromModularScale(
 );
 
 export function TypographyStudio() {
+  const workspace = useWorkspaceStore();
   const [project, setProject] = useState<TypographyProject | null>(null);
   const [hasLoadedProject, setHasLoadedProject] = useState(false);
   const [activeSection, setActiveSection] =
     useState<TypographySection>("editor");
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
-  const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
   /* The active device is a way of looking at the project, not part of it.
      Which devices are offered is a setting and persists. */
   const [previewDevice, setPreviewDevice] = useState("desktop");
@@ -155,8 +152,11 @@ export function TypographyStudio() {
   }, [hasLoadedProject, project]);
 
   const system = project?.system ?? null;
+  const previewDevices =
+    workspace.project?.previewDevices ??
+    defaultPreviewDevices(system?.ratio ?? 1.25);
   const activePreviewDevice = project
-    ? resolvePreviewDevice(previewDevice, project.previewDevices)
+    ? resolvePreviewDevice(previewDevice, previewDevices)
     : undefined;
 
   /* Steps still come from the base and the active device's ratio; roles
@@ -240,51 +240,25 @@ export function TypographyStudio() {
   const setPreference = (patch: Partial<Omit<TypographyProject, "system">>) =>
     patchProject((current) => ({ ...current, ...patch }));
 
-  const handleAddDesktop = () => {
-    patchProject((current) => ({
-      ...current,
-      previewDevices: addExtraDesktop(current.previewDevices),
-    }));
-  };
-
-  const handleRemoveDevice = (id: string) => {
-    patchProject((current) => {
-      const previewDevices = removePreviewDevice(current.previewDevices, id);
-      return {
-        ...current,
-        previewDevices,
-        system: pruneUnlinkedSizes(
-          current.system,
-          previewDevices.map((device) => device.id),
-        ),
-      };
-    });
-  };
-
-  const handleDeviceWidth = (id: string, widthPx: number) => {
-    patchProject((current) => ({
-      ...current,
-      previewDevices: updatePreviewDevice(current.previewDevices, id, {
-        widthPx,
-      }),
-    }));
-  };
-
   const handleDeviceRatio = (id: string, next: HybridTokenizedValue) => {
     setDetachedRatios((current) => ({
       ...current,
       [id]: next.isPreset ? null : next.value,
     }));
-    patchProject((current) => ({
-      ...current,
-      previewDevices: updatePreviewDevice(current.previewDevices, id, {
-        ratio: next.value,
-      }),
-      system:
-        id === "desktop"
-          ? { ...current.system, ratio: next.value }
-          : current.system,
-    }));
+    workspace.update((current) =>
+      withPreviewDevices(
+        current,
+        updatePreviewDevice((current ?? emptyWorkspace()).previewDevices, id, {
+          ratio: next.value,
+        }),
+      ),
+    );
+    if (id === "desktop") {
+      patchProject((current) => ({
+        ...current,
+        system: { ...current.system, ratio: next.value },
+      }));
+    }
   };
 
   /* Defaults to whatever body uses, since that is the size people read most,
@@ -406,7 +380,6 @@ export function TypographyStudio() {
             specimenText: DEFAULT_SPECIMEN_TEXT,
             previewDocument: seedPreviewDocument(system),
             template: DEFAULT_TEMPLATE,
-            previewDevices: defaultPreviewDevices(ratio),
           });
         }}
       />
@@ -419,7 +392,7 @@ export function TypographyStudio() {
   const rolesLargeToSmall = [...roles].sort(
     (first, second) => sizeOnFrame(second) - sizeOnFrame(first),
   );
-  const devices = project.previewDevices;
+  const devices = previewDevices;
   const activeDevice = activePreviewDevice;
   const handleBindStep = (id: string, stepOffset: number) =>
     bindRoleStep(id, activeDevice.id, stepOffset);
@@ -464,31 +437,7 @@ export function TypographyStudio() {
   return (
     <div className={styles.workspace}>
       <header className={styles.topbar}>
-        <WorkspaceBrand
-          name={system.name}
-          onChange={(name) => updateSystem({ name })}
-        />
-        <PreviewDeviceBar
-          className={styles.navigation}
-          activeId={activeDevice.id}
-          devices={devices}
-          onChange={setPreviewDevice}
-        />
-        <span className={styles.headerActions}>
-          <Button
-            aria-label="Export type scale"
-            scheme="neutral"
-            size="small"
-            variant="outlined"
-            onClick={() => setIsExportDialogOpen(true)}
-          >
-            Export
-          </Button>
-        </span>
-      </header>
-
-      <section aria-label="Typography toolbar" className={styles.toolbar}>
-        <nav aria-label="Typography views">
+        <nav aria-label="Typography views" className={styles.navigation}>
           <TabList
             size="sm"
             value={activeSection}
@@ -504,15 +453,25 @@ export function TypographyStudio() {
             <Tab label="Preview" value="preview" />
           </TabList>
         </nav>
-        <Button
-          className={styles.newProjectButton}
-          scheme="neutral"
-          size="xs"
-          variant="text"
-          onClick={() => setIsNewProjectDialogOpen(true)}
-        >
-          New project
-        </Button>
+        <span className={styles.headerActions}>
+          <Button
+            aria-label="Export type scale"
+            scheme="neutral"
+            size="small"
+            variant="outlined"
+            onClick={() => setIsExportDialogOpen(true)}
+          >
+            Export
+          </Button>
+        </span>
+      </header>
+
+      <section aria-label="Typography toolbar" className={styles.toolbar}>
+        <PreviewDeviceBar
+          activeId={activeDevice.id}
+          devices={devices}
+          onChange={setPreviewDevice}
+        />
       </section>
 
       <section
@@ -768,10 +727,7 @@ export function TypographyStudio() {
               detachedRatios={detachedRatios}
               devices={devices}
               presets={SCALE_RATIO_PRESETS}
-              onAddDesktop={handleAddDesktop}
               onRatioChange={handleDeviceRatio}
-              onRemove={handleRemoveDevice}
-              onWidthChange={handleDeviceWidth}
             />
 
             <div className={styles.settingGroup}>
@@ -952,25 +908,10 @@ export function TypographyStudio() {
         system={system}
         unit={project.unit}
         remRootPx={project.remRootPx}
-        devices={project.previewDevices}
+        devices={previewDevices}
         onOpenChange={setIsExportDialogOpen}
         onUnitChange={(unit) => setPreference({ unit })}
         onRemRootChange={(remRootPx) => setPreference({ remRootPx })}
-      />
-
-      <AlertDialog
-        actionLabel="Start new project"
-        description="This removes the current type scale from this browser. Export it first if you want to keep it."
-        isOpen={isNewProjectDialogOpen}
-        title="Start a new project?"
-        onAction={() => {
-          setIsNewProjectDialogOpen(false);
-          /* The whole scale goes, so every file it named goes with it — both
-             slots of every entry, not only the ones currently marked local. */
-          void forgetLocalFonts(system.fonts.map((font) => font.id));
-          setProject(null);
-        }}
-        onOpenChange={setIsNewProjectDialogOpen}
       />
     </div>
   );

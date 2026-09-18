@@ -1,5 +1,6 @@
 import type { ColorTrackInput } from "../color/types";
 import { defaultElevationScale } from "../scale/elevation";
+import { defaultLayoutTokens } from "../scale/layout-tokens";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { defaultPreviewDevices } from "../typography/preview-devices";
@@ -122,13 +123,14 @@ export function seedWorkspaceProject(name: string): WorkspaceProject {
     spacing: defaultSpacingScale(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
+    previewDevices: defaultPreviewDevices(SEED_TYPOGRAPHY.ratio),
+    layout: defaultLayoutTokens(),
     typography: {
       system,
       unit: DEFAULT_TYPE_SCALE_UNIT,
       specimenText: DEFAULT_SPECIMEN_TEXT,
       previewDocument: seedPreviewDocument(system),
       template: DEFAULT_PREVIEW_TEMPLATE,
-      previewDevices: defaultPreviewDevices(SEED_TYPOGRAPHY.ratio),
       remRootPx: ROOT_FONT_SIZE_PX,
     },
   };

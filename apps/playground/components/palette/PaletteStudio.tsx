@@ -49,7 +49,6 @@ import {
 } from "@blueprint/ui";
 import { SystemExportDialog } from "../SystemExportDialog";
 import { VisionControl } from "../VisionControl";
-import { WorkspaceBrand } from "../WorkspaceBrand";
 import { PaletteCreation } from "./PaletteCreation";
 import { PaletteControls } from "./PaletteControls";
 import { ColourPicker } from "./ColourPicker";
@@ -88,11 +87,6 @@ function createPatternValues(
   );
 }
 
-/* The workspace name as this tab last saw it. A studio may only write the name
-   when it is the one that changed it — another tab may have renamed since, and
-   re-reading cannot tell whose name is newer, only that ours is a copy. */
-let adoptedName: string | null = null;
-
 /**
  * The palette slice and the workspace name, together.
  *
@@ -108,9 +102,6 @@ interface StoredPalette {
 function readStoredProject(): StoredPalette {
   try {
     const workspace = loadStoredWorkspace(browserWorkspaceStorage());
-    /* Adopt the workspace name: it is one name, and the other studio may
-       have set it. */
-    adoptedName = workspace?.name ?? null;
     return {
       name: workspace?.name ?? DEFAULT_WORKSPACE_NAME,
       palette: workspace?.palette ?? null,
@@ -149,6 +140,8 @@ function emptyForeignSlices(): ForeignSlices {
     spacing: empty.spacing,
     radius: empty.radius,
     elevation: empty.elevation,
+    previewDevices: empty.previewDevices,
+    layout: empty.layout,
   };
 }
 
@@ -163,6 +156,8 @@ function readForeignSlices(): ForeignSlices {
       spacing: project.spacing,
       radius: project.radius,
       elevation: project.elevation,
+      previewDevices: project.previewDevices,
+      layout: project.layout,
     };
   } catch {
     return emptyForeignSlices();
@@ -180,19 +175,12 @@ function writeImportedWorkspace(imported: WorkspaceProject): void {
   saveStoredWorkspace(browserWorkspaceStorage(), withSharedName(imported));
 }
 
-function writeStoredProject(
-  project: PaletteProject | null,
-  name: string,
-): void {
-  const next = updateStoredWorkspace(browserWorkspaceStorage(), (current) => {
-    const renamedHere = !!project && name !== adoptedName;
-    /* withSharedName after the patch, so a name someone else set reaches this
-       slice too rather than leaving storage disagreeing with itself. */
-    return withSharedName(
-      withPaletteSlice(current, project, renamedHere ? name : undefined),
-    );
+function writeStoredProject(project: PaletteProject | null): void {
+  updateStoredWorkspace(browserWorkspaceStorage(), (current) => {
+    /* Name lives on the rail. Passing it here would overwrite a rename the
+       shell already wrote, using the copy this tab loaded. */
+    return withSharedName(withPaletteSlice(current, project));
   });
-  if (next) adoptedName = next.name;
 }
 /* The glasses mark from the toolbar design. Inline rather than an icon
    import: it is two circles and a bridge, and it belongs to this one chip. */
@@ -224,7 +212,6 @@ function PaletteStudioContent() {
     usePaletteView();
   const [contrastTarget, setContrastTarget] = useState<ContrastTarget>("white");
   const [customContrastColour, setCustomContrastColour] = useState("#7646ab");
-  const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   /* Read once on load, so an export carries the type scale without this
      component reading storage while it renders. */
@@ -276,8 +263,8 @@ function PaletteStudioContent() {
   useEffect(() => {
     if (!hasLoadedProject) return;
 
-    writeStoredProject(project, name);
-  }, [hasLoadedProject, project, name]);
+    writeStoredProject(project);
+  }, [hasLoadedProject, project]);
 
   const weights = useMemo(() => {
     const shadeCount = project?.lightnessValues.length ?? 0;
@@ -580,10 +567,6 @@ function PaletteStudioContent() {
     );
   };
 
-  const commitProjectName = () => {
-    setName((current) => current.trim() || "Untitled project");
-  };
-
   const changeLightnessPattern = (pattern: LightnessPattern) => {
     setProject((current) =>
       current
@@ -670,11 +653,6 @@ function PaletteStudioContent() {
   return (
     <div className={styles.workspace}>
       <header className={styles.topbar}>
-        <WorkspaceBrand
-          name={name}
-          onChange={setName}
-          onCommit={commitProjectName}
-        />
         <nav aria-label="Playground sections" className={styles.navigation}>
           <TabList
             size="sm"
@@ -718,15 +696,6 @@ function PaletteStudioContent() {
             onClick={() => setIsExportDialogOpen(true)}
           >
             Export
-          </Button>
-          <Button
-            className={styles.newProjectButton}
-            scheme="neutral"
-            size="xs"
-            variant="text"
-            onClick={() => setIsNewProjectDialogOpen(true)}
-          >
-            New project
           </Button>
         </span>
       </header>
@@ -971,27 +940,6 @@ function PaletteStudioContent() {
         onOpenChange={(isOpen) => {
           if (!isOpen) setPendingImport(null);
         }}
-      />
-
-      <AlertDialog
-        actionLabel="Start new project"
-        className={styles.newProjectDialog}
-        description="This removes the current palette from this browser. Export it first if you want to keep it."
-        isOpen={isNewProjectDialogOpen}
-        title="Start a new project?"
-        onAction={() => {
-          setIsNewProjectDialogOpen(false);
-          setProject(null);
-          /* Null rather than leaving the previous layer: an empty array would
-             also clear the UI, but withPaletteSlice treats [] as deliberate
-             and would not reseed on the next Create. */
-          setSemantics(null);
-          setActiveShade(null);
-          setActiveTrackId(null);
-          setActiveSection("shade-generator");
-          closeContrastMode();
-        }}
-        onOpenChange={setIsNewProjectDialogOpen}
       />
     </div>
   );

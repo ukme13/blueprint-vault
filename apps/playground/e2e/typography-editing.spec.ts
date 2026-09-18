@@ -5,6 +5,7 @@ import {
   showInspectorPanel,
   test,
 } from "./typography-fixtures";
+import { openWorkspaceSettings } from "./fixtures";
 import type { Locator } from "@playwright/test";
 
 /**
@@ -134,7 +135,7 @@ test.describe("Typography scale editing", () => {
       .not.toBe(before);
   });
 
-  test("workspace nav still reaches Colour and Scale from Preview", async ({
+  test("workspace nav still reaches Colour and Spacing from the type preview", async ({
     seededPage: page,
   }) => {
     await page
@@ -169,9 +170,9 @@ test.describe("Typography scale editing", () => {
 
     await page
       .getByRole("navigation", { name: "Blueprint workspaces" })
-      .getByRole("link", { name: "Scale" })
+      .getByRole("link", { name: "Spacing" })
       .click();
-    await expect(page).toHaveURL(/\/scale\/?$/);
+    await expect(page).toHaveURL(/\/spacing\/?$/);
     await expect(
       page.getByRole("region", { name: "Generated spacing steps" }),
     ).toBeVisible();
@@ -214,16 +215,21 @@ test.describe("Typography scale editing", () => {
     seededPage: page,
   }) => {
     const devices = page.getByRole("navigation", { name: "Preview devices" });
-    /* The icons live in the page header, the same slot Colour uses for
-       Overview / Shade generator — not on the Editor/Preview toolbar.
-       `banner` is not this header: a `header` inside `main` has no banner
-       role. */
-    await expect(page.locator("header").filter({ has: devices })).toBeVisible();
+    /* View tabs live in the page header, the same slot Colour uses for
+       Shade generator. Device frames sit on the typography toolbar. */
+    await expect(
+      page.getByRole("navigation", { name: "Typography views" }),
+    ).toBeVisible();
+    await expect(
+      page.locator("header").filter({
+        has: page.getByRole("navigation", { name: "Typography views" }),
+      }),
+    ).toBeVisible();
     await expect(
       page
         .getByRole("region", { name: "Typography toolbar" })
         .getByRole("navigation", { name: "Preview devices" }),
-    ).toHaveCount(0);
+    ).toBeVisible();
     await expect(devices.getByRole("button", { name: "Phone" })).toBeVisible();
     await expect(devices.getByRole("button", { name: "Tablet" })).toBeVisible();
     await expect(
@@ -263,7 +269,7 @@ test.describe("Typography scale editing", () => {
     seededPage: page,
   }) => {
     const devices = page.getByRole("navigation", { name: "Preview devices" });
-    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const settings = await openWorkspaceSettings(page);
 
     await expect(
       settings.getByRole("img", { name: "Phone cannot be removed" }),

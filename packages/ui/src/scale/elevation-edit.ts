@@ -45,6 +45,21 @@ export function elevationColourOnTrack(
   };
 }
 
+/** Hard ceiling in the editor. A shadow at 1 is a black slab. */
+export const ELEVATION_OPACITY_MAX = 0.6;
+export const ELEVATION_OPACITY_STEP = 0.05;
+
+/** Snap onto the editor's step, inside the editor's ceiling. */
+export function snapElevationOpacity(value: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+  const clamped = Math.min(Math.max(value, 0), ELEVATION_OPACITY_MAX);
+  return Number(
+    (
+      Math.round(clamped / ELEVATION_OPACITY_STEP) * ELEVATION_OPACITY_STEP
+    ).toFixed(2),
+  );
+}
+
 export function setLayerOpacity(
   scale: ElevationScale,
   levelId: string,
@@ -74,6 +89,28 @@ export function setLayerOpacity(
           },
     ),
   };
+}
+
+/**
+ * Contact and cast together, for one mode of one level.
+ *
+ * The pad writes both axes in one gesture. Two `setLayerOpacity` calls keep
+ * the per-layer clamp; this is only the pairing.
+ */
+export function setLevelModeOpacities(
+  scale: ElevationScale,
+  levelId: string,
+  mode: ColourMode,
+  contact: number,
+  cast: number,
+): ElevationScale {
+  const level = scale.levels.find((item) => item.id === levelId);
+  if (!level) return scale;
+  let next = setLayerOpacity(scale, levelId, 0, mode, contact);
+  if (level.layers.length > 1) {
+    next = setLayerOpacity(next, levelId, 1, mode, cast);
+  }
+  return next;
 }
 
 /**

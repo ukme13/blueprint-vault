@@ -1,17 +1,22 @@
 import type { SVGProps } from "react";
+import { Layers, Paintbrush, Radius, Ruler, Type } from "lucide-react";
 
 type MarkProps = SVGProps<SVGSVGElement>;
 
+/**
+ * Shared drawing attributes for the custom rail marks.
+ *
+ * Width and height stay off this object: SideNav wraps component icons in
+ * `Icon` at `sm` (1rem). A baked-in 24px box fights that size.
+ */
 const mark = {
   fill: "none",
-  height: 24,
   stroke: "currentColor",
-  strokeLinecap: "round",
-  strokeLinejoin: "round",
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
   strokeWidth: 2,
   viewBox: "0 0 24 24",
-  width: 24,
-} as const;
+};
 
 /** Registration reticle for the Blueprint Home control. */
 export function BlueprintMark(props: MarkProps) {
@@ -23,34 +28,29 @@ export function BlueprintMark(props: MarkProps) {
   );
 }
 
-/** Three shade chips — the colour bench. */
+/** Paintbrush — the colour bench. */
 export function ColourStudioIcon(props: MarkProps) {
-  return (
-    <svg aria-hidden {...mark} {...props}>
-      <rect height="12" rx="1" width="5" x="3" y="6" />
-      <rect height="12" rx="1" width="5" x="9.5" y="6" />
-      <rect height="12" rx="1" width="5" x="16" y="6" />
-    </svg>
-  );
+  return <Paintbrush aria-hidden {...props} />;
 }
 
-/** Type hierarchy as three measure lines. */
+/** A T — the type scale. */
 export function TypographyStudioIcon(props: MarkProps) {
-  return (
-    <svg aria-hidden {...mark} {...props}>
-      <path d="M5 7h14M5 12h10M5 17h7" />
-    </svg>
-  );
+  return <Type aria-hidden {...props} />;
 }
 
-/** A rule with ticks — spacing, radius, elevation. */
-export function ScaleStudioIcon(props: MarkProps) {
-  return (
-    <svg aria-hidden {...mark} {...props}>
-      <rect height="8" rx="1" width="16" x="4" y="8" />
-      <path d="M8 8v3M12 8v5M16 8v3" />
-    </svg>
-  );
+/** A rule — spacing steps. */
+export function SpacingStudioIcon(props: MarkProps) {
+  return <Ruler aria-hidden {...props} />;
+}
+
+/** A corner radius. */
+export function RadiusStudioIcon(props: MarkProps) {
+  return <Radius aria-hidden {...props} />;
+}
+
+/** Stacked layers — elevation. */
+export function ElevationStudioIcon(props: MarkProps) {
+  return <Layers aria-hidden {...props} />;
 }
 
 /** A specimen page. */

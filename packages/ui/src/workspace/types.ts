@@ -2,6 +2,7 @@ import type { PaletteProjectData } from "../color/export";
 import type { SemanticToken } from "../color/semantic";
 import type { ButtonScheme } from "../button-tones";
 import type { ElevationScale } from "../scale/elevation";
+import type { LayoutToken } from "../scale/layout-tokens";
 import type { RadiusScale } from "../scale/radius";
 import type { SpacingScale } from "../scale/spacing";
 import type { PreviewDevice } from "../typography/preview-devices";
@@ -37,14 +38,6 @@ export interface TypographyProjectData {
    * become article.
    */
   template: string;
-  /**
-   * Named frames offered in the typography preview.
-   *
-   * Phone, tablet and desktop are always present. A project may add up to
-   * two extra desktop sizes. Older saves that stored a hide/show id list
-   * gain all three required frames on read.
-   */
-  previewDevices: PreviewDevice[];
 }
 
 /**
@@ -105,4 +98,19 @@ export interface WorkspaceProject {
   radius: RadiusScale;
   /** Shadow levels. Filled like the other two scales. */
   elevation: ElevationScale;
+  /**
+   * Named frames for preview and layout.
+   *
+   * Phone, tablet and desktop are always present. A project may add up to
+   * two extra desktop sizes. Older saves kept this list on the typography
+   * slice; a missing root field still lifts from there on read.
+   */
+  previewDevices: PreviewDevice[];
+  /**
+   * Named layout uses that change with viewport width.
+   *
+   * Each row points at a spacing step or radius token per preview device.
+   * Missing on an older save is the seed set, filled against the frames.
+   */
+  layout: LayoutToken[];
 }

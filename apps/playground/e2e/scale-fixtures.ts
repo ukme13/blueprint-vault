@@ -17,20 +17,20 @@ import { defaultProject, seedProject } from "./fixtures";
 
 export async function openScaleStudio(page: Page): Promise<void> {
   await seedProject(page);
-  await page.goto("/scale");
+  await page.goto("/spacing");
   await expect(page.getByLabel("Project name")).toHaveValue(
     defaultProject().name,
   );
 }
 
-/** Show one of the scale views. */
+/** Show one of the scale studios. */
 export async function showScaleView(
   page: Page,
-  name: "Spacing" | "Radius" | "Elevation" | "Preview",
+  name: "Spacing" | "Radius" | "Elevation",
 ): Promise<void> {
   await page
-    .getByRole("navigation", { name: "Scale views" })
-    .getByRole("button", { name, exact: true })
+    .getByRole("navigation", { name: "Blueprint workspaces" })
+    .getByRole("link", { name, exact: true })
     .click();
 }
 

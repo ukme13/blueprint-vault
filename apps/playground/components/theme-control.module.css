@@ -1,0 +1,4 @@
+.expanded {
+  min-width: 0;
+  padding: 0 var(--spacing-3, 12px);
+}

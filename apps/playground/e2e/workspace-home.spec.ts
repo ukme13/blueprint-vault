@@ -1,10 +1,14 @@
-import { expect, test, WORKSPACE_STORAGE_KEY } from "./fixtures";
+import {
+  createWorkspaceFromHome,
+  expect,
+  test,
+  WORKSPACE_STORAGE_KEY,
+} from "./fixtures";
 
 /**
  * Home is the one create path: name + Blueprint seed, then the colour bench.
  *
- * The seed fills colour, type and scale together so the author does not
- * invent the same system on two doors.
+ * Create is a dialog. v1 lists the current browser workspace as a card.
  */
 
 test.describe("Workspace home", () => {
@@ -12,16 +16,24 @@ test.describe("Workspace home", () => {
     await page.goto("/");
     await page.evaluate(() => window.localStorage.clear());
     await page.reload();
+    await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
     await expect(
-      page.getByRole("heading", { name: "New workspace" }),
+      page.getByRole("navigation", { name: "Blueprint" }),
     ).toBeVisible();
+    await expect(
+      page.getByRole("navigation", { name: "Blueprint" }).getByRole("link", {
+        name: "Blueprint",
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("navigation", { name: "Blueprint workspaces" }),
+    ).toHaveCount(0);
   });
 
   test("creates a seeded workspace and opens Shade generator", async ({
     page,
   }) => {
-    await page.getByLabel("Project name").fill("First system");
-    await page.getByRole("button", { name: "Create workspace" }).click();
+    await createWorkspaceFromHome(page, "First system");
 
     await expect(page).toHaveURL(/\/colour\/?$/);
     await expect(
@@ -55,10 +67,13 @@ test.describe("Workspace home", () => {
   });
 
   test("requires a project name", async ({ page }) => {
-    await page.getByLabel("Project name").fill("");
-    await page.getByRole("button", { name: "Create workspace" }).click();
+    await page.getByRole("button", { name: "New project" }).click();
+    const dialog = page.getByRole("dialog", { name: "New project" });
+    await expect(dialog).toBeVisible();
+    await dialog.getByLabel("Project name").fill("");
+    await dialog.getByRole("button", { name: "Create workspace" }).click();
 
-    const error = page.getByText("Enter a project name.", { exact: true });
+    const error = dialog.getByText("Enter a project name.", { exact: true });
     await expect(error).toHaveAttribute("role", "alert");
   });
 
@@ -95,7 +110,7 @@ test.describe("Workspace home", () => {
   test("opens the current workspace instead of creating again", async ({
     page,
   }) => {
-    await page.getByRole("button", { name: "Create workspace" }).click();
+    await createWorkspaceFromHome(page);
     await expect(
       page.getByRole("region", { name: "Generated colour shades" }),
     ).toBeVisible();
@@ -104,7 +119,18 @@ test.describe("Workspace home", () => {
     await expect(
       page.getByRole("heading", { name: "Untitled workspace" }),
     ).toBeVisible();
-    await page.getByRole("button", { name: "Open colour" }).click();
+    const familyRows = page.locator("[data-mosaic-track]");
+    await expect(familyRows).toHaveCount(7);
+    const firstFamily = await familyRows.nth(0).boundingBox();
+    const secondFamily = await familyRows.nth(1).boundingBox();
+    expect(firstFamily).toBeTruthy();
+    expect(secondFamily).toBeTruthy();
+    expect(firstFamily!.y + firstFamily!.height).toBeLessThanOrEqual(
+      secondFamily!.y + 1,
+    );
+    expect(firstFamily!.x).toBe(secondFamily!.x);
+    expect(firstFamily!.width).toBe(secondFamily!.width);
+    await page.getByRole("link", { name: /Untitled workspace/ }).click();
     await expect(page).toHaveURL(/\/colour\/?$/);
     await expect(
       page.getByRole("region", { name: "Generated colour shades" }),
