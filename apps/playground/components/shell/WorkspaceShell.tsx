@@ -26,6 +26,7 @@ import {
   ElevationStudioIcon,
   PreviewStudioIcon,
   RadiusStudioIcon,
+  SettingsMark,
   SpacingStudioIcon,
   TypographyStudioIcon,
 } from "./shell-marks";
@@ -67,7 +68,7 @@ function shouldIgnorePreviewShortcut(target: EventTarget | null): boolean {
  * Home has a TopNav (mark + Blueprint on the left; Settings on the right)
  * and no tool rail. Studios get Blueprint back to Home, the name under that
  * heading, Colour / Typography / Spacing / Radius / Elevation / Preview,
- * theme on the rail, and Settings beside collapse in the footer. Space also
+ * theme on the rail, and Settings as a rail row (preview frames). Space also
  * swaps the current studio with `/preview`.
  */
 export function WorkspaceShell({ children }: { children: ReactNode }) {
@@ -161,13 +162,18 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                 <VStack gap={2}>
                   {!collapsed ? <WorkspaceNameField /> : null}
                   <ThemeControl collapsed={collapsed} />
-                  <WorkspaceSettingsButton
-                    onClick={() => setIsSettingsOpen(true)}
-                  />
                 </VStack>
               }
               footerIcons={<SideNavCollapseButton />}
             >
+              <SideNavItem
+                icon={SettingsMark}
+                label="Settings"
+                onClick={(event) => {
+                  event.preventDefault();
+                  setIsSettingsOpen(true);
+                }}
+              />
               {STUDIOS.map((studio) => (
                 <SideNavItem
                   key={studio.href}

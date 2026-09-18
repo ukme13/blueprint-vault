@@ -31,6 +31,7 @@ import {
   withSpacingSlice,
   withSharedName,
   withTypographySlice,
+  withLayoutTokens,
   withPreviewDevices,
   workspaceFromLegacy,
   workspaceHasStudios,
@@ -724,6 +725,26 @@ describe("preview devices live on the workspace", () => {
     const without = withPreviewDevices(withExtra, defaultPreviewDevices());
     expect(without.previewDevices).toHaveLength(3);
     expect(without.layout[0]?.byDevice).not.toHaveProperty("desktop-extra-1");
+  });
+
+  it("keeps a custom layout use through withLayoutTokens", () => {
+    const custom = {
+      id: "inset-hero",
+      name: "Hero inset",
+      description: "",
+      kind: "spacing" as const,
+      byDevice: { phone: "8", tablet: "10", desktop: "16" },
+    };
+    const next = withLayoutTokens(emptyWorkspace(), [
+      ...defaultLayoutTokens(),
+      custom,
+    ]);
+    expect(next.layout.map((token) => token.id)).toEqual([
+      "inset-container",
+      "gap-section",
+      "radius-surface",
+      "inset-hero",
+    ]);
   });
 });
 

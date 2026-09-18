@@ -26,6 +26,7 @@ test.describe("Workspace shell", () => {
 
     const rail = page.getByRole("navigation", { name: "Blueprint workspaces" });
     await expect(rail.getByRole("link", { name: "Blueprint" })).toBeVisible();
+    await expect(rail.getByRole("button", { name: "Settings" })).toBeVisible();
     await expect(rail.getByRole("link", { name: "Colour" })).toBeVisible();
     await expect(rail.getByRole("link", { name: "Typography" })).toBeVisible();
     await expect(rail.getByRole("link", { name: "Spacing" })).toBeVisible();
@@ -137,6 +138,9 @@ test.describe("Workspace shell", () => {
     await expect(rail.getByRole("link", { name: "Colour" })).toBeVisible();
     await expect(page.getByRole("radiogroup", { name: "Theme" })).toBeHidden();
     await expect(page.getByRole("button", { name: "Theme" })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Settings", exact: true }),
+    ).toBeVisible();
 
     await rail.getByRole("link", { name: "Colour" }).click();
     await expect(page).toHaveURL(/\/colour\/?$/);

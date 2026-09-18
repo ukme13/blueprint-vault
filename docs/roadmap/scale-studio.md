@@ -196,8 +196,9 @@ the canvas, so a 2px hairline does not melt when the page gets roomier.
 Elevation opacity is a 2D pad per mode (contact X, cast Y) writing the
 two stored layers; light and dark stay separate. Named layout uses
 (`--inset-container`, `--gap-section`, `--radius-surface`) point at
-those primitives per workspace preview frame, and are edited in
-Settings, not as extra knobs on this studio. Control heights are still
+those primitives per workspace preview frame, and are edited on Spacing
+and Radius as a Uses section (the semantic layer for those primitives),
+not in Settings. Settings is the shared frames list. Control heights are still
 later — they follow spacing until a product page is wrong without them.
 
 ## Safety and quality rules

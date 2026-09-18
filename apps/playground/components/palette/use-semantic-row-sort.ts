@@ -62,7 +62,7 @@ export class SemanticRowPointerSensor extends PointerSensor {
 interface SemanticRowSort {
   id: string;
   canReorder: boolean;
-  onRowClick: (event: MouseEvent<HTMLTableRowElement>) => void;
+  onRowClick?: (event: MouseEvent<HTMLTableRowElement>) => void;
 }
 
 /** Sortable binding for one semantic row: no transforms, click stays a click. */
@@ -100,7 +100,7 @@ export function useSemanticRowSort({
             ROW_DRAG_DISTANCE
         )
           return;
-        if (!isInteractiveTarget(event.target)) onRowClick(event);
+        if (!isInteractiveTarget(event.target)) onRowClick?.(event);
       },
     },
   };
@@ -110,18 +110,21 @@ export function useSemanticRowSort({
  * Where the drop slot sits, matching `reorderToken`'s insert side.
  *
  * No slot on the dragged row itself, and none across a folder boundary —
- * those drags are a no-op, so a gap there would be a lie.
+ * those drags are a no-op, so a gap there would be a lie. Layout Uses has
+ * no folders: pass `() => true` so dash-ids still get a gap.
  */
 export function dropGapPlacement(
   ids: readonly string[],
   activeId: string | null,
   overId: string | null,
+  sameGroup: (a: string, b: string) => boolean = (a, b) =>
+    semanticGroupOf(a) === semanticGroupOf(b),
 ): { id: string; side: "before" | "after" } | null {
   if (!activeId || !overId || activeId === overId) return null;
   const from = ids.indexOf(activeId);
   const to = ids.indexOf(overId);
   if (from === -1 || to === -1) return null;
-  if (semanticGroupOf(activeId) !== semanticGroupOf(overId)) return null;
+  if (!sameGroup(activeId, overId)) return null;
   return { id: overId, side: from < to ? "after" : "before" };
 }
 
@@ -133,6 +136,7 @@ const DROPPABLE_MEASURING = {
 export function useSemanticTableSort(
   ids: readonly string[],
   onReorder: (activeId: string, overId: string) => void,
+  sameGroup?: (a: string, b: string) => boolean,
 ) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
@@ -150,7 +154,7 @@ export function useSemanticTableSort(
   };
   return {
     activeId,
-    gap: dropGapPlacement(ids, activeId, overId),
+    gap: dropGapPlacement(ids, activeId, overId, sameGroup),
     sensors,
     measuring: DROPPABLE_MEASURING,
     onDragStart: (event: DragStartEvent) => {

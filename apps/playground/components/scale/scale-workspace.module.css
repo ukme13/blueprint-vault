@@ -29,6 +29,119 @@
   background: var(--color-surface-subtle);
 }
 
+.navigation {
+  align-self: stretch;
+  display: flex;
+  align-items: flex-end;
+  min-width: 0;
+  padding-bottom: var(--spacing-2);
+  --_tab-indicator-bottom: calc(-1 * (var(--spacing-2) + 1px));
+  margin-inline-start: calc(-1 * var(--spacing-3));
+}
+
+.usesEditor {
+  min-height: 0;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.uses {
+  min-width: 0;
+  min-height: 0;
+  padding: 24px 18px;
+  overflow-y: auto;
+  display: grid;
+  align-content: start;
+  gap: var(--spacing-3);
+}
+
+.usesToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+.usesToolbar h2 {
+  margin: 0;
+  color: var(--color-fg-primary);
+  font-size: var(--font-size-base);
+  font-weight: 650;
+}
+
+.uses h2 {
+  margin: 0;
+  color: var(--color-fg-primary);
+  font-size: var(--font-size-base);
+  font-weight: 650;
+}
+
+.usesHint {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: 11px;
+}
+
+.usesNameCell {
+  display: grid;
+  gap: var(--spacing-1);
+  min-width: 0;
+}
+
+.usesRow[data-can-reorder] {
+  cursor: grab;
+}
+
+.usesRow[data-dragging] {
+  cursor: grabbing;
+  opacity: 0.45;
+}
+
+.usesDropGap td {
+  height: var(--spacing-10);
+  padding: 0;
+  background: var(--color-action-primary-surface);
+  border-color: var(--color-action-primary);
+}
+
+.usesDragOverlay {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-2) var(--spacing-4);
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  color: var(--color-fg-primary);
+  cursor: grabbing;
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.usesVar,
+.usesWidth {
+  display: block;
+  color: var(--color-fg-muted);
+  font-size: 11px;
+}
+
+.usesWidth {
+  font-weight: 400;
+}
+
 .headerActions {
   margin-left: auto;
   min-width: 0;

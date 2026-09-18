@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { defaultElevationScale } from "../scale/elevation";
+import { defaultLayoutTokens } from "../scale/layout-tokens";
+import { setLayoutReference } from "../scale/layout-edit";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import {
@@ -82,6 +84,7 @@ describe("createScaleHistory", () => {
       spacing: { ...defaultSpacingScale(), baseUnitPx: 2 },
       radius: defaultRadiusScale(),
       elevation: defaultElevationScale(),
+      layout: defaultLayoutTokens(),
     });
 
     expect(history.size).toBe(before);
@@ -97,9 +100,26 @@ describe("createScaleHistory", () => {
       spacing: { baseUnitPx: 8, density: 1, steps: [1, 2] },
       radius: defaultRadiusScale(),
       elevation: defaultElevationScale(),
+      layout: defaultLayoutTokens(),
     });
 
     expect(next.name).toBe("Kept");
     expect(next.spacing.baseUnitPx).toBe(8);
+  });
+
+  it("puts a layout pointer back without touching spacing", () => {
+    const history = createScaleHistory(snapshot());
+    history.commit({
+      layout: setLayoutReference(
+        history.present.layout,
+        "gap-section",
+        "phone",
+        "8",
+      ),
+    });
+
+    expect(history.present.layout[1]?.byDevice.phone).toBe("8");
+    expect(history.undo()?.layout[1]?.byDevice.phone).toBe("6");
+    expect(history.present.spacing.steps).toEqual(defaultSpacingScale().steps);
   });
 });

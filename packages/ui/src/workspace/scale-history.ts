@@ -1,18 +1,19 @@
 import { createHistory, type History } from "../history";
 import { defaultElevationScale, type ElevationScale } from "../scale/elevation";
+import { defaultLayoutTokens, type LayoutToken } from "../scale/layout-tokens";
 import { defaultRadiusScale, type RadiusScale } from "../scale/radius";
 import { defaultSpacingScale, type SpacingScale } from "../scale/spacing";
 import type { WorkspaceProject } from "./types";
-import { emptyWorkspace } from "./workspace";
+import { emptyWorkspace, withLayoutTokens } from "./workspace";
 
 /**
- * Undo for the three scale slices.
+ * Undo for the scale slices and the layout uses that point at them.
  *
  * Spacing, radius and elevation are one history because they are one
  * scale system: an undo means the last thing I did on any of those
  * pages, not "the last spacing edit, ignoring the roundness I just
- * dragged". The generic stack holds the values; this file only decides
- * when a write is a new step.
+ * dragged". Layout uses sit in the same stack: pointing inset at a
+ * different step is a scale edit, not a settings preference.
  *
  * See docs/roadmap/scale-studio.md.
  */
@@ -21,6 +22,7 @@ export interface ScaleSnapshot {
   spacing: SpacingScale;
   radius: RadiusScale;
   elevation: ElevationScale;
+  layout: LayoutToken[];
 }
 
 /** How many undo steps the scale studio keeps. */
@@ -56,15 +58,23 @@ function cloneElevation(scale: ElevationScale): ElevationScale {
   };
 }
 
+function cloneLayout(tokens: readonly LayoutToken[]): LayoutToken[] {
+  return tokens.map((token) => ({
+    ...token,
+    byDevice: { ...token.byDevice },
+  }));
+}
+
 export function cloneScaleSnapshot(snapshot: ScaleSnapshot): ScaleSnapshot {
   return {
     spacing: cloneSpacing(snapshot.spacing),
     radius: cloneRadius(snapshot.radius),
     elevation: cloneElevation(snapshot.elevation),
+    layout: cloneLayout(snapshot.layout),
   };
 }
 
-/** The three slices as they stand in a workspace. */
+/** The scale slices and layout uses as they stand in a workspace. */
 export function scaleSnapshotOf(
   project: WorkspaceProject | null,
 ): ScaleSnapshot {
@@ -72,6 +82,7 @@ export function scaleSnapshotOf(
     spacing: project?.spacing ?? defaultSpacingScale(),
     radius: project?.radius ?? defaultRadiusScale(),
     elevation: project?.elevation ?? defaultElevationScale(),
+    layout: project?.layout ?? defaultLayoutTokens(),
   });
 }
 
@@ -81,12 +92,15 @@ export function workspaceWithScaleSnapshot(
   snapshot: ScaleSnapshot,
 ): WorkspaceProject {
   const cloned = cloneScaleSnapshot(snapshot);
-  return {
-    ...(current ?? emptyWorkspace()),
-    spacing: cloned.spacing,
-    radius: cloned.radius,
-    elevation: cloned.elevation,
-  };
+  return withLayoutTokens(
+    {
+      ...(current ?? emptyWorkspace()),
+      spacing: cloned.spacing,
+      radius: cloned.radius,
+      elevation: cloned.elevation,
+    },
+    cloned.layout,
+  );
 }
 
 export interface ScaleHistory {
@@ -142,6 +156,7 @@ export function createScaleHistory(
         spacing: patch.spacing ?? present.spacing,
         radius: patch.radius ?? present.radius,
         elevation: patch.elevation ?? present.elevation,
+        layout: patch.layout ?? present.layout,
       });
       const coalesces = key !== undefined && key === openEdit;
       openEdit = key;

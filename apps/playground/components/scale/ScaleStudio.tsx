@@ -4,11 +4,14 @@ import { useState, type CSSProperties, type KeyboardEvent } from "react";
 import { usePathname } from "next/navigation";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
+import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Redo2, Undo2 } from "lucide-react";
 import {
   Button,
   DEFAULT_WORKSPACE_NAME,
   defaultElevationScale,
+  defaultLayoutTokens,
+  defaultPreviewDevices,
   defaultRadiusScale,
   defaultSpacingScale,
   emptyWorkspace,
@@ -20,12 +23,14 @@ import {
 import { SystemExportDialog } from "../SystemExportDialog";
 import { ElevationCanvas } from "./ElevationEditor";
 import { ElevationInspector } from "./ElevationInspector";
+import { LayoutUsesTable } from "./LayoutUsesTable";
 import { RadiusCanvas, RadiusInspector } from "./RadiusEditor";
 import { SpacingCanvas, SpacingInspector } from "./SpacingEditor";
 import { useScaleHistory } from "./use-scale-history";
 import styles from "./scale-workspace.module.css";
 
 type ScaleSection = "spacing" | "radius" | "elevation";
+type StudioView = "scale" | "uses";
 
 function sectionFromPath(pathname: string): ScaleSection {
   if (pathname === "/radius" || pathname.startsWith("/radius/")) {
@@ -44,6 +49,12 @@ export function ScaleStudio() {
   const history = useScaleHistory(store);
   const [detachedBaseUnit, setDetachedBaseUnit] = useState<number | null>(null);
   const [isExportOpen, setIsExportOpen] = useState(false);
+  const [studioView, setStudioView] = useState<StudioView>("scale");
+  const [viewSection, setViewSection] = useState(activeSection);
+  if (viewSection !== activeSection) {
+    setViewSection(activeSection);
+    setStudioView("scale");
+  }
   const settingsPanel = useResizable({
     autoSaveId: "blueprint-scale-settings",
     defaultSize: 350,
@@ -55,8 +66,13 @@ export function ScaleStudio() {
   const spacing = project?.spacing ?? defaultSpacingScale();
   const radius = project?.radius ?? defaultRadiusScale();
   const elevation = project?.elevation ?? defaultElevationScale();
+  const layout = project?.layout ?? defaultLayoutTokens();
+  const previewDevices = project?.previewDevices ?? defaultPreviewDevices();
   const palettes = project?.palette ? generatePalettes(project.palette) : [];
   const tokens = resolveSpacing(spacing);
+  const showUses =
+    studioView === "uses" &&
+    (activeSection === "spacing" || activeSection === "radius");
 
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     const target = event.target as HTMLElement;
@@ -123,6 +139,18 @@ export function ScaleStudio() {
   return (
     <div className={styles.workspace} onKeyDown={onKeyDown}>
       <header className={styles.topbar}>
+        {(activeSection === "spacing" || activeSection === "radius") && (
+          <nav aria-label="Scale sections" className={styles.navigation}>
+            <TabList
+              size="sm"
+              value={studioView}
+              onChange={(value) => setStudioView(value as StudioView)}
+            >
+              <Tab label="Scale" value="scale" />
+              <Tab label="Uses" value="uses" />
+            </TabList>
+          </nav>
+        )}
         <span className={styles.headerActions}>
           <Button
             scheme="neutral"
@@ -159,83 +187,98 @@ export function ScaleStudio() {
       </section>
 
       <section
-        className={styles.editor}
+        className={showUses ? styles.usesEditor : styles.editor}
         style={
-          {
-            "--inspector-width": `${settingsPanel.size}px`,
-          } as CSSProperties
+          showUses
+            ? undefined
+            : ({
+                "--inspector-width": `${settingsPanel.size}px`,
+              } as CSSProperties)
         }
       >
-        <section
-          aria-label={
-            activeSection === "spacing"
-              ? "Spacing canvas"
-              : activeSection === "radius"
-                ? "Radius canvas"
-                : "Elevation canvas"
-          }
-          className={styles.canvas}
-        >
-          {activeSection === "spacing" && <SpacingCanvas tokens={tokens} />}
-          {activeSection === "radius" && (
-            <RadiusCanvas
-              scale={radius}
-              onChange={(next, editKey) =>
-                history.write({ radius: next }, { editKey })
+        {showUses ? (
+          <LayoutUsesTable
+            devices={previewDevices}
+            kind={activeSection === "radius" ? "radius" : "spacing"}
+            radius={radius}
+            spacing={spacing}
+            tokens={layout}
+            onChange={(next) => history.write({ layout: next })}
+          />
+        ) : (
+          <>
+            <section
+              aria-label={
+                activeSection === "spacing"
+                  ? "Spacing canvas"
+                  : activeSection === "radius"
+                    ? "Radius canvas"
+                    : "Elevation canvas"
               }
-            />
-          )}
-          {activeSection === "elevation" && (
-            <ElevationCanvas palettes={palettes} scale={elevation} />
-          )}
-        </section>
+              className={styles.canvas}
+            >
+              {activeSection === "spacing" && <SpacingCanvas tokens={tokens} />}
+              {activeSection === "radius" && (
+                <RadiusCanvas
+                  scale={radius}
+                  onChange={(next, editKey) =>
+                    history.write({ radius: next }, { editKey })
+                  }
+                />
+              )}
+              {activeSection === "elevation" && (
+                <ElevationCanvas palettes={palettes} scale={elevation} />
+              )}
+            </section>
 
-        <ResizeHandle
-          className={styles.resizeHandle}
-          direction="horizontal"
-          hasDivider
-          isReversed
-          label="Resize scale settings"
-          pillPlacement="center"
-          resizable={settingsPanel.props}
-          onKeyDown={(event) => {
-            if (event.key === "ArrowLeft") {
-              event.preventDefault();
-              settingsPanel.resize(settingsPanel.size + 10);
-            }
-            if (event.key === "ArrowRight") {
-              event.preventDefault();
-              settingsPanel.resize(settingsPanel.size - 10);
-            }
-            if (event.key === "Home") {
-              event.preventDefault();
-              settingsPanel.resize(300);
-            }
-            if (event.key === "End") {
-              event.preventDefault();
-              settingsPanel.resize(560);
-            }
-          }}
-        />
-
-        <aside className={styles.inspector}>
-          <div className={styles.inspectorHeader}>
-            {activeSection === "spacing" && "Spacing settings"}
-            {activeSection === "radius" && "Radius settings"}
-            {activeSection === "elevation" && "Elevation settings"}
-          </div>
-          {activeSection === "spacing" && spacingInspector}
-          {activeSection === "radius" && radiusInspector}
-          {activeSection === "elevation" && (
-            <ElevationInspector
-              palettes={palettes}
-              scale={elevation}
-              onChange={(next, editKey) =>
-                history.write({ elevation: next }, { editKey })
-              }
+            <ResizeHandle
+              className={styles.resizeHandle}
+              direction="horizontal"
+              hasDivider
+              isReversed
+              label="Resize scale settings"
+              pillPlacement="center"
+              resizable={settingsPanel.props}
+              onKeyDown={(event) => {
+                if (event.key === "ArrowLeft") {
+                  event.preventDefault();
+                  settingsPanel.resize(settingsPanel.size + 10);
+                }
+                if (event.key === "ArrowRight") {
+                  event.preventDefault();
+                  settingsPanel.resize(settingsPanel.size - 10);
+                }
+                if (event.key === "Home") {
+                  event.preventDefault();
+                  settingsPanel.resize(300);
+                }
+                if (event.key === "End") {
+                  event.preventDefault();
+                  settingsPanel.resize(560);
+                }
+              }}
             />
-          )}
-        </aside>
+
+            <aside className={styles.inspector}>
+              <div className={styles.inspectorHeader}>
+                {activeSection === "spacing" && "Spacing settings"}
+                {activeSection === "radius" && "Radius settings"}
+                {activeSection === "elevation" && "Elevation settings"}
+              </div>
+              {activeSection === "spacing" && spacingInspector}
+              {activeSection === "radius" && radiusInspector}
+              {activeSection === "elevation" && (
+                <ElevationInspector
+                  palettes={palettes}
+                  scale={elevation}
+                  onChange={(next, editKey) =>
+                    history.write({ elevation: next }, { editKey })
+                  }
+                />
+              )}
+            </aside>
+          </>
+        )}
       </section>
 
       <SystemExportDialog

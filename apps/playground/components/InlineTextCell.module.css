@@ -1,0 +1,35 @@
+.textFill {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+}
+
+.read,
+.edit {
+  display: block;
+  box-sizing: border-box;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  height: 1.25em;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: 1.25em;
+  text-align: left;
+  outline: none;
+}
+
+.read {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: text;
+}
+
+.edit:focus {
+  box-shadow: inset 0 -1px 0 var(--color-fg-accent);
+}

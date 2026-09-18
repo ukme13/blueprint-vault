@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
-import { WORKSPACE_STORAGE_KEY } from "./fixtures";
+import type { Locator, Page } from "@playwright/test";
+import { defaultProject, WORKSPACE_STORAGE_KEY } from "./fixtures";
 import { expect, showScaleView, test } from "./scale-fixtures";
 import { fillHybridNumber } from "./typography-fixtures";
 
@@ -540,3 +541,177 @@ test.describe("The scale studio's chrome", () => {
     await expect(page.getByLabel("Project name")).toHaveValue("Renamed here");
   });
 });
+
+test.describe("Layout uses", () => {
+  test("Spacing Uses lists inset and gap, not surface radius", async ({
+    seededPage: page,
+  }) => {
+    await page
+      .getByRole("navigation", { name: "Scale sections" })
+      .getByRole("button", { name: "Uses" })
+      .click();
+
+    const uses = page.getByRole("region", { name: "Spacing uses" });
+    await expect(uses.getByLabel("inset-container name")).toHaveValue(
+      "Container inset",
+    );
+    await expect(uses.getByLabel("gap-section name")).toHaveValue(
+      "Section gap",
+    );
+    await expect(uses.getByLabel("radius-surface name")).toHaveCount(0);
+    await expect(
+      page.getByRole("region", { name: "Generated spacing steps" }),
+    ).toHaveCount(0);
+  });
+
+  test("Radius Uses lists surface radius, not inset", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Radius");
+    await expect(
+      page.getByRole("region", { name: "Radius canvas" }),
+    ).toBeVisible();
+    await page
+      .getByRole("navigation", { name: "Scale sections" })
+      .getByRole("button", { name: "Uses" })
+      .click();
+    await expect(
+      page.getByRole("region", { name: "Radius uses" }),
+    ).toBeVisible();
+
+    const uses = page.getByRole("region", { name: "Radius uses" });
+    await expect(uses.getByLabel("radius-surface name")).toHaveValue(
+      "Surface radius",
+    );
+    await expect(uses.getByLabel("inset-container name")).toHaveCount(0);
+  });
+
+  test("adds a use, renames it, and keeps it across a reload", async ({
+    seededPage: page,
+  }) => {
+    const uses = await openSpacingUses(page);
+    await uses.getByRole("button", { name: "Add use" }).click();
+    const field = uses.getByLabel("new-use name");
+    await field.fill("Hero inset");
+    await field.press("Enter");
+
+    await expect(uses.getByText("--hero-inset", { exact: true })).toBeVisible();
+
+    await page.reload();
+    await expect(page.getByLabel("Project name")).toHaveValue(
+      defaultProject().name,
+    );
+    const after = await openSpacingUses(page);
+    await expect(
+      after.getByText("--hero-inset", { exact: true }),
+    ).toBeVisible();
+
+    const stored = await page.evaluate(
+      (key) => window.localStorage.getItem(key),
+      WORKSPACE_STORAGE_KEY,
+    );
+    expect(stored).not.toBeNull();
+    expect(
+      JSON.parse(stored!).layout.map((token: { id: string }) => token.id),
+    ).toContain("hero-inset");
+  });
+
+  test("duplicates and deletes a spacing use", async ({ seededPage: page }) => {
+    const uses = await openSpacingUses(page);
+    await uses
+      .getByRole("button", { name: "Actions for Container inset" })
+      .click();
+    await page.getByRole("menuitem", { name: "Duplicate" }).click();
+    await expect(
+      uses.getByText("--inset-container-copy", { exact: true }),
+    ).toBeVisible();
+
+    await uses
+      .getByRole("button", { name: "Actions for Container inset copy" })
+      .click();
+    await page.getByRole("menuitem", { name: "Delete" }).click();
+    await expect(
+      uses.getByText("--inset-container-copy", { exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      uses.getByText("--inset-container", { exact: true }),
+    ).toBeVisible();
+  });
+
+  test("dragging a row body reorders spacing uses", async ({
+    seededPage: page,
+  }) => {
+    const uses = await openSpacingUses(page);
+    await dragRowBody(
+      page,
+      uses.locator('tr:has([data-token="gap-section"]) code'),
+      uses.locator('tr:has([data-token="inset-container"]) code'),
+    );
+    await expect
+      .poll(() => rowIds(uses))
+      .toEqual(["gap-section", "inset-container"]);
+  });
+
+  test("cell fields bind a spacing step or a typed px", async ({
+    seededPage: page,
+  }) => {
+    const uses = await openSpacingUses(page);
+    const phone = uses.getByLabel("Container inset on Phone");
+    await phone.click();
+    const listbox = page.getByRole("listbox", { name: "Spacing steps" });
+    await expect(listbox.getByRole("option").first()).toBeVisible();
+    await expect(listbox.getByText("16px", { exact: true })).toBeVisible();
+
+    await uses
+      .getByRole("cell", { name: "Container inset on Phone" })
+      .getByLabel("Custom number")
+      .click();
+    await page.keyboard.type("20");
+    await expect(phone).toHaveValue("20");
+    await phone.blur();
+
+    const stored = await page.evaluate(
+      (key) => window.localStorage.getItem(key),
+      WORKSPACE_STORAGE_KEY,
+    );
+    expect(stored).not.toBeNull();
+    const inset = JSON.parse(stored!).layout.find(
+      (token: { id: string }) => token.id === "inset-container",
+    );
+    expect(inset.byDevice.phone).toBe("20px");
+  });
+});
+
+async function openSpacingUses(page: Page): Promise<Locator> {
+  await page
+    .getByRole("navigation", { name: "Scale sections" })
+    .getByRole("button", { name: "Uses" })
+    .click();
+  const uses = page.getByRole("region", { name: "Spacing uses" });
+  await expect(uses).toBeVisible();
+  return uses;
+}
+
+function rowIds(uses: Locator) {
+  return uses
+    .locator("[data-layout-token]")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => node.getAttribute("data-layout-token")),
+    );
+}
+
+async function dragRowBody(
+  page: Page,
+  from: Locator,
+  to: Locator,
+): Promise<void> {
+  const start = await from.boundingBox();
+  const end = await to.boundingBox();
+  if (!start || !end) throw new Error("Expected row body to be visible");
+  await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(end.x + end.width / 2, end.y + end.height / 2, {
+    steps: 12,
+  });
+  await page.mouse.up();
+}
