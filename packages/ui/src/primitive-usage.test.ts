@@ -278,8 +278,13 @@ const CHROME_ALLOWED: ReadonlyArray<[RegExp, RegExp]> = [
   [/scale[\\/]ElevationEditor\.tsx$/, /^--color-neutral-(?:50|900)$/],
   // Elevation opacity thumbs sit on a pale well and a dark one. A semantic
   // border follows the studio mode and vanishes on one of the two; the same
-  // mid grey the colour rails use does not follow the mode.
-  [/scale[\\/]scale-workspace\.module\.css$/, /^--color-neutral-300$/],
+  // mid grey the colour rails use does not follow the mode. The pad thumb
+  // ring is the pale/dark pair the colour thumbs already keep, for the same
+  // reason: it has to read on any shadow hue.
+  [
+    /scale[\\/]scale-workspace\.module\.css$/,
+    /^--color-neutral-(?:50|300|950)$/,
+  ],
   // The hue slider is a rainbow: its stops are literal by definition.
   // The lightness rails are a true L scale (black to white), not a
   // theme colour — `--color-neutral-*` is tinted and would follow the mode.
@@ -293,6 +298,8 @@ const CHROME_ALLOWED: ReadonlyArray<[RegExp, RegExp]> = [
     /palette[\\/](?:PaletteCreation|PaletteStudio|TrackDetailDialog|PreviewAccessibility)\.tsx$/,
     /^(?:#[0-9a-f]{6}|oklch\()$/i,
   ],
+  // Home's project card is a picture of the palette, not studio chrome.
+  [/home[\\/]ProjectMosaic\.tsx$/, /^oklch\($/],
 ];
 
 describe("the studio chrome", () => {
