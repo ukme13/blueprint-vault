@@ -27,12 +27,13 @@ import {
   emptyWorkspace,
   loadStoredWorkspace,
   saveStoredWorkspace,
-  seedPaletteTracks,
   semanticsForPalette,
   updateStoredWorkspace,
   withPaletteSlice,
   useWorkspaceStore,
   withSharedName,
+  withSeededPaletteSlice,
+  workspaceHasStudios,
   type WorkspaceProject,
   defaultLightnessValues,
   clampLightnessValue,
@@ -49,7 +50,7 @@ import {
 } from "@blueprint/ui";
 import { SystemExportDialog } from "../SystemExportDialog";
 import { VisionControl } from "../VisionControl";
-import { PaletteCreation } from "./PaletteCreation";
+import { StudioSliceEmpty } from "../shell/StudioSliceEmpty";
 import { PaletteControls } from "./PaletteControls";
 import { ColourPicker } from "./ColourPicker";
 import { PaletteMatrix } from "./PaletteMatrix";
@@ -261,7 +262,7 @@ function PaletteStudioContent() {
   }, []);
 
   useEffect(() => {
-    if (!hasLoadedProject) return;
+    if (!hasLoadedProject || !project) return;
 
     writeStoredProject(project);
   }, [hasLoadedProject, project]);
@@ -331,34 +332,16 @@ function PaletteStudioContent() {
 
   if (!project) {
     return (
-      <PaletteCreation
-        onImport={(imported) => {
-          writeImportedWorkspace(imported);
-          setForeign(imported);
-          setSemantics(imported.semantics);
-          setName(imported.name);
-          setProject(imported.palette);
-        }}
-        onCreate={({ name: chosenName, seedHex, secondaryHex, method }) => {
-          const generated = method === "generated";
-          const primarySeed = generated ? "#3b66f5" : normalizeHex(seedHex);
-          /* Undefined rather than a colour when the generated set was chosen:
-             the seed's own second brand colour is the right answer there, and
-             passing one from a form nobody filled in would look like a choice. */
-          const secondarySeed = generated
-            ? undefined
-            : normalizeHex(secondaryHex);
-          const palette: PaletteProject = {
-            tracks: seedPaletteTracks(primarySeed, secondarySeed),
-            lightnessPattern: "custom",
-            lightnessValues: createPatternValues("custom"),
-          };
-          /* Seed through the store, not only through withPaletteSlice on the
-             next persist: the Semantics tab and Accessibility read the store,
-             and writeStoredProject never pushes its result back into React. */
-          setName(chosenName);
-          setProject(palette);
-          setSemantics(semanticsForPalette(palette));
+      <StudioSliceEmpty
+        slice="Colour"
+        onSeed={() => {
+          const current = workspace.project;
+          if (!current || !workspaceHasStudios(current)) return;
+          const next = withSeededPaletteSlice(current);
+          workspace.save(next);
+          setProject(next.palette);
+          setSemantics(next.semantics);
+          setName(next.name);
           setActiveSection("shade-generator");
         }}
       />

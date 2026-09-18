@@ -44,8 +44,8 @@ export interface TypographyProjectData {
  * One document for both studios.
  *
  * A slice is `null` when that studio has never been used, which is not the same
- * as it holding an empty default — a user with only a palette must still land
- * on the typography creation screen rather than a scale nobody chose.
+ * as it holding an empty default — a user with only a palette still sees
+ * Typography as “not opened yet,” not a second create form.
  */
 export interface WorkspaceProject {
   /** One name for the workspace. Both studios show and edit this. */

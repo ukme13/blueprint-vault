@@ -16,7 +16,11 @@ import {
   readLegacyPaletteName,
   readPaletteProjectData,
 } from "./palette-project";
-import { seedWorkspaceProject } from "./seed-project";
+import {
+  seedWorkspaceProject,
+  withSeededPaletteSlice,
+  withSeededTypographySlice,
+} from "./seed-project";
 import {
   DEFAULT_WORKSPACE_NAME,
   LEGACY_PALETTE_STORAGE_KEY,
@@ -347,6 +351,61 @@ describe("slice writes", () => {
     expect(withPaletteSlice(both, both.palette, "Renamed").name).toBe(
       "Renamed",
     );
+  });
+});
+
+describe("withSeededPaletteSlice", () => {
+  it("fills a missing palette without touching typography", () => {
+    const typeOnly = withTypographySlice(
+      null,
+      seedWorkspaceProject("Type first").typography,
+    );
+    const next = withSeededPaletteSlice(typeOnly);
+    expect(next.palette?.tracks).toHaveLength(7);
+    expect(next.semantics).toHaveLength(72);
+    expect(next.typography?.system.name).toBe("Type first");
+  });
+
+  it("leaves an existing palette alone", () => {
+    const seeded = seedWorkspaceProject("Kept");
+    expect(withSeededPaletteSlice(seeded).palette).toBe(seeded.palette);
+  });
+});
+
+describe("withSeededTypographySlice", () => {
+  it("fills a missing type scale without touching the palette", () => {
+    const colourOnly = withPaletteSlice(
+      null,
+      seedWorkspaceProject("Colour first").palette,
+      "Colour first",
+    );
+    const next = withSeededTypographySlice(colourOnly);
+    expect(next.typography?.system.name).toBe("Colour first");
+    expect(next.palette?.tracks[0]?.id).toBe("primary");
+  });
+
+  it("leaves an existing type scale alone", () => {
+    const seeded = seedWorkspaceProject("Kept");
+    expect(withSeededTypographySlice(seeded).typography).toBe(
+      seeded.typography,
+    );
+  });
+});
+
+describe("Home seed through storage", () => {
+  it("still has a display role and two fonts after a JSON round-trip", () => {
+    /* `normalizeStoredSystem` reindexes a lone `display-1` to `display`.
+       Home create always round-trips; the leftover type form used to assert
+       the in-memory id before a reload. */
+    const seeded = seedWorkspaceProject("Pairing");
+    const read = readWorkspaceProject(JSON.parse(JSON.stringify(seeded)));
+    expect(read?.typography?.system.roles.map((role) => role.id)).toContain(
+      "display",
+    );
+    expect(read?.typography?.system.fonts.map((font) => font.name)).toEqual([
+      "Display",
+      "Main",
+    ]);
   });
 });
 

@@ -295,7 +295,7 @@ const CHROME_ALLOWED: ReadonlyArray<[RegExp, RegExp]> = [
   // white and black a contrast ratio is measured against, and a value read
   // back out of the palette. None of these style the studio.
   [
-    /palette[\\/](?:PaletteCreation|PaletteStudio|TrackDetailDialog|PreviewAccessibility)\.tsx$/,
+    /palette[\\/](?:PaletteStudio|TrackDetailDialog|PreviewAccessibility)\.tsx$/,
     /^(?:#[0-9a-f]{6}|oklch\()$/i,
   ],
   // Home's project card is a picture of the palette, not studio chrome.

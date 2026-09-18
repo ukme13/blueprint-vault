@@ -424,11 +424,11 @@ test.describe("Interface feedback", () => {
       .getByRole("link", { name: "Typography" })
       .click();
     await expect(page).toHaveURL(/\/typography\/?$/);
-    /* Palette-only seeds still land on the leftover type-scale form. Home is
+    /* Palette-only seeds still land on the leftover type empty state. Home is
        the create door either way; this page must not grow a New project. */
     await expect(
       page
-        .getByRole("heading", { name: "Create your type scale" })
+        .getByRole("heading", { name: "This slice isn't open yet" })
         .or(page.getByRole("region", { name: "Generated type steps" })),
     ).toBeVisible();
     await expect(page.getByRole("button", { name: "New project" })).toHaveCount(

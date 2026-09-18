@@ -13,8 +13,9 @@ palette, typography, semantics, and scales in a single slice-aware store. See
 [workspace-project-merge.md](workspace-project-merge.md). The UI still behaves
 as if each studio were its own product:
 
-- Colour has a create door (colours + method tiles).
-- Typography has its own create door.
+- Colour had a leftover create door (colours + method tiles). Retired in
+  Stage 3; Home is the only New project path.
+- Typography had its own create door. Retired in Stage 3.
 - Scale and Preview assume something is already there.
 - Studio links live in a topbar strip next to section tabs and theme controls.
 
@@ -56,8 +57,8 @@ These are product decisions, not open questions:
   already know how to mint a full workspace from a palette (and null semantics
   vs empty array matters for reseeding).
 - Colour create now seeds semantics same-session and opens Shade generator
-  (Impeccable onboard). Creation UI was distilled to a short form; this plan
-  moves that responsibility to Home and retires per-studio doors.
+  (Impeccable onboard). Creation UI moved to Home; studio create doors are
+  gone.
 - Routes: `/` Home (project list, no rail), `/colour`, `/typography`,
   `/spacing`, `/radius`, `/elevation`, `/preview`. `/scale` redirects to
   spacing. Studios render inside `WorkspaceShell` with the left rail.
@@ -101,13 +102,12 @@ control on the expanded rail and a sun/moon menu when collapsed, project
 name under Blueprint. Home has no tool rail. Studio pages render inside
 the shell. Section tooling stays local. `WorkspaceNav` is gone.
 
-### Stage 3 — Retire studio create doors
+### Stage 3 — Retire studio create doors ✅ done
 
-- When a workspace exists, Colour / Typography never show a full-page create
-  card. Empty slice → short empty state (“Seed from Blueprint” / “This slice
-  isn’t open yet”) that fills from the same seed helpers, or simply rely on
-  Stage 1 always seeding all slices.
-- Preferred: Stage 1 seeds **all** slices so empty states are rare.
+Home is the only New project path. Visiting a studio with nothing stored
+returns Home. A leftover empty slice is “not opened yet,” with Seed from
+Blueprint filling that slice from the same seed helpers — not a second
+create form.
 
 ### Stage 4 — Optional follow-ons
 
