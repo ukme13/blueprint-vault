@@ -91,6 +91,7 @@ test.describe("Typography export", () => {
 
   test("downloads the generated CSS file", async ({ seededPage: page }) => {
     await page.getByLabel("Project name").fill("Ferre Type");
+    await page.getByLabel("Project name").blur();
     await page.getByRole("button", { name: "Export type scale" }).click();
 
     const downloadPromise = page.waitForEvent("download");

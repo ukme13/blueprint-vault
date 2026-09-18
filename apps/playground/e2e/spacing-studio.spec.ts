@@ -195,9 +195,9 @@ test.describe("The radius editor", () => {
     await slider.press("ArrowRight");
 
     await expect(page.getByLabel("Element", { exact: true })).toHaveValue("20");
-    await expect(page.getByLabel("Container", { exact: true })).toContainText(
-      "15",
-    );
+    await expect(
+      radius.getByRole("button", { name: "Container", exact: true }),
+    ).toContainText("15");
     await expect(radius.getByText(/9999px/)).toBeVisible();
     await expect(radius.getByText("0px · fixed")).toBeVisible();
 

@@ -27,7 +27,7 @@ test.describe("Shade details", () => {
     ).toBeVisible();
     await contrastMode.click();
     await expect(contrastMode).toHaveAttribute("aria-pressed", "true");
-    await expect(contrastRatios).toHaveCount(120);
+    await expect(contrastRatios).toHaveCount(140);
 
     const ratioAgainstWhite = await shade.getAttribute("data-contrast-ratio");
     expect(ratioAgainstWhite).not.toBe("1.0");
@@ -349,7 +349,10 @@ test.describe("Colour track actions", () => {
     });
     await brandHandle.focus();
     await page.keyboard.press("ArrowDown");
-    await expect(trackRows.nth(0)).toHaveAttribute("data-track-id", "neutral");
+    await expect(trackRows.nth(0)).toHaveAttribute(
+      "data-track-id",
+      "secondary",
+    );
     await expect(trackRows.nth(1)).toHaveAttribute("data-track-id", "primary");
 
     await page
@@ -359,25 +362,25 @@ test.describe("Colour track actions", () => {
       has: page.getByLabel("Colour name"),
     });
     await colourDialog.getByRole("button", { name: "Duplicate" }).click();
-    await expect(trackRows).toHaveCount(7);
+    await expect(trackRows).toHaveCount(8);
     await expect(
       page.getByRole("button", { name: "Open brand-copy colour details" }),
     ).toBeVisible();
 
     await page.getByRole("button", { name: "Add colour" }).click();
-    await expect(trackRows).toHaveCount(8);
+    await expect(trackRows).toHaveCount(9);
 
     await page
-      .getByRole("button", { name: "Open custom-8 colour details" })
+      .getByRole("button", { name: "Open custom-9 colour details" })
       .click();
     await page.getByRole("button", { name: "Delete", exact: true }).click();
     const deleteConfirmation = page.getByRole("alertdialog", {
-      name: "Delete custom-8?",
+      name: "Delete custom-9?",
     });
     await deleteConfirmation
       .getByRole("button", { name: "Delete colour" })
       .click();
-    await expect(trackRows).toHaveCount(7);
+    await expect(trackRows).toHaveCount(8);
   });
 
   test("supports quick name and source colour edits on the card", async ({

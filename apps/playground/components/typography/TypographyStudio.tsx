@@ -904,7 +904,7 @@ export function TypographyStudio() {
 
       <TypographyExportDialog
         isOpen={isExportDialogOpen}
-        projectName={system.name}
+        projectName={workspace.project?.name ?? system.name}
         system={system}
         unit={project.unit}
         remRootPx={project.remRootPx}
