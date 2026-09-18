@@ -32,10 +32,7 @@ import {
   SpacingStudioIcon,
   TypographyStudioIcon,
 } from "./shell-marks";
-import {
-  WorkspaceSettingsButton,
-  WorkspaceSettingsDialog,
-} from "./WorkspaceSettings";
+import { WorkspaceSettingsDialog } from "./WorkspaceSettings";
 import { WorkspaceNameField } from "./WorkspaceNameField";
 
 const RAIL_COLLAPSED_KEY = "blueprint.shell.rail-collapsed";
@@ -67,11 +64,11 @@ function shouldIgnorePreviewShortcut(target: EventTarget | null): boolean {
 /**
  * One app frame for Home and the studios.
  *
- * Home has a TopNav (mark + Blueprint on the left; Settings on the right)
- * and no tool rail. Studios get Blueprint back to Home, the name under that
- * heading, Colour / Typography / Spacing / Radius / Elevation / Preview,
- * theme on the rail, and Settings as a rail row (preview frames). Space also
- * swaps the current studio with `/preview`.
+ * Home has a TopNav (mark + Blueprint) and no tool rail. Studios get
+ * Blueprint back to Home, the name under that heading, Colour /
+ * Typography / Spacing / Radius / Elevation / Preview, theme on the
+ * rail, and Settings as a rail row (this workspace's preview frames).
+ * Space also swaps the current studio with `/preview`.
  */
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -80,6 +77,9 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   const isHome = pathname === "/";
   const [collapsed, setCollapsed] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  if (isHome && isSettingsOpen) {
+    setIsSettingsOpen(false);
+  }
 
   useEffect(() => {
     /* Reading localStorage must happen in an effect: a useState initializer
@@ -143,11 +143,6 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                   }
                 />
               }
-              endContent={
-                <WorkspaceSettingsButton
-                  onClick={() => setIsSettingsOpen(true)}
-                />
-              }
             />
           ) : undefined
         }
@@ -197,10 +192,12 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         }
       >
         {children}
-        <WorkspaceSettingsDialog
-          isOpen={isSettingsOpen}
-          onOpenChange={setIsSettingsOpen}
-        />
+        {isHome ? null : (
+          <WorkspaceSettingsDialog
+            isOpen={isSettingsOpen}
+            onOpenChange={setIsSettingsOpen}
+          />
+        )}
       </AppShell>
     </LinkProvider>
   );

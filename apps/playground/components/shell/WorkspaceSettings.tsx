@@ -1,9 +1,7 @@
 "use client";
 
-import { Lock, Settings, X } from "lucide-react";
+import { Lock, X } from "lucide-react";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
-import { Icon } from "@astryxdesign/core/Icon";
-import { IconButton } from "@astryxdesign/core/IconButton";
 import { Layout, LayoutContent, VStack } from "@astryxdesign/core/Layout";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
@@ -24,20 +22,7 @@ import {
 } from "@blueprint/ui";
 import styles from "./workspace-settings.module.css";
 
-/** Home TopNav only. Studios open Settings as a SideNav row. */
-export function WorkspaceSettingsButton({ onClick }: { onClick: () => void }) {
-  return (
-    <IconButton
-      icon={<Icon icon={Settings} size="sm" />}
-      label="Settings"
-      size="sm"
-      tooltip="Settings"
-      variant="ghost"
-      onClick={onClick}
-    />
-  );
-}
-
+/** Preview frames for the open workspace. Opened from the studio rail. */
 export function WorkspaceSettingsDialog({
   isOpen,
   onOpenChange,
