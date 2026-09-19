@@ -4,12 +4,13 @@ import {
   saveStoredWorkspace,
   updateStoredWorkspace,
 } from "./store";
+import { LIBRARY_STORAGE_KEY, workspaceDocumentKey } from "./library";
 import {
   LEGACY_PALETTE_STORAGE_KEY,
   LEGACY_TYPOGRAPHY_STORAGE_KEY,
   WORKSPACE_STORAGE_KEY,
+  emptyWorkspace,
 } from "./workspace";
-import { emptyWorkspace } from "./workspace";
 
 /** A storage that behaves, and can be told to stop. */
 function fakeStorage(seed: Record<string, string> = {}) {
@@ -133,11 +134,20 @@ describe("retiring the keys a workspace replaced", () => {
        followed. The write that makes the workspace real is the one that
        should clear what it replaced, and nothing else should have to. */
     const storage = fakeStorage({ [LEGACY_PALETTE_STORAGE_KEY]: "{}" });
-    expect(storage.getItem(WORKSPACE_STORAGE_KEY)).toBeNull();
+    expect(storage.getItem(LIBRARY_STORAGE_KEY)).toBeNull();
 
     updateStoredWorkspace(storage, () => named("Migrated"));
 
-    expect(storage.getItem(WORKSPACE_STORAGE_KEY)).not.toBeNull();
+    const index = JSON.parse(
+      storage.getItem(LIBRARY_STORAGE_KEY) ?? "null",
+    ) as {
+      currentId: string | null;
+    } | null;
+    expect(index?.currentId).toBeTruthy();
+    expect(
+      storage.getItem(workspaceDocumentKey(index!.currentId!)),
+    ).not.toBeNull();
+    expect(storage.getItem(WORKSPACE_STORAGE_KEY)).toBeNull();
     expect(storage.getItem(LEGACY_PALETTE_STORAGE_KEY)).toBeNull();
   });
 });

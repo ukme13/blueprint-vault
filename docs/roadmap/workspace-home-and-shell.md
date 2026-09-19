@@ -42,10 +42,11 @@ These are product decisions, not open questions:
 6. **Theme** is Light / Dark / System on the expanded studio rail, and a
    sun/moon menu when the rail is collapsed. Home has a TopNav (mark + name)
    and no tool rail. **Settings** is preview frames only, on the studio
-   rail of an open workspace. Home is create / import / switch — not
-   frames. Layout uses live on Spacing and Radius as a Uses section, like
-   Semantics on Colour. No profile avatar and no Logout until there is
-   real auth — storage is still this browser’s `localStorage`.
+   rail of an open workspace. Home is create / import / switch — several
+   named workspaces in this browser, cap of 8. Layout uses live on Spacing
+   and Radius as a Uses section, like Semantics on Colour. No profile
+   avatar and no Logout until there is real auth — storage is still this
+   browser’s `localStorage`.
 7. **Do not bring back Colour Overview** as a vanity dashboard. Opening Colour
    still lands on the shade bench. A later optional **System** rail item for
    handover readiness is allowed only if it argues export / a11y / slices, not
@@ -65,9 +66,10 @@ These are product decisions, not open questions:
   Studio section tabs stay in each studio topbar. Home create is a
   dialog. The workspace name sits under Blueprint on the rail. Preview
   frames live in studio Settings. Layout uses live on Spacing / Radius → Uses.
-- Persistence: one workspace key; studios write their own slices via
-  `updateStoredWorkspace`. Home must create through that path, not invent a
-  second document type.
+- Persistence: `blueprint.library.v1` is the index (`currentId` + `ids`);
+  each project is `blueprint.workspace.{id}`. Studios write the current id
+  only. The retired `blueprint.workspace.v1` key migrates on first read.
+  Home create goes through `add`, not a second document type.
 
 ## The hazard this creates
 
@@ -109,9 +111,15 @@ returns Home. A leftover empty slice is “not opened yet,” with Seed from
 Blueprint filling that slice from the same seed helpers — not a second
 create form.
 
-### Stage 4 — Optional follow-ons
+### Stage 4 — Project library ✅ done
 
-- Multiple named workspaces in this browser (switcher on Home).
+Several named workspaces in this browser. Home cards switch; Create and
+Import add; Duplicate and Delete live on the card menu. Cap of 8.
+Storage is `blueprint.library.v1` plus `blueprint.workspace.{id}`.
+Export stays one project. No auth, no Settings growth, no System rail.
+
+### Later
+
 - Settings grows (density, reduced motion preference if not OS-driven).
   Preview frames already live there. Layout uses are Spacing / Radius → Uses.
 - Auth / profile / logout — only with a backend.
@@ -125,7 +133,7 @@ One coherent option:
 
 | Path          | Role                                              |
 | ------------- | ------------------------------------------------- |
-| `/`           | Home (create / import / open current)             |
+| `/`           | Home (create / import / switch)                   |
 | `/colour`     | Colour studio (shade / semantics / accessibility) |
 | `/typography` | Typography studio                                 |
 | `/spacing`    | Spacing scale                                     |

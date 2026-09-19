@@ -261,11 +261,18 @@ export type LegacyKeyStore = Pick<Storage, "getItem" | "removeItem">;
  * edit.
  *
  * Returns whether anything was removed, which is only useful to a test.
+ *
+ * `workspacePresent` is the library's cue: once a per-id document reads back,
+ * the old `blueprint.workspace.v1` key is no longer the proof, and the palette
+ * / typography keys still have to go.
  */
-export function retireLegacyKeys(storage: LegacyKeyStore): boolean {
-  const workspace = readWorkspaceProject(
-    parseJson(storage.getItem(WORKSPACE_STORAGE_KEY)),
-  );
+export function retireLegacyKeys(
+  storage: LegacyKeyStore,
+  workspacePresent = false,
+): boolean {
+  const workspace =
+    workspacePresent ||
+    readWorkspaceProject(parseJson(storage.getItem(WORKSPACE_STORAGE_KEY)));
   if (!workspace) return false;
 
   let removed = false;

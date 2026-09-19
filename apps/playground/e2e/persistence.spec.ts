@@ -1,7 +1,7 @@
 import {
   PROJECT_STORAGE_KEY,
-  WORKSPACE_STORAGE_KEY,
   expect,
+  readCurrentWorkspaceRaw,
   test,
 } from "./fixtures";
 
@@ -62,10 +62,7 @@ test.describe("Persistence after reload", () => {
     /* The fixture seeds the legacy key, so asserting against that one would
        pass on the seed alone and stop testing the app entirely. The workspace
        key is where the studio now writes. */
-    const stored = await page.evaluate(
-      (key) => window.localStorage.getItem(key),
-      WORKSPACE_STORAGE_KEY,
-    );
+    const stored = await page.evaluate(readCurrentWorkspaceRaw);
 
     expect(stored).not.toBeNull();
     const workspace = JSON.parse(stored!);

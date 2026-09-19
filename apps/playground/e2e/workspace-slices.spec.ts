@@ -1,8 +1,10 @@
-import { expect, test } from "@playwright/test";
 import {
   PROJECT_STORAGE_KEY,
-  WORKSPACE_STORAGE_KEY,
+  clearStoredLibrary,
   defaultProject,
+  expect,
+  readStoredWorkspace,
+  test,
 } from "./fixtures";
 import {
   TYPOGRAPHY_STORAGE_KEY,
@@ -33,10 +35,7 @@ async function seedBoth(page: import("@playwright/test").Page) {
 }
 
 const readWorkspace = (page: import("@playwright/test").Page) =>
-  page.evaluate((key) => {
-    const raw = window.localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
-  }, WORKSPACE_STORAGE_KEY);
+  readStoredWorkspace(page);
 
 test.describe("Workspace slices", () => {
   test("both studios migrate into one workspace, under the palette's name", async ({
@@ -129,10 +128,7 @@ test.describe("Workspace slices", () => {
       page.getByRole("region", { name: "Palette toolbar" }),
     ).toBeVisible();
 
-    await page.evaluate(
-      (key) => window.localStorage.removeItem(key),
-      WORKSPACE_STORAGE_KEY,
-    );
+    await page.evaluate(clearStoredLibrary);
     await page.reload();
 
     await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();

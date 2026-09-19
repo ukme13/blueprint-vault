@@ -5,7 +5,11 @@ import {
   showInspectorPanel,
   test,
 } from "./typography-fixtures";
-import { createWorkspaceFromHome, openWorkspaceSettings } from "./fixtures";
+import {
+  createWorkspaceFromHome,
+  openWorkspaceSettings,
+  readStoredWorkspace,
+} from "./fixtures";
 import type { Locator } from "@playwright/test";
 
 /**
@@ -49,11 +53,10 @@ async function openFallback(scope: Locator) {
  * "Base font size".
  */
 /** The stack as the workspace stored it, not as the fields show it. */
-const storedFamilies = (page: import("@playwright/test").Page) =>
-  page.evaluate(() => {
-    const raw = window.localStorage.getItem("blueprint.workspace.v1");
-    return JSON.parse(raw!).typography.system.fonts[0].families as string[];
-  });
+const storedFamilies = async (page: import("@playwright/test").Page) => {
+  const stored = await readStoredWorkspace(page);
+  return stored.typography.system.fonts[0].families as string[];
+};
 
 const labelInfo = (scope: Locator, label: string) =>
   scope
@@ -1321,13 +1324,12 @@ test.describe("Reordering groups", () => {
         cards.map((card) => card.getAttribute("aria-label")),
       );
 
-  const stored = (page: import("@playwright/test").Page) =>
-    page.evaluate(() => {
-      const raw = window.localStorage.getItem("blueprint.workspace.v1");
-      return (
-        JSON.parse(raw!).typography.system.groups as { label: string }[]
-      ).map((group) => group.label);
-    });
+  const stored = async (page: import("@playwright/test").Page) => {
+    const workspace = await readStoredWorkspace(page);
+    return (workspace.typography.system.groups as { label: string }[]).map(
+      (group) => group.label,
+    );
+  };
 
   /** What dnd-kit last announced, which is how a drag says where it is. */
   const announcement = (page: import("@playwright/test").Page) =>

@@ -1,5 +1,10 @@
 import { readFileSync } from "node:fs";
-import { expect, test, WORKSPACE_STORAGE_KEY } from "./fixtures";
+import {
+  expect,
+  readStoredWorkspace,
+  test,
+  writeStoredWorkspace,
+} from "./fixtures";
 import type { Page } from "@playwright/test";
 
 /**
@@ -125,24 +130,21 @@ test.describe("An alias with a transparency", () => {
    * read a file somebody saved.
    */
   async function makeTransparent(page: Page): Promise<void> {
-    await page.evaluate((key) => {
-      const raw = window.localStorage.getItem(key);
-      if (!raw) throw new Error("no workspace in storage");
-      const stored = JSON.parse(raw) as {
-        semantics?: Array<{
-          id: string;
-          light: Record<string, unknown>;
-          dark: Record<string, unknown>;
-        }>;
-      };
-      const token = stored.semantics?.find(
-        (each) => each.id === "action.primary",
-      );
-      if (!token) throw new Error("no action.primary in storage");
-      token.light.alpha = 0.5;
-      token.dark.alpha = 0.5;
-      window.localStorage.setItem(key, JSON.stringify(stored));
-    }, WORKSPACE_STORAGE_KEY);
+    const stored = (await readStoredWorkspace(page)) as {
+      semantics?: Array<{
+        id: string;
+        light: Record<string, unknown>;
+        dark: Record<string, unknown>;
+      }>;
+    } | null;
+    if (!stored) throw new Error("no workspace in storage");
+    const token = stored.semantics?.find(
+      (each) => each.id === "action.primary",
+    );
+    if (!token) throw new Error("no action.primary in storage");
+    token.light.alpha = 0.5;
+    token.dark.alpha = 0.5;
+    await writeStoredWorkspace(page, stored);
     await page.reload();
     await expect(
       page.getByRole("region", { name: "Palette toolbar" }),

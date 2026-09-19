@@ -2,7 +2,7 @@ import {
   expect,
   test,
   PALETTE_VIEW_STORAGE_KEY,
-  WORKSPACE_STORAGE_KEY,
+  readCurrentWorkspaceRaw,
 } from "./fixtures";
 import type { Page } from "@playwright/test";
 
@@ -346,10 +346,7 @@ test.describe("The Vision chip", () => {
   test("never writes a simulated colour into the project", async ({
     seededPage: page,
   }) => {
-    const before = await page.evaluate(
-      (key) => window.localStorage.getItem(key),
-      WORKSPACE_STORAGE_KEY,
-    );
+    const before = await page.evaluate(readCurrentWorkspaceRaw);
     expect(before).toBeTruthy();
 
     await turnVisionOn(page);
@@ -357,10 +354,7 @@ test.describe("The Vision chip", () => {
       await chooseDeficiency(page, name);
     }
 
-    const after = await page.evaluate(
-      (key) => window.localStorage.getItem(key),
-      WORKSPACE_STORAGE_KEY,
-    );
+    const after = await page.evaluate(readCurrentWorkspaceRaw);
 
     /* The whole rule in one assertion: every mode has been through, and the
        stored project is byte-identical. A simulated value reaching a token

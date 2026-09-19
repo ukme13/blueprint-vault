@@ -1,22 +1,19 @@
 "use client";
 
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertDialog } from "@astryxdesign/core/AlertDialog";
 import {
   Button,
   DEFAULT_WORKSPACE_NAME,
+  LIBRARY_CAPACITY,
   parseBlueprintWorkspace,
   seedWorkspaceProject,
   useWorkspaceStore,
   withSharedName,
-  workspaceHasStudios,
-  type WorkspaceProject,
 } from "@blueprint/ui";
 import { NewProjectDialog } from "./NewProjectDialog";
-import { ProjectMosaic } from "./ProjectMosaic";
-import { forgetAllLocalFonts } from "../typography/use-local-fonts";
+import { ProjectCard } from "./ProjectCard";
 import styles from "./home.module.css";
 
 function projectCountLabel(count: number) {
@@ -24,16 +21,12 @@ function projectCountLabel(count: number) {
   return `You have ${count} projects.`;
 }
 
-function familyCountLabel(count: number) {
-  if (count === 1) return "1 colour family";
-  return `${count} colour families`;
-}
-
 /**
  * The project list for this browser.
  *
- * v1 still stores one workspace. The card is that document; New project opens
- * a dialog rather than another page. After create, the colour bench is next.
+ * Cards are the switcher. Create and Import add; they never clobber another
+ * workspace. Duplicate stays on Home so the new card is visible. Delete of
+ * the last one returns an empty list.
  */
 export function WorkspaceHome() {
   const router = useRouter();
@@ -41,14 +34,14 @@ export function WorkspaceHome() {
   const [name, setName] = useState(DEFAULT_WORKSPACE_NAME);
   const [error, setError] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [pendingImport, setPendingImport] = useState<WorkspaceProject | null>(
-    null,
-  );
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const applyWorkspace = (project: WorkspaceProject) => {
-    void forgetAllLocalFonts();
-    workspace.save(withSharedName(project));
+  const addAndOpen = (project: ReturnType<typeof withSharedName>) => {
+    if (!workspace.add(project)) {
+      setError("This browser holds 8 projects. Delete one to add another.");
+      return;
+    }
     router.push("/colour");
   };
 
@@ -66,7 +59,7 @@ export function WorkspaceHome() {
     }
     setError("");
     setIsCreateOpen(false);
-    applyWorkspace(seedWorkspaceProject(name.trim()));
+    addAndOpen(withSharedName(seedWorkspaceProject(name.trim())));
   };
 
   const importProject = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -75,12 +68,7 @@ export function WorkspaceHome() {
     if (!file) return;
 
     try {
-      const imported = parseBlueprintWorkspace(await file.text());
-      if (workspaceHasStudios(workspace.project)) {
-        setPendingImport(imported);
-        return;
-      }
-      applyWorkspace(imported);
+      addAndOpen(withSharedName(parseBlueprintWorkspace(await file.text())));
     } catch {
       setError("Choose a valid Blueprint project file.");
     }
@@ -94,21 +82,20 @@ export function WorkspaceHome() {
     );
   }
 
-  const current = workspace.project;
-  const hasWorkspace = workspaceHasStudios(current);
-  const familyCount = current?.palette?.tracks.length ?? 0;
+  const { summaries, currentId } = workspace.library;
+  const isLibraryFull = summaries.length >= LIBRARY_CAPACITY;
+  const pendingDelete = summaries.find((entry) => entry.id === pendingDeleteId);
 
   return (
     <div className={styles.page}>
       <header className={styles.header}>
         <div>
           <h1>Projects</h1>
-          <p className={styles.count}>
-            {projectCountLabel(hasWorkspace ? 1 : 0)}
-          </p>
+          <p className={styles.count}>{projectCountLabel(summaries.length)}</p>
         </div>
         <div className={styles.actions}>
           <Button
+            disabled={isLibraryFull}
             scheme="neutral"
             size="small"
             type="button"
@@ -118,6 +105,7 @@ export function WorkspaceHome() {
             Import project
           </Button>
           <Button
+            disabled={isLibraryFull}
             scheme="primary"
             size="small"
             type="button"
@@ -128,21 +116,37 @@ export function WorkspaceHome() {
         </div>
       </header>
 
+      {isLibraryFull ? (
+        <p className={styles.formError} role="status">
+          This browser holds 8 projects. Delete one to add another.
+        </p>
+      ) : null}
+
       {error && !isCreateOpen ? (
         <p className={styles.formError} role="alert">
           {error}
         </p>
       ) : null}
 
-      {hasWorkspace ? (
+      {summaries.length > 0 ? (
         <ul className={styles.grid}>
-          <li>
-            <Link className={styles.card} href="/colour">
-              <ProjectMosaic palette={current?.palette} />
-              <h2>{current?.name ?? DEFAULT_WORKSPACE_NAME}</h2>
-              <p>{familyCountLabel(familyCount)}</p>
-            </Link>
-          </li>
+          {summaries.map((entry) => (
+            <li key={entry.id}>
+              <ProjectCard
+                familyCount={entry.project.palette?.tracks.length ?? 0}
+                href="/colour"
+                isCurrent={entry.id === currentId}
+                isLibraryFull={isLibraryFull}
+                name={entry.name}
+                palette={entry.project.palette}
+                onDelete={() => setPendingDeleteId(entry.id)}
+                onDuplicate={() => {
+                  workspace.duplicate(entry.id);
+                }}
+                onOpen={() => workspace.switchTo(entry.id)}
+              />
+            </li>
+          ))}
         </ul>
       ) : null}
 
@@ -156,7 +160,6 @@ export function WorkspaceHome() {
 
       <NewProjectDialog
         error={error}
-        hasWorkspace={hasWorkspace}
         isOpen={isCreateOpen}
         name={name}
         onNameChange={setName}
@@ -168,18 +171,17 @@ export function WorkspaceHome() {
       />
 
       <AlertDialog
-        actionLabel="Import project"
-        description={`This replaces ${current?.name ?? "the current workspace"} in this browser with ${pendingImport?.name ?? "the imported project"}. Export first if you want to keep it.`}
-        isOpen={pendingImport !== null}
-        title="Replace current project?"
+        actionLabel="Delete project"
+        description={`This removes ${pendingDelete?.name ?? "this project"} from this browser. Export first if you want to keep it.`}
+        isOpen={pendingDeleteId !== null}
+        title={`Delete ${pendingDelete?.name ?? "project"}?`}
         onAction={() => {
-          if (!pendingImport) return;
-          const imported = pendingImport;
-          setPendingImport(null);
-          applyWorkspace(imported);
+          if (!pendingDeleteId) return;
+          workspace.remove(pendingDeleteId);
+          setPendingDeleteId(null);
         }}
         onOpenChange={(isOpen) => {
-          if (!isOpen) setPendingImport(null);
+          if (!isOpen) setPendingDeleteId(null);
         }}
       />
     </div>

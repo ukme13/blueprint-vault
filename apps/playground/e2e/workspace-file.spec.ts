@@ -2,8 +2,8 @@ import { readFileSync } from "node:fs";
 import { expect, test, type Page } from "@playwright/test";
 import {
   PROJECT_STORAGE_KEY,
-  WORKSPACE_STORAGE_KEY,
   defaultProject,
+  readStoredWorkspace,
 } from "./fixtures";
 import {
   TYPOGRAPHY_STORAGE_KEY,
@@ -119,13 +119,7 @@ test.describe("The Blueprint workspace file", () => {
       page.getByRole("region", { name: "Palette toolbar" }),
     ).toBeVisible();
 
-    const readStored = async () => {
-      const raw = await page.evaluate(
-        (key) => window.localStorage.getItem(key),
-        WORKSPACE_STORAGE_KEY,
-      );
-      return raw ? JSON.parse(raw) : null;
-    };
+    const readStored = () => readStoredWorkspace(page);
 
     await expect.poll(async () => (await readStored())?.palette).not.toBeNull();
     // The half that used to be lost.
