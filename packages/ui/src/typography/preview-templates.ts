@@ -29,6 +29,9 @@ export { DashboardTemplate } from "./dashboard-template";
 export { DocumentationTemplate } from "./documentation-template";
 export { EmailTemplate } from "./email-template";
 export * from "./preview-document";
+export * from "./preview-shell";
+export * from "./landing-copy";
+export * from "./preview-sections";
 export { ARTICLE_COPY } from "./article-copy";
 
 /**

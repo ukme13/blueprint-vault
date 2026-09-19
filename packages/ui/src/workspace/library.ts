@@ -339,6 +339,22 @@ export function duplicateWorkspace(
 }
 
 /**
+ * Patch one named document. Duplicate's image remap writes the copy, which
+ * may already have stopped being current.
+ */
+export function updateWorkspaceDocument(
+  storage: LibraryStorage,
+  id: string,
+  apply: (project: WorkspaceProject) => WorkspaceProject,
+): WorkspaceProject | null {
+  const current = readDocument(storage, id);
+  if (!current) return null;
+  const next = apply(current);
+  writeDocument(storage, id, next);
+  return next;
+}
+
+/**
  * Delete a project. The last one leaves an empty library, not a missing key.
  * Font bytes stay: another card may still name that family.
  */

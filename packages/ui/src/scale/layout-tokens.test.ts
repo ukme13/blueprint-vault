@@ -3,6 +3,7 @@ import { defaultPreviewDevices } from "../typography/preview-devices";
 import {
   defaultLayoutTokens,
   formatLayoutCss,
+  layoutCssVariablesForDevice,
   normalizeLayoutTokens,
   pruneLayoutDevices,
 } from "./layout-tokens";
@@ -129,9 +130,65 @@ describe("layout tokens", () => {
     const css = formatLayoutCss(defaultLayoutTokens(), defaultPreviewDevices());
     expect(css).toContain("--inset-container: var(--spacing-4);");
     expect(css).toContain("@media (min-width: 768px)");
-    expect(css).toContain("--gap-section: var(--spacing-10);");
+    expect(css).toContain("--gap-section: var(--spacing-16);");
     expect(css).toContain("--radius-surface: var(--radius-page);");
     expect(css).toContain("@media (min-width: 1120px)");
+  });
+
+  it("can name a host other than :root without dropping the tokens", () => {
+    const css = formatLayoutCss(
+      defaultLayoutTokens(),
+      defaultPreviewDevices(),
+      ".preview-site",
+    );
+    expect(css).toContain(".preview-site {");
+    expect(css).not.toContain(":root {");
+    expect(css).toContain("--inset-container: var(--spacing-4);");
+  });
+
+  it("resolves one frame as custom properties so a canvas can pick the width", () => {
+    const vars = layoutCssVariablesForDevice(defaultLayoutTokens(), "phone");
+    expect(vars["--inset-container"]).toBe("var(--spacing-4)");
+    expect(vars["--gap-section"]).toBe("var(--spacing-16)");
+    expect(vars["--radius-surface"]).toBe("var(--radius-container)");
+  });
+
+  it("lifts the old phone and tablet section gaps that shrank the landing", () => {
+    const stored = [
+      {
+        id: "inset-container",
+        name: "Container inset",
+        kind: "spacing",
+        byDevice: { phone: "4", tablet: "6", desktop: "10" },
+      },
+      {
+        id: "gap-section",
+        name: "Section gap",
+        kind: "spacing",
+        byDevice: { phone: "6", tablet: "10", desktop: "16" },
+      },
+    ];
+    const tokens = normalizeLayoutTokens(stored, defaultPreviewDevices());
+    expect(tokens[1]?.byDevice).toEqual({
+      phone: "16",
+      tablet: "16",
+      desktop: "16",
+    });
+    expect(tokens[0]?.byDevice.phone).toBe("4");
+  });
+
+  it("leaves a section gap someone chose on the phone", () => {
+    const stored = [
+      {
+        id: "gap-section",
+        name: "Section gap",
+        kind: "spacing",
+        byDevice: { phone: "6", tablet: "8", desktop: "16" },
+      },
+    ];
+    const tokens = normalizeLayoutTokens(stored, defaultPreviewDevices());
+    expect(tokens[0]?.byDevice.phone).toBe("6");
+    expect(tokens[0]?.byDevice.tablet).toBe("8");
   });
 
   it("adds a use of this kind after the others, copying the last pointers", () => {

@@ -1,0 +1,472 @@
+.site {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  overflow: auto;
+  background: var(--color-surface-base);
+  color: var(--color-fg-primary);
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-default) transparent;
+}
+
+.site::-webkit-scrollbar {
+  width: var(--spacing-2);
+  height: var(--spacing-2);
+}
+
+.site::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.site::-webkit-scrollbar-thumb {
+  background: var(--color-border-default);
+  background-clip: padding-box;
+  border: 1px solid transparent;
+  border-radius: var(--spacing-2);
+}
+
+.site::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
+  background-clip: padding-box;
+}
+
+.site::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.site::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* One scroller owns sticky nav. Phone and tablet scroll on the device chrome
+   instead; keeping overflow here too makes React reconcile a sticky node
+   across a new containing block, which throws removeChild on null. The site
+   must grow with its sections — a flex:1 viewport height would shrink the
+   hero and overlap the next band. */
+.site[data-frame="phone"],
+.site[data-frame="tablet"] {
+  overflow: visible;
+  flex: 0 0 auto;
+  min-height: 100%;
+  height: auto;
+}
+
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  border-bottom: 1px solid var(--color-border-default);
+}
+
+.navInner,
+.wrap {
+  width: 100%;
+  max-width: 1120px;
+  margin-inline: auto;
+  padding-inline: var(--inset-container);
+}
+
+.navInner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  min-width: 0;
+  padding-block: var(--spacing-4);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  flex: none;
+  min-width: 0;
+}
+
+.brandMark {
+  width: var(--spacing-6);
+  height: var(--spacing-6);
+  flex: none;
+  color: var(--color-fg-primary);
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  margin-left: auto;
+  color: var(--color-fg-secondary);
+}
+
+.navCta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  flex: none;
+}
+
+.main {
+  /* Grow to fill a short canvas, but never shrink: flex: 1 would squeeze
+     the hero under the next band and the art would paint over "SaaS". */
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Spacing lives on the bands, not as a gap, so a section fill paints
+   through to the nav, the next band, and the footer. */
+.main > * {
+  padding-block: calc(var(--gap-section) / 2);
+}
+
+.main > *:first-child {
+  padding-block-start: var(--gap-section);
+}
+
+.main > *:last-child {
+  padding-block-end: var(--gap-section);
+}
+
+.hero,
+.section,
+.quote {
+  flex-shrink: 0;
+}
+
+.section {
+  padding-block: 0;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: var(--gap-section);
+  align-items: center;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-fg-secondary);
+}
+
+.lead,
+.muted,
+.small {
+  color: var(--color-fg-secondary);
+}
+
+.measure {
+  max-width: 62ch;
+}
+
+.btnRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.sectionHead {
+  text-align: center;
+  max-width: 46ch;
+  margin-inline: auto;
+  margin-bottom: var(--spacing-8);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.cols {
+  display: grid;
+  gap: var(--spacing-6);
+}
+
+.cols3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.cols4 {
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.card p {
+  color: var(--color-fg-secondary);
+}
+
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap-section);
+  align-items: center;
+}
+
+.splitRev .media {
+  order: -1;
+}
+
+.art {
+  width: 100%;
+  height: auto;
+  color: var(--color-fg-primary);
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.artSolid {
+  fill: currentColor;
+  stroke: none;
+}
+
+.artFaint {
+  opacity: 0.35;
+}
+
+.quote {
+  padding-block: 0;
+}
+
+.quoteGrid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: var(--gap-section);
+  align-items: end;
+}
+
+.quoteText {
+  max-width: 34ch;
+}
+
+.cite {
+  font-style: normal;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  color: var(--color-fg-secondary);
+}
+
+.plan {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  min-width: 0;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-surface);
+  padding: var(--spacing-6);
+  background: var(--color-surface-raised);
+}
+
+.planFeatured {
+  /* Capture ink before any child reuses the foreground tokens. The fill
+     stays `--color-fg-primary`; the copy must not, or it paints the same
+     colour as the card. */
+  --plan-ink: var(--color-surface-base);
+  background: var(--color-fg-primary);
+  border-color: var(--color-fg-primary);
+  color: var(--plan-ink);
+  --color-fg-secondary: color-mix(in srgb, var(--plan-ink) 72%, transparent);
+}
+
+.planFeatured h4,
+.planFeatured p {
+  color: var(--plan-ink);
+}
+
+.planFeatured .muted,
+.planFeatured .small,
+.planFeatured .features,
+.planFeatured .features p {
+  color: var(--color-fg-secondary);
+}
+
+.priceRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--spacing-2);
+}
+
+.features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--spacing-2);
+  color: var(--color-fg-secondary);
+}
+
+.cta {
+  text-align: center;
+}
+
+.cta .stack {
+  align-items: center;
+}
+
+.cta .lead {
+  text-align: center;
+}
+
+.cta .btnRow {
+  justify-content: center;
+}
+
+.cta .measure {
+  margin-inline: auto;
+}
+
+.footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--color-border-default);
+  padding-block: var(--gap-section);
+  color: var(--color-fg-secondary);
+}
+
+.footerBrand {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  max-width: 36ch;
+}
+
+.footerTop {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1.4fr) repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-10);
+  align-items: start;
+}
+
+.footerLinks {
+  display: contents;
+}
+
+.footerCol {
+  display: grid;
+  align-content: start;
+  gap: var(--spacing-3);
+}
+
+.footerList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--spacing-2);
+}
+
+.footerHead {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-fg-secondary);
+}
+
+.footerBase {
+  margin-top: var(--spacing-10);
+  padding-top: var(--spacing-6);
+  border-top: 1px solid var(--color-border-default);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+  justify-content: space-between;
+}
+
+.site[data-frame="tablet"] .navInner,
+.site[data-frame="tablet"] .navLinks {
+  gap: var(--spacing-4);
+}
+
+.site[data-frame="tablet"] .cols {
+  gap: var(--spacing-4);
+}
+
+.site[data-frame="tablet"] .cols3,
+.site[data-frame="tablet"] .cols4 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.site[data-frame="tablet"] .footerTop,
+.site[data-frame="phone"] .footerTop {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--spacing-10);
+}
+
+.site[data-frame="tablet"] .footerLinks,
+.site[data-frame="phone"] .footerLinks {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  width: 100%;
+}
+
+.site[data-frame="tablet"] .footerLinks {
+  gap: var(--spacing-10);
+}
+
+.site[data-frame="tablet"] .sectionHead {
+  margin-bottom: var(--spacing-6);
+}
+
+.site[data-frame="phone"] .navInner {
+  gap: var(--spacing-3);
+  justify-content: space-between;
+}
+
+.site[data-frame="phone"] .navLinks,
+.site[data-frame="phone"] .navLogin {
+  display: none;
+}
+
+.site[data-frame="phone"] .navCta {
+  gap: var(--spacing-2);
+}
+
+.site[data-frame="phone"] .hero,
+.site[data-frame="phone"] .split,
+.site[data-frame="phone"] .quoteGrid {
+  grid-template-columns: 1fr;
+}
+
+.site[data-frame="phone"] .splitRev .media {
+  order: 0;
+}
+
+.site[data-frame="phone"] .cols {
+  gap: var(--spacing-4);
+}
+
+.site[data-frame="phone"] .cols3,
+.site[data-frame="phone"] .cols4 {
+  grid-template-columns: 1fr;
+}
+
+.site[data-frame="phone"] .footerLinks {
+  gap: var(--spacing-8);
+}
+
+.site[data-frame="phone"] .sectionHead {
+  margin-bottom: var(--spacing-8);
+}

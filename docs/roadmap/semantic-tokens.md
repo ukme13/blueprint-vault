@@ -210,6 +210,10 @@ and exactly what tritanopia brings together.
 - Spacing, radius and elevation reusing the same alias machinery.
 - Per-mode contrast verdicts in the accessibility report.
 
+`/preview` is a landing site (nav, hero, features, pricing, footer), not a
+component zoo. Click a slot to change copy or type role. The scale is not
+edited there. Typography still owns the article document.
+
 ## Safety and quality rules
 
 **A semantic token stores a reference and never a value.** A test must change a

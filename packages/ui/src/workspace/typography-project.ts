@@ -1,4 +1,9 @@
-import { readPreviewDocument } from "../typography/preview-document";
+import {
+  readPreviewDocument,
+  readPreviewLanding,
+  readPreviewShell,
+} from "../typography/preview-document";
+import { readPreviewSections } from "../typography/preview-sections";
 import { readPreviewTemplate } from "../typography/preview-template-shared";
 import {
   migrateLegacyProject,
@@ -19,7 +24,14 @@ export const DEFAULT_PREVIEW_TEMPLATE = "specimen";
 
 function readPreferences(
   value: object,
-): Omit<TypographyProjectData, "system" | "previewDocument"> {
+): Omit<
+  TypographyProjectData,
+  | "system"
+  | "previewDocument"
+  | "previewShell"
+  | "previewLanding"
+  | "previewSections"
+> {
   return {
     unit:
       "unit" in value && TYPE_SCALE_UNITS.includes(value.unit as TypeScaleUnit)
@@ -87,6 +99,17 @@ export function readTypographyProjectData(
         "previewDocument" in value ? value.previewDocument : undefined,
         system,
       ),
+      previewShell: readPreviewShell(
+        "previewShell" in value ? value.previewShell : undefined,
+        system,
+      ),
+      previewLanding: readPreviewLanding(
+        "previewLanding" in value ? value.previewLanding : undefined,
+        system,
+      ),
+      previewSections: readPreviewSections(
+        "previewSections" in value ? value.previewSections : undefined,
+      ),
     };
   }
 
@@ -101,6 +124,17 @@ export function readTypographyProjectData(
     previewDocument: readPreviewDocument(
       "previewDocument" in value ? value.previewDocument : undefined,
       system,
+    ),
+    previewShell: readPreviewShell(
+      "previewShell" in value ? value.previewShell : undefined,
+      system,
+    ),
+    previewLanding: readPreviewLanding(
+      "previewLanding" in value ? value.previewLanding : undefined,
+      system,
+    ),
+    previewSections: readPreviewSections(
+      "previewSections" in value ? value.previewSections : undefined,
     ),
   };
 }

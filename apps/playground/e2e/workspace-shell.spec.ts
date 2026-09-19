@@ -71,7 +71,10 @@ test.describe("Workspace shell", () => {
     await rail.getByRole("link", { name: "Preview" }).click();
     await expect(page).toHaveURL(/\/preview\/?$/);
     await expect(
-      page.getByRole("heading", { name: "A system you can hand over" }),
+      page.getByRole("heading", {
+        name: "Finish the piece in one place",
+        level: 1,
+      }),
     ).toBeVisible();
 
     await rail.getByRole("link", { name: "Blueprint" }).click();
@@ -168,7 +171,10 @@ test.describe("Workspace shell", () => {
     await page.keyboard.press("Space");
     await expect(page).toHaveURL(/\/preview\/?$/);
     await expect(
-      page.getByRole("heading", { name: "A system you can hand over" }),
+      page.getByRole("heading", {
+        name: "Finish the piece in one place",
+        level: 1,
+      }),
     ).toBeVisible();
 
     await page.evaluate(() => {

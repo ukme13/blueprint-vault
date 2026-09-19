@@ -410,14 +410,14 @@
 }
 :root {
   --inset-container: var(--spacing-4);
-  --gap-section: var(--spacing-6);
+  --gap-section: var(--spacing-16);
   --radius-surface: var(--radius-container);
 }
 
 @media (min-width: 768px) {
   :root {
     --inset-container: var(--spacing-6);
-    --gap-section: var(--spacing-10);
+    --gap-section: var(--spacing-16);
     --radius-surface: var(--radius-container);
   }
 }

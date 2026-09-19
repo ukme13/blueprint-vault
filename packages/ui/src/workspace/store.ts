@@ -8,6 +8,7 @@ import {
   saveCurrentWorkspace,
   switchWorkspace,
   updateCurrentWorkspace,
+  updateWorkspaceDocument,
   type WorkspaceIdFactory,
 } from "./library";
 import type { WorkspaceProject } from "./types";
@@ -156,6 +157,19 @@ export function duplicateStoredWorkspace(
   if (!storage) return null;
   try {
     return duplicateWorkspace(storage, id, createId);
+  } catch {
+    return null;
+  }
+}
+
+export function updateStoredWorkspaceById(
+  storage: WorkspaceStorage | null,
+  id: string,
+  apply: (current: WorkspaceProject) => WorkspaceProject,
+): WorkspaceProject | null {
+  if (!storage) return null;
+  try {
+    return updateWorkspaceDocument(storage, id, apply);
   } catch {
     return null;
   }

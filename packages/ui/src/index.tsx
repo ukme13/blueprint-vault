@@ -21,6 +21,7 @@ export * from "./color";
 export * from "./scale";
 export * from "./system";
 export * from "./fonts";
+export * from "./preview-images";
 export * from "./report";
 export * from "./typography";
 export * from "./workspace";

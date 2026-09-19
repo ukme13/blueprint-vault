@@ -1,0 +1,31 @@
+.band {
+  position: relative;
+}
+
+.menu {
+  position: absolute;
+  inset-block-start: var(--spacing-3);
+  inset-inline-end: var(--spacing-3);
+  z-index: 6;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.band:hover .menu,
+.band:focus-within .menu,
+.menuOpen {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

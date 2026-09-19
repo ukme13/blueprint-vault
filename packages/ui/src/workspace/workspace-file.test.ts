@@ -11,7 +11,12 @@ import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { normalizeButtonSchemes } from "../button-tones";
 import { defaultPreviewDevices } from "../typography/preview-devices";
-import { seedPreviewDocument } from "../typography/preview-document";
+import {
+  seedPreviewDocument,
+  seedPreviewLanding,
+  seedPreviewShell,
+} from "../typography/preview-document";
+import { seedPreviewSections } from "../typography/preview-sections";
 import { defaultSystem } from "../typography/system";
 import {
   BLUEPRINT_WORKSPACE_FILE_VERSION,
@@ -83,6 +88,9 @@ const workspace = (over: Partial<WorkspaceProject> = {}): WorkspaceProject => {
       unit: "px",
       specimenText: "Sphinx",
       previewDocument: seedPreviewDocument(system),
+      previewShell: seedPreviewShell(system),
+      previewLanding: seedPreviewLanding(system),
+      previewSections: seedPreviewSections(),
       template: "article",
       remRootPx: 16,
     },

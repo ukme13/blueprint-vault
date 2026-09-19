@@ -16,6 +16,7 @@ import {
 import {
   formatTypeSystemCssExport,
   formatTypeSystemTailwindExport,
+  typeCssVariablesForDevice,
 } from "./system-export";
 
 const legacy: LegacyTypographyProject = {
@@ -492,5 +493,32 @@ describe("the size a role exports", () => {
     expect(formatTypeSystemCssExport(system, "px")).toContain(
       "--font-h3-size: 41px;",
     );
+  });
+
+  it("can name a host other than :root without dropping the tokens", () => {
+    const css = formatTypeSystemCssExport(
+      defaultSystem("Brand", ["Inter"], 16, 1.25, 9),
+      "px",
+      undefined,
+      16,
+      ".preview-site",
+    );
+    expect(css).toContain(".preview-site {");
+    expect(css).toContain("--font-h1-size:");
+    expect(css).not.toMatch(/^:root \{/m);
+  });
+});
+
+describe("typeCssVariablesForDevice", () => {
+  it("names the same role tokens the file would emit, for one frame", () => {
+    const system = defaultSystem("Brand", ["Inter"], 16, 1.25, 9);
+    const desktop = defaultPreviewDevices().find(
+      (device) => device.id === "desktop",
+    )!;
+    const vars = typeCssVariablesForDevice(system, desktop);
+    expect(vars["--font-h1-size"]).toMatch(/^\d/);
+    expect(vars["--font-h1-family"]).toContain("var(--font-family-");
+    expect(vars["--font-h1-weight"]).toBeDefined();
+    expect(vars["--font-h1-line-height"]).toBeDefined();
   });
 });

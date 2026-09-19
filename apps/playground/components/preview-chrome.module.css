@@ -1,0 +1,80 @@
+.stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  padding: var(--spacing-6);
+  background: var(--color-surface-subtle);
+}
+
+.device {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-width: 100%;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--color-border-default);
+  background: var(--color-surface-base);
+}
+
+.deviceScroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-default) transparent;
+}
+
+.deviceScroll::-webkit-scrollbar {
+  width: var(--spacing-2);
+  height: var(--spacing-2);
+}
+
+.deviceScroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.deviceScroll::-webkit-scrollbar-thumb {
+  background: var(--color-border-default);
+  background-clip: padding-box;
+  border: 1px solid transparent;
+  border-radius: var(--spacing-2);
+}
+
+.deviceScroll::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
+  background-clip: padding-box;
+}
+
+.deviceScroll::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.deviceScroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.device[data-kind="phone"] {
+  border-radius: var(--spacing-8);
+}
+
+.device[data-kind="tablet"] {
+  border-radius: var(--spacing-6);
+}
+
+.desktopStage {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.desktop {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}

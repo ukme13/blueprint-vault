@@ -1,8 +1,10 @@
 "use client";
 
 import type { ReactNode } from "react";
-import type { ColourMode } from "@blueprint/ui";
+import type { ColourMode, PreviewDevice } from "@blueprint/ui";
 import { VisionControl } from "./VisionControl";
+import { PreviewDeviceBar } from "./typography/PreviewDeviceBar";
+import styles from "./preview-chrome.module.css";
 
 /**
  * The tool around the preview, which is not part of what is being previewed.
@@ -26,43 +28,66 @@ import { VisionControl } from "./VisionControl";
  * draws from `light-dark()` chrome tokens, which resolve against whatever
  * `color-scheme` is in force. Naming the resolved mode here is what keeps a
  * `system` page from resolving those two against different answers.
+ *
+ * The workspace name does not belong here. The bar is for switching the
+ * preview frame; phone and tablet draw a device edge so the canvas is not
+ * just a narrower column.
  */
 
 interface PreviewChromeProps {
-  name: string;
   /** The resolved mode — what is being drawn, never `system`. */
   mode: ColourMode;
-  /** What the footer reports about the canvas below. */
-  tokenCount: number;
-  children: ReactNode;
+  device: PreviewDevice;
+  devices: readonly PreviewDevice[];
+  canvas: ReactNode;
+  children?: ReactNode;
+  onDeviceChange: (id: string) => void;
 }
 
 export function PreviewChrome({
-  name,
   mode,
-  tokenCount,
+  device,
+  devices,
+  canvas,
   children,
+  onDeviceChange,
 }: PreviewChromeProps) {
+  const framed = device.kind === "phone" || device.kind === "tablet";
+
   return (
     <div className="flex h-full min-h-0 flex-col" style={{ colorScheme: mode }}>
       <header
         aria-label="Preview"
         className="flex flex-wrap items-center gap-3 border-b border-border-default bg-surface-subtle px-6 py-3 text-fg-primary"
       >
-        <strong className="mr-auto text-sm">{name}</strong>
+        <PreviewDeviceBar
+          activeId={device.id}
+          className="mr-auto"
+          devices={devices}
+          onChange={onDeviceChange}
+        />
         <VisionControl />
       </header>
 
-      {/* The canvas. Everything inside it is drawn from the workspace's own
-          tokens and nothing outside it is. Rendered without a wrapper so it can
-          take the remaining height itself: a `flex-1` box around it left its
-          background resolving against a parent with no definite height, and the
-          page showed the chrome's colour under a short canvas. */}
-      {children}
+      <div className={framed ? styles.stage : styles.desktopStage}>
+        <div
+          className={framed ? `${styles.device} shadow-lg` : styles.desktop}
+          data-device-chrome={framed ? "true" : undefined}
+          data-kind={device.kind}
+          data-preview-device={device.id}
+          style={
+            framed ? { width: `min(100%, ${device.widthPx}px)` } : undefined
+          }
+        >
+          {framed ? (
+            <div className={styles.deviceScroll}>{canvas}</div>
+          ) : (
+            canvas
+          )}
+        </div>
+      </div>
 
-      <footer className="border-t border-border-default bg-surface-subtle px-6 py-4 text-sm text-fg-muted">
-        Drawn from {tokenCount} semantic tokens, in {mode} mode.
-      </footer>
+      {children}
     </div>
   );
 }
