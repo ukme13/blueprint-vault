@@ -391,9 +391,10 @@ test.describe("A file nothing references", () => {
     await expect.poll(() => storedFontIds(page)).not.toContain("base::primary");
   });
 
-  test("goes when the whole project is started again", async ({
-    seededPage: page,
-  }) => {
+  test("stays when a new project is added", async ({ seededPage: page }) => {
+    /* New used to replace the only document and wipe IndexedDB with it.
+       Create now adds a card; the first workspace still names this family,
+       so the bytes have to stay. */
     await upload(page);
     await page
       .getByRole("navigation", { name: "Blueprint workspaces" })
@@ -401,7 +402,7 @@ test.describe("A file nothing references", () => {
       .click();
     await createWorkspaceFromHome(page);
 
-    await expect.poll(() => storedFontIds(page)).toEqual([]);
+    await expect.poll(() => storedFontIds(page)).toContain("base::primary");
   });
 });
 
