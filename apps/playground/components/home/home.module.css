@@ -67,7 +67,7 @@
 }
 
 .cardCurrent {
-  border-color: var(--color-primary-600);
+  border-color: var(--color-border-strong);
 }
 
 .cardLink {
