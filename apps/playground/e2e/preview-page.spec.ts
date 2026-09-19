@@ -260,7 +260,7 @@ test.describe("The preview's device frame", () => {
 
     expect(metrics).not.toBeNull();
     expect(metrics!.gap).toBeGreaterThanOrEqual(64);
-    expect(metrics!.betweenSections).toBeCloseTo(metrics!.gap, 0);
+    expect(metrics!.betweenSections).toBeCloseTo(2.5 * metrics!.gap, 0);
     expect(metrics!.belowArt).toBeGreaterThanOrEqual(metrics!.gap);
   });
 });
@@ -636,6 +636,17 @@ test.describe("Preview section fill and token colour", () => {
     );
     expect(menuGeometry!.popoverTop).toBeGreaterThan(0);
 
+    const sectionSwatches = page.locator(
+      'dialog [role="listbox"] i[class*="previewColourSwatch"]',
+    );
+    await expect(sectionSwatches.first()).toBeVisible();
+    expect(await sectionSwatches.count()).toBeGreaterThan(3);
+
+    const triggerSwatch = page.locator(
+      'dialog [role="combobox"] i[class*="previewColourSwatch"]',
+    );
+    await expect(triggerSwatch).toBeVisible();
+
     await page
       .getByRole("option", { name: "Surface raised", exact: true })
       .click();
@@ -804,5 +815,68 @@ test.describe("Preview section fill and token colour", () => {
     await expect.poll(() => colorOf(planning)).not.toBe(grouped);
     await expect.poll(() => colorOf(management)).toBe(grouped);
     await expect.poll(() => colorOf(live)).toBe(grouped);
+  });
+
+  test("anchors the slot colour selector popup over the trigger when reopening", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const heading = page.getByRole("heading", { name: "Shared palettes" });
+    await heading.click();
+    const dialog = page.getByRole("dialog", { name: "Feature card titles" });
+    await expect(dialog).toBeVisible();
+    const combo = dialog.getByRole("combobox", { name: "Colour" });
+    await combo.click();
+
+    // Select an action token that is positioned deep down the options list
+    await page
+      .getByRole("option", { name: "Action primary surface", exact: true })
+      .click();
+
+    // Close dialog and reopen
+    await dialog.getByRole("button", { name: "Close" }).click();
+    await expect(dialog).toBeHidden();
+
+    await heading.click();
+    await expect(dialog).toBeVisible();
+    await combo.click();
+
+    const geometry = await page.evaluate(() => {
+      const popover = [...document.querySelectorAll("[popover]")].find((el) =>
+        (el as HTMLElement).matches(":popover-open"),
+      ) as HTMLElement | undefined;
+      const comboEl = document.querySelectorAll(
+        'dialog [role="combobox"]',
+      )[1] as HTMLElement | undefined;
+      if (!popover || !comboEl) return null;
+      const pRect = popover.getBoundingClientRect();
+      const cRect = comboEl.getBoundingClientRect();
+      return {
+        popoverTop: pRect.top,
+        popoverBottom: pRect.bottom,
+        comboTop: cRect.top,
+        comboBottom: cRect.bottom,
+      };
+    });
+
+    expect(geometry).not.toBeNull();
+    // The menu stays anchored near the combobox trigger rather than jumping to top: 0
+    expect(geometry!.popoverBottom).toBeGreaterThan(geometry!.comboTop - 40);
+    expect(geometry!.popoverTop).toBeLessThan(geometry!.comboBottom + 40);
+    expect(geometry!.popoverTop).toBeGreaterThan(0);
+
+    // Color options display the swatch square
+    const swatches = page.locator(
+      'dialog [role="listbox"] i[class*="previewColourSwatch"]',
+    );
+    await expect(swatches.first()).toBeVisible();
+    expect(await swatches.count()).toBeGreaterThan(5);
+
+    // Trigger button also displays the swatch square for the selected color
+    const triggerSwatch = page
+      .locator('dialog [role="combobox"]')
+      .nth(1)
+      .locator('i[class*="previewColourSwatch"]');
+    await expect(triggerSwatch).toBeVisible();
   });
 });

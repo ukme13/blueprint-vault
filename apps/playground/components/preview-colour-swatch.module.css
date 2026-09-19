@@ -1,0 +1,22 @@
+.previewColourSwatch {
+  display: block;
+  width: var(--spacing-4);
+  height: var(--spacing-4);
+  box-sizing: border-box;
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--preview-swatch);
+}
+
+.previewColourSwatch[data-empty] {
+  border-color: var(--color-fg-muted);
+  background:
+    linear-gradient(
+      to bottom right,
+      transparent calc(50% - var(--border-width)),
+      var(--color-fg-muted) calc(50% - var(--border-width)),
+      var(--color-fg-muted) calc(50% + var(--border-width)),
+      transparent calc(50% + var(--border-width))
+    ),
+    var(--color-surface-base);
+}

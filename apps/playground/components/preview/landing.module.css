@@ -123,15 +123,7 @@
 /* Spacing lives on the bands, not as a gap, so a section fill paints
    through to the nav, the next band, and the footer. */
 .main > * {
-  padding-block: calc(var(--gap-section) / 2);
-}
-
-.main > *:first-child {
-  padding-block-start: var(--gap-section);
-}
-
-.main > *:last-child {
-  padding-block-end: var(--gap-section);
+  padding-block: calc(var(--gap-section) * 1.25);
 }
 
 .hero,
@@ -341,7 +333,7 @@
 .footer {
   flex-shrink: 0;
   border-top: 1px solid var(--color-border-default);
-  padding-block: var(--gap-section);
+  padding-block: calc(var(--gap-section) * 1.25);
   color: var(--color-fg-secondary);
 }
 
