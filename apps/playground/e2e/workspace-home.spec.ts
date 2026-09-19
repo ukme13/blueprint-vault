@@ -1,14 +1,14 @@
 import {
   createWorkspaceFromHome,
   expect,
+  readStoredWorkspace,
   test,
-  WORKSPACE_STORAGE_KEY,
 } from "./fixtures";
 
 /**
  * Home is the one create path: name + Blueprint seed, then the colour bench.
  *
- * Create is a dialog. v1 lists the current browser workspace as a card.
+ * Create is a dialog. Cards are the switcher for several named workspaces.
  */
 
 test.describe("Workspace home", () => {
@@ -51,14 +51,7 @@ test.describe("Workspace home", () => {
         .locator("tr:has([data-token])"),
     ).toHaveCount(72);
 
-    const stored = await page.evaluate((key) => {
-      const raw = window.localStorage.getItem(key);
-      if (!raw) return null;
-      return JSON.parse(raw) as {
-        semantics?: unknown[];
-        typography?: unknown;
-      };
-    }, WORKSPACE_STORAGE_KEY);
+    const stored = await readStoredWorkspace(page);
     expect(stored?.semantics).toHaveLength(72);
     expect(stored?.typography).not.toBeNull();
 
@@ -138,5 +131,73 @@ test.describe("Workspace home", () => {
     await expect(
       page.getByRole("region", { name: "Generated colour shades" }),
     ).toBeVisible();
+  });
+
+  test("keeps the first project when a second is created", async ({ page }) => {
+    await createWorkspaceFromHome(page, "First system");
+    await page.goto("/");
+    await createWorkspaceFromHome(page, "Second system");
+    await page.goto("/");
+
+    await expect(
+      page.getByRole("heading", { name: "First system" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Second system" }),
+    ).toBeVisible();
+    await expect(page.getByText("You have 2 projects.")).toBeVisible();
+  });
+
+  test("clicking another card opens that name on the rail", async ({
+    page,
+  }) => {
+    await createWorkspaceFromHome(page, "First system");
+    await page.goto("/");
+    await createWorkspaceFromHome(page, "Second system");
+    await page.goto("/");
+
+    await page.getByRole("link", { name: /First system/ }).click();
+    await expect(page).toHaveURL(/\/colour\/?$/);
+    await expect(page.getByLabel("Project name")).toHaveValue("First system");
+  });
+
+  test("deletes a project after confirm", async ({ page }) => {
+    await createWorkspaceFromHome(page, "First system");
+    await page.goto("/");
+    await createWorkspaceFromHome(page, "Second system");
+    await page.goto("/");
+
+    await page
+      .getByRole("button", { name: "Actions for First system" })
+      .click();
+    await page.getByRole("menuitem", { name: "Delete" }).click();
+    const dialog = page.getByRole("alertdialog");
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: "Delete project" }).click();
+
+    await expect(
+      page.getByRole("heading", { name: "First system" }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "Second system" }),
+    ).toBeVisible();
+    await expect(page.getByText("You have 1 project.")).toBeVisible();
+  });
+
+  test("deleting the last project returns empty Home", async ({ page }) => {
+    await createWorkspaceFromHome(page, "Only system");
+    await page.goto("/");
+
+    await page.getByRole("button", { name: "Actions for Only system" }).click();
+    await page.getByRole("menuitem", { name: "Delete" }).click();
+    await page.getByRole("button", { name: "Delete project" }).click();
+
+    await expect(page.getByText("You have 0 projects.")).toBeVisible();
+    await expect(page.getByRole("link", { name: /Only system/ })).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByRole("button", { name: "Settings", exact: true }),
+    ).toHaveCount(0);
   });
 });

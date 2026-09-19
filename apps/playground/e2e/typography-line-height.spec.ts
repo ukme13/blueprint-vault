@@ -4,6 +4,7 @@ import {
   showInspectorPanel,
   test,
 } from "./typography-fixtures";
+import { readStoredWorkspace } from "./fixtures";
 
 /**
  * The line-height field.
@@ -38,30 +39,30 @@ const lineHeightField = (page: import("@playwright/test").Page) =>
  * edit ever reached the model. A field that committed the edit before last
  * looked right in every assertion here until this read the other side of it.
  */
-const storedLineHeight = (page: import("@playwright/test").Page) =>
-  page.evaluate(() => {
-    const raw = window.localStorage.getItem("blueprint.workspace.v1");
-    if (!raw) return null;
-    const roles = JSON.parse(raw).typography.system.roles as {
-      id: string;
-      lineHeight: { mode: string; value?: number };
-      unlinkedLineHeights?: Record<string, { mode: string; value?: number }>;
-    }[];
-    const body = roles.find((role) => role.id === "body");
-    if (!body) return null;
-    return body.unlinkedLineHeights?.desktop ?? body.lineHeight;
-  });
+const storedLineHeight = async (page: import("@playwright/test").Page) => {
+  const stored = await readStoredWorkspace(page);
+  if (!stored) return null;
+  const roles = stored.typography.system.roles as {
+    id: string;
+    lineHeight: { mode: string; value?: number };
+    unlinkedLineHeights?: Record<string, { mode: string; value?: number }>;
+  }[];
+  const body = roles.find((role) => role.id === "body");
+  if (!body) return null;
+  return body.unlinkedLineHeights?.desktop ?? body.lineHeight;
+};
 
-const storedSharedLineHeight = (page: import("@playwright/test").Page) =>
-  page.evaluate(() => {
-    const raw = window.localStorage.getItem("blueprint.workspace.v1");
-    if (!raw) return null;
-    const roles = JSON.parse(raw).typography.system.roles as {
-      id: string;
-      lineHeight: { mode: string; value?: number };
-    }[];
-    return roles.find((role) => role.id === "body")?.lineHeight ?? null;
-  });
+const storedSharedLineHeight = async (
+  page: import("@playwright/test").Page,
+) => {
+  const stored = await readStoredWorkspace(page);
+  if (!stored) return null;
+  const roles = stored.typography.system.roles as {
+    id: string;
+    lineHeight: { mode: string; value?: number };
+  }[];
+  return roles.find((role) => role.id === "body")?.lineHeight ?? null;
+};
 
 const unlinkedMarker = (page: import("@playwright/test").Page) =>
   page.locator("[data-unlinked='true']").filter({

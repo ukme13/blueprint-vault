@@ -1,8 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
   PROJECT_STORAGE_KEY,
-  WORKSPACE_STORAGE_KEY,
   defaultProject,
+  readStoredWorkspace,
 } from "./fixtures";
 import {
   TYPOGRAPHY_STORAGE_KEY,
@@ -36,11 +36,7 @@ async function seed(page: Page) {
   );
 }
 
-const readWorkspace = (page: Page) =>
-  page.evaluate((key) => {
-    const raw = window.localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : null;
-  }, WORKSPACE_STORAGE_KEY);
+const readWorkspace = (page: Page) => readStoredWorkspace(page);
 
 test.describe("Two tabs on one workspace", () => {
   test("a palette edit does not roll back a type scale edited next door", async ({

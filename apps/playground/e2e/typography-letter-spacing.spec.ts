@@ -1,4 +1,5 @@
 import { expect, showInspectorPanel, test } from "./typography-fixtures";
+import { readStoredWorkspace } from "./fixtures";
 
 /**
  * Letter-spacing follows the same unlink/relink rule as line-height: typing
@@ -11,30 +12,28 @@ const LETTER_SPACING = "body letter spacing";
 const letterSpacingField = (page: import("@playwright/test").Page) =>
   page.getByRole("spinbutton", { name: LETTER_SPACING });
 
-const storedTracking = (page: import("@playwright/test").Page) =>
-  page.evaluate(() => {
-    const raw = window.localStorage.getItem("blueprint.workspace.v1");
-    if (!raw) return null;
-    const roles = JSON.parse(raw).typography.system.roles as {
-      id: string;
-      letterSpacingPx: number;
-      unlinkedLetterSpacings?: Record<string, number>;
-    }[];
-    const body = roles.find((role) => role.id === "body");
-    if (!body) return null;
-    return body.unlinkedLetterSpacings?.desktop ?? body.letterSpacingPx;
-  });
+const storedTracking = async (page: import("@playwright/test").Page) => {
+  const stored = await readStoredWorkspace(page);
+  if (!stored) return null;
+  const roles = stored.typography.system.roles as {
+    id: string;
+    letterSpacingPx: number;
+    unlinkedLetterSpacings?: Record<string, number>;
+  }[];
+  const body = roles.find((role) => role.id === "body");
+  if (!body) return null;
+  return body.unlinkedLetterSpacings?.desktop ?? body.letterSpacingPx;
+};
 
-const storedSharedTracking = (page: import("@playwright/test").Page) =>
-  page.evaluate(() => {
-    const raw = window.localStorage.getItem("blueprint.workspace.v1");
-    if (!raw) return null;
-    const roles = JSON.parse(raw).typography.system.roles as {
-      id: string;
-      letterSpacingPx: number;
-    }[];
-    return roles.find((role) => role.id === "body")?.letterSpacingPx ?? null;
-  });
+const storedSharedTracking = async (page: import("@playwright/test").Page) => {
+  const stored = await readStoredWorkspace(page);
+  if (!stored) return null;
+  const roles = stored.typography.system.roles as {
+    id: string;
+    letterSpacingPx: number;
+  }[];
+  return roles.find((role) => role.id === "body")?.letterSpacingPx ?? null;
+};
 
 const unlinkedMarker = (page: import("@playwright/test").Page) =>
   page.locator("[data-unlinked='true']").filter({

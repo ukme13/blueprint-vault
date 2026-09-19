@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import type { Locator, Page } from "@playwright/test";
-import { defaultProject, WORKSPACE_STORAGE_KEY } from "./fixtures";
+import { defaultProject, readStoredWorkspace } from "./fixtures";
 import { expect, showScaleView, test } from "./scale-fixtures";
 import { fillHybridNumber } from "./typography-fixtures";
 
@@ -36,14 +36,7 @@ test.describe("The spacing studio", () => {
     await expect(steps.getByRole("listitem")).toHaveCount(before - 1);
 
     await expect
-      .poll(() =>
-        page.evaluate((key) => {
-          const raw = window.localStorage.getItem(key);
-          if (!raw) return null;
-          return (JSON.parse(raw) as { spacing?: { steps: number[] } }).spacing
-            ?.steps;
-        }, WORKSPACE_STORAGE_KEY),
-      )
+      .poll(async () => (await readStoredWorkspace(page))?.spacing?.steps)
       .not.toContain(10);
 
     await page.reload();
@@ -98,14 +91,7 @@ test.describe("The spacing studio", () => {
     await expect(hairline).toContainText("grid");
 
     await expect
-      .poll(() =>
-        page.evaluate((key) => {
-          const raw = window.localStorage.getItem(key);
-          if (!raw) return null;
-          return (JSON.parse(raw) as { spacing?: { density?: number } }).spacing
-            ?.density;
-        }, WORKSPACE_STORAGE_KEY),
-      )
+      .poll(async () => (await readStoredWorkspace(page))?.spacing?.density)
       .toBe(1.25);
   });
 
@@ -162,14 +148,7 @@ test.describe("The radius editor", () => {
     await slider.press("ArrowRight");
 
     await expect
-      .poll(() =>
-        page.evaluate((key) => {
-          const raw = window.localStorage.getItem(key);
-          if (!raw) return null;
-          return (JSON.parse(raw) as { radius?: { multiplier: number } }).radius
-            ?.multiplier;
-        }, WORKSPACE_STORAGE_KEY),
-      )
+      .poll(async () => (await readStoredWorkspace(page))?.radius?.multiplier)
       .toBe(1.25);
 
     await page.reload();
@@ -203,18 +182,11 @@ test.describe("The radius editor", () => {
     await expect(radius.getByText("0px · fixed")).toBeVisible();
 
     await expect
-      .poll(() =>
-        page.evaluate((key) => {
-          const raw = window.localStorage.getItem(key);
-          if (!raw) return null;
-          const tokens = (
-            JSON.parse(raw) as {
-              radius?: { tokens: Array<{ id: string; unlinkedPx?: number }> };
-            }
-          ).radius?.tokens;
-          return tokens?.find((token) => token.id === "element")?.unlinkedPx;
-        }, WORKSPACE_STORAGE_KEY),
-      )
+      .poll(async () => {
+        const tokens = (await readStoredWorkspace(page))?.radius?.tokens as
+          Array<{ id: string; unlinkedPx?: number }> | undefined;
+        return tokens?.find((token) => token.id === "element")?.unlinkedPx;
+      })
       .toBe(20);
   });
 
@@ -291,22 +263,12 @@ test.describe("The elevation editor", () => {
     await slider.press("ArrowRight");
 
     await expect
-      .poll(() =>
-        page.evaluate((key) => {
-          const raw = window.localStorage.getItem(key);
-          if (!raw) return null;
-          const stored = JSON.parse(raw) as {
-            elevation?: {
-              levels: Array<{
-                id: string;
-                layers: Array<{ opacity: { light: number } }>;
-              }>;
-            };
-          };
-          return stored.elevation?.levels.find((level) => level.id === "low")
-            ?.layers[0]?.opacity.light;
-        }, WORKSPACE_STORAGE_KEY),
-      )
+      .poll(async () => {
+        const stored = await readStoredWorkspace(page);
+        return stored?.elevation?.levels.find(
+          (level: { id: string }) => level.id === "low",
+        )?.layers[0]?.opacity.light;
+      })
       .toBeCloseTo(0.15, 5);
 
     await page.reload();
@@ -329,27 +291,16 @@ test.describe("The elevation editor", () => {
     await slider.press("ArrowUp");
 
     await expect
-      .poll(async () =>
-        page.evaluate((key) => {
-          const raw = window.localStorage.getItem(key);
-          if (!raw) return null;
-          const stored = JSON.parse(raw) as {
-            elevation?: {
-              levels: Array<{
-                id: string;
-                layers: Array<{ opacity: { dark: number } }>;
-              }>;
-            };
-          };
-          const high = stored.elevation?.levels.find(
-            (level) => level.id === "high",
-          );
-          return {
-            contact: Number(high?.layers[0]?.opacity.dark.toFixed(2)),
-            cast: Number(high?.layers[1]?.opacity.dark.toFixed(2)),
-          };
-        }, WORKSPACE_STORAGE_KEY),
-      )
+      .poll(async () => {
+        const stored = await readStoredWorkspace(page);
+        const high = stored?.elevation?.levels.find(
+          (level: { id: string }) => level.id === "high",
+        );
+        return {
+          contact: Number(high?.layers[0]?.opacity.dark.toFixed(2)),
+          cast: Number(high?.layers[1]?.opacity.dark.toFixed(2)),
+        };
+      })
       .toEqual({ contact: 0.2, cast: 0.35 });
   });
 
@@ -606,14 +557,11 @@ test.describe("Layout uses", () => {
       after.getByText("--hero-inset", { exact: true }),
     ).toBeVisible();
 
-    const stored = await page.evaluate(
-      (key) => window.localStorage.getItem(key),
-      WORKSPACE_STORAGE_KEY,
-    );
+    const stored = await readStoredWorkspace(page);
     expect(stored).not.toBeNull();
-    expect(
-      JSON.parse(stored!).layout.map((token: { id: string }) => token.id),
-    ).toContain("hero-inset");
+    expect(stored.layout.map((token: { id: string }) => token.id)).toContain(
+      "hero-inset",
+    );
   });
 
   test("duplicates and deletes a spacing use", async ({ seededPage: page }) => {
@@ -670,12 +618,9 @@ test.describe("Layout uses", () => {
     await expect(phone).toHaveValue("20");
     await phone.blur();
 
-    const stored = await page.evaluate(
-      (key) => window.localStorage.getItem(key),
-      WORKSPACE_STORAGE_KEY,
-    );
+    const stored = await readStoredWorkspace(page);
     expect(stored).not.toBeNull();
-    const inset = JSON.parse(stored!).layout.find(
+    const inset = stored.layout.find(
       (token: { id: string }) => token.id === "inset-container",
     );
     expect(inset.byDevice.phone).toBe("20px");

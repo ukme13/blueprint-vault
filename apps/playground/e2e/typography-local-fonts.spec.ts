@@ -1,5 +1,10 @@
 import { expect, test } from "./typography-fixtures";
-import { createWorkspaceFromHome } from "./fixtures";
+import {
+  createWorkspaceFromHome,
+  readCurrentWorkspaceRaw,
+  readStoredWorkspace,
+  writeStoredWorkspace,
+} from "./fixtures";
 
 const FILE = "e2e/fixtures-files/Brand-Regular.woff2";
 /* A second file, because a stack dedupes its families: the same file in two
@@ -19,11 +24,10 @@ const FALLBACK_UPLOAD = "Upload Base fallback 1 file";
 const FALLBACK_REPLACE = "Replace Base fallback 1 file";
 
 /** The first font entry as the workspace has it stored, not as state has it. */
-const storedEntry = (page: import("@playwright/test").Page) =>
-  page.evaluate(() => {
-    const raw = window.localStorage.getItem("blueprint.workspace.v1");
-    return JSON.parse(raw!).typography.system.fonts[0];
-  });
+const storedEntry = async (page: import("@playwright/test").Page) => {
+  const stored = await readStoredWorkspace(page);
+  return stored.typography.system.fonts[0];
+};
 
 /**
  * Open the bilingual fallback slot.
@@ -68,10 +72,7 @@ test.describe("Uploaded fonts", () => {
     await settings.getByLabel(PRIMARY_UPLOAD).setInputFiles(FILE);
     await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
 
-    const entry = await page.evaluate(() => {
-      const raw = window.localStorage.getItem("blueprint.workspace.v1");
-      return JSON.parse(raw!).typography.system.fonts[0];
-    });
+    const entry = await storedEntry(page);
     expect(entry.sources).toEqual({ primary: "local" });
 
     /* The upload replaces the primary slot and nothing else. The seed is
@@ -95,9 +96,7 @@ test.describe("Uploaded fonts", () => {
 
     /* The rule the whole plan hangs on. The file is 28KB, so a project holding
        it would be obvious by size alone. */
-    const stored = await page.evaluate(() =>
-      window.localStorage.getItem("blueprint.workspace.v1"),
-    );
+    const stored = await page.evaluate(readCurrentWorkspaceRaw);
     expect(stored).not.toBeNull();
     expect(stored!.length).toBeLessThan(20_000);
     expect(stored).not.toContain("data");
@@ -203,19 +202,13 @@ test.describe("A local font with no file", () => {
   const seedLocalWithoutFile = async (
     page: import("@playwright/test").Page,
   ) => {
-    await page.evaluate(() => {
-      const raw = window.localStorage.getItem("blueprint.workspace.v1");
-      const workspace = JSON.parse(raw!);
-      workspace.typography.system.fonts[0] = {
-        ...workspace.typography.system.fonts[0],
-        families: ["Brand-Regular", "sans-serif"],
-        sources: { primary: "local" },
-      };
-      window.localStorage.setItem(
-        "blueprint.workspace.v1",
-        JSON.stringify(workspace),
-      );
-    });
+    const workspace = await readStoredWorkspace(page);
+    workspace.typography.system.fonts[0] = {
+      ...workspace.typography.system.fonts[0],
+      families: ["Brand-Regular", "sans-serif"],
+      sources: { primary: "local" },
+    };
+    await writeStoredWorkspace(page, workspace);
     await page.reload();
     await expect(
       page.getByRole("region", { name: "Type scale settings" }),

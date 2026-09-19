@@ -5,7 +5,80 @@ export const PROJECT_STORAGE_KEY = "blueprint.palette-project.v1";
 /* Declared rather than imported from @blueprint/ui: the package entry is a
    .tsx the Playwright loader will not resolve. Kept in step by hand. */
 export const WORKSPACE_STORAGE_KEY = "blueprint.workspace.v1";
+export const LIBRARY_STORAGE_KEY = "blueprint.library.v1";
 export const PALETTE_VIEW_STORAGE_KEY = "blueprint.palette-view.v1";
+
+/**
+ * The current document after the library split.
+ *
+ * A shade edit writes `blueprint.workspace.{id}`, not the retired v1 key.
+ * Init scripts may still seed v1; first load migrates. This function is the
+ * evaluate body, so its keys stay inlined.
+ */
+export function readCurrentWorkspaceRaw(): string | null {
+  const libraryRaw = window.localStorage.getItem("blueprint.library.v1");
+  if (libraryRaw) {
+    try {
+      const library = JSON.parse(libraryRaw) as { currentId?: unknown };
+      if (typeof library.currentId === "string") {
+        return window.localStorage.getItem(
+          `blueprint.workspace.${library.currentId}`,
+        );
+      }
+    } catch {
+      /* Fall through to the retired v1 key. */
+    }
+  }
+  return window.localStorage.getItem("blueprint.workspace.v1");
+}
+
+export function writeCurrentWorkspaceRaw(raw: string): void {
+  const libraryRaw = window.localStorage.getItem("blueprint.library.v1");
+  if (libraryRaw) {
+    try {
+      const library = JSON.parse(libraryRaw) as { currentId?: unknown };
+      if (typeof library.currentId === "string") {
+        window.localStorage.setItem(
+          `blueprint.workspace.${library.currentId}`,
+          raw,
+        );
+        return;
+      }
+    } catch {
+      /* Fall through. */
+    }
+  }
+  window.localStorage.setItem("blueprint.workspace.v1", raw);
+}
+
+export function clearStoredLibrary(): void {
+  const libraryRaw = window.localStorage.getItem("blueprint.library.v1");
+  if (libraryRaw) {
+    try {
+      const library = JSON.parse(libraryRaw) as { ids?: unknown };
+      if (Array.isArray(library.ids)) {
+        for (const id of library.ids) {
+          if (typeof id === "string") {
+            window.localStorage.removeItem(`blueprint.workspace.${id}`);
+          }
+        }
+      }
+    } catch {
+      /* Still drop the index. */
+    }
+    window.localStorage.removeItem("blueprint.library.v1");
+  }
+  window.localStorage.removeItem("blueprint.workspace.v1");
+}
+
+export async function readStoredWorkspace(page: Page) {
+  const raw = await page.evaluate(readCurrentWorkspaceRaw);
+  return raw ? JSON.parse(raw) : null;
+}
+
+export async function writeStoredWorkspace(page: Page, workspace: unknown) {
+  await page.evaluate(writeCurrentWorkspaceRaw, JSON.stringify(workspace));
+}
 
 const SEED_GUARD_KEY = "blueprint.e2e-seeded.palette";
 

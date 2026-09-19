@@ -1,3 +1,4 @@
+export * from "./library";
 export * from "./palette-project";
 export * from "./seed-project";
 export * from "./semantics";

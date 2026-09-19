@@ -1,11 +1,15 @@
 import {
-  LEGACY_PALETTE_STORAGE_KEY,
-  LEGACY_STORAGE_KEYS,
-  LEGACY_TYPOGRAPHY_STORAGE_KEY,
-  WORKSPACE_STORAGE_KEY,
-  loadWorkspace,
-  retireLegacyKeys,
-} from "./workspace";
+  addWorkspace,
+  createWorkspaceId,
+  duplicateWorkspace,
+  loadCurrentWorkspace,
+  loadLibrary,
+  removeWorkspace,
+  saveCurrentWorkspace,
+  switchWorkspace,
+  updateCurrentWorkspace,
+  type WorkspaceIdFactory,
+} from "./library";
 import type { WorkspaceProject } from "./types";
 
 /**
@@ -21,6 +25,9 @@ import type { WorkspaceProject } from "./types";
  * Storage is a parameter rather than a global so this is testable against a
  * fake, and so the same functions can back something other than localStorage
  * later without every studio learning about it.
+ *
+ * The current document is `blueprint.workspace.{id}`. The library index is
+ * a second key, so a shade edit does not rewrite every project.
  */
 export type WorkspaceStorage = Pick<
   Storage,
@@ -44,25 +51,16 @@ export function browserWorkspaceStorage(): WorkspaceStorage | null {
 }
 
 /**
- * Read the workspace, retiring the keys it grew out of.
- *
- * The retirement belongs with the read because every read comes through here.
- * The input is gathered before the removal, so this load still sees whatever
- * it needed; and nothing is removed until the workspace key reads back on its
- * own, so a migration that has not been persisted yet keeps its source.
+ * Read the current workspace, migrating the single-document key if that is
+ * still all this browser has.
  */
 export function loadStoredWorkspace(
   storage: WorkspaceStorage | null,
+  createId: WorkspaceIdFactory = createWorkspaceId,
 ): WorkspaceProject | null {
   if (!storage) return null;
   try {
-    const input = {
-      workspace: storage.getItem(WORKSPACE_STORAGE_KEY),
-      legacyPalette: storage.getItem(LEGACY_PALETTE_STORAGE_KEY),
-      legacyTypography: storage.getItem(LEGACY_TYPOGRAPHY_STORAGE_KEY),
-    };
-    retireLegacyKeys(storage);
-    return loadWorkspace(input).project;
+    return loadCurrentWorkspace(storage, createId).current;
   } catch {
     /* Unreadable storage reads as an empty one. */
     return null;
@@ -70,7 +68,7 @@ export function loadStoredWorkspace(
 }
 
 /**
- * Persist a whole workspace.
+ * Persist the current workspace.
  *
  * Returns whether it landed. Callers have never acted on the failure and
  * should not start: a storage that will not take a write is not something a
@@ -80,14 +78,10 @@ export function loadStoredWorkspace(
 export function saveStoredWorkspace(
   storage: WorkspaceStorage | null,
   project: WorkspaceProject,
+  createId: WorkspaceIdFactory = createWorkspaceId,
 ): boolean {
   if (!storage) return false;
-  try {
-    storage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(project));
-    return true;
-  } catch {
-    return false;
-  }
+  return saveCurrentWorkspace(storage, project, createId);
 }
 
 /**
@@ -100,35 +94,82 @@ export function saveStoredWorkspace(
 export function updateStoredWorkspace(
   storage: WorkspaceStorage | null,
   apply: (current: WorkspaceProject | null) => WorkspaceProject,
+  createId: WorkspaceIdFactory = createWorkspaceId,
 ): WorkspaceProject | null {
   if (!storage) return null;
-  /* Whether this write is the one that creates the workspace key, read
-     before anything else touches storage. */
-  const isFirstWrite = storage.getItem(WORKSPACE_STORAGE_KEY) === null;
-  const next = apply(loadStoredWorkspace(storage));
-  if (!saveStoredWorkspace(storage, next)) return next;
-  /* The old keys go with the write that first creates the workspace. The
-     load above retires them only when a workspace already reads back, so
-     that first write used to leave them — and they were being cleared by
-     whichever *next* load happened along, which was the palette studio
-     writing its semantics slice on mount. When that write moved onto the
-     store, nothing followed, and a migrated project kept its legacy keys.
+  return updateCurrentWorkspace(storage, apply, createId);
+}
 
-     Only on that first write, and without `retireLegacyKeys`. That function
-     re-reads and re-seeds the whole workspace to prove the key holds one;
-     here the save that just succeeded is the proof. And any work at all on
-     every write is paid on every keystroke and every step of a drag in the
-     typography studio, whose keyboard reorder is timed close enough that
-     the re-parse stalled it four runs out of four and two `removeItem`s
-     still cost it one in four. Nothing on the ordinary write costs nothing. */
-  if (isFirstWrite) {
-    for (const key of LEGACY_STORAGE_KEYS) {
-      try {
-        storage.removeItem(key);
-      } catch {
-        /* A key that will not go is the next load's to retire. */
-      }
-    }
+export function loadStoredLibrary(
+  storage: WorkspaceStorage | null,
+  createId: WorkspaceIdFactory = createWorkspaceId,
+) {
+  if (!storage) {
+    return {
+      index: { currentId: null, ids: [] as string[] },
+      current: null,
+      summaries: [],
+    };
   }
-  return next;
+  try {
+    return loadLibrary(storage, createId);
+  } catch {
+    return {
+      index: { currentId: null, ids: [] as string[] },
+      current: null,
+      summaries: [],
+    };
+  }
+}
+
+export function addStoredWorkspace(
+  storage: WorkspaceStorage | null,
+  project: WorkspaceProject,
+  createId: WorkspaceIdFactory = createWorkspaceId,
+) {
+  if (!storage) return null;
+  try {
+    return addWorkspace(storage, project, createId);
+  } catch {
+    return null;
+  }
+}
+
+export function switchStoredWorkspace(
+  storage: WorkspaceStorage | null,
+  id: string,
+  createId: WorkspaceIdFactory = createWorkspaceId,
+) {
+  if (!storage) return null;
+  try {
+    return switchWorkspace(storage, id, createId);
+  } catch {
+    return null;
+  }
+}
+
+export function duplicateStoredWorkspace(
+  storage: WorkspaceStorage | null,
+  id: string,
+  createId: WorkspaceIdFactory = createWorkspaceId,
+) {
+  if (!storage) return null;
+  try {
+    return duplicateWorkspace(storage, id, createId);
+  } catch {
+    return null;
+  }
+}
+
+export function removeStoredWorkspace(
+  storage: WorkspaceStorage | null,
+  id: string,
+  createId: WorkspaceIdFactory = createWorkspaceId,
+) {
+  if (!storage) return null;
+  try {
+    return removeWorkspace(storage, id, createId);
+  } catch {
+    return null;
+  }
 }

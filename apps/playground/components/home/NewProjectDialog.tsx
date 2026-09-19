@@ -16,11 +16,11 @@ import { Button, DEFAULT_WORKSPACE_NAME } from "@blueprint/ui";
  * Name + Blueprint seed, without leaving Home.
  *
  * `purpose="form"` so a click on the backdrop does not dump the name. Create
- * still lands on the colour bench; this dialog is only the door.
+ * still lands on the colour bench; this dialog is only the door. It always
+ * adds a card — it never replaces another workspace.
  */
 export function NewProjectDialog({
   error,
-  hasWorkspace,
   isOpen,
   name,
   onOpenChange,
@@ -28,7 +28,6 @@ export function NewProjectDialog({
   onNameChange,
 }: {
   error: string;
-  hasWorkspace: boolean;
   isOpen: boolean;
   name: string;
   onOpenChange: (isOpen: boolean) => void;
@@ -46,11 +45,7 @@ export function NewProjectDialog({
         <Layout
           header={
             <DialogHeader
-              subtitle={
-                hasWorkspace
-                  ? "This replaces the current project in this browser. Export first if you want to keep it."
-                  : "Name it. The Blueprint seed fills colour, type, and scale — edit those after."
-              }
+              subtitle="Name it. The Blueprint seed fills colour, type, and scale — edit those after."
               title="New project"
               onOpenChange={onOpenChange}
             />

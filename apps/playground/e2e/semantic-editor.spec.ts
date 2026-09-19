@@ -1,4 +1,4 @@
-import { expect, test, WORKSPACE_STORAGE_KEY } from "./fixtures";
+import { expect, readStoredWorkspace, test } from "./fixtures";
 import type { Locator, Page } from "@playwright/test";
 
 /**
@@ -93,19 +93,13 @@ test.describe("The semantic editor", () => {
        is an alias. The model's own test covers resolution; this covers what
        reaches storage. */
     await expect
-      .poll(() =>
-        page.evaluate((key) => {
-          const raw = window.localStorage.getItem(key);
-          if (!raw) return null;
-          const stored = JSON.parse(raw) as {
-            semantics?: Array<{ id: string; light: Record<string, unknown> }>;
-          };
-          const token = stored.semantics?.find(
-            (each) => each.id === "action.primary",
-          );
-          return token ? Object.keys(token.light).sort() : null;
-        }, WORKSPACE_STORAGE_KEY),
-      )
+      .poll(async () => {
+        const stored = await readStoredWorkspace(page);
+        const token = stored?.semantics?.find(
+          (each: { id: string }) => each.id === "action.primary",
+        );
+        return token ? Object.keys(token.light).sort() : null;
+      })
       .toEqual(["trackId", "weight"]);
   });
 
@@ -164,19 +158,14 @@ test.describe("The semantic editor", () => {
     await page.getByRole("option", { name: "100", exact: true }).click();
 
     await expect
-      .poll(() =>
-        page.evaluate((key) => {
-          const raw = window.localStorage.getItem(key);
-          if (!raw) return null;
-          const stored = JSON.parse(raw) as {
-            semantics?: Array<{ id: string; light: { weight: number } }>;
-          };
-          return (
-            stored.semantics?.find((token) => token.id === "action.primary")
-              ?.light.weight ?? null
-          );
-        }, WORKSPACE_STORAGE_KEY),
-      )
+      .poll(async () => {
+        const stored = await readStoredWorkspace(page);
+        return (
+          stored?.semantics?.find(
+            (token: { id: string }) => token.id === "action.primary",
+          )?.light.weight ?? null
+        );
+      })
       .toBe(100);
 
     await page.reload();
