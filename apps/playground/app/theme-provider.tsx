@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { Theme } from "@astryxdesign/core/theme";
 import { LayerProvider } from "@astryxdesign/core/Layer";
 import { neutralTheme } from "@astryxdesign/theme-neutral/built";
@@ -38,6 +38,40 @@ export function useThemeMode(): ColourModePreference {
  */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const preference = useColourModePreference();
+
+  useEffect(() => {
+    const clampPopup = (target: HTMLElement) => {
+      const popup = target.querySelector(".astryx-selector-popup");
+      if (!popup) return;
+      const margin = parseFloat(target.style.marginBlockStart || "0");
+      const listbox = target.querySelector(
+        '[role="listbox"]',
+      ) as HTMLElement | null;
+      const listboxHeight = listbox?.offsetHeight || target.offsetHeight || 300;
+      if (Math.abs(margin) > listboxHeight) {
+        target.style.marginBlockStart = `-${listboxHeight}px`;
+      }
+    };
+
+    const handleToggle = (event: Event) => {
+      const toggleEvent = event as ToggleEvent;
+      const target = toggleEvent.target as HTMLElement | null;
+      if (toggleEvent.newState !== "open" || !target) return;
+      clampPopup(target);
+      const observer = new MutationObserver(() => {
+        clampPopup(target);
+      });
+      observer.observe(target, {
+        attributes: true,
+        attributeFilter: ["style"],
+      });
+    };
+
+    document.addEventListener("toggle", handleToggle, true);
+    return () => {
+      document.removeEventListener("toggle", handleToggle, true);
+    };
+  }, []);
 
   return (
     <ThemeModeContext.Provider value={preference}>

@@ -9,10 +9,12 @@ import {
   PREVIEW_FILL_TOKEN_GROUPS,
   PREVIEW_SECTION_LABEL,
   previewTokenSelectorOptions,
+  semanticVariableName,
   type PreviewSectionFill,
   type PreviewSectionId,
   type SemanticToken,
 } from "@blueprint/ui";
+import { PreviewColourSwatch } from "./PreviewColourSwatch";
 import {
   previewImageErrorCopy,
   type PreviewImageError,
@@ -44,7 +46,13 @@ export function PreviewSectionInspector({
   const options = previewTokenSelectorOptions(
     tokens,
     PREVIEW_FILL_TOKEN_GROUPS,
-  );
+  ).map((section) => ({
+    ...section,
+    options: section.options.map((opt) => ({
+      ...opt,
+      icon: <PreviewColourSwatch variable={semanticVariableName(opt.value)} />,
+    })),
+  }));
   const tokenId = fill?.kind === "token" ? fill.tokenId : fill?.fallbackTokenId;
   const title = sectionId ? PREVIEW_SECTION_LABEL[sectionId] : "Section";
 

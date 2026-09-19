@@ -17,10 +17,12 @@ import {
   previewDocumentRoleOptions,
   previewInspectorChrome,
   previewTokenSelectorOptions,
+  semanticVariableName,
   type PreviewDocumentBlock,
   type SemanticToken,
   type TypeSystem,
 } from "@blueprint/ui";
+import { PreviewColourSwatch } from "./PreviewColourSwatch";
 
 const PAGE_DEFAULT_COLOR = "page-default";
 
@@ -73,9 +75,25 @@ export function PreviewInspector({
     {
       type: "section" as const,
       title: "Default",
-      options: [{ value: PAGE_DEFAULT_COLOR, label: "Page default" }],
+      options: [
+        {
+          value: PAGE_DEFAULT_COLOR,
+          label: "Page default",
+          icon: <PreviewColourSwatch variable={null} />,
+        },
+      ],
     },
-    ...previewTokenSelectorOptions(tokens, PREVIEW_TEXT_COLOR_GROUPS),
+    ...previewTokenSelectorOptions(tokens, PREVIEW_TEXT_COLOR_GROUPS).map(
+      (section) => ({
+        ...section,
+        options: section.options.map((opt) => ({
+          ...opt,
+          icon: (
+            <PreviewColourSwatch variable={semanticVariableName(opt.value)} />
+          ),
+        })),
+      }),
+    ),
   ];
 
   /* Keep the native <dialog> out of the tree while idle. Astryx opens it with
