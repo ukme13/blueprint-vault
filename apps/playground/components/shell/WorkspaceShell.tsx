@@ -56,7 +56,7 @@ function shouldIgnorePreviewShortcut(target: EventTarget | null): boolean {
   if (target.isContentEditable) return true;
   return Boolean(
     target.closest(
-      "input, textarea, select, button, [role='button'], [role='tab'], [role='radio'], [role='checkbox'], [role='switch'], [role='slider'], [role='menuitem'], [role='option'], [role='textbox'], [role='combobox'], [role='dialog'], [role='menu'], [role='listbox'], [role='alertdialog']",
+      "input, textarea, select, button, [role='button'], [role='tab'], [role='radio'], [role='checkbox'], [role='switch'], [role='slider'], [role='menuitem'], [role='option'], [role='textbox'], [role='combobox'], [role='dialog'], [role='menu'], [role='listbox'], [role='alertdialog'], [aria-haspopup='dialog']",
     ),
   );
 }

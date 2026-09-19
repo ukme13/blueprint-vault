@@ -6,6 +6,7 @@ import {
   canAddExtraDesktop,
   defaultPreviewDevices,
   isRequiredPreviewDevice,
+  previewDeviceForWidth,
   sortPreviewDevicesByWidth,
   sortPreviewDevicesLargestFirst,
   normalizePreviewDevices,
@@ -204,5 +205,24 @@ describe("sortPreviewDevicesLargestFirst", () => {
         (device) => device.id,
       ),
     ).toEqual(["desktop", "tablet", "phone"]);
+  });
+});
+
+describe("previewDeviceForWidth", () => {
+  it("picks the largest frame that still fits the canvas", () => {
+    const devices = defaultPreviewDevices(RATIO);
+    expect(previewDeviceForWidth(devices, 400)?.id).toBe("phone");
+    expect(previewDeviceForWidth(devices, 800)?.id).toBe("tablet");
+    expect(previewDeviceForWidth(devices, 2000)?.id).toBe("desktop");
+  });
+
+  it("falls back to the narrowest frame when the canvas is smaller than all of them", () => {
+    expect(previewDeviceForWidth(defaultPreviewDevices(RATIO), 100)?.id).toBe(
+      "phone",
+    );
+  });
+
+  it("returns null when there are no frames", () => {
+    expect(previewDeviceForWidth([], 800)).toBeNull();
   });
 });

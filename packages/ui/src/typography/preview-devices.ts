@@ -103,6 +103,24 @@ export function sortPreviewDevicesByWidth(
 }
 
 /**
+ * The largest named frame that still fits this canvas width.
+ *
+ * `/preview` sits beside a rail, so `100vw` media queries would trip desktop
+ * while the article column is still phone-narrow. Measuring the canvas and
+ * picking a frame is the honest match. Narrower than every frame returns
+ * the smallest one rather than nothing.
+ */
+export function previewDeviceForWidth(
+  devices: readonly PreviewDevice[],
+  widthPx: number,
+): PreviewDevice | null {
+  const ordered = sortPreviewDevicesByWidth(devices);
+  if (ordered.length === 0) return null;
+  const fitting = ordered.filter((device) => device.widthPx <= widthPx);
+  return fitting.at(-1) ?? ordered[0] ?? null;
+}
+
+/**
  * Widest first. The studio icons read large to small — desktop, then tablet,
  * then phone — while export still walks the ascending sort so `:root` is the
  * smallest layout.

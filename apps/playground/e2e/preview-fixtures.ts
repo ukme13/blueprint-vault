@@ -22,28 +22,16 @@ import { seedProject } from "./fixtures";
  */
 
 /**
- * Why the footer, and not the heading.
+ * Why the ready flag, and not the heading.
  *
- * `hasLoaded` gates only the empty-state branch here, never the markup, so the
- * page renders its whole layout — heading included — from an empty token list
- * before it knows anything about the project. Waiting on anything in that
- * layout waits for nothing.
- *
- * The footer count is the one observable that starts at a default and changes:
- * "Drawn from 0 semantic tokens" until the read lands. It is also the right
- * one rather than merely a convenient one, because the count and the CSS
- * variables are computed from the same `tokens` array in the same render — so
- * a footer reporting a layer is a DOM that already carries it.
- *
- * Matched as "not zero" rather than as an exact count. How many roles a seeded
- * workspace gets is a fact about the seed, and asserting it is a job the first
- * test in this suite already does deliberately; a fixture that repeated the
- * number would fail every spec in the file the day that seed changed.
+ * `hasLoaded` now holds the canvas back until the read finishes, so the
+ * heading is no longer a false ready signal from an empty token list. The
+ * attribute is still the one observable tied to the tokens that fill the CSS
+ * variables: a canvas that already carries it is a DOM that already carries
+ * the layer.
  */
 export async function openPreview(page: Page): Promise<void> {
   await seedProject(page);
   await page.goto("/preview");
-  await expect(
-    page.getByText(/Drawn from [1-9]\d* semantic tokens/),
-  ).toBeVisible();
+  await expect(page.locator("[data-preview-ready]")).toBeVisible();
 }

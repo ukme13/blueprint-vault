@@ -4,7 +4,12 @@ import { defaultLayoutTokens } from "../scale/layout-tokens";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { defaultPreviewDevices } from "../typography/preview-devices";
-import { seedPreviewDocument } from "../typography/preview-document";
+import {
+  seedPreviewDocument,
+  seedPreviewLanding,
+  seedPreviewShell,
+} from "../typography/preview-document";
+import { seedPreviewSections } from "../typography/preview-sections";
 import { ROOT_FONT_SIZE_PX } from "../typography/types";
 import { defaultSystem } from "../typography/system";
 import { splitFontFamily } from "../typography/migrate";
@@ -112,6 +117,9 @@ export function seedTypographyProject(name: string): TypographyProjectData {
     unit: DEFAULT_TYPE_SCALE_UNIT,
     specimenText: DEFAULT_SPECIMEN_TEXT,
     previewDocument: seedPreviewDocument(system),
+    previewShell: seedPreviewShell(system),
+    previewLanding: seedPreviewLanding(system),
+    previewSections: seedPreviewSections(),
     template: DEFAULT_PREVIEW_TEMPLATE,
     remRootPx: ROOT_FONT_SIZE_PX,
   };

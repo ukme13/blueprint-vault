@@ -20,7 +20,13 @@ import {
   saveStoredWorkspace,
   switchStoredWorkspace,
   updateStoredWorkspace,
+  updateStoredWorkspaceById,
 } from "./store";
+import {
+  copyWorkspacePreviewImages,
+  previewImageStore,
+  removeWorkspacePreviewImages,
+} from "../preview-images";
 import type { WorkspaceProject } from "./types";
 
 export interface WorkspaceLibraryView {
@@ -196,9 +202,45 @@ function useWorkspaceStoreState(): WorkspaceStore {
 
   const duplicate = useCallback(
     (id: string) => {
-      const snapshot = duplicateStoredWorkspace(browserWorkspaceStorage(), id);
+      const storage = browserWorkspaceStorage();
+      const snapshot = duplicateStoredWorkspace(storage, id);
       if (!snapshot) return false;
       applySnapshot(snapshot);
+      const destId = snapshot.index.currentId;
+      const sections = snapshot.current?.typography?.previewSections;
+      if (!destId || !sections) return true;
+      void copyWorkspacePreviewImages(previewImageStore(), id, destId, sections)
+        .then((nextSections) => {
+          const patched = updateStoredWorkspaceById(
+            storage,
+            destId,
+            (project) =>
+              project.typography
+                ? {
+                    ...project,
+                    typography: {
+                      ...project.typography,
+                      previewSections: nextSections,
+                    },
+                  }
+                : project,
+          );
+          if (!patched) return;
+          if (currentIdRef.current === destId) {
+            setProject(patched);
+            setLibrary((lib) => ({
+              ...lib,
+              summaries: lib.summaries.map((entry) =>
+                entry.id === destId
+                  ? { ...entry, name: patched.name, project: patched }
+                  : entry,
+              ),
+            }));
+          }
+        })
+        .catch(() => {
+          /* IndexedDB missing or refused: the copy still has the token fill. */
+        });
       return true;
     },
     [applySnapshot],
@@ -207,6 +249,9 @@ function useWorkspaceStoreState(): WorkspaceStore {
   const remove = useCallback(
     (id: string) => {
       applySnapshot(removeStoredWorkspace(browserWorkspaceStorage(), id));
+      void removeWorkspacePreviewImages(previewImageStore(), id).catch(() => {
+        /* A store that will not open still deleted the project JSON. */
+      });
     },
     [applySnapshot],
   );

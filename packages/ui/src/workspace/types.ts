@@ -7,6 +7,7 @@ import type { RadiusScale } from "../scale/radius";
 import type { SpacingScale } from "../scale/spacing";
 import type { PreviewDevice } from "../typography/preview-devices";
 import type { PreviewDocument } from "../typography/preview-document";
+import type { PreviewSection } from "../typography/preview-sections";
 import type { TypeScaleUnit } from "../typography/types";
 import type { TypeSystem } from "../typography/system";
 
@@ -30,6 +31,22 @@ export interface TypographyProjectData {
    * the article starter. It never writes into the generated scale.
    */
   previewDocument: PreviewDocument;
+  /**
+   * Site chrome judged on `/preview`: brand, nav, sign-up, footer. Fixed ids
+   * and shared type-role groups. Missing on an older save is the seed.
+   */
+  previewShell: PreviewDocument;
+  /**
+   * Landing-page copy judged on `/preview`. Fixed ids, separate from the
+   * article on `previewDocument` so Typography's editor does not grow a
+   * marketing page. Missing on an older save is the seed.
+   */
+  previewLanding: PreviewDocument;
+  /**
+   * Per-band fill on `/preview`: a semantic token, or an image id whose
+   * bytes live in IndexedDB. Missing on an older save is the seed.
+   */
+  previewSections: PreviewSection[];
   /**
    * Last specimen or article view.
    *

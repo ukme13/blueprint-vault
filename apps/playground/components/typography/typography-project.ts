@@ -15,6 +15,7 @@ import {
   readPreviewTemplate,
   type PreviewTemplateId,
   type PreviewDocument,
+  type PreviewSection,
 } from "@blueprint/ui";
 
 export const DEFAULT_UNIT: TypeScaleUnit = DEFAULT_TYPE_SCALE_UNIT;
@@ -33,6 +34,12 @@ export interface TypographyProject {
   specimenText: string;
   /** Editable document judged in Preview. */
   previewDocument: PreviewDocument;
+  /** Site chrome on `/preview`. Same block shape as the article. */
+  previewShell: PreviewDocument;
+  /** Landing-page copy on `/preview`. Not the Typography article. */
+  previewLanding: PreviewDocument;
+  /** Per-band fill on `/preview`. */
+  previewSections: PreviewSection[];
   /** Last specimen or article view. Email and documentation become article. */
   template: PreviewTemplateId;
 }

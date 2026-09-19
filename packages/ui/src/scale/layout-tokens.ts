@@ -40,7 +40,9 @@ export const DEFAULT_LAYOUT_TOKENS: readonly LayoutToken[] = [
     name: "Section gap",
     description: "Space between page sections.",
     kind: "spacing",
-    byDevice: { phone: "6", tablet: "10", desktop: "16" },
+    /* Same step on every frame. The reference landing keeps section padding
+       at `--space-6` below 767px; shrinking this to step 6 stacked the bands. */
+    byDevice: { phone: "16", tablet: "16", desktop: "16" },
   },
   {
     id: "radius-surface",
@@ -179,7 +181,27 @@ export function normalizeLayoutTokens(
     });
   }
 
-  return parsed.map((token) => fillDevices(token, devices));
+  return parsed.map((token) =>
+    fillDevices(migrateUnshrunkSectionGap(token), devices),
+  );
+}
+
+/**
+ * Workspaces seeded before section gap stopped shrinking on phone/tablet.
+ *
+ * Those frames used steps 6 and 10 against desktop 16. The landing that
+ * token paints is stacked on a phone, and 24px between bands is not the
+ * same job as 64px on a wide canvas. Lift only the old default triplet so
+ * a pointer someone chose on purpose stays put.
+ */
+function migrateUnshrunkSectionGap(token: LayoutToken): LayoutToken {
+  if (token.id !== "gap-section") return token;
+  const { phone, tablet, desktop } = token.byDevice;
+  if (phone !== "6" || tablet !== "10" || desktop !== "16") return token;
+  return {
+    ...token,
+    byDevice: { ...token.byDevice, phone: "16", tablet: "16" },
+  };
 }
 
 export function pruneLayoutDevices(
@@ -218,6 +240,7 @@ export function layoutPrimitiveVar(
 export function formatLayoutCss(
   tokens: readonly LayoutToken[],
   devices: readonly PreviewDevice[],
+  selector = ":root",
 ): string {
   const ordered = sortPreviewDevicesByWidth([...devices]);
   if (ordered.length === 0) return "";
@@ -229,16 +252,29 @@ export function formatLayoutCss(
     );
 
   const first = ordered[0]!;
-  const lines = [":root {", ...block(first, "  "), "}"];
+  const lines = [`${selector} {`, ...block(first, "  "), "}"];
   for (const frame of ordered.slice(1)) {
     lines.push(
       "",
       `@media (min-width: ${frame.widthPx}px) {`,
-      "  :root {",
+      `  ${selector} {`,
       ...block(frame, "    "),
       "  }",
       "}",
     );
   }
   return `${lines.join("\n")}\n`;
+}
+
+/** Layout uses as custom properties for one named frame. */
+export function layoutCssVariablesForDevice(
+  tokens: readonly LayoutToken[],
+  deviceId: string,
+): Record<string, string> {
+  return Object.fromEntries(
+    tokens.map((token) => [
+      layoutVariableName(token.id),
+      layoutPrimitiveVar(token, deviceId),
+    ]),
+  );
 }

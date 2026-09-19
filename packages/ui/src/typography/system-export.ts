@@ -335,8 +335,85 @@ export function formatTypeSystemCssExport(
   unit: TypeScaleUnit = "rem",
   devices?: readonly PreviewDevice[],
   remRootPx: number = ROOT_FONT_SIZE_PX,
+  selector = ":root",
 ): string {
-  return body(system, unit, ":root {", devices, remRootPx);
+  return body(system, unit, `${selector} {`, devices, remRootPx);
+}
+
+function cssFamilyStack(families: readonly string[]): string {
+  return families
+    .map((family) =>
+      /^[a-zA-Z][a-zA-Z0-9-]*$/.test(family) ? family : `"${family}"`,
+    )
+    .join(", ");
+}
+
+/**
+ * Type tokens for one preview frame, as custom properties a canvas can set.
+ *
+ * Same names as `formatTypeSystemCssExport`. Values are the resolved size for
+ * this frame rather than a `clamp()` across all of them, so a rail that
+ * shrinks the canvas does not fake a desktop breakpoint.
+ */
+export function typeCssVariablesForDevice(
+  system: TypeSystem,
+  device: PreviewDevice,
+  unit: TypeScaleUnit = "rem",
+  remRootPx: number = ROOT_FONT_SIZE_PX,
+  devices?: readonly PreviewDevice[],
+): Record<string, string> {
+  const stacked = stackedPreviewDevices(system, devices);
+  const desktop =
+    stacked.find((frame) => frame.id === "desktop") ?? stacked.at(-1) ?? device;
+  const desktopSteps = generateTypeSteps(
+    system.baseFontSizePx,
+    desktop.ratio,
+    system.stepCount,
+  );
+  const desktopSizeByRoleId = new Map(
+    system.roles.map((role) => [
+      role.id,
+      resolveRoleSizePx(system, desktopSteps, role, desktop.id),
+    ]),
+  );
+  const viewport = roleViewportTokens(system, device, desktopSizeByRoleId);
+  const vars: Record<string, string> = {};
+
+  for (const font of system.fonts) {
+    vars[`--font-family-${typeTokenId(font.id)}`] = cssFamilyStack(
+      font.families,
+    );
+  }
+
+  for (const step of desktopSteps) {
+    vars[`--font-size-${step.step}`] = formatLength(
+      step.fontSizePx,
+      unit,
+      remRootPx,
+    );
+  }
+
+  for (const role of system.roles) {
+    const id = typeTokenId(role.id);
+    vars[`--font-${id}-family`] =
+      `var(--font-family-${typeTokenId(role.fontId)})`;
+    vars[`--font-${id}-weight`] = String(role.fontWeight);
+    vars[`--font-${id}-transform`] = role.textTransform;
+  }
+
+  for (const role of viewport) {
+    vars[`--font-${role.tokenId}-size`] = formatLength(
+      role.fontSizePx,
+      unit,
+      remRootPx,
+    );
+    vars[`--font-${role.tokenId}-line-height`] =
+      `${Number(role.lineHeight.toFixed(4))}`;
+    vars[`--font-${role.tokenId}-letter-spacing`] =
+      `${Number(role.letterSpacingEm.toFixed(4))}em`;
+  }
+
+  return vars;
 }
 
 export function formatTypeSystemTailwindExport(

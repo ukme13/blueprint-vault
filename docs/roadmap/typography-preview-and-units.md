@@ -210,9 +210,10 @@ reader's browser setting still works. Spacing rem is unchanged.
 
 ## Later improvements
 
-- Dashboard as a skin on `/preview`, not on the typography picker.
-  Article, Documentation and Email now share an editable document.
-  Dashboard is product chrome and waits for the system preview page.
+- `/preview` is a landing page (nav, hero, features, quote, pricing, footer)
+  with a slot inspector for copy and type role. The article judged in
+  Typography stays on `previewDocument`. Dashboard stays out: it is product
+  chrome, not a document, and it is not this page.
 
 ## Safety and quality rules
 
@@ -220,7 +221,7 @@ Changing the unit must never change the stored scale. Conversion happens at the
 preview and export edges only, so switching units and switching back is lossless.
 
 Persisted projects must keep loading. `unit`, `specimenText`, `template`,
-`previewDocument` and `remRootPx` are optional fields; `readStoredProject`
+`previewDocument`, `previewShell`, `previewLanding` and `remRootPx` are optional fields; `readStoredProject`
 must default them rather than reject a project saved before this work. No
 storage-key version bump should be needed — confirm that before merging.
 

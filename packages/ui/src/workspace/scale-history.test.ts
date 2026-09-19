@@ -119,7 +119,7 @@ describe("createScaleHistory", () => {
     });
 
     expect(history.present.layout[1]?.byDevice.phone).toBe("8");
-    expect(history.undo()?.layout[1]?.byDevice.phone).toBe("6");
+    expect(history.undo()?.layout[1]?.byDevice.phone).toBe("16");
     expect(history.present.spacing.steps).toEqual(defaultSpacingScale().steps);
   });
 });
