@@ -604,6 +604,20 @@
     var(--color-neutral-300),
     var(--color-neutral-900)
   );
+
+  /* ========================================================================
+     RADIUS
+
+     Named for what they go on. Seed values match DEFAULT_RADIUS_TOKENS;
+     the workspace overwrites them at runtime. `rounded-element` is the
+     Button; `var(--radius-surface)` is a layout alias onto container/page.
+     ======================================================================== */
+  --radius-none: 0px;
+  --radius-inner: 4px;
+  --radius-element: 8px;
+  --radius-container: 12px;
+  --radius-page: 28px;
+  --radius-full: 9999px;
 }
 
 /* ========================================================================

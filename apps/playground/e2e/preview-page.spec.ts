@@ -1,5 +1,6 @@
 import { expect, test, openTheme } from "./fixtures";
 import { openPreview } from "./preview-fixtures";
+import { showScaleView } from "./scale-fixtures";
 
 /**
  * The demo page, as a landing site.
@@ -1093,5 +1094,47 @@ test.describe("Preview section fill and token colour", () => {
     expect(Math.abs(metrics!.titleCenter - metrics!.leadCenter)).toBeLessThan(
       2,
     );
+  });
+});
+
+test.describe("The preview follows the radius scale", () => {
+  const signUpRadius = (page: import("@playwright/test").Page) =>
+    page
+      .getByRole("button", { name: "Sign up" })
+      .first()
+      .evaluate((node) => getComputedStyle(node).borderRadius);
+
+  const starterPlanRadius = (page: import("@playwright/test").Page) =>
+    page.getByRole("heading", { name: "Starter" }).evaluate((node) => {
+      const plan = node.closest("div");
+      return plan ? getComputedStyle(plan).borderRadius : "";
+    });
+
+  test("paints buttons and plan cards from named radius tokens", async ({
+    page,
+  }) => {
+    /* The page is the proof of Radius, not a second editor. Buttons are
+       `--radius-element` (8px at 1×); pricing cards are `--radius-surface`,
+       which on desktop is `--radius-page` (28px at 1×). */
+    await openPreview(page);
+    await expect.poll(() => signUpRadius(page)).toBe("8px");
+    await expect.poll(() => starterPlanRadius(page)).toBe("28px");
+
+    await showScaleView(page, "Radius");
+    const slider = page.getByRole("slider", { name: /Roundness/ });
+    await slider.focus();
+    await slider.press("ArrowRight");
+    await expect(page.getByLabel("Element", { exact: true })).toContainText(
+      "10",
+    );
+
+    await page
+      .getByRole("navigation", { name: "Blueprint workspaces" })
+      .getByRole("link", { name: "Preview", exact: true })
+      .click();
+    await expect(page.locator("[data-preview-ready]")).toBeVisible();
+
+    await expect.poll(() => signUpRadius(page)).toBe("10px");
+    await expect.poll(() => starterPlanRadius(page)).toBe("35px");
   });
 });
