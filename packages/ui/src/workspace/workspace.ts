@@ -156,8 +156,13 @@ export function readWorkspaceProject(value: unknown): WorkspaceProject | null {
   const removedSeedRoles = readRemovedSeedRoles(
     (value as { removedSeedRoles?: unknown }).removedSeedRoles,
   );
+  const updatedAt =
+    typeof (value as { updatedAt?: unknown }).updatedAt === "number"
+      ? (value as { updatedAt: number }).updatedAt
+      : undefined;
   return {
     name: value.name as string,
+    ...(updatedAt ? { updatedAt } : {}),
     palette,
     typography,
     /* A stored layer is brought up to the current seed set on the way in, the

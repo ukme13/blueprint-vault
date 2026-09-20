@@ -36,8 +36,8 @@ These are product decisions, not open questions:
 3. **Import** is secondary on Home (“Open a `.blueprint.json`”), not a create
    method.
 4. **Left rail** holds Colour / Typography / Spacing / Radius / Elevation /
-   Preview. Collapsible to icons only. Studio-specific tools stay inside the
-   studio, not in the rail. `/scale` redirects to Spacing.
+   Preview / Overview. Collapsible to icons only. Studio-specific tools stay
+   inside the studio, not in the rail. `/scale` redirects to Spacing.
 5. **Blueprint** (mark / wordmark) navigates to Home.
 6. **Theme** is Light / Dark / System on the expanded studio rail, and a
    sun/moon menu when the rail is collapsed. Home has a TopNav (mark + name)
@@ -48,9 +48,11 @@ These are product decisions, not open questions:
    avatar and no Logout until there is real auth — storage is still this
    browser’s `localStorage`.
 7. **Do not bring back Colour Overview** as a vanity dashboard. Opening Colour
-   still lands on the shade bench. A later optional **System** rail item for
-   handover readiness is allowed only if it argues export / a11y / slices, not
-   hero metrics.
+   still lands on the shade bench. **Overview** (`/overview`, below Preview) is
+   a live specimen board of the open workspace — colour ramps, type roles, and
+   UI chips that hide when that slice is missing. It is not Colour vanity and
+   not handover readiness. A later optional **System** rail item for export /
+   a11y / slices remains allowed; Overview does not replace it.
 
 ## What exists today
 
@@ -99,10 +101,10 @@ browser workspace.
 ### Stage 2 — App shell ✅ done
 
 Shared shell: Blueprint → Home, collapsible left rail on studios (Colour /
-Typography / Spacing / Radius / Elevation / Preview), theme as a segmented
-control on the expanded rail and a sun/moon menu when collapsed, project
-name under Blueprint. Home has no tool rail. Studio pages render inside
-the shell. Section tooling stays local. `WorkspaceNav` is gone.
+Typography / Spacing / Radius / Elevation / Preview / Overview), theme as
+a segmented control on the expanded rail and a sun/moon menu when collapsed,
+project name under Blueprint. Home has no tool rail. Studio pages render
+inside the shell. Section tooling stays local. `WorkspaceNav` is gone.
 
 ### Stage 3 — Retire studio create doors ✅ done
 
@@ -116,7 +118,8 @@ create form.
 Several named workspaces in this browser. Home cards switch; Create and
 Import add; Duplicate and Delete live on the card menu. Cap of 8.
 Storage is `blueprint.library.v1` plus `blueprint.workspace.{id}`.
-Export stays one project. No auth, no Settings growth, no System rail.
+Export stays one project. No auth, no Settings growth. Overview is the
+specimen board, not a handover System page.
 
 ### Later
 
@@ -140,6 +143,7 @@ One coherent option:
 | `/radius`     | Radius scale                                      |
 | `/elevation`  | Elevation scale                                   |
 | `/preview`    | Preview                                           |
+| `/overview`   | System specimen board                             |
 
 Redirect legacy `/` colour deep-links if the app today treats `/` as Colour.
 Exact paths are an implementation choice; the table is the product intent.

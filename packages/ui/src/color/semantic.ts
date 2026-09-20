@@ -978,6 +978,26 @@ export function semanticCssVariables(
 }
 
 /**
+ * Resolves each semantic token to its final hex color (including alpha and
+ * color-vision simulation), indexed by both its token id (`action.primary`) and
+ * its CSS custom-property name (`--color-action-primary`).
+ */
+export function resolveSemanticColorMap(
+  tokens: SemanticToken[],
+  mode: ColourMode,
+  tracks: ColorTrack[],
+  transform: (hex: string) => string = (hex) => hex,
+): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const resolved of resolveSemantics(tokens, mode, tracks)) {
+    const value = `${transform(resolved.hex)}${alphaHex(resolved.alpha)}`;
+    map[resolved.id] = value;
+    map[semanticVariableName(resolved.id)] = value;
+  }
+  return map;
+}
+
+/**
  * The first names, and what they became.
  *
  * The first pass took the preview helper's labels, which describe a position on

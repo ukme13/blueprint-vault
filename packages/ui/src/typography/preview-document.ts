@@ -225,12 +225,8 @@ export function readPreviewShell(
   value: unknown,
   system: TypeSystem,
 ): PreviewDocument {
-  return syncStyleGroupColors(
-    syncStyleGroupRoles(
-      refreshRetiredShellCopy(
-        readFrozenPreviewDocument(value, seedPreviewShell(system)),
-      ),
-    ),
+  return refreshRetiredShellCopy(
+    readFrozenPreviewDocument(value, seedPreviewShell(system)),
   );
 }
 
@@ -256,14 +252,20 @@ export function syncStyleGroupRoles(
 /** Starter landing copy for `/preview`. Typography's article is not this. */
 export function seedPreviewLanding(system: TypeSystem): PreviewDocument {
   return syncStyleGroupRoles(
-    PREVIEW_LANDING_SLOTS.map((entry) => ({
-      id: entry.id,
-      roleId:
-        entry.id === "landing-hero-title"
-          ? pageTitleRoleId(system)
-          : slotRoleId(system, entry.slot),
-      text: entry.text,
-    })),
+    PREVIEW_LANDING_SLOTS.map((entry) => {
+      const preferred = entry.preferredRoleId
+        ? system.roles.find((role) => role.id === entry.preferredRoleId)?.id
+        : undefined;
+      return {
+        id: entry.id,
+        roleId:
+          preferred ??
+          (entry.id === "landing-hero-title"
+            ? pageTitleRoleId(system)
+            : slotRoleId(system, entry.slot)),
+        text: entry.text,
+      };
+    }),
   );
 }
 
@@ -271,12 +273,8 @@ export function readPreviewLanding(
   value: unknown,
   system: TypeSystem,
 ): PreviewDocument {
-  return syncStyleGroupColors(
-    syncStyleGroupRoles(
-      refreshRetiredLandingCopy(
-        readFrozenPreviewDocument(value, seedPreviewLanding(system)),
-      ),
-    ),
+  return refreshRetiredLandingCopy(
+    readFrozenPreviewDocument(value, seedPreviewLanding(system)),
   );
 }
 
@@ -324,7 +322,12 @@ export function applyColorToBlocks(
   });
 }
 
-/** Colour writes to the group, skipping slots that opted out. */
+/**
+ * Colour writes to the group, skipping slots that opted out.
+ *
+ * @deprecated Prefer `applyColorToBlocks` for single slots or `applyStyleToGroup`
+ * for propagating style across the entire style group.
+ */
 export function applyColorToStyleGroup(
   document: PreviewDocument,
   slotId: string,
@@ -342,6 +345,11 @@ export function applyColorToStyleGroup(
   return applyColorToBlocks(document, attached, colorTokenId);
 }
 
+/**
+ * Marks a slot's color as detached from its group.
+ *
+ * @deprecated Single slot edits are now default.
+ */
 export function detachSlotColor(
   document: PreviewDocument,
   slotId: string,
@@ -351,7 +359,11 @@ export function detachSlotColor(
   );
 }
 
-/** Snap the group to this slot's colour and join them again. */
+/**
+ * Snap the group to this slot's colour and join them again.
+ *
+ * @deprecated Prefer `applyStyleToGroup` to unify both role and colour.
+ */
 export function attachGroupColor(
   document: PreviewDocument,
   slotId: string,
@@ -365,6 +377,31 @@ export function attachGroupColor(
     delete next.colorDetached;
     if (current?.colorTokenId) next.colorTokenId = current.colorTokenId;
     else delete next.colorTokenId;
+    return next;
+  });
+}
+
+/** Snap every slot in this slot's style group to its role and colour. */
+export function applyStyleToGroup(
+  document: PreviewDocument,
+  slotId: string,
+): PreviewDocument {
+  const current = document.find((block) => block.id === slotId);
+  if (!current) return document;
+  const group = idsSharingStyle(slotId);
+  const selected = new Set(group);
+  return document.map((block) => {
+    if (!selected.has(block.id)) return block;
+    const next: PreviewDocumentBlock = {
+      ...block,
+      roleId: current.roleId,
+    };
+    if (current.colorTokenId) {
+      next.colorTokenId = current.colorTokenId;
+    } else {
+      delete next.colorTokenId;
+    }
+    delete next.colorDetached;
     return next;
   });
 }

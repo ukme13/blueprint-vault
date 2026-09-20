@@ -395,7 +395,6 @@
   aspect-ratio: 1;
   width: 100%;
   display: block;
-  overflow: hidden;
   padding: 0;
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-page);
@@ -430,7 +429,7 @@
 
 .elevationPadDots {
   position: absolute;
-  inset: 10%;
+  inset: 12%;
   background-image: radial-gradient(
     circle,
     color-mix(in oklch, var(--color-fg-primary) 45%, transparent) 1.1px,
@@ -466,10 +465,12 @@
       calc((var(--elevation-contact) + var(--elevation-cast)) * 0.5%),
     var(--elevation-surface)
   );
-  box-shadow: 0 0 0 1px
-    color-mix(in oklch, var(--color-neutral-950) 35%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--color-neutral-950) 35%, transparent),
+    0 2px 4px color-mix(in oklch, var(--color-neutral-950) 25%, transparent);
   pointer-events: none;
   translate: -50% -50%;
+  z-index: 2;
 }
 
 .elevationPadReadout {

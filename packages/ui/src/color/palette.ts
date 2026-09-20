@@ -468,3 +468,22 @@ export function formatPaletteCss(palettes: ColorTrack[]): string {
 
   return css;
 }
+
+/**
+ * Generate CSS variable key-value pairs for all shades across palettes.
+ *
+ * Keys follow the Stable 25-Interval naming: `--color-${palette.name}-${shade.weight}`
+ * Values are OKLCH strings: `oklch(L C H)`
+ */
+export function paletteCssVariables(
+  palettes: readonly ColorTrack[],
+): Record<string, string> {
+  const variables: Record<string, string> = {};
+  for (const palette of palettes) {
+    for (const shade of palette.shades) {
+      variables[`--color-${palette.name}-${shade.weight}`] =
+        `oklch(${shade.L.toFixed(3)} ${shade.C.toFixed(3)} ${shade.H.toFixed(1)})`;
+    }
+  }
+  return variables;
+}

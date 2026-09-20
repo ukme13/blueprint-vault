@@ -19,7 +19,7 @@ export function ProjectMosaic({
   const tracks = palette ? generatePalettes(palette) : [];
 
   if (tracks.length === 0) {
-    return <div aria-hidden className={styles.mosaicEmpty} />;
+    return <div aria-hidden className={styles.mosaicEmpty} data-mosaic-empty />;
   }
 
   return (

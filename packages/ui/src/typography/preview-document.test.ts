@@ -10,6 +10,7 @@ import {
 import {
   applyColorToStyleGroup,
   applyRoleToBlocks,
+  applyStyleToGroup,
   attachGroupColor,
   blockElementForRole,
   detachSlotColor,
@@ -293,7 +294,7 @@ describe("preview style groups", () => {
     );
   });
 
-  it("unifies a mixed stored nav group on read", () => {
+  it("preserves individual stored nav roles on read and fills missing from seed", () => {
     const after = readPreviewShell(
       [
         { id: "shell-nav-1", roleId: "h1", text: "Home" },
@@ -305,10 +306,10 @@ describe("preview style groups", () => {
       "h1",
     );
     expect(after.find((block) => block.id === "shell-nav-2")?.roleId).toBe(
-      "h1",
+      "caption",
     );
     expect(after.find((block) => block.id === "shell-login")?.roleId).toBe(
-      "h1",
+      "caption",
     );
   });
 
@@ -405,7 +406,7 @@ describe("preview style groups", () => {
     ).not.toBe("h1");
   });
 
-  it("unifies a mixed stored feature-card group on landing read", () => {
+  it("preserves individual stored feature-card roles on landing read and fills missing from seed", () => {
     const after = readPreviewLanding(
       [
         { id: "landing-feat-1-title", roleId: "h1", text: "Shared drafts" },
@@ -427,10 +428,10 @@ describe("preview style groups", () => {
     ).toBe("h1");
     expect(
       after.find((block) => block.id === "landing-feat-2-title")?.roleId,
-    ).toBe("h1");
+    ).toBe("caption");
     expect(
       after.find((block) => block.id === "landing-feat-3-title")?.roleId,
-    ).toBe("h1");
+    ).toBe("h6");
     expect(
       after.find((block) => block.id === "landing-split-a-title")?.roleId,
     ).toBe("caption");
@@ -457,7 +458,7 @@ describe("preview style groups", () => {
 });
 
 describe("preview landing", () => {
-  it("seeds the frozen slots and the hero as h1", () => {
+  it("seeds the frozen slots and the hero as h2", () => {
     const landing = seedPreviewLanding(system());
     expect(landing.map((block) => block.id)).toEqual(PREVIEW_LANDING_IDS);
     expect(landing).toHaveLength(PREVIEW_LANDING_IDS.length);
@@ -465,7 +466,7 @@ describe("preview landing", () => {
       landing.find((block) => block.id === "landing-hero-title"),
     ).toMatchObject({
       text: LANDING_HERO_TITLE,
-      roleId: "h1",
+      roleId: "h2",
     });
   });
 
@@ -598,7 +599,7 @@ describe("preview text colour", () => {
     ).toBeUndefined();
   });
 
-  it("unifies mixed attached colours on landing read and keeps a detached slot", () => {
+  it("preserves stored colours on landing read", () => {
     const after = readPreviewLanding(
       [
         {
@@ -618,7 +619,6 @@ describe("preview text colour", () => {
           roleId: "heading",
           text: "Handover that matches",
           colorTokenId: "fg.primary",
-          colorDetached: true,
         },
       ],
       system(),
@@ -628,12 +628,33 @@ describe("preview text colour", () => {
     ).toBe("fg.accent");
     expect(
       after.find((block) => block.id === "landing-feat-2-title")?.colorTokenId,
-    ).toBe("fg.accent");
+    ).toBe("fg.secondary");
     expect(
-      after.find((block) => block.id === "landing-feat-3-title"),
-    ).toMatchObject({
-      colorTokenId: "fg.primary",
-      colorDetached: true,
+      after.find((block) => block.id === "landing-feat-3-title")?.colorTokenId,
+    ).toBe("fg.primary");
+  });
+
+  it("applies a slot's role and colour to all members in its style group", () => {
+    const before = seedPreviewLanding(system());
+    const one = before.map((block) =>
+      block.id === "landing-feat-1-title"
+        ? { ...block, roleId: "h1", colorTokenId: "fg.accent" }
+        : block,
+    );
+    const after = applyStyleToGroup(one, "landing-feat-1-title");
+    expect(after.find((b) => b.id === "landing-feat-1-title")).toMatchObject({
+      roleId: "h1",
+      colorTokenId: "fg.accent",
     });
+    expect(after.find((b) => b.id === "landing-feat-2-title")?.roleId).toBe(
+      "h1",
+    );
+    expect(after.find((b) => b.id === "landing-feat-3-title")).toMatchObject({
+      roleId: "h1",
+      colorTokenId: "fg.accent",
+    });
+    expect(
+      after.find((b) => b.id === "landing-split-a-title")?.roleId,
+    ).not.toBe("h1");
   });
 });

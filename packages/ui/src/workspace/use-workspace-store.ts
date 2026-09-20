@@ -17,6 +17,7 @@ import {
   duplicateStoredWorkspace,
   loadStoredLibrary,
   removeStoredWorkspace,
+  renameStoredWorkspace,
   saveStoredWorkspace,
   switchStoredWorkspace,
   updateStoredWorkspace,
@@ -68,6 +69,8 @@ export interface WorkspaceStore {
   duplicate: (id: string) => boolean;
   /** Delete a project. The last one returns an empty Home. */
   remove: (id: string) => void;
+  /** Rename a project in the library. Returns false if storage failed. */
+  rename: (id: string, name: string) => boolean;
 }
 
 const EMPTY_LIBRARY: WorkspaceLibraryView = {
@@ -256,6 +259,17 @@ function useWorkspaceStoreState(): WorkspaceStore {
     [applySnapshot],
   );
 
+  const rename = useCallback(
+    (id: string, name: string) => {
+      const storage = browserWorkspaceStorage();
+      const snapshot = renameStoredWorkspace(storage, id, name);
+      if (!snapshot) return false;
+      applySnapshot(snapshot);
+      return true;
+    },
+    [applySnapshot],
+  );
+
   return {
     project,
     hasLoaded,
@@ -267,6 +281,7 @@ function useWorkspaceStoreState(): WorkspaceStore {
     add,
     duplicate,
     remove,
+    rename,
   };
 }
 

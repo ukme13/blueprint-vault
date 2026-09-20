@@ -74,3 +74,14 @@ export function PreviewStudioIcon(props: MarkProps) {
     </svg>
   );
 }
+
+/** A bento grid — design system overview. */
+export function OverviewStudioIcon(props: MarkProps) {
+  return (
+    <svg aria-hidden {...mark} {...props}>
+      <rect height="16" rx="1.5" width="7" x="3" y="4" />
+      <rect height="7" rx="1.5" width="9" x="12" y="4" />
+      <rect height="7" rx="1.5" width="9" x="12" y="13" />
+    </svg>
+  );
+}

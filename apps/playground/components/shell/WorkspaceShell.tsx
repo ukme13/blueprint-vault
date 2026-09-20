@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AppShell } from "@astryxdesign/core/AppShell";
@@ -16,16 +22,22 @@ import {
   SideNavItem,
 } from "@astryxdesign/core/SideNav";
 import {
+  browserWorkspaceStorage,
+  generatePalettes,
+  loadStoredLibrary,
+  paletteCssVariables,
   previewShortcutDestination,
   previewShortcutReturnPath,
   useWorkspaceStore,
   workspaceHasStudios,
+  type ColorTrack,
 } from "@blueprint/ui";
 import { ThemeControl } from "../ThemeControl";
 import {
   BlueprintMark,
   ColourStudioIcon,
   ElevationStudioIcon,
+  OverviewStudioIcon,
   PreviewStudioIcon,
   RadiusStudioIcon,
   SettingsMark,
@@ -37,6 +49,7 @@ import { WorkspaceNameField } from "./WorkspaceNameField";
 
 const RAIL_COLLAPSED_KEY = "blueprint.shell.rail-collapsed";
 const PREVIEW_RETURN_KEY = "blueprint.shell.preview-return";
+const EMPTY_PALETTES: ColorTrack[] = [];
 
 const STUDIOS = [
   { href: "/colour", label: "Colour", icon: ColourStudioIcon },
@@ -45,6 +58,7 @@ const STUDIOS = [
   { href: "/radius", label: "Radius", icon: RadiusStudioIcon },
   { href: "/elevation", label: "Elevation", icon: ElevationStudioIcon },
   { href: "/preview", label: "Preview", icon: PreviewStudioIcon },
+  { href: "/overview", label: "Overview", icon: OverviewStudioIcon },
 ] as const;
 
 function isCurrentStudio(pathname: string, href: string) {
@@ -80,6 +94,31 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   if (isHome && isSettingsOpen) {
     setIsSettingsOpen(false);
   }
+
+  const palettes = useMemo(
+    () =>
+      workspace.project?.palette
+        ? generatePalettes(workspace.project.palette)
+        : EMPTY_PALETTES,
+    [workspace.project],
+  );
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const root = document.documentElement;
+    const variables = paletteCssVariables(palettes);
+    const keys = Object.keys(variables);
+
+    for (const [key, value] of Object.entries(variables)) {
+      root.style.setProperty(key, value);
+    }
+
+    return () => {
+      for (const key of keys) {
+        root.style.removeProperty(key);
+      }
+    };
+  }, [palettes]);
 
   useEffect(() => {
     /* Reading localStorage must happen in an effect: a useState initializer
@@ -121,6 +160,12 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isHome || !workspace.hasLoaded) return;
     if (workspaceHasStudios(workspace.project)) return;
+    /* Import writes storage and then navigates. React state can still be the
+       empty snapshot for that first studio render, and treating that as "no
+       project" bounced Home — where the name field the tests look for never
+       mounts. Storage is the document that just landed. */
+    const stored = loadStoredLibrary(browserWorkspaceStorage());
+    if (workspaceHasStudios(stored.current)) return;
     router.replace("/");
   }, [isHome, router, workspace.hasLoaded, workspace.project]);
 

@@ -67,6 +67,8 @@ export interface TypographyProjectData {
 export interface WorkspaceProject {
   /** One name for the workspace. Both studios show and edit this. */
   name: string;
+  /** Timestamp when this workspace was last updated, in epoch milliseconds. */
+  updatedAt?: number;
   palette: PaletteProjectData | null;
   typography: TypographyProjectData | null;
   /**

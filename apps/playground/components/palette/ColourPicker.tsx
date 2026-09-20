@@ -270,10 +270,14 @@ function ColourPickerPanel({
   const commitDraft = () => {
     try {
       onChange(parseColour(draft, colourFormat));
-      onClose();
     } catch {
       setDraft(formatColour(value, colourFormat));
+      return;
     }
+    /* Close after this Enter finishes. The popover returns focus to its
+       trigger on close; doing that during keydown lets the same Enter land
+       on the trigger and open the picker again. */
+    window.setTimeout(() => onClose(), 0);
   };
 
   const updateRgb = (index: number, channel: number) => {
@@ -431,6 +435,12 @@ function ColourPickerPanel({
             width="100%"
             onChange={updateDraft}
             onEnter={commitDraft}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") return;
+              event.preventDefault();
+              event.stopPropagation();
+              commitDraft();
+            }}
           />
         </span>
       </footer>

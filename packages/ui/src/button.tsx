@@ -132,10 +132,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const isIconOnly = size === "icon";
     const iconContent = leftIcon ?? (isIconOnly ? children : undefined);
 
-    // Astryx requires a string `label` for the accessible name. When children
-    // is plain text we can derive it automatically; otherwise (icons, mixed
-    // JSX) the caller must supply aria-label.
-    const label = typeof children === "string" ? children : (ariaLabel ?? "");
+    // Astryx requires a string `label` for the accessible name. Prefer an
+    // explicit aria-label so a short visible caption can still name the
+    // control in full (`Remove` vs `Remove Info tone`).
+    const label = ariaLabel ?? (typeof children === "string" ? children : "");
 
     return (
       <AstryxButton

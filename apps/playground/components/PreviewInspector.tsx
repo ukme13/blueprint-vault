@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import {
@@ -39,62 +39,81 @@ const PAGE_DEFAULT_COLOR = "page-default";
 export function PreviewInspector({
   isOpen,
   block,
+  defaultBlock,
   slotId,
   system,
   tokens,
+  tokenColors,
   onOpenChange,
   onTextChange,
   onRoleChange,
   onColorChange,
-  onDetachColor,
-  onAttachGroupColor,
+  onApplyToGroup,
+  onResetToDefault,
 }: {
   isOpen: boolean;
   block: PreviewDocumentBlock | null;
+  defaultBlock?: PreviewDocumentBlock | null;
   slotId: string | null;
   system: TypeSystem;
   tokens: readonly SemanticToken[];
+  tokenColors?: Record<string, string>;
   onOpenChange: (isOpen: boolean) => void;
   onTextChange: (text: string) => void;
   onRoleChange: (roleId: string) => void;
   onColorChange: (colorTokenId: string | undefined) => void;
-  onDetachColor: () => void;
-  onAttachGroupColor: () => void;
+  onApplyToGroup: () => void;
+  onResetToDefault?: () => void;
 }) {
   const chrome = previewInspectorChrome(slotId ?? "");
   const grouped = slotId ? idsSharingStyle(slotId).length > 1 : false;
-  const options = previewDocumentRoleOptions(system).map((group) => ({
-    type: "section" as const,
-    title: group.groupLabel,
-    options: group.roles.map((role) => ({
-      value: role.id,
-      label: role.name,
-    })),
-  }));
-  const colorOptions = [
-    {
-      type: "section" as const,
-      title: "Default",
-      options: [
-        {
-          value: PAGE_DEFAULT_COLOR,
-          label: "Page default",
-          icon: <PreviewColourSwatch variable={null} />,
-        },
-      ],
-    },
-    ...previewTokenSelectorOptions(tokens, PREVIEW_TEXT_COLOR_GROUPS).map(
-      (section) => ({
-        ...section,
-        options: section.options.map((opt) => ({
-          ...opt,
-          icon: (
-            <PreviewColourSwatch variable={semanticVariableName(opt.value)} />
-          ),
+  const isOverridden = defaultBlock
+    ? block?.text !== defaultBlock.text ||
+      block?.roleId !== defaultBlock.roleId ||
+      block?.colorTokenId !== defaultBlock.colorTokenId
+    : Boolean(block?.colorTokenId);
+  const options = useMemo(
+    () =>
+      previewDocumentRoleOptions(system).map((group) => ({
+        type: "section" as const,
+        title: group.groupLabel,
+        options: group.roles.map((role) => ({
+          value: role.id,
+          label: role.name,
         })),
-      }),
-    ),
-  ];
+      })),
+    [system],
+  );
+  const colorOptions = useMemo(
+    () => [
+      {
+        type: "section" as const,
+        title: "Default",
+        options: [
+          {
+            value: PAGE_DEFAULT_COLOR,
+            label: "Page default",
+            icon: <PreviewColourSwatch variable={null} />,
+          },
+        ],
+      },
+      ...previewTokenSelectorOptions(tokens, PREVIEW_TEXT_COLOR_GROUPS).map(
+        (section) => ({
+          ...section,
+          options: section.options.map((opt) => ({
+            ...opt,
+            icon: (
+              <PreviewColourSwatch
+                hex={tokenColors?.[opt.value]}
+                variable={semanticVariableName(opt.value)}
+              />
+            ),
+          })),
+        }),
+      ),
+    ],
+    [tokens, tokenColors],
+  );
 
   /* Keep the native <dialog> out of the tree while idle. Astryx opens it with
      showModal(), which moves the node onto the top layer; Strict Mode, Fast
@@ -162,20 +181,24 @@ export function PreviewInspector({
                   onColorChange(value);
                 }}
               />
-              {grouped ? (
+              {grouped || (isOverridden && onResetToDefault) ? (
                 <HStack gap={2}>
-                  <Button
-                    label="Edit this slot only"
-                    size="sm"
-                    variant="ghost"
-                    onClick={onDetachColor}
-                  />
-                  <Button
-                    label="Apply to group"
-                    size="sm"
-                    variant="secondary"
-                    onClick={onAttachGroupColor}
-                  />
+                  {grouped ? (
+                    <Button
+                      label="Apply to group"
+                      size="sm"
+                      variant="secondary"
+                      onClick={onApplyToGroup}
+                    />
+                  ) : null}
+                  {isOverridden && onResetToDefault ? (
+                    <Button
+                      label="Reset to default"
+                      size="sm"
+                      variant="ghost"
+                      onClick={onResetToDefault}
+                    />
+                  ) : null}
                 </HStack>
               ) : null}
             </VStack>

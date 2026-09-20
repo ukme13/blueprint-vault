@@ -8,6 +8,7 @@ import {
   renameSemanticToken,
   repointSemanticToken,
   resolveSemantic,
+  resolveSemanticColorMap,
   resolveSemantics,
   seedSemanticTokens,
   semanticCssVariables,
@@ -369,6 +370,25 @@ describe("a reference with an alpha", () => {
       tracks,
     );
     expect(opaque["--color-fg-primary"]).toMatch(/^#[0-9a-f]{6}$/i);
+  });
+
+  it("builds a semantic color map keyed by id and variable name", () => {
+    const tracks = fullPalette();
+    const tokens = seedSemanticTokens(tracks);
+    const map = resolveSemanticColorMap(tokens, "light", tracks);
+
+    expect(map["action.primary"]).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(map["--color-action-primary"]).toBe(map["action.primary"]);
+
+    const withTransparent = resolveSemanticColorMap(
+      [transparent(tracks)],
+      "light",
+      tracks,
+    );
+    expect(withTransparent["border.subtle"]).toMatch(/^#[0-9a-f]{6}1f$/i);
+    expect(withTransparent["--color-border-subtle"]).toBe(
+      withTransparent["border.subtle"],
+    );
   });
 });
 

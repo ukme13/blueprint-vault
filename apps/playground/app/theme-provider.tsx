@@ -40,6 +40,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const preference = useColourModePreference();
 
   useEffect(() => {
+    const observers = new WeakMap<HTMLElement, MutationObserver>();
+
     const clampPopup = (target: HTMLElement) => {
       const popup = target.querySelector(".astryx-selector-popup");
       if (!popup) return;
@@ -56,7 +58,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const handleToggle = (event: Event) => {
       const toggleEvent = event as ToggleEvent;
       const target = toggleEvent.target as HTMLElement | null;
-      if (toggleEvent.newState !== "open" || !target) return;
+      if (!target) return;
+
+      if (toggleEvent.newState === "closed") {
+        observers.get(target)?.disconnect();
+        observers.delete(target);
+        return;
+      }
+
+      if (toggleEvent.newState !== "open") return;
+
+      observers.get(target)?.disconnect();
       clampPopup(target);
       const observer = new MutationObserver(() => {
         clampPopup(target);
@@ -65,6 +77,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
         attributes: true,
         attributeFilter: ["style"],
       });
+      observers.set(target, observer);
     };
 
     document.addEventListener("toggle", handleToggle, true);
