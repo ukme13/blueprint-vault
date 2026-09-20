@@ -25,6 +25,11 @@ import {
   SUPPORTED_WORKSPACE_FILE_VERSIONS,
 } from "./workspace-file";
 import { DEFAULT_WORKSPACE_NAME, readWorkspaceProject } from "./workspace";
+import {
+  addWorkspace,
+  LIBRARY_STORAGE_KEY,
+  workspaceDocumentKey,
+} from "./library";
 import type { WorkspaceProject } from "./types";
 import type { ColorTrack } from "../color/types";
 import type { BlueprintWorkspaceFile } from "./workspace-file";
@@ -149,6 +154,23 @@ describe("older palette files still import", () => {
     expect(after.name).toBe("My colour system");
     expect(after.palette?.tracks).toHaveLength(1);
     expect(after.typography).toBeNull();
+  });
+
+  it("reads back after a library write, which is the Home import path", () => {
+    const items = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => items.get(key) ?? null,
+      setItem: (key: string, value: string) => void items.set(key, value),
+      removeItem: (key: string) => void items.delete(key),
+    };
+    const parsed = parseBlueprintWorkspace(LEGACY_PALETTE_FILE);
+    const snapshot = addWorkspace(storage, parsed, () => "legacy");
+
+    expect(snapshot?.current?.name).toBe("My colour system");
+    expect(snapshot?.current?.palette?.tracks).toHaveLength(1);
+    expect(snapshot?.current?.typography).toBeNull();
+    expect(items.get(LIBRARY_STORAGE_KEY)).toBeTruthy();
+    expect(items.get(workspaceDocumentKey("legacy"))).toBeTruthy();
   });
 
   it("refuses a palette file version it does not know", () => {

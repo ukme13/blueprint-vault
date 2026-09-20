@@ -151,7 +151,15 @@ test.describe("The Blueprint workspace file", () => {
     await page.reload();
     await importOnCreationScreen(page, "older.blueprint.json", older);
 
-    await expect(page.getByLabel("Project name")).toHaveValue("Older export");
+    await expect(page).toHaveURL(/\/colour\/?$/);
+    await expect(
+      page.getByRole("region", { name: "Palette toolbar" }),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByRole("navigation", { name: "Blueprint workspaces" })
+        .getByLabel("Project name"),
+    ).toHaveValue("Older export");
   });
 
   test("refuses a file that is not one of ours, and says so", async ({

@@ -22,7 +22,9 @@ import {
   SideNavItem,
 } from "@astryxdesign/core/SideNav";
 import {
+  browserWorkspaceStorage,
   generatePalettes,
+  loadStoredLibrary,
   paletteCssVariables,
   previewShortcutDestination,
   previewShortcutReturnPath,
@@ -158,6 +160,12 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isHome || !workspace.hasLoaded) return;
     if (workspaceHasStudios(workspace.project)) return;
+    /* Import writes storage and then navigates. React state can still be the
+       empty snapshot for that first studio render, and treating that as "no
+       project" bounced Home — where the name field the tests look for never
+       mounts. Storage is the document that just landed. */
+    const stored = loadStoredLibrary(browserWorkspaceStorage());
+    if (workspaceHasStudios(stored.current)) return;
     router.replace("/");
   }, [isHome, router, workspace.hasLoaded, workspace.project]);
 
