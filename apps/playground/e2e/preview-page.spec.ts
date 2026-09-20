@@ -465,6 +465,39 @@ test.describe("The slot inspector", () => {
       .not.toBe(before);
   });
 
+  test("uses a single-line field for a button label", async ({ page }) => {
+    await openPreview(page);
+    await page.getByRole("button", { name: "Book a walkthrough" }).click();
+    const dialog = page.getByRole("dialog", { name: "Inspect" });
+    await expect(dialog).toBeVisible();
+    const copy = dialog.getByRole("textbox", { name: "Copy" });
+    await expect(copy).toHaveValue("Book a walkthrough");
+    await expect
+      .poll(() => copy.evaluate((node) => node.tagName))
+      .toBe("INPUT");
+    await expect
+      .poll(() => copy.evaluate((node) => getComputedStyle(node).borderRadius))
+      .toBe("8px");
+  });
+
+  test("uses a text area for long copy without a pill corner", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await page
+      .getByText("We stopped guessing hex in three files", { exact: false })
+      .click();
+    const dialog = page.getByRole("dialog", { name: "Inspect" });
+    await expect(dialog).toBeVisible();
+    const copy = dialog.getByRole("textbox", { name: "Copy" });
+    await expect
+      .poll(() => copy.evaluate((node) => node.tagName))
+      .toBe("TEXTAREA");
+    await expect
+      .poll(() => copy.evaluate((node) => getComputedStyle(node).borderRadius))
+      .toBe("8px");
+  });
+
   test("restyles single feature card title by default, then applies to group on button click", async ({
     page,
   }) => {

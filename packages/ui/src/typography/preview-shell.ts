@@ -257,3 +257,26 @@ export function previewInspectorChrome(id: string): {
   if (group) return { title: group.label, subtitle: label };
   return { title: "Inspect", subtitle: label };
 }
+
+/**
+ * Whether Inspect Copy is a one-line field or a text area.
+ *
+ * Buttons, titles, and nav labels are `--radius-element` inputs. Leads,
+ * bodies, blurbs, and the quote are still areas — but never `--radius-full`,
+ * which turns a tall field into a pill.
+ */
+export function previewInspectorCopyField(id: string): "line" | "area" {
+  if (id === "landing-quote") return "area";
+  const landing = PREVIEW_LANDING_SLOTS.find((entry) => entry.id === id);
+  if (
+    landing?.part === "lead" ||
+    landing?.part === "body" ||
+    landing?.part === "blurb"
+  ) {
+    return "area";
+  }
+  if (id.endsWith("-lead") || id.endsWith("-body") || id.endsWith("-blurb")) {
+    return "area";
+  }
+  return "line";
+}

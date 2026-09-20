@@ -1,0 +1,6 @@
+.copyField :global(.astryx-textarea),
+.copyField :global(.astryx-text-input),
+.copyField :global(textarea),
+.copyField :global(input) {
+  border-radius: var(--radius-element, 8px);
+}

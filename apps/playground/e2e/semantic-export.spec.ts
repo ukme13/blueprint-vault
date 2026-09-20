@@ -232,3 +232,23 @@ test.describe("An alias with a transparency", () => {
     );
   });
 });
+
+test.describe("The export preview is a panel", () => {
+  test("paints the code card from --radius-container, not a pill", async ({
+    seededPage: page,
+  }) => {
+    /* CodeBlock container="card" is a panel. Astryx binds it to
+       --radius-element, so button roundness turns a tall preview into a
+       lozenge. */
+    await page.getByRole("button", { name: "Export palette" }).click();
+    const preview = page.getByRole("region", { name: "Export preview" });
+    await expect(preview).toBeVisible();
+    await expect
+      .poll(() =>
+        preview
+          .locator(".astryx-codeblock")
+          .evaluate((node) => getComputedStyle(node).borderRadius),
+      )
+      .toBe("12px");
+  });
+});
