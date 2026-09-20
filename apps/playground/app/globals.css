@@ -83,5 +83,5 @@
    beats StyleX's one-class rule. Full stays on actual pills (progress,
    capacity, badges, slider thumbs). */
 .astryx-codeblock.card {
-  border-radius: var(--radius-container, 12px);
+  border-radius: var(--radius-container);
 }

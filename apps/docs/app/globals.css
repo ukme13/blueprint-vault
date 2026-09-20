@@ -95,5 +95,5 @@ code {
 
 /* Same remap as the playground: a CodeBlock card is a panel, not a control. */
 .astryx-codeblock.card {
-  border-radius: var(--radius-container, 12px);
+  border-radius: var(--radius-container);
 }
