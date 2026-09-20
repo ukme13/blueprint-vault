@@ -23,11 +23,13 @@ import {
 } from "@astryxdesign/core/SideNav";
 import {
   browserWorkspaceStorage,
+  defaultRadiusScale,
   generatePalettes,
   loadStoredLibrary,
   paletteCssVariables,
   previewShortcutDestination,
   previewShortcutReturnPath,
+  radiusCssVariables,
   useWorkspaceStore,
   workspaceHasStudios,
   type ColorTrack,
@@ -119,6 +121,40 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
       }
     };
   }, [palettes]);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const variables = radiusCssVariables(
+      workspace.project?.radius ?? defaultRadiusScale(),
+    );
+    const keys = Object.keys(variables);
+    /* Astryx Theme re-seeds `--radius-*` in rem on `[data-astryx-theme]`,
+       which sits between `:root` and every studio. Writing only on
+       `documentElement` left Overview (and shell buttons) on Neutral's
+       10px element. Inline on the theme wrapper wins for descendants;
+       `:root` still covers body-portaled chrome. */
+    const roots = [
+      document.documentElement,
+      ...Array.from(document.querySelectorAll("[data-astryx-theme]")).filter(
+        (node): node is HTMLElement => node instanceof HTMLElement,
+      ),
+    ];
+    const uniqueRoots = [...new Set(roots)];
+
+    for (const root of uniqueRoots) {
+      for (const [key, value] of Object.entries(variables)) {
+        root.style.setProperty(key, value);
+      }
+    }
+
+    return () => {
+      for (const root of uniqueRoots) {
+        for (const key of keys) {
+          root.style.removeProperty(key);
+        }
+      }
+    };
+  }, [workspace.project?.radius]);
 
   useEffect(() => {
     /* Reading localStorage must happen in an effect: a useState initializer

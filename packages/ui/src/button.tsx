@@ -55,12 +55,13 @@ const buttonVariants = cva(
        * Includes responsive text and icon sizing
        */
       size: {
-        xs: "h-6 px-2.5 py-0 text-[10px] rounded-lg gap-1 [&_svg]:size-3",
-        small: "h-7 px-3 py-0 text-xs rounded-lg gap-1.5 [&_svg]:size-3.5",
-        medium: "h-9 px-4 py-0 text-sm rounded-lg gap-2 [&_svg]:size-4",
-        large: "h-11 px-6 py-0 text-base rounded-lg gap-2.5 [&_svg]:size-4.5",
-        xl: "h-14 px-8 py-0 text-lg rounded-lg gap-3 [&_svg]:size-5.5 font-bold",
-        icon: "h-9 w-9 p-0 rounded-lg [&_svg]:size-5",
+        xs: "h-6 px-2.5 py-0 text-[10px] rounded-element gap-1 [&_svg]:size-3",
+        small: "h-7 px-3 py-0 text-xs rounded-element gap-1.5 [&_svg]:size-3.5",
+        medium: "h-9 px-4 py-0 text-sm rounded-element gap-2 [&_svg]:size-4",
+        large:
+          "h-11 px-6 py-0 text-base rounded-element gap-2.5 [&_svg]:size-4.5",
+        xl: "h-14 px-8 py-0 text-lg rounded-element gap-3 [&_svg]:size-5.5 font-bold",
+        icon: "h-9 w-9 p-0 rounded-element [&_svg]:size-5",
       },
     },
 

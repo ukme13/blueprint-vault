@@ -86,7 +86,7 @@ const propRows: PropRow[] = [
     prop: "size",
     type: `"xs" | "small" | "medium" | "large" | "xl" | "icon"`,
     def: '"medium"',
-    desc: 'Controls height, padding, radius, and icon scale. "icon" produces a fixed square button.',
+    desc: 'Controls height, padding, and icon scale. Corners come from `--radius-element`. "icon" produces a fixed square button.',
   },
   {
     prop: "children",

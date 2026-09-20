@@ -11,11 +11,13 @@ import {
 } from "@astryxdesign/core/Layout";
 import { Selector } from "@astryxdesign/core/Selector";
 import { TextArea } from "@astryxdesign/core/TextArea";
+import { TextInput } from "@astryxdesign/core/TextInput";
 import {
   PREVIEW_TEXT_COLOR_GROUPS,
   idsSharingStyle,
   previewDocumentRoleOptions,
   previewInspectorChrome,
+  previewInspectorCopyField,
   previewTokenSelectorOptions,
   semanticVariableName,
   type PreviewDocumentBlock,
@@ -23,6 +25,7 @@ import {
   type TypeSystem,
 } from "@blueprint/ui";
 import { PreviewColourSwatch } from "./PreviewColourSwatch";
+import styles from "./PreviewInspector.module.css";
 
 const PAGE_DEFAULT_COLOR = "page-default";
 
@@ -66,6 +69,7 @@ export function PreviewInspector({
   onResetToDefault?: () => void;
 }) {
   const chrome = previewInspectorChrome(slotId ?? "");
+  const copyField = previewInspectorCopyField(slotId ?? "");
   const grouped = slotId ? idsSharingStyle(slotId).length > 1 : false;
   const isOverridden = defaultBlock
     ? block?.text !== defaultBlock.text ||
@@ -148,14 +152,25 @@ export function PreviewInspector({
         content={
           <LayoutContent>
             <VStack gap={4}>
-              <TextArea
-                hasAutoFocus
-                label="Copy"
-                rows={5}
-                value={block?.text ?? ""}
-                width="100%"
-                onChange={onTextChange}
-              />
+              <div className={styles.copyField}>
+                {copyField === "area" ? (
+                  <TextArea
+                    hasAutoFocus
+                    label="Copy"
+                    value={block?.text ?? ""}
+                    width="100%"
+                    onChange={onTextChange}
+                  />
+                ) : (
+                  <TextInput
+                    hasAutoFocus
+                    label="Copy"
+                    value={block?.text ?? ""}
+                    width="100%"
+                    onChange={onTextChange}
+                  />
+                )}
+              </div>
               <Selector
                 label="Type role"
                 options={options}

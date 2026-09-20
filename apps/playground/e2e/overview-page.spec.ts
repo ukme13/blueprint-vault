@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { seedProject } from "./fixtures";
+import { showScaleView } from "./scale-fixtures";
 
 test.describe("Bento Overview Studio", () => {
   test("renders 4-column bento board and responds to rail navigation", async ({
@@ -132,5 +133,82 @@ test.describe("Bento Overview Studio", () => {
     await expect(toolsColumn.getByTitle("Wand tool")).toBeVisible();
     await expect(toolsColumn.getByTitle("Shapes")).toHaveCount(0);
     await expect(toolsColumn.getByTitle("Delete")).toHaveCount(0);
+  });
+});
+
+test.describe("The overview follows the radius scale", () => {
+  const primaryCardRadius = (page: import("@playwright/test").Page) =>
+    page
+      .locator("[data-color-card='primary']")
+      .evaluate((node) => getComputedStyle(node).borderRadius);
+
+  const primaryButtonRadius = (page: import("@playwright/test").Page) =>
+    page
+      .locator("[data-column='components']")
+      .getByRole("button", { name: "Primary" })
+      .evaluate((node) => getComputedStyle(node).borderRadius);
+
+  const searchBoxRadius = (page: import("@playwright/test").Page) =>
+    page.getByPlaceholder("Search").evaluate((node) => {
+      const box = node.parentElement;
+      return box ? getComputedStyle(box).borderRadius : "";
+    });
+
+  const navPillRadius = (page: import("@playwright/test").Page) =>
+    page
+      .getByRole("navigation", { name: "Specimen navigation" })
+      .evaluate((node) => getComputedStyle(node).borderRadius);
+
+  const navActiveRadius = (page: import("@playwright/test").Page) =>
+    page
+      .getByRole("navigation", { name: "Specimen navigation" })
+      .evaluate((node) => {
+        const active = node.firstElementChild;
+        return active ? getComputedStyle(active).borderRadius : "";
+      });
+
+  const toolIconRadius = (page: import("@playwright/test").Page) =>
+    page
+      .locator("[data-action-tool='wand']")
+      .evaluate((node) => getComputedStyle(node).borderRadius);
+
+  test("paints cards, buttons, and pills from named radius tokens", async ({
+    page,
+  }) => {
+    /* Overview is a specimen of the same scale Preview already follows.
+       Cards are `--radius-container` (12px at 1×); buttons, search, the
+       nav icon-button group and its wrapper, and the tool icons are
+       `--radius-element` (8px). */
+    await seedProject(page);
+    await page.goto("/overview");
+    await expect(page.locator("[data-overview-studio]")).toBeVisible();
+
+    await expect.poll(() => primaryCardRadius(page)).toBe("12px");
+    await expect.poll(() => primaryButtonRadius(page)).toBe("8px");
+    await expect.poll(() => searchBoxRadius(page)).toBe("8px");
+    await expect.poll(() => navPillRadius(page)).toBe("8px");
+    await expect.poll(() => navActiveRadius(page)).toBe("8px");
+    await expect.poll(() => toolIconRadius(page)).toBe("8px");
+
+    await showScaleView(page, "Radius");
+    const slider = page.getByRole("slider", { name: /Roundness/ });
+    await slider.focus();
+    await slider.press("ArrowRight");
+    await expect(page.getByLabel("Element", { exact: true })).toContainText(
+      "10",
+    );
+
+    await page
+      .getByRole("navigation", { name: "Blueprint workspaces" })
+      .getByRole("link", { name: "Overview", exact: true })
+      .click();
+    await expect(page.locator("[data-overview-studio]")).toBeVisible();
+
+    await expect.poll(() => primaryCardRadius(page)).toBe("15px");
+    await expect.poll(() => primaryButtonRadius(page)).toBe("10px");
+    await expect.poll(() => searchBoxRadius(page)).toBe("10px");
+    await expect.poll(() => navPillRadius(page)).toBe("10px");
+    await expect.poll(() => navActiveRadius(page)).toBe("10px");
+    await expect.poll(() => toolIconRadius(page)).toBe("10px");
   });
 });

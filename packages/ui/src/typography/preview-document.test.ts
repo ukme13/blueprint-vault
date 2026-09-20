@@ -20,6 +20,7 @@ import {
   PREVIEW_SHELL_IDS,
   idsSharingStyle,
   previewInspectorChrome,
+  previewInspectorCopyField,
   readPreviewDocument,
   readPreviewLanding,
   readPreviewShell,
@@ -454,6 +455,17 @@ describe("preview style groups", () => {
       title: "Inspect",
       subtitle: LANDING_HERO_TITLE,
     });
+  });
+
+  it("uses a line field for button labels and an area for long copy", () => {
+    expect(previewInspectorCopyField("landing-cta-ghost")).toBe("line");
+    expect(previewInspectorCopyField("landing-hero-cta")).toBe("line");
+    expect(previewInspectorCopyField("shell-action")).toBe("line");
+    expect(previewInspectorCopyField("landing-hero-title")).toBe("line");
+    expect(previewInspectorCopyField("landing-quote")).toBe("area");
+    expect(previewInspectorCopyField("landing-hero-lead")).toBe("area");
+    expect(previewInspectorCopyField("landing-feat-1-body")).toBe("area");
+    expect(previewInspectorCopyField("landing-cta-lead")).toBe("area");
   });
 });
 

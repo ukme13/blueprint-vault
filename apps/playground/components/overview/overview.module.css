@@ -78,7 +78,7 @@
 .navCard,
 .actionIconsCard {
   background-color: var(--color-surface-overlay, var(--color-surface-raised));
-  border-radius: 20px;
+  border-radius: var(--radius-container, 12px);
   border: 1px solid var(--color-border-strong, var(--color-border-default));
   display: flex;
   flex-direction: column;
@@ -176,7 +176,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: var(--radius-element, 8px);
   font-size: 0.875rem;
   font-weight: 500;
   cursor: default;
@@ -219,7 +219,7 @@
 .progressBarTrack {
   width: 100%;
   height: 10px;
-  border-radius: 9999px;
+  border-radius: var(--radius-full, 9999px);
   background-color: var(--color-surface-subtle, var(--color-surface-base));
   border: 1px solid var(--color-border-default, var(--color-border-subtle));
   overflow: hidden;
@@ -227,7 +227,7 @@
 
 .progressBarFill {
   height: 100%;
-  border-radius: 9999px;
+  border-radius: var(--radius-full, 9999px);
 }
 
 .splitRow {
@@ -245,9 +245,9 @@
 }
 
 .miniIconBox {
-  width: 48px;
-  height: 48px;
-  border-radius: 8px;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-element, 8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -264,7 +264,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  border-radius: 8px;
+  border-radius: var(--radius-element, 8px);
   padding: 0.625rem 1.25rem;
   font-size: 0.875rem;
   font-weight: 500;
@@ -284,7 +284,7 @@
   gap: 0.625rem;
   width: 100%;
   border: 1px solid var(--color-border-default, var(--color-border-subtle));
-  border-radius: 10px;
+  border-radius: var(--radius-element, 8px);
   padding: 0.625rem 0.875rem;
   background-color: var(--color-surface-subtle, var(--color-surface-base));
   color: var(--color-fg-muted, var(--color-fg-secondary));
@@ -315,15 +315,15 @@
   align-items: center;
   gap: 1.25rem;
   padding: 0.5rem 0.875rem;
-  border-radius: 9999px;
+  border-radius: var(--radius-element, 8px);
   background-color: var(--color-surface-subtle, var(--color-surface-base));
   border: 1px solid var(--color-border-default, var(--color-border-subtle));
 }
 
 .navActiveItem {
-  width: 34px;
-  height: 34px;
-  border-radius: 6px;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-element, 8px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -354,9 +354,9 @@
 }
 
 .actionIconSquare {
-  width: 44px;
-  height: 44px;
-  border-radius: 8px;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--radius-element, 8px);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -55,6 +55,7 @@ export {
   PREVIEW_SHELL_LABEL,
   PREVIEW_STYLE_GROUPS,
   previewInspectorChrome,
+  previewInspectorCopyField,
   previewSlotLabel,
   previewStyleGroupFor,
   type PreviewShellId,

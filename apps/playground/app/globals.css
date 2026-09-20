@@ -76,3 +76,12 @@
 [data-astryx-theme] .astryx-selector-section-heading {
   color: var(--color-fg-muted);
 }
+
+/* Astryx paints a CodeBlock card with --radius-element. That token is a
+   button/input. A tall preview is a panel — when element grows, the pane
+   becomes a lozenge. Container is the card/dialog token. Unlayered so it
+   beats StyleX's one-class rule. Full stays on actual pills (progress,
+   capacity, badges, slider thumbs). */
+.astryx-codeblock.card {
+  border-radius: var(--radius-container);
+}
