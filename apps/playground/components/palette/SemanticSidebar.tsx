@@ -117,12 +117,14 @@ export function SemanticSidebar({
                     </Tooltip>
                   ) : (
                     <Button
+                      aria-label={`Remove ${label} tone`}
+                      className={styles.toneRemove}
                       scheme="neutral"
                       size="xs"
                       variant="text"
                       onClick={() => onRemoveScheme(scheme)}
                     >
-                      {`Remove ${label} tone`}
+                      Remove
                     </Button>
                   )}
                 </li>
@@ -138,7 +140,7 @@ export function SemanticSidebar({
             <Button
               scheme="neutral"
               size="xs"
-              variant="text"
+              variant="outlined"
               onClick={() => setDraft("")}
             >
               New group

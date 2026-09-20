@@ -104,6 +104,10 @@
   font-size: var(--font-size-sm, 0.875rem);
 }
 
+.toneRemove {
+  flex-shrink: 0;
+}
+
 .main {
   display: flex;
   flex-direction: column;

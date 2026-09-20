@@ -10,6 +10,7 @@ import {
   generateStableWeights,
   isValidLightnessSequence,
   normalizeTrackName,
+  paletteCssVariables,
   resizeLightnessArray,
 } from "./palette";
 import { BLUEPRINT_20_PRESET } from "./presets";
@@ -268,5 +269,38 @@ describe("generatePalettes and findShade", () => {
     const palettes = generatePalettes(project);
     expect(findShade(palettes, "gone", 500)).toBeNull();
     expect(findShade(palettes, "primary", 12345)).toBeNull();
+  });
+});
+
+describe("paletteCssVariables", () => {
+  it("returns an empty map when palettes are empty", () => {
+    expect(paletteCssVariables([])).toEqual({});
+  });
+
+  it("maps each shade in every palette track to its OKLCH token property", () => {
+    const project = {
+      tracks: [
+        { id: "primary", name: "primary", seedHex: "#7646ab" },
+        { id: "neutral", name: "neutral", seedHex: "#737373" },
+      ],
+      lightnessValues: [95, 50, 10],
+    };
+    const palettes = generatePalettes(project);
+    const variables = paletteCssVariables(palettes);
+
+    expect(variables["--color-primary-50"]).toMatch(
+      /^oklch\(\d+\.\d{3} \d+\.\d{3} \d+\.\d\)$/,
+    );
+    expect(variables["--color-primary-500"]).toMatch(
+      /^oklch\(\d+\.\d{3} \d+\.\d{3} \d+\.\d\)$/,
+    );
+    expect(variables["--color-primary-950"]).toMatch(
+      /^oklch\(\d+\.\d{3} \d+\.\d{3} \d+\.\d\)$/,
+    );
+    expect(variables["--color-neutral-500"]).toMatch(
+      /^oklch\(\d+\.\d{3} \d+\.\d{3} \d+\.\d\)$/,
+    );
+    // 2 tracks * 3 shades = 6 CSS variables
+    expect(Object.keys(variables)).toHaveLength(6);
   });
 });

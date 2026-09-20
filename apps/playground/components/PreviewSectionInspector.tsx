@@ -1,13 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Button } from "@astryxdesign/core/Button";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
-import { Layout, LayoutContent, VStack } from "@astryxdesign/core/Layout";
+import {
+  HStack,
+  Layout,
+  LayoutContent,
+  VStack,
+} from "@astryxdesign/core/Layout";
 import { Selector } from "@astryxdesign/core/Selector";
 import { Text } from "@astryxdesign/core/Text";
 import {
   PREVIEW_FILL_TOKEN_GROUPS,
   PREVIEW_SECTION_LABEL,
+  PREVIEW_SECTION_SEED_TOKEN,
   previewTokenSelectorOptions,
   semanticVariableName,
   type PreviewSectionFill,
@@ -31,28 +38,46 @@ export function PreviewSectionInspector({
   sectionId,
   fill,
   tokens,
+  tokenColors,
   error,
   onOpenChange,
   onTokenChange,
+  onResetToDefault,
 }: {
   isOpen: boolean;
   sectionId: PreviewSectionId | null;
   fill: PreviewSectionFill | null;
   tokens: readonly SemanticToken[];
+  tokenColors?: Record<string, string>;
   error: PreviewImageError | null;
   onOpenChange: (isOpen: boolean) => void;
   onTokenChange: (tokenId: string) => void;
+  onResetToDefault?: () => void;
 }) {
-  const options = previewTokenSelectorOptions(
-    tokens,
-    PREVIEW_FILL_TOKEN_GROUPS,
-  ).map((section) => ({
-    ...section,
-    options: section.options.map((opt) => ({
-      ...opt,
-      icon: <PreviewColourSwatch variable={semanticVariableName(opt.value)} />,
-    })),
-  }));
+  const options = useMemo(
+    () =>
+      previewTokenSelectorOptions(tokens, PREVIEW_FILL_TOKEN_GROUPS).map(
+        (section) => ({
+          ...section,
+          options: section.options.map((opt) => ({
+            ...opt,
+            icon: (
+              <PreviewColourSwatch
+                hex={tokenColors?.[opt.value]}
+                variable={semanticVariableName(opt.value)}
+              />
+            ),
+          })),
+        }),
+      ),
+    [tokens, tokenColors],
+  );
+  const defaultTokenId = sectionId
+    ? PREVIEW_SECTION_SEED_TOKEN[sectionId]
+    : "surface.base";
+  const isOverridden =
+    fill?.kind === "image" ||
+    (fill?.kind === "token" && fill.tokenId !== defaultTokenId);
   const tokenId = fill?.kind === "token" ? fill.tokenId : fill?.fallbackTokenId;
   const title = sectionId ? PREVIEW_SECTION_LABEL[sectionId] : "Section";
 
@@ -100,6 +125,16 @@ export function PreviewSectionInspector({
                   onTokenChange(value);
                 }}
               />
+              {isOverridden && onResetToDefault ? (
+                <HStack gap={2}>
+                  <Button
+                    label="Reset to default"
+                    size="sm"
+                    variant="ghost"
+                    onClick={onResetToDefault}
+                  />
+                </HStack>
+              ) : null}
             </VStack>
           </LayoutContent>
         }

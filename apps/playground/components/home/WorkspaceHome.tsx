@@ -7,13 +7,16 @@ import {
   Button,
   DEFAULT_WORKSPACE_NAME,
   LIBRARY_CAPACITY,
+  formatBlueprintWorkspace,
   parseBlueprintWorkspace,
   seedWorkspaceProject,
   useWorkspaceStore,
   withSharedName,
+  type WorkspaceProject,
 } from "@blueprint/ui";
 import { NewProjectDialog } from "./NewProjectDialog";
 import { ProjectCard } from "./ProjectCard";
+import { RenameProjectDialog } from "./RenameProjectDialog";
 import styles from "./home.module.css";
 
 function projectCountLabel(count: number) {
@@ -35,6 +38,12 @@ export function WorkspaceHome() {
   const [error, setError] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [renamingProject, setRenamingProject] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
+  const [renameName, setRenameName] = useState("");
+  const [renameError, setRenameError] = useState("");
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const addAndOpen = (project: ReturnType<typeof withSharedName>) => {
@@ -59,7 +68,49 @@ export function WorkspaceHome() {
     }
     setError("");
     setIsCreateOpen(false);
-    addAndOpen(withSharedName(seedWorkspaceProject(name.trim())));
+    addAndOpen(
+      withSharedName({
+        ...seedWorkspaceProject(name.trim()),
+        updatedAt: Date.now(),
+      }),
+    );
+  };
+
+  const openRename = (id: string, currentName: string) => {
+    setRenameError("");
+    setRenameName(currentName);
+    setRenamingProject({ id, name: currentName });
+  };
+
+  const rename = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!renamingProject) return;
+    const trimmed = renameName.trim();
+    if (!trimmed) {
+      setRenameError("Enter a project name.");
+      return;
+    }
+    setRenameError("");
+    workspace.rename(renamingProject.id, trimmed);
+    setRenamingProject(null);
+  };
+
+  const exportProject = (project: WorkspaceProject) => {
+    const content = formatBlueprintWorkspace(project);
+    const slug =
+      project.name
+        .trim()
+        .replace(/[^a-z0-9]+/gi, "-")
+        .toLowerCase() || "blueprint-workspace";
+    const filename = `${slug}.blueprint.json`;
+    const url = URL.createObjectURL(
+      new Blob([content], { type: "application/json" }),
+    );
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   const importProject = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -68,7 +119,13 @@ export function WorkspaceHome() {
     if (!file) return;
 
     try {
-      addAndOpen(withSharedName(parseBlueprintWorkspace(await file.text())));
+      const parsed = parseBlueprintWorkspace(await file.text());
+      addAndOpen(
+        withSharedName({
+          ...parsed,
+          updatedAt: parsed.updatedAt ?? Date.now(),
+        }),
+      );
     } catch {
       setError("Choose a valid Blueprint project file.");
     }
@@ -91,7 +148,36 @@ export function WorkspaceHome() {
       <header className={styles.header}>
         <div>
           <h1>Projects</h1>
-          <p className={styles.count}>{projectCountLabel(summaries.length)}</p>
+          <div className={styles.countRow}>
+            <p className={styles.count}>
+              {projectCountLabel(summaries.length)}
+            </p>
+            <div
+              className={
+                isLibraryFull
+                  ? `${styles.capacityIndicator} ${styles.capacityIndicatorFull}`
+                  : styles.capacityIndicator
+              }
+              role="status"
+              title={
+                isLibraryFull
+                  ? `Storage limit reached (${summaries.length} / ${LIBRARY_CAPACITY} projects). Delete one to add another.`
+                  : `${summaries.length} of ${LIBRARY_CAPACITY} projects used`
+              }
+            >
+              <div aria-hidden className={styles.capacityTrack}>
+                <div
+                  className={styles.capacityBar}
+                  style={{
+                    width: `${Math.min(100, (summaries.length / LIBRARY_CAPACITY) * 100)}%`,
+                  }}
+                />
+              </div>
+              <span className={styles.capacityLabel}>
+                {summaries.length} / {LIBRARY_CAPACITY} used
+              </span>
+            </div>
+          </div>
         </div>
         <div className={styles.actions}>
           <Button
@@ -116,12 +202,6 @@ export function WorkspaceHome() {
         </div>
       </header>
 
-      {isLibraryFull ? (
-        <p className={styles.formError} role="status">
-          This browser holds 8 projects. Delete one to add another.
-        </p>
-      ) : null}
-
       {error && !isCreateOpen ? (
         <p className={styles.formError} role="alert">
           {error}
@@ -139,11 +219,14 @@ export function WorkspaceHome() {
                 isLibraryFull={isLibraryFull}
                 name={entry.name}
                 palette={entry.project.palette}
+                updatedAt={entry.updatedAt ?? entry.project.updatedAt}
                 onDelete={() => setPendingDeleteId(entry.id)}
                 onDuplicate={() => {
                   workspace.duplicate(entry.id);
                 }}
+                onExport={() => exportProject(entry.project)}
                 onOpen={() => workspace.switchTo(entry.id)}
+                onRename={() => openRename(entry.id, entry.name)}
               />
             </li>
           ))}
@@ -168,6 +251,20 @@ export function WorkspaceHome() {
           if (!open) setError("");
         }}
         onSubmit={create}
+      />
+
+      <RenameProjectDialog
+        error={renameError}
+        isOpen={renamingProject !== null}
+        name={renameName}
+        onNameChange={setRenameName}
+        onOpenChange={(open) => {
+          if (!open) {
+            setRenamingProject(null);
+            setRenameError("");
+          }
+        }}
+        onSubmit={rename}
       />
 
       <AlertDialog

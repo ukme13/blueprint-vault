@@ -4,6 +4,7 @@ import {
   openWorkspaceSettings,
   test,
 } from "./fixtures";
+import { openPreview } from "./preview-fixtures";
 
 test.describe("Workspace settings", () => {
   test("Home has no Settings; the studio rail opens this workspace's frames", async ({
@@ -88,5 +89,33 @@ test.describe("Workspace settings", () => {
       "Container inset",
     );
     await expect(uses.getByLabel("radius-surface name")).toHaveCount(0);
+  });
+
+  test("synchronizes root palette tokens so Settings modal buttons use workspace primary color on /preview", async ({
+    page,
+  }) => {
+    await openPreview(page);
+
+    const primary500 = await page.evaluate(() => {
+      return document.documentElement.style.getPropertyValue(
+        "--color-primary-500",
+      );
+    });
+    expect(primary500).toMatch(/^oklch\(0\.499 0\.157 303\.0\)$/);
+
+    const settings = await openWorkspaceSettings(page);
+    const addDesktop = settings.getByRole("button", { name: "Add desktop" });
+    await expect(addDesktop).toBeVisible();
+
+    const buttonStyles = await addDesktop.evaluate((button) => {
+      const computed = window.getComputedStyle(button);
+      return {
+        btnMain: computed.getPropertyValue("--btn-main").trim(),
+        backgroundColor: computed.backgroundColor,
+      };
+    });
+
+    expect(buttonStyles.btnMain).toContain("303.0");
+    expect(buttonStyles.backgroundColor).not.toBe("rgba(0, 0, 0, 0)");
   });
 });

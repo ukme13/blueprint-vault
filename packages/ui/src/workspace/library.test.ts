@@ -6,6 +6,7 @@ import {
   duplicateWorkspace,
   loadLibrary,
   removeWorkspace,
+  renameWorkspace,
   saveCurrentWorkspace,
   switchWorkspace,
   updateCurrentWorkspace,
@@ -230,5 +231,62 @@ describe("saving", () => {
 
     expect(storage.getItem(LEGACY_PALETTE_STORAGE_KEY)).toBeNull();
     expect(loadLibrary(storage, ids([])).current?.name).toBe("Legacy");
+  });
+});
+
+describe("renaming a workspace", () => {
+  it("renames a project and updates the library summary and current snapshot", () => {
+    const storage = fakeStorage({
+      [LIBRARY_STORAGE_KEY]: JSON.stringify({
+        currentId: "one",
+        ids: ["one", "two"],
+      }),
+      [workspaceDocumentKey("one")]: JSON.stringify(named("First")),
+      [workspaceDocumentKey("two")]: JSON.stringify(named("Second")),
+    });
+
+    const snapshot = renameWorkspace(storage, "one", "First Renamed");
+
+    expect(snapshot.summaries.find((s) => s.id === "one")?.name).toBe(
+      "First Renamed",
+    );
+    expect(snapshot.current?.name).toBe("First Renamed");
+    expect(
+      JSON.parse(storage.getItem(workspaceDocumentKey("one")) ?? "{}").name,
+    ).toBe("First Renamed");
+  });
+
+  it("renames a background project without changing current", () => {
+    const storage = fakeStorage({
+      [LIBRARY_STORAGE_KEY]: JSON.stringify({
+        currentId: "one",
+        ids: ["one", "two"],
+      }),
+      [workspaceDocumentKey("one")]: JSON.stringify(named("First")),
+      [workspaceDocumentKey("two")]: JSON.stringify(named("Second")),
+    });
+
+    const snapshot = renameWorkspace(storage, "two", "Second Renamed");
+
+    expect(snapshot.summaries.find((s) => s.id === "two")?.name).toBe(
+      "Second Renamed",
+    );
+    expect(snapshot.current?.name).toBe("First");
+    expect(
+      JSON.parse(storage.getItem(workspaceDocumentKey("two")) ?? "{}").name,
+    ).toBe("Second Renamed");
+  });
+});
+
+describe("timestamps", () => {
+  it("records updatedAt when writing a project and includes it in summaries", () => {
+    const before = Date.now();
+    const storage = fakeStorage();
+    const created = addWorkspace(storage, named("Timestamped"), ids(["ts-1"]));
+    const after = Date.now();
+    const ts = created?.summaries[0]?.updatedAt;
+    expect(typeof ts).toBe("number");
+    expect(ts).toBeGreaterThanOrEqual(before);
+    expect(ts).toBeLessThanOrEqual(after);
   });
 });

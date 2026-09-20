@@ -26,8 +26,6 @@ import {
   browserWorkspaceStorage,
   emptyWorkspace,
   loadStoredWorkspace,
-  saveStoredWorkspace,
-  updateStoredWorkspace,
   withPaletteSlice,
   useWorkspaceStore,
   withSharedName,
@@ -164,24 +162,6 @@ function readForeignSlices(): ForeignSlices {
   }
 }
 
-/**
- * Replace the whole document.
- *
- * The one place this studio writes the other half, and it is not the rule
- * being broken: an import is the user deliberately replacing everything,
- * rather than one studio persisting a stale copy of a slice it does not own.
- */
-function writeImportedWorkspace(imported: WorkspaceProject): void {
-  saveStoredWorkspace(browserWorkspaceStorage(), withSharedName(imported));
-}
-
-function writeStoredProject(project: PaletteProject | null): void {
-  updateStoredWorkspace(browserWorkspaceStorage(), (current) => {
-    /* Name lives on the rail. Passing it here would overwrite a rename the
-       shell already wrote, using the copy this tab loaded. */
-    return withSharedName(withPaletteSlice(current, project));
-  });
-}
 /* The glasses mark from the toolbar design. Inline rather than an icon
    import: it is two circles and a bridge, and it belongs to this one chip. */
 
@@ -223,6 +203,7 @@ function PaletteStudioContent() {
      read the layer the Semantics tab just changed, and another tab's work is
      not written over with a copy from this page's load. */
   const workspace = useWorkspaceStore();
+  const { update: updateWorkspace, save: saveWorkspace } = workspace;
   const semantics = workspace.project?.semantics ?? null;
   /* Every semantic write goes through the history, so undo is a fact about the
      slice rather than a feature of one editor. The keyboard is stage 4's:
@@ -263,8 +244,10 @@ function PaletteStudioContent() {
   useEffect(() => {
     if (!hasLoadedProject || !project) return;
 
-    writeStoredProject(project);
-  }, [hasLoadedProject, project]);
+    updateWorkspace((current) =>
+      withSharedName(withPaletteSlice(current, project)),
+    );
+  }, [hasLoadedProject, project, updateWorkspace]);
 
   const weights = useMemo(() => {
     const shadeCount = project?.lightnessValues.length ?? 0;
@@ -304,17 +287,6 @@ function PaletteStudioContent() {
       : contrastTarget === "black"
         ? "#000000"
         : customContrastColour;
-
-  useEffect(() => {
-    palettes.forEach((palette) => {
-      palette.shades.forEach((shade) => {
-        document.documentElement.style.setProperty(
-          `--color-${palette.name}-${shade.weight}`,
-          `oklch(${shade.L.toFixed(3)} ${shade.C.toFixed(3)} ${shade.H.toFixed(1)})`,
-        );
-      });
-    });
-  }, [palettes]);
 
   if (!hasLoadedProject) {
     return (
@@ -905,7 +877,7 @@ function PaletteStudioContent() {
           if (!pendingImport) return;
           /* Both halves, before the palette state lands — the persist effect
              below only ever writes its own slice. */
-          writeImportedWorkspace(pendingImport);
+          saveWorkspace(withSharedName(pendingImport));
           setForeign(pendingImport);
           setSemantics(pendingImport.semantics, {
             buttonSchemes: pendingImport.buttonSchemes,

@@ -45,6 +45,7 @@ export interface WorkspaceLibraryIndex {
 export interface WorkspaceLibrarySummary {
   id: string;
   name: string;
+  updatedAt?: number;
   project: WorkspaceProject;
 }
 
@@ -126,7 +127,12 @@ function snapshotFromIndex(
   for (const id of index.ids) {
     const project = readDocument(storage, id);
     if (!project) continue;
-    summaries.push({ id, name: project.name, project });
+    summaries.push({
+      id,
+      name: project.name,
+      updatedAt: project.updatedAt,
+      project,
+    });
   }
   return {
     index,
@@ -244,11 +250,15 @@ export function saveCurrentWorkspace(
 ): boolean {
   try {
     const snapshot = loadCurrentWorkspace(storage, createId);
+    const stamped: WorkspaceProject = {
+      ...project,
+      updatedAt: project.updatedAt ?? Date.now(),
+    };
     if (snapshot.index.currentId) {
-      writeDocument(storage, snapshot.index.currentId, project);
+      writeDocument(storage, snapshot.index.currentId, stamped);
       return true;
     }
-    return addWorkspace(storage, project, createId) !== null;
+    return addWorkspace(storage, stamped, createId) !== null;
   } catch {
     return false;
   }
@@ -260,7 +270,12 @@ export function updateCurrentWorkspace(
   apply: (current: WorkspaceProject | null) => WorkspaceProject,
   createId: WorkspaceIdFactory = createWorkspaceId,
 ): WorkspaceProject | null {
-  const next = apply(loadCurrentWorkspace(storage, createId).current);
+  const current = loadCurrentWorkspace(storage, createId).current;
+  const applied = apply(current);
+  const next: WorkspaceProject = {
+    ...applied,
+    updatedAt: Date.now(),
+  };
   saveCurrentWorkspace(storage, next, createId);
   return next;
 }
@@ -282,7 +297,11 @@ export function addWorkspace(
     currentId: id,
     ids: [...currentIndex.ids, id],
   };
-  writeDocument(storage, id, project);
+  const stamped: WorkspaceProject = {
+    ...project,
+    updatedAt: project.updatedAt ?? Date.now(),
+  };
+  writeDocument(storage, id, stamped);
   writeIndex(storage, index);
   if (documentReadsBack(storage, id)) {
     retireLegacyKeys(storage, true);
@@ -322,9 +341,10 @@ export function duplicateWorkspace(
   if (!source) return null;
 
   const copyId = mintId(createId, snapshot.index.ids);
-  const copy = withSharedName({
+  const copy: WorkspaceProject = withSharedName({
     ...cloneProject(source),
     name: `${source.name} copy`,
+    updatedAt: Date.now(),
   });
   const sourceIndex = snapshot.index.ids.indexOf(id);
   const ids = [
@@ -349,9 +369,34 @@ export function updateWorkspaceDocument(
 ): WorkspaceProject | null {
   const current = readDocument(storage, id);
   if (!current) return null;
-  const next = apply(current);
+  const next: WorkspaceProject = {
+    ...apply(current),
+    updatedAt: Date.now(),
+  };
   writeDocument(storage, id, next);
   return next;
+}
+
+/**
+ * Rename a project. If it is current, `snapshot.current` reflects the new name.
+ */
+export function renameWorkspace(
+  storage: LibraryStorage,
+  id: string,
+  name: string,
+  createId: WorkspaceIdFactory = createWorkspaceId,
+): LibrarySnapshot {
+  const current = readDocument(storage, id);
+  if (current) {
+    writeDocument(
+      storage,
+      id,
+      withSharedName({ ...current, name, updatedAt: Date.now() }),
+    );
+  }
+  const index = readIndex(storage);
+  if (!index) return loadLibrary(storage, createId);
+  return snapshotFromIndex(storage, index);
 }
 
 /**

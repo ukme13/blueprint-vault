@@ -1,8 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { DropdownMenu } from "@astryxdesign/core/DropdownMenu";
-import { DEFAULT_WORKSPACE_NAME, type PaletteProjectData } from "@blueprint/ui";
+import { Copy, Download, Pencil, Trash2 } from "lucide-react";
+import {
+  DEFAULT_WORKSPACE_NAME,
+  formatRelativeTime,
+  type PaletteProjectData,
+} from "@blueprint/ui";
 import { ProjectMosaic } from "./ProjectMosaic";
 import styles from "./home.module.css";
 
@@ -12,8 +16,9 @@ function familyCountLabel(count: number) {
 }
 
 /**
- * One workspace on Home: mosaic, name, open on click, Duplicate / Delete
- * in the overflow menu so the card itself stays the switcher.
+ * One workspace on Home:
+ * Flush top mosaic thumbnail, overlay action icons (Rename, Duplicate, Delete)
+ * with a faded top gradient, and project details below.
  */
 export function ProjectCard({
   familyCount,
@@ -22,9 +27,12 @@ export function ProjectCard({
   isLibraryFull,
   name,
   palette,
+  updatedAt,
   onDelete,
   onDuplicate,
+  onExport,
   onOpen,
+  onRename,
 }: {
   familyCount: number;
   href: string;
@@ -32,11 +40,15 @@ export function ProjectCard({
   isLibraryFull: boolean;
   name: string;
   palette: PaletteProjectData | null | undefined;
+  updatedAt?: number;
   onDelete: () => void;
   onDuplicate: () => void;
+  onExport: () => void;
   onOpen: () => void;
+  onRename: () => void;
 }) {
   const title = name || DEFAULT_WORKSPACE_NAME;
+  const editedText = formatRelativeTime(updatedAt);
 
   return (
     <div
@@ -44,39 +56,80 @@ export function ProjectCard({
         isCurrent ? `${styles.card} ${styles.cardCurrent}` : styles.card
       }
     >
-      <Link className={styles.cardLink} href={href} onClick={onOpen}>
+      <div className={styles.thumbnailWrapper}>
         <ProjectMosaic palette={palette} />
-        <h2>{title}</h2>
+        <div className={styles.cardActionsOverlay}>
+          <button
+            aria-label={`Rename ${title}`}
+            className={styles.cardActionButton}
+            title="Rename project"
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onRename();
+            }}
+          >
+            <Pencil size={15} strokeWidth={2.2} />
+          </button>
+          <button
+            aria-label={`Duplicate ${title}`}
+            className={styles.cardActionButton}
+            disabled={isLibraryFull}
+            title={
+              isLibraryFull
+                ? "Workspace limit reached (8 projects)"
+                : "Duplicate project"
+            }
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onDuplicate();
+            }}
+          >
+            <Copy size={15} strokeWidth={2.2} />
+          </button>
+          <button
+            aria-label={`Export ${title}`}
+            className={styles.cardActionButton}
+            title="Export project (.blueprint.json)"
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onExport();
+            }}
+          >
+            <Download size={15} strokeWidth={2.2} />
+          </button>
+          <button
+            aria-label={`Delete ${title}`}
+            className={`${styles.cardActionButton} ${styles.cardActionButtonDestructive}`}
+            title="Delete project"
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onDelete();
+            }}
+          >
+            <Trash2 size={15} strokeWidth={2.2} />
+          </button>
+        </div>
+      </div>
+      <div className={styles.cardContent}>
+        <h2>
+          <Link className={styles.cardLink} href={href} onClick={onOpen}>
+            <span aria-hidden className={styles.cardLinkHitArea} />
+            {title}
+          </Link>
+        </h2>
         <p>
           {isCurrent ? "Current · " : null}
           {familyCountLabel(familyCount)}
+          {editedText ? ` · ${editedText}` : null}
         </p>
-      </Link>
-      <div className={styles.cardMenu}>
-        <DropdownMenu
-          alignment="end"
-          button={{
-            "aria-label": `Actions for ${title}`,
-            label: "…",
-            size: "sm",
-            variant: "ghost",
-          }}
-          hasChevron={false}
-          items={[
-            {
-              label: "Duplicate",
-              isDisabled: isLibraryFull,
-              onClick: onDuplicate,
-            },
-            {
-              label: "Delete",
-              onClick: onDelete,
-              variant: "destructive",
-            },
-          ]}
-          menuWidth={180}
-          placement="below"
-        />
       </div>
     </div>
   );

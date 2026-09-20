@@ -304,6 +304,55 @@ test.describe("The elevation editor", () => {
       .toEqual({ contact: 0.2, cast: 0.35 });
   });
 
+  test("keeps thumb visible inside pad at maximum contact and cast", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Elevation");
+    const pad = page.getByRole("button", {
+      name: "Low light contact and cast",
+    });
+    await pad.focus();
+    await pad.press("End");
+    await pad.press("PageUp");
+
+    const block = page
+      .locator('[data-elevation-pad][data-mode="light"]')
+      .first();
+    await expect(block.getByText("Contact 60% · Cast 60%")).toBeVisible();
+
+    const padBox = await pad.boundingBox();
+    expect(padBox).not.toBeNull();
+
+    const thumb = pad.locator('span[class*="elevationPadThumb"]');
+    const thumbBox = await thumb.boundingBox();
+    expect(thumbBox).not.toBeNull();
+
+    expect(thumbBox!.x).toBeGreaterThanOrEqual(padBox!.x);
+    expect(thumbBox!.x + thumbBox!.width).toBeLessThanOrEqual(
+      padBox!.x + padBox!.width,
+    );
+    expect(thumbBox!.y).toBeGreaterThanOrEqual(padBox!.y);
+    expect(thumbBox!.y + thumbBox!.height).toBeLessThanOrEqual(
+      padBox!.y + padBox!.height,
+    );
+
+    // Clicking on the top-right active dot selects 60% 60% and keeps the thumb inside
+    await pad.click({
+      position: { x: padBox!.width * 0.88, y: padBox!.height * 0.12 },
+    });
+    await expect(block.getByText("Contact 60% · Cast 60%")).toBeVisible();
+    const clickedThumbBox = await thumb.boundingBox();
+    expect(clickedThumbBox).not.toBeNull();
+    expect(clickedThumbBox!.x).toBeGreaterThanOrEqual(padBox!.x);
+    expect(clickedThumbBox!.x + clickedThumbBox!.width).toBeLessThanOrEqual(
+      padBox!.x + padBox!.width,
+    );
+    expect(clickedThumbBox!.y).toBeGreaterThanOrEqual(padBox!.y);
+    expect(clickedThumbBox!.y + clickedThumbBox!.height).toBeLessThanOrEqual(
+      padBox!.y + padBox!.height,
+    );
+  });
+
   test("paints the dark sample with a dark card", async ({
     seededPage: page,
   }) => {

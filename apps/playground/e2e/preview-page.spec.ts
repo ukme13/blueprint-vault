@@ -428,7 +428,7 @@ test.describe("The slot inspector", () => {
       .not.toBe(before);
   });
 
-  test("restyles every nav link together and names the group", async ({
+  test("restyles single nav link by default, then applies to group on button click", async ({
     page,
   }) => {
     await openPreview(page);
@@ -449,15 +449,22 @@ test.describe("The slot inspector", () => {
     await dialog.getByRole("combobox", { name: "Type role" }).click();
     await page.getByRole("option", { name: "h1", exact: true }).click();
 
-    await expect
-      .poll(() => features.evaluate((node) => getComputedStyle(node).fontSize))
-      .not.toBe(before);
+    // Only home changed; features unchanged
     await expect
       .poll(() => home.evaluate((node) => getComputedStyle(node).fontSize))
       .not.toBe(before);
+    await expect
+      .poll(() => features.evaluate((node) => getComputedStyle(node).fontSize))
+      .toBe(before);
+
+    // Apply to group
+    await dialog.getByRole("button", { name: "Apply to group" }).click();
+    await expect
+      .poll(() => features.evaluate((node) => getComputedStyle(node).fontSize))
+      .not.toBe(before);
   });
 
-  test("restyles feature card titles together and names the group", async ({
+  test("restyles single feature card title by default, then applies to group on button click", async ({
     page,
   }) => {
     await openPreview(page);
@@ -481,17 +488,26 @@ test.describe("The slot inspector", () => {
     await dialog.getByRole("combobox", { name: "Type role" }).click();
     await page.getByRole("option", { name: "h1", exact: true }).click();
 
+    // Only planning changed; management unchanged
+    await expect
+      .poll(() => planning.evaluate((node) => getComputedStyle(node).fontSize))
+      .not.toBe(before);
+    await expect
+      .poll(() =>
+        management.evaluate((node) => getComputedStyle(node).fontSize),
+      )
+      .toBe(before);
+
+    // Apply to group
+    await dialog.getByRole("button", { name: "Apply to group" }).click();
     await expect
       .poll(() =>
         management.evaluate((node) => getComputedStyle(node).fontSize),
       )
       .not.toBe(before);
-    await expect
-      .poll(() => planning.evaluate((node) => getComputedStyle(node).fontSize))
-      .not.toBe(before);
   });
 
-  test("restyles feature card bodies together and names the group", async ({
+  test("restyles single feature card body by default, then applies to group on button click", async ({
     page,
   }) => {
     await openPreview(page);
@@ -515,13 +531,22 @@ test.describe("The slot inspector", () => {
     await dialog.getByRole("combobox", { name: "Type role" }).click();
     await page.getByRole("option", { name: "h1", exact: true }).click();
 
+    // Only planning changed; management unchanged
+    await expect
+      .poll(() => planning.evaluate((node) => getComputedStyle(node).fontSize))
+      .not.toBe(before);
     await expect
       .poll(() =>
         management.evaluate((node) => getComputedStyle(node).fontSize),
       )
-      .not.toBe(before);
+      .toBe(before);
+
+    // Apply to group
+    await dialog.getByRole("button", { name: "Apply to group" }).click();
     await expect
-      .poll(() => planning.evaluate((node) => getComputedStyle(node).fontSize))
+      .poll(() =>
+        management.evaluate((node) => getComputedStyle(node).fontSize),
+      )
       .not.toBe(before);
   });
 
@@ -565,6 +590,67 @@ test.describe("The slot inspector", () => {
     await page.mouse.click(8, 8);
     await expect(dialog).toBeHidden();
     expect(pageErrors).toEqual([]);
+  });
+
+  test("resets an edited slot back to its default seed state", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const title = page.getByRole("heading", { name: HERO_TITLE, level: 1 });
+    await title.click();
+
+    const dialog = page.getByRole("dialog", { name: "Inspect" });
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Reset to default" }),
+    ).toHaveCount(0);
+
+    await dialog
+      .getByRole("textbox", { name: "Copy" })
+      .fill("Overridden Headline");
+    await expect(
+      dialog.getByRole("button", { name: "Reset to default" }),
+    ).toBeVisible();
+
+    await dialog.getByRole("button", { name: "Reset to default" }).click();
+    await expect(dialog.getByRole("textbox", { name: "Copy" })).toHaveValue(
+      HERO_TITLE,
+    );
+    await expect(
+      dialog.getByRole("button", { name: "Reset to default" }),
+    ).toHaveCount(0);
+  });
+
+  test("resets an edited section fill back to default token", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const hero = page.locator('[data-preview-section="landing-hero"]');
+    await hero.hover();
+    await hero.getByRole("button", { name: "Section fill for Hero" }).click();
+    await page.getByRole("menuitem", { name: "Background colour…" }).click();
+
+    const dialog = page.getByRole("dialog", { name: "Hero" });
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Reset to default" }),
+    ).toHaveCount(0);
+
+    await dialog.getByRole("combobox", { name: "Background colour" }).click();
+    await page
+      .getByRole("option", { name: "Surface raised", exact: true })
+      .click();
+    await expect(
+      dialog.getByRole("button", { name: "Reset to default" }),
+    ).toBeVisible();
+
+    await dialog.getByRole("button", { name: "Reset to default" }).click();
+    await expect(
+      dialog.getByRole("button", { name: "Reset to default" }),
+    ).toHaveCount(0);
+    await expect(
+      dialog.getByRole("combobox", { name: "Background colour" }),
+    ).toHaveText(/Surface base/);
   });
 
   test("survives a device switch after inspecting", async ({ page }) => {
@@ -781,7 +867,7 @@ test.describe("Preview section fill and token colour", () => {
     expect(geometry!.quadPaddingTop).toBeGreaterThan(0);
   });
 
-  test("restyles grouped feature titles together, then only the detached slot", async ({
+  test("restyles single slot colour by default, then applies to group on button click", async ({
     page,
   }) => {
     await openPreview(page);
@@ -791,7 +877,7 @@ test.describe("Preview section fill and token colour", () => {
     const colorOf = (locator: typeof planning) =>
       locator.evaluate((node) => getComputedStyle(node).color);
 
-    const groupedBefore = await colorOf(management);
+    const initialColor = await colorOf(management);
 
     await planning.click();
     const dialog = page.getByRole("dialog", { name: "Feature card titles" });
@@ -801,20 +887,18 @@ test.describe("Preview section fill and token colour", () => {
       .getByRole("option", { name: "Foreground accent", exact: true })
       .click();
 
-    await expect.poll(() => colorOf(planning)).not.toBe(groupedBefore);
-    await expect.poll(() => colorOf(management)).not.toBe(groupedBefore);
-    await expect.poll(() => colorOf(live)).not.toBe(groupedBefore);
+    // Only planning changed; siblings remain initialColor
+    await expect.poll(() => colorOf(planning)).not.toBe(initialColor);
+    await expect.poll(() => colorOf(management)).toBe(initialColor);
+    await expect.poll(() => colorOf(live)).toBe(initialColor);
 
-    const grouped = await colorOf(management);
-    await dialog.getByRole("button", { name: "Edit this slot only" }).click();
-    await dialog.getByRole("combobox", { name: "Colour" }).click();
-    await page
-      .getByRole("option", { name: "Foreground secondary", exact: true })
-      .click();
+    // Click Apply to group
+    await dialog.getByRole("button", { name: "Apply to group" }).click();
 
-    await expect.poll(() => colorOf(planning)).not.toBe(grouped);
-    await expect.poll(() => colorOf(management)).toBe(grouped);
-    await expect.poll(() => colorOf(live)).toBe(grouped);
+    // Now all siblings have updated to match planning
+    const newColor = await colorOf(planning);
+    await expect.poll(() => colorOf(management)).toBe(newColor);
+    await expect.poll(() => colorOf(live)).toBe(newColor);
   });
 
   test("anchors the slot colour selector popup over the trigger when reopening", async ({
@@ -878,5 +962,136 @@ test.describe("Preview section fill and token colour", () => {
       .nth(1)
       .locator('i[class*="previewColourSwatch"]');
     await expect(triggerSwatch).toBeVisible();
+
+    const swatchHex = await triggerSwatch.evaluate((el) =>
+      el.style.getPropertyValue("--preview-swatch"),
+    );
+    expect(swatchHex).toMatch(/^#[0-9a-f]{6}/i);
+  });
+
+  test("aligns testimonial vertically and centres text", async ({ page }) => {
+    await openPreview(page);
+    const quoteBand = page.locator('[data-preview-section="landing-quote"]');
+    await expect(quoteBand).toBeVisible();
+
+    const metrics = await quoteBand.evaluate((node) => {
+      const blockquote = node.querySelector("blockquote");
+      const address = node.querySelector("address");
+      if (!blockquote || !address) return null;
+      const bRect = blockquote.getBoundingClientRect();
+      const aRect = address.getBoundingClientRect();
+      const bStyle = window.getComputedStyle(blockquote);
+      const aStyle = window.getComputedStyle(address);
+      return {
+        quoteTextAlign: bStyle.textAlign,
+        citeTextAlign: aStyle.textAlign,
+        quoteBottom: bRect.bottom,
+        citeTop: aRect.top,
+        quoteCenter: bRect.left + bRect.width / 2,
+        citeCenter: aRect.left + aRect.width / 2,
+      };
+    });
+
+    expect(metrics).not.toBeNull();
+    expect(metrics!.quoteTextAlign).toBe("center");
+    expect(metrics!.citeTextAlign).toBe("center");
+    // Quote and name align vertically (cite is below quote)
+    expect(metrics!.citeTop).toBeGreaterThanOrEqual(metrics!.quoteBottom);
+    // Both quote and cite are horizontally centered together
+    expect(Math.abs(metrics!.quoteCenter - metrics!.citeCenter)).toBeLessThan(
+      2,
+    );
+  });
+
+  test("spaces section head with increased gap under lead copy", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const quad = page.locator('[data-preview-section="landing-quad"]');
+    await expect(quad).toBeVisible();
+
+    const marginBottom = await quad
+      .locator('[class*="sectionHead"]')
+      .evaluate((el) => parseFloat(window.getComputedStyle(el).marginBottom));
+
+    expect(marginBottom).toBe(48);
+  });
+
+  test("resets entire preview back to default using header button beside Vision", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const previewHeader = page.locator("header[aria-label='Preview']");
+    const resetButton = previewHeader.getByRole("button", {
+      name: "Reset to default",
+    });
+    await expect(resetButton).toBeVisible();
+
+    // Edit a slot first
+    const title = page.getByRole("heading", { name: HERO_TITLE, level: 1 });
+    await title.click();
+    const dialog = page.getByRole("dialog", { name: "Inspect" });
+    await expect(dialog).toBeVisible();
+    await dialog
+      .getByRole("textbox", { name: "Copy" })
+      .fill("Overridden Headline for Global Reset");
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+
+    await expect(
+      page.getByRole("heading", {
+        name: "Overridden Headline for Global Reset",
+        level: 1,
+      }),
+    ).toBeVisible();
+
+    // Click the top-level Reset to default button
+    await resetButton.click();
+
+    // Verify it reverts back to HERO_TITLE
+    await expect(
+      page.getByRole("heading", { name: HERO_TITLE, level: 1 }),
+    ).toBeVisible();
+  });
+
+  test("limits CTA title and lead copy with max-width and centers them like testimonial", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const ctaSection = page.locator('[data-preview-section="landing-cta"]');
+    await expect(ctaSection).toBeVisible();
+
+    const metrics = await ctaSection.evaluate((section) => {
+      const title = section.querySelector("h2");
+      const lead = section.querySelector("p[class*='lead']");
+      const stack = section.querySelector("div[class*='stack']");
+      if (!title || !lead || !stack) return null;
+
+      const titleStyle = window.getComputedStyle(title);
+      const leadStyle = window.getComputedStyle(lead);
+      const stackStyle = window.getComputedStyle(stack);
+      const tRect = title.getBoundingClientRect();
+      const lRect = lead.getBoundingClientRect();
+
+      return {
+        titleMaxWidth: titleStyle.maxWidth,
+        titleTextAlign: titleStyle.textAlign,
+        leadMaxWidth: leadStyle.maxWidth,
+        leadTextAlign: leadStyle.textAlign,
+        stackMaxWidth: stackStyle.maxWidth,
+        titleCenter: tRect.left + tRect.width / 2,
+        leadCenter: lRect.left + lRect.width / 2,
+      };
+    });
+
+    expect(metrics).not.toBeNull();
+    expect(parseFloat(metrics!.titleMaxWidth)).toBeGreaterThan(0);
+    expect(parseFloat(metrics!.leadMaxWidth)).toBeGreaterThan(0);
+    expect(parseFloat(metrics!.stackMaxWidth)).toBeGreaterThan(0);
+    expect(metrics!.titleTextAlign).toBe("center");
+    expect(metrics!.leadTextAlign).toBe("center");
+    expect(Math.abs(metrics!.titleCenter - metrics!.leadCenter)).toBeLessThan(
+      2,
+    );
   });
 });

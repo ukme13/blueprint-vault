@@ -176,7 +176,7 @@
   text-align: center;
   max-width: 46ch;
   margin-inline: auto;
-  margin-bottom: var(--spacing-8);
+  margin-bottom: var(--spacing-12);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -242,22 +242,28 @@
 }
 
 .quoteGrid {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: var(--gap-section);
-  align-items: end;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--spacing-6);
+  max-width: 52ch;
+  margin-inline: auto;
 }
 
 .quoteText {
-  max-width: 34ch;
+  max-width: 48ch;
+  text-align: center;
 }
 
 .cite {
   font-style: normal;
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: var(--spacing-1);
   color: var(--color-fg-secondary);
+  text-align: center;
 }
 
 .plan {
@@ -265,7 +271,7 @@
   flex-direction: column;
   gap: var(--spacing-4);
   min-width: 0;
-  border: 1px solid var(--color-border-default);
+  border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-surface);
   padding: var(--spacing-6);
   background: var(--color-surface-raised);
@@ -316,9 +322,18 @@
 
 .cta .stack {
   align-items: center;
+  max-width: 52ch;
+  margin-inline: auto;
+  text-align: center;
+}
+
+.cta h2 {
+  max-width: 48ch;
+  text-align: center;
 }
 
 .cta .lead {
+  max-width: 48ch;
   text-align: center;
 }
 
@@ -419,7 +434,7 @@
 }
 
 .site[data-frame="tablet"] .sectionHead {
-  margin-bottom: var(--spacing-6);
+  margin-bottom: var(--spacing-8);
 }
 
 .site[data-frame="phone"] .navInner {
@@ -437,8 +452,7 @@
 }
 
 .site[data-frame="phone"] .hero,
-.site[data-frame="phone"] .split,
-.site[data-frame="phone"] .quoteGrid {
+.site[data-frame="phone"] .split {
   grid-template-columns: 1fr;
 }
 

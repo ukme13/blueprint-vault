@@ -8,6 +8,8 @@ import {
 } from "@blueprint/ui";
 import styles from "./scale-workspace.module.css";
 
+const PAD_INSET_RATIO = 0.12;
+
 /**
  * Contact on X, cast on Y. A shadow has those two layers; the pad is how
  * they are set together instead of as four unrelated sliders.
@@ -32,15 +34,19 @@ export function ElevationPad({
 
   const readPoint = (event: PointerEvent<HTMLButtonElement>) => {
     const bounds = event.currentTarget.getBoundingClientRect();
-    const x =
+    const rawX =
       bounds.width === 0 ? 0 : (event.clientX - bounds.left) / bounds.width;
-    const y =
+    const rawY =
       bounds.height === 0
         ? 0
         : 1 - (event.clientY - bounds.top) / bounds.height;
+    const normalizedX = (rawX - PAD_INSET_RATIO) / (1 - 2 * PAD_INSET_RATIO);
+    const normalizedY = (rawY - PAD_INSET_RATIO) / (1 - 2 * PAD_INSET_RATIO);
+    const clampedX = Math.min(Math.max(normalizedX, 0), 1);
+    const clampedY = Math.min(Math.max(normalizedY, 0), 1);
     onChange(
-      snapElevationOpacity(x * ELEVATION_OPACITY_MAX),
-      snapElevationOpacity(y * ELEVATION_OPACITY_MAX),
+      snapElevationOpacity(clampedX * ELEVATION_OPACITY_MAX),
+      snapElevationOpacity(clampedY * ELEVATION_OPACITY_MAX),
     );
   };
 
@@ -66,6 +72,15 @@ export function ElevationPad({
     event.preventDefault();
     onChange(nextContact, nextCast);
   };
+
+  const thumbLeft =
+    (PAD_INSET_RATIO +
+      (1 - 2 * PAD_INSET_RATIO) * (contact / ELEVATION_OPACITY_MAX)) *
+    100;
+  const thumbTop =
+    (PAD_INSET_RATIO +
+      (1 - 2 * PAD_INSET_RATIO) * (1 - cast / ELEVATION_OPACITY_MAX)) *
+    100;
 
   return (
     <button
@@ -98,8 +113,8 @@ export function ElevationPad({
         aria-hidden
         className={styles.elevationPadThumb}
         style={{
-          left: `${(contact / ELEVATION_OPACITY_MAX) * 100}%`,
-          top: `${(1 - cast / ELEVATION_OPACITY_MAX) * 100}%`,
+          left: `${thumbLeft}%`,
+          top: `${thumbTop}%`,
         }}
       />
     </button>

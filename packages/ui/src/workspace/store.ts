@@ -5,6 +5,7 @@ import {
   loadCurrentWorkspace,
   loadLibrary,
   removeWorkspace,
+  renameWorkspace,
   saveCurrentWorkspace,
   switchWorkspace,
   updateCurrentWorkspace,
@@ -183,6 +184,20 @@ export function removeStoredWorkspace(
   if (!storage) return null;
   try {
     return removeWorkspace(storage, id, createId);
+  } catch {
+    return null;
+  }
+}
+
+export function renameStoredWorkspace(
+  storage: WorkspaceStorage | null,
+  id: string,
+  name: string,
+  createId: WorkspaceIdFactory = createWorkspaceId,
+) {
+  if (!storage) return null;
+  try {
+    return renameWorkspace(storage, id, name, createId);
   } catch {
     return null;
   }

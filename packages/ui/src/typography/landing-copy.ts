@@ -29,6 +29,7 @@ export type LandingPart =
 export const PREVIEW_LANDING_SLOTS: ReadonlyArray<{
   id: string;
   slot: SemanticRole;
+  preferredRoleId?: string;
   text: string;
   /** Inspector subtitle when the seed text is too long to show whole. */
   label?: string;
@@ -36,10 +37,16 @@ export const PREVIEW_LANDING_SLOTS: ReadonlyArray<{
   part?: LandingPart;
 }> = [
   { id: "landing-hero-eyebrow", slot: "label", text: "Design system studio" },
-  { id: "landing-hero-title", slot: "display", text: LANDING_HERO_TITLE },
+  {
+    id: "landing-hero-title",
+    slot: "display",
+    preferredRoleId: "h2",
+    text: LANDING_HERO_TITLE,
+  },
   {
     id: "landing-hero-lead",
     slot: "title",
+    preferredRoleId: "h6",
     text: "Blueprint is a studio for colour, type and layout. Build the tokens, then preview them on a page the way a client will.",
   },
   { id: "landing-hero-cta", slot: "label", text: "See the preview" },
@@ -53,6 +60,7 @@ export const PREVIEW_LANDING_SLOTS: ReadonlyArray<{
   {
     id: "landing-features-title",
     slot: "heading",
+    preferredRoleId: "h6",
     component: "section-head",
     part: "title",
     text: "The system, not the dump",
@@ -60,6 +68,7 @@ export const PREVIEW_LANDING_SLOTS: ReadonlyArray<{
   {
     id: "landing-features-lead",
     slot: "title",
+    preferredRoleId: "h4",
     component: "section-head",
     part: "lead",
     text: "Three things Blueprint keeps in one workspace.",
@@ -67,6 +76,7 @@ export const PREVIEW_LANDING_SLOTS: ReadonlyArray<{
   {
     id: "landing-feat-1-title",
     slot: "title",
+    preferredRoleId: "h6",
     component: "feature-card",
     part: "title",
     text: "Shared palettes",
@@ -82,6 +92,7 @@ export const PREVIEW_LANDING_SLOTS: ReadonlyArray<{
   {
     id: "landing-feat-2-title",
     slot: "title",
+    preferredRoleId: "h6",
     component: "feature-card",
     part: "title",
     text: "Type that travels",
@@ -97,6 +108,7 @@ export const PREVIEW_LANDING_SLOTS: ReadonlyArray<{
   {
     id: "landing-feat-3-title",
     slot: "title",
+    preferredRoleId: "h6",
     component: "feature-card",
     part: "title",
     text: "Live preview",
@@ -120,6 +132,7 @@ export const PREVIEW_LANDING_SLOTS: ReadonlyArray<{
   {
     id: "landing-split-a-title",
     slot: "heading",
+    preferredRoleId: "h4",
     component: "split",
     part: "title",
     text: "Your roles, in the export",
@@ -150,6 +163,7 @@ export const PREVIEW_LANDING_SLOTS: ReadonlyArray<{
   {
     id: "landing-split-b-title",
     slot: "heading",
+    preferredRoleId: "h4",
     component: "split",
     part: "title",
     text: "Help from the studio",
@@ -173,6 +187,7 @@ export const PREVIEW_LANDING_SLOTS: ReadonlyArray<{
   {
     id: "landing-quad-title",
     slot: "heading",
+    preferredRoleId: "h6",
     component: "section-head",
     part: "title",
     text: "What the system actually holds",
@@ -180,6 +195,7 @@ export const PREVIEW_LANDING_SLOTS: ReadonlyArray<{
   {
     id: "landing-quad-lead",
     slot: "title",
+    preferredRoleId: "h4",
     component: "section-head",
     part: "lead",
     text: "Not a pile of extras. The few things that keep a page together.",
@@ -248,6 +264,7 @@ export const PREVIEW_LANDING_SLOTS: ReadonlyArray<{
   {
     id: "landing-quote",
     slot: "title",
+    preferredRoleId: "h4",
     text: "We stopped guessing hex in three files. The tokens came with the page, which was the whole point.",
   },
   { id: "landing-cite-name", slot: "label", text: "Mei Okada" },
@@ -260,6 +277,7 @@ export const PREVIEW_LANDING_SLOTS: ReadonlyArray<{
   {
     id: "landing-pricing-title",
     slot: "heading",
+    preferredRoleId: "h6",
     component: "section-head",
     part: "title",
     text: "Plans that stay out of the way",
@@ -267,6 +285,7 @@ export const PREVIEW_LANDING_SLOTS: ReadonlyArray<{
   {
     id: "landing-pricing-lead",
     slot: "title",
+    preferredRoleId: "h4",
     component: "section-head",
     part: "lead",
     text: "Start with a product. Add people when the system needs them.",
@@ -443,11 +462,13 @@ export const PREVIEW_LANDING_SLOTS: ReadonlyArray<{
   {
     id: "landing-cta-title",
     slot: "heading",
+    preferredRoleId: "h6",
     text: "Try Blueprint on a page you already have",
   },
   {
     id: "landing-cta-lead",
     slot: "title",
+    preferredRoleId: "h4",
     text: "Open a workspace, paint the tokens, and see whether the type holds.",
   },
   { id: "landing-cta-primary", slot: "label", text: "Start free" },

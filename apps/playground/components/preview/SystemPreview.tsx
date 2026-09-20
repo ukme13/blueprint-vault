@@ -8,23 +8,24 @@ import {
   type CSSProperties,
 } from "react";
 import {
-  applyColorToStyleGroup,
+  applyColorToBlocks,
   applyRoleToBlocks,
-  attachGroupColor,
+  applyStyleToGroup,
   defaultElevationScale,
   defaultLayoutTokens,
   defaultPreviewDevices,
   defaultRadiusScale,
   defaultSpacingScale,
-  detachSlotColor,
   elevationCssVariables,
   generatePalettes,
-  idsSharingStyle,
   layoutCssVariablesForDevice,
   previewSection,
   radiusCssVariables,
   resolvePreviewDevice,
+  resolveSemanticColorMap,
+  seedPreviewLanding,
   seedPreviewSections,
+  seedPreviewShell,
   seedTypographyProject,
   semanticCssVariables,
   spacingCssVariables,
@@ -33,6 +34,7 @@ import {
   updateSectionFill,
   withSeededTypographySlice,
   seedWorkspaceProject,
+  PREVIEW_SECTION_SEED_TOKEN,
   type PreviewDocumentBlock,
   type PreviewDocument,
   type PreviewSectionFill,
@@ -92,10 +94,18 @@ export function SystemPreview() {
   useGoogleFontsLink(system, undefined, 400);
   useLocalFonts(system);
 
+  const palettes = useMemo(
+    () =>
+      project?.palette ? generatePalettes(project.palette) : EMPTY_PALETTES,
+    [project],
+  );
+
+  const tokenColors = useMemo(
+    () => resolveSemanticColorMap(tokens, mode, palettes, seen),
+    [tokens, mode, palettes, seen],
+  );
+
   const variables = useMemo((): CSSProperties => {
-    const palettes = project?.palette
-      ? generatePalettes(project.palette)
-      : EMPTY_PALETTES;
     return {
       ...semanticCssVariables(tokens, mode, palettes, seen),
       ...spacingCssVariables(project?.spacing ?? defaultSpacingScale()),
@@ -121,7 +131,11 @@ export function SystemPreview() {
     tokens,
     mode,
     seen,
-    project,
+    palettes,
+    project?.spacing,
+    project?.radius,
+    project?.elevation,
+    project?.layout,
     frame,
     system,
     typography.unit,
@@ -164,7 +178,7 @@ export function SystemPreview() {
         const withText = updateBlockText(document, inspecting.id, patched.text);
         const withRole = applyRoleToBlocks(
           withText,
-          idsSharingStyle(inspecting.id),
+          [inspecting.id],
           patched.roleId,
         );
         return {
@@ -233,6 +247,76 @@ export function SystemPreview() {
     window.setTimeout(() => setDeviceId(id), 0);
   }, []);
 
+  const slotSource =
+    inspecting && inspecting.source !== "section" ? inspecting.source : null;
+
+  const defaultBlock = useMemo(() => {
+    if (!inspecting || inspecting.source === "section") return null;
+    if (inspecting.source === "landing") {
+      return (
+        seedPreviewLanding(system).find((b) => b.id === inspecting.id) ?? null
+      );
+    }
+    if (inspecting.source === "shell") {
+      return (
+        seedPreviewShell(system).find((b) => b.id === inspecting.id) ?? null
+      );
+    }
+    return null;
+  }, [inspecting, system]);
+
+  const resetSlotToDefault = useCallback(() => {
+    if (
+      !slotSource ||
+      !inspecting ||
+      inspecting.source === "section" ||
+      !defaultBlock
+    ) {
+      return;
+    }
+    patchDocument(slotSource, (document) => {
+      const withText = updateBlockText(
+        document,
+        inspecting.id,
+        defaultBlock.text,
+      );
+      const withRole = applyRoleToBlocks(
+        withText,
+        [inspecting.id],
+        defaultBlock.roleId,
+      );
+      return applyColorToBlocks(withRole, [inspecting.id], undefined);
+    });
+  }, [defaultBlock, inspecting, patchDocument, slotSource]);
+
+  const resetSectionToDefault = useCallback(() => {
+    if (!inspecting || inspecting.source !== "section") return;
+    const defaultTokenId = PREVIEW_SECTION_SEED_TOKEN[inspecting.id];
+    patchSectionFill(inspecting.id, { kind: "token", tokenId: defaultTokenId });
+  }, [inspecting, patchSectionFill]);
+
+  const resetAllToDefault = useCallback(() => {
+    setInspecting(null);
+    setSectionError(null);
+    update((current) => {
+      if (!current) return seedWorkspaceProject("Workspace");
+      const next = current.typography
+        ? current
+        : withSeededTypographySlice(current);
+      const slice = next.typography;
+      if (!slice) return next;
+      return {
+        ...next,
+        typography: {
+          ...slice,
+          previewLanding: seedPreviewLanding(system),
+          previewShell: seedPreviewShell(system),
+          previewSections: seedPreviewSections(),
+        },
+      };
+    });
+  }, [system, update]);
+
   if (!hasLoaded) {
     return <div aria-busy="true" className="h-full min-h-0" />;
   }
@@ -260,9 +344,6 @@ export function SystemPreview() {
       </div>
     );
   }
-
-  const slotSource =
-    inspecting && inspecting.source !== "section" ? inspecting.source : null;
 
   return (
     <PreviewChrome
@@ -301,21 +382,24 @@ export function SystemPreview() {
       devices={devices}
       mode={mode}
       onDeviceChange={onDeviceChange}
+      onResetToDefault={resetAllToDefault}
     >
       <PreviewInspector
         block={inspectedBlock}
+        defaultBlock={defaultBlock}
         isOpen={slotSource !== null && inspectedBlock !== null}
         slotId={
           inspecting?.source === "section" ? null : (inspecting?.id ?? null)
         }
         system={system}
+        tokenColors={tokenColors}
         tokens={tokens}
-        onAttachGroupColor={() => {
+        onApplyToGroup={() => {
           if (!slotSource || !inspecting || inspecting.source === "section") {
             return;
           }
           patchDocument(slotSource, (document) =>
-            attachGroupColor(document, inspecting.id),
+            applyStyleToGroup(document, inspecting.id),
           );
         }}
         onColorChange={(colorTokenId) => {
@@ -323,20 +407,13 @@ export function SystemPreview() {
             return;
           }
           patchDocument(slotSource, (document) =>
-            applyColorToStyleGroup(document, inspecting.id, colorTokenId),
-          );
-        }}
-        onDetachColor={() => {
-          if (!slotSource || !inspecting || inspecting.source === "section") {
-            return;
-          }
-          patchDocument(slotSource, (document) =>
-            detachSlotColor(document, inspecting.id),
+            applyColorToBlocks(document, [inspecting.id], colorTokenId),
           );
         }}
         onOpenChange={(isOpen) => {
           if (!isOpen) setInspecting(null);
         }}
+        onResetToDefault={resetSlotToDefault}
         onRoleChange={(roleId) => patchSlot((block) => ({ ...block, roleId }))}
         onTextChange={(text) => patchSlot((block) => ({ ...block, text }))}
       />
@@ -345,6 +422,7 @@ export function SystemPreview() {
         fill={inspectedSection?.fill ?? null}
         isOpen={inspecting?.source === "section"}
         sectionId={inspecting?.source === "section" ? inspecting.id : null}
+        tokenColors={tokenColors}
         tokens={tokens}
         onOpenChange={(isOpen) => {
           if (!isOpen) {
@@ -352,6 +430,7 @@ export function SystemPreview() {
             setSectionError(null);
           }
         }}
+        onResetToDefault={resetSectionToDefault}
         onTokenChange={(tokenId) => {
           if (inspecting?.source !== "section") return;
           const current = previewSection(sections, inspecting.id)?.fill;

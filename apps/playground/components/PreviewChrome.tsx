@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { Button } from "@astryxdesign/core/Button";
 import type { ColourMode, PreviewDevice } from "@blueprint/ui";
 import { VisionControl } from "./VisionControl";
 import { PreviewDeviceBar } from "./typography/PreviewDeviceBar";
@@ -42,6 +43,7 @@ interface PreviewChromeProps {
   canvas: ReactNode;
   children?: ReactNode;
   onDeviceChange: (id: string) => void;
+  onResetToDefault?: () => void;
 }
 
 export function PreviewChrome({
@@ -51,6 +53,7 @@ export function PreviewChrome({
   canvas,
   children,
   onDeviceChange,
+  onResetToDefault,
 }: PreviewChromeProps) {
   const framed = device.kind === "phone" || device.kind === "tablet";
 
@@ -66,7 +69,17 @@ export function PreviewChrome({
           devices={devices}
           onChange={onDeviceChange}
         />
-        <VisionControl />
+        <div className="flex items-center gap-2">
+          <VisionControl />
+          {onResetToDefault ? (
+            <Button
+              label="Reset to default"
+              size="sm"
+              variant="secondary"
+              onClick={onResetToDefault}
+            />
+          ) : null}
+        </div>
       </header>
 
       <div className={framed ? styles.stage : styles.desktopStage}>
