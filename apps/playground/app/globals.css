@@ -85,3 +85,10 @@
 .astryx-codeblock.card {
   border-radius: var(--radius-container);
 }
+
+/* SideNavItem always wraps its glyph in Icon sm (1rem), even on size="lg".
+   The row is lg so 1.5rem marks fit; this is Icon lg at a 16px root. */
+.astryx-side-nav-item .astryx-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}

@@ -8,6 +8,17 @@
   font-family: var(--font-sans);
 }
 
+/*
+ * Shade generator is one viewport: inspector height is 100svh-115px.
+ * Semantics (and Accessibility) is a long table. `height: 100%` paints the
+ * background only that tall; overflowing rows sit on the AppShell behind it,
+ * which is the hard cut at screen height.
+ */
+.workspace[data-section="semantics"],
+.workspace[data-section="accessibility"] {
+  height: auto;
+}
+
 .loadingPage {
   display: grid;
   place-items: center;

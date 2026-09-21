@@ -1,0 +1,14 @@
+/* Horizontal wordmark: cropped to the B so the rail name can share its left edge. */
+.wordmark {
+  display: block;
+  flex-shrink: 0;
+  height: 2rem;
+  width: auto;
+}
+
+.letters {
+  display: block;
+  flex-shrink: 0;
+  height: 1.5rem;
+  width: auto;
+}

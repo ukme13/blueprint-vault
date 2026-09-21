@@ -55,6 +55,20 @@ export const metadata: Metadata = {
   },
   description:
     "Documentation for Blueprint design tokens, shared components, and application patterns.",
+  icons: {
+    icon: [
+      {
+        url: "/favicon-light.svg",
+        type: "image/svg+xml",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        url: "/favicon-dark.svg",
+        type: "image/svg+xml",
+        media: "(prefers-color-scheme: dark)",
+      },
+    ],
+  },
 };
 
 /**

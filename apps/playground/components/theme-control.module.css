@@ -1,4 +1,33 @@
 .expanded {
   min-width: 0;
-  padding: 0 var(--spacing-3, 12px);
+  padding-top: var(--spacing-2, 8px);
+  overflow: hidden;
+  transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.expanded[data-collapsing="true"] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.themeTrigger {
+  color: var(--color-fg-secondary) !important;
+  transition: color 150ms ease;
+}
+
+.themeTrigger:hover,
+.themeTrigger:focus-visible {
+  color: var(--color-fg-primary) !important;
+}
+
+.themeTrigger :global(.astryx-icon),
+.themeTrigger svg {
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expanded {
+    transition: none !important;
+  }
 }

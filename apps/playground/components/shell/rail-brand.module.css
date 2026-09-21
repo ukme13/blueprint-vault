@@ -1,0 +1,98 @@
+.brandContainer {
+  width: 100%;
+  min-width: 0;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.brandRow {
+  width: 100%;
+  min-width: 0;
+  width: 244px;
+  min-width: 244px;
+  height: 36px;
+}
+
+.homeLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1, 4px);
+  min-width: 0;
+  height: 36px;
+  padding-inline: var(--spacing-1-5, 6px);
+  color: var(--color-fg-primary);
+  text-decoration: none;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.monogram {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  color: var(--color-fg-primary);
+}
+
+.monogram :global(.astryx-icon),
+.monogram svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.brandLetters {
+  display: block;
+  flex-shrink: 0;
+  height: 1.5rem;
+  width: auto;
+  color: var(--color-fg-primary);
+  transition: opacity 160ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.collapseButton {
+  flex-shrink: 0;
+  color: var(--color-fg-secondary);
+  transition:
+    opacity 160ms cubic-bezier(0.22, 1, 0.36, 1) 80ms,
+    color 150ms ease;
+}
+
+.collapseButton:hover,
+.collapseButton:focus-visible {
+  color: var(--color-fg-primary);
+}
+
+.brandContainer[data-collapsing="true"] .brandLetters {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.brandContainer[data-collapsing="true"] .collapseButton {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 100ms cubic-bezier(0.22, 1, 0.36, 1) 0ms;
+}
+
+.collapsedTrigger {
+  height: 36px !important;
+  width: 36px !important;
+  color: var(--color-fg-primary);
+  margin-inline-start: 0;
+}
+
+.collapsedTrigger :global(.astryx-icon),
+.collapsedTrigger svg {
+  width: 1.5rem !important;
+  height: 1.5rem !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brandLetters,
+  .collapseButton {
+    transition: none !important;
+  }
+}
