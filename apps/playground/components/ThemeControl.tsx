@@ -55,7 +55,7 @@ export function ThemeControl({
         button={{
           className: styles.themeTrigger,
           label: "Theme",
-          icon: <Icon icon={TriggerIcon} size="lg" />,
+          icon: <Icon icon={TriggerIcon} size="md" />,
           isIconOnly: true,
           size: "lg",
           variant: "ghost",

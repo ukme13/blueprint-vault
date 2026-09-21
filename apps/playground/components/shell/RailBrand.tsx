@@ -28,7 +28,7 @@ export function RailBrand({
     return (
       <IconButton
         className={styles.collapsedTrigger}
-        icon={<Icon icon={BlueprintMark} size="lg" />}
+        icon={<Icon icon={BlueprintMark} size="md" />}
         label="Expand sidebar"
         tooltip="Expand sidebar"
         variant="ghost"
@@ -48,7 +48,7 @@ export function RailBrand({
       >
         <Link aria-label="Blueprint" className={styles.homeLink} href="/">
           <span className={styles.monogram}>
-            <Icon icon={BlueprintMark} size="lg" />
+            <Icon icon={BlueprintMark} size="md" />
           </span>
           <BlueprintLetters className={styles.brandLetters} />
         </Link>

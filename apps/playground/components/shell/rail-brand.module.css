@@ -33,22 +33,23 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.25rem;
+  height: 1.25rem;
   color: var(--color-fg-primary);
 }
 
 .monogram :global(.astryx-icon),
 .monogram svg {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 .brandLetters {
   display: block;
   flex-shrink: 0;
-  height: 1.5rem;
+  height: 1.25rem;
   width: auto;
+  aspect-ratio: 350 / 174;
   color: var(--color-fg-primary);
   transition: opacity 160ms cubic-bezier(0.22, 1, 0.36, 1);
 }
@@ -86,8 +87,8 @@
 
 .collapsedTrigger :global(.astryx-icon),
 .collapsedTrigger svg {
-  width: 1.5rem !important;
-  height: 1.5rem !important;
+  width: 1.25rem !important;
+  height: 1.25rem !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

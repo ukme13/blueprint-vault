@@ -4,7 +4,7 @@
 
 .sideNav {
   --rail-expanded-width: 260px;
-  --rail-collapsed-width: var(--spacing-12, 48px);
+  --rail-collapsed-width: calc(var(--spacing-12, 48px) + var(--spacing-1, 4px));
   --rail-duration: 240ms;
   --rail-ease: cubic-bezier(0.22, 1, 0.36, 1);
 

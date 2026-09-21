@@ -1,3 +1,12 @@
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .fieldContainer {
   width: 100%;
   min-width: 0;
@@ -6,6 +15,7 @@
   align-items: center;
   overflow: hidden;
   transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  animation: fadeIn 200ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .fieldContainer[data-collapsing="true"] {
@@ -19,6 +29,7 @@
   color: var(--color-fg-secondary);
   transition: color 150ms ease;
   margin-inline-start: 0;
+  animation: fadeIn 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .collapsedEditButton:hover,
@@ -28,8 +39,8 @@
 
 .collapsedEditButton :global(.astryx-icon),
 .collapsedEditButton svg {
-  width: 1.5rem !important;
-  height: 1.5rem !important;
+  width: 1.25rem !important;
+  height: 1.25rem !important;
 }
 
 .field {
@@ -78,7 +89,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .fieldContainer {
+  .fieldContainer,
+  .collapsedEditButton {
     transition: none !important;
+    animation: none !important;
   }
 }
