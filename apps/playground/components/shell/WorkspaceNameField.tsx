@@ -1,6 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Icon } from "@astryxdesign/core/Icon";
+import { IconButton } from "@astryxdesign/core/IconButton";
+import { Pencil } from "lucide-react";
 import {
   DEFAULT_WORKSPACE_NAME,
   emptyWorkspace,
@@ -10,23 +13,43 @@ import {
 } from "@blueprint/ui";
 import styles from "./shell-name.module.css";
 
+export interface WorkspaceNameFieldProps {
+  collapsed?: boolean;
+  isNavCollapsed?: boolean;
+  onExpand?: () => void;
+}
+
 /**
  * The workspace name, under Blueprint on the rail.
  *
- * Studios used to each carry a copy in the topbar. The name belongs to the
- * workspace, so the shell is the one place that edits it. This component
- * mounts with the rail, not with Home, so a create on Home is already in
- * storage by the time the field first reads.
+ * Expanded: editable text input for the workspace name.
+ * Collapsed: collapses to an edit icon that expands the rail and focuses the field.
  */
-export function WorkspaceNameField() {
+export function WorkspaceNameField({
+  collapsed = false,
+  isNavCollapsed = false,
+  onExpand,
+}: WorkspaceNameFieldProps = {}) {
   const workspace = useWorkspaceStore();
   const [draft, setDraft] = useState(DEFAULT_WORKSPACE_NAME);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const shouldFocusRef = useRef(false);
 
   useEffect(() => {
     if (!workspace.hasLoaded) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setDraft(workspace.project?.name ?? DEFAULT_WORKSPACE_NAME);
   }, [workspace.hasLoaded, workspace.project?.name]);
+
+  useEffect(() => {
+    if (!isNavCollapsed && shouldFocusRef.current) {
+      shouldFocusRef.current = false;
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      });
+    }
+  }, [isNavCollapsed]);
 
   if (!workspace.hasLoaded || !workspaceHasStudios(workspace.project)) {
     return null;
@@ -40,23 +63,43 @@ export function WorkspaceNameField() {
     );
   };
 
-  return (
-    <label className={styles.field}>
-      <span className={styles.visuallyHidden}>Project name</span>
-      <input
-        aria-label="Project name"
-        className={styles.name}
-        maxLength={80}
-        spellCheck={false}
-        value={draft}
-        onBlur={commit}
-        onChange={(event) => setDraft(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter") {
-            event.currentTarget.blur();
-          }
+  if (isNavCollapsed) {
+    return (
+      <IconButton
+        className={styles.collapsedEditButton}
+        icon={<Icon icon={Pencil} size="lg" />}
+        label="Edit project name"
+        tooltip="Edit project name"
+        variant="ghost"
+        size="lg"
+        onClick={() => {
+          shouldFocusRef.current = true;
+          onExpand?.();
         }}
       />
-    </label>
+    );
+  }
+
+  return (
+    <div className={styles.fieldContainer} data-collapsing={collapsed}>
+      <label className={styles.field}>
+        <span className={styles.visuallyHidden}>Project name</span>
+        <input
+          ref={inputRef}
+          aria-label="Project name"
+          className={styles.name}
+          maxLength={80}
+          spellCheck={false}
+          value={draft}
+          onBlur={commit}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.currentTarget.blur();
+            }
+          }}
+        />
+      </label>
+    </div>
   );
 }

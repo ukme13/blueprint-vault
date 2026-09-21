@@ -605,7 +605,7 @@ function PaletteStudioContent() {
   };
 
   return (
-    <div className={styles.workspace}>
+    <div className={styles.workspace} data-section={activeSection}>
       <header className={styles.topbar}>
         <nav aria-label="Playground sections" className={styles.navigation}>
           <TabList

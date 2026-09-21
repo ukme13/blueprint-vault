@@ -31,54 +31,67 @@ const ICONS: Record<ThemeMode, typeof Sun> = {
  * trapped in the icon column. `system` still reaches the preview: a semantic
  * token has no value under that name, and the canvas draws with
  * `resolveThemeMode`'s answer rather than with the choice itself.
+ *
+ * Glyphs are Icon md (1.25rem / 20px) on the expanded rail so they sit
+ * inside the segmented control. Collapsed, they match the studio marks
+ * at Icon lg. SideNavItem hardcodes sm on its own icons; this control
+ * does not, so the size is set here.
  */
-export function ThemeControl({ collapsed }: { collapsed: boolean }) {
+export function ThemeControl({
+  collapsed,
+  isNavCollapsed = collapsed,
+}: {
+  collapsed: boolean;
+  isNavCollapsed?: boolean;
+}) {
   const { mode, resolved, setMode } = useThemeMode();
-  const TriggerIcon = resolved === "dark" ? Moon : Sun;
+  const TriggerIcon =
+    mode === "system" ? Monitor : resolved === "dark" ? Moon : Sun;
 
-  if (!collapsed) {
+  if (isNavCollapsed) {
     return (
-      <div className={styles.expanded}>
-        <SegmentedControl
-          label="Theme"
-          layout="fill"
-          size="sm"
-          value={mode}
-          onChange={(next) => setMode(next as ThemeMode)}
-        >
-          {THEME_MODES.map((each) => (
-            <SegmentedControlItem
-              key={each}
-              icon={<Icon icon={ICONS[each]} size="sm" />}
-              isLabelHidden
-              label={LABELS[each]}
-              value={each}
-            />
-          ))}
-        </SegmentedControl>
-      </div>
+      <DropdownMenu
+        alignment="start"
+        button={{
+          className: styles.themeTrigger,
+          label: "Theme",
+          icon: <Icon icon={TriggerIcon} size="lg" />,
+          isIconOnly: true,
+          size: "lg",
+          variant: "ghost",
+        }}
+        hasChevron={false}
+        items={THEME_MODES.map((each) => ({
+          label: LABELS[each],
+          icon: <Icon icon={ICONS[each]} size="lg" />,
+          onClick: () => setMode(each),
+          endContent: mode === each ? <Icon icon="check" /> : undefined,
+        }))}
+        menuWidth={180}
+        placement="end"
+      />
     );
   }
 
   return (
-    <DropdownMenu
-      alignment="start"
-      button={{
-        label: "Theme",
-        icon: <Icon icon={TriggerIcon} size="sm" />,
-        isIconOnly: true,
-        size: "sm",
-        variant: "ghost",
-      }}
-      hasChevron={false}
-      items={THEME_MODES.map((each) => ({
-        label: LABELS[each],
-        icon: <Icon icon={ICONS[each]} size="sm" />,
-        onClick: () => setMode(each),
-        endContent: mode === each ? <Icon icon="check" /> : undefined,
-      }))}
-      menuWidth={180}
-      placement="end"
-    />
+    <div className={styles.expanded} data-collapsing={collapsed}>
+      <SegmentedControl
+        label="Theme"
+        layout="fill"
+        size="md"
+        value={mode}
+        onChange={(next) => setMode(next as ThemeMode)}
+      >
+        {THEME_MODES.map((each) => (
+          <SegmentedControlItem
+            key={each}
+            icon={<Icon icon={ICONS[each]} size="md" />}
+            isLabelHidden
+            label={LABELS[each]}
+            value={each}
+          />
+        ))}
+      </SegmentedControl>
+    </div>
   );
 }

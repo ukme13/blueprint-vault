@@ -56,6 +56,20 @@ export const metadata: Metadata = {
   },
   description:
     "Experiment with Blueprint OKLCH palettes and preview design-system components.",
+  icons: {
+    icon: [
+      {
+        url: "/favicon-light.svg",
+        type: "image/svg+xml",
+        media: "(prefers-color-scheme: light)",
+      },
+      {
+        url: "/favicon-dark.svg",
+        type: "image/svg+xml",
+        media: "(prefers-color-scheme: dark)",
+      },
+    ],
+  },
 };
 
 /**

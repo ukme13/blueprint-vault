@@ -1,0 +1,71 @@
+:global(nav).homeNav {
+  min-height: 72px;
+}
+
+.sideNav {
+  --rail-expanded-width: 260px;
+  --rail-collapsed-width: var(--spacing-12, 48px);
+  --rail-duration: 240ms;
+  --rail-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  width: var(--rail-expanded-width);
+  transition: width var(--rail-duration) var(--rail-ease);
+  will-change: width;
+  overflow: hidden;
+}
+
+.sideNav[data-collapsed="true"] {
+  width: var(--rail-collapsed-width);
+}
+
+.sideNav[data-hydrated="false"] {
+  transition: none !important;
+}
+
+.sideNav > div:first-child > div:last-child {
+  width: 100%;
+  align-self: stretch;
+}
+
+.topVStack {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* SideNav's stickyTop has 8px inline padding; pull the divider to the nav edges */
+.dividerWrapper {
+  width: calc(100% + (2 * var(--spacing-2, 8px)));
+  margin-inline: calc(-1 * var(--spacing-2, 8px));
+  min-width: 0;
+  align-self: stretch;
+}
+
+.railDivider {
+  width: 100% !important;
+  margin-inline: 0 !important;
+}
+
+/* SideNav items: labels fade and clip as width changes while keeping icons pinned */
+.sideNav :global(.astryx-side-nav-item) {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.sideNav :global(.astryx-side-nav-item) span {
+  transition: opacity 180ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity;
+}
+
+.sideNav[data-collapsed="true"] :global(.astryx-side-nav-item) span {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sideNav,
+  .sideNav *,
+  .sideNav :global(.astryx-side-nav-item) span {
+    transition: none !important;
+  }
+}

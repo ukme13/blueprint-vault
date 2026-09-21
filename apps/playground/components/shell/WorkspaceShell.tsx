@@ -10,17 +10,11 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AppShell } from "@astryxdesign/core/AppShell";
-import { Icon } from "@astryxdesign/core/Icon";
+import { Divider } from "@astryxdesign/core/Divider";
 import { VStack } from "@astryxdesign/core/Layout";
 import { LinkProvider } from "@astryxdesign/core/Link";
-import { NavIcon } from "@astryxdesign/core/NavIcon";
 import { TopNav, TopNavHeading } from "@astryxdesign/core/TopNav";
-import {
-  SideNav,
-  SideNavCollapseButton,
-  SideNavHeading,
-  SideNavItem,
-} from "@astryxdesign/core/SideNav";
+import { SideNav, SideNavItem } from "@astryxdesign/core/SideNav";
 import {
   browserWorkspaceStorage,
   defaultRadiusScale,
@@ -35,8 +29,9 @@ import {
   type ColorTrack,
 } from "@blueprint/ui";
 import { ThemeControl } from "../ThemeControl";
+import { RailBrand } from "./RailBrand";
 import {
-  BlueprintMark,
+  BlueprintWordmark,
   ColourStudioIcon,
   ElevationStudioIcon,
   OverviewStudioIcon,
@@ -48,6 +43,7 @@ import {
 } from "./shell-marks";
 import { WorkspaceSettingsDialog } from "./WorkspaceSettings";
 import { WorkspaceNameField } from "./WorkspaceNameField";
+import styles from "./workspace-shell.module.css";
 
 const RAIL_COLLAPSED_KEY = "blueprint.shell.rail-collapsed";
 const PREVIEW_RETURN_KEY = "blueprint.shell.preview-return";
@@ -80,8 +76,10 @@ function shouldIgnorePreviewShortcut(target: EventTarget | null): boolean {
 /**
  * One app frame for Home and the studios.
  *
- * Home has a TopNav (mark + Blueprint) and no tool rail. Studios get
- * Blueprint back to Home, the name under that heading, Colour /
+ * Home has a TopNav (horizontal wordmark, 72px bar) and no tool rail.
+ * Studios get the wordmark (Home) with collapse on the heading, the B
+ * that expands on hover when the rail is closed, then the name under
+ * that heading, Colour /
  * Typography / Spacing / Radius / Elevation / Preview, theme on the
  * rail, and Settings as a rail row (this workspace's preview frames).
  * Space also swaps the current studio with `/preview`.
@@ -92,6 +90,8 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   const workspace = useWorkspaceStore();
   const isHome = pathname === "/";
   const [collapsed, setCollapsed] = useState(false);
+  const [isNavCollapsed, setIsNavCollapsed] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   if (isHome && isSettingsOpen) {
     setIsSettingsOpen(false);
@@ -160,14 +160,45 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     /* Reading localStorage must happen in an effect: a useState initializer
        would run during SSR, where window does not exist, and desync
        hydration. */
+    const isStored = window.localStorage.getItem(RAIL_COLLAPSED_KEY) === "1";
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCollapsed(window.localStorage.getItem(RAIL_COLLAPSED_KEY) === "1");
+    setCollapsed(isStored);
+
+    setIsNavCollapsed(isStored);
+
+    setIsHydrated(true);
   }, []);
 
   const onCollapsedChange = useCallback((next: boolean) => {
     setCollapsed(next);
     window.localStorage.setItem(RAIL_COLLAPSED_KEY, next ? "1" : "0");
   }, []);
+
+  useEffect(() => {
+    if (!isHydrated) return;
+
+    const prefersReduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (prefersReduced) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setIsNavCollapsed(collapsed);
+      return;
+    }
+
+    if (collapsed) {
+      // Delay unmounting expanded chrome until width transition completes (240ms)
+      const timer = window.setTimeout(() => {
+        setIsNavCollapsed(true);
+      }, 240);
+      return () => window.clearTimeout(timer);
+    } else {
+      // Mount expanded chrome immediately so it fades in with the width
+
+      setIsNavCollapsed(false);
+    }
+  }, [collapsed, isHydrated]);
 
   useEffect(() => {
     if (isHome) return;
@@ -214,14 +245,13 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         topNav={
           isHome ? (
             <TopNav
+              className={styles.homeNav}
               label="Blueprint"
               heading={
                 <TopNavHeading
-                  heading="Blueprint"
                   headingHref="/"
-                  logo={
-                    <NavIcon icon={<Icon icon={BlueprintMark} size="sm" />} />
-                  }
+                  logo={<BlueprintWordmark />}
+                  logoLabel="Blueprint"
                 />
               }
             />
@@ -231,43 +261,59 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           isHome ? undefined : (
             <SideNav
               aria-label="Blueprint workspaces"
+              className={styles.sideNav}
+              data-collapsed={collapsed}
+              data-hydrated={isHydrated}
               collapsible={{
                 hasButton: false,
-                isCollapsed: collapsed,
+                isCollapsed: isNavCollapsed,
                 onCollapsedChange,
               }}
               header={
-                <SideNavHeading
-                  heading="Blueprint"
-                  headingHref="/"
-                  icon={<Icon icon={BlueprintMark} size="sm" />}
+                <RailBrand
+                  collapsed={collapsed}
+                  isNavCollapsed={isNavCollapsed}
+                  onCollapsedChange={onCollapsedChange}
                 />
               }
               topContent={
-                <VStack gap={2}>
-                  {!collapsed ? <WorkspaceNameField /> : null}
-                  <ThemeControl collapsed={collapsed} />
+                <VStack gap={2} className={styles.topVStack}>
+                  <WorkspaceNameField
+                    collapsed={collapsed}
+                    isNavCollapsed={isNavCollapsed}
+                    onExpand={() => onCollapsedChange(false)}
+                  />
+                  <div className={styles.dividerWrapper}>
+                    <Divider className={styles.railDivider} />
+                  </div>
+                  <ThemeControl
+                    collapsed={collapsed}
+                    isNavCollapsed={isNavCollapsed}
+                  />
                 </VStack>
               }
-              footerIcons={<SideNavCollapseButton />}
             >
-              <SideNavItem
-                icon={SettingsMark}
-                label="Settings"
-                onClick={(event) => {
-                  event.preventDefault();
-                  setIsSettingsOpen(true);
-                }}
-              />
-              {STUDIOS.map((studio) => (
+              <VStack gap={0.5}>
                 <SideNavItem
-                  key={studio.href}
-                  href={studio.href}
-                  icon={studio.icon}
-                  isSelected={isCurrentStudio(pathname, studio.href)}
-                  label={studio.label}
+                  icon={SettingsMark}
+                  label="Settings"
+                  size="lg"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setIsSettingsOpen(true);
+                  }}
                 />
-              ))}
+                {STUDIOS.map((studio) => (
+                  <SideNavItem
+                    key={studio.href}
+                    href={studio.href}
+                    icon={studio.icon}
+                    isSelected={isCurrentStudio(pathname, studio.href)}
+                    label={studio.label}
+                    size="lg"
+                  />
+                ))}
+              </VStack>
             </SideNav>
           )
         }
