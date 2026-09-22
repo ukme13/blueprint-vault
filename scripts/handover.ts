@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import {
-  cpSync,
+  copyFileSync,
   existsSync,
   mkdirSync,
   readdirSync,
@@ -136,7 +136,29 @@ function main(): void {
   const built = join(DOCS, "out");
   if (!existsSync(built)) throw new Error("The docs build produced no `out`.");
   const pages = join(out, blueprint.HANDOVER_PAGES_DIR);
-  cpSync(built, pages, { recursive: true });
+
+  /* Copied route by route rather than as a directory, because the build holds
+     more than a client may have. `output: "export"` writes every static route
+     in `app/` and cannot be told to skip one, so the studio guide is built
+     here whether or not anybody is meant to receive it — and a directory copy
+     would hand it over with the rest.
+
+     `isHandoverPagePath` is the same rule the guard below checks against, so
+     what is copied and what is allowed cannot disagree. See
+     docs/roadmap/studio-guide.md. */
+  const exported = filesUnder(built);
+  const carried = exported.filter((name) => blueprint.isHandoverPagePath(name));
+  const held = exported.length - carried.length;
+  for (const name of carried) {
+    const destination = join(pages, ...name.split("/"));
+    mkdirSync(dirname(destination), { recursive: true });
+    copyFileSync(join(built, ...name.split("/")), destination);
+  }
+  console.log(
+    held === 0
+      ? `Carried ${carried.length} page files.`
+      : `Carried ${carried.length} page files, held back ${held} from routes a client does not receive.`,
+  );
   /* Copied, then removed. A static export left in the app is build output that
      the repository's own scanners then read as source — the token check found
      Astryx's `--x-` internals in it and reported them as undefined variables,
