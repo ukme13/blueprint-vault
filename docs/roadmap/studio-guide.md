@@ -80,9 +80,16 @@ remembers to strip it. After this, a new route **fails the build** unless
 somebody declares it shippable — and the declaration is one line, in the same
 file the guard lives in, with the reason beside it.
 
-The same list feeds the static build. A route that may not ship is not
-exported, so the pruning step the first sketch of this called for does not
-exist: nothing is removed, because nothing was built.
+The same list feeds the copy. `output: "export"` exports every static route
+in `app/` and has no way to skip one, so `/studio` **is** built — the
+selection happens when `scripts/handover.ts` moves that build into the
+archive. It stops copying `out/` wholesale and copies the allowlisted routes
+instead, which is why the guard earns its place: the copy decides, and the
+guard checks the decision against the same list rather than trusting it.
+
+That also means `/studio` stays reachable on the deployed documentation site.
+It is excluded from `handover.zip`, not from the build — which is what
+`output: "export"` forces anyway, since it cannot skip a route.
 
 `BLUEPRINT_STATIC` stays the one flag. It already means "this is the build that
 becomes a handover", which is exactly the question being asked. A second
@@ -121,27 +128,22 @@ There is no v0.8. Every package here is `0.1.0` or `0.0.0` and private, and
 `apps/playground/package.json`'s version — `0.1.0` — so a changelog headed
 v0.8 contradicts the number the client is holding.
 
-Two honest options, and this plan does not pick one:
-
-- **Adopt a product version.** Move `apps/playground`'s version to something
-  meaningful, single-source it, and have both the archive and the changelog
-  read it.
-- **Badge by what already exists.** Date plus workspace schema version — "22
-  September 2026 · workspace v8" — which is a fact the repo can check rather
-  than a number somebody maintains.
-
-The second is cheaper and cannot go stale. The first is what a product does.
-Decide before the changelog page is written, because the badge shape is the
-page.
+**Decided: date plus workspace schema version** — "22 September 2026 · Schema
+v8". Both halves are facts the repository can check, so an entry cannot claim a
+version nobody minted and the badge cannot go stale while somebody forgets to
+bump it. Adopting a real product version stays available later; it is what a
+product does, and this is not one yet.
 
 ## Stages
 
-1. **The allowlist and the guard, no pages.** `unexpectedHandoverPaths` takes
-   the shippable routes and reports any page outside them. The static build
-   reads the same list. Tests: a built archive containing a studio route is
-   reported by name; the current six foundation pages and `/docs/button` are
-   not. Nothing is written under `/studio` yet, so this stage is provably about
-   the mechanism rather than about the content.
+1. **The allowlist, the copy and the guard, no pages.** One list in
+   `packages/ui`. `scripts/handover.ts` copies the routes on it out of
+   `apps/docs/out` instead of copying the directory, and
+   `unexpectedHandoverPaths` reports any page in the archive that is not on
+   it. Tests: an archive carrying a studio route is reported by name; the six
+   foundation pages and `/docs/button` are not. Nothing is written under
+   `/studio` yet, so this stage is provably about the mechanism rather than
+   about the content.
 
 2. **The nav, from that list.** `FoundationsFrame` gains a sidebar built from
    the routes it is handed. Test: given a client list it renders no Studio
@@ -158,9 +160,10 @@ page.
 5. **`/studio/whats-new`.** After the version decision above, not before.
 
 6. **The link from the studio.** A button on the workspace home in
-   `apps/playground`, pointing at a configured base URL rather than a literal
-   one — the two apps are separate deployments and 3001 is a local-development
-   fact. Settle the variable's name and its default when this stage starts.
+   `apps/playground`, reading `NEXT_PUBLIC_DOCS_URL` and falling back to
+   `http://localhost:3001`. The two apps are separate deployments, so a
+   literal URL would be wrong in one environment or the other; the fallback is
+   a local-development fact rather than a default anybody ships.
 
 ## Definition of done
 
@@ -196,10 +199,16 @@ page.
 
 ## Open
 
-- **The version scheme**, per the section above. Blocks stage 5 only.
-- **What the studio link's base URL is called and defaults to.** Blocks stage
-  6 only.
-- **Whether `/studio` should be reachable in the client build at all.** It is
-  excluded from the archive either way. Whether the deployed documentation site
-  carries it — same origin, one deployment, simply not in the bundle a client
-  is handed — is a hosting question nobody has needed to answer yet.
+Settled on approval, and kept here because the reasons outlive the answers:
+
+- **The version scheme** is date plus schema version, per the section above.
+- **The studio link** reads `NEXT_PUBLIC_DOCS_URL`, falling back to
+  `http://localhost:3001`.
+- **`/studio` stays reachable on the deployed documentation site**, and is
+  absent only from `handover.zip`.
+
+Still open:
+
+- **Nothing blocking.** The next question this plan expects to meet is whether
+  a guide can carry a screenshot without either the scanner or the staleness
+  argument winning, and that is a stage 4 problem.
