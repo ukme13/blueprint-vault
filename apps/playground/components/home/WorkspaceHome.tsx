@@ -6,10 +6,12 @@ import { AlertDialog } from "@astryxdesign/core/AlertDialog";
 import {
   Button,
   DEFAULT_WORKSPACE_NAME,
+  DEFAULT_WORKSPACE_PRESET_ID,
   LIBRARY_CAPACITY,
+  findWorkspacePreset,
   formatBlueprintWorkspace,
+  instantiateWorkspacePreset,
   parseBlueprintWorkspace,
-  seedWorkspaceProject,
   useWorkspaceStore,
   withSharedName,
   type WorkspaceProject,
@@ -37,6 +39,7 @@ export function WorkspaceHome() {
   const [name, setName] = useState(DEFAULT_WORKSPACE_NAME);
   const [error, setError] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [presetId, setPresetId] = useState(DEFAULT_WORKSPACE_PRESET_ID);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [renamingProject, setRenamingProject] = useState<{
     id: string;
@@ -46,17 +49,19 @@ export function WorkspaceHome() {
   const [renameError, setRenameError] = useState("");
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const addAndOpen = (project: ReturnType<typeof withSharedName>) => {
+  const addAndOpen = (project: ReturnType<typeof withSharedName>): boolean => {
     if (!workspace.add(project)) {
       setError("This browser holds 8 projects. Delete one to add another.");
-      return;
+      return false;
     }
     router.push("/colour");
+    return true;
   };
 
   const openCreate = () => {
     setError("");
     setName(DEFAULT_WORKSPACE_NAME);
+    setPresetId(DEFAULT_WORKSPACE_PRESET_ID);
     setIsCreateOpen(true);
   };
 
@@ -67,13 +72,23 @@ export function WorkspaceHome() {
       return;
     }
     setError("");
-    setIsCreateOpen(false);
-    addAndOpen(
+    /* An id with no preset behind it falls back rather than failing: the only
+       way to get one is a stale render, and losing the choice beats losing
+       the click. */
+    const preset =
+      findWorkspacePreset(presetId) ??
+      findWorkspacePreset(DEFAULT_WORKSPACE_PRESET_ID)!;
+
+    /* Close only once the add is through. Home shows this error behind the
+       dialog, so closing first would explain a refused create somewhere the
+       person is not looking. */
+    const added = addAndOpen(
       withSharedName({
-        ...seedWorkspaceProject(name.trim()),
+        ...instantiateWorkspacePreset(preset, name.trim()),
         updatedAt: Date.now(),
       }),
     );
+    if (added) setIsCreateOpen(false);
   };
 
   const openRename = (id: string, currentName: string) => {
@@ -245,7 +260,9 @@ export function WorkspaceHome() {
         error={error}
         isOpen={isCreateOpen}
         name={name}
+        presetId={presetId}
         onNameChange={setName}
+        onPresetChange={setPresetId}
         onOpenChange={(open) => {
           setIsCreateOpen(open);
           if (!open) setError("");

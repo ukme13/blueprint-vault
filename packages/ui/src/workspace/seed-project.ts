@@ -94,8 +94,16 @@ export function seedPaletteProject(
   };
 }
 
+/** The four numbers and one string that decide a starting type system. */
+export type SeedTypographyInput = {
+  fontFamily: string;
+  baseFontSizePx: number;
+  ratio: number;
+  stepCount: number;
+};
+
 /** What Home create offers for type before anybody changes it. */
-const SEED_TYPOGRAPHY = {
+export const SEED_TYPOGRAPHY: SeedTypographyInput = {
   fontFamily: "Geist Sans, ui-sans-serif, system-ui",
   baseFontSizePx: 16,
   /* Major Third. The preset the ratio selector opens on. */
@@ -103,14 +111,23 @@ const SEED_TYPOGRAPHY = {
   stepCount: 9,
 };
 
-/** The typography slice a new project starts with. */
-export function seedTypographyProject(name: string): TypographyProjectData {
+/**
+ * The typography slice a new project starts with.
+ *
+ * `overrides` carries only what a preset changes; anything it leaves out falls
+ * back to `SEED_TYPOGRAPHY`, so a preset never restates the default.
+ */
+export function seedTypographyProject(
+  name: string,
+  overrides: Partial<SeedTypographyInput> = {},
+): TypographyProjectData {
+  const input = { ...SEED_TYPOGRAPHY, ...overrides };
   const system = defaultSystem(
     name,
-    splitFontFamily(SEED_TYPOGRAPHY.fontFamily),
-    SEED_TYPOGRAPHY.baseFontSizePx,
-    SEED_TYPOGRAPHY.ratio,
-    SEED_TYPOGRAPHY.stepCount,
+    splitFontFamily(input.fontFamily),
+    input.baseFontSizePx,
+    input.ratio,
+    input.stepCount,
   );
   return {
     system,
@@ -132,8 +149,28 @@ export function seedTypographyProject(name: string): TypographyProjectData {
  * generated export be committed and compared rather than regenerated and
  * trusted.
  */
-export function seedWorkspaceProject(name: string): WorkspaceProject {
-  const palette = seedPaletteProject();
+/**
+ * What a preset is allowed to change about a starting system.
+ *
+ * Colour and type only. Spacing, radius and elevation have no-argument
+ * builders, and parameterising them to serve two presets is a bigger change
+ * than this earns; a preset that wanted denser spacing needs that work first.
+ */
+export type SeedWorkspaceInput = {
+  primarySeedHex?: string;
+  secondarySeedHex?: string;
+  typography?: Partial<SeedTypographyInput>;
+};
+
+export function seedWorkspaceProject(
+  name: string,
+  input: SeedWorkspaceInput = {},
+): WorkspaceProject {
+  const palette = seedPaletteProject(
+    input.primarySeedHex,
+    input.secondarySeedHex,
+  );
+  const typography = { ...SEED_TYPOGRAPHY, ...input.typography };
 
   return {
     name,
@@ -144,9 +181,9 @@ export function seedWorkspaceProject(name: string): WorkspaceProject {
     spacing: defaultSpacingScale(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
-    previewDevices: defaultPreviewDevices(SEED_TYPOGRAPHY.ratio),
+    previewDevices: defaultPreviewDevices(typography.ratio),
     layout: defaultLayoutTokens(),
-    typography: seedTypographyProject(name),
+    typography: seedTypographyProject(name, input.typography),
   };
 }
 
