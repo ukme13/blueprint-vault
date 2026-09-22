@@ -1,6 +1,6 @@
 {
   "kind": "blueprint-workspace",
-  "version": 5,
+  "version": 8,
   "project": {
     "name": "Blueprint reference",
     "palette": {
@@ -8,37 +8,65 @@
         {
           "id": "primary",
           "name": "primary",
-          "seedHex": "#7646ab"
+          "seedHex": "#7646ab",
+          "adjustments": {
+            "anchors": {},
+            "manualOverrides": {}
+          }
         },
         {
           "id": "secondary",
           "name": "secondary",
-          "seedHex": "#0f9d8f"
+          "seedHex": "#0f9d8f",
+          "adjustments": {
+            "anchors": {},
+            "manualOverrides": {}
+          }
         },
         {
           "id": "neutral",
           "name": "neutral",
-          "seedHex": "#737373"
+          "seedHex": "#737373",
+          "adjustments": {
+            "anchors": {},
+            "manualOverrides": {}
+          }
         },
         {
           "id": "success",
           "name": "success",
-          "seedHex": "#2f7d32"
+          "seedHex": "#2f7d32",
+          "adjustments": {
+            "anchors": {},
+            "manualOverrides": {}
+          }
         },
         {
           "id": "warning",
           "name": "warning",
-          "seedHex": "#b87503"
+          "seedHex": "#b87503",
+          "adjustments": {
+            "anchors": {},
+            "manualOverrides": {}
+          }
         },
         {
           "id": "error",
           "name": "error",
-          "seedHex": "#b02b1b"
+          "seedHex": "#b02b1b",
+          "adjustments": {
+            "anchors": {},
+            "manualOverrides": {}
+          }
         },
         {
           "id": "info",
           "name": "info",
-          "seedHex": "#2878b8"
+          "seedHex": "#2878b8",
+          "adjustments": {
+            "anchors": {},
+            "manualOverrides": {}
+          }
         }
       ],
       "lightnessPattern": "custom",
@@ -63,6 +91,862 @@
         15,
         10,
         5
+      ]
+    },
+    "typography": {
+      "system": {
+        "id": "type-system",
+        "name": "Blueprint reference",
+        "groups": [
+          {
+            "id": "display",
+            "label": "Display",
+            "indexing": "number",
+            "autoLineHeightRatio": 1.1
+          },
+          {
+            "id": "h",
+            "label": "H",
+            "indexing": "number",
+            "autoLineHeightRatio": 1.2
+          },
+          {
+            "id": "body",
+            "label": "Body",
+            "indexing": "number",
+            "autoLineHeightRatio": 1.5
+          },
+          {
+            "id": "label",
+            "label": "Label",
+            "indexing": "number",
+            "autoLineHeightRatio": 1.3
+          },
+          {
+            "id": "caption",
+            "label": "Caption",
+            "indexing": "number",
+            "autoLineHeightRatio": 1.4
+          }
+        ],
+        "baseFontSizePx": 16,
+        "ratio": 1.25,
+        "stepCount": 9,
+        "fonts": [
+          {
+            "id": "display",
+            "name": "Display",
+            "families": [
+              "Space Grotesk",
+              "Kanit",
+              "sans-serif"
+            ],
+            "sources": {
+              "primary": "google"
+            }
+          },
+          {
+            "id": "main",
+            "name": "Main",
+            "families": [
+              "Work Sans",
+              "Sarabun",
+              "sans-serif"
+            ],
+            "sources": {
+              "primary": "google"
+            }
+          }
+        ],
+        "roles": [
+          {
+            "id": "display",
+            "name": "display",
+            "groupId": "display",
+            "fontId": "display",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 6,
+            "sameAsRoleId": null,
+            "lineHeight": {
+              "mode": "auto"
+            },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "h1",
+            "name": "h1",
+            "groupId": "h",
+            "fontId": "main",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 6,
+            "sameAsRoleId": null,
+            "lineHeight": {
+              "mode": "auto"
+            },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "h2",
+            "name": "h2",
+            "groupId": "h",
+            "fontId": "main",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 5,
+            "sameAsRoleId": null,
+            "lineHeight": {
+              "mode": "auto"
+            },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "h3",
+            "name": "h3",
+            "groupId": "h",
+            "fontId": "main",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 4,
+            "sameAsRoleId": null,
+            "lineHeight": {
+              "mode": "auto"
+            },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "h4",
+            "name": "h4",
+            "groupId": "h",
+            "fontId": "main",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 3,
+            "sameAsRoleId": null,
+            "lineHeight": {
+              "mode": "auto"
+            },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "h5",
+            "name": "h5",
+            "groupId": "h",
+            "fontId": "main",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 2,
+            "sameAsRoleId": null,
+            "lineHeight": {
+              "mode": "auto"
+            },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "h6",
+            "name": "h6",
+            "groupId": "h",
+            "fontId": "main",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 1,
+            "sameAsRoleId": null,
+            "lineHeight": {
+              "mode": "auto"
+            },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "body",
+            "name": "body",
+            "groupId": "body",
+            "fontId": "main",
+            "fontWeight": 400,
+            "textTransform": "none",
+            "stepOffset": 0,
+            "sameAsRoleId": null,
+            "lineHeight": {
+              "mode": "auto"
+            },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "label",
+            "name": "label",
+            "groupId": "label",
+            "fontId": "main",
+            "fontWeight": 500,
+            "textTransform": "none",
+            "stepOffset": -1,
+            "sameAsRoleId": null,
+            "lineHeight": {
+              "mode": "auto"
+            },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "caption",
+            "name": "caption",
+            "groupId": "caption",
+            "fontId": "main",
+            "fontWeight": 400,
+            "textTransform": "none",
+            "stepOffset": -2,
+            "sameAsRoleId": null,
+            "lineHeight": {
+              "mode": "auto"
+            },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          }
+        ]
+      },
+      "unit": "rem",
+      "specimenText": "How vexingly quick daft zebras jump",
+      "template": "specimen",
+      "remRootPx": 16,
+      "previewDocument": [
+        {
+          "id": "preview-kicker",
+          "roleId": "label",
+          "text": "Design systems"
+        },
+        {
+          "id": "preview-title",
+          "roleId": "h1",
+          "text": "A type scale is a set of decisions, not a set of sizes"
+        },
+        {
+          "id": "preview-standfirst",
+          "roleId": "h2",
+          "text": "Choosing a ratio is the easy part. The work is deciding what each size is for, and holding that line as a product grows."
+        },
+        {
+          "id": "preview-byline",
+          "roleId": "caption",
+          "text": "Blueprint team"
+        },
+        {
+          "id": "preview-heading-one",
+          "roleId": "h3",
+          "text": "Start from the reading size"
+        },
+        {
+          "id": "preview-body-one",
+          "roleId": "body",
+          "text": "Body text is the size most people spend the most time with, so it should be chosen first and everything else derived from it. Picking a display size first tends to produce scales that look impressive in a specimen and read badly in a paragraph."
+        },
+        {
+          "id": "preview-quote",
+          "roleId": "h2",
+          "text": "If two sizes are close enough that nobody can tell them apart, they are not two sizes."
+        },
+        {
+          "id": "preview-heading-two",
+          "roleId": "h3",
+          "text": "Give every step a job"
+        },
+        {
+          "id": "preview-body-two",
+          "roleId": "body",
+          "text": "A step that has no purpose will be used for something eventually, and usually for the wrong thing. Fewer, well-named sizes are easier to hold to than a long ramp of near-identical values."
+        },
+        {
+          "id": "preview-caption",
+          "roleId": "caption",
+          "text": "Figure 1 — the same paragraph set at three neighbouring steps"
+        }
+      ],
+      "previewShell": [
+        {
+          "id": "shell-brand",
+          "roleId": "label",
+          "text": "Blueprint"
+        },
+        {
+          "id": "shell-nav-1",
+          "roleId": "caption",
+          "text": "Home"
+        },
+        {
+          "id": "shell-nav-2",
+          "roleId": "caption",
+          "text": "Features"
+        },
+        {
+          "id": "shell-nav-3",
+          "roleId": "caption",
+          "text": "Pricing"
+        },
+        {
+          "id": "shell-nav-4",
+          "roleId": "caption",
+          "text": "About us"
+        },
+        {
+          "id": "shell-nav-5",
+          "roleId": "caption",
+          "text": "Contact"
+        },
+        {
+          "id": "shell-action",
+          "roleId": "label",
+          "text": "Sign up"
+        },
+        {
+          "id": "shell-login",
+          "roleId": "caption",
+          "text": "Login"
+        },
+        {
+          "id": "shell-footer",
+          "roleId": "caption",
+          "text": "A studio for palettes, type and layout — then a page that proves them."
+        },
+        {
+          "id": "shell-foot-h-product",
+          "roleId": "label",
+          "text": "Product"
+        },
+        {
+          "id": "shell-foot-h-company",
+          "roleId": "label",
+          "text": "Company"
+        },
+        {
+          "id": "shell-foot-h-resources",
+          "roleId": "label",
+          "text": "Resources"
+        },
+        {
+          "id": "shell-foot-h-legal",
+          "roleId": "label",
+          "text": "Legal"
+        },
+        {
+          "id": "shell-foot-product-features",
+          "roleId": "caption",
+          "text": "Features"
+        },
+        {
+          "id": "shell-foot-product-pricing",
+          "roleId": "caption",
+          "text": "Pricing"
+        },
+        {
+          "id": "shell-foot-product-integrations",
+          "roleId": "caption",
+          "text": "Integrations"
+        },
+        {
+          "id": "shell-foot-product-changelog",
+          "roleId": "caption",
+          "text": "Changelog"
+        },
+        {
+          "id": "shell-foot-company-about",
+          "roleId": "caption",
+          "text": "About us"
+        },
+        {
+          "id": "shell-foot-company-careers",
+          "roleId": "caption",
+          "text": "Careers"
+        },
+        {
+          "id": "shell-foot-company-press",
+          "roleId": "caption",
+          "text": "Press"
+        },
+        {
+          "id": "shell-foot-company-contact",
+          "roleId": "caption",
+          "text": "Contact"
+        },
+        {
+          "id": "shell-foot-resources-docs",
+          "roleId": "caption",
+          "text": "Documentation"
+        },
+        {
+          "id": "shell-foot-resources-guides",
+          "roleId": "caption",
+          "text": "Guides"
+        },
+        {
+          "id": "shell-foot-resources-support",
+          "roleId": "caption",
+          "text": "Support"
+        },
+        {
+          "id": "shell-foot-resources-status",
+          "roleId": "caption",
+          "text": "Status"
+        },
+        {
+          "id": "shell-foot-legal-privacy",
+          "roleId": "caption",
+          "text": "Privacy"
+        },
+        {
+          "id": "shell-foot-legal-terms",
+          "roleId": "caption",
+          "text": "Terms"
+        },
+        {
+          "id": "shell-foot-legal-cookies",
+          "roleId": "caption",
+          "text": "Cookies"
+        },
+        {
+          "id": "shell-foot-legal-licences",
+          "roleId": "caption",
+          "text": "Licences"
+        },
+        {
+          "id": "shell-foot-copy",
+          "roleId": "caption",
+          "text": "© 2026 Blueprint. Placeholder content for typography preview."
+        },
+        {
+          "id": "shell-foot-credit",
+          "roleId": "caption",
+          "text": "Made for type testing"
+        }
+      ],
+      "previewLanding": [
+        {
+          "id": "landing-hero-eyebrow",
+          "roleId": "label",
+          "text": "Design system studio"
+        },
+        {
+          "id": "landing-hero-title",
+          "roleId": "h2",
+          "text": "Finish the piece in one place"
+        },
+        {
+          "id": "landing-hero-lead",
+          "roleId": "h6",
+          "text": "Blueprint is a studio for colour, type and layout. Build the tokens, then preview them on a page the way a client will."
+        },
+        {
+          "id": "landing-hero-cta",
+          "roleId": "label",
+          "text": "See the preview"
+        },
+        {
+          "id": "landing-hero-ghost",
+          "roleId": "label",
+          "text": "Open the studio"
+        },
+        {
+          "id": "landing-hero-note",
+          "roleId": "caption",
+          "text": "No card needed to try it"
+        },
+        {
+          "id": "landing-features-title",
+          "roleId": "h6",
+          "text": "The system, not the dump"
+        },
+        {
+          "id": "landing-features-lead",
+          "roleId": "h4",
+          "text": "Three things Blueprint keeps in one workspace."
+        },
+        {
+          "id": "landing-feat-1-title",
+          "roleId": "h6",
+          "text": "Shared palettes"
+        },
+        {
+          "id": "landing-feat-1-body",
+          "roleId": "body",
+          "text": "Colour, type and spacing live as one set of tokens, so a button in preview matches the export."
+        },
+        {
+          "id": "landing-feat-2-title",
+          "roleId": "h6",
+          "text": "Type that travels"
+        },
+        {
+          "id": "landing-feat-2-body",
+          "roleId": "body",
+          "text": "Headings, captions and body keep their roles when the page leaves the studio."
+        },
+        {
+          "id": "landing-feat-3-title",
+          "roleId": "h6",
+          "text": "Live preview"
+        },
+        {
+          "id": "landing-feat-3-body",
+          "roleId": "body",
+          "text": "Sign-off happens on a real page. No screenshot thread."
+        },
+        {
+          "id": "landing-split-a-eyebrow",
+          "roleId": "label",
+          "text": "Token file"
+        },
+        {
+          "id": "landing-split-a-title",
+          "roleId": "h4",
+          "text": "Your roles, in the export"
+        },
+        {
+          "id": "landing-split-a-body",
+          "roleId": "body",
+          "text": "Blueprint stores the type decisions with the palette. A heading stays a heading when it leaves the studio, so design is not a second transcription."
+        },
+        {
+          "id": "landing-split-a-cta",
+          "roleId": "label",
+          "text": "How roles work"
+        },
+        {
+          "id": "landing-split-b-eyebrow",
+          "roleId": "label",
+          "text": "Real people"
+        },
+        {
+          "id": "landing-split-b-title",
+          "roleId": "h4",
+          "text": "Help from the studio"
+        },
+        {
+          "id": "landing-split-b-body",
+          "roleId": "body",
+          "text": "When something is stuck, you talk to someone who uses Blueprint. They have seen the same tokens you have."
+        },
+        {
+          "id": "landing-split-b-cta",
+          "roleId": "label",
+          "text": "Talk to us"
+        },
+        {
+          "id": "landing-quad-title",
+          "roleId": "h6",
+          "text": "What the system actually holds"
+        },
+        {
+          "id": "landing-quad-lead",
+          "roleId": "h4",
+          "text": "Not a pile of extras. The few things that keep a page together."
+        },
+        {
+          "id": "landing-quad-1-title",
+          "roleId": "label",
+          "text": "Shared library"
+        },
+        {
+          "id": "landing-quad-1-body",
+          "roleId": "body",
+          "text": "One set of roles for every surface, so a caption looks like a caption everywhere."
+        },
+        {
+          "id": "landing-quad-2-title",
+          "roleId": "label",
+          "text": "Quiet interface"
+        },
+        {
+          "id": "landing-quad-2-body",
+          "roleId": "body",
+          "text": "The chrome stays out of the way while you read."
+        },
+        {
+          "id": "landing-quad-3-title",
+          "roleId": "label",
+          "text": "Live proofs"
+        },
+        {
+          "id": "landing-quad-3-body",
+          "roleId": "body",
+          "text": "See the page as a client will, while you are still editing."
+        },
+        {
+          "id": "landing-quad-4-title",
+          "roleId": "label",
+          "text": "Any screen"
+        },
+        {
+          "id": "landing-quad-4-body",
+          "roleId": "body",
+          "text": "Open the same preview on a phone and keep the tokens."
+        },
+        {
+          "id": "landing-quote",
+          "roleId": "h4",
+          "text": "We stopped guessing hex in three files. The tokens came with the page, which was the whole point."
+        },
+        {
+          "id": "landing-cite-name",
+          "roleId": "label",
+          "text": "Mei Okada"
+        },
+        {
+          "id": "landing-cite-role",
+          "roleId": "caption",
+          "text": "Design lead, Harbour Press"
+        },
+        {
+          "id": "landing-pricing-title",
+          "roleId": "h6",
+          "text": "Plans that stay out of the way"
+        },
+        {
+          "id": "landing-pricing-lead",
+          "roleId": "h4",
+          "text": "Start with a product. Add people when the system needs them."
+        },
+        {
+          "id": "landing-plan-1-name",
+          "roleId": "label",
+          "text": "Starter"
+        },
+        {
+          "id": "landing-plan-1-blurb",
+          "roleId": "caption",
+          "text": "For a single product."
+        },
+        {
+          "id": "landing-plan-1-price",
+          "roleId": "h3",
+          "text": "$19"
+        },
+        {
+          "id": "landing-plan-1-unit",
+          "roleId": "caption",
+          "text": "/ user / month"
+        },
+        {
+          "id": "landing-plan-1-f1",
+          "roleId": "body",
+          "text": "Three surfaces at a time"
+        },
+        {
+          "id": "landing-plan-1-f2",
+          "roleId": "body",
+          "text": "Token grid included"
+        },
+        {
+          "id": "landing-plan-1-f3",
+          "roleId": "body",
+          "text": "Mail support"
+        },
+        {
+          "id": "landing-plan-1-cta",
+          "roleId": "label",
+          "text": "Choose Starter"
+        },
+        {
+          "id": "landing-plan-2-name",
+          "roleId": "label",
+          "text": "Growth"
+        },
+        {
+          "id": "landing-plan-2-blurb",
+          "roleId": "caption",
+          "text": "For a small team."
+        },
+        {
+          "id": "landing-plan-2-price",
+          "roleId": "h3",
+          "text": "$39"
+        },
+        {
+          "id": "landing-plan-2-unit",
+          "roleId": "caption",
+          "text": "/ user / month"
+        },
+        {
+          "id": "landing-plan-2-f1",
+          "roleId": "body",
+          "text": "Unlimited surfaces"
+        },
+        {
+          "id": "landing-plan-2-f2",
+          "roleId": "body",
+          "text": "Preview and inspect"
+        },
+        {
+          "id": "landing-plan-2-f3",
+          "roleId": "body",
+          "text": "Same-day replies"
+        },
+        {
+          "id": "landing-plan-2-cta",
+          "roleId": "label",
+          "text": "Choose Growth"
+        },
+        {
+          "id": "landing-plan-3-name",
+          "roleId": "label",
+          "text": "Enterprise"
+        },
+        {
+          "id": "landing-plan-3-blurb",
+          "roleId": "caption",
+          "text": "For a whole org."
+        },
+        {
+          "id": "landing-plan-3-price",
+          "roleId": "h3",
+          "text": "Custom"
+        },
+        {
+          "id": "landing-plan-3-unit",
+          "roleId": "caption",
+          "text": "/ talk to us"
+        },
+        {
+          "id": "landing-plan-3-f1",
+          "roleId": "body",
+          "text": "Single sign-on"
+        },
+        {
+          "id": "landing-plan-3-f2",
+          "roleId": "body",
+          "text": "Your own roles"
+        },
+        {
+          "id": "landing-plan-3-f3",
+          "roleId": "body",
+          "text": "A named editor at Blueprint"
+        },
+        {
+          "id": "landing-plan-3-cta",
+          "roleId": "label",
+          "text": "Contact sales"
+        },
+        {
+          "id": "landing-cta-title",
+          "roleId": "h6",
+          "text": "Try Blueprint on a page you already have"
+        },
+        {
+          "id": "landing-cta-lead",
+          "roleId": "h4",
+          "text": "Open a workspace, paint the tokens, and see whether the type holds."
+        },
+        {
+          "id": "landing-cta-primary",
+          "roleId": "label",
+          "text": "Start free"
+        },
+        {
+          "id": "landing-cta-ghost",
+          "roleId": "label",
+          "text": "Book a walkthrough"
+        },
+        {
+          "id": "landing-cta-note",
+          "roleId": "caption",
+          "text": "Fourteen days. No card."
+        }
+      ],
+      "previewSections": [
+        {
+          "id": "shell-nav",
+          "fill": {
+            "kind": "token",
+            "tokenId": "surface.base"
+          }
+        },
+        {
+          "id": "landing-hero",
+          "fill": {
+            "kind": "token",
+            "tokenId": "surface.base"
+          }
+        },
+        {
+          "id": "landing-features",
+          "fill": {
+            "kind": "token",
+            "tokenId": "surface.base"
+          }
+        },
+        {
+          "id": "landing-split-a",
+          "fill": {
+            "kind": "token",
+            "tokenId": "surface.base"
+          }
+        },
+        {
+          "id": "landing-split-b",
+          "fill": {
+            "kind": "token",
+            "tokenId": "surface.base"
+          }
+        },
+        {
+          "id": "landing-quad",
+          "fill": {
+            "kind": "token",
+            "tokenId": "surface.base"
+          }
+        },
+        {
+          "id": "landing-quote",
+          "fill": {
+            "kind": "token",
+            "tokenId": "surface.raised"
+          }
+        },
+        {
+          "id": "landing-pricing",
+          "fill": {
+            "kind": "token",
+            "tokenId": "surface.base"
+          }
+        },
+        {
+          "id": "landing-cta",
+          "fill": {
+            "kind": "token",
+            "tokenId": "surface.base"
+          }
+        },
+        {
+          "id": "shell-footer",
+          "fill": {
+            "kind": "token",
+            "tokenId": "surface.base"
+          }
+        }
       ]
     },
     "semantics": [
@@ -111,11 +995,13 @@
         "description": "The soft ground of an alert, a ghost control or a hovered outline.",
         "light": {
           "trackId": "primary",
-          "weight": 50
+          "weight": 50,
+          "alpha": 0.12
         },
         "dark": {
           "trackId": "primary",
-          "weight": 950
+          "weight": 950,
+          "alpha": 0.16
         }
       },
       {
@@ -124,11 +1010,13 @@
         "description": "That soft ground, hovered or pressed.",
         "light": {
           "trackId": "primary",
-          "weight": 100
+          "weight": 100,
+          "alpha": 0.18
         },
         "dark": {
           "trackId": "primary",
-          "weight": 900
+          "weight": 900,
+          "alpha": 0.22
         }
       },
       {
@@ -202,11 +1090,13 @@
         "description": "The soft ground of an alert, a ghost control or a hovered outline.",
         "light": {
           "trackId": "secondary",
-          "weight": 50
+          "weight": 50,
+          "alpha": 0.12
         },
         "dark": {
           "trackId": "secondary",
-          "weight": 950
+          "weight": 950,
+          "alpha": 0.16
         }
       },
       {
@@ -215,11 +1105,13 @@
         "description": "That soft ground, hovered or pressed.",
         "light": {
           "trackId": "secondary",
-          "weight": 100
+          "weight": 100,
+          "alpha": 0.18
         },
         "dark": {
           "trackId": "secondary",
-          "weight": 900
+          "weight": 900,
+          "alpha": 0.22
         }
       },
       {
@@ -306,11 +1198,13 @@
         "description": "The soft ground of an alert, a ghost control or a hovered outline.",
         "light": {
           "trackId": "neutral",
-          "weight": 50
+          "weight": 50,
+          "alpha": 0.12
         },
         "dark": {
           "trackId": "neutral",
-          "weight": 950
+          "weight": 950,
+          "alpha": 0.16
         }
       },
       {
@@ -319,11 +1213,13 @@
         "description": "That soft ground, hovered or pressed.",
         "light": {
           "trackId": "neutral",
-          "weight": 100
+          "weight": 100,
+          "alpha": 0.18
         },
         "dark": {
           "trackId": "neutral",
-          "weight": 900
+          "weight": 900,
+          "alpha": 0.22
         }
       },
       {
@@ -397,11 +1293,13 @@
         "description": "A popover, menu or dialog over everything else.",
         "light": {
           "trackId": "neutral",
-          "weight": 25
+          "weight": 25,
+          "alpha": 0.96
         },
         "dark": {
           "trackId": "neutral",
-          "weight": 950
+          "weight": 950,
+          "alpha": 0.92
         }
       },
       {
@@ -449,11 +1347,13 @@
         "description": "A border that separates without drawing the eye.",
         "light": {
           "trackId": "neutral",
-          "weight": 300
+          "weight": 300,
+          "alpha": 0.12
         },
         "dark": {
           "trackId": "neutral",
-          "weight": 650
+          "weight": 650,
+          "alpha": 0.16
         }
       },
       {
@@ -514,11 +1414,13 @@
         "description": "Text and icons on a control that cannot be used.",
         "light": {
           "trackId": "neutral",
-          "weight": 500
+          "weight": 500,
+          "alpha": 0.45
         },
         "dark": {
           "trackId": "neutral",
-          "weight": 450
+          "weight": 450,
+          "alpha": 0.5
         }
       },
       {
@@ -683,11 +1585,13 @@
         "description": "The soft ground of an alert, a ghost control or a hovered outline.",
         "light": {
           "trackId": "success",
-          "weight": 50
+          "weight": 50,
+          "alpha": 0.12
         },
         "dark": {
           "trackId": "success",
-          "weight": 950
+          "weight": 950,
+          "alpha": 0.16
         }
       },
       {
@@ -696,11 +1600,13 @@
         "description": "That soft ground, hovered or pressed.",
         "light": {
           "trackId": "success",
-          "weight": 100
+          "weight": 100,
+          "alpha": 0.18
         },
         "dark": {
           "trackId": "success",
-          "weight": 900
+          "weight": 900,
+          "alpha": 0.22
         }
       },
       {
@@ -774,11 +1680,13 @@
         "description": "The soft ground of an alert, a ghost control or a hovered outline.",
         "light": {
           "trackId": "warning",
-          "weight": 50
+          "weight": 50,
+          "alpha": 0.12
         },
         "dark": {
           "trackId": "warning",
-          "weight": 950
+          "weight": 950,
+          "alpha": 0.16
         }
       },
       {
@@ -787,11 +1695,13 @@
         "description": "That soft ground, hovered or pressed.",
         "light": {
           "trackId": "warning",
-          "weight": 100
+          "weight": 100,
+          "alpha": 0.18
         },
         "dark": {
           "trackId": "warning",
-          "weight": 900
+          "weight": 900,
+          "alpha": 0.22
         }
       },
       {
@@ -865,11 +1775,13 @@
         "description": "The soft ground of an alert, a ghost control or a hovered outline.",
         "light": {
           "trackId": "error",
-          "weight": 50
+          "weight": 50,
+          "alpha": 0.12
         },
         "dark": {
           "trackId": "error",
-          "weight": 950
+          "weight": 950,
+          "alpha": 0.16
         }
       },
       {
@@ -878,11 +1790,13 @@
         "description": "That soft ground, hovered or pressed.",
         "light": {
           "trackId": "error",
-          "weight": 100
+          "weight": 100,
+          "alpha": 0.18
         },
         "dark": {
           "trackId": "error",
-          "weight": 900
+          "weight": 900,
+          "alpha": 0.22
         }
       },
       {
@@ -956,11 +1870,13 @@
         "description": "The soft ground of an alert, a ghost control or a hovered outline.",
         "light": {
           "trackId": "info",
-          "weight": 50
+          "weight": 50,
+          "alpha": 0.12
         },
         "dark": {
           "trackId": "info",
-          "weight": 950
+          "weight": 950,
+          "alpha": 0.16
         }
       },
       {
@@ -969,11 +1885,13 @@
         "description": "That soft ground, hovered or pressed.",
         "light": {
           "trackId": "info",
-          "weight": 100
+          "weight": 100,
+          "alpha": 0.18
         },
         "dark": {
           "trackId": "info",
-          "weight": 900
+          "weight": 900,
+          "alpha": 0.22
         }
       },
       {
@@ -1003,8 +1921,19 @@
         }
       }
     ],
+    "removedSeedRoles": [],
+    "buttonSchemes": [
+      "primary",
+      "secondary",
+      "neutral",
+      "success",
+      "warning",
+      "error",
+      "info"
+    ],
     "spacing": {
       "baseUnitPx": 4,
+      "density": 1,
       "steps": [
         0,
         0.5,
@@ -1157,315 +2086,64 @@
         }
       ]
     },
-    "typography": {
-      "system": {
-        "id": "type-system",
-        "name": "Blueprint reference",
-        "groups": [
-          {
-            "id": "display",
-            "label": "Display",
-            "indexing": "number"
-          },
-          {
-            "id": "h",
-            "label": "H",
-            "indexing": "number"
-          },
-          {
-            "id": "body",
-            "label": "Body",
-            "indexing": "number"
-          },
-          {
-            "id": "label",
-            "label": "Label",
-            "indexing": "number"
-          },
-          {
-            "id": "caption",
-            "label": "Caption",
-            "indexing": "number"
-          }
-        ],
-        "baseFontSizePx": 16,
-        "ratio": 1.25,
-        "stepCount": 9,
-        "breakpointPx": 768,
-        "fonts": [
-          {
-            "id": "display",
-            "name": "Display",
-            "families": [
-              "Space Grotesk",
-              "Kanit",
-              "sans-serif"
-            ],
-            "sources": {
-              "primary": "google",
-              "fallback1": "google"
-            }
-          },
-          {
-            "id": "main",
-            "name": "Main",
-            "families": [
-              "Work Sans",
-              "Sarabun",
-              "sans-serif"
-            ],
-            "sources": {
-              "primary": "google",
-              "fallback1": "google"
-            }
-          }
-        ],
-        "roles": [
-          {
-            "id": "display-1",
-            "name": "display-1",
-            "groupId": "display",
-            "fontId": "display",
-            "fontWeight": 700,
-            "textTransform": "none",
-            "stepOffset": 6,
-            "sameAsRoleId": null,
-            "desktop": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            },
-            "mobile": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            }
-          },
-          {
-            "id": "h1",
-            "name": "h1",
-            "groupId": "h",
-            "fontId": "main",
-            "fontWeight": 700,
-            "textTransform": "none",
-            "stepOffset": 6,
-            "sameAsRoleId": null,
-            "desktop": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            },
-            "mobile": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            }
-          },
-          {
-            "id": "h2",
-            "name": "h2",
-            "groupId": "h",
-            "fontId": "main",
-            "fontWeight": 700,
-            "textTransform": "none",
-            "stepOffset": 5,
-            "sameAsRoleId": null,
-            "desktop": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            },
-            "mobile": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            }
-          },
-          {
-            "id": "h3",
-            "name": "h3",
-            "groupId": "h",
-            "fontId": "main",
-            "fontWeight": 700,
-            "textTransform": "none",
-            "stepOffset": 4,
-            "sameAsRoleId": null,
-            "desktop": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            },
-            "mobile": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            }
-          },
-          {
-            "id": "h4",
-            "name": "h4",
-            "groupId": "h",
-            "fontId": "main",
-            "fontWeight": 700,
-            "textTransform": "none",
-            "stepOffset": 3,
-            "sameAsRoleId": null,
-            "desktop": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            },
-            "mobile": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            }
-          },
-          {
-            "id": "h5",
-            "name": "h5",
-            "groupId": "h",
-            "fontId": "main",
-            "fontWeight": 700,
-            "textTransform": "none",
-            "stepOffset": 2,
-            "sameAsRoleId": null,
-            "desktop": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            },
-            "mobile": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            }
-          },
-          {
-            "id": "h6",
-            "name": "h6",
-            "groupId": "h",
-            "fontId": "main",
-            "fontWeight": 700,
-            "textTransform": "none",
-            "stepOffset": 1,
-            "sameAsRoleId": null,
-            "desktop": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            },
-            "mobile": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            }
-          },
-          {
-            "id": "body",
-            "name": "body",
-            "groupId": "body",
-            "fontId": "main",
-            "fontWeight": 400,
-            "textTransform": "none",
-            "stepOffset": 0,
-            "sameAsRoleId": null,
-            "desktop": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            },
-            "mobile": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            }
-          },
-          {
-            "id": "label",
-            "name": "label",
-            "groupId": "label",
-            "fontId": "main",
-            "fontWeight": 500,
-            "textTransform": "none",
-            "stepOffset": -1,
-            "sameAsRoleId": null,
-            "desktop": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            },
-            "mobile": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            }
-          },
-          {
-            "id": "caption",
-            "name": "caption",
-            "groupId": "caption",
-            "fontId": "main",
-            "fontWeight": 400,
-            "textTransform": "none",
-            "stepOffset": -2,
-            "sameAsRoleId": null,
-            "desktop": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            },
-            "mobile": {
-              "fontSizePx": 16,
-              "lineHeight": {
-                "mode": "auto"
-              },
-              "letterSpacingPx": 0
-            }
-          }
-        ]
+    "previewDevices": [
+      {
+        "id": "phone",
+        "kind": "phone",
+        "name": "Phone",
+        "widthPx": 375,
+        "ratio": 1.25
       },
-      "unit": "rem",
-      "specimenText": "How vexingly quick daft zebras jump",
-      "template": "specimen"
-    }
+      {
+        "id": "tablet",
+        "kind": "tablet",
+        "name": "Tablet",
+        "widthPx": 768,
+        "ratio": 1.25
+      },
+      {
+        "id": "desktop",
+        "kind": "desktop",
+        "name": "Desktop",
+        "widthPx": 1120,
+        "ratio": 1.25
+      }
+    ],
+    "layout": [
+      {
+        "id": "inset-container",
+        "name": "Container inset",
+        "description": "Page and shell padding.",
+        "kind": "spacing",
+        "byDevice": {
+          "phone": "4",
+          "tablet": "6",
+          "desktop": "10"
+        }
+      },
+      {
+        "id": "gap-section",
+        "name": "Section gap",
+        "description": "Space between page sections.",
+        "kind": "spacing",
+        "byDevice": {
+          "phone": "16",
+          "tablet": "16",
+          "desktop": "16"
+        }
+      },
+      {
+        "id": "radius-surface",
+        "name": "Surface radius",
+        "description": "Cards, panels, and other large surfaces.",
+        "kind": "radius",
+        "byDevice": {
+          "phone": "container",
+          "tablet": "container",
+          "desktop": "page"
+        }
+      }
+    ]
   }
 }
+

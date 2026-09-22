@@ -150,11 +150,17 @@ Somebody can:
    the hover surfaces, `surface.overlay`. Measured against the current
    solid values so the studio does not visibly change on the day.
 
-   The hover surfaces kept their solid weights, and that is the one departure
-   from the plan here. A wash at 50/950 measures about 1.15:1 against the
-   canvas, which is what a hover wash is; giving it an alpha instead moves the
-   alert backgrounds the Astryx bridge feeds. The reasoning sits beside the
-   tone table in `semantic.ts`.
+   The plan named four things and got all four: `border.subtle`,
+   `fg.disabled`, `surface.overlay` and the hover surfaces. Every tone
+   carries `surface` at 12/16% and `surface-hover` at 18/22%, which is 17
+   transparent roles across the seed rather than the three the colour slice
+   makes obvious.
+
+   (An earlier note here said the hover surfaces had kept solid weights. That
+   was a misreading of the comment beside the tone table, which argues for the
+   _weight_ the wash sits at — 50/950, about 1.15:1 against the canvas — and
+   not against giving it an alpha. The weight and the alpha were chosen
+   together.)
 
 6. ✅ **Docs and handover follow.** The semantic page shows alpha in the
    table and composites in its contrast rows; the handover archive carries
@@ -162,11 +168,11 @@ Somebody can:
 
    The contrast rows turned out to be composited already — `assessTextChecks`
    has done it since stage 1, so the ratios were right and only the wording
-   beside them was short. Left open: the reference workspace is still a
-   version 5 file with no alpha in it, so no page in the documentation
-   currently renders a transparent role. Regenerating it changes the committed
-   export and what the published pages say, so it is its own change. See
-   `docs/journal/2026-09-22-alpha-in-the-docs-tables.md`.
+   beside them was short. The reference workspace was then moved from version
+   5 to 8, so the documentation renders transparent roles for real and the
+   whole path — file, reader, resolver, table, export, archive — is covered by
+   a test. See `docs/journal/2026-09-22-alpha-in-the-docs-tables.md` and
+   `docs/journal/2026-09-22-reference-workspace-v8.md`.
 
 Stage 1 lands with nothing consuming it, like every model stage before it,
 because a file written with alpha by stage 5 must be readable by everything
