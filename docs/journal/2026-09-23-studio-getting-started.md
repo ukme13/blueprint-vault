@@ -297,3 +297,45 @@ browser's to get right.
 **A test that fails because the code is correct is worth reading twice.** The
 first instinct was to force the assertion through; the useful move was to ask
 what the suite was already telling the browser.
+
+## Spacing, a logo, and a footer that ends the page
+
+**The paragraph rhythm was off by a step.** The reference sets 16px between
+paragraphs and 32px between sections; this had 12 and 24, so a paragraph break
+and a section break read as nearly the same pause and the column ran together.
+The scale here lands on those numbers exactly — `--spacing-4` is 1rem and
+`--spacing-8` is 2rem — so it is `gap={8}` between sections and `gap={4}`
+within, and the rendered page now carries one gap of 8 and one of 4 per
+section.
+
+Worth saying plainly: the numbers were a guess the first time. They are the
+reference's now, and the reference's happen to be the two everybody uses.
+
+**The mark is 24px.**
+
+**The footer has two rows and room above it.** It sits `--spacing-16` clear of
+the last section with a rule across the top, because a footer a paragraph away
+from the reading is one more paragraph.
+
+Its links are the routes, out of the same list the sidebar and the archive
+guard read. That was the only honest way to build the reference's row: there
+is no blog, no community and no social account here, and a footer of dead
+links is decoration pretending to be navigation. It also means a client's
+footer has no studio link without anybody arranging that separately.
+
+But it is a new place a route name can reach a page, and one the archive's
+path guard cannot see — that guard reads file names, not their contents. So
+the footer has its own unit test for the same claim the sidebar has, and
+`verify-handover` confirms it against a built archive.
+
+## A scanner failure that was my own mess
+
+Two scanner tests failed naming `--color-neutral-50` and friends in
+`out/_next/static/css/…`. Nothing was wrong with the source: a `next build`
+run by hand leaves `out/` behind, the scanner reads the whole application root,
+and build output is full of the values a page may not write.
+
+`scripts/handover.ts` deletes `out/` after copying for exactly this reason, and
+says so in a comment. A build run outside that script has to do the same
+tidying by hand — which is now two hours of my life and belongs here so it is
+not a third.

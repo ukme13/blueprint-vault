@@ -62,6 +62,8 @@ export function FoundationsFrame({
   path,
   sections,
 }: FoundationsFrameProps) {
+  const groups = docsRouteGroups(docsAudience());
+
   return (
     <Layout
       end={
@@ -84,10 +86,7 @@ export function FoundationsFrame({
           label="Documentation"
           width={260}
         >
-          <DocsNav
-            currentPath={path}
-            groups={docsRouteGroups(docsAudience())}
-          />
+          <DocsNav currentPath={path} groups={groups} />
         </LayoutPanel>
       }
     >
@@ -96,7 +95,11 @@ export function FoundationsFrame({
           two navs and a footer with no way to say "skip to the content". */}
       <LayoutContent label={title} padding={6} role="main">
         <div className="doc-column">
-          <VStack gap={6}>
+          {/* 8 between sections and 4 within, which is 32px and 16px on this
+              scale — the reference's two spacings, and far enough apart that
+              a paragraph break reads as smaller than a section break. The
+              first pass used 24 and 12 and ran the two together. */}
+          <VStack gap={8}>
             <header className="page-head">
               <VStack gap={2}>
                 <Heading level={1}>{title}</Heading>
@@ -119,7 +122,7 @@ export function FoundationsFrame({
                   id={id}
                   key={section.heading}
                 >
-                  <VStack gap={3}>
+                  <VStack gap={4}>
                     <Heading level={2}>{section.heading}</Heading>
                     {(section.paragraphs ?? []).map((paragraph) => (
                       <Prose key={paragraph}>{paragraph}</Prose>
@@ -130,7 +133,7 @@ export function FoundationsFrame({
               );
             })}
 
-            <SiteFooter />
+            <SiteFooter groups={groups} />
           </VStack>
         </div>
       </LayoutContent>
