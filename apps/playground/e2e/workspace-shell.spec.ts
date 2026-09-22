@@ -19,14 +19,44 @@ test.describe("Workspace shell", () => {
       .poll(() => homeNav.evaluate((el) => getComputedStyle(el).minHeight))
       .toBe("72px");
 
-    // Home logo SVG has full uncropped viewBox and aspect ratio
+    // Home logo SVG has cropped viewBox and aspect ratio
     const svg = link.locator("svg");
     const viewBox = await svg.getAttribute("viewBox");
-    expect(viewBox).toBe("0 0 623 174");
+    expect(viewBox).toBe("0 0 541 174");
     const bbox = await svg.boundingBox();
     expect(bbox).not.toBeNull();
-    expect(bbox!.width).toBeGreaterThanOrEqual(100);
+    expect(bbox!.width).toBeGreaterThanOrEqual(80);
     expect(bbox!.height).toBe(32);
+
+    // Logo left edge sits on the page content edge, level with "Projects".
+    const heading = page.getByRole("heading", { level: 1, name: "Projects" });
+    const headingBox = await heading.boundingBox();
+    expect(headingBox).not.toBeNull();
+    expect(Math.abs(bbox!.x - headingBox!.x)).toBeLessThanOrEqual(1);
+  });
+
+  test("rail brand marks are 32px tall in both states, matching the Home wordmark", async ({
+    page,
+  }) => {
+    await createWorkspaceFromHome(page);
+    const rail = page.getByRole("navigation", { name: "Blueprint workspaces" });
+    const logoLink = rail.getByRole("link", { name: "Blueprint" });
+    await expect(logoLink).toBeVisible();
+
+    const expandedMarks = logoLink.locator("svg");
+    await expect(expandedMarks).toHaveCount(2);
+    for (const mark of await expandedMarks.all()) {
+      const box = await mark.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.height).toBe(32);
+    }
+
+    await rail.getByRole("button", { name: "Collapse sidebar" }).click();
+    const expandBtn = rail.getByRole("button", { name: "Expand sidebar" });
+    await expect(expandBtn).toBeVisible();
+    const collapsedBox = await expandBtn.locator("svg").first().boundingBox();
+    expect(collapsedBox).not.toBeNull();
+    expect(collapsedBox!.height).toBe(32);
   });
 
   test("Home has no tool rail; Blueprint returns Home from a studio", async ({
@@ -215,6 +245,7 @@ test.describe("Workspace shell", () => {
     await expect(expandedLogo).toBeVisible();
     const expandedMonogram = expandedLogo.locator("svg").first();
     await expect(expandedMonogram).toBeVisible();
+    const expandedBox = await expandedMonogram.boundingBox();
 
     await rail.getByRole("button", { name: "Collapse sidebar" }).click();
     const expandBtn = rail.getByRole("button", { name: "Expand sidebar" });
@@ -222,6 +253,12 @@ test.describe("Workspace shell", () => {
     const collapsedMonogram = expandBtn.locator("svg").first();
     await expect(collapsedMonogram).toBeVisible();
     await expect(rail.getByRole("link", { name: "Blueprint" })).toHaveCount(0);
+
+    // The B is the anchor: it must not move when the rail closes.
+    await expect
+      .poll(async () => (await collapsedMonogram.boundingBox())?.x)
+      .toBeCloseTo(expandedBox!.x, 0);
+    expect(expandedBox!.x).toBe(16);
   });
 
   test("collapsed project name edit button expands the rail and focuses input", async ({
@@ -300,7 +337,7 @@ test.describe("Workspace shell", () => {
     ).toBeLessThanOrEqual(1);
   });
 
-  test("Blueprint logo in expanded rail has 6px padding and aligns with Project name", async ({
+  test("Blueprint logo in expanded rail has 8px padding and aligns with Project name", async ({
     page,
   }) => {
     await createWorkspaceFromHome(page);
@@ -317,14 +354,41 @@ test.describe("Workspace shell", () => {
     const namePadding = await nameInput.evaluate(
       (el) => getComputedStyle(el).paddingLeft,
     );
-    expect(logoPadding).toBe("6px");
-    expect(namePadding).toBe("6px");
+    expect(logoPadding).toBe("8px");
+    expect(namePadding).toBe("8px");
 
     const logoRect = await logoLink.boundingBox();
     const nameRect = await nameInput.boundingBox();
     expect(logoRect).not.toBeNull();
     expect(nameRect).not.toBeNull();
     expect(Math.abs(logoRect!.x - nameRect!.x)).toBeLessThanOrEqual(1);
+  });
+
+  test("Project name text field container does not clip focus ring with overflow hidden", async ({
+    page,
+  }) => {
+    await createWorkspaceFromHome(page);
+    const nameInput = page.getByLabel("Project name");
+    await expect(nameInput).toBeVisible();
+
+    const containerOverflow = await nameInput.evaluate((el) => {
+      const container = el.closest('[class*="fieldContainer"]');
+      return container ? getComputedStyle(container).overflow : null;
+    });
+    expect(containerOverflow).toBe("visible");
+
+    await nameInput.click();
+    await expect(nameInput).toBeFocused();
+
+    const outlineStyle = await nameInput.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return {
+        outlineStyle: cs.outlineStyle,
+        outlineWidth: cs.outlineWidth,
+      };
+    });
+    expect(outlineStyle.outlineStyle).toBe("solid");
+    expect(outlineStyle.outlineWidth).toBe("2px");
   });
 
   test("heading collapses the rail; the mark expands it", async ({ page }) => {

@@ -4,6 +4,7 @@
   flex-shrink: 0;
   height: 2rem;
   width: auto;
+  aspect-ratio: 541 / 174;
 }
 
 .letters {
@@ -11,4 +12,5 @@
   flex-shrink: 0;
   height: 1.5rem;
   width: auto;
+  aspect-ratio: 437 / 174;
 }

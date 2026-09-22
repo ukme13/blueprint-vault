@@ -1,5 +1,8 @@
+/* Astryx TopNav pads 8px and the heading link pads 8px; 24px more puts the
+   logo's left edge on the Home page's 32px content edge, level with "Projects". */
 :global(nav).homeNav {
   min-height: 72px;
+  padding-inline-start: var(--spacing-6, 24px);
 }
 
 .sideNav {

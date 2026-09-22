@@ -44,10 +44,16 @@ export function WorkspaceNameField({
   useEffect(() => {
     if (!isNavCollapsed && shouldFocusRef.current) {
       shouldFocusRef.current = false;
-      requestAnimationFrame(() => {
-        inputRef.current?.focus();
+      const prefersReduced =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+      const delay = prefersReduced ? 0 : 240;
+      const timer = window.setTimeout(() => {
+        inputRef.current?.focus({ preventScroll: true });
         inputRef.current?.select();
-      });
+      }, delay);
+      return () => window.clearTimeout(timer);
     }
   }, [isNavCollapsed]);
 
