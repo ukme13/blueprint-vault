@@ -81,11 +81,7 @@ export function NewProjectDialog({
       <form onSubmit={onSubmit}>
         <Layout
           header={
-            <DialogHeader
-              subtitle="Name it and pick a starting point. Colour, type, and scale are filled in — edit those after."
-              title="New project"
-              onOpenChange={onOpenChange}
-            />
+            <DialogHeader title="New project" onOpenChange={onOpenChange} />
           }
           content={
             <LayoutContent>
