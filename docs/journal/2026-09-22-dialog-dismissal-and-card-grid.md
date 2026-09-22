@@ -67,6 +67,11 @@ buttons and tripped strict mode. `accessibility-report.spec.ts` now passes
 `exact: true`, in the six places it names the format and in its download
 helper.
 
+That sweep was still one file short. `semantic-export.spec.ts` clicks the same
+format through a `download` helper of its own, and it was not among the specs
+run here, so the stale name went to CI and timed out three attempts running at
+thirty seconds each. Fixed in `a08d64b`, inside the same pull request.
+
 ## Checks
 
 - Playwright `workspace-home`, `dialog-dismissal`, `accessibility-report` and
@@ -95,3 +100,9 @@ duplication.
 one line everywhere, all cards match whether or not the CSS is right, so the
 assertion would have passed against the bug. The test lengthens one caption
 first, which is the condition the rule exists for.
+
+**A rename is repo-wide by nature, and `git grep` is the sweep.** The four
+specs run against this change were the ones that looked related to it.
+`semantic-export` did not look related and names the same button. Deciding
+which files a renamed string reaches is not a judgement worth making by hand
+when `git grep "Report (Markdown)"` answers it exactly.
