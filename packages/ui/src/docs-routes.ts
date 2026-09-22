@@ -50,6 +50,54 @@ export const INTERNAL_DOCS_ROUTES: readonly DocsRoute[] = [
     group: "Studio",
     audience: "internal",
   },
+  {
+    path: "studio/guides/anchors",
+    label: "Anchors",
+    description:
+      "Keeping an exact brand colour inside a generated ramp, without breaking the row around it.",
+    group: "Studio",
+    audience: "internal",
+  },
+  {
+    path: "studio/guides/semantic-tokens",
+    label: "Semantic tokens and alpha",
+    description:
+      "Naming colours by what they are for, one reference per mode, and what transparency does to a contrast number.",
+    group: "Studio",
+    audience: "internal",
+  },
+  {
+    path: "studio/guides/typography",
+    label: "Typography studio",
+    description:
+      "Three numbers make a scale; roles make it useful. Fonts, line height, and judging a scale in two scripts.",
+    group: "Studio",
+    audience: "internal",
+  },
+  {
+    path: "studio/guides/spacing-and-radius",
+    label: "Spacing, radius and elevation",
+    description:
+      "The third of a system that is not colour or type: counting rather than multiplying, names rather than sizes.",
+    group: "Studio",
+    audience: "internal",
+  },
+  {
+    path: "studio/guides/accessibility",
+    label: "Simulation and accessibility",
+    description:
+      "What the contrast numbers mean, what the Vision chip does, and which pairs collapse for whom.",
+    group: "Studio",
+    audience: "internal",
+  },
+  {
+    path: "studio/guides/export",
+    label: "Export and handover",
+    description:
+      "Five formats, the one file that is your work, and the archive a client receives.",
+    group: "Studio",
+    audience: "internal",
+  },
 ];
 
 /** Every route, client rows first, in reading order. */

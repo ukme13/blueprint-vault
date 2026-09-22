@@ -83,7 +83,14 @@ describe("the package barrel", () => {
 
   it("names no internal route anywhere in its exported values", () => {
     /* Reads what the barrel actually holds rather than what it declares: a row
-       reachable through some other export would not show up as a key. */
+       reachable through some other export would not show up as a key.
+
+       On the path as a serialised value — `:"studio"` — rather than as a bare
+       substring, and not on the label at all. Two false positives taught the
+       shape: the label "Typography" is also a client route's, and the word
+       "studio" appears in this package's own prose about the studio's preview
+       template. What is being looked for is a row, and a row serialises its
+       path as a whole value. */
     const text = JSON.stringify(
       Object.fromEntries(
         Object.entries(barrel).filter(
@@ -92,7 +99,7 @@ describe("the package barrel", () => {
       ),
     );
     for (const route of INTERNAL_DOCS_ROUTES) {
-      expect(text, route.path).not.toContain(route.label);
+      expect(text, route.path).not.toContain(`:"${route.path}"`);
       expect(text, route.path).not.toContain(route.description);
     }
   });
