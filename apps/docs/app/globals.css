@@ -75,8 +75,14 @@
 
 html,
 body {
-  min-height: 100%;
+  /* A real height, not a minimum. Astryx's Layout takes `height="fill"` to
+     mean 100% of its parent, and 100% of a parent with only a min-height
+     collapses — which is what put the header in the page flow, let the whole
+     document scroll under it, and left both nav columns as tall as their
+     content. */
+  height: 100%;
   margin: 0;
+  overflow: hidden;
 }
 
 body {
@@ -170,11 +176,10 @@ html {
   font-weight: 600;
 }
 
-.site-mark-glyph {
-  width: 20px;
+.site-mark-wordmark {
+  display: block;
   height: 20px;
-  border-radius: var(--radius-inner);
-  background: var(--color-action-primary);
+  width: auto;
 }
 
 .site-header-actions {
@@ -334,4 +339,13 @@ html {
     align-items: flex-start;
     gap: var(--spacing-2);
   }
+}
+
+/* Each nav column scrolls within the shell rather than with the page. A
+   sidebar as tall as its content is a sidebar that runs off the bottom of a
+   long page and takes its last few links with it. */
+.sidebar-panel,
+.toc-panel {
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }

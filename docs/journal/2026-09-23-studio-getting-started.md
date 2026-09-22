@@ -217,3 +217,41 @@ runs to find — the second time in two days that a patch without an assertion
 has lied about its own result. The rule is now simple enough to keep: a
 replacement asserts it matched, every time, including the ones that are
 obviously fine.
+
+## Four things a screenshot found
+
+The shell went out with a header in the page flow, two nav columns as tall as
+their content, and a purple square where the brand goes. None of it was caught
+by a test, and three of the four had the same cause.
+
+**`height: fill` needs a parent with a height.** `body` had `min-height: 100%`,
+which resolves to nothing for a child asking for `height: 100%` — so Astryx's
+`Layout` laid itself out at content height, the whole document scrolled, and
+the header went up with it. One line: `height: 100%` and `overflow: hidden` on
+the shell, and the header stays, the two nav columns hold, and each region
+scrolls on its own.
+
+That one line is the answer to three of the four reports. Worth remembering as
+a shape rather than as a fix: a frame that fills is a claim about its
+container, and `min-height` is not a height.
+
+**The brand was a placeholder.** `public/blueprint-logo-horizontal.svg` was
+sitting right there and is `fill="black"`, so on a dark page it would have been
+a black rectangle. The drawing the studio uses is `currentColor` throughout, so
+it moved into `packages/ui` — a second application needing the same component
+is the repository's own rule for when something becomes shared — and the rail
+keeps its sizing wrapper around it. One copy of a path that long, two callers.
+
+## Tests that were written after the fact, and made to fail first
+
+Three assertions now cover what the screenshot showed: the header's box does
+not move while the content scrolls, both nav columns' boxes do not move, and
+each column computes to `overflow-y: auto`.
+
+They were checked against the broken state rather than trusted. Reverting the
+one line fails two of the three, which is the right number — a column that
+scrolls on its own was already true and was not the bug.
+
+The header test asserts the content actually moved before asserting the header
+did not. Without that it passes on a page that never scrolled, which is the
+same failure it exists to catch, wearing a green tick.
