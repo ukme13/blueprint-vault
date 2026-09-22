@@ -97,3 +97,19 @@ code {
 .astryx-codeblock.card {
   border-radius: var(--radius-container);
 }
+
+/* Same checker as the studio draws behind a transparent swatch, from the same
+   tokens. A swatch of a 12% border painted straight onto the page would read
+   as a pale solid, which is the colour the row is explicitly saying it is not.
+   The gradient is two token colours and a token-sized tile; nothing here is a
+   value this app chose. */
+.swatch[data-transparent] {
+  background-color: var(--color-surface-subtle);
+  background-image: conic-gradient(
+    var(--color-border-subtle) 25%,
+    transparent 0 50%,
+    var(--color-border-subtle) 0 75%,
+    transparent 0
+  );
+  background-size: var(--spacing-2) var(--spacing-2);
+}

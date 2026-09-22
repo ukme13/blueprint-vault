@@ -137,6 +137,45 @@ describe("the semantic page's table is a template over the layer", () => {
       );
     }
   });
+
+  it("says a transparent role is transparent, and how much", () => {
+    /* `border.subtle` is seeded at 12% in light and 16% in dark. A table that
+       printed the shade alone would tell a client to draw a solid divider —
+       and these pages go into the handover archive, so the wrong sentence
+       ships rather than merely displays. */
+    const { palettes, tokens } = workspace();
+    const markup = renderToStaticMarkup(
+      <SemanticTable palettes={palettes} tokens={tokens} />,
+    );
+
+    expect(markup).toContain("at 12%");
+    expect(markup).toContain("at 16%");
+  });
+
+  it("draws a transparent swatch over a checker and an opaque one flat", () => {
+    /* The percentage is the fact; the checker is how somebody looking at the
+       page sees it without reading. One without the other is half a row. */
+    const { palettes, tokens } = workspace();
+    const markup = renderToStaticMarkup(
+      <SemanticTable palettes={palettes} tokens={tokens} />,
+    );
+
+    expect(markup).toContain(`data-transparent="true"`);
+    /* Opacity is what makes the checker show through, so a swatch drawn at
+       full opacity over one would be the checker hidden behind a solid. */
+    expect(markup).toMatch(/opacity:0?.12/);
+  });
+
+  it("leaves an opaque role reading exactly as it did", () => {
+    /* The other half of the rule: nothing gains "at 100%" on the day alpha
+       arrives, or every row in the archive changes for no reason. */
+    const { palettes, tokens } = workspace();
+    const markup = renderToStaticMarkup(
+      <SemanticTable palettes={palettes} tokens={tokens} />,
+    );
+
+    expect(markup).not.toContain("at 100%");
+  });
 });
 
 describe("the guidance", () => {

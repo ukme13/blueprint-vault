@@ -131,7 +131,7 @@ Somebody can:
    Coalesce keystrokes inside one in-place edit into one step. Test that
    undo after a multi-delete restores order as well as content.
 
-4. **The table.** (a ✅, b next.) Rebuild `SemanticEditor` on the Astryx `Table` in the
+4. ✅ **The table.** Rebuild `SemanticEditor` on the Astryx `Table` in the
    mode that supports selection (read `astryx component Table` first;
    if selection is composed-only, compose it). Group sidebar, search,
    row selection with the keyboard rules above, context menu (Copy, Paste,
@@ -141,18 +141,32 @@ Somebody can:
    Keep the component under 250 lines by splitting sidebar, table and
    context menu; the logic is already in stage 2.
 
-   **Status: stage 4b ✅ complete.**
+   Stages 4a and 4b both landed.
 
-5. **Alpha in the UI.** An alpha field beside each reference (a percent,
+5. ✅ **Alpha in the UI.** An alpha field beside each reference (a percent,
    like Figma), swatches drawn over a checker when alpha is under 100%,
    and the report and preview showing composited results. The seed set
    gains alpha where it has been faking it: `border.subtle`, `fg.disabled`,
    the hover surfaces, `surface.overlay`. Measured against the current
    solid values so the studio does not visibly change on the day.
 
-6. **Docs and handover follow.** The semantic page shows alpha in the
+   The hover surfaces kept their solid weights, and that is the one departure
+   from the plan here. A wash at 50/950 measures about 1.15:1 against the
+   canvas, which is what a hover wash is; giving it an alpha instead moves the
+   alert backgrounds the Astryx bridge feeds. The reasoning sits beside the
+   tone table in `semantic.ts`.
+
+6. ✅ **Docs and handover follow.** The semantic page shows alpha in the
    table and composites in its contrast rows; the handover archive carries
    the new CSS; the e2e for "alias, not copy" gains an alpha case.
+
+   The contrast rows turned out to be composited already — `assessTextChecks`
+   has done it since stage 1, so the ratios were right and only the wording
+   beside them was short. Left open: the reference workspace is still a
+   version 5 file with no alpha in it, so no page in the documentation
+   currently renders a transparent role. Regenerating it changes the committed
+   export and what the published pages say, so it is its own change. See
+   `docs/journal/2026-09-22-alpha-in-the-docs-tables.md`.
 
 Stage 1 lands with nothing consuming it, like every model stage before it,
 because a file written with alpha by stage 5 must be readable by everything
