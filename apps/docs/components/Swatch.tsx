@@ -1,3 +1,5 @@
+import { alphaPercent } from "@blueprint/ui";
+
 /**
  * A colour, shown.
  *
@@ -14,16 +16,36 @@ interface SwatchProps {
   hex: string;
   /** What it is, for somebody who cannot see it. */
   label: string;
+  /**
+   * How much of it there is, 0 to 1, and 1 when it is not given.
+   *
+   * A transparent swatch is drawn over a checker and laid on at its own
+   * opacity, so what is on the page is what the colour does. Drawn opaque it
+   * would be a different colour from the one the row names, which is the whole
+   * failure this prop exists to stop.
+   */
+  alpha?: number;
 }
 
-export function Swatch({ hex, label }: SwatchProps) {
+export function Swatch({ hex, label, alpha = 1 }: SwatchProps) {
+  const transparent = alpha < 1;
+  /* The percentage goes in the name and the tooltip, not only in the paint.
+     A checker says "there is transparency here" to somebody who can see it and
+     nothing at all to somebody who cannot. */
+  const described = transparent ? `${hex} at ${alphaPercent(alpha)}` : hex;
+
   return (
     <span
-      aria-label={`${label}, ${hex}`}
-      className="inline-block size-6 rounded-inner border border-border-default align-middle"
+      aria-label={`${label}, ${described}`}
+      className="swatch inline-block size-6 overflow-hidden rounded-inner border border-border-default align-middle"
+      data-transparent={transparent || undefined}
       role="img"
-      style={{ backgroundColor: hex }}
-      title={hex}
-    />
+      title={described}
+    >
+      <span
+        className="block size-full"
+        style={{ backgroundColor: hex, opacity: alpha }}
+      />
+    </span>
   );
 }

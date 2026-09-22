@@ -1,3 +1,4 @@
+import { alphaPercent } from "./composite";
 import { formatColour, type ColourFormat } from "./format";
 import { paletteTokenName } from "./export";
 import {
@@ -178,6 +179,37 @@ export interface ResolvedRoleReference {
   trackId: string;
   weight: number;
   hex: string;
+  /**
+   * The alpha actually used, 1 for a reference with none.
+   *
+   * Carried for the same reason `ResolvedSemantic` carries it: a caller that
+   * has the shade and the weight but not the alpha can only describe two
+   * thirds of a reference, and the third it drops is the one that changes what
+   * is on the screen.
+   */
+  alpha: number;
+}
+
+/**
+ * A reference in words: `neutral 450`, or `neutral 450 at 12%`.
+ *
+ * The short form. `describeSemanticContrast` writes the long one — what a
+ * transparent colour was laid over and what came out — because a contrast row
+ * has to be re-derivable. A table cell naming the reference itself does not,
+ * and the surface it sits on is the row it is in.
+ *
+ * Opaque references are the bare primitive they have always been, so a page
+ * that never had an alpha in it reads exactly as it did.
+ */
+export function describeReference(reference: {
+  trackId: string;
+  weight: number;
+  alpha: number;
+}): string {
+  const primitive = `${reference.trackId} ${reference.weight}`;
+  return reference.alpha >= 1
+    ? primitive
+    : `${primitive} at ${alphaPercent(reference.alpha)}`;
 }
 
 /**
@@ -204,5 +236,6 @@ export function resolvedRoleReference(
     trackId: resolved.trackId,
     weight: resolved.weight,
     hex: resolved.hex,
+    alpha: resolved.alpha,
   };
 }

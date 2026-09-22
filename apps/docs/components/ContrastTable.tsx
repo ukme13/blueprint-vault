@@ -9,6 +9,7 @@ import {
 import { Text } from "@astryxdesign/core/Text";
 import {
   assessTextChecks,
+  describeReference,
   previewShadesFor,
   resolvedRoleReference,
   type ColorTrack,
@@ -28,7 +29,9 @@ import { Swatch } from "./Swatch";
  * Each row names the two roles and the primitives they resolved to. A ratio on
  * its own says a pair is wrong and not which pair, which is the difference
  * between a report and a to-do; `resolvedRoleReference` is what turns an id
- * into "error 900 on error 50".
+ * into "error 900 on error 50", and `describeReference` adds the alpha when
+ * the side carried one — a row measured on a composite has to say so, or the
+ * reader cannot get back to the ratio from the two shades named.
  */
 
 interface ContrastTableProps {
@@ -84,6 +87,12 @@ export function ContrastTable({ tokens, palettes, mode }: ContrastTableProps) {
               </TableCell>
               <TableCell>
                 <span className="inline-flex items-center gap-2">
+                  {/* Solid, and deliberately: `assessTextChecks` composites a
+                      transparent side over its ground before measuring, so
+                      these two hexes are the colours the ratio was taken
+                      from. A checker here would draw the reference rather
+                      than the result, and the result is what was measured.
+                      The text beside them names the alpha that produced it. */}
                   <Swatch
                     hex={check.foreground}
                     label={`${check.label} text`}
@@ -94,11 +103,11 @@ export function ContrastTable({ tokens, palettes, mode }: ContrastTableProps) {
                   />
                   <Text type="code">
                     {foreground && !check.isForegroundReadable
-                      ? `${foreground.trackId} ${foreground.weight}`
+                      ? describeReference(foreground)
                       : check.foreground}
                     {" on "}
                     {background
-                      ? `${background.trackId} ${background.weight}`
+                      ? describeReference(background)
                       : check.background}
                   </Text>
                 </span>

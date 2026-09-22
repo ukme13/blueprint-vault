@@ -8,6 +8,7 @@ import {
 } from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
 import {
+  describeReference,
   semanticRowGroups,
   type ColorTrack,
   type SemanticRow,
@@ -27,7 +28,9 @@ import { Swatch } from "./Swatch";
  *
  * Every cell says what the role resolved to as well as its colour, because
  * "surface.raised is primary 100 in light and primary 850 in dark" is the
- * sentence a developer needs and a swatch alone does not say it.
+ * sentence a developer needs and a swatch alone does not say it. A reference
+ * with an alpha says that too — `border.subtle` is seeded at 12%, and a cell
+ * that named only the shade would be describing a solid divider nobody ships.
  *
  * The guidance under each group comes from the content module, never from
  * here: prose changes when the rules change, the table changes when the
@@ -50,10 +53,12 @@ function Reference({
 
   return (
     <span className="inline-flex items-center gap-2">
-      <Swatch hex={resolved.hex} label={`${row.name} ${mode}`} />
-      <Text type="code">
-        {resolved.trackId} {resolved.weight}
-      </Text>
+      <Swatch
+        alpha={resolved.alpha}
+        hex={resolved.hex}
+        label={`${row.name} ${mode}`}
+      />
+      <Text type="code">{describeReference(resolved)}</Text>
     </span>
   );
 }
