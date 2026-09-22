@@ -120,3 +120,218 @@ code {
   );
   background-size: var(--spacing-2) var(--spacing-2);
 }
+
+/* ---------------------------------------------------------------------------
+   The documentation shell.
+
+   Astryx's Layout supplies the five regions; what is written here is the part
+   it leaves open — what sticks, what scrolls, what folds away at a breakpoint,
+   and the two nav columns' own look.
+
+   Every value is a token, with three exceptions the scanner allows and this
+   file should not grow a fourth of: structural widths and heights, which the
+   layout guide names as the one place a raw length belongs; `1px` hairlines;
+   and the `ch` measure below, which is a count of characters rather than a
+   length.
+   --------------------------------------------------------------------------- */
+
+:root {
+  /* Named with `height` so it reads as the structural value it is. */
+  --docs-header-height: 44px;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* So an anchor does not land a heading underneath the fixed header. */
+  scroll-padding-top: calc(var(--docs-header-height) + var(--spacing-5));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ---- header ---- */
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  width: 100%;
+}
+
+.site-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--color-fg-primary);
+  font-weight: 600;
+}
+
+.site-mark-glyph {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-inner);
+  background: var(--color-action-primary);
+}
+
+.site-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+/* ---- left sidebar ---- */
+
+.docs-nav-group {
+  margin-bottom: var(--spacing-3);
+}
+
+.docs-nav-group summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-1) var(--spacing-2);
+  cursor: pointer;
+  list-style: none;
+  color: var(--color-fg-secondary);
+  font-weight: 600;
+}
+
+.docs-nav-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.docs-nav-group summary::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 120ms ease;
+}
+
+.docs-nav-group[open] summary::after {
+  transform: rotate(225deg);
+}
+
+.docs-nav-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.docs-nav a {
+  display: block;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-element);
+  color: var(--color-fg-secondary);
+  text-decoration: none;
+}
+
+.docs-nav a:hover {
+  background: var(--color-surface-subtle);
+  color: var(--color-fg-primary);
+}
+
+.docs-nav a[aria-current="page"] {
+  background: var(--color-surface-raised);
+  color: var(--color-fg-primary);
+  font-weight: 600;
+}
+
+/* ---- content column ---- */
+
+.doc-column {
+  width: 100%;
+  max-width: 768px;
+  margin: 0 auto;
+}
+
+.page-head {
+  padding-bottom: var(--spacing-5);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* ---- right table of contents ---- */
+
+.page-nav-title {
+  margin: 0 0 var(--spacing-2);
+  padding-left: var(--spacing-3);
+  color: var(--color-fg-secondary);
+  font-weight: 600;
+}
+
+.page-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-left: 1px solid var(--color-border-subtle);
+}
+
+.page-nav a {
+  display: block;
+  padding: var(--spacing-1) var(--spacing-3);
+  /* Over the rail, so the marker replaces it rather than sitting beside it. */
+  margin-left: -1px;
+  border-left: 1px solid transparent;
+  color: var(--color-fg-secondary);
+  text-decoration: none;
+}
+
+.page-nav a:hover {
+  color: var(--color-fg-primary);
+}
+
+.page-nav a[aria-current] {
+  border-left-color: var(--color-fg-primary);
+  color: var(--color-fg-primary);
+  font-weight: 600;
+}
+
+/* ---- footer ---- */
+
+.site-footer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-5);
+  width: 100%;
+}
+
+.site-footer-name {
+  color: var(--color-fg-secondary);
+  font-weight: 700;
+}
+
+.site-footer-note {
+  margin: 0;
+  color: var(--color-fg-secondary);
+}
+
+/* ---- what folds away ----
+
+   The on-page nav goes first: it is an aid to a page the reader can still
+   scroll. The site nav goes second, and at that width it is the last thing
+   with a fixed budget, so the content finally gets the screen. */
+
+@media (max-width: 1200px) {
+  .toc-panel {
+    display: none;
+  }
+}
+
+@media (max-width: 800px) {
+  .sidebar-panel {
+    display: none;
+  }
+
+  .site-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-2);
+  }
+}

@@ -1,30 +1,24 @@
-import {
-  SideNav,
-  SideNavItem,
-  SideNavSection,
-} from "@astryxdesign/core/SideNav";
+import { Text } from "@astryxdesign/core/Text";
 import type { DocsRouteGroup } from "@blueprint/ui/docs-routes";
 
 /**
- * The navigation, generated from the route list.
+ * The site navigation, generated from the route list.
  *
- * Never written out by hand, and that is the whole reason it exists as a
- * component rather than as markup in the frame. A sidebar holding its own copy
- * of the routes is a second answer to "what does this site have", and the two
- * answers drift the first time somebody adds a page and edits one of them —
- * which for this site means a client's archive linking to a page it does not
- * contain, or containing one it never mentions.
+ * Never written out by hand, which is why it is a component rather than markup
+ * in the frame. A sidebar holding its own copy of the routes is a second
+ * answer to "what does this site have", and the two drift the first time
+ * somebody adds a page and edits one of them — which for this site means a
+ * client's archive linking to a page it does not contain.
  *
- * It takes the groups rather than fetching them, so what it renders can be
- * tested against a list that has an internal route in it — the real list has
- * none until the studio pages exist, and a test reading that would prove the
- * client build hides the Studio section by describing an empty set. Who gets
- * which rows is `docsRouteGroups`'s decision and is tested where it is made.
+ * It renders what it is handed and decides nothing. Who gets which rows is
+ * `docsRouteGroups`'s call, and is tested where it is made.
  *
- * Plain `href`s rather than Next's `Link`. A handover is opened from a folder
- * over `file://`, and `scripts/handover.ts` rewrites absolute URLs in the
- * exported HTML to relative ones on the way into the archive — which it can do
- * to an anchor's `href` and cannot do to a client-side router's state.
+ * Groups are `<details>`, open by default, so a reader can fold away the
+ * sections they are not in without this needing to be a client component.
+ *
+ * Plain anchors rather than a router link: a handover is opened from a folder
+ * over `file://`, and the relativiser in `scripts/handover.ts` can rewrite an
+ * `href` and cannot rewrite a client-side router's state.
  *
  * See docs/roadmap/studio-guide.md.
  */
@@ -38,19 +32,28 @@ interface DocsNavProps {
 
 export function DocsNav({ groups, currentPath }: DocsNavProps) {
   return (
-    <SideNav>
+    <nav aria-label="Documentation" className="docs-nav">
       {groups.map((entry) => (
-        <SideNavSection key={entry.group} title={entry.group}>
-          {entry.routes.map((route) => (
-            <SideNavItem
-              href={`/${route.path}`}
-              isSelected={route.path === currentPath}
-              key={route.path}
-              label={route.label}
-            />
-          ))}
-        </SideNavSection>
+        <details className="docs-nav-group" key={entry.group} open>
+          <summary>
+            <Text type="label" weight="semibold">
+              {entry.group}
+            </Text>
+          </summary>
+          <ul>
+            {entry.routes.map((route) => (
+              <li key={route.path}>
+                <a
+                  aria-current={route.path === currentPath ? "page" : undefined}
+                  href={`/${route.path}`}
+                >
+                  <Text type="label">{route.label}</Text>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </details>
       ))}
-    </SideNav>
+    </nav>
   );
 }

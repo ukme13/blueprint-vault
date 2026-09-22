@@ -155,3 +155,65 @@ shortening; they are the whole heading now. And the edit that fixed it did not
 apply — a script reported success without asserting its replacement had
 matched, and the archive was rebuilt twice before the old slugs in the output
 gave it away. A patch that cannot fail is a patch that cannot be trusted.
+
+## Rebuilt against a reference file
+
+A complete HTML layout came with the next request: fixed header, three
+columns, sticky sidebar and table of contents, footer, and a scroll spy. The
+file said what to do with it — "replace the values in `:root` with your own
+design system tokens" — which is most of the work, because this application
+forbids every value that file is made of.
+
+Astryx's `Layout` already has the five regions, so the shell is its slots
+rather than a grid written by hand. What went into `globals.css` is the part
+`Layout` leaves open: what sticks, what scrolls, what folds away at 1200 and
+at 800, and the two nav columns' own look.
+
+Three kinds of raw length survived translation, and the file should not grow a
+fourth. Structural widths and heights, which the layout guide names as the one
+place a raw length belongs and the scanner exempts. `1px` hairlines. And a
+`ch` measure, which is a count of characters rather than a length.
+
+## Three things the tests caught that reading would not have
+
+**`0px` is a length even when it is not.** The scroll spy's observer margin was
+`-20% 0px -70% 0px`, straight from the reference. The scanner reported it, and
+it was right to: the rule is that this application writes no lengths, and an
+exception for "but this one is a viewport share" is how an empty allowlist
+stops being empty. It is percentages throughout now, zeros included.
+
+**Two type tokens did not exist.** `--font-size-label` and
+`--font-size-caption` are the sort of name a design system ought to have, and
+this one does not — its type scale is numbered steps, because that is what the
+workspace generates. `findUndefinedCssVars` caught both.
+
+The fix is better than the names would have been. The nav labels take their
+size from Astryx `Text`, so the chrome asks the theme rather than naming a
+token — which matters more than it looks, because these pages are a template
+over _any_ client's workspace and a client's scale is not ours.
+
+**There was no `main` landmark.** Found by a test that could not select one: a
+header, two navs and a footer, and no way for a screen-reader user to skip to
+the content. `LayoutContent` takes `role` and `label` and now gets both.
+
+## The scroll spy, and what its test asserts
+
+`IntersectionObserver` over the section elements, in the frame's only client
+component. The ids are in the HTML and the links are anchors, so with no
+JavaScript every link still works and only the highlight is missing — the
+right thing to lose first, and what a reader in a handover folder depends on.
+
+The test asserts the marker moves _forward_ rather than that it lands on a
+named section. The first version asserted the last section and failed while
+the column was behaving correctly: which section is current at the bottom of a
+page depends on how tall the last one is and where the observer's band falls
+across it. Both real, neither anything to do with whether the spy works.
+
+## A repeat of yesterday's mistake
+
+A `split().join()` over a selector did not match, because Prettier had wrapped
+the line since it was written. Reported success, changed nothing, and cost two
+runs to find — the second time in two days that a patch without an assertion
+has lied about its own result. The rule is now simple enough to keep: a
+replacement asserts it matched, every time, including the ones that are
+obviously fine.
