@@ -11,6 +11,7 @@ import {
   designSystemFiles,
   DESIGN_SYSTEM_FILE_NAMES,
 } from "./design-system-files";
+import { clientRoutePaths } from "./docs-routes";
 
 /**
  * Everything a client is handed, as files.
@@ -207,12 +208,14 @@ export const HANDOVER_PAGES_DIR = "pages";
  * `output: "export"` has no way to skip a route, so everything under `app/`
  * is built either way. What this decides is what crosses into the archive.
  *
+ * Derived from `DOCS_ROUTES` rather than listed again, because the nav and
+ * the home page are built from the same rows. Two lists would let a page be
+ * navigable and absent, or present and unreachable, and the first anybody
+ * would hear of it is a client clicking a link in a folder.
+ *
  * See docs/roadmap/studio-guide.md.
  */
-export const HANDOVER_ROUTES: readonly string[] = [
-  "foundations",
-  "docs/button",
-];
+export const HANDOVER_ROUTES: readonly string[] = clientRoutePaths();
 
 /**
  * The parts of an exported build that are not a route.

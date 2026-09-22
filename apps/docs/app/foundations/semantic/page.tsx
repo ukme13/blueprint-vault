@@ -22,6 +22,7 @@ export default function SemanticFoundationPage() {
 
   return (
     <FoundationsFrame
+      path="foundations/semantic"
       summary="A role says when to use a colour, not what it is. Each one points at a palette shade, once per mode."
       title="Semantic tokens"
     >

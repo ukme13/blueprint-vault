@@ -25,6 +25,7 @@ export default function SpacingFoundationPage() {
 
   return (
     <FoundationsFrame
+      path="foundations/spacing"
       summary={`The rhythm ${project.name} lays out on, and the names a developer installs it under.`}
       title="Spacing"
     >

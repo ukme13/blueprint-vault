@@ -21,6 +21,7 @@ export default function ColourFoundationPage() {
 
   return (
     <FoundationsFrame
+      path="foundations/colour"
       summary={`Every colour ${project.name} generates, and the names a developer installs them under.`}
       title="Colour"
     >

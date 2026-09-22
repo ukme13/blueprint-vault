@@ -56,6 +56,7 @@ export default function TypographyFoundationPage() {
        an empty page or a crashed build. */
     return (
       <FoundationsFrame
+        path="foundations/typography"
         summary="This workspace has no type system yet."
         title="Typography"
       >
@@ -94,6 +95,7 @@ export default function TypographyFoundationPage() {
 
   return (
     <FoundationsFrame
+      path="foundations/typography"
       summary={`The type scale ${project.name} generates, what each role is for, and the names a developer installs them under.`}
       title="Typography"
     >
