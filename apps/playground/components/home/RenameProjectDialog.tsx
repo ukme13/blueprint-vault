@@ -33,7 +33,7 @@ export function RenameProjectDialog({
   return (
     <Dialog
       isOpen={isOpen}
-      purpose="form"
+      purpose="info"
       width={440}
       onOpenChange={onOpenChange}
     >

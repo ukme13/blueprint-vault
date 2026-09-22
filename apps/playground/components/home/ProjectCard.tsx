@@ -120,13 +120,17 @@ export function ProjectCard({
       </div>
       <div className={styles.cardContent}>
         <h2>
-          <Link className={styles.cardLink} href={href} onClick={onOpen}>
+          <Link
+            aria-current={isCurrent ? "page" : undefined}
+            className={styles.cardLink}
+            href={href}
+            onClick={onOpen}
+          >
             <span aria-hidden className={styles.cardLinkHitArea} />
             {title}
           </Link>
         </h2>
         <p>
-          {isCurrent ? "Current · " : null}
           {familyCountLabel(familyCount)}
           {editedText ? ` · ${editedText}` : null}
         </p>

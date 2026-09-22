@@ -19,7 +19,7 @@ async function downloadReport(page: Page, format: string) {
   if (!(await preview.isVisible())) {
     await page.getByRole("button", { name: "Export palette" }).click();
   }
-  await page.getByRole("button", { name: format }).click();
+  await page.getByRole("button", { name: format, exact: true }).click();
   await expect(
     page.getByRole("region", { name: "Export preview" }),
   ).toBeVisible();
@@ -41,7 +41,7 @@ test.describe("The accessibility report", () => {
     await page.getByRole("button", { name: "Export palette" }).click();
 
     await expect(
-      page.getByRole("button", { name: "Report (Markdown)" }),
+      page.getByRole("button", { name: "Report", exact: true }),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Report (JSON)" }),
@@ -57,14 +57,14 @@ test.describe("The accessibility report", () => {
     await page.getByRole("button", { name: "Export palette" }).click();
     await expect(page.getByLabel("Export colour format")).toBeVisible();
 
-    await page.getByRole("button", { name: "Report (Markdown)" }).click();
+    await page.getByRole("button", { name: "Report", exact: true }).click();
     await expect(page.getByLabel("Export colour format")).toBeHidden();
   });
 
   test("downloads a Markdown report with every section", async ({
     seededPage: page,
   }) => {
-    const { filename, text } = await downloadReport(page, "Report (Markdown)");
+    const { filename, text } = await downloadReport(page, "Report");
 
     expect(filename).toMatch(/-accessibility\.md$/);
     expect(text).toContain("# Accessibility report");
@@ -79,7 +79,7 @@ test.describe("The accessibility report", () => {
   }) => {
     /* The rule the plan sets: a report whose method is unstated cannot be
        checked once the formulas underneath it change. */
-    const { text } = await downloadReport(page, "Report (Markdown)");
+    const { text } = await downloadReport(page, "Report");
 
     expect(text).toContain("WCAG 2.2");
     expect(text).toContain("Machado, Oliveira and Fernandes (2009)");
@@ -89,7 +89,7 @@ test.describe("The accessibility report", () => {
   test("names the pairs that collapse for some people", async ({
     seededPage: page,
   }) => {
-    const { text } = await downloadReport(page, "Report (Markdown)");
+    const { text } = await downloadReport(page, "Report");
 
     expect(text).toContain("Success and error");
     expect(text).toMatch(/Collapses/);
@@ -150,7 +150,7 @@ test.describe("The accessibility report", () => {
   }) => {
     /* Two formats of one report, not two reports. If these ever disagree the
        Markdown is being built from something other than the JSON's source. */
-    const markdown = await downloadReport(page, "Report (Markdown)");
+    const markdown = await downloadReport(page, "Report");
     const json = JSON.parse((await downloadReport(page, "Report (JSON)")).text);
 
     for (const check of json.colour.textChecks) {

@@ -107,9 +107,18 @@
   list-style: none;
 }
 
+/* The grid item is the li, and it already stretches to the tallest card in
+   its row. The card inside sizes to its own content unless it is told to
+   fill, which is what left a card with a shorter caption stopping short of
+   its neighbours. */
+.grid > li {
+  display: flex;
+}
+
 .card {
   position: relative;
   display: flex;
+  flex: 1;
   flex-direction: column;
   min-width: 0;
   padding: 0;
@@ -218,6 +227,7 @@
 
 .cardContent {
   display: grid;
+  align-content: start;
   gap: 4px;
   padding: 14px 16px 16px;
 }

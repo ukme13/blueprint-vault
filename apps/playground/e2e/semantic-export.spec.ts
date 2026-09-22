@@ -61,7 +61,7 @@ test.describe("The design system export", () => {
   test("reports the semantic pairs in both modes", async ({
     seededPage: page,
   }) => {
-    const markdown = await download(page, "Report (Markdown)");
+    const markdown = await download(page, "Report");
 
     expect(markdown).toContain("## Semantic tokens");
     expect(markdown).toContain("fg.primary");
