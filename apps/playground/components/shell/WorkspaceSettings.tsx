@@ -48,7 +48,7 @@ export function WorkspaceSettingsDialog({
   return (
     <Dialog
       isOpen={isOpen}
-      purpose="form"
+      purpose="info"
       width={420}
       onOpenChange={onOpenChange}
     >

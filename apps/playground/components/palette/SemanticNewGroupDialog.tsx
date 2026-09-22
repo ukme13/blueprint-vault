@@ -45,7 +45,7 @@ export function SemanticNewGroupDialog({
   return (
     <Dialog
       isOpen={isOpen}
-      purpose="form"
+      purpose="info"
       width={400}
       onOpenChange={handleOpenChange}
     >

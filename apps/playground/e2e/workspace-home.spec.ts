@@ -246,6 +246,49 @@ test.describe("Workspace home", () => {
     expect(Math.abs(mosaicBox!.width - cardBox!.width)).toBeLessThanOrEqual(3);
   });
 
+  test("every card fills its row, even when one caption runs long", async ({
+    page,
+  }) => {
+    await createWorkspaceFromHome(page, "First system");
+    await page.goto("/");
+    /* Duplicate rather than create: it stays on Home, so the second card
+       arrives without another round trip through a studio. */
+    await page.getByRole("button", { name: "Duplicate First system" }).click();
+
+    const cards = page.locator("ul li > div");
+    await expect(cards).toHaveCount(2);
+
+    /* Force the condition the rule exists for: one caption tall enough to
+       stretch the row. Without it both cards are the same height anyway and
+       the assertion would prove nothing. */
+    await page.evaluate(() => {
+      const caption = document.querySelector("ul li p");
+      if (!caption) throw new Error("no caption to lengthen");
+      caption.textContent = `${caption.textContent} ${"long ".repeat(40)}`;
+    });
+
+    const heights = await cards.evaluateAll((nodes) =>
+      nodes.map((node) => Math.round(node.getBoundingClientRect().height)),
+    );
+    expect(new Set(heights).size).toBe(1);
+  });
+
+  test("the current card is marked for a reader, not spelled out", async ({
+    page,
+  }) => {
+    await createWorkspaceFromHome(page, "First system");
+    await page.goto("/");
+
+    const card = page.locator("li").filter({ hasText: "First system" });
+    /* The accent outline says "current" to anyone who can see it; this keeps
+       the same fact available to anyone who cannot. */
+    await expect(card.getByRole("link")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
+    await expect(page.getByText("Current ·")).toHaveCount(0);
+  });
+
   test("exports a project directly from the card", async ({ page }) => {
     await createWorkspaceFromHome(page, "Exportable system");
     await page.goto("/");

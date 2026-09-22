@@ -46,9 +46,11 @@ function PresetSwatches({ preset }: { preset: WorkspacePreset }) {
 /**
  * Name + Blueprint seed, without leaving Home.
  *
- * `purpose="form"` so a click on the backdrop does not dump the name. Create
- * still lands on the colour bench; this dialog is only the door. It always
- * adds a card — it never replaces another workspace.
+ * `purpose="info"` so the backdrop closes it. The guard `form` gives is
+ * against losing typed input, and what is typed here is a name and a choice
+ * of preset, both a second's work to redo. Create still lands on the colour
+ * bench; this dialog is only the door. It always adds a card — it never
+ * replaces another workspace.
  */
 export function NewProjectDialog({
   error,
@@ -72,7 +74,7 @@ export function NewProjectDialog({
   return (
     <Dialog
       isOpen={isOpen}
-      purpose="form"
+      purpose="info"
       width={440}
       onOpenChange={onOpenChange}
     >
