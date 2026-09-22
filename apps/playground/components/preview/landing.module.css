@@ -237,6 +237,16 @@
   opacity: 0.35;
 }
 
+.illustration {
+  width: 100%;
+  height: auto;
+  display: block;
+  aspect-ratio: 1200 / 896;
+  /* The outlines are drawn with currentColor, so name the ink here rather
+     than relying on whatever the band happens to inherit. */
+  color: var(--color-fg-primary);
+}
+
 .quote {
   padding-block: 0;
 }
