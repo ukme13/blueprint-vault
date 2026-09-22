@@ -188,10 +188,10 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     }
 
     if (collapsed) {
-      // Delay unmounting expanded chrome until width transition completes (240ms)
+      // Delay unmounting expanded chrome until fade-out completes (190ms)
       const timer = window.setTimeout(() => {
         setIsNavCollapsed(true);
-      }, 240);
+      }, 190);
       return () => window.clearTimeout(timer);
     } else {
       // Mount expanded chrome immediately so it fades in with the width

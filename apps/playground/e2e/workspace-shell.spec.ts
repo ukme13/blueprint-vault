@@ -132,7 +132,7 @@ test.describe("Workspace shell", () => {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   });
 
-  test("studio rail icons share the SideNav lg size", async ({ page }) => {
+  test("studio rail icons share the SideNav md size", async ({ page }) => {
     await createWorkspaceFromHome(page);
     await expect(
       page.getByRole("region", { name: "Palette toolbar" }),
@@ -153,8 +153,8 @@ test.describe("Workspace shell", () => {
 
     expect(sizes.length).toBeGreaterThanOrEqual(5);
     expect(new Set(sizes.map((size) => `${size.w}x${size.h}`)).size).toBe(1);
-    expect(sizes[0]!.w).toBe(24);
-    expect(sizes[0]!.h).toBe(24);
+    expect(sizes[0]!.w).toBe(20);
+    expect(sizes[0]!.h).toBe(20);
   });
 
   test("collapsed rail keeps accessible studio names", async ({ page }) => {
@@ -181,15 +181,15 @@ test.describe("Workspace shell", () => {
     await expect(editBtn).toBeVisible();
     const editSvg = editBtn.locator("svg");
     const editBox = await editSvg.boundingBox();
-    expect(Math.round(editBox!.width)).toBe(24);
-    expect(Math.round(editBox!.height)).toBe(24);
+    expect(Math.round(editBox!.width)).toBe(20);
+    expect(Math.round(editBox!.height)).toBe(20);
 
     const themeBtn = page.getByRole("button", { name: "Theme" });
     await expect(themeBtn).toBeVisible();
     const themeSvg = themeBtn.locator("svg");
     const themeBox = await themeSvg.boundingBox();
-    expect(Math.round(themeBox!.width)).toBe(24);
-    expect(Math.round(themeBox!.height)).toBe(24);
+    expect(Math.round(themeBox!.width)).toBe(20);
+    expect(Math.round(themeBox!.height)).toBe(20);
 
     const editColor = await editBtn.evaluate(
       (el) => getComputedStyle(el).color,

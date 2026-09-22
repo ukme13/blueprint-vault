@@ -67,7 +67,7 @@ export function WorkspaceNameField({
     return (
       <IconButton
         className={styles.collapsedEditButton}
-        icon={<Icon icon={Pencil} size="lg" />}
+        icon={<Icon icon={Pencil} size="md" />}
         label="Edit project name"
         tooltip="Edit project name"
         variant="ghost"
