@@ -452,10 +452,22 @@
           "$value": "{palette.primary.600}"
         },
         "primary-surface": {
-          "$value": "{palette.primary.50}"
+          "$value": "#f2ebfd1f",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.primary.50}",
+              "alpha": 0.12
+            }
+          }
         },
         "primary-surface-hover": {
-          "$value": "{palette.primary.100}"
+          "$value": "#e3d8f42e",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.primary.100}",
+              "alpha": 0.18
+            }
+          }
         },
         "primary-fg": {
           "$value": "{palette.primary.900}"
@@ -473,10 +485,22 @@
           "$value": "{palette.secondary.600}"
         },
         "secondary-surface": {
-          "$value": "{palette.secondary.50}"
+          "$value": "#def4f01f",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.secondary.50}",
+              "alpha": 0.12
+            }
+          }
         },
         "secondary-surface-hover": {
-          "$value": "{palette.secondary.100}"
+          "$value": "#c3e7e12e",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.secondary.100}",
+              "alpha": 0.18
+            }
+          }
         },
         "secondary-fg": {
           "$value": "{palette.secondary.900}"
@@ -497,10 +521,22 @@
           "$value": "{palette.neutral.850}"
         },
         "neutral-surface": {
-          "$value": "{palette.neutral.50}"
+          "$value": "#eaf0ec1f",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.neutral.50}",
+              "alpha": 0.12
+            }
+          }
         },
         "neutral-surface-hover": {
-          "$value": "{palette.neutral.100}"
+          "$value": "#dae0dc2e",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.neutral.100}",
+              "alpha": 0.18
+            }
+          }
         },
         "neutral-fg": {
           "$value": "{palette.neutral.850}"
@@ -520,7 +556,13 @@
           "$value": "{palette.primary.100}"
         },
         "overlay": {
-          "$value": "{palette.neutral.25}"
+          "$value": "#f2f9f4f5",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.neutral.25}",
+              "alpha": 0.96
+            }
+          }
         },
         "skeleton": {
           "$value": "{palette.neutral.200}"
@@ -534,7 +576,13 @@
           "$value": "{palette.neutral.450}"
         },
         "subtle": {
-          "$value": "{palette.neutral.300}"
+          "$value": "#9d9f9d1f",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.neutral.300}",
+              "alpha": 0.12
+            }
+          }
         },
         "muted": {
           "$value": "{palette.neutral.200}"
@@ -551,7 +599,13 @@
           "$value": "{palette.neutral.650}"
         },
         "disabled": {
-          "$value": "{palette.neutral.500}"
+          "$value": "#62646273",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.neutral.500}",
+              "alpha": 0.45
+            }
+          }
         },
         "accent": {
           "$value": "{palette.primary.600}"
@@ -594,10 +648,22 @@
           "$value": "{palette.success.600}"
         },
         "success-surface": {
-          "$value": "{palette.success.50}"
+          "$value": "#e6f3e51f",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.success.50}",
+              "alpha": 0.12
+            }
+          }
         },
         "success-surface-hover": {
-          "$value": "{palette.success.100}"
+          "$value": "#d1e4d02e",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.success.100}",
+              "alpha": 0.18
+            }
+          }
         },
         "success-fg": {
           "$value": "{palette.success.900}"
@@ -615,10 +681,22 @@
           "$value": "{palette.warning.550}"
         },
         "warning-surface": {
-          "$value": "{palette.warning.50}"
+          "$value": "#faecdd1f",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.warning.50}",
+              "alpha": 0.12
+            }
+          }
         },
         "warning-surface-hover": {
-          "$value": "{palette.warning.100}"
+          "$value": "#f0dac22e",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.warning.100}",
+              "alpha": 0.18
+            }
+          }
         },
         "warning-fg": {
           "$value": "{palette.warning.900}"
@@ -636,10 +714,22 @@
           "$value": "{palette.error.600}"
         },
         "error-surface": {
-          "$value": "{palette.error.50}"
+          "$value": "#ffe9e41f",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.error.50}",
+              "alpha": 0.12
+            }
+          }
         },
         "error-surface-hover": {
-          "$value": "{palette.error.100}"
+          "$value": "#f9d4cd2e",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.error.100}",
+              "alpha": 0.18
+            }
+          }
         },
         "error-fg": {
           "$value": "{palette.error.900}"
@@ -657,10 +747,22 @@
           "$value": "{palette.info.600}"
         },
         "info-surface": {
-          "$value": "{palette.info.50}"
+          "$value": "#e3f0fd1f",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.info.50}",
+              "alpha": 0.12
+            }
+          }
         },
         "info-surface-hover": {
-          "$value": "{palette.info.100}"
+          "$value": "#cce1f52e",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.info.100}",
+              "alpha": 0.18
+            }
+          }
         },
         "info-fg": {
           "$value": "{palette.info.900}"
@@ -682,10 +784,22 @@
           "$value": "{palette.primary.350}"
         },
         "primary-surface": {
-          "$value": "{palette.primary.950}"
+          "$value": "#01000229",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.primary.950}",
+              "alpha": 0.16
+            }
+          }
         },
         "primary-surface-hover": {
-          "$value": "{palette.primary.900}"
+          "$value": "#05010d38",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.primary.900}",
+              "alpha": 0.22
+            }
+          }
         },
         "primary-fg": {
           "$value": "{palette.primary.100}"
@@ -703,10 +817,22 @@
           "$value": "{palette.secondary.350}"
         },
         "secondary-surface": {
-          "$value": "{palette.secondary.950}"
+          "$value": "#00010129",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.secondary.950}",
+              "alpha": 0.16
+            }
+          }
         },
         "secondary-surface-hover": {
-          "$value": "{palette.secondary.900}"
+          "$value": "#00050438",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.secondary.900}",
+              "alpha": 0.22
+            }
+          }
         },
         "secondary-fg": {
           "$value": "{palette.secondary.100}"
@@ -727,10 +853,22 @@
           "$value": "{palette.neutral.150}"
         },
         "neutral-surface": {
-          "$value": "{palette.neutral.950}"
+          "$value": "#00010029",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.neutral.950}",
+              "alpha": 0.16
+            }
+          }
         },
         "neutral-surface-hover": {
-          "$value": "{palette.neutral.900}"
+          "$value": "#00050238",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.neutral.900}",
+              "alpha": 0.22
+            }
+          }
         },
         "neutral-fg": {
           "$value": "{palette.neutral.100}"
@@ -750,7 +888,13 @@
           "$value": "{palette.primary.850}"
         },
         "overlay": {
-          "$value": "{palette.neutral.950}"
+          "$value": "#000100eb",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.neutral.950}",
+              "alpha": 0.92
+            }
+          }
         },
         "skeleton": {
           "$value": "{palette.neutral.800}"
@@ -764,7 +908,13 @@
           "$value": "{palette.neutral.500}"
         },
         "subtle": {
-          "$value": "{palette.neutral.650}"
+          "$value": "#373c3829",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.neutral.650}",
+              "alpha": 0.16
+            }
+          }
         },
         "muted": {
           "$value": "{palette.neutral.750}"
@@ -781,7 +931,13 @@
           "$value": "{palette.neutral.300}"
         },
         "disabled": {
-          "$value": "{palette.neutral.450}"
+          "$value": "#73737380",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.neutral.450}",
+              "alpha": 0.5
+            }
+          }
         },
         "accent": {
           "$value": "{palette.primary.400}"
@@ -824,10 +980,22 @@
           "$value": "{palette.success.350}"
         },
         "success-surface": {
-          "$value": "{palette.success.950}"
+          "$value": "#00010029",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.success.950}",
+              "alpha": 0.16
+            }
+          }
         },
         "success-surface-hover": {
-          "$value": "{palette.success.900}"
+          "$value": "#00050038",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.success.900}",
+              "alpha": 0.22
+            }
+          }
         },
         "success-fg": {
           "$value": "{palette.success.100}"
@@ -845,10 +1013,22 @@
           "$value": "{palette.warning.400}"
         },
         "warning-surface": {
-          "$value": "{palette.warning.950}"
+          "$value": "#02000029",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.warning.950}",
+              "alpha": 0.16
+            }
+          }
         },
         "warning-surface-hover": {
-          "$value": "{palette.warning.900}"
+          "$value": "#09020038",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.warning.900}",
+              "alpha": 0.22
+            }
+          }
         },
         "warning-fg": {
           "$value": "{palette.warning.100}"
@@ -866,10 +1046,22 @@
           "$value": "{palette.error.350}"
         },
         "error-surface": {
-          "$value": "{palette.error.950}"
+          "$value": "#02000029",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.error.950}",
+              "alpha": 0.16
+            }
+          }
         },
         "error-surface-hover": {
-          "$value": "{palette.error.900}"
+          "$value": "#0d000038",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.error.900}",
+              "alpha": 0.22
+            }
+          }
         },
         "error-fg": {
           "$value": "{palette.error.100}"
@@ -887,10 +1079,22 @@
           "$value": "{palette.info.350}"
         },
         "info-surface": {
-          "$value": "{palette.info.950}"
+          "$value": "#00000329",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.info.950}",
+              "alpha": 0.16
+            }
+          }
         },
         "info-surface-hover": {
-          "$value": "{palette.info.900}"
+          "$value": "#00030d38",
+          "$extensions": {
+            "co.designally.blueprint": {
+              "reference": "{palette.info.900}",
+              "alpha": 0.22
+            }
+          }
         },
         "info-fg": {
           "$value": "{palette.info.100}"

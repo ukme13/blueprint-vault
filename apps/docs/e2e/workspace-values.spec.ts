@@ -51,6 +51,39 @@ test("semantic: a role points where the file says", async ({ page }) => {
   await expect(row).toContainText(`${role.dark.trackId} ${role.dark.weight}`);
 });
 
+test("semantic: a transparent role says how transparent", async ({ page }) => {
+  /* The whole path, on one role: the file carries an alpha, the reader keeps
+     it, the resolver hands it on and the cell says it. Until the workspace
+     moved to version 8 there was no such role in this repository, so every
+     part of that could have been wrong and every test still passed.
+
+     Read out of the JSON and turned into a percentage here rather than asked
+     of `alphaPercent`, for the reason at the top of this file: an expectation
+     computed by the function under test agrees with it for the wrong reason. */
+  const role = workspace.semantics.find(
+    (token) => token.id === "border.subtle",
+  )!;
+  expect(
+    role.light.alpha,
+    "border.subtle carries no alpha; this test has nothing to check",
+  ).toBeLessThan(1);
+
+  await page.goto("/foundations/semantic");
+
+  const row = page.locator("tr", {
+    has: page.getByText("--color-border-subtle", { exact: true }),
+  });
+  await expect(row).toContainText(
+    `${role.light.trackId} ${role.light.weight} at ${role.light.alpha! * 100}%`,
+  );
+  await expect(row).toContainText(
+    `${role.dark.trackId} ${role.dark.weight} at ${role.dark.alpha! * 100}%`,
+  );
+
+  /* And it is drawn as transparent, not merely described as it. */
+  await expect(row.locator("[data-transparent]").first()).toBeVisible();
+});
+
 test("typography: the scale's base and ratio reach the table", async ({
   page,
 }) => {

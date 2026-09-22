@@ -29,8 +29,8 @@ export interface ReferenceWorkspace {
   semantics: Array<{
     id: string;
     name: string;
-    light: { trackId: string; weight: number };
-    dark: { trackId: string; weight: number };
+    light: { trackId: string; weight: number; alpha?: number };
+    dark: { trackId: string; weight: number; alpha?: number };
   }>;
   spacing: { baseUnitPx: number; density?: number; steps: number[] };
   radius: {
