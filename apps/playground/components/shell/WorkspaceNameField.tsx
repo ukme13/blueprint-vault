@@ -12,6 +12,7 @@ import {
   workspaceHasStudios,
 } from "@blueprint/ui";
 import styles from "./shell-name.module.css";
+import { RAIL_MOTION } from "./rail-motion";
 
 export interface WorkspaceNameFieldProps {
   collapsed?: boolean;
@@ -48,7 +49,9 @@ export function WorkspaceNameField({
         typeof window !== "undefined" &&
         window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-      const delay = prefersReduced ? 0 : 240;
+      // Focus once the rail has finished opening, so the caret does not land
+      // in a field that is still sliding.
+      const delay = prefersReduced ? 0 : RAIL_MOTION.DURATION_MS;
       const timer = window.setTimeout(() => {
         inputRef.current?.focus({ preventScroll: true });
         inputRef.current?.select();

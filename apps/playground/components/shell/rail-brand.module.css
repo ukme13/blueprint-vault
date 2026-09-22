@@ -1,7 +1,7 @@
 .brandContainer {
   width: 100%;
   min-width: 0;
-  height: 36px;
+  height: var(--rail-row-height, 36px);
   display: flex;
   align-items: center;
   overflow: hidden;
@@ -10,9 +10,9 @@
 .brandRow {
   width: 100%;
   min-width: 0;
-  width: 244px;
-  min-width: 244px;
-  height: 36px;
+  width: var(--rail-inner-width, 244px);
+  min-width: var(--rail-inner-width, 244px);
+  height: var(--rail-row-height, 36px);
 }
 
 .homeLink {
@@ -20,7 +20,7 @@
   align-items: center;
   gap: 0;
   min-width: 0;
-  height: 36px;
+  height: var(--rail-row-height, 36px);
   /* 8px puts the monogram at x = 16 inside the rail, the same spot the
      collapsed trigger and the collapsed edit pencil draw their glyph, so the
      B does not shift when the rail opens or closes. */
@@ -84,8 +84,8 @@
 }
 
 .collapsedTrigger {
-  height: 36px !important;
-  width: 36px !important;
+  height: var(--rail-row-height, 36px) !important;
+  width: var(--rail-row-height, 36px) !important;
   /* Left-align the glyph at 8px rather than centring the 19px-wide B, so its
      x matches the expanded link's 8px padding exactly. */
   justify-content: flex-start !important;
@@ -94,10 +94,12 @@
   margin-inline-start: 0;
 }
 
-/* Astryx Button nests the icon in centring spans; start-align the whole chain. */
+/* Astryx Button centres the icon inside a nested flex span, which leaves the
+   19.125px-wide B half a pixel off the button's 8px padding. Start-align that
+   span so the mark lands on the same column in both rail states. CSS modules
+   are unlayered here, so this wins over Astryx's layered rules on its own. */
 .collapsedTrigger span {
-  justify-content: flex-start !important;
-  margin-inline-start: 0 !important;
+  justify-content: flex-start;
 }
 
 .collapsedTrigger :global(.astryx-icon),
