@@ -59,6 +59,13 @@ export function PageNav({ headings }: PageNavProps) {
 
   if (headings.length === 0) return null;
 
+  /* The first section until the observer says otherwise. At the top of a page
+     the title and the lead fill the band this watches, so nothing intersects
+     it and nothing was marked — a column of links with no current one, on the
+     one screen where a reader can be certain where they are. Falling back to
+     the first is what a reader would assume anyway. */
+  const active = current ?? headingSlug(headings[0]!);
+
   return (
     <nav aria-label="On this page" className="page-nav">
       <p className="page-nav-title">
@@ -72,7 +79,7 @@ export function PageNav({ headings }: PageNavProps) {
           return (
             <li key={heading}>
               <a
-                aria-current={id === current ? "true" : undefined}
+                aria-current={id === active ? "true" : undefined}
                 href={`#${id}`}
               >
                 <Text type="label">{heading}</Text>

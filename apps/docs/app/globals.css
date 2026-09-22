@@ -345,7 +345,11 @@ html {
    with a fixed budget, so the content finally gets the screen. */
 
 @media (max-width: 1200px) {
-  .toc-panel {
+  .doc-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .doc-toc {
     display: none;
   }
 }
@@ -397,17 +401,36 @@ html {
 }
 
 .sidebar-panel,
-.toc-panel {
+.doc-toc {
   position: sticky;
   top: var(--docs-header-height);
   z-index: 1;
   /* Its own scrollbar only once it is taller than the screen beside it, which
-     is what stops a long sidebar taking its last few links off the bottom of
-     the page. */
+     is what stops a long list taking its last few links off the bottom of the
+     page. */
   max-height: calc(100vh - var(--docs-header-height));
   overflow-y: auto;
   overscroll-behavior: contain;
   background: var(--color-surface-base);
+}
+
+/* The reading column and the contents column, side by side inside the content
+   region rather than either side of it.
+
+   The contents used to be a region of its own, which put a hard edge down the
+   page: the footer below could only ever rule off the middle column, and
+   stopped a whole panel's width short of the scrollbar. Inside, the footer
+   spans both, which is what a rule across the bottom of a page should do. */
+.doc-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: var(--spacing-8);
+  align-items: start;
+}
+
+.doc-toc {
+  /* Sticky needs a start edge of its own once it is a grid item. */
+  top: calc(var(--docs-header-height) + var(--spacing-6));
 }
 
 /* A sticky child needs a parent that does not clip it, and Astryx gives the

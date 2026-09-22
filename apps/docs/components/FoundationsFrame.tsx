@@ -66,13 +66,6 @@ export function FoundationsFrame({
 
   return (
     <Layout
-      end={
-        <LayoutPanel className="toc-panel" label="On this page" width={240}>
-          {/* Strings only. A section carries a rendered `body`, and a node
-              cannot cross into a client component. */}
-          <PageNav headings={sections.map((section) => section.heading)} />
-        </LayoutPanel>
-      }
       header={
         <LayoutHeader hasDivider height={56}>
           <SiteHeader />
@@ -93,51 +86,68 @@ export function FoundationsFrame({
       {/* A main landmark, which this frame did without: the content region
           rendered as an unnamed box, so a screen-reader user had a header,
           two navs and a footer with no way to say "skip to the content". */}
-      <LayoutContent label={title} padding={6} role="main">
-        <div className="doc-column">
-          {/* 8 between sections and 4 within, which is 32px and 16px on this
-              scale — the reference's two spacings, and far enough apart that
-              a paragraph break reads as smaller than a section break. The
-              first pass used 24 and 12 and ran the two together. */}
-          <VStack gap={8}>
-            <header className="page-head">
-              <VStack gap={2}>
-                <Heading level={1}>{title}</Heading>
-                <Text as="p" color="secondary" display="block" type="large">
-                  {summary}
-                </Text>
-              </VStack>
-            </header>
+      {/* `isScrollable` off. It defaults on, which makes this region a scroll
+          container — and a sticky element inside a scroll container sticks to
+          that container rather than to the page, so the contents column
+          scrolled away with the text beside it. The page owns the scrollbar
+          here; nothing inside it should own a second one. */}
+      <LayoutContent isScrollable={false} label={title} padding={6} role="main">
+        <div className="doc-body">
+          <div className="doc-column">
+            {/* 8 between sections and 4 within, which is 32px and 16px on this
+                scale — the reference's two spacings, and far enough apart that
+                a paragraph break reads as smaller than a section break. The
+                first pass used 24 and 12 and ran the two together. */}
+            <VStack gap={8}>
+              <header className="page-head">
+                <VStack gap={2}>
+                  <Heading level={1}>{title}</Heading>
+                  <Text as="p" color="secondary" display="block" type="large">
+                    {summary}
+                  </Text>
+                </VStack>
+              </header>
 
-            {sections.map((section) => {
-              const id = headingSlug(section.heading);
-              return (
-                /* The id sits on the section rather than on the heading.
-                   Astryx's Heading takes no id, and a section is the better
-                   anchor anyway — jumping to it lands a reader at the top of
-                   the block rather than on its first line. It is also what the
-                   scroll spy observes. */
-                <section
-                  aria-label={section.heading}
-                  id={id}
-                  key={section.heading}
-                >
-                  <VStack gap={4}>
-                    <Heading level={2}>{section.heading}</Heading>
-                    {(section.paragraphs ?? []).map((paragraph) => (
-                      <Prose key={paragraph}>{paragraph}</Prose>
-                    ))}
-                    {section.body}
-                  </VStack>
-                </section>
-              );
-            })}
-          </VStack>
+              {sections.map((section) => {
+                const id = headingSlug(section.heading);
+                return (
+                  /* The id sits on the section rather than on the heading.
+                     Astryx's Heading takes no id, and a section is the better
+                     anchor anyway — jumping to it lands a reader at the top of
+                     the block rather than on its first line. It is also what the
+                     scroll spy observes. */
+                  <section
+                    aria-label={section.heading}
+                    id={id}
+                    key={section.heading}
+                  >
+                    <VStack gap={4}>
+                      <Heading level={2}>{section.heading}</Heading>
+                      {(section.paragraphs ?? []).map((paragraph) => (
+                        <Prose key={paragraph}>{paragraph}</Prose>
+                      ))}
+                      {section.body}
+                    </VStack>
+                  </section>
+                );
+              })}
+            </VStack>
+          </div>
+
+          {/* Unlabelled: the nav inside carries the landmark and its name,
+              and labelling the wrapper as well puts two "On this page"
+              regions in the accessibility tree. */}
+          <aside className="doc-toc">
+            {/* Strings only. A section carries a rendered `body`, and a node
+                cannot cross into a client component. */}
+            <PageNav headings={sections.map((section) => section.heading)} />
+          </aside>
         </div>
 
-        {/* Outside the reading column on purpose. The column is capped so a
-            line of prose stays readable; a footer is a rule across the page
-            and a capped one stops short of the width it is ruling off. */}
+        {/* Outside both columns. The reading column is capped so a line of
+            prose stays readable and the contents column is a fixed budget; a
+            footer is a rule across the page, and a rule that stops where a
+            column stops is ruling off less than the page. */}
         <SiteFooter groups={groups} />
       </LayoutContent>
     </Layout>

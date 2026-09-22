@@ -80,29 +80,37 @@ test.describe("the shell", () => {
     ).toBeLessThan(2);
   });
 
-  test("rules the footer across more than the reading column", async ({
+  test("rules the footer under both columns, out to the edge", async ({
     page,
   }) => {
-    /* The reading column is capped so a line of prose stays readable. A footer
-       is a rule across the page, and a capped one stops short of the width it
-       is ruling off — so it sits outside the column and spans the region. */
+    /* A footer is a rule across the page. It used to stop where the reading
+       column stopped, then where the contents region began — a whole panel
+       short of the edge either way. Now the contents column is part of the
+       content, so the rule runs under it and ends where it ends. */
     await page.setViewportSize({ width: 1800, height: 900 });
     await page.goto(ROUTE);
 
-    const { column, footer } = await page.evaluate(() => ({
-      column: document.querySelector(".doc-column")!.getBoundingClientRect()
-        .width,
-      footer: document.querySelector(".site-footer")!.getBoundingClientRect()
-        .width,
-    }));
+    const edges = await page.evaluate(() => {
+      const right = (selector: string) =>
+        document.querySelector(selector)!.getBoundingClientRect().right;
+      return {
+        column: right(".doc-column"),
+        toc: right(".doc-toc"),
+        footer: right(".site-footer"),
+      };
+    });
 
-    expect(footer).toBeGreaterThan(column);
+    expect(edges.footer).toBeGreaterThan(edges.column);
+    expect(
+      Math.abs(edges.footer - edges.toc),
+      `footer ends at ${edges.footer}, contents at ${edges.toc}`,
+    ).toBeLessThan(1);
   });
 
   test("scrolls each nav column on its own", async ({ page }) => {
     await page.goto(ROUTE);
 
-    for (const selector of [".sidebar-panel", ".toc-panel"]) {
+    for (const selector of [".sidebar-panel", ".doc-toc"]) {
       const scrolls = await page
         .locator(selector)
         .evaluate((node) => getComputedStyle(node).overflowY);
@@ -118,7 +126,7 @@ test.describe("the shell", () => {
     await page.goto(ROUTE);
 
     const sidebar = page.locator(".sidebar-panel");
-    const toc = page.locator(".toc-panel");
+    const toc = page.locator(".doc-toc");
     const before = [await boxOf(sidebar), await boxOf(toc)];
 
     await page

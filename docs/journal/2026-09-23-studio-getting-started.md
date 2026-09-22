@@ -388,3 +388,43 @@ The centring test passes against the version with the redundant padding rule,
 because that rule was not what fixed anything — which is the test doing its
 job and saying so. It fails against the original, which is the state that
 mattered.
+
+## The contents column joins the content
+
+It was a region of its own, which put a hard edge down the page: the footer
+below it could only ever rule off the middle column, and stopped a whole
+panel's width short of the scrollbar. So the reading column and the contents
+column are now a two-column grid _inside_ the content region, and the footer
+spans both — ending where the contents column ends, 24px from the edge.
+
+That is what the reference did all along. Its footer is `grid-column: 2 / -1`,
+which is the same statement in the same words: a rule across the bottom of a
+page rules off everything above it.
+
+Two things broke on the way, and both were worth the trip.
+
+**`LayoutContent` is a scroll container by default.** `isScrollable` defaults
+to true, and a sticky element inside a scroll container sticks to that
+container rather than to the page — so the contents column scrolled away with
+the text beside it, having stuck perfectly while it was a region of its own.
+The page owns the scrollbar here, so nothing inside it should own a second
+one: `isScrollable={false}`.
+
+That is the third time in this stage that something was sticky-in-name-only
+because of an ancestor's overflow. It is worth stating as the rule it is:
+**sticky is relative to the nearest scrolling ancestor, and a scrolling
+ancestor is easy to acquire by accident.**
+
+**Nothing was marked at the top of a page.** The observer watches a band
+across the upper third of the viewport, and with the page scrolling rather
+than a box, the title and the lead fill that band at rest — so no section
+intersected it and the column showed no current item, on the one screen where
+a reader is most certain where they are.
+
+It falls back to the first heading until the observer says otherwise, which is
+what a reader would assume anyway. A test caught it; a glance would not have,
+because the highlight appears the moment you scroll.
+
+**And one duplicate landmark.** The wrapper had `aria-label="On this page"`
+and so did the nav inside it, which is two regions with one name in the
+accessibility tree. The wrapper is for layout and is unlabelled now.
