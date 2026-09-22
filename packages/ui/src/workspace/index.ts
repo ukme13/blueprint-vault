@@ -1,5 +1,6 @@
 export * from "./library";
 export * from "./palette-project";
+export * from "./presets";
 export * from "./seed-project";
 export * from "./semantics";
 export * from "./store";
