@@ -439,3 +439,13 @@ html {
 .astryx-layout-body {
   overflow: visible;
 }
+
+/* A changelog entry's changes. A list, because that is what they are — the
+   alternative was a run of paragraphs, which reads as one long thought rather
+   than as several separate ones. */
+.changelog-list {
+  margin: 0;
+  padding-left: var(--spacing-5);
+  display: grid;
+  gap: var(--spacing-3);
+}

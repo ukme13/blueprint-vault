@@ -91,6 +91,14 @@ export const INTERNAL_DOCS_ROUTES: readonly DocsRoute[] = [
     audience: "internal",
   },
   {
+    path: "studio/whats-new",
+    label: "What's new",
+    description:
+      "What changed, newest first, badged with the date and the workspace file version current at the time.",
+    group: "Studio",
+    audience: "internal",
+  },
+  {
     path: "studio/guides/export",
     label: "Export and handover",
     description:
