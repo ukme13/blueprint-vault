@@ -3,6 +3,7 @@ import { seedWorkspaceProject } from "../workspace/seed-project";
 import {
   buildHandoverFiles,
   HANDOVER_README,
+  isHandoverPagePath,
   unexpectedHandoverPaths,
 } from "./handover";
 
@@ -144,5 +145,126 @@ describe("what may be in the archive", () => {
       "NOTES.txt",
       "assets/logo.svg",
     ]);
+  });
+
+  it("names a route the documentation grew and nobody declared", () => {
+    /* The other direction, and the one this app is exposed to: apps/docs is
+       built into the archive whole, so a page written for whoever operates
+       the studio reaches the client who was handed the system. Nothing about
+       adding a route to a Next app suggests that it does. */
+    const files = build();
+    const written = [
+      ...files.map((file) => file.path),
+      "pages/foundations/colour/index.html",
+      "pages/studio/index.html",
+      "pages/studio/guides/anchors/index.html",
+    ];
+
+    expect(unexpectedHandoverPaths(written, files)).toEqual([
+      "pages/studio/index.html",
+      "pages/studio/guides/anchors/index.html",
+    ]);
+  });
+});
+
+describe("isHandoverPagePath", () => {
+  it("passes the routes a client is given", () => {
+    for (const path of [
+      "foundations/colour/index.html",
+      "foundations/elevation/__next._tree.txt",
+      "docs/button/index.html",
+    ]) {
+      expect(isHandoverPagePath(path), path).toBe(true);
+    }
+  });
+
+  it("passes the shell every route needs to render", () => {
+    /* The bundle and the two shapes of the 404. Without these the pages open
+       from a folder unstyled, which is the one thing the archive promises. */
+    for (const path of [
+      "_next/static/css/app.css",
+      "_not-found/index.html",
+      "404/index.html",
+    ]) {
+      expect(isHandoverPagePath(path), path).toBe(true);
+    }
+  });
+
+  it("passes a root-level file, which cannot be a route", () => {
+    /* trailingSlash lands every route at <route>/index.html, so a file with
+       no slash in it came from the app root or from public. */
+    for (const path of ["index.html", "404.html", "favicon.ico", "icon.svg"]) {
+      expect(isHandoverPagePath(path), path).toBe(true);
+    }
+  });
+
+  it("refuses a route that is not on the list", () => {
+    for (const path of [
+      "studio/index.html",
+      "studio/guides/export/index.html",
+      "studio/whats-new/index.html",
+    ]) {
+      expect(isHandoverPagePath(path), path).toBe(false);
+    }
+  });
+
+  it("refuses a sibling of an allowed route rather than a prefix match", () => {
+    /* `docs/button` is allowed and `docs` is not, so the check has to be
+       about path segments. A plain startsWith would pass `docs/buttonhole`
+       and, worse, any future `docs/*` page nobody meant to ship. */
+    expect(isHandoverPagePath("docs/buttonhole/index.html")).toBe(false);
+    expect(isHandoverPagePath("docs/getting-started/index.html")).toBe(false);
+    expect(isHandoverPagePath("foundationsx/colour/index.html")).toBe(false);
+  });
+
+  it("refuses an empty path rather than waving it through", () => {
+    expect(isHandoverPagePath("")).toBe(false);
+    expect(isHandoverPagePath("/")).toBe(false);
+  });
+
+  it("refuses a held-back route's compiled chunk, inside the shared bundle", () => {
+    /* The one that was actually shipping. Holding a route's HTML back leaves
+       its component in the bundle at a path that mirrors the route tree, with
+       whatever prose the component holds inlined into it — so the guide was
+       absent from the archive's pages and present in its JavaScript.
+
+       Found by building a throwaway route and looking at the output, not by
+       reading the rule. Nothing about "copy the allowed routes" suggests that
+       `_next` is partly per-route. */
+    expect(
+      isHandoverPagePath("_next/static/chunks/app/studio/page-65e2d04c.js"),
+    ).toBe(false);
+    expect(
+      isHandoverPagePath(
+        "_next/static/chunks/app/studio/guides/export/page-1a2b3c4d.js",
+      ),
+    ).toBe(false);
+  });
+
+  it("keeps the chunks the allowed routes need", () => {
+    for (const path of [
+      "_next/static/chunks/app/foundations/colour/page-ff4a76e2.js",
+      "_next/static/chunks/app/docs/button/layout-4a6a9d53.js",
+      "_next/static/chunks/app/docs/button/page-fb53f044.js",
+    ]) {
+      expect(isHandoverPagePath(path), path).toBe(true);
+    }
+  });
+
+  it("keeps the bundle's own entries, which belong to no route", () => {
+    /* The root route's chunks sit directly under the directory, and Next's
+       internals are named with a leading underscore. Dropping either leaves
+       every page in the archive unstyled or broken, which is a worse failure
+       than the one being guarded against. */
+    for (const path of [
+      "_next/static/chunks/app/layout-9f6b0665.js",
+      "_next/static/chunks/app/page-ca879a08.js",
+      "_next/static/chunks/app/_global-error/page-65e2d04c.js",
+      "_next/static/chunks/app/_not-found/page-275ffd87.js",
+      "_next/static/css/app.css",
+      "_next/static/media/font.woff2",
+    ]) {
+      expect(isHandoverPagePath(path), path).toBe(true);
+    }
   });
 });

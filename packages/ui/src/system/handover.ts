@@ -195,24 +195,114 @@ export function buildHandoverFiles(
 export const HANDOVER_PAGES_DIR = "pages";
 
 /**
+ * The routes a client may receive, as they appear in the exported build.
+ *
+ * An allowlist rather than a list of things to strip, and the difference is
+ * the whole point. The documentation app is not internal — `pnpm handover`
+ * builds it and copies it into the archive — so a route added to it reaches
+ * every client unless something stops it. Stripping is a subtraction somebody
+ * can forget, and the first person to notice a forgotten one is the client.
+ * Declaring is a line somebody has to write, and the build fails until they do.
+ *
+ * `output: "export"` has no way to skip a route, so everything under `app/`
+ * is built either way. What this decides is what crosses into the archive.
+ *
+ * See docs/roadmap/studio-guide.md.
+ */
+export const HANDOVER_ROUTES: readonly string[] = [
+  "foundations",
+  "docs/button",
+];
+
+/**
+ * The parts of an exported build that are not a route.
+ *
+ * The bundle, the not-found route Next always emits, and the two shapes the
+ * 404 takes. Everything else at the top level is a file rather than a
+ * directory — `index.html`, the RSC payloads, the icons out of `public` —
+ * and a file at the top level cannot be a route page, because `trailingSlash`
+ * lands every route at `<route>/index.html`. That invariant is what lets this
+ * list stay short instead of naming every favicon.
+ */
+const HANDOVER_SHELL: readonly string[] = ["_next", "_not-found", "404"];
+
+/**
+ * Where the bundle keeps one route's own compiled code.
+ *
+ * `_next` is shared and would otherwise be waved through whole — and it is
+ * not entirely shared. Under here the build mirrors the route tree, so a route
+ * held out of the archive still ships its component as
+ * `_next/static/chunks/app/<route>/page-<hash>.js`, with whatever prose that
+ * component holds inlined into it. Found by building a throwaway route and
+ * looking, which is the only way anybody was going to find it.
+ */
+const APP_CHUNKS = "_next/static/chunks/app/";
+
+/** Whether a route path is one a client may receive. */
+function isHandoverRoute(route: string): boolean {
+  return HANDOVER_ROUTES.some(
+    (allowed) => route === allowed || route.startsWith(`${allowed}/`),
+  );
+}
+
+/**
+ * Whether one path inside the exported build may go to a client.
+ *
+ * Takes the path relative to the pages directory, which is what both readers
+ * of this rule have: the copy in `scripts/handover.ts`, walking the build
+ * output, and the guard below, walking what was written.
+ */
+export function isHandoverPagePath(path: string): boolean {
+  const clean = path.replace(/^\/+/, "");
+  if (clean === "") return false;
+
+  /* A root-level file. Never a route, per the note on HANDOVER_SHELL. */
+  if (!clean.includes("/")) return true;
+
+  if (clean.startsWith(APP_CHUNKS)) {
+    const rest = clean.slice(APP_CHUNKS.length);
+    /* The root route's own chunks sit directly here, with no route above
+       them. Next's internal entries — `_global-error`, `_not-found` — are
+       named with a leading underscore, which no route of ours is. */
+    if (!rest.includes("/")) return true;
+    const route = rest.slice(0, rest.lastIndexOf("/"));
+    return route.startsWith("_") || isHandoverRoute(route);
+  }
+
+  const top = clean.slice(0, clean.indexOf("/"));
+  if (HANDOVER_SHELL.includes(top)) return true;
+
+  return (
+    isHandoverRoute(clean.slice(0, clean.lastIndexOf("/"))) ||
+    isHandoverRoute(clean)
+  );
+}
+
+/**
  * Anything in a handover that neither the builder nor the docs build made.
  *
- * Empty is the passing state. The risk is a hand-copied file — a favicon, a
- * stray note, a stylesheet somebody dropped into the output directory
- * because it was quicker than adding it to the builder — reaching a client
- * as an artefact no README describes and no test knows about.
+ * Empty is the passing state. Two risks, and they arrive from opposite
+ * directions. One is a hand-copied file — a favicon, a stray note, a
+ * stylesheet somebody dropped into the output directory because it was
+ * quicker than adding it to the builder — reaching a client as an artefact no
+ * README describes. The other is a route: the documentation app grew a studio
+ * guide, the copy that fills the archive was not told about it, and a client
+ * is handed the manual for a tool they do not have.
  *
  * Given what was actually written rather than what was meant to be, so it
- * catches a file the script never mentions. The script lists its own output
- * directory and passes that in; a name that is neither a builder file nor
- * under the pages directory comes back, and the run stops.
+ * catches both. The script lists its own output directory and passes that in;
+ * a name that is neither a builder file nor an allowed page comes back, and
+ * the run stops.
  */
 export function unexpectedHandoverPaths(
   written: readonly string[],
   files: readonly HandoverFile[],
 ): string[] {
   const known = new Set(files.map((file) => file.path));
-  return written.filter(
-    (path) => !known.has(path) && !path.startsWith(`${HANDOVER_PAGES_DIR}/`),
-  );
+  const prefix = `${HANDOVER_PAGES_DIR}/`;
+  return written.filter((path) => {
+    if (known.has(path)) return false;
+    if (!path.startsWith(prefix)) return true;
+    return !isHandoverPagePath(path.slice(prefix.length));
+  });
 }
