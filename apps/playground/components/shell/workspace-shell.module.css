@@ -8,7 +8,18 @@
 .sideNav {
   --rail-expanded-width: 260px;
   --rail-collapsed-width: calc(var(--spacing-12, 48px) + var(--spacing-1, 4px));
+
+  /* Every row in the rail is one height and every expanded container one
+     width, so the chrome cannot jitter as the rail animates. Declared once
+     here and inherited; see the rail-brand and shell-name modules. */
+  --rail-row-height: 36px;
+  --rail-inner-width: 244px;
+
+  /* Motion is owned by rail-motion.ts, which sets --rail-duration,
+     --rail-fade and --rail-ease inline on this element. These are the
+     fallbacks for a render that never got the inline style. */
   --rail-duration: 240ms;
+  --rail-fade: 180ms;
   --rail-ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   width: var(--rail-expanded-width);

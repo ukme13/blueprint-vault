@@ -30,6 +30,7 @@ import {
 } from "@blueprint/ui";
 import { ThemeControl } from "../ThemeControl";
 import { RailBrand } from "./RailBrand";
+import { RAIL_MOTION, railMotionStyle } from "./rail-motion";
 import {
   BlueprintWordmark,
   ColourStudioIcon,
@@ -188,10 +189,11 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     }
 
     if (collapsed) {
-      // Delay unmounting expanded chrome until fade-out completes (190ms)
+      // Unmount the expanded chrome once its fade-out has finished. See
+      // rail-motion.ts for why this sits between the fade and the width.
       const timer = window.setTimeout(() => {
         setIsNavCollapsed(true);
-      }, 190);
+      }, RAIL_MOTION.UNMOUNT_MS);
       return () => window.clearTimeout(timer);
     } else {
       // Mount expanded chrome immediately so it fades in with the width
@@ -262,6 +264,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
             <SideNav
               aria-label="Blueprint workspaces"
               className={styles.sideNav}
+              style={railMotionStyle()}
               data-collapsed={collapsed}
               data-hydrated={isHydrated}
               collapsible={{

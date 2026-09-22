@@ -52,10 +52,15 @@ We absolutely DO NOT use standard Tailwind raw utility colors (e.g., `bg-orange-
    individually so the bundle tree-shakes:
    `import { ChevronDown } from "lucide-react";` — never a namespace import.
 
-   Not yet a direct dependency. It resolves today only as a transitive
-   dependency of `@astryxdesign/theme-neutral` (1.23.0 in the lockfile; 1.37.0
-   is current). Add it explicitly to the workspace that imports it before
-   writing the first icon, rather than relying on another package's tree.
+   A direct dependency of `apps/playground`, pinned exactly at `1.38.0` rather
+   than to a range. Around twenty components import it. Any other workspace
+   that wants an icon declares its own dependency instead of relying on the
+   playground's or on the transitive copy under `@astryxdesign/theme-neutral`.
+
+   This paragraph used to say the package was "not yet a direct dependency",
+   long after it had been added. A rule that states a fact about the tree goes
+   stale the moment the tree moves, so check `package.json` and the lockfile
+   before trusting it — and correct it here when it is wrong.
 
 2. **Custom icons live in**
    `packages/ui/src/components/icons/[category]/[IconName].tsx`, re-exported

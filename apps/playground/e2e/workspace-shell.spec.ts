@@ -391,6 +391,59 @@ test.describe("Workspace shell", () => {
     expect(outlineStyle.outlineWidth).toBe("2px");
   });
 
+  test("rail motion timings reach CSS from rail-motion.ts", async ({
+    page,
+  }) => {
+    await createWorkspaceFromHome(page);
+    const rail = page.getByRole("navigation", { name: "Blueprint workspaces" });
+    await expect(rail).toBeVisible();
+
+    const motion = await rail.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return {
+        duration: cs.getPropertyValue("--rail-duration").trim(),
+        fade: cs.getPropertyValue("--rail-fade").trim(),
+      };
+    });
+
+    // rail-motion.ts owns these and publishes them inline; the stylesheet
+    // only carries fallbacks of the same value. Change a number there and
+    // this fails, which is what proves the binding is live.
+    expect(motion.duration).toBe("240ms");
+    expect(motion.fade).toBe("180ms");
+
+    // Deliberately no assertion on transitionDuration. This suite runs under
+    // `reducedMotion: "reduce"` (see playwright.config.ts) and the rail turns
+    // its transitions off in that mode, so the computed duration is 0s here.
+    // These tests assert what the page contains, never how it arrives.
+  });
+
+  test("rail row height and inner width come from one inherited token", async ({
+    page,
+  }) => {
+    await createWorkspaceFromHome(page);
+    const rail = page.getByRole("navigation", { name: "Blueprint workspaces" });
+    const tokens = await rail.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return {
+        row: cs.getPropertyValue("--rail-row-height").trim(),
+        inner: cs.getPropertyValue("--rail-inner-width").trim(),
+      };
+    });
+    expect(tokens.row).toBe("36px");
+    expect(tokens.inner).toBe("244px");
+
+    // The brand row and the name field both resolve from those tokens rather
+    // than from their own literals.
+    const logoLink = rail.getByRole("link", { name: "Blueprint" });
+    const nameInput = page.getByLabel("Project name");
+    const logoBox = await logoLink.boundingBox();
+    const nameBox = await nameInput.boundingBox();
+    expect(logoBox!.height).toBe(36);
+    expect(nameBox!.height).toBe(36);
+    expect(nameBox!.width).toBe(244);
+  });
+
   test("heading collapses the rail; the mark expands it", async ({ page }) => {
     await createWorkspaceFromHome(page);
     const rail = page.getByRole("navigation", { name: "Blueprint workspaces" });
