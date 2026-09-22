@@ -3,7 +3,7 @@ import {
   SideNavItem,
   SideNavSection,
 } from "@astryxdesign/core/SideNav";
-import type { DocsRouteGroup } from "@blueprint/ui";
+import type { DocsRouteGroup } from "@blueprint/ui/docs-routes";
 
 /**
  * The navigation, generated from the route list.

@@ -1,6 +1,9 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
-import { docsRouteGroups, type DocsRouteGroup } from "@blueprint/ui";
+import {
+  docsRouteGroups,
+  type DocsRouteGroup,
+} from "@blueprint/ui/docs-routes";
 import { DocsNav } from "./DocsNav";
 import { docsAudience } from "../lib/audience";
 
