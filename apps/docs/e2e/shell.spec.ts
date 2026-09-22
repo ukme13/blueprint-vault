@@ -55,6 +55,50 @@ test.describe("the shell", () => {
     heldStill(after.y, before.y, "the header");
   });
 
+  test("centres the mark in the header bar", async ({ page }) => {
+    /* The divider is drawn on the bar, so anything taller than the bar pushes
+       its own bottom edge under the line. Astryx pads the header's wrapper
+       16px above and below, which with the mode control inside measured 60 in
+       a bar declared at 56 — four over, and the line cut across the mark. */
+    await page.goto(ROUTE);
+
+    const { above, below } = await page.evaluate(() => {
+      const bar = document
+        .querySelector(".astryx-layout-header")!
+        .getBoundingClientRect();
+      const mark = document
+        .querySelector(".site-mark-wordmark")!
+        .getBoundingClientRect();
+      return { above: mark.top - bar.top, below: bar.bottom - mark.bottom };
+    });
+
+    /* Within two pixels: the bar's hairline border counts in its height, so
+       perfectly centred content sits a fraction high. */
+    expect(
+      Math.abs(above - below),
+      `${above} above, ${below} below`,
+    ).toBeLessThan(2);
+  });
+
+  test("rules the footer across more than the reading column", async ({
+    page,
+  }) => {
+    /* The reading column is capped so a line of prose stays readable. A footer
+       is a rule across the page, and a capped one stops short of the width it
+       is ruling off — so it sits outside the column and spans the region. */
+    await page.setViewportSize({ width: 1800, height: 900 });
+    await page.goto(ROUTE);
+
+    const { column, footer } = await page.evaluate(() => ({
+      column: document.querySelector(".doc-column")!.getBoundingClientRect()
+        .width,
+      footer: document.querySelector(".site-footer")!.getBoundingClientRect()
+        .width,
+    }));
+
+    expect(footer).toBeGreaterThan(column);
+  });
+
   test("scrolls each nav column on its own", async ({ page }) => {
     await page.goto(ROUTE);
 

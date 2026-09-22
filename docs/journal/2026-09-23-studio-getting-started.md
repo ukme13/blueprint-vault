@@ -339,3 +339,52 @@ and build output is full of the values a page may not write.
 says so in a comment. A build run outside that script has to do the same
 tidying by hand — which is now two hours of my life and belongs here so it is
 not a third.
+
+## The header line, measured rather than guessed
+
+The mark looked off-centre and the divider looked like it was touching it. The
+useful move was to stop looking and measure: a throwaway spec that walked up
+from `.site-header` printing each ancestor's box and padding.
+
+```
+site-header            top 16  h 28  pad 0/0
+(astryx wrapper)       top  0  h 60  pad 16px/16px
+astryx-layout-header   top  0  h 56  pad 0/0
+```
+
+There it is. Astryx wraps a header's children in a box that pads 16 above and
+below and sizes to its content, so a 28px control came to 60 inside a bar
+declared at 56. The wrapper overflowed by four, and the divider is drawn on the
+bar rather than on the wrapper — so the line crossed the mark instead of
+sitting under it.
+
+Making that wrapper exactly the bar's height, as a flex box that centres what
+it holds, is the whole fix. 15.5 above and 16.5 below now, the half-pixel being
+the bar's own hairline counting in its height.
+
+**The first fix included something that did nothing.** `padding-block: 0` went
+in alongside, on the theory that the padding was the problem. Taking it out
+again changed no measurement and failed no test, so it came out — a line that
+does nothing is a line the next person has to reason about.
+
+## The footer spans the region, not the column
+
+It was inside the reading column, which is capped so a line of prose stays
+readable. A footer is a rule across the page, and a capped rule stops short of
+the width it is ruling off. Outside the column now: 1268px against the column's
+768 at a wide viewport, which is the content region less its own padding.
+
+Worth being precise about what that does and does not do. It spans the
+_content region_. The reference spans the content and the table of contents
+together, which would mean lifting the footer out of the layout slot
+altogether — a bigger change than the one asked for, and one to make on
+purpose rather than on the way past.
+
+## Two more tests, one of which does not fail
+
+The mark's centring and the footer's width are both asserted now.
+
+The centring test passes against the version with the redundant padding rule,
+because that rule was not what fixed anything — which is the test doing its
+job and saying so. It fails against the original, which is the state that
+mattered.

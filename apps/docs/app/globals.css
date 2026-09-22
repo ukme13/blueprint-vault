@@ -379,6 +379,23 @@ html {
   background: var(--color-surface-base);
 }
 
+/* Astryx wraps the header's children in a box that pads 16px above and
+   below and sizes to its content. With a 28px control inside, that wrapper
+   measured 60 in a bar declared at 56: it overflowed by four, and the
+   divider — which is drawn on the bar — cut across the bottom of the mark
+   instead of sitting under it.
+
+   Making the wrapper exactly the bar's height, and a flex box that centres
+   what it holds, is the whole fix. The padding stays; it was never the
+   problem, and zeroing it as well changed nothing, which the test confirms by
+   passing either way. */
+.astryx-layout-header > * {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
 .sidebar-panel,
 .toc-panel {
   position: sticky;

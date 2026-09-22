@@ -132,10 +132,13 @@ export function FoundationsFrame({
                 </section>
               );
             })}
-
-            <SiteFooter groups={groups} />
           </VStack>
         </div>
+
+        {/* Outside the reading column on purpose. The column is capped so a
+            line of prose stays readable; a footer is a rule across the page
+            and a capped one stops short of the width it is ruling off. */}
+        <SiteFooter groups={groups} />
       </LayoutContent>
     </Layout>
   );
