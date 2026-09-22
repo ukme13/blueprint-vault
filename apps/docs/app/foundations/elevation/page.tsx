@@ -25,6 +25,7 @@ export default function ElevationFoundationPage() {
 
   return (
     <FoundationsFrame
+      path="foundations/elevation"
       summary={`How ${project.name} lifts a surface off the page, and why the shadow is the same colour in both modes.`}
       title="Elevation"
     >

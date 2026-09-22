@@ -81,6 +81,52 @@ async function main(): Promise<void> {
     if (!ok) failures.push(label);
   };
 
+  /* Nothing internal, anywhere in the bytes.
+
+     The route allowlist decides which files are copied and cannot see inside
+     the ones that are. Two doors it does not watch: the bundle keeps a chunk
+     per route under `_next/static/chunks/app`, and the home page's rendered
+     text travels in root payloads — `index.txt`, `__next._full.txt` — that
+     ship whatever the allowlist says. The first of those was already shipping
+     when it was found by building a throwaway route and looking.
+
+     So this reads every entry as text and looks for the route names
+     themselves, which catches a third door nobody has thought of. Against the
+     archive rather than the build, because the archive is what a client is
+     handed. */
+  const internal = blueprint
+    .docsRoutesFor("internal")
+    .filter((route) => route.audience === "internal");
+
+  if (internal.length === 0) {
+    console.log("ok   no internal route in the archive: none are declared yet");
+  } else {
+    /* Path-shaped, plus the label. A bare path is too loose to search for —
+       this workspace's own prose says "the studio's own preview template" and
+       "open it in the Blueprint studio", and a check that failed on those
+       would be turned off within a week. A label is distinctive enough to
+       search for as it stands, and it is what actually leaked when this was
+       first run: the route metadata reaching a shared bundle chunk while
+       every page of it was correctly held back. */
+    const needles = internal.flatMap((route) => [
+      `/${route.path}`,
+      `${route.path}/`,
+      route.label,
+    ]);
+    const leaked: string[] = [];
+    for (const [name, bytes] of Object.entries(unzipped)) {
+      const text = Buffer.from(bytes).toString("utf8");
+      for (const needle of needles) {
+        if (text.includes(needle)) leaked.push(`${name} carries "${needle}"`);
+      }
+    }
+    check(
+      "no internal route appears in the archive",
+      leaked.length === 0 ? "none" : leaked.slice(0, 5).join("; "),
+      "none",
+    );
+  }
+
   for (const mode of ["light", "dark"] as const) {
     const context = await browser.newContext({ colorScheme: mode });
     /* The mode is stored under the key both apps share, which is also the only

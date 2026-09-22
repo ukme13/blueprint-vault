@@ -7,7 +7,7 @@
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": [".next/**", "!.next/cache/**", "!.next/dev/**"],
-      "env": ["BLUEPRINT_WORKSPACE", "BLUEPRINT_STATIC"]
+      "env": ["BLUEPRINT_WORKSPACE", "BLUEPRINT_STATIC", "BLUEPRINT_AUDIENCE"]
     },
     "lint": {
       "dependsOn": ["^lint"]

@@ -129,6 +129,12 @@ function main(): void {
       ...process.env,
       BLUEPRINT_WORKSPACE: workspace,
       BLUEPRINT_STATIC: "1",
+      /* Who the build is for, which is a different question from what shape
+         its output takes. The nav and the home page read this; the route
+         allowlist below does not need to, because it is the same list either
+         way. Unset means internal, so this is the one place that has to say
+         so. */
+      BLUEPRINT_AUDIENCE: "client",
     },
     shell: process.platform === "win32",
   });

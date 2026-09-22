@@ -18,6 +18,7 @@ export default function RadiusFoundationPage() {
 
   return (
     <FoundationsFrame
+      path="foundations/radius"
       summary={`The corners ${project.name} uses, named for what they belong to rather than for how round they are.`}
       title="Radius"
     >
