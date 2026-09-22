@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { Heading } from "@astryxdesign/core/Heading";
 import {
   Layout,
@@ -11,44 +10,67 @@ import { VStack } from "@astryxdesign/core/VStack";
 import { HStack } from "@astryxdesign/core/HStack";
 import { docsRouteGroups } from "@blueprint/ui/docs-routes";
 import { docsAudience } from "../lib/audience";
+import { headingSlug, type PageSection } from "../lib/sections";
 import { DocsNav } from "./DocsNav";
+import { PageNav } from "./PageNav";
+import { Prose } from "./Prose";
 import { ThemeControl } from "./ThemeControl";
 
 /**
- * The frame every foundation page sits in.
+ * The frame every documentation page sits in.
  *
- * `Layout` with a header, a navigation panel and a capped content column.
- * The cap keeps a line of prose readable and the tables inside it are dense
- * and fill the column.
+ * Three regions, budgeted here rather than negotiated at render time: 260px of
+ * site navigation, a content column that fills what is left, and 240px listing
+ * what is on the page. The Button page settled the middle one — a specimen
+ * board of six schemes by six variants had nothing to gain from a 960px cap
+ * and a lot to lose, and the tables on every other page are the same argument.
+ * Prose inside a filled column is handled where prose is: `Prose` caps its own
+ * measure, so a paragraph stays readable while a table beside it spreads.
  *
- * The panel is a second region, which this frame deliberately did without
- * while there were six pages and no way between them. The layout guide's rule
- * is to default to `SideNav` once a site has destinations a reader has to
- * find, and the studio guide takes this one past that — so the budget is now
- * two regions, 260px of nav and a 960px column, both written down here rather
- * than negotiated at render time.
+ * The frame renders the sections rather than taking them as children, which is
+ * what lets the on-page nav exist at all. One array, two readers — the same
+ * shape as the route list, and the same reason: a table of contents written
+ * out beside the sections it describes is a second answer to what is on this
+ * page.
  *
  * The theme control lives here rather than on each page, because the mode is
  * the reader's and not the page's — the same reason the studio has one.
+ *
+ * See docs/roadmap/studio-guide.md.
  */
 
 interface FoundationsFrameProps {
   title: string;
   summary: string;
-  /** This page's own path, so the nav can mark it. No leading slash. */
+  /** This page's own path, so the site nav can mark it. No leading slash. */
   path: string;
-  children: ReactNode;
+  /** Everything under the title, in order, headings included. */
+  sections: readonly PageSection[];
 }
 
 export function FoundationsFrame({
   title,
   summary,
   path,
-  children,
+  sections,
 }: FoundationsFrameProps) {
   return (
     <Layout
-      contentWidth={960}
+      end={
+        <LayoutPanel hasDivider label="On this page" width={240}>
+          <PageNav sections={sections} />
+        </LayoutPanel>
+      }
+      header={
+        <LayoutHeader hasDivider>
+          <HStack gap={4} hAlign="between" vAlign="center">
+            <Text type="label" weight="semibold">
+              Blueprint foundations
+            </Text>
+            <ThemeControl />
+          </HStack>
+        </LayoutHeader>
+      }
       height="auto"
       start={
         <LayoutPanel
@@ -63,16 +85,6 @@ export function FoundationsFrame({
           />
         </LayoutPanel>
       }
-      header={
-        <LayoutHeader hasDivider>
-          <HStack gap={4} hAlign="between" vAlign="center">
-            <Text type="label" weight="semibold">
-              Blueprint foundations
-            </Text>
-            <ThemeControl />
-          </HStack>
-        </LayoutHeader>
-      }
     >
       <LayoutContent padding={6}>
         <VStack gap={6}>
@@ -82,7 +94,29 @@ export function FoundationsFrame({
               {summary}
             </Text>
           </VStack>
-          {children}
+
+          {sections.map((section) => {
+            const id = headingSlug(section.heading);
+            return (
+              /* The id sits on the section rather than on the heading.
+                 Astryx's Heading takes no id, and a section is the better
+                 anchor anyway — jumping to it lands a reader at the top of
+                 the block rather than on its first line. */
+              <section
+                aria-label={section.heading}
+                id={id}
+                key={section.heading}
+              >
+                <VStack gap={3}>
+                  <Heading level={2}>{section.heading}</Heading>
+                  {(section.paragraphs ?? []).map((paragraph) => (
+                    <Prose key={paragraph}>{paragraph}</Prose>
+                  ))}
+                  {section.body}
+                </VStack>
+              </section>
+            );
+          })}
         </VStack>
       </LayoutContent>
     </Layout>

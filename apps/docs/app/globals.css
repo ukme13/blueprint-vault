@@ -98,6 +98,13 @@ code {
   border-radius: var(--radius-container);
 }
 
+/* A paragraph's measure. About 70 characters, which is the range every
+   typographic source lands in for a single column of body text. The frame
+   caps nothing, so a table beside this spreads as wide as it needs. */
+.prose-measure {
+  max-width: 68ch;
+}
+
 /* Same checker as the studio draws behind a transparent swatch, from the same
    tokens. A swatch of a 12% border painted straight onto the page would read
    as a pale solid, which is the colour the row is explicitly saying it is not.

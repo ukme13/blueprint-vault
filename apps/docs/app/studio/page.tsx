@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
-import { Heading } from "@astryxdesign/core/Heading";
-import { VStack } from "@astryxdesign/core/VStack";
 import { FoundationsFrame } from "../../components/FoundationsFrame";
-import { Prose } from "../../components/Prose";
 import { STUDIO_GUIDANCE } from "../../content/studio";
 
 export const metadata: Metadata = {
@@ -29,19 +26,9 @@ export default function StudioPage() {
   return (
     <FoundationsFrame
       path="studio"
+      sections={STUDIO_GUIDANCE}
       summary="What the studio is for, where your work lives, and what each route does."
       title="Getting started"
-    >
-      <VStack gap={4}>
-        {STUDIO_GUIDANCE.map((block) => (
-          <VStack gap={1} key={block.heading}>
-            <Heading level={2}>{block.heading}</Heading>
-            {block.paragraphs.map((paragraph) => (
-              <Prose key={paragraph}>{paragraph}</Prose>
-            ))}
-          </VStack>
-        ))}
-      </VStack>
-    </FoundationsFrame>
+    />
   );
 }

@@ -1,7 +1,4 @@
 import type { Metadata } from "next";
-import { Heading } from "@astryxdesign/core/Heading";
-import { Text } from "@astryxdesign/core/Text";
-import { VStack } from "@astryxdesign/core/VStack";
 import {
   googleFontsHref,
   typeFontRows,
@@ -12,7 +9,6 @@ import {
 } from "@blueprint/ui";
 import { TYPOGRAPHY_GUIDANCE } from "../../../content/typography";
 import { FoundationsFrame } from "../../../components/FoundationsFrame";
-import { Prose } from "../../../components/Prose";
 import { TypeRoleTable } from "../../../components/TypeRoleTable";
 import { TypeScaleTable } from "../../../components/TypeScaleTable";
 import {
@@ -57,15 +53,17 @@ export default function TypographyFoundationPage() {
     return (
       <FoundationsFrame
         path="foundations/typography"
+        sections={[
+          {
+            heading: "No type system yet",
+            paragraphs: [
+              "The reference workspace carries no typography slice, so there is nothing to describe. Open the type scale studio and save once, and this page fills in.",
+            ],
+          },
+        ]}
         summary="This workspace has no type system yet."
         title="Typography"
-      >
-        <Text as="p" color="secondary" display="block">
-          The reference workspace carries no typography slice, so there is
-          nothing to describe. Open the type scale studio and save once, and
-          this page fills in.
-        </Text>
-      </FoundationsFrame>
+      />
     );
   }
 
@@ -97,58 +95,45 @@ export default function TypographyFoundationPage() {
     <FoundationsFrame
       path="foundations/typography"
       summary={`The type scale ${project.name} generates, what each role is for, and the names a developer installs them under.`}
+      sections={[
+        ...TYPOGRAPHY_GUIDANCE,
+        {
+          heading: "The scale",
+          body: (
+            <>
+              {/* Hoisted into the head by Next. Only rendered when the
+                  workspace actually names a Google family. */}
+              {fontsHref && <link href={fontsHref} rel="stylesheet" />}
+              <TypeScaleTable system={system} />
+            </>
+          ),
+        },
+        { heading: "The roles", body: <TypeRoleTable system={system} /> },
+        { heading: "Specimens", body: <TypeSpecimens system={system} /> },
+        {
+          heading: "The scale doing a job",
+          paragraphs: [
+            "The same roles in an article, which is where a scale either holds together or does not. This is the studio's own preview template, rendered against this workspace.",
+          ],
+          body: (
+            <>
+              <ArticleTemplate
+                classNames={TEMPLATE_CLASSES}
+                headingLevel={3}
+                lang="en"
+                styleFor={styleForSlot}
+              />
+              <ArticleTemplate
+                classNames={TEMPLATE_CLASSES}
+                headingLevel={3}
+                lang="th"
+                styleFor={styleForSlot}
+              />
+            </>
+          ),
+        },
+      ]}
       title="Typography"
-    >
-      {/* Hoisted into the head by Next. Only rendered when the workspace
-          actually names a Google family. */}
-      {fontsHref && <link href={fontsHref} rel="stylesheet" />}
-
-      <VStack gap={4}>
-        {TYPOGRAPHY_GUIDANCE.map((block) => (
-          <VStack gap={1} key={block.heading}>
-            <Heading level={2}>{block.heading}</Heading>
-            {block.paragraphs.map((paragraph) => (
-              <Prose key={paragraph}>{paragraph}</Prose>
-            ))}
-          </VStack>
-        ))}
-      </VStack>
-
-      <VStack gap={3}>
-        <Heading level={2}>The scale</Heading>
-        <TypeScaleTable system={system} />
-      </VStack>
-
-      <VStack gap={5}>
-        <Heading level={2}>The roles</Heading>
-        <TypeRoleTable system={system} />
-      </VStack>
-
-      <VStack gap={5}>
-        <Heading level={2}>Specimens</Heading>
-        <TypeSpecimens system={system} />
-      </VStack>
-
-      <VStack gap={3}>
-        <Heading level={2}>The scale doing a job</Heading>
-        <Text as="p" color="secondary" display="block">
-          The same roles in an article, which is where a scale either holds
-          together or does not. This is the studio&rsquo;s own preview template,
-          rendered against this workspace.
-        </Text>
-        <ArticleTemplate
-          classNames={TEMPLATE_CLASSES}
-          headingLevel={3}
-          lang="en"
-          styleFor={styleForSlot}
-        />
-        <ArticleTemplate
-          classNames={TEMPLATE_CLASSES}
-          headingLevel={3}
-          lang="th"
-          styleFor={styleForSlot}
-        />
-      </VStack>
-    </FoundationsFrame>
+    />
   );
 }

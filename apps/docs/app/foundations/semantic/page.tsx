@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Heading } from "@astryxdesign/core/Heading";
-import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { ContrastTable } from "../../../components/ContrastTable";
 import { FoundationsFrame } from "../../../components/FoundationsFrame";
@@ -24,31 +23,40 @@ export default function SemanticFoundationPage() {
     <FoundationsFrame
       path="foundations/semantic"
       summary="A role says when to use a colour, not what it is. Each one points at a palette shade, once per mode."
+      sections={[
+        {
+          heading: "The roles",
+          body: <SemanticTable palettes={palettes} tokens={tokens} />,
+        },
+        {
+          heading: "What this layer measures",
+          paragraphs: [
+            "The pairs below are the ones a page actually ships: a foreground on the surface it sits on. The ratios are the accessibility report's own, computed for this workspace, so what is written here and what the report exports cannot disagree.",
+          ],
+          body: (
+            <VStack gap={4}>
+              <VStack gap={1}>
+                <Heading level={3}>Light</Heading>
+                <ContrastTable
+                  mode="light"
+                  palettes={palettes}
+                  tokens={tokens}
+                />
+              </VStack>
+
+              <VStack gap={1}>
+                <Heading level={3}>Dark</Heading>
+                <ContrastTable
+                  mode="dark"
+                  palettes={palettes}
+                  tokens={tokens}
+                />
+              </VStack>
+            </VStack>
+          ),
+        },
+      ]}
       title="Semantic tokens"
-    >
-      <SemanticTable palettes={palettes} tokens={tokens} />
-
-      <VStack gap={4}>
-        <VStack gap={1}>
-          <Heading level={2}>What this layer measures</Heading>
-          <Text as="p" color="secondary" display="block">
-            The pairs below are the ones a page actually ships: a foreground on
-            the surface it sits on. The ratios are the accessibility
-            report&rsquo;s own, computed for this workspace, so what is written
-            here and what the report exports cannot disagree.
-          </Text>
-        </VStack>
-
-        <VStack gap={1}>
-          <Heading level={3}>Light</Heading>
-          <ContrastTable mode="light" palettes={palettes} tokens={tokens} />
-        </VStack>
-
-        <VStack gap={1}>
-          <Heading level={3}>Dark</Heading>
-          <ContrastTable mode="dark" palettes={palettes} tokens={tokens} />
-        </VStack>
-      </VStack>
-    </FoundationsFrame>
+    />
   );
 }

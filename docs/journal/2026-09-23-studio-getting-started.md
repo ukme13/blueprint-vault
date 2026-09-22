@@ -114,3 +114,44 @@ checking the next time a route is added to that list and not to the frame.
 the workspace it describes. This page is checked for what it must not contain
 and for nothing it should. That is not an argument against writing it — it is
 an argument for re-reading it whenever a route moves.
+
+## The frame gained two regions and lost its cap
+
+Asked for after the pages were written: the Button page's layout everywhere,
+and an on-page nav on the right the way Astryx's own documentation has one.
+
+Both halves were worth taking apart before doing.
+
+**The cap.** The Button page fills its column because it is a specimen board of
+six schemes by six variants. The foundation pages were capped at 960 with a
+comment saying why — a line of prose has a readable length. Copying the Button
+page wholesale would have made every paragraph as wide as the screen, which is
+a poor look on a design system's own documentation, and the reference that was
+attached does not do it either: Astryx caps its text column too.
+
+So the cap moved rather than went. `Prose` now carries a measure of `68ch`,
+and the frame caps nothing. A paragraph stays readable, a token table with both
+modes across it gets the whole width, and the two stop having to agree. In
+`ch` because a measure is a count of characters and should follow whatever face
+and size the reader actually has. The scanner allows it: it matches `px` and
+`rem`, and exempts `max-width` besides.
+
+**The nav.** It is generated from the sections, so the frame had to render them
+— which is why `FoundationsFrame` now takes a `sections` array instead of
+children. That is the third time this shape has come up in three stages: one
+list, two readers, because the alternative is a table of contents written out
+beside the sections it describes and drifting from them. `GuidanceBlock` was
+already `{ heading, paragraphs }`, so a page spreads its prose in and appends
+the sections that carry data.
+
+Nothing is marked as current in that column. A scroll spy needs a client
+component watching the viewport, and a highlight that lags is worse than none —
+a reader told they are in the first section while looking at the fourth stops
+trusting the column. Worth adding; not worth faking.
+
+**Two things this got wrong on the way.** Anchors were truncated to four words
+and produced `#what-each-step-looks`, which reads as a bug rather than as a
+shortening; they are the whole heading now. And the edit that fixed it did not
+apply — a script reported success without asserting its replacement had
+matched, and the archive was rebuilt twice before the old slugs in the output
+gave it away. A patch that cannot fail is a patch that cannot be trusted.
