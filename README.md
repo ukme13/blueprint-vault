@@ -281,13 +281,18 @@ unnoticed (see `.github/workflows/ci.yml`).
 
 The next priorities are:
 
-1. First product application — see
-   [First product application](docs/roadmap/first-product.md). The job proposed
-   there is a bilingual (English / Thai) public practice site at `apps/ferre`,
-   consuming the handover the way `apps/docs` does, so the next components are
-   argued by four screens rather than by a catalog.
-2. Component documentation beyond Button, driven by that product rather than by
-   the component library.
+1. Component documentation beyond Button, driven by a real product rather
+   than by the component library.
+
+The first product shipped, outside this repository. Ferre is a bilingual
+(English / Thai) marketing site with a Sanity-backed blog, at
+<https://github.com/ukme13/ferre>. It is a separate monorepo, built on a copy
+of the Blueprint foundation — its own `packages/ui` carrying `theme.css`,
+`button.tsx` and the Astryx bridge — rather than an install of the generated
+export. So the product exists and the bilingual stack is proven in a real
+site, while the question the brief was written to answer — whether a client
+can build from the handover alone — is still open. See
+[First product application](docs/roadmap/first-product.md).
 
 Later improvements to the Typography Studio (fluid typography, responsive
 overrides, JSON export, project-file import and export, more presets) remain
