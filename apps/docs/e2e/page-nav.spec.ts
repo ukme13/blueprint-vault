@@ -65,6 +65,37 @@ test.describe("the on-page nav", () => {
     expect(order.indexOf(now!)).toBeGreaterThan(order.indexOf(first!));
   });
 
+  test("scrolls the page itself, not a box inside it", async ({ page }) => {
+    /* The half that was actually broken. While the content lived in a scroll
+       container, a fragment link moved that container and not the document —
+       and `scroll-behavior: smooth` is declared on `html`, which a container
+       never reads. So the link working is not the claim; the *document*
+       moving is. */
+    await page.goto(ROUTE);
+
+    const before = await page.evaluate(() => window.scrollY);
+    await page.locator('nav[aria-label="On this page"] a').last().click();
+
+    await expect
+      .poll(async () => page.evaluate(() => window.scrollY), { timeout: 5000 })
+      .toBeGreaterThan(before);
+  });
+
+  test("jumps rather than glides for a reader who asked it to", async ({
+    page,
+  }) => {
+    /* This whole suite runs under `reducedMotion: "reduce"`, so the default
+       here is the accessible path, and it is worth asserting rather than
+       assuming: somebody who has asked their machine for less motion gets a
+       jump. The pair below covers the other half. */
+    await page.goto(ROUTE);
+
+    const behaviour = await page.evaluate(
+      () => getComputedStyle(document.documentElement).scrollBehavior,
+    );
+    expect(behaviour).toBe("auto");
+  });
+
   test("still navigates with its links, highlight or no", async ({ page }) => {
     /* The part that must survive a browser with no JavaScript, and the part a
        reader in a handover folder depends on. The ids are in the HTML; only
@@ -76,5 +107,21 @@ test.describe("the on-page nav", () => {
     await second.click();
 
     await expect(page.locator(`.doc-column ${href}`)).toBeInViewport();
+  });
+});
+
+test.describe("for a reader who has not asked for less motion", () => {
+  test.use({ contextOptions: { reducedMotion: "no-preference" } });
+
+  test("glides to the section", async ({ page }) => {
+    /* Asserting the declaration rather than the easing. Watching the scroll
+       position ease would be asserting the browser's animation, which is the
+       browser's to get right and changes between versions. */
+    await page.goto(ROUTE);
+
+    const behaviour = await page.evaluate(
+      () => getComputedStyle(document.documentElement).scrollBehavior,
+    );
+    expect(behaviour).toBe("smooth");
   });
 });

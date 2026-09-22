@@ -2,7 +2,6 @@ import { Heading } from "@astryxdesign/core/Heading";
 import {
   Layout,
   LayoutContent,
-  LayoutFooter,
   LayoutHeader,
   LayoutPanel,
 } from "@astryxdesign/core/Layout";
@@ -20,12 +19,20 @@ import { SiteHeader } from "./SiteHeader";
 /**
  * The frame every documentation page sits in.
  *
- * Five regions, budgeted here rather than negotiated at render time: a fixed
- * 44px header, 260px of site navigation, a content column, 240px listing what
- * is on this page, and a footer. Astryx's `Layout` has a slot for each, which
- * is why the shell is its slots rather than a grid written out by hand; the
- * sticking, the scroll containment and the breakpoints are in `globals.css`,
+ * Four regions and a footer: a 56px header, 260px of site navigation, a
+ * content column, and 240px listing what is on this page. Astryx's `Layout`
+ * has a slot for each; the sticking and the breakpoints are in `globals.css`,
  * because those are the parts `Layout` leaves open.
+ *
+ * The page scrolls, not a box inside it. `height="auto"` lets the shell grow
+ * and the document own the scrollbar, which is what makes `scroll-behavior:
+ * smooth` mean anything — a fragment link inside a scroll container is the
+ * container's business and the declaration on `html` never reaches it. The
+ * header and the two nav columns stick; everything else moves.
+ *
+ * So the footer is inside the content column rather than in a slot of its own.
+ * A footer in a region is a bar pinned under the page; a footer at the end of
+ * the reading is the end of the reading.
  *
  * The content column is capped and the prose inside it is capped again —
  * tighter. A measure is a count of characters and belongs to the paragraph; a
@@ -64,17 +71,12 @@ export function FoundationsFrame({
           <PageNav headings={sections.map((section) => section.heading)} />
         </LayoutPanel>
       }
-      footer={
-        <LayoutFooter hasDivider>
-          <SiteFooter />
-        </LayoutFooter>
-      }
       header={
-        <LayoutHeader hasDivider height={44}>
+        <LayoutHeader hasDivider height={56}>
           <SiteHeader />
         </LayoutHeader>
       }
-      height="fill"
+      height="auto"
       start={
         <LayoutPanel
           className="sidebar-panel"
@@ -127,6 +129,8 @@ export function FoundationsFrame({
                 </section>
               );
             })}
+
+            <SiteFooter />
           </VStack>
         </div>
       </LayoutContent>

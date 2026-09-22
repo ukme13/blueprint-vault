@@ -255,3 +255,45 @@ scrolls on its own was already true and was not the bug.
 The header test asserts the content actually moved before asserting the header
 did not. Without that it passes on a page that never scrolled, which is the
 same failure it exists to catch, wearing a green tick.
+
+## The shell scrolls the page again
+
+Three more off a screenshot, and the first two are the same decision reversed.
+
+**`height="fill"` was the wrong model for a document.** It put the content in
+a scroll container in the middle of the layout, and a container is not what
+`scroll-behavior: smooth` is declared on — the rule sits on `html`, a fragment
+link inside a container is the container's business, and the two never meet.
+So the table of contents jumped where it should have glided, and no amount of
+looking at the smooth-scroll rule would have explained it.
+
+`height="auto"` puts the scrollbar back on the document. The header and the
+two nav columns say `position: sticky` for themselves, which is what the
+reference file did all along and what this should have copied rather than
+improved on. Astryx's own panel slots clip their overflow, so the two
+containers above them are set to `overflow: visible` or a sticky child inside
+them never sticks.
+
+**The footer left its slot.** A footer in a layout region is a bar pinned
+under the page; a footer at the end of the content column is the end of the
+reading. It is the second, now.
+
+**The header was 44px with nothing to spare**, so its divider sat against the
+text rather than under it. 56, and the bar fills its own height so the mark
+and the mode control centre against the line instead of resting on it.
+
+## The motion test is a pair, because the suite runs reduced
+
+Asserting `scroll-behavior: smooth` failed, and it was right to: this suite
+runs under `reducedMotion: "reduce"`, so `auto` is the correct answer and the
+media query written two commits ago was doing its job.
+
+So there are two tests. The default context asserts a reader who asked for
+less motion gets a jump; a second context, `no-preference`, asserts the other
+one glides. Both assert the declaration rather than the easing — watching a
+scroll position ease is asserting the browser's animation, which is the
+browser's to get right.
+
+**A test that fails because the code is correct is worth reading twice.** The
+first instinct was to force the assertion through; the useful move was to ask
+what the suite was already telling the browser.

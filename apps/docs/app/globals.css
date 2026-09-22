@@ -75,14 +75,8 @@
 
 html,
 body {
-  /* A real height, not a minimum. Astryx's Layout takes `height="fill"` to
-     mean 100% of its parent, and 100% of a parent with only a min-height
-     collapses — which is what put the header in the page flow, let the whole
-     document scroll under it, and left both nav columns as tall as their
-     content. */
-  height: 100%;
+  min-height: 100%;
   margin: 0;
-  overflow: hidden;
 }
 
 body {
@@ -143,7 +137,7 @@ code {
 
 :root {
   /* Named with `height` so it reads as the structural value it is. */
-  --docs-header-height: 44px;
+  --docs-header-height: 56px;
 }
 
 html {
@@ -166,6 +160,9 @@ html {
   justify-content: space-between;
   gap: var(--spacing-4);
   width: 100%;
+  /* Fills the bar, so the mark and the control centre against the divider
+     rather than sitting on top of it. */
+  height: 100%;
 }
 
 .site-mark {
@@ -341,11 +338,40 @@ html {
   }
 }
 
-/* Each nav column scrolls within the shell rather than with the page. A
-   sidebar as tall as its content is a sidebar that runs off the bottom of a
-   long page and takes its last few links with it. */
+/* What sticks.
+
+   The page owns the scrollbar — the alternative, a scroll container in the
+   middle of the layout, is what stopped `scroll-behavior: smooth` working:
+   a fragment link inside a container is that container's business, and the
+   declaration on `html` never reaches it.
+
+   So the three regions that should stay put say so themselves. The header
+   sits above both columns, which matters while a sticky column is scrolled
+   under it. */
+.astryx-layout-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--color-surface-base);
+}
+
 .sidebar-panel,
 .toc-panel {
+  position: sticky;
+  top: var(--docs-header-height);
+  z-index: 1;
+  /* Its own scrollbar only once it is taller than the screen beside it, which
+     is what stops a long sidebar taking its last few links off the bottom of
+     the page. */
+  max-height: calc(100vh - var(--docs-header-height));
   overflow-y: auto;
   overscroll-behavior: contain;
+  background: var(--color-surface-base);
+}
+
+/* A sticky child needs a parent that does not clip it, and Astryx gives the
+   panel slots an overflow of their own. */
+.astryx-layout,
+.astryx-layout-body {
+  overflow: visible;
 }
