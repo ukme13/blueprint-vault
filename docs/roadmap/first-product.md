@@ -1,5 +1,29 @@
 # First product application
 
+## Built, outside this repository
+
+Ferre shipped as its own monorepo at <https://github.com/ukme13/ferre>: a
+bilingual (English and Thai) marketing site with a Sanity-backed blog, on the
+Orbitron and Noto Sans Thai stack this plan named. It has its own CI, its own
+hosting, and its own roadmap. There is no `apps/ferre` here and there will
+not be one.
+
+It was built on a copy of the Blueprint foundation rather than on the export.
+Its `apps/web` depends on a workspace `@blueprint/ui` that lives in that
+repository and carries its own `theme.css`, `button.tsx` and Astryx bridge,
+against Astryx 0.4.4. Nothing in it installs the handover.
+
+Both halves of that are worth keeping straight, because this plan had two
+jobs. **The job** below is answered: a real bilingual product surface exists,
+in both scripts, and the type stack the studio claims is shipping in public.
+**The system model** below is not what was built, so the rule it existed to
+test — that a product breaks second when the export is missing an alias — has
+still never been tested. `apps/docs` remains the only consumer of the
+generated files, and it is the one that was written to prove they work.
+
+Everything below is kept as written. It is the brief, not a record of what
+was done.
+
 ## Goal
 
 Decide what the first product is for, then build the smallest app that consumes
@@ -116,11 +140,10 @@ later screens, and only if a page above is lying without them.
 
 ### Stage 1 — This brief
 
-Status: Draft.
-
-Name the job, the screens, and the rules. Point the README at this file.
-Nothing is scaffolded until the job in "The job" is accepted or replaced in
-this document.
+Status: Closed. The job was accepted by being built, in the repository named
+at the top of this file. Stages 2 to 5 describe work inside this workspace
+that consequently never happened; they stand as the shape the job would take
+if a product is ever built here.
 
 ### Stage 2 — Scaffold `apps/ferre`
 
@@ -205,3 +228,11 @@ The app is done when:
   has a brand that is not Blueprint's.
 - **Port and package name.** `apps/ferre`, `@blueprint/ferre` or just `ferre`.
   Decide at scaffold time; do not bikeshed it in this file.
+
+Settled by the external build, and replaced by one question that outlives it:
+
+- **What proves the handover, now that the first product does not?** A client
+  building from the export alone is the claim the docs app and the archive are
+  written to support, and nothing has made that claim fail yet. Either a
+  product installs the export — Ferre porting to it, or a second product — or
+  the claim stays untested and the next milestone should say so out loud.
