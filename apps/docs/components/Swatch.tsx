@@ -37,7 +37,7 @@ export function Swatch({ hex, label, alpha = 1 }: SwatchProps) {
   return (
     <span
       aria-label={`${label}, ${described}`}
-      className="swatch inline-block size-6 overflow-hidden rounded-inner border border-border-default align-middle"
+      className="swatch inline-block size-6 shrink-0 overflow-hidden rounded-inner border border-border-default align-middle"
       data-transparent={transparent || undefined}
       role="img"
       title={described}
