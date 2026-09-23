@@ -1,6 +1,7 @@
 import { BlueprintWordmark as SharedBlueprintWordmark } from "@blueprint/ui";
 import type { SVGProps } from "react";
 import {
+  BookOpen,
   Layers,
   Paintbrush,
   Radius,
@@ -107,6 +108,11 @@ export function RadiusStudioIcon(props: MarkProps) {
 /** Stacked layers — elevation. */
 export function ElevationStudioIcon(props: MarkProps) {
   return <Layers aria-hidden {...props} />;
+}
+
+/** An open book — the guide written about the studio, on the docs site. */
+export function StudioGuideIcon(props: MarkProps) {
+  return <BookOpen aria-hidden {...props} />;
 }
 
 /** A cog — preview frames, not a studio. */

@@ -19,7 +19,6 @@ import {
 import { NewProjectDialog } from "./NewProjectDialog";
 import { ProjectCard } from "./ProjectCard";
 import { RenameProjectDialog } from "./RenameProjectDialog";
-import { docsLink } from "../../lib/docs-url";
 import styles from "./home.module.css";
 
 function projectCountLabel(count: number) {
@@ -196,21 +195,6 @@ export function WorkspaceHome() {
           </div>
         </div>
         <div className={styles.actions}>
-          {/* The other application, so an absolute URL from the environment
-              rather than a route. A new tab because this is a reference a
-              reader comes back from — losing the studio to read about it is
-              the wrong way round — and `noreferrer` with it, which is the
-              habit rather than a need on a site of our own. */}
-          <Button
-            href={docsLink("studio")}
-            rel="noreferrer"
-            scheme="neutral"
-            size="small"
-            target="_blank"
-            variant="text"
-          >
-            Studio guide
-          </Button>
           <Button
             disabled={isLibraryFull}
             scheme="neutral"
