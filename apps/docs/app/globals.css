@@ -154,10 +154,14 @@ html {
 
 /* ---- header ---- */
 
+/* Three columns so the section links sit in the true centre of the bar,
+   whatever the widths of the mark and the theme control either side. With
+   flex and space-between the middle item only centres when its neighbours
+   happen to be the same width. */
 .site-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
   gap: var(--spacing-4);
   width: 100%;
   /* Fills the bar, so the mark and the control centre against the divider
@@ -166,6 +170,8 @@ html {
 }
 
 .site-mark {
+  /* Its own width, not the column's, so the click target stays the logo. */
+  justify-self: start;
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-2);
@@ -180,6 +186,9 @@ html {
 }
 
 .site-header-actions {
+  /* Pinned to the last column, so it stays right even with no sections. */
+  grid-column: 3;
+  justify-self: end;
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
@@ -448,4 +457,41 @@ html {
   padding-left: var(--spacing-5);
   display: grid;
   gap: var(--spacing-3);
+}
+
+/* ---- tables ---- */
+
+/* Every doc table is an Astryx Table, and each one renders a scroll wrapper
+   around its <table>, so these rules frame all of them from one place rather
+   than in each of the nine components. Unlayered, like the codeblock rule
+   above: Astryx's styles sit in the astryx-base layer, and an unlayered rule
+   beats a layered one whatever the specificity.
+
+   The wrapper keeps Astryx's own overflow-x: auto. It is keyboard-focusable so
+   a wide table can be scrolled sideways on a narrow screen, and overflow of
+   anything but visible already clips the children to the rounded corner, so
+   `overflow: hidden` would only have taken the scrolling away. */
+.astryx-table-scroll-wrapper {
+  margin-block: var(--spacing-6);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-container);
+}
+
+/* The header on a quiet ground. Its cells already draw a bottom border, so
+   this only changes its colour and adds no second line. */
+.astryx-table-header-cell {
+  background: var(--color-surface-subtle);
+  border-bottom-color: var(--color-border-subtle);
+}
+
+/* The frame supplies the outer edges now. Every cell draws its own bottom
+   border, and grid dividers an inline-end one, so without these the last row
+   and the last column would each meet the frame as a doubled line. */
+.astryx-table-body .astryx-table-row:last-child .astryx-table-cell {
+  border-bottom-width: 0;
+}
+
+.astryx-table-row .astryx-table-cell:last-child,
+.astryx-table-row .astryx-table-header-cell:last-child {
+  border-inline-end-width: 0;
 }

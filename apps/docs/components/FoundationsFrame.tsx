@@ -9,6 +9,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { docsRouteGroups } from "@blueprint/ui/docs-routes";
 import { docsAudience } from "../lib/audience";
+import { activeDocsGroup, docsSections, sidebarGroups } from "../lib/nav";
 import { headingSlug, type PageSection } from "../lib/sections";
 import { DocsNav } from "./DocsNav";
 import { PageNav } from "./PageNav";
@@ -68,7 +69,10 @@ export function FoundationsFrame({
     <Layout
       header={
         <LayoutHeader hasDivider height={56}>
-          <SiteHeader />
+          <SiteHeader
+            activeGroup={activeDocsGroup(groups, path)}
+            sections={docsSections(groups)}
+          />
         </LayoutHeader>
       }
       height="auto"
@@ -79,7 +83,8 @@ export function FoundationsFrame({
           label="Documentation"
           width={260}
         >
-          <DocsNav currentPath={path} groups={groups} />
+          {/* Only this page's section: the header switches between them. */}
+          <DocsNav currentPath={path} groups={sidebarGroups(groups, path)} />
         </LayoutPanel>
       }
     >
