@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { Children, type ReactNode } from "react";
 import { BottomSheet } from "@astryxdesign/core/BottomSheet";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
@@ -73,7 +73,17 @@ export function SettingsSheet({
           />
         </header>
 
-        <div className={styles.body}>{children}</div>
+        {/* Each setting in a wrapper of its own, which carries the divider.
+            Put on the controls themselves, the divider's padding went inside
+            any control that paints its own background — the segmented
+            control's track grew 16px at the top and none at the bottom. */}
+        <div className={styles.body}>
+          {Children.map(children, (child) =>
+            child == null || typeof child === "boolean" ? null : (
+              <div className={styles.setting}>{child}</div>
+            ),
+          )}
+        </div>
 
         <footer className={styles.footer}>
           {/* Reset on its own at the start, away from Apply: it changes the

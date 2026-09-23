@@ -204,6 +204,30 @@ test.describe("on a phone", () => {
     expect(layout.headingTop).toBeGreaterThanOrEqual(24);
   });
 
+  test("draws the segmented control with even padding, and labelled", async ({
+    seededPage: page,
+  }) => {
+    /* From a device: the divider between settings was padding on the control
+       itself, which went inside its grey track — 16px more above the segments
+       than below. */
+    await page.getByRole("button", { name: "WCAG 2", exact: true }).click();
+    const sheet = page.getByRole("dialog", { name: "WCAG contrast" });
+    const track = await sheet
+      .getByRole("radiogroup", { name: "Measure against" })
+      .boundingBox();
+    const segment = await sheet
+      .getByRole("radio", { name: "White" })
+      .boundingBox();
+    const above = segment!.y - track!.y;
+    const below = track!.y + track!.height - (segment!.y + segment!.height);
+    expect(
+      Math.abs(above - below),
+      `${above} above, ${below} below`,
+    ).toBeLessThanOrEqual(1);
+
+    await expect(sheet.getByText("Measure against")).toBeVisible();
+  });
+
   test("discards the Vision draft on Cancel and on the scrim", async ({
     seededPage: page,
   }) => {

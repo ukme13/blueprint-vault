@@ -6,6 +6,7 @@ import {
   SegmentedControlItem,
 } from "@astryxdesign/core/SegmentedControl";
 import { Switch } from "@astryxdesign/core/Switch";
+import { Text } from "@astryxdesign/core/Text";
 import {
   contrastDraftToOpen,
   DEFAULT_CONTRAST_SETTINGS,
@@ -71,25 +72,35 @@ export function ContrastSheet({
         onChange={(isOn) => update({ isOn })}
       />
 
-      <SegmentedControl
-        label="Measure against"
-        layout="fill"
-        size="sm"
-        value={draft.target}
-        onChange={(value) => update({ target: value as ContrastTarget })}
-      >
-        <SegmentedControlItem label="White" value="white" />
-        <SegmentedControlItem label="Black" value="black" />
-        <SegmentedControlItem label="Custom" value="custom" />
-      </SegmentedControl>
+      {/* One setting: what to measure against, and the colour when it is
+          custom. The segmented control never draws its label — it is an
+          aria-label only — so the visible one is here, as the Vision sheet
+          shows "Deficiency" and "Severity". Hidden from assistive tech,
+          which already has the control's own name. */}
+      <>
+        <Text aria-hidden type="label">
+          Measure against
+        </Text>
+        <SegmentedControl
+          label="Measure against"
+          layout="fill"
+          size="sm"
+          value={draft.target}
+          onChange={(value) => update({ target: value as ContrastTarget })}
+        >
+          <SegmentedControlItem label="White" value="white" />
+          <SegmentedControlItem label="Black" value="black" />
+          <SegmentedControlItem label="Custom" value="custom" />
+        </SegmentedControl>
 
-      {draft.target === "custom" && (
-        <ColourPicker
-          label="Custom contrast colour"
-          value={draft.customColour}
-          onChange={(customColour) => update({ customColour })}
-        />
-      )}
+        {draft.target === "custom" && (
+          <ColourPicker
+            label="Custom contrast colour"
+            value={draft.customColour}
+            onChange={(customColour) => update({ customColour })}
+          />
+        )}
+      </>
     </SettingsSheet>
   );
 }
