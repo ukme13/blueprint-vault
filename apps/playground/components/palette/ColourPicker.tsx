@@ -75,8 +75,13 @@ export function ColourPicker({
         {/* Escape closes the top sheet only. Astryx closes a sheet from a
             React keydown on its dialog, and this sheet sits inside the one it
             was opened from in the React tree, so the same Escape bubbled on
-            and closed that one too. */}
-        <span
+            and closed that one too.
+
+            A div, not a span: Astryx moves a menu or popover out of any span
+            above it, to the span's parent. That put the format menu outside
+            this sheet's modal dialog, where the dialog makes everything inert:
+            the menu showed and could not be tapped. */}
+        <div
           className={styles.stackedSheet}
           onKeyDown={(event) => {
             if (event.key === "Escape") event.stopPropagation();
@@ -98,7 +103,7 @@ export function ColourPicker({
               />
             </div>
           </BottomSheet>
-        </span>
+        </div>
       </>
     );
   }

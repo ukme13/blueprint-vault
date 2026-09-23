@@ -146,13 +146,15 @@ export function TrackDetailDialog({
         <section className={styles.trackDialogSection}>
           <h3>Source colour</h3>
           <div className={styles.trackSourceValue}>
-            <span className={styles.trackDialogColourPicker}>
+            {/* A div: a span anywhere above the picker moves its menus out of
+                the picker's sheet on a phone, where they cannot be tapped. */}
+            <div className={styles.trackDialogColourPicker}>
               <ColourPicker
                 label={`${validName || palette.name} source colour`}
                 value={seedDraft}
                 onChange={(value) => setSeedDraft(normalizeHex(value))}
               />
-            </span>
+            </div>
             <span>
               <small>{COLOUR_FORMAT_LABELS[colourFormat]}</small>
               <code>{formatColour(seedDraft, colourFormat)}</code>

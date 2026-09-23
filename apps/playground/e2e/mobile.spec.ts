@@ -559,6 +559,76 @@ test.describe("on a phone", () => {
     expect(after!.y + after!.height).toBeGreaterThanOrEqual(844);
   });
 
+  test("switches colour format from inside every sheet", async ({
+    seededPage: page,
+  }) => {
+    /* From a device: the format menu in the picker sheet showed and could not
+       be tapped. Astryx moves a menu out of any span above it, and a span
+       above the picker put the menu outside the sheet's modal dialog, which
+       makes everything outside it inert. Tried from each sheet that holds a
+       format menu. */
+    const choose = async (
+      sheet: ReturnType<typeof page.getByRole>,
+      format: "HEX" | "RGB" | "OKLCH",
+    ) => {
+      await sheet.getByRole("combobox").first().click();
+      await page.getByRole("option", { name: format }).click({ timeout: 3000 });
+      await expect(sheet.getByRole("combobox").first()).toHaveText(format);
+    };
+
+    /* The shade sheet's own menu, then the picker opened from it. */
+    await page
+      .getByRole("button", { name: /^Select / })
+      .nth(5)
+      .click();
+    const shade = page.getByRole("dialog", { name: /shade details$/ });
+    await choose(shade, "RGB");
+    await shade.getByRole("button", { name: /^Edit .* colour$/ }).click();
+    const shadePicker = page.getByRole("dialog", { name: /colour picker$/ });
+    await choose(shadePicker, "OKLCH");
+    await expect(
+      shadePicker.getByRole("slider", { name: "Lightness slider" }),
+    ).toBeVisible();
+    await choose(shadePicker, "HEX");
+    await expect(shadePicker).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(shadePicker).toBeHidden();
+    await page.keyboard.press("Escape");
+    await expect(shade).toBeHidden();
+
+    /* The picker opened from a track's sheet. */
+    await page
+      .getByRole("button", { name: /^Open .* colour details$/ })
+      .first()
+      .click();
+    const track = page.getByRole("dialog", { name: /colour details$/ });
+    await track
+      .getByRole("button", { name: /^Choose .* source colour$/ })
+      .click();
+    const trackPicker = page.getByRole("dialog", {
+      name: /source colour picker$/,
+    });
+    await choose(trackPicker, "OKLCH");
+    await expect(trackPicker).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(trackPicker).toBeHidden();
+    await page.keyboard.press("Escape");
+    await expect(track).toBeHidden();
+
+    /* The picker for the WCAG custom colour. */
+    await page.getByRole("button", { name: "WCAG 2", exact: true }).click();
+    const wcag = page.getByRole("dialog", { name: "WCAG contrast" });
+    await wcag.getByRole("radio", { name: "Custom" }).click();
+    await wcag
+      .getByRole("button", { name: /^Choose custom contrast colour$/i })
+      .click();
+    const wcagPicker = page.getByRole("dialog", {
+      name: /custom contrast colour picker$/i,
+    });
+    await choose(wcagPicker, "RGB");
+    await expect(wcagPicker).toBeVisible();
+  });
+
   test("opens a track's details in a sheet", async ({ seededPage: page }) => {
     await page
       .getByRole("button", { name: /^Open .* colour details$/ })

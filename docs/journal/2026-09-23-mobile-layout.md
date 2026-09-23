@@ -375,3 +375,19 @@ fails it every time.
 
 **One passing run proves nothing about a race.** Run a timing-sensitive test
 several times, with and without the fix, before deciding which code is dead.
+
+## A span that sent the menu out of the sheet
+
+The format menu in the picker sheet showed and could not be tapped. Taps
+landed on the picker's sliders underneath. Astryx's layers (menus, popovers)
+walk up from where they render and move themselves out of the outermost
+"unsafe" host: a `span`, `button`, `label` and similar, where a block of
+buttons would be invalid. The Escape wrapper I put around the picker sheet
+was a `span`. So was the wrapper around the picker in the track sheet. Either
+one put the menu outside the picker's modal dialog, and a modal dialog makes
+everything outside it inert. Both are `div`s now, and a test switches format
+from inside every sheet that has a format menu.
+
+**On a phone, an Astryx layer must have no span, button or label anywhere
+above it inside a sheet.** It will render, and look right in a screenshot,
+and not take a tap.
