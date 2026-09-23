@@ -91,21 +91,30 @@ export function SpacingSpecimen({ scale }: SpacingScaleProps) {
   return (
     <VStack gap={2}>
       {summary.tokens.map((token) => (
-        <div className="flex items-center gap-3" key={token.variable}>
-          <Text color="secondary" hasTabularNumbers type="code">
+        /* Name and value in fixed, right-aligned columns, then a guide line
+           every bar grows from, so the bars line up on one edge and can be
+           compared by length. Staggered after text of different widths, they
+           could not. */
+        <div
+          className="flex items-center gap-3 font-mono text-sm"
+          key={token.variable}
+        >
+          <span className="w-10 text-right text-fg-secondary">
             {token.name}
-          </Text>
-          {/* The bar is the token's own value, in the accent so it reads as a
-              measurement rather than as a surface. A zero step draws nothing,
-              which is the honest picture of what it does. */}
-          <span
-            aria-hidden="true"
-            className="block h-4 rounded-inner bg-action-primary"
-            style={{ width: `${token.px}px` }}
-          />
-          <Text color="secondary" hasTabularNumbers>
-            {token.px}px
-          </Text>
+          </span>
+          <span className="w-12 text-right text-fg-muted">{token.px}px</span>
+          <div className="flex h-5 items-center border-l border-border-subtle pl-3">
+            {/* The bar is the token's own value, in the accent so it reads as
+                a measurement rather than as a surface. A zero step draws
+                nothing, which is the honest picture of what it does. */}
+            {token.px > 0 && (
+              <span
+                aria-hidden="true"
+                className="block h-3.5 rounded-inner bg-action-primary"
+                style={{ width: `${token.px}px` }}
+              />
+            )}
+          </div>
         </div>
       ))}
     </VStack>
