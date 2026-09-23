@@ -1166,8 +1166,29 @@ test.describe("on a phone", () => {
       dialog.getByRole("button", { name: "Copy code" }),
     ).toBeInViewport();
 
-    /* Download the width of the footer. */
+    /* The chips run under the dialog's edge rather than stopping short of it. */
+    const dialogBox = (await dialog
+      .locator("[class*=exportDialogBody]")
+      .boundingBox())!;
+    expect(Math.abs(strip.x - dialogBox.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(strip.width - dialogBox.width)).toBeLessThanOrEqual(1);
+
+    /* The code fits its room, even the longest output: its bottom does not
+       slide under the footer. */
+    await chips.filter({ hasText: "Handover (.zip)" }).click();
+    const previewRegion = dialog.getByRole("region", {
+      name: "Export preview",
+    });
+    const fits = await previewRegion.evaluate(
+      (node) => node.scrollHeight <= node.clientHeight + 1,
+    );
+    expect(fits, "the code is taller than its room").toBe(true);
+
+    /* Download the width of the footer, and no Import project beside it. */
     const footer = dialog.locator("footer");
+    await expect(
+      footer.getByRole("button", { name: "Import project" }),
+    ).toBeHidden();
     const download = (await footer
       .getByRole("button", { name: "Download" })
       .boundingBox())!;
