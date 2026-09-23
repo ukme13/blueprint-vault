@@ -1097,6 +1097,30 @@ test.describe("on a phone", () => {
     });
   }
 
+  test("centres Export in a top bar with no tabs, level with the menu", async ({
+    seededPage: page,
+  }) => {
+    /* Elevation has no Scale / Uses tabs, so its bar is only Export. */
+    await page.goto("/elevation");
+    const exportButton = page.getByRole("button", {
+      name: "Export",
+      exact: true,
+    });
+    const bar = (await page.locator("header[class*=topbar]").boundingBox())!;
+    const box = (await exportButton.boundingBox())!;
+    const menu = (await page
+      .getByRole("button", { name: "Open navigation" })
+      .boundingBox())!;
+
+    expect(Math.abs(box.y - menu.y)).toBeLessThanOrEqual(1);
+    const above = box.y - bar.y;
+    const below = bar.y + bar.height - (box.y + box.height);
+    expect(
+      Math.abs(above - below),
+      `${above} above, ${below} below`,
+    ).toBeLessThanOrEqual(2);
+  });
+
   test("gives the top bar room above the menu button and Export", async ({
     seededPage: page,
   }) => {

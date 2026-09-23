@@ -764,6 +764,15 @@
 /* On a phone the canvas has the whole screen and the settings open in a
    sheet from the toolbar. Last in the file so it outranks the rules above. */
 @media (max-width: 640px) {
+  /* Elevation has no tab row, so the bar is only its actions. The bottom
+     padding matches the top and the bar is its content's height, so Export
+     sits level with the menu button at 12px and centred in the bar. With no
+     padding below and a 64px floor, it sat 7.5px lower than the button. */
+  .topbar:not(:has(.navigation)) {
+    min-height: 0;
+    padding-block-end: max(var(--spacing-3, 12px), env(safe-area-inset-top));
+  }
+
   .editor > .inspector {
     display: none;
   }
