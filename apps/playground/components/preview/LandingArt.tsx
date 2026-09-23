@@ -18,20 +18,6 @@ const INK = "currentColor";
 const PAPER = "var(--color-surface-base)";
 const RULE = "var(--color-border-default)";
 
-export function BrandMark(props: ArtProps) {
-  return (
-    <svg
-      aria-hidden="true"
-      className={styles.brandMark}
-      viewBox="0 0 24 24"
-      {...props}
-    >
-      <rect height="18" rx="5" width="18" x="3" y="3" />
-      <path d="M8 16V9.5L12 14l4-4.5V16" />
-    </svg>
-  );
-}
-
 export function HeroArt({ className, ...props }: ArtProps) {
   return (
     <svg

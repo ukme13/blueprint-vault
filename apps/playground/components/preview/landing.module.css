@@ -85,18 +85,6 @@
   min-width: 0;
 }
 
-.brandMark {
-  width: var(--spacing-6);
-  height: var(--spacing-6);
-  flex: none;
-  color: var(--color-fg-primary);
-  stroke: currentColor;
-  fill: none;
-  stroke-width: 1.6;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
 .navLinks {
   display: flex;
   align-items: center;

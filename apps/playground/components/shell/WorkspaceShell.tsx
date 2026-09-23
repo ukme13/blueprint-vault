@@ -332,13 +332,6 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                       <p className="m-0 font-mono text-[11px] text-fg-muted">
                         v{STUDIO_VERSION}
                       </p>
-                      <p className="m-0 text-[11px] text-fg-muted">
-                        Press{" "}
-                        <kbd className="rounded border border-border-subtle bg-surface-subtle px-1 py-0.5 font-mono text-[10px] text-fg-secondary">
-                          Space
-                        </kbd>{" "}
-                        for Preview
-                      </p>
                     </div>
                   )}
                 </VStack>

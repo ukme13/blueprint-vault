@@ -15,7 +15,6 @@ import {
 import { PreviewSectionBand } from "../PreviewSectionBand";
 import type { PreviewImageError } from "../PreviewSectionMenu";
 import { InspectableButton, InspectableSlot, slot } from "./Inspectable";
-import { BrandMark } from "./LandingArt";
 import { LandingCta } from "./LandingCta";
 import {
   LandingFeatureCards,
@@ -42,7 +41,6 @@ function BrandLockup({
   if (!slot(shell, "shell-brand")) return null;
   return (
     <div className={styles.brand}>
-      <BrandMark />
       <InspectableSlot
         as="p"
         document={shell}
