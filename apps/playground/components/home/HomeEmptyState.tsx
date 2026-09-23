@@ -27,7 +27,12 @@ export function HomeEmptyState({ onCreate }: { onCreate: () => void }) {
       <ul className="grid w-full max-w-xl list-none gap-4 p-0 sm:grid-cols-2">
         <EmptyStateCard
           action={
-            <Button className="w-full" scheme="primary" onClick={onCreate}>
+            <Button
+              className="w-full"
+              scheme="primary"
+              size="medium"
+              onClick={onCreate}
+            >
               Create a project
             </Button>
           }
@@ -46,6 +51,7 @@ export function HomeEmptyState({ onCreate }: { onCreate: () => void }) {
               href={docsLink("studio")}
               rel="noreferrer"
               scheme="neutral"
+              size="medium"
               target="_blank"
             >
               View guides

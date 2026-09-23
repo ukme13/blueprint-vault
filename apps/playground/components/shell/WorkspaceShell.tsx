@@ -274,7 +274,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                   leftIcon={<StudioGuideIcon />}
                   rel="noreferrer"
                   scheme="neutral"
-                  size="medium"
+                  size="small"
                   target="_blank"
                   variant="text"
                 >

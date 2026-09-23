@@ -204,7 +204,7 @@ export function WorkspaceHome() {
           <Button
             disabled={isLibraryFull}
             scheme="neutral"
-            size="small"
+            size="medium"
             type="button"
             variant="text"
             onClick={() => importInputRef.current?.click()}
@@ -214,7 +214,7 @@ export function WorkspaceHome() {
           <Button
             disabled={isLibraryFull}
             scheme="primary"
-            size="small"
+            size="medium"
             type="button"
             onClick={openCreate}
           >
