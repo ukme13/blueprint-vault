@@ -51,21 +51,24 @@ export function PrimitiveTable({
           <Table density="compact" dividers="rows" hasHover>
             <TableHeader>
               <TableRow isHeaderRow>
-                {/* Shade and the swatch hug their content (w-px: a column
-                    asks for 1px and grows only to what it holds), so Variable
-                    and Value share the rest of the row and the swatch sits
-                    at its far end. "Grows to what it holds" only holds if
-                    the text refuses to break: Astryx's cells, header cells
-                    included, let text break after any letter, and with w-px
-                    alone this column shrank to one character, "S" over "2".
-                    break-normal makes the word and the number unbreakable,
-                    so the column is exactly as wide as the wider of them. */}
-                <TableHeaderCell className="w-px whitespace-nowrap break-normal">
+                {/* Shade and the swatch get fixed, narrow columns, so
+                    Variable and Value share the rest of the row and the
+                    swatch sits at its far end.
+
+                    Real widths, not "hug the content". Every Astryx cell is
+                    overflow-x: hidden, and a cell that hides its overflow
+                    takes the width it is given at face value: its content
+                    never widens it. Asked for w-px, this column was exactly
+                    1px and showed "S" over "2", whatever the text inside
+                    was allowed to do. 80px holds the word "Shade" and any
+                    shade number; 56px holds a 24px swatch and the compact
+                    cell's padding either side. */}
+                <TableHeaderCell className="w-20 whitespace-nowrap">
                   Shade
                 </TableHeaderCell>
                 <TableHeaderCell>Variable</TableHeaderCell>
                 <TableHeaderCell>Value</TableHeaderCell>
-                <TableHeaderCell className="w-px">
+                <TableHeaderCell className="w-14">
                   <span className="sr-only">Swatch</span>
                 </TableHeaderCell>
               </TableRow>
@@ -73,10 +76,8 @@ export function PrimitiveTable({
             <TableBody>
               {track.rows.map((row) => (
                 <TableRow key={row.weight}>
-                  <TableCell className="w-px whitespace-nowrap break-normal">
-                    <Text className="break-normal" type="code">
-                      {row.weight}
-                    </Text>
+                  <TableCell className="whitespace-nowrap">
+                    <Text type="code">{row.weight}</Text>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {/* One line, whole. This was allowed to wrap because an
@@ -98,7 +99,7 @@ export function PrimitiveTable({
                       {row.value}
                     </Text>
                   </TableCell>
-                  <TableCell className="w-px">
+                  <TableCell className="text-right">
                     <Swatch
                       hex={row.hex}
                       label={`${track.name} ${row.weight}`}
