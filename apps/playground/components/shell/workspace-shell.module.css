@@ -88,25 +88,82 @@
 
 /* ---- below the mobile breakpoint ----
 
-   AppShell moves the side nav out of its own column below 768px — the same
-   breakpoint Astryx calls `md`. What it cannot do is stop this file forcing a
-   width on it, and a 260px rail on a 390px screen is two thirds of the
-   viewport whichever region it has been moved into. Measured before the fix:
-   `.astryx-side-nav` was 260px wide at x=8 inside the app shell's header.
+   The rail stops being a column and becomes a drawer over the page.
 
-   So the rail's own budget applies only where there is room for a rail. The
-   transition goes with it: a width that is no longer being animated between
-   two states has nothing to ease. */
+   Animating its width worked on a desktop and was violent on a phone: 52px to
+   260px against a 390px screen left the content 115px, so every expand
+   reflowed and re-wrapped the whole studio and then undid it. Nothing about
+   that is fixable by making the animation nicer — a rail that takes two
+   thirds of the viewport cannot share the row.
+
+   So below 768px it leaves the flow entirely. `position: fixed`, off-canvas
+   when closed, slid in over a backdrop when open; the page underneath does
+   not move at all. Transform rather than width, because a transform is
+   composited and a width is a reflow of everything beside it.
+
+   In CSS rather than behind a JavaScript breakpoint, so the first paint is
+   already right. AppShell offers its own drawer below the same breakpoint and
+   it is turned off in the component: two mechanisms for one job is how a
+   phone ends up with an empty bar and a drawer nothing opens. */
 @media (max-width: 768px) {
   .sideNav,
   .sideNav[data-collapsed="true"] {
-    width: 100%;
-    transition: none;
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: 50;
+    width: var(--rail-expanded-width);
+    /* Never the whole screen, so the page behind stays visible and the drawer
+       reads as covering it rather than as being it. */
+    max-width: 80vw;
+    height: 100%;
+    height: 100dvh;
+    transform: translateX(-100%);
+    transition: transform var(--rail-duration) var(--rail-ease);
+    will-change: transform;
+  }
+
+  .sideNav[data-collapsed="false"] {
+    transform: translateX(0);
   }
 
   /* Labels are never faded out down here: there is no collapsed rail to fade
      them for, and a hidden label in a drawer is a nav item with no name. */
   .sideNav[data-collapsed="true"] :global(.astryx-side-nav-item) span {
     opacity: 1;
+  }
+
+  .railBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 49;
+    border: 0;
+    padding: 0;
+    background: var(--color-surface-overlay);
+    opacity: 0.6;
+    cursor: pointer;
+  }
+}
+
+/* A backdrop and a trigger are phone controls. Above the breakpoint the rail
+   is a column that expands itself and there is nothing to dismiss. */
+.railBackdrop,
+.railTrigger {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .railBackdrop {
+    display: block;
+  }
+
+  .railTrigger {
+    display: inline-flex;
+    position: fixed;
+    inset-block-start: var(--spacing-2);
+    inset-inline-start: var(--spacing-2);
+    z-index: 48;
+    background: var(--color-surface-raised);
+    box-shadow: var(--shadow-low, none);
   }
 }

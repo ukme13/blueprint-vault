@@ -10,6 +10,8 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { AppShell } from "@astryxdesign/core/AppShell";
+import { Icon } from "@astryxdesign/core/Icon";
+import { IconButton } from "@astryxdesign/core/IconButton";
 import { Divider } from "@astryxdesign/core/Divider";
 import { VStack } from "@astryxdesign/core/Layout";
 import { LinkProvider } from "@astryxdesign/core/Link";
@@ -104,6 +106,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   const workspace = useWorkspaceStore();
   const isHome = pathname === "/";
   const [collapsed, setCollapsed] = useState(false);
+  const [drawerOpenedOn, setDrawerOpenedOn] = useState(pathname);
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -175,10 +178,18 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
        would run during SSR, where window does not exist, and desync
        hydration. */
     const isStored = window.localStorage.getItem(RAIL_COLLAPSED_KEY) === "1";
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCollapsed(isStored);
 
-    setIsNavCollapsed(isStored);
+    /* A phone starts with the drawer shut whatever the stored preference
+       says. The preference is about how wide a rail should be beside the
+       content; below 768px the rail is over the content, and "expanded" there
+       means a drawer covering the studio before anybody asked for one. */
+    const isNarrow = window.matchMedia("(max-width: 768px)").matches;
+    const shut = isStored || isNarrow;
+
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCollapsed(shut);
+
+    setIsNavCollapsed(shut);
 
     setIsHydrated(true);
   }, []);
@@ -251,16 +262,35 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     router.replace("/");
   }, [isHome, router, workspace.hasLoaded, workspace.project]);
 
+  /* Below 768px the rail is a drawer over the page, so a destination tapped
+     inside it has to close it — otherwise the next studio opens behind a
+     drawer still covering it. Adjusted during render rather than in an effect,
+     which is React's own pattern for state that follows a prop and the one
+     the lint rule asks for.
+
+     Above the breakpoint this is the collapse state, and collapsing the rail
+     on every navigation would be wrong — so it only closes what was open, and
+     an expanded rail on a desktop is never "open" in that sense because the
+     drawer rules do not apply to it. */
+  if (drawerOpenedOn !== pathname) {
+    setDrawerOpenedOn(pathname);
+    if (typeof window !== "undefined" && window.innerWidth <= 768) {
+      setCollapsed(true);
+    }
+  }
+
   return (
     <LinkProvider component={Link}>
       <AppShell
         contentPadding={0}
         height="fill"
-        /* Below Astryx's `md` (768px) the rail's items move into a drawer and
-           the rail itself becomes a compact bar. Without a toggle that drawer
-           has nothing to open it: measured on a 390px screen, the bar was 48px
-           of nothing and every studio destination was unreachable. */
-        mobileNav={{ breakpoint: "md", hasToggle: true }}
+        /* AppShell keeps out of it. The rail is its own drawer below 768px,
+           in CSS, so the first paint is already right; AppShell decides the
+           same thing after hydration, and running both left a phone with an
+           empty bar and a drawer nothing opened. `false` removes the rail
+           from a narrow screen altogether, which is worse than either. See
+           workspace-shell.module.css. */
+        mobileNav={{ breakpoint: "none" }}
         variant="section"
         topNav={
           isHome ? (
@@ -404,6 +434,34 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           />
         )}
       </AppShell>
+
+      {/* Opens the drawer. The rail's own expand control goes off-canvas with
+          the rail, so below 768px there has to be something left on screen —
+          measured: with the drawer shut and no trigger, every studio route was
+          unreachable again, one fix later. Hidden above the breakpoint, where
+          the rail is a column and expands itself. */}
+      {!isHome && collapsed ? (
+        <IconButton
+          className={styles.railTrigger}
+          icon={<Icon icon="menu" />}
+          label="Open navigation"
+          size="md"
+          variant="ghost"
+          onClick={() => onCollapsedChange(false)}
+        />
+      ) : null}
+
+      {/* Dismisses the drawer, and only exists while there is a drawer to
+          dismiss. A button rather than a div: it is a control, it takes focus
+          in order, and Escape is handled by the rail itself. */}
+      {!isHome && !collapsed ? (
+        <button
+          aria-label="Close navigation"
+          className={styles.railBackdrop}
+          type="button"
+          onClick={() => onCollapsedChange(true)}
+        />
+      ) : null}
     </LinkProvider>
   );
 }

@@ -92,3 +92,65 @@ described the symptom as the rail being too wide.
 **Check what is already right before building it.** Half this brief was
 already done. Writing the tables' scroll container again would have been work
 that looked like progress.
+
+## What a real device said that an emulator did not
+
+A second round, from testing on hardware. Two of the three reports were caused
+by the first round's fixes, which is the honest shape of this kind of work.
+
+**The theme control was overlapping the first paragraph.** `.site-header` is a
+three-column grid — mark, sections, actions — and the menu toggle was added as
+a fourth child. Grid put it in column one, pushed everything along, and the
+actions, pinned to column three, landed in an implicit second row: measured at
+390, 640 and 800, the control sat at y=60–88 in a bar 68px tall, with the `h1`
+at 92. The toggle now shares the first cell with the mark and the grid is three
+wide again.
+
+**The rail was springing.** Animating a width from 52px to 260px against a
+390px screen leaves 115px and reflows the whole studio twice per tap. That is
+not an easing problem, and the fix is the one that was asked for: below 768px
+the rail leaves the flow. `position: fixed`, off-canvas, slid in over a
+backdrop by transform rather than width, so the page underneath does not move
+at all. Measured: the canvas is 389px with the drawer shut and 389px with it
+open.
+
+In CSS rather than behind a JavaScript breakpoint, so the first paint is right.
+The first round had leaned on `AppShell`'s own mobile swap, which decides after
+hydration — plausibly the flash the report described as violent.
+
+## Three attempts at the same rail
+
+Worth recording, because each failure taught the next.
+
+`mobileNav={{ hasToggle: true }}` — AppShell's drawer, which worked in
+emulation and left a real device with a 48px bar of nothing.
+
+`mobileNav={false}` — which does not mean "leave my nav alone", it means the
+rail is not rendered on a narrow screen at all. Measured: no `.astryx-side-nav`
+in the document.
+
+`mobileNav={{ breakpoint: "none" }}` — AppShell keeps the rail inline at every
+width and the stylesheet owns the drawer. One mechanism, no hydration
+dependency.
+
+And then the same lesson as the docs, one fix later: with the drawer fully
+off-canvas, the rail's own expand control goes off-canvas with it, and every
+studio route was unreachable again. A fixed trigger stays behind.
+
+## Already right, again
+
+The shade grid's scroller was already `overflow-x: auto` at 353px wide against
+940px of content, and nothing escaped it. It gained
+`-webkit-overflow-scrolling` and `overscroll-behavior-x: contain` and no more:
+what the report read as the grid breaking the page was the rail taking two
+thirds of it.
+
+## Lessons learned
+
+**A fix is a change, and a change is a new bug until it is measured.** The
+overlapping theme control and the missing rail trigger were both mine, both
+introduced while fixing something else, and both found the same way — by
+printing boxes rather than by looking.
+
+**A prop named for the thing you want can mean the opposite.** `mobileNav
+={false}` reads as "no special mobile handling" and means "no navigation".

@@ -193,6 +193,14 @@ html {
   width: auto;
 }
 
+.site-header-start {
+  grid-column: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
 .site-header-actions {
   /* Pinned to the last column, so it stays right even with no sections. */
   grid-column: 3;
@@ -545,6 +553,13 @@ html {
 @media (max-width: 800px) {
   .mobile-menu {
     display: inline-flex;
+  }
+
+  /* The section links move into the drawer, which carries every group anyway.
+     Three things do not fit across 390px, and the one that reads as optional
+     is the one that has a second home. */
+  .site-sections {
+    display: none;
   }
 
   /* A phone gutter. 24px of padding on a 390px screen spends an eighth of the

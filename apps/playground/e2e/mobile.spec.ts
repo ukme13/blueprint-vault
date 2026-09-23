@@ -3,13 +3,14 @@ import { expect, test } from "./fixtures";
 /*
  * The studio on a phone.
  *
- * Measured before any of this was written, on a 390px screen: the rail was a
- * 260px column at x=8, two thirds of the viewport. Scoping its width to the
- * widths that have room for a rail let Astryx do what it already wanted to —
- * move the destinations into a drawer below `md` — and uncovered the worse
- * half: the drawer had no toggle, so every studio route was unreachable.
+ * Rewritten after a real device said what an emulated one had not. The rail
+ * was animating its width from 52px to 260px against a 390px screen, which
+ * left the studio 115px and reflowed all of it on every expand — a spring,
+ * not a transition. Nothing about that is fixable by easing it better.
  *
- * Both are invisible from a desktop browser and from every unit test here.
+ * So below 768px the rail leaves the flow: fixed, off-canvas, slid in over a
+ * backdrop. The assertions below are the shape of that, and the one that
+ * matters most is that the content does not move.
  */
 
 const PHONE = { width: 390, height: 844 };
@@ -17,33 +18,86 @@ const PHONE = { width: 390, height: 844 };
 test.describe("on a phone", () => {
   test.use({ viewport: PHONE });
 
-  test("does not spend the screen on the rail", async ({
+  test("starts with the drawer shut, whatever the stored preference", async ({
     seededPage: page,
   }) => {
+    /* The stored preference is about how wide a rail should be beside the
+       content. Below the breakpoint the rail is over the content, and
+       "expanded" there is a drawer covering the studio before anybody asked. */
     const rail = page.locator(".astryx-side-nav");
-    const { railWidth, viewport } = await page.evaluate(() => ({
-      railWidth:
-        document.querySelector(".astryx-side-nav")?.getBoundingClientRect()
-          .width ?? 0,
-      viewport: window.innerWidth,
-    }));
 
-    await expect(rail).toBeVisible();
-    /* A bar across the top rather than a column down the side: it may be as
-       wide as the screen, and it must not be as tall as one. */
-    const railHeight = await rail.evaluate(
-      (node) => node.getBoundingClientRect().height,
+    await expect(rail).toHaveAttribute("data-collapsed", "true");
+    const left = await rail.evaluate(
+      (node) => node.getBoundingClientRect().left,
     );
-    expect(railHeight, `${railHeight}px tall`).toBeLessThan(120);
-    expect(railWidth).toBeLessThanOrEqual(viewport);
+    expect(left, `${left}px from the left edge`).toBeLessThan(0);
   });
 
-  test("never makes the page scroll sideways", async ({ seededPage: page }) => {
+  test("opens over the page without moving it", async ({
+    seededPage: page,
+  }) => {
+    /* The whole point. The canvas is measured before and after, and the rail
+       goes from off-canvas to flush with the edge in between. */
+    const canvas = page.locator('[class*="canvas"]').first();
+    const width = () =>
+      canvas.evaluate((node) => node.getBoundingClientRect().width);
+
+    const before = await width();
+    await page.getByRole("button", { name: "Open navigation" }).click();
+
+    const rail = page.locator(".astryx-side-nav");
+    await expect(rail).toHaveAttribute("data-collapsed", "false");
+    await expect
+      .poll(
+        async () =>
+          rail.evaluate((node) =>
+            Math.round(node.getBoundingClientRect().left),
+          ),
+        { timeout: 3000 },
+      )
+      .toBe(0);
+
+    expect(await width(), "the studio moved under the drawer").toBe(before);
+  });
+
+  test("closes on the backdrop", async ({ seededPage: page }) => {
+    await page.getByRole("button", { name: "Open navigation" }).click();
+    await expect(page.locator(".astryx-side-nav")).toHaveAttribute(
+      "data-collapsed",
+      "false",
+    );
+
+    /* Tapped to the right of the drawer, which is where a thumb goes. The
+       backdrop covers the whole viewport and its centre is underneath the
+       drawer, so clicking the element itself would hit the drawer instead. */
+    await page.mouse.click(340, 500);
+
+    await expect(page.locator(".astryx-side-nav")).toHaveAttribute(
+      "data-collapsed",
+      "true",
+    );
+  });
+
+  test("swipes the shade grid instead of breaking the page", async ({
+    seededPage: page,
+  }) => {
+    const scroller = page.locator('[class*="matrixScroller"]').first();
+    const { width, scrollWidth, overflowX } = await scroller.evaluate(
+      (node) => ({
+        width: node.getBoundingClientRect().width,
+        scrollWidth: node.scrollWidth,
+        overflowX: getComputedStyle(node).overflowX,
+      }),
+    );
+
+    expect(overflowX).toBe("auto");
+    /* There is more grid than frame, which is the case the scrolling is for. */
+    expect(scrollWidth).toBeGreaterThan(width);
+
     const { doc, viewport } = await page.evaluate(() => ({
       doc: document.documentElement.scrollWidth,
       viewport: window.innerWidth,
     }));
-
     expect(doc).toBe(viewport);
   });
 
@@ -51,12 +105,9 @@ test.describe("on a phone", () => {
     test(`keeps every control inside the screen on ${route}`, async ({
       seededPage: page,
     }) => {
-      /* Not "nothing is wider than the viewport" — the shade matrix is 940px
-         and is supposed to be, inside `.matrixScroller`. What must not happen
-         is something escaping: wider than the screen with nothing between it
-         and the body that scrolls. That is a control pushed off the edge with
-         no way to reach it, which is what a five-column token row was doing
-         to the largest spacing bars. */
+      /* Not "nothing is wider than the viewport" — the shade grid is 940px and
+         is supposed to be. What must not happen is something escaping: wider
+         than the screen with nothing between it and the body that scrolls. */
       await page.goto(route);
 
       const escaped = await page.evaluate(() => {
@@ -64,8 +115,7 @@ test.describe("on a phone", () => {
         const scrolls = (node: HTMLElement) => {
           let parent = node.parentElement;
           while (parent && parent !== document.body) {
-            const overflow = getComputedStyle(parent).overflowX;
-            if (overflow !== "visible") return true;
+            if (getComputedStyle(parent).overflowX !== "visible") return true;
             parent = parent.parentElement;
           }
           return false;
@@ -85,24 +135,6 @@ test.describe("on a phone", () => {
       expect(escaped, escaped.join(" | ")).toEqual([]);
     });
   }
-
-  test("opens a drawer that reaches the studios", async ({
-    seededPage: page,
-  }) => {
-    /* The failure this exists for: below the breakpoint the rail's items move
-       into a drawer, and without a toggle nothing opens it. */
-    const toggle = page.getByRole("button", { name: "Open navigation" });
-    await expect(toggle).toBeVisible();
-    await toggle.click();
-
-    const drawer = page.getByRole("dialog");
-    await expect(drawer).toBeVisible();
-    for (const destination of ["Colour", "Typography", "Preview"]) {
-      await expect(
-        drawer.getByRole("link", { name: destination, exact: true }),
-      ).toBeVisible();
-    }
-  });
 });
 
 test.describe("with room for a rail", () => {
@@ -111,11 +143,15 @@ test.describe("with room for a rail", () => {
   test("keeps the rail a column, and offers no drawer", async ({
     seededPage: page,
   }) => {
-    const width = await page
-      .locator(".astryx-side-nav")
-      .evaluate((node) => node.getBoundingClientRect().width);
+    const rail = page.locator(".astryx-side-nav");
+    const { width, position } = await rail.evaluate((node) => ({
+      width: node.getBoundingClientRect().width,
+      position: getComputedStyle(node).position,
+    }));
 
-    /* The rail's own budget, which the mobile rule must not reach. */
+    /* In the flow, at the rail's own budget. The drawer rules must not reach
+       a width that has room for a column. */
+    expect(position).not.toBe("fixed");
     expect(width).toBeGreaterThan(200);
     await expect(
       page.getByRole("button", { name: "Open navigation" }),

@@ -347,6 +347,12 @@
 .matrixScroller {
   max-width: 100%;
   overflow-x: auto;
+  /* Momentum on the iOS versions that still ask for it. The grid is 940px
+     against a 353px canvas on a phone, so this is the surface a reader swipes
+     to see the 25 to 950 interval — it should feel like the rest of the
+     phone. */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   padding: 0;
 }
 

@@ -40,21 +40,24 @@ export function SiteHeader({
 }: SiteHeaderProps) {
   return (
     <div className="site-header">
-      {/* First in the bar, and hidden above 800px. Below it the sidebar is
-          gone and the section links have run out of room, so this is the only
-          way between pages. */}
-      <MobileMenu currentPath={path} groups={groups} />
-
-      {/* eslint-disable-next-line @next/next/no-html-link-for-pages --
-          A plain anchor on purpose, as in DocsNav. These pages ship inside a
-          handover and are opened from a folder over file://, where there is
-          no server for a router to ask. `scripts/handover.ts` rewrites an
-          absolute href to a relative one on the way into the archive; it
-          cannot rewrite a client-side router. The rule is right about an
-          ordinary Next app and wrong about this one. */}
-      <a aria-label="Blueprint documentation" className="site-mark" href="/">
-        <BlueprintWordmark className="site-mark-wordmark" />
-      </a>
+      {/* One cell, two things. The bar is a three-column grid and the toggle
+          was added as a fourth child — which pushed the theme control into an
+          implicit second row, 20px below a bar with a fixed height, on top of
+          the first paragraph. Grouping it with the mark keeps the grid three
+          wide. */}
+      <div className="site-header-start">
+        <MobileMenu currentPath={path} groups={groups} />
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages --
+            A plain anchor on purpose, as in DocsNav. These pages ship inside a
+            handover and are opened from a folder over file://, where there is
+            no server for a router to ask. `scripts/handover.ts` rewrites an
+            absolute href to a relative one on the way into the archive; it
+            cannot rewrite a client-side router. The rule is right about an
+            ordinary Next app and wrong about this one. */}
+        <a aria-label="Blueprint documentation" className="site-mark" href="/">
+          <BlueprintWordmark className="site-mark-wordmark" />
+        </a>
+      </div>
 
       {/* The site's sections, centred. Built from the audience-filtered
           route groups, so a client build has no Studio link to render. Plain

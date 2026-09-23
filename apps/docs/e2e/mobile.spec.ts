@@ -115,6 +115,44 @@ test.describe("on a phone", () => {
     ).toBeVisible();
   });
 
+  test("keeps the theme control inside the header bar", async ({ page }) => {
+    /* The bar is a three-column grid and the menu toggle arrived as a fourth
+       child, which pushed the theme control into an implicit second row —
+       20px below a bar with a fixed height, on top of the first paragraph.
+       Measured at 390, 640 and 800. */
+    await page.goto(ROUTE);
+
+    const { bar, control, heading } = await page.evaluate(() => {
+      const box = (selector: string) =>
+        document.querySelector(selector)!.getBoundingClientRect();
+      return {
+        bar: box(".astryx-layout-header").bottom,
+        control: box(".site-header-actions").bottom,
+        heading: box("h1").top,
+      };
+    });
+
+    expect(control, "the control hangs below the bar").toBeLessThanOrEqual(bar);
+    expect(control, "the control reaches the first heading").toBeLessThan(
+      heading,
+    );
+  });
+
+  test("moves the section links into the drawer", async ({ page }) => {
+    /* Three things do not fit across 390px. The links have a second home and
+       the mark and the mode control do not, so the links are what goes. */
+    await page.goto(ROUTE);
+
+    await expect(page.locator(".site-sections")).toBeHidden();
+
+    await hydrated(page, "Open navigation");
+    await page.getByRole("button", { name: "Open navigation" }).click();
+    const drawer = page.getByRole("dialog");
+    await expect(
+      drawer.getByRole("link", { name: "Colour", exact: true }),
+    ).toBeVisible();
+  });
+
   test("closes the drawer on Escape", async ({ page }) => {
     await page.goto(ROUTE);
 
@@ -136,6 +174,7 @@ test.describe("above the breakpoint", () => {
     await page.goto(ROUTE);
 
     await expect(page.locator(".sidebar-panel")).toBeVisible();
+    await expect(page.locator(".site-sections")).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Open navigation" }),
     ).toBeHidden();
