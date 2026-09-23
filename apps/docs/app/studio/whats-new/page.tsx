@@ -9,7 +9,7 @@ import { changelogBadge } from "../../../lib/changelog";
 export const metadata: Metadata = {
   title: "What's new",
   description:
-    "What changed in the Blueprint studio, dated and badged with the workspace file version current at the time.",
+    "What changed in the Blueprint studio, dated and badged with the studio version and the workspace file version current at the time.",
 };
 
 /**
@@ -20,7 +20,8 @@ export const metadata: Metadata = {
  * Each entry becomes a section, so the contents column lists the releases and
  * a reader can link to one. The badge sits in the section body rather than in
  * the heading: a heading is the anchor text and the nav label, and "The studio
- * has documentation · 23 September 2026 · Schema v8" is not a nav label.
+ * has documentation · 23 September 2026 · v0.2.0 · Schema v8" is not a nav
+ * label.
  *
  * See docs/roadmap/studio-guide.md.
  */
@@ -45,7 +46,7 @@ export default function WhatsNewPage() {
           </VStack>
         ),
       }))}
-      summary="What changed, newest first, badged with the workspace file version current at the time."
+      summary="What changed, newest first, badged with the studio version and the workspace file version current at the time."
       title="What's new"
     />
   );

@@ -1,12 +1,16 @@
 /**
  * What changed, newest first.
  *
- * Each entry is badged with the date and the workspace file version current on
- * that date. Both are facts this repository can check — the date is in the
- * journal, the version is a constant — which is why the badge is those two
- * things and not a release number nobody mints. A test holds the newest entry
- * against `BLUEPRINT_WORKSPACE_FILE_VERSION`, so a format bump with no entry
- * beside it fails rather than shipping quietly.
+ * Each entry is badged with its date, the studio version, and the workspace
+ * file version current on that date. All three are facts this repository can
+ * check, and tests check them: the newest entry's studio version against
+ * `apps/playground/package.json`, and its file version against
+ * `BLUEPRINT_WORKSPACE_FILE_VERSION`. So a release or a format bump with no
+ * entry beside it fails rather than shipping quietly.
+ *
+ * The studio version exists because the file version alone could not tell
+ * releases apart: several ship at the same schema. See
+ * docs/journal/2026-09-23-studio-version.md.
  *
  * Content, kept apart from data like the rest of `content/`, and skipped by
  * the hardcoded-value scanner for the same reason: a changelog has to be able
@@ -18,6 +22,11 @@
 export interface ChangelogEntry {
   /** ISO, so it sorts and formats without a second opinion. */
   date: string;
+  /**
+   * The studio version, `major.minor.patch`. Entries before 0.2.0 carry
+   * 0.1.0, which is what package.json and every handover said until then.
+   */
+  version: string;
   /** The workspace file version current on that date. */
   schema: number;
   title: string;
@@ -27,6 +36,7 @@ export interface ChangelogEntry {
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
     date: "2026-09-23",
+    version: "0.2.0",
     schema: 8,
     title: "The studio has documentation",
     changes: [
@@ -37,6 +47,7 @@ export const CHANGELOG: readonly ChangelogEntry[] = [
   },
   {
     date: "2026-09-22",
+    version: "0.1.0",
     schema: 8,
     title: "Transparency reaches the documentation",
     changes: [
@@ -48,6 +59,7 @@ export const CHANGELOG: readonly ChangelogEntry[] = [
   },
   {
     date: "2026-09-18",
+    version: "0.1.0",
     schema: 8,
     title: "Preview frames and layout uses",
     changes: [
@@ -58,6 +70,7 @@ export const CHANGELOG: readonly ChangelogEntry[] = [
   },
   {
     date: "2026-09-12",
+    version: "0.1.0",
     schema: 7,
     title: "Buttons, and a preview worth judging",
     changes: [
@@ -67,6 +80,7 @@ export const CHANGELOG: readonly ChangelogEntry[] = [
   },
   {
     date: "2026-09-06",
+    version: "0.1.0",
     schema: 7,
     title: "Alpha, deletions that stick, and the handover",
     changes: [
@@ -77,6 +91,7 @@ export const CHANGELOG: readonly ChangelogEntry[] = [
   },
   {
     date: "2026-08-31",
+    version: "0.1.0",
     schema: 5,
     title: "The rest of a system",
     changes: [
