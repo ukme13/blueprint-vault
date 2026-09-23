@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { DropdownMenu } from "@astryxdesign/core/DropdownMenu";
-import { Copy, Download, Ellipsis, Pencil, Trash2 } from "lucide-react";
+import { Copy, Download, Pencil, Trash2 } from "lucide-react";
 import {
   DEFAULT_WORKSPACE_NAME,
   formatRelativeTime,
@@ -17,16 +16,9 @@ function familyCountLabel(count: number) {
 }
 
 /**
- * One workspace on Home: the palette mosaic, then its name, what it holds and
- * when it was last touched, with its actions in one `···` menu.
- *
- * The actions used to be four icons laid over the mosaic, shown on hover —
- * which a phone does not have, so they sat there permanently, small and over
- * the palette. One menu beside the name keeps the mosaic clear and gives each
- * action a row a thumb can hit.
- *
- * The whole card opens the project: the link's hit area covers it. The menu
- * sits above that area, so pressing it opens the menu and not the project.
+ * One workspace on Home:
+ * Flush top mosaic thumbnail, overlay action icons (Rename, Duplicate, Delete)
+ * with a faded top gradient, and project details below.
  */
 export function ProjectCard({
   familyCount,
@@ -66,70 +58,81 @@ export function ProjectCard({
     >
       <div className={styles.thumbnailWrapper}>
         <ProjectMosaic palette={palette} />
+        <div className={styles.cardActionsOverlay}>
+          <button
+            aria-label={`Rename ${title}`}
+            className={styles.cardActionButton}
+            title="Rename project"
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onRename();
+            }}
+          >
+            <Pencil size={15} strokeWidth={2.2} />
+          </button>
+          <button
+            aria-label={`Duplicate ${title}`}
+            className={styles.cardActionButton}
+            disabled={isLibraryFull}
+            title={
+              isLibraryFull
+                ? "Workspace limit reached (8 projects)"
+                : "Duplicate project"
+            }
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onDuplicate();
+            }}
+          >
+            <Copy size={15} strokeWidth={2.2} />
+          </button>
+          <button
+            aria-label={`Export ${title}`}
+            className={styles.cardActionButton}
+            title="Export project (.blueprint.json)"
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onExport();
+            }}
+          >
+            <Download size={15} strokeWidth={2.2} />
+          </button>
+          <button
+            aria-label={`Delete ${title}`}
+            className={`${styles.cardActionButton} ${styles.cardActionButtonDestructive}`}
+            title="Delete project"
+            type="button"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onDelete();
+            }}
+          >
+            <Trash2 size={15} strokeWidth={2.2} />
+          </button>
+        </div>
       </div>
       <div className={styles.cardContent}>
-        <div className={styles.cardTitleRow}>
-          <h2>
-            <Link
-              aria-current={isCurrent ? "page" : undefined}
-              className={styles.cardLink}
-              href={href}
-              onClick={onOpen}
-            >
-              <span aria-hidden className={styles.cardLinkHitArea} />
-              {title}
-            </Link>
-          </h2>
-          <span className={styles.cardMenu}>
-            <DropdownMenu
-              alignment="end"
-              button={{
-                label: `More actions for ${title}`,
-                icon: <Ellipsis aria-hidden className="size-4" />,
-                isIconOnly: true,
-                size: "sm",
-                variant: "ghost",
-              }}
-              hasChevron={false}
-              items={[
-                {
-                  label: "Rename",
-                  icon: <Pencil aria-hidden className="size-4" />,
-                  onClick: onRename,
-                },
-                {
-                  label: "Duplicate",
-                  icon: <Copy aria-hidden className="size-4" />,
-                  description: isLibraryFull
-                    ? "The library is full (8 projects)"
-                    : undefined,
-                  isDisabled: isLibraryFull,
-                  onClick: onDuplicate,
-                },
-                {
-                  label: "Export",
-                  icon: <Download aria-hidden className="size-4" />,
-                  onClick: onExport,
-                },
-                { type: "divider" },
-                {
-                  label: "Delete",
-                  icon: <Trash2 aria-hidden className="size-4" />,
-                  variant: "destructive",
-                  onClick: onDelete,
-                },
-              ]}
-              menuWidth={200}
-            />
-          </span>
-        </div>
-        <p className={styles.cardMeta}>
-          <span className={styles.cardBadge}>
-            {familyCountLabel(familyCount)}
-          </span>
-          {editedText ? (
-            <span className={styles.cardBadge}>{editedText}</span>
-          ) : null}
+        <h2>
+          <Link
+            aria-current={isCurrent ? "page" : undefined}
+            className={styles.cardLink}
+            href={href}
+            onClick={onOpen}
+          >
+            <span aria-hidden className={styles.cardLinkHitArea} />
+            {title}
+          </Link>
+        </h2>
+        <p>
+          {familyCountLabel(familyCount)}
+          {editedText ? ` · ${editedText}` : null}
         </p>
       </div>
     </div>

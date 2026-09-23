@@ -1202,7 +1202,7 @@ test.describe("on a phone", () => {
     expect(download.width).toBeGreaterThanOrEqual(footerBox.width - 2 * 16 - 1);
   });
 
-  test("lays Home out for a phone: header rows, a card menu, a slot to fill", async ({
+  test("lays Home out for a phone: header rows and a slot to fill", async ({
     page,
   }) => {
     /* An empty library, as the Home suite starts from. */
@@ -1236,17 +1236,6 @@ test.describe("on a phone", () => {
     expect(Math.abs(create.y - importButton.y)).toBeLessThanOrEqual(1);
     expect(create.x).toBeLessThan(importButton.x);
     expect(Math.abs(create.width - importButton.width)).toBeLessThanOrEqual(1);
-
-    /* The card's actions are one menu, and pressing it does not open the
-       project under it. */
-    await page
-      .getByRole("button", { name: "More actions for First system" })
-      .click();
-    for (const action of ["Rename", "Duplicate", "Export", "Delete"]) {
-      await expect(page.getByRole("menuitem", { name: action })).toBeVisible();
-    }
-    await expect(page).toHaveURL(/\/$/);
-    await page.keyboard.press("Escape");
 
     /* The next slot, dashed, opens New project. */
     await page.getByRole("button", { name: "Create new workspace" }).click();

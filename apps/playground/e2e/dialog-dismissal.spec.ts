@@ -39,10 +39,7 @@ test.describe("Dialog dismissal", () => {
     await createWorkspaceFromHome(page, "First system");
     await page.goto("/");
 
-    await page
-      .getByRole("button", { name: "More actions for First system" })
-      .click();
-    await page.getByRole("menuitem", { name: "Rename" }).click();
+    await page.getByRole("button", { name: "Rename First system" }).click();
     const dialog = page.getByRole("dialog", { name: "Rename project" });
     await expect(dialog).toBeVisible();
 

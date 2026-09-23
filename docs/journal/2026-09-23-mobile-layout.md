@@ -492,3 +492,8 @@ grid. It was "Create new project" first, and Playwright's name matching is a
 case-insensitive substring by default, so every `name: "New project"` in the
 suite now matched two buttons. The requested wording avoids that without
 touching seven specs.
+
+The project card went back to its earlier design at the user's request:
+icons over the mosaic, the one-line caption and the earlier hover. The phone
+header and the "Create new workspace" slot stayed. The Home and
+dialog-dismissal specs are back to clicking the card's icons.
