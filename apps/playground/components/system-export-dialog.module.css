@@ -103,3 +103,80 @@
   color: var(--color-status-error);
   font-size: 11px;
 }
+
+/*
+ * On a phone, one column.
+ *
+ * The desktop dialog is the formats in a fixed 300px column beside the code.
+ * Measured at 390px: the column took 300 of the dialog's 358px and left the
+ * code 58px, a slit nothing could be read in. Here the formats are one line of
+ * chips that swipes, the colour format sits under them, and the code has the
+ * dialog's whole width, its copy button with it.
+ */
+@media (max-width: 640px) {
+  .exportDialogBody {
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .exportSettings {
+    gap: 8px;
+    padding: 12px 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--color-border-strong);
+  }
+
+  /* Named for a screen reader by the group's label; the chips say what
+     they are. */
+  .exportSettings h3 {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .exportFormatGrid {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    white-space: nowrap;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Pills, and the chosen one filled: the contained variant already fills
+     it. */
+  .exportFormatGrid > button {
+    flex-shrink: 0;
+    overflow: visible;
+    border-radius: var(--radius-full, 9999px);
+  }
+
+  .exportColourFormat {
+    justify-content: flex-start;
+    margin-top: 0;
+  }
+
+  .exportPreview {
+    padding: 12px;
+    border-right: 0;
+  }
+
+  /* Import project on a line of its own if it is there, and Download the
+     width of the dialog under it. */
+  .exportDialogFooter {
+    flex-wrap: wrap;
+    padding: 12px 16px;
+  }
+
+  .exportDialogFooterSpacer {
+    display: none;
+  }
+
+  .exportDownload {
+    width: 100%;
+  }
+}

@@ -260,8 +260,12 @@ export function SystemExportDialog({
       </header>
       <div className={styles.exportDialogBody}>
         <section className={styles.exportSettings} aria-label="Export settings">
-          <h3>Format</h3>
-          <div className={styles.exportFormatGrid}>
+          <h3 id="export-format-label">Format</h3>
+          <div
+            aria-labelledby="export-format-label"
+            className={styles.exportFormatGrid}
+            role="group"
+          >
             {FORMATS.map((format) => (
               <Button
                 key={format.value}
@@ -341,6 +345,7 @@ export function SystemExportDialog({
         )}
         <span className={styles.exportDialogFooterSpacer} />
         <Button
+          className={styles.exportDownload}
           scheme="primary"
           size="medium"
           variant="contained"

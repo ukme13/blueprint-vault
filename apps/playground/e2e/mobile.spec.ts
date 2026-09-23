@@ -1121,6 +1121,60 @@ test.describe("on a phone", () => {
     ).toBeLessThanOrEqual(2);
   });
 
+  test("stacks the export dialog into one column", async ({
+    seededPage: page,
+  }) => {
+    /* From a device: the formats kept a 300px column and left the code a
+       58px slit beside it. */
+    await page.getByRole("button", { name: "Export palette" }).click();
+    const dialog = page.getByRole("dialog", { name: "Export palette" });
+    await expect(dialog).toBeVisible();
+
+    const formats = dialog.getByRole("group", { name: "Format" });
+    const chips = formats.getByRole("button");
+    const tops = await chips.evaluateAll((buttons) =>
+      buttons.map((button) => Math.round(button.getBoundingClientRect().top)),
+    );
+    expect(tops.length).toBe(7);
+    expect(new Set(tops).size, `chips at ${tops.join(", ")}`).toBe(1);
+    expect(
+      await formats.evaluate((node) => getComputedStyle(node).overflowX),
+    ).toBe("auto");
+
+    /* The chosen format is the filled one. */
+    await chips.filter({ hasText: "Tailwind CSS" }).click();
+    await expect(chips.filter({ hasText: "Tailwind CSS" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    /* The colour format under the chips, the code the dialog's width. */
+    const strip = (await formats.boundingBox())!;
+    const colour = (await dialog
+      .getByRole("combobox", { name: "Export colour format" })
+      .boundingBox())!;
+    expect(colour.y).toBeGreaterThanOrEqual(strip.y + strip.height - 1);
+
+    const body = (await dialog
+      .locator("[class*=exportDialogBody]")
+      .boundingBox())!;
+    const preview = (await dialog
+      .getByRole("region", { name: "Export preview" })
+      .boundingBox())!;
+    expect(preview.width).toBeGreaterThanOrEqual(body.width - 1);
+    await expect(
+      dialog.getByRole("button", { name: "Copy code" }),
+    ).toBeInViewport();
+
+    /* Download the width of the footer. */
+    const footer = dialog.locator("footer");
+    const download = (await footer
+      .getByRole("button", { name: "Download" })
+      .boundingBox())!;
+    const footerBox = (await footer.boundingBox())!;
+    expect(download.width).toBeGreaterThanOrEqual(footerBox.width - 2 * 16 - 1);
+  });
+
   test("gives the top bar room above the menu button and Export", async ({
     seededPage: page,
   }) => {
