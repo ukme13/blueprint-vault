@@ -489,11 +489,20 @@ html {
 .astryx-table-header-cell {
   background: var(--color-surface-subtle);
   border-bottom-color: var(--color-border-subtle);
+  border-inline-end-color: var(--color-border-subtle);
 }
 
 /* The frame supplies the outer edges now. Every cell draws its own bottom
    border, and grid dividers an inline-end one, so without these the last row
    and the last column would each meet the frame as a doubled line. */
+/* The row and column lines in the same quiet colour as the frame. Astryx
+   draws them in its general border colour, which read darker than the frame
+   around them and turned a list of rows into a grid of stripes. */
+.astryx-table-cell {
+  border-bottom-color: var(--color-border-subtle);
+  border-inline-end-color: var(--color-border-subtle);
+}
+
 .astryx-table-body .astryx-table-row:last-child .astryx-table-cell {
   border-bottom-width: 0;
 }

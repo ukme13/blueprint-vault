@@ -78,13 +78,18 @@ export function ContrastTable({ tokens, palettes, mode }: ContrastTableProps) {
                 <Text type="body">{check.label}</Text>
               </TableCell>
               {/* Foreground over background, one per line and never
-                  wrapped. As one run of text these columns squeezed in the
-                  768px column and broke token names mid-word, "surface.bas"
-                  over "e"; stacked, each line is short enough to fit whole,
-                  and the table scrolls sideways before it breaks one. */}
+                  wrapped. Astryx's Text defaults to word-break: break-word,
+                  which sizes like overflow-wrap: anywhere: the browser takes
+                  a column's minimum as if a name could break after any
+                  letter. First that broke names mid-word, "surface.bas" over
+                  "e"; with nowrap it clipped them at the column edge instead.
+                  Text's own wordBreak prop offers only break-word and
+                  break-all, so break-normal overrides it from the utilities
+                  layer. Each column is then as wide as its longest line and
+                  the prose columns take the squeeze. */}
               <TableCell className="whitespace-nowrap">
                 <VStack gap={0.5}>
-                  <Text type="code">
+                  <Text className="break-normal" type="code">
                     {/* A readable foreground is black or white chosen for the
                         fill rather than a role, so saying its id would name a
                         token that is not what was measured. */}
@@ -92,7 +97,7 @@ export function ContrastTable({ tokens, palettes, mode }: ContrastTableProps) {
                       ? "readable"
                       : check.foregroundToken}
                   </Text>
-                  <Text color="secondary" type="code">
+                  <Text className="break-normal" color="secondary" type="code">
                     {`on ${check.backgroundToken}`}
                   </Text>
                 </VStack>
@@ -111,7 +116,7 @@ export function ContrastTable({ tokens, palettes, mode }: ContrastTableProps) {
                       hex={check.foreground}
                       label={`${check.label} text`}
                     />
-                    <Text type="code">
+                    <Text className="break-normal" type="code">
                       {foreground && !check.isForegroundReadable
                         ? describeReference(foreground)
                         : check.foreground}
@@ -122,7 +127,11 @@ export function ContrastTable({ tokens, palettes, mode }: ContrastTableProps) {
                       hex={check.background}
                       label={`${check.label} background`}
                     />
-                    <Text color="secondary" type="code">
+                    <Text
+                      className="break-normal"
+                      color="secondary"
+                      type="code"
+                    >
                       {`on ${
                         background
                           ? describeReference(background)
