@@ -963,6 +963,30 @@ test.describe("on a phone", () => {
     expect(Math.abs(bar!.x + 14 - device!.x)).toBeLessThanOrEqual(1);
   });
 
+  test("puts a step's size above its specimen, from the left", async ({
+    page,
+  }) => {
+    await seedTypographyProject(page);
+    const row = page.locator("[class*=stepRow]").first();
+    const meta = await row.locator("[class*=stepMeta]").boundingBox();
+    const sample = await row.locator("[class*=stepSampleBox]").boundingBox();
+    const card = await row.boundingBox();
+    const padding = await row.evaluate((node) =>
+      parseFloat(getComputedStyle(node).paddingLeft),
+    );
+
+    expect(meta!.y + meta!.height).toBeLessThanOrEqual(sample!.y + 1);
+    const firstTag = await row
+      .locator("[class*=stepMeta] > *")
+      .first()
+      .boundingBox();
+    expect(Math.abs(firstTag!.x - (card!.x + padding))).toBeLessThanOrEqual(1);
+    /* The whole content box: the card less its padding and 1px borders. */
+    expect(sample!.width).toBeGreaterThanOrEqual(
+      card!.width - 2 * padding - 2 - 1,
+    );
+  });
+
   test("gives the top bar room above the menu button and Export", async ({
     seededPage: page,
   }) => {

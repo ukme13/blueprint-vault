@@ -1134,6 +1134,19 @@
 }
 
 @media (max-width: 640px) {
+  /* A step is one column: its size and roles on a line above the specimen,
+     from the left, and the specimen the card's whole width. Beside it, the
+     160px meta column left the specimen room for two letters. */
+  .stepRow {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-2);
+  }
+
+  .stepMeta {
+    order: -1;
+    justify-content: flex-start;
+  }
+
   /* The preview's own row of controls lines up with the toolbar above it and
      the top bar: 14px in, not the 18px a wider screen gives it. Here, at the
      end of the file, because the base rule comes after the earlier phone
