@@ -11,9 +11,9 @@ import type { ActiveShade } from "./types";
  * A shade's details on a phone: a sheet from the bottom edge.
  *
  * On a desktop each swatch opens a popover beside itself. On a phone that
- * popover sat over the middle of the palette it was describing, and its
- * editor opened a second popover on top. One sheet for the whole matrix
- * instead, with the sliders in it.
+ * popover sat over the middle of the palette it was describing. One sheet for
+ * the whole matrix instead, holding what the popover holds; its edit button
+ * opens the picker as a second sheet over it.
  *
  * The last shade shown is kept while the sheet slides away, so it leaves with
  * its content rather than as an empty panel.

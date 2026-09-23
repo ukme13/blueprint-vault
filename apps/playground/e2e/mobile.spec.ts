@@ -418,11 +418,9 @@ test.describe("on a phone", () => {
     await expect(frame).toHaveAttribute("data-preview-device", "desktop");
   });
 
-  test("opens a shade's details in a sheet, with the sliders in it", async ({
-    seededPage: page,
-  }) => {
+  test("opens a shade's details in a sheet", async ({ seededPage: page }) => {
     /* From a device: the popover sat over the middle of the rows it
-       described, and its editor opened a second popover on top of it. */
+       described. */
     const swatch = page.getByRole("button", { name: /^Select / }).nth(5);
     await swatch.click();
 
@@ -430,11 +428,12 @@ test.describe("on a phone", () => {
     await expect(sheet).toBeVisible();
     /* The first: a picker opened from this sheet has one of its own inside. */
     await expect(sheet.locator(".astryx-bottom-sheet").first()).toBeVisible();
-    for (const channel of ["Lightness", "Chroma", "Hue"]) {
-      await expect(
-        sheet.getByRole("slider", { name: `${channel} slider` }),
-      ).toBeVisible();
-    }
+    /* As on a desktop: no sliders in the sheet. The edit button beside the
+       value opens the picker. */
+    await expect(sheet.getByRole("slider")).toHaveCount(0);
+    await expect(
+      sheet.getByRole("button", { name: /^Edit .* colour$/ }),
+    ).toBeVisible();
 
     /* Nothing is wider than the sheet. Screen-reader-only text is 1px wide
        and clipped on purpose, so it is not counted. */
@@ -593,6 +592,9 @@ test.describe("on a phone", () => {
     await expect(shadePicker).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(shadePicker).toBeHidden();
+    /* Hidden to Playwright is not closed: the sheet is still an open dialog
+       while it slides away, and an Escape pressed then lands on it. */
+    await expect(page.locator("dialog[open]")).toHaveCount(1);
     await page.keyboard.press("Escape");
     await expect(shade).toBeHidden();
 
@@ -612,6 +614,9 @@ test.describe("on a phone", () => {
     await expect(trackPicker).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(trackPicker).toBeHidden();
+    /* Hidden to Playwright is not closed: the sheet is still an open dialog
+       while it slides away, and an Escape pressed then lands on it. */
+    await expect(page.locator("dialog[open]")).toHaveCount(1);
     await page.keyboard.press("Escape");
     await expect(track).toBeHidden();
 

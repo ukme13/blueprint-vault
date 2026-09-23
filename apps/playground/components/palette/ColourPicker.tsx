@@ -481,14 +481,8 @@ function ColourPickerPanel({
   );
 }
 
-/**
- * Lightness, chroma and hue as three sliders.
- *
- * The OKLCH channels of the picker, on their own, so the phone's shade sheet
- * can show them without the picker around them: a sheet already has the room
- * a popover had to open a second popover to find.
- */
-export function OklchChannels({
+/** Lightness, chroma and hue as three sliders: the picker's OKLCH format. */
+function OklchChannels({
   value,
   onChange,
 }: {

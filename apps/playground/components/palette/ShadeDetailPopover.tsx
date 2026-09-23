@@ -20,7 +20,7 @@ import {
 } from "@blueprint/ui";
 import { useColourFormat } from "./ColourFormatContext";
 import { ColourFormatSelector } from "./ColourFormatSelector";
-import { ColourPicker, OklchChannels } from "./ColourPicker";
+import { ColourPicker } from "./ColourPicker";
 import { usePaletteView } from "./PaletteViewContext";
 import styles from "./palette-workspace.module.css";
 import { useCopyFeedback } from "../useCopyFeedback";
@@ -35,9 +35,9 @@ interface ShadeDetailPopoverProps {
   onSourceChange: (hex: string) => void;
   onClose: () => void;
   /**
-   * `sheet` is the phone's bottom sheet. It has room for the lightness,
-   * chroma and hue sliders in place, where a popover opens a picker, and its
-   * anchor control is a switch.
+   * `sheet` is the phone's bottom sheet: no close button of its own, and
+   * the anchor control is a switch. Editing is the same as in the popover —
+   * the button beside the value opens the picker.
    */
   layout?: "popover" | "sheet";
 }
@@ -262,12 +262,6 @@ export function ShadeDetailPopover({
           />
         </div>
       </div>
-
-      {isSheet && (
-        <section aria-label={editLabel} className={styles.shadeSheetChannels}>
-          <OklchChannels value={shade.hex} onChange={editColour} />
-        </section>
-      )}
 
       {/* The source shade is the track's seed and is always the anchor, so
           it has nothing to switch. */}

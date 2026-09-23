@@ -1700,13 +1700,8 @@
   max-width: none;
 }
 
-.shadeSheetChannels,
 .shadeSheetAnchor {
-  padding: 0 12px;
-}
-
-.shadeSheetAnchor {
-  padding-bottom: 12px;
+  padding: 12px 12px;
 }
 
 /* The picker as a phone's sheet. Clear of the grab handle, and a taller field
