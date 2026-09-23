@@ -76,12 +76,14 @@ export function InspectableSlot({
 export function InspectableButton({
   document,
   id,
+  system,
   onInspect,
   variant = "contained",
   invert = false,
 }: {
   document: PreviewDocument;
   id: string;
+  system: TypeSystem;
   onInspect: (id: string) => void;
   variant?: "contained" | "outlined";
   invert?: boolean;
@@ -92,6 +94,7 @@ export function InspectableButton({
     <SlotButton
       block={block}
       invert={invert}
+      system={system}
       variant={variant}
       onInspect={() => onInspect(block.id)}
     />
@@ -149,11 +152,13 @@ export function Inspectable({
 
 export function SlotButton({
   block,
+  system,
   onInspect,
   variant = "contained",
   invert = false,
 }: {
   block: PreviewDocumentBlock;
+  system: TypeSystem;
   onInspect: () => void;
   variant?: "contained" | "outlined";
   invert?: boolean;
@@ -168,12 +173,20 @@ export function SlotButton({
           borderColor: BORDER,
         };
 
+  /* The label is set in its block's type role, the same way `Inspectable`
+     sets text. Without it a button inherits the studio's own font from the
+     page around the preview, not the project's. Resolved through
+     `resolveDocumentRole` like the text, so a stale role id falls back the
+     same way in both. */
+  const role = resolveDocumentRole(system, block.roleId);
+  const roleStyle = role ? typeRoleStyle(role.id) : undefined;
+
   return (
     <Button
       aria-haspopup="dialog"
       scheme="primary"
       size="medium"
-      style={fill}
+      style={{ ...roleStyle, ...fill }}
       variant={variant}
       onClick={onInspect}
     >
