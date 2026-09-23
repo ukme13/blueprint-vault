@@ -708,4 +708,25 @@
   .topbar {
     padding: 0 14px;
   }
+
+  /* A token row is five fixed columns — 8rem, 4rem, 4.5rem, 2.75rem and the
+     bar — which comes to 356px of reservations before the bar is drawn.
+     Measured on a 390px screen: the bar had about six pixels to live in and
+     the largest steps ran off the edge and were clipped.
+
+     Flex-wrapped rather than re-columned, because the numbers are short and
+     the bar is the only part that wants width. It takes a line of its own and
+     the rest sits above it. */
+  .tokenRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: var(--spacing-2);
+    row-gap: var(--spacing-1);
+  }
+
+  .tokenBar {
+    flex-basis: 100%;
+    max-width: 100%;
+  }
 }

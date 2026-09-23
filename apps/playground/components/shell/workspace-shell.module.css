@@ -85,3 +85,28 @@
     transition: none !important;
   }
 }
+
+/* ---- below the mobile breakpoint ----
+
+   AppShell moves the side nav out of its own column below 768px — the same
+   breakpoint Astryx calls `md`. What it cannot do is stop this file forcing a
+   width on it, and a 260px rail on a 390px screen is two thirds of the
+   viewport whichever region it has been moved into. Measured before the fix:
+   `.astryx-side-nav` was 260px wide at x=8 inside the app shell's header.
+
+   So the rail's own budget applies only where there is room for a rail. The
+   transition goes with it: a width that is no longer being animated between
+   two states has nothing to ease. */
+@media (max-width: 768px) {
+  .sideNav,
+  .sideNav[data-collapsed="true"] {
+    width: 100%;
+    transition: none;
+  }
+
+  /* Labels are never faded out down here: there is no collapsed rail to fade
+     them for, and a hidden label in a drawer is a nav item with no name. */
+  .sideNav[data-collapsed="true"] :global(.astryx-side-nav-item) span {
+    opacity: 1;
+  }
+}

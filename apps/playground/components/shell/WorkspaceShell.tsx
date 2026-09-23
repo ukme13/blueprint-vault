@@ -256,6 +256,11 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
       <AppShell
         contentPadding={0}
         height="fill"
+        /* Below Astryx's `md` (768px) the rail's items move into a drawer and
+           the rail itself becomes a compact bar. Without a toggle that drawer
+           has nothing to open it: measured on a 390px screen, the bar was 48px
+           of nothing and every studio destination was unreachable. */
+        mobileNav={{ breakpoint: "md", hasToggle: true }}
         variant="section"
         topNav={
           isHome ? (

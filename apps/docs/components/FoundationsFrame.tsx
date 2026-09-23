@@ -72,6 +72,8 @@ export function FoundationsFrame({
         <LayoutHeader hasDivider height={DOCS_HEADER_HEIGHT}>
           <SiteHeader
             activeGroup={activeDocsGroup(groups, path)}
+            groups={groups}
+            path={path}
             sections={docsSections(groups)}
           />
         </LayoutHeader>

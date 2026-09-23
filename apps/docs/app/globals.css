@@ -355,34 +355,6 @@ html {
   border-top: 1px solid var(--color-border-subtle);
 }
 
-/* ---- what folds away ----
-
-   The on-page nav goes first: it is an aid to a page the reader can still
-   scroll. The site nav goes second, and at that width it is the last thing
-   with a fixed budget, so the content finally gets the screen. */
-
-@media (max-width: 1200px) {
-  .doc-body {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .doc-toc {
-    display: none;
-  }
-}
-
-@media (max-width: 800px) {
-  .sidebar-panel {
-    display: none;
-  }
-
-  .site-footer {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-2);
-  }
-}
-
 /* What sticks.
 
    The page owns the scrollbar — the alternative, a scroll container in the
@@ -483,6 +455,14 @@ html {
   margin-block: var(--spacing-6);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-container);
+  /* Never wider than the column, whatever the table inside it measures — the
+     wrapper is what scrolls, and a wrapper that grows with its content pushes
+     the page sideways instead. */
+  max-width: 100%;
+  overflow-x: auto;
+  /* Momentum on the iOS versions that still need asking. Harmless where it is
+     already the default. */
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Astryx applies max-width: 0 to all table cells via StyleX's overflowStyles,
@@ -522,4 +502,71 @@ html {
 .astryx-table-row .astryx-table-cell:last-child,
 .astryx-table-row .astryx-table-header-cell:last-child {
   border-inline-end-width: 0;
+}
+
+/* ---- the mobile menu ----
+
+   Hidden above the breakpoint rather than rendered conditionally in React: a
+   component that renders differently before and after hydration flashes, and
+   how wide the screen is has always been a styling question. */
+.mobile-menu {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   What folds away.
+
+   Last in the file, and that is load-bearing rather than tidy. These rules
+   override declarations of the same specificity — `.doc-body`'s two columns,
+   `.sidebar-panel`'s width — and a later declaration of equal specificity
+   wins. While this block sat in the middle, the two-column grid was declared
+   after it and the 1200px breakpoint never applied at all: on a 390px screen
+   the reading column measured 70px, because a 240px track and a 32px gap were
+   still being reserved for a contents column that was itself correctly
+   hidden. Measured, not spotted.
+
+   Anything responsive belongs below this line.
+
+   The on-page nav goes first: it is an aid to a page the reader can still
+   scroll. The site nav goes second, and at that width it is replaced by a
+   drawer rather than simply taken away.
+   --------------------------------------------------------------------------- */
+
+@media (max-width: 1200px) {
+  .doc-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .doc-toc {
+    display: none;
+  }
+}
+
+@media (max-width: 800px) {
+  .mobile-menu {
+    display: inline-flex;
+  }
+
+  /* A phone gutter. 24px of padding on a 390px screen spends an eighth of the
+     width on nothing; 16 is the usual answer and what the reference uses. */
+  .astryx-layout-content {
+    padding-inline: var(--spacing-4) !important;
+  }
+
+  /* A table framed to the gutter rather than to the text. On a narrow screen
+     the few pixels either side are the difference between a column fitting
+     and not. */
+  .astryx-table-scroll-wrapper {
+    margin-block: var(--spacing-4);
+  }
+
+  .sidebar-panel {
+    display: none;
+  }
+
+  .site-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-2);
+  }
 }

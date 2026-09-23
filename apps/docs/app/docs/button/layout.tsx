@@ -53,6 +53,8 @@ export default function ButtonDocsLayout({
         <LayoutHeader hasDivider height={DOCS_HEADER_HEIGHT}>
           <SiteHeader
             activeGroup={activeDocsGroup(groups, PATH)}
+            groups={groups}
+            path={PATH}
             sections={docsSections(groups)}
           />
         </LayoutHeader>

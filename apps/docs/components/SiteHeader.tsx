@@ -1,7 +1,8 @@
 import { Text } from "@astryxdesign/core/Text";
 import { BlueprintWordmark } from "@blueprint/ui";
-import type { DocsGroup } from "@blueprint/ui/docs-routes";
+import type { DocsGroup, DocsRouteGroup } from "@blueprint/ui/docs-routes";
 import type { DocsSection } from "../lib/nav";
+import { MobileMenu } from "./MobileMenu";
 import { ThemeControl } from "./ThemeControl";
 
 /**
@@ -25,11 +26,25 @@ interface SiteHeaderProps {
   sections: readonly DocsSection[];
   /** The section the current page is in, if it is in one. */
   activeGroup?: DocsGroup;
+  /** Every group, for the drawer a narrow screen navigates by. */
+  groups: readonly DocsRouteGroup[];
+  /** The current page's path, so the drawer can mark it. No leading slash. */
+  path: string;
 }
 
-export function SiteHeader({ sections, activeGroup }: SiteHeaderProps) {
+export function SiteHeader({
+  sections,
+  activeGroup,
+  groups,
+  path,
+}: SiteHeaderProps) {
   return (
     <div className="site-header">
+      {/* First in the bar, and hidden above 800px. Below it the sidebar is
+          gone and the section links have run out of room, so this is the only
+          way between pages. */}
+      <MobileMenu currentPath={path} groups={groups} />
+
       {/* eslint-disable-next-line @next/next/no-html-link-for-pages --
           A plain anchor on purpose, as in DocsNav. These pages ship inside a
           handover and are opened from a folder over file://, where there is
