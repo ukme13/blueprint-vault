@@ -435,3 +435,19 @@ On a phone, in the Groups tab:
 A checker that measured only scrolling had missed the overflow: nothing
 scrolled, the inputs just drew past the edge. The test now compares every
 element with the inside edge of its card.
+
+## Preview selectors as sheets
+
+On a phone, the Typography preview's Text colour, Background colour and
+Text preset selectors open a bottom sheet instead of a dropdown.
+`SheetSelector` takes exactly Astryx `Selector`'s props, renders the
+`Selector` itself on a wide screen, and on a phone renders a trigger and a
+sheet with the same options: sections under their titles, the search when
+the selector has one, 44px rows, and the chosen one marked. Laying the
+options out (sections, loose options, dividers, search) is
+`sheetOptionGroups` in `packages/ui`, with tests.
+
+The preview's row of controls sat 18px in on a phone, against the 14px of the
+toolbar and top bar above it. Its phone rule has to sit in the block at the
+end of the stylesheet: the base `.previewToolbar` rule comes after the
+earlier phone block and won the cascade on the first try.

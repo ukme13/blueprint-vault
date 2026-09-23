@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { Selector } from "@astryxdesign/core/Selector";
+import { SheetSelector } from "../SheetSelector";
 import {
   applyRoleToBlocks,
   previewDocumentRoleOptions,
@@ -30,7 +30,7 @@ export function PreviewDocumentToolbar() {
   }));
 
   return (
-    <Selector
+    <SheetSelector
       isLabelHidden
       label="Text preset"
       options={options}

@@ -1,0 +1,114 @@
+/* The phone's trigger: the ghost selector's look, a thumb's height. */
+.trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1, 4px);
+  min-height: 36px;
+  padding: 0 var(--spacing-2, 8px);
+  border: 0;
+  border-radius: var(--radius-element, 8px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.triggerValue {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.chevron {
+  width: var(--spacing-4, 16px);
+  height: var(--spacing-4, 16px);
+  color: var(--color-fg-muted);
+}
+
+/* The top padding is the grab handle's height, which Astryx floats over the
+   first 24px with a fade. `white-space` is reset because a sheet inherits
+   from wherever it sits in the DOM. */
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3, 12px);
+  padding: var(--spacing-6, 24px) var(--spacing-4, 16px)
+    max(var(--spacing-4, 16px), env(safe-area-inset-bottom));
+  white-space: normal;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--font-size-lg, 1rem);
+  font-weight: 600;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3, 12px);
+}
+
+.group {
+  display: flex;
+  flex-direction: column;
+}
+
+.groupTitle {
+  margin: 0 0 var(--spacing-1, 4px);
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm, 0.75rem);
+  font-weight: 600;
+}
+
+/* A row a thumb can hit: 44px, the full width of the sheet. */
+.option {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2, 8px);
+  min-height: 44px;
+  padding: 0 var(--spacing-2, 8px);
+  border: 0;
+  border-radius: var(--radius-element, 8px);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.option[aria-selected="true"] {
+  background: var(--color-surface-subtle);
+  font-weight: 600;
+}
+
+.option:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+.option:disabled {
+  color: var(--color-fg-disabled);
+  cursor: default;
+}
+
+.optionLabel {
+  flex: 1;
+  min-width: 0;
+}
+
+.check {
+  width: var(--spacing-4, 16px);
+  height: var(--spacing-4, 16px);
+  color: var(--color-action-primary);
+}
+
+.empty {
+  margin: 0;
+  color: var(--color-fg-muted);
+}

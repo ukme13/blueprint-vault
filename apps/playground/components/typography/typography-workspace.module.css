@@ -1134,6 +1134,14 @@
 }
 
 @media (max-width: 640px) {
+  /* The preview's own row of controls lines up with the toolbar above it and
+     the top bar: 14px in, not the 18px a wider screen gives it. Here, at the
+     end of the file, because the base rule comes after the earlier phone
+     block and would win. */
+  .previewToolbar {
+    padding: 0 14px;
+  }
+
   /* A lone button takes the row, as Add font does on a narrow panel. */
   .addEntryButton {
     justify-self: stretch;

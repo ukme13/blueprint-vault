@@ -1,6 +1,10 @@
-import { expect, test } from "./fixtures";
+import { PROJECT_STORAGE_KEY, defaultProject, expect, test } from "./fixtures";
 import { openPreview } from "./preview-fixtures";
-import { seedTypographyProject } from "./typography-fixtures";
+import {
+  TYPOGRAPHY_STORAGE_KEY,
+  defaultTypographyProject,
+  seedTypographyProject,
+} from "./typography-fixtures";
 
 /*
  * The studio on a phone.
@@ -892,6 +896,71 @@ test.describe("on a phone", () => {
       sheet.locator("[class*=roleGroupName]", { hasText: name }),
     ).toHaveCount(0);
     await expect(sheet).toBeVisible();
+  });
+
+  test("picks preview colours and text presets from a sheet", async ({
+    page,
+  }) => {
+    /* A dropdown on a phone is a short list under a small trigger. These
+       open a sheet from the bottom edge instead, with rows a thumb can hit. */
+    await page.addInitScript(
+      ({ pk, p, tk, t }) => {
+        window.localStorage.setItem(pk, JSON.stringify(p));
+        window.localStorage.setItem(tk, JSON.stringify(t));
+      },
+      {
+        pk: PROJECT_STORAGE_KEY,
+        p: defaultProject(),
+        tk: TYPOGRAPHY_STORAGE_KEY,
+        t: defaultTypographyProject(),
+      },
+    );
+    await page.goto("/typography");
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+
+    const textColour = page.getByRole("button", { name: /^Text colour: / });
+    await textColour.click();
+    const sheet = page.getByRole("dialog", { name: "Text colour" });
+    await expect(sheet.locator(".astryx-bottom-sheet")).toBeVisible();
+    await sheet.getByRole("textbox").fill("primary 5");
+    await expect(
+      sheet.getByRole("option", { name: "neutral 950", exact: true }),
+    ).toHaveCount(0);
+    const option = sheet.getByRole("option", {
+      name: "primary 500",
+      exact: true,
+    });
+    const optionBox = (await option.boundingBox())!;
+    expect(optionBox.height).toBeGreaterThanOrEqual(44);
+    await option.click();
+    await expect(sheet).toBeHidden();
+    await expect(textColour).toHaveAccessibleName("Text colour: primary 500");
+
+    await page.getByRole("button", { name: /^Background colour: / }).click();
+    const background = page.getByRole("dialog", { name: "Background colour" });
+    await expect(background.locator(".astryx-bottom-sheet")).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(background).toBeHidden();
+
+    await page.getByRole("button", { name: /^Text preset: / }).click();
+    const presets = page.getByRole("dialog", { name: "Text preset" });
+    await expect(presets.locator(".astryx-bottom-sheet")).toBeVisible();
+    await expect(presets.getByRole("option").first()).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(presets).toBeHidden();
+
+    /* The row starts where the toolbar above it does. */
+    const device = await page
+      .getByRole("navigation", { name: "Preview devices" })
+      .getByRole("button")
+      .first()
+      .boundingBox();
+    const bar = await page.locator("[class*=previewToolbar]").boundingBox();
+    const barPadding = await page
+      .locator("[class*=previewToolbar]")
+      .evaluate((node) => getComputedStyle(node).paddingLeft);
+    expect(barPadding).toBe("14px");
+    expect(Math.abs(bar!.x + 14 - device!.x)).toBeLessThanOrEqual(1);
   });
 
   test("gives the top bar room above the menu button and Export", async ({

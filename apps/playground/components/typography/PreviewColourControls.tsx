@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { Selector } from "@astryxdesign/core/Selector";
+import { SheetSelector } from "../SheetSelector";
 import { resolveShadeHex, type ColorTrack, type ShadeRef } from "@blueprint/ui";
 import { PaintBucket, Type } from "lucide-react";
 import styles from "./typography-workspace.module.css";
@@ -63,7 +63,7 @@ function PaletteColourSelector({
   onChange: (ref: ShadeRef | null) => void;
 }) {
   return (
-    <Selector
+    <SheetSelector
       hasSearch
       isLabelHidden
       label={label}
