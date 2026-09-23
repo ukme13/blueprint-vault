@@ -736,19 +736,21 @@
      Measured on a 390px screen: the bar had about six pixels to live in and
      the largest steps ran off the edge and were clipped.
 
-     Flex-wrapped rather than re-columned, because the numbers are short and
-     the bar is the only part that wants width. It takes a line of its own and
-     the rest sits above it. */
+     The labels on one line and the bar on a line of its own under them,
+     drawn at its own length from the left. It was flex-wrapped once, with
+     `flex-basis: 100%` to force the new line, and that overrode the bar's
+     width: every step drew the full width of the screen, and 0px looked the
+     same as 20px. */
   .tokenRow {
-    display: flex;
-    flex-wrap: wrap;
+    grid-template-columns: auto auto auto minmax(0, 1fr);
     align-items: baseline;
     column-gap: var(--spacing-2);
     row-gap: var(--spacing-1);
   }
 
   .tokenBar {
-    flex-basis: 100%;
+    grid-column: 1 / -1;
+    justify-self: start;
     max-width: 100%;
   }
 }

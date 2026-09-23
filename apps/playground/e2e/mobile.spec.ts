@@ -987,6 +987,37 @@ test.describe("on a phone", () => {
     );
   });
 
+  test("draws each spacing bar at its own length", async ({
+    seededPage: page,
+  }) => {
+    /* From a device: every bar ran the width of the screen, so 0px and 20px
+       looked the same. A bar is the step, drawn to scale. */
+    await page.goto("/spacing");
+    const rows = page
+      .getByRole("region", { name: "Generated spacing steps" })
+      .locator("li");
+    await expect(rows.first()).toBeVisible();
+
+    const bars = await rows.evaluateAll((items) =>
+      items.map((item) => {
+        const px = parseFloat(item.children[1]!.textContent ?? "0");
+        const bar = item.lastElementChild as HTMLElement;
+        return {
+          px,
+          width: bar.getBoundingClientRect().width,
+          room: item.getBoundingClientRect().width,
+        };
+      }),
+    );
+    expect(bars.length).toBeGreaterThan(4);
+    for (const { px, width, room } of bars) {
+      expect(
+        Math.abs(width - Math.min(px, room)),
+        `${px}px drawn ${width}`,
+      ).toBeLessThanOrEqual(1);
+    }
+  });
+
   test("gives the top bar room above the menu button and Export", async ({
     seededPage: page,
   }) => {
