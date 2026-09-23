@@ -16,6 +16,7 @@ import {
   withSharedName,
   type WorkspaceProject,
 } from "@blueprint/ui";
+import { HomeEmptyState } from "./HomeEmptyState";
 import { NewProjectDialog } from "./NewProjectDialog";
 import { ProjectCard } from "./ProjectCard";
 import { RenameProjectDialog } from "./RenameProjectDialog";
@@ -158,8 +159,13 @@ export function WorkspaceHome() {
   const isLibraryFull = summaries.length >= LIBRARY_CAPACITY;
   const pendingDelete = summaries.find((entry) => entry.id === pendingDeleteId);
 
+  const isEmpty = summaries.length === 0;
+
   return (
-    <div className={styles.page}>
+    /* A column only when empty, so the empty state can take the height left
+       under the header and centre in it. The populated page keeps its own
+       block flow. */
+    <div className={isEmpty ? `${styles.page} flex flex-col` : styles.page}>
       <header className={styles.header}>
         <div>
           <h1>Projects</h1>
@@ -246,7 +252,9 @@ export function WorkspaceHome() {
             </li>
           ))}
         </ul>
-      ) : null}
+      ) : (
+        <HomeEmptyState onCreate={openCreate} />
+      )}
 
       <input
         ref={importInputRef}
