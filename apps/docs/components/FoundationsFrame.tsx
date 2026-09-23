@@ -9,6 +9,7 @@ import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import { docsRouteGroups } from "@blueprint/ui/docs-routes";
 import { docsAudience } from "../lib/audience";
+import { DOCS_HEADER_HEIGHT } from "../lib/header";
 import { activeDocsGroup, docsSections, sidebarGroups } from "../lib/nav";
 import { headingSlug, type PageSection } from "../lib/sections";
 import { DocsNav } from "./DocsNav";
@@ -68,7 +69,7 @@ export function FoundationsFrame({
   return (
     <Layout
       header={
-        <LayoutHeader hasDivider height={56}>
+        <LayoutHeader hasDivider height={DOCS_HEADER_HEIGHT}>
           <SiteHeader
             activeGroup={activeDocsGroup(groups, path)}
             sections={docsSections(groups)}

@@ -55,7 +55,9 @@ test.describe("the shell", () => {
     heldStill(after.y, before.y, "the header");
   });
 
-  test("centres the mark in the header bar", async ({ page }) => {
+  test("leaves eight pixels more room below the mark than above it", async ({
+    page,
+  }) => {
     /* The divider is drawn on the bar, so anything taller than the bar pushes
        its own bottom edge under the line. Astryx pads the header's wrapper
        16px above and below, which with the mode control inside measured 60 in
@@ -72,10 +74,13 @@ test.describe("the shell", () => {
       return { above: mark.top - bar.top, below: bar.bottom - mark.bottom };
     });
 
-    /* Within two pixels: the bar's hairline border counts in its height, so
-       perfectly centred content sits a fraction high. */
+    /* The header pads 8px under its content on purpose, so the mark sits 8px
+       higher than centred. Within two pixels: the bar's hairline border counts
+       in its height, so the gap below reads a fraction large. Anything more
+       than that is the old overflow come back — the mark pushed down onto the
+       divider — or the padding lost. */
     expect(
-      Math.abs(above - below),
+      Math.abs(below - above - 8),
       `${above} above, ${below} below`,
     ).toBeLessThan(2);
   });
