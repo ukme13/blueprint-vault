@@ -27,6 +27,7 @@ import {
 } from "@blueprint/ui";
 import { useColourFormat } from "./palette/ColourFormatContext";
 import styles from "./system-export-dialog.module.css";
+import { STUDIO_VERSION } from "../lib/studio-version";
 
 type ExportFormat =
   | "css"
@@ -52,17 +53,9 @@ const FORMATS: Array<{ value: ExportFormat; label: string }> = [
    value in it is a measurement, and a ratio has no hex notation. */
 const REPORT_FORMATS: ExportFormat[] = ["report-md", "report-json"];
 
-/**
- * The studio version stamped into a handover's README, which is what a client
- * quotes when something in their file looks wrong.
- *
- * `next.config.js` reads it from this app's package.json at build time, the
- * same file `scripts/handover.ts` reads, so the two ways of making an archive
- * cannot disagree. Referenced as a literal property because that is the only
- * form Next replaces. The fallback is for a render that bypassed the config,
- * which would be a build problem rather than a version.
- */
-const HANDOVER_VERSION = process.env.STUDIO_VERSION ?? "unknown";
+/** The studio version stamped into a handover's README, which is what a client
+    quotes when something in their file looks wrong. */
+const HANDOVER_VERSION = STUDIO_VERSION;
 
 interface SystemExportDialogProps {
   isOpen: boolean;
