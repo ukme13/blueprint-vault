@@ -1,10 +1,24 @@
 /* Astryx TopNav pads 8px and the heading link pads 8px; 24px more puts the
    logo's left edge on the Home page's 32px content edge, level with "Projects". */
+/* Home's bar puts the wordmark exactly where the rail puts it in a workspace,
+   so going from Home into a studio does not move the logo.
+
+   Measured, at 1280px and at 390px alike: the rail draws its monogram at
+   x=16, y=10, 32px tall. Home drew the same 32px mark at x=32, y=20 — 24px of
+   bar padding plus the heading's own 8px, centred in a 72px bar. So the bar
+   pads 8px, which with the heading's 8 lands on 16, and is the rail's
+   collapsed width tall, 52px, which centres a 32px mark at 10. The same
+   expression as `--rail-collapsed-width` below: one number for both, and it
+   stays one number if either moves.
+
+   Mirrored on the right, so the guide button sits as far in from its edge as
+   the wordmark does from its own. It used to line up with the content's right
+   edge instead; a bar that is 8px on one side and 24px on the other reads as
+   lopsided, and the logo is the edge people compare. */
 :global(nav).homeNav {
-  min-height: 72px;
-  padding-inline-start: var(--spacing-6, 24px);
-  /* Mirrored, so the guide button's edge sits on the right content edge. */
-  padding-inline-end: var(--spacing-6, 24px);
+  min-height: calc(var(--spacing-12, 48px) + var(--spacing-1, 4px));
+  padding-inline-start: var(--spacing-2, 8px);
+  padding-inline-end: var(--spacing-2, 8px);
 }
 
 .sideNav {

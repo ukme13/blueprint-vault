@@ -92,7 +92,8 @@ function shouldIgnorePreviewShortcut(target: EventTarget | null): boolean {
 /**
  * One app frame for Home and the studios.
  *
- * Home has a TopNav (horizontal wordmark, 72px bar) and no tool rail.
+ * Home has a TopNav (horizontal wordmark, 52px bar) and no tool rail. The bar is
+ * sized so the wordmark sits where the rail draws it in a studio.
  * Studios get the wordmark (Home) with collapse on the heading, the B
  * that expands on hover when the rail is closed, then the name under
  * that heading, Colour /
