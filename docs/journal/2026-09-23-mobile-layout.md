@@ -497,3 +497,24 @@ The project card went back to its earlier design at the user's request:
 icons over the mosaic, the one-line caption and the earlier hover. The phone
 header and the "Create new workspace" slot stayed. The Home and
 dialog-dismissal specs are back to clicking the card's icons.
+
+## Refactor: one sheet, one breakpoint
+
+Every phone sheet had grown its own copy of the same three fixes: clearing
+the grab handle, resetting `white-space`, and stopping Escape from closing
+the sheet underneath. The phone breakpoint was also written out in twelve
+files. Now:
+
+- `Sheet` wraps Astryx's `BottomSheet` with all three. `padding="content"`
+  pads the sides for a sheet that lays out its own controls; `"flush"` only
+  clears the handle, for a sheet holding a panel with its own padding. All
+  eight sheets use it, and `Sheet.tsx` is the only file that imports
+  `BottomSheet`.
+- `useIsPhone()` and `PHONE_MEDIA_QUERY` replace the twelve
+  `useMediaQuery("(max-width: 640px)")` calls. CSS cannot import the
+  constant, so the stylesheets still write 640px, and the hook's comment
+  says to change both.
+
+No behaviour change, so no new tests. The mobile, palette, preview,
+typography, scale and export specs are the check: 244 passed. The only
+failure was the Selector-placement test already known to flake under load.

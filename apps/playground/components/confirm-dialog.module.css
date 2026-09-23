@@ -1,14 +1,8 @@
-/* The top padding is the grab handle's height, which Astryx floats over the
-   first 24px of content with a fade. `white-space` is reset because a sheet
-   inherits from wherever it sits in the DOM, even when it is drawn in the top
-   layer, and the palette toolbar on a phone is `nowrap`. */
+/* The sheet's padding, its white-space and its Escape are Sheet's. */
 .sheet {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2, 8px);
-  padding: var(--spacing-6, 24px) var(--spacing-4, 16px)
-    max(var(--spacing-4, 16px), env(safe-area-inset-bottom));
-  white-space: normal;
 }
 
 .sheet h2,
@@ -25,9 +19,4 @@
 
 .actions > * {
   width: 100%;
-}
-
-/* A wrapper for its key handling only; it takes no part in layout. */
-.stacked {
-  display: contents;
 }

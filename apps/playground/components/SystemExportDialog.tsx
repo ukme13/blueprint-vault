@@ -6,7 +6,7 @@ import { Dialog } from "@astryxdesign/core/Dialog";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Selector } from "@astryxdesign/core/Selector";
-import { useMediaQuery } from "@astryxdesign/core/hooks";
+import { useIsPhone } from "./use-is-phone";
 import { strToU8, zipSync } from "fflate";
 import {
   Button,
@@ -241,7 +241,7 @@ export function SystemExportDialog({
   /* On a phone the code is capped by the screen, so it fits between the
      formats and Download. At 430px it was taller than the room it had and its
      bottom slid under the footer. */
-  const isPhone = useMediaQuery("(max-width: 640px)");
+  const isPhone = useIsPhone();
 
   return (
     <Dialog

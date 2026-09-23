@@ -2,9 +2,7 @@
 
 import { useState, type CSSProperties, type KeyboardEvent } from "react";
 import { usePathname } from "next/navigation";
-import { BottomSheet } from "@astryxdesign/core/BottomSheet";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Redo2, SlidersHorizontal, Undo2 } from "lucide-react";
@@ -22,7 +20,9 @@ import {
   useWorkspaceStore,
   type HybridTokenizedValue,
 } from "@blueprint/ui";
+import { Sheet } from "../Sheet";
 import { SystemExportDialog } from "../SystemExportDialog";
+import { useIsPhone } from "../use-is-phone";
 import { ElevationCanvas } from "./ElevationEditor";
 import { ElevationInspector } from "./ElevationInspector";
 import { LayoutUsesTable } from "./LayoutUsesTable";
@@ -54,7 +54,7 @@ export function ScaleStudio() {
   /* On a phone the settings are a sheet, opened from the toolbar, and the
      canvas has the whole screen. As in the Typography studio. */
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const isPhone = useMediaQuery("(max-width: 640px)");
+  const isPhone = useIsPhone();
   const [studioView, setStudioView] = useState<StudioView>("scale");
   const [viewSection, setViewSection] = useState(activeSection);
   if (viewSection !== activeSection) {
@@ -314,14 +314,14 @@ export function ScaleStudio() {
       </section>
 
       {isPhone && !showUses && (
-        <BottomSheet
-          height="hug"
+        <Sheet
           isOpen={isSettingsOpen}
           label={sectionLabel}
-          onOpenChange={setIsSettingsOpen}
+          padding="flush"
+          onClose={() => setIsSettingsOpen(false)}
         >
           <aside className={styles.inspector}>{inspectorContent}</aside>
-        </BottomSheet>
+        </Sheet>
       )}
 
       <SystemExportDialog

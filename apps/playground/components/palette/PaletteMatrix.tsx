@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { useMediaQuery } from "@astryxdesign/core/hooks";
+import { useIsPhone } from "../use-is-phone";
 import type { ColorTrack } from "@blueprint/ui";
 import { PaletteRow } from "./PaletteRow";
 import { ShadeSheet } from "./ShadeSheet";
@@ -53,7 +53,7 @@ export function PaletteMatrix({
   onTrackMove,
   onTrackReorder,
 }: PaletteMatrixProps) {
-  const isPhone = useMediaQuery("(max-width: 640px)");
+  const isPhone = useIsPhone();
 
   return (
     <>

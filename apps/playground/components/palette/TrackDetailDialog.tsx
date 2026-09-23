@@ -1,9 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BottomSheet } from "@astryxdesign/core/BottomSheet";
 import { Dialog } from "@astryxdesign/core/Dialog";
-import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import {
   assessTrackTransitions,
@@ -15,6 +13,8 @@ import {
   type ColorTrack,
 } from "@blueprint/ui";
 import { ConfirmDialog } from "../ConfirmDialog";
+import { Sheet } from "../Sheet";
+import { useIsPhone } from "../use-is-phone";
 import { ColourPicker } from "./ColourPicker";
 import { useColourFormat } from "./ColourFormatContext";
 import { usePaletteView } from "./PaletteViewContext";
@@ -51,7 +51,7 @@ export function TrackDetailDialog({
   const [seedDraft, setSeedDraft] = useState("#000000");
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [isResetOpen, setIsResetOpen] = useState(false);
-  const isPhone = useMediaQuery("(max-width: 640px)");
+  const isPhone = useIsPhone();
 
   /* Reset the drafts during render rather than in an effect, so the dialog
      never paints one frame of the previous track's values.
@@ -278,14 +278,15 @@ export function TrackDetailDialog({
       {/* A sheet from the bottom edge on a phone, where a centred dialog
           covered the palette rows it was editing. The same content in both. */}
       {isPhone ? (
-        <BottomSheet
-          height="hug"
+        <Sheet
+          className={styles.trackSheet}
           isOpen={isOpen}
           label={`${palette.name} colour details`}
-          onOpenChange={onOpenChange}
+          padding="flush"
+          onClose={() => onOpenChange(false)}
         >
-          <div className={styles.trackSheet}>{content}</div>
-        </BottomSheet>
+          {content}
+        </Sheet>
       ) : (
         <Dialog
           className={styles.trackDetailDialog}

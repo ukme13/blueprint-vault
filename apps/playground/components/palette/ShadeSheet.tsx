@@ -1,10 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { BottomSheet } from "@astryxdesign/core/BottomSheet";
 import type { ColorTrack } from "@blueprint/ui";
+import { Sheet } from "../Sheet";
 import { ShadeDetailPopover } from "./ShadeDetailPopover";
-import styles from "./palette-workspace.module.css";
 import type { ActiveShade } from "./types";
 
 /**
@@ -53,37 +52,33 @@ export function ShadeSheet({
   const shade = palette?.shades.find((item) => item.weight === shown?.weight);
 
   return (
-    <BottomSheet
-      height="hug"
+    <Sheet
       isOpen={activeShade !== null && shade !== undefined}
       label={
         palette && shade
           ? `${palette.name} ${shade.weight} shade details`
           : "Shade details"
       }
-      onOpenChange={(isOpen) => {
-        if (!isOpen) onClose();
-      }}
+      padding="flush"
+      onClose={onClose}
     >
       {palette && shade && (
-        <div className={styles.shadeSheet}>
-          <ShadeDetailPopover
-            comparisonHex={wcagComparisonHex}
-            comparisonLabel={wcagComparisonLabel}
-            layout="sheet"
-            paletteName={palette.name}
-            shade={shade}
-            onAnchorChange={(hex) =>
-              onAnchorChange(palette.id, shade.weight, hex)
-            }
-            onClose={onClose}
-            onManualChange={(hex) =>
-              onManualChange(palette.id, shade.weight, hex)
-            }
-            onSourceChange={(hex) => onSourceChange(palette.id, hex)}
-          />
-        </div>
+        <ShadeDetailPopover
+          comparisonHex={wcagComparisonHex}
+          comparisonLabel={wcagComparisonLabel}
+          layout="sheet"
+          paletteName={palette.name}
+          shade={shade}
+          onAnchorChange={(hex) =>
+            onAnchorChange(palette.id, shade.weight, hex)
+          }
+          onClose={onClose}
+          onManualChange={(hex) =>
+            onManualChange(palette.id, shade.weight, hex)
+          }
+          onSourceChange={(hex) => onSourceChange(palette.id, hex)}
+        />
       )}
-    </BottomSheet>
+    </Sheet>
   );
 }

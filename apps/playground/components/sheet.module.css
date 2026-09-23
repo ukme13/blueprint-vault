@@ -1,0 +1,19 @@
+/* A wrapper for its key handling only; it takes no part in layout. */
+.escapeScope {
+  display: contents;
+}
+
+.body {
+  white-space: normal;
+}
+
+/* 24px is the grab handle's height. */
+.content {
+  padding: var(--spacing-6, 24px) var(--spacing-4, 16px)
+    max(var(--spacing-4, 16px), env(safe-area-inset-bottom));
+}
+
+.flush {
+  padding-top: var(--spacing-6, 24px);
+  padding-bottom: env(safe-area-inset-bottom);
+}

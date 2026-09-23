@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useMediaQuery } from "@astryxdesign/core/hooks";
+import { useIsPhone } from "./use-is-phone";
 import { Selector } from "@astryxdesign/core/Selector";
 import { Slider } from "@astryxdesign/core/Slider";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
@@ -83,7 +83,7 @@ export function VisionControl() {
   /* On a phone the chip opens a sheet rather than toggling, and its options
      stay out of the toolbar — the stylesheet hides them at the same
      breakpoint, so there is no first-paint flash while this reads false. */
-  const isPhone = useMediaQuery("(max-width: 640px)");
+  const isPhone = useIsPhone();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   return (

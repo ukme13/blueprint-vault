@@ -1,9 +1,9 @@
 "use client";
 
 import { Children, type ReactNode } from "react";
-import { BottomSheet } from "@astryxdesign/core/BottomSheet";
 import { Text } from "@astryxdesign/core/Text";
 import { Button } from "@blueprint/ui";
+import { Sheet } from "./Sheet";
 import styles from "./settings-sheet.module.css";
 
 /**
@@ -51,50 +51,40 @@ export function SettingsSheet({
   children,
 }: SettingsSheetProps) {
   return (
-    <BottomSheet
-      height="hug"
+    <Sheet
+      className={styles.sheet}
       isOpen={isOpen}
       label={title}
-      purpose="info"
-      onOpenChange={(open) => {
-        if (!open) onCancel();
-      }}
+      onClose={onCancel}
     >
-      <div className={styles.sheet}>
-        <header className={styles.header}>
-          <Text as="h2" type="large" weight="semibold">
-            {title}
-          </Text>
-        </header>
+      <header className={styles.header}>
+        <Text as="h2" type="large" weight="semibold">
+          {title}
+        </Text>
+      </header>
 
-        {/* Each setting in a wrapper of its own, which carries the divider.
+      {/* Each setting in a wrapper of its own, which carries the divider.
             Put on the controls themselves, the divider's padding went inside
             any control that paints its own background — the segmented
             control's track grew 16px at the top and none at the bottom. */}
-        <div className={styles.body}>
-          {Children.map(children, (child) =>
-            child == null || typeof child === "boolean" ? null : (
-              <div className={styles.setting}>{child}</div>
-            ),
-          )}
-        </div>
-
-        <footer className={styles.footer}>
-          {/* Reset on its own at the start, away from Apply: it changes the
-              draft and a stray tap on it should not look like confirming. */}
-          <Button
-            scheme="neutral"
-            size="small"
-            variant="text"
-            onClick={onReset}
-          >
-            Reset
-          </Button>
-          <Button scheme="primary" size="small" onClick={onApply}>
-            Apply
-          </Button>
-        </footer>
+      <div className={styles.body}>
+        {Children.map(children, (child) =>
+          child == null || typeof child === "boolean" ? null : (
+            <div className={styles.setting}>{child}</div>
+          ),
+        )}
       </div>
-    </BottomSheet>
+
+      <footer className={styles.footer}>
+        {/* Reset on its own at the start, away from Apply: it changes the
+              draft and a stray tap on it should not look like confirming. */}
+        <Button scheme="neutral" size="small" variant="text" onClick={onReset}>
+          Reset
+        </Button>
+        <Button scheme="primary" size="small" onClick={onApply}>
+          Apply
+        </Button>
+      </footer>
+    </Sheet>
   );
 }

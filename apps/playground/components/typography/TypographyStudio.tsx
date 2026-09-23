@@ -75,11 +75,11 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { Badge } from "@astryxdesign/core/Badge";
-import { BottomSheet } from "@astryxdesign/core/BottomSheet";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { SlidersHorizontal } from "lucide-react";
+import { Sheet } from "../Sheet";
 import { StudioSliceEmpty } from "../shell/StudioSliceEmpty";
+import { useIsPhone } from "../use-is-phone";
 import { TypographyExportDialog } from "./TypographyExportDialog";
 import { FontStackEditor } from "./FontStackEditor";
 import { RoleGroupEditor } from "./RoleGroupEditor";
@@ -228,7 +228,7 @@ export function TypographyStudio() {
   const [storedOpenGroups, setStoredOpenGroups] = useState<string[] | null>(
     null,
   );
-  const isPhone = useMediaQuery("(max-width: 640px)");
+  const isPhone = useIsPhone();
 
   /* A drag has to start past a few pixels, or every click on a handle is a
      zero-length drag and the button never reports a press. The keyboard
@@ -962,10 +962,12 @@ export function TypographyStudio() {
       </section>
 
       {isPhone && (
-        <BottomSheet
+        <Sheet
+          height="capped"
           isOpen={isSettingsOpen}
           label="Type scale settings"
-          onOpenChange={setIsSettingsOpen}
+          padding="flush"
+          onClose={() => setIsSettingsOpen(false)}
         >
           <section
             aria-label="Type scale settings"
@@ -973,7 +975,7 @@ export function TypographyStudio() {
           >
             {inspectorContent}
           </section>
-        </BottomSheet>
+        </Sheet>
       )}
 
       <TypographyExportDialog

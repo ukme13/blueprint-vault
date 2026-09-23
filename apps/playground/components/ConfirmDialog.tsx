@@ -1,11 +1,11 @@
 "use client";
 
 import { AlertDialog } from "@astryxdesign/core/AlertDialog";
-import { BottomSheet } from "@astryxdesign/core/BottomSheet";
-import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { Text } from "@astryxdesign/core/Text";
 import { Button } from "@blueprint/ui";
+import { Sheet } from "./Sheet";
 import styles from "./confirm-dialog.module.css";
+import { useIsPhone } from "./use-is-phone";
 
 /**
  * "Are you sure?" in the shape each screen expects.
@@ -40,7 +40,7 @@ export function ConfirmDialog({
   onAction,
   onCancel,
 }: ConfirmDialogProps) {
-  const isPhone = useMediaQuery("(max-width: 640px)");
+  const isPhone = useIsPhone();
 
   if (!isPhone) {
     return (
@@ -57,48 +57,32 @@ export function ConfirmDialog({
     );
   }
 
-  /* Escape closes this sheet only. Astryx closes a sheet from a React keydown
-     on its dialog, and when this one is opened from inside another sheet it
-     sits inside that one in the React tree, so the same Escape would bubble on
-     and close both. A div, not a span: Astryx moves menus out of a span. */
   return (
-    <div
-      className={styles.stacked}
-      onKeyDown={(event) => {
-        if (event.key === "Escape") event.stopPropagation();
-      }}
+    <Sheet
+      className={styles.sheet}
+      isOpen={isOpen}
+      label={title}
+      onClose={onCancel}
     >
-      <BottomSheet
-        height="hug"
-        isOpen={isOpen}
-        label={title}
-        purpose="info"
-        onOpenChange={(open) => {
-          if (!open) onCancel();
-        }}
-      >
-        <div className={styles.sheet}>
-          <Text as="h2" type="large" weight="semibold">
-            {title}
-          </Text>
-          <Text as="p" color="secondary">
-            {description}
-          </Text>
-          <span className={styles.actions}>
-            <Button scheme="error" size="large" onClick={onAction}>
-              {actionLabel}
-            </Button>
-            <Button
-              scheme="neutral"
-              size="large"
-              variant="outlined"
-              onClick={onCancel}
-            >
-              Cancel
-            </Button>
-          </span>
-        </div>
-      </BottomSheet>
-    </div>
+      <Text as="h2" type="large" weight="semibold">
+        {title}
+      </Text>
+      <Text as="p" color="secondary">
+        {description}
+      </Text>
+      <span className={styles.actions}>
+        <Button scheme="error" size="large" onClick={onAction}>
+          {actionLabel}
+        </Button>
+        <Button
+          scheme="neutral"
+          size="large"
+          variant="outlined"
+          onClick={onCancel}
+        >
+          Cancel
+        </Button>
+      </span>
+    </Sheet>
   );
 }

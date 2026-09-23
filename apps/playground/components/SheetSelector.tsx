@@ -1,18 +1,18 @@
 "use client";
 
 import { useState, type ComponentProps, type ReactNode } from "react";
-import { BottomSheet } from "@astryxdesign/core/BottomSheet";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Selector } from "@astryxdesign/core/Selector";
 import { TextInput } from "@astryxdesign/core/TextInput";
-import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { Check, ChevronDown } from "lucide-react";
 import {
   findSheetOption,
   sheetOptionGroups,
   type SheetOption,
 } from "@blueprint/ui";
+import { Sheet } from "./Sheet";
 import styles from "./sheet-selector.module.css";
+import { useIsPhone } from "./use-is-phone";
 
 /**
  * A selector that opens a bottom sheet on a phone.
@@ -36,7 +36,7 @@ function renderIcon(icon: unknown): ReactNode {
 }
 
 export function SheetSelector(props: SheetSelectorProps) {
-  const isPhone = useMediaQuery("(max-width: 640px)");
+  const isPhone = useIsPhone();
   if (!isPhone) return <Selector {...props} />;
   return <PhoneSelector {...props} />;
 }
@@ -87,81 +87,66 @@ function PhoneSelector({
         <ChevronDown aria-hidden className={styles.chevron} />
       </button>
 
-      {/* Escape closes this sheet only. Opened from inside another sheet, it
-          sits inside that one in the React tree, and Astryx closes a sheet
-          from a React keydown, so the same Escape would close both. A div,
-          not a span: Astryx moves menus out of a span. */}
-      <div
-        className={styles.stacked}
-        onKeyDown={(event) => {
-          if (event.key === "Escape") event.stopPropagation();
-        }}
+      <Sheet
+        className={styles.sheet}
+        isOpen={isOpen}
+        label={label}
+        onClose={close}
       >
-        <BottomSheet
-          height="hug"
-          isOpen={isOpen}
-          label={label}
-          onOpenChange={(open) => {
-            if (!open) close();
-          }}
-        >
-          <div className={styles.sheet}>
-            <h2 className={styles.title}>{label}</h2>
-            {hasSearch && (
-              <TextInput
-                isLabelHidden
-                label={`Search ${label.toLowerCase()}`}
-                placeholder={searchPlaceholder ?? "Search"}
-                value={query}
-                width="100%"
-                onChange={setQuery}
-              />
-            )}
+        <h2 className={styles.title}>{label}</h2>
+        {hasSearch && (
+          <TextInput
+            isLabelHidden
+            label={`Search ${label.toLowerCase()}`}
+            placeholder={searchPlaceholder ?? "Search"}
+            value={query}
+            width="100%"
+            onChange={setQuery}
+          />
+        )}
 
-            <div aria-label={label} className={styles.list} role="listbox">
-              {groups.length === 0 && (
-                <p className={styles.empty}>No results found</p>
+        <div aria-label={label} className={styles.list} role="listbox">
+          {groups.length === 0 && (
+            <p className={styles.empty}>No results found</p>
+          )}
+          {groups.map((group, index) => (
+            <div
+              key={group.title ?? `group-${index}`}
+              aria-label={group.title}
+              className={styles.group}
+              role="group"
+            >
+              {group.title && (
+                <p aria-hidden className={styles.groupTitle}>
+                  {group.title}
+                </p>
               )}
-              {groups.map((group, index) => (
-                <div
-                  key={group.title ?? `group-${index}`}
-                  aria-label={group.title}
-                  className={styles.group}
-                  role="group"
-                >
-                  {group.title && (
-                    <p aria-hidden className={styles.groupTitle}>
-                      {group.title}
-                    </p>
-                  )}
-                  {group.options.map((option) => {
-                    const isSelected = option.value === value;
-                    return (
-                      <button
-                        key={option.value}
-                        aria-selected={isSelected}
-                        className={styles.option}
-                        disabled={option.disabled}
-                        role="option"
-                        type="button"
-                        onClick={() => choose(option)}
-                      >
-                        {renderIcon(option.icon)}
-                        <span className={styles.optionLabel}>
-                          {option.label ?? option.value}
-                        </span>
-                        {isSelected && (
-                          <Check aria-hidden className={styles.check} />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              ))}
+              {group.options.map((option) => {
+                const isSelected = option.value === value;
+                return (
+                  <button
+                    key={option.value}
+                    aria-selected={isSelected}
+                    className={styles.option}
+                    disabled={option.disabled}
+                    role="option"
+                    type="button"
+                    onClick={() => choose(option)}
+                  >
+                    {renderIcon(option.icon)}
+                    <span className={styles.optionLabel}>
+                      {option.label ?? option.value}
+                    </span>
+                    {isSelected && (
+                      <Check aria-hidden className={styles.check} />
+                    )}
+                  </button>
+                );
+              })}
             </div>
-          </div>
-        </BottomSheet>
-      </div>
+          ))}
+        </div>
+      </Sheet>
     </>
   );
 }

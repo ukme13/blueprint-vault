@@ -662,9 +662,6 @@
   .inspector {
     border-top: 0;
     overflow-y: visible;
-    /* Clear of the grab handle, which Astryx floats over the first 24px of
-       the sheet. Without it the handle sat on the tabs and took their taps. */
-    padding-top: var(--spacing-6, 24px);
   }
 }
 

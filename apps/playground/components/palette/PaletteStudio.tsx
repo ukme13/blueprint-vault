@@ -17,7 +17,7 @@ import {
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { useToast } from "@astryxdesign/core/Toast";
-import { useMediaQuery } from "@astryxdesign/core/hooks";
+import { useIsPhone } from "../use-is-phone";
 import { RotateCcw } from "lucide-react";
 import {
   BLUEPRINT_20_PRESET,
@@ -208,7 +208,7 @@ function PaletteStudioContent() {
      breakpoint the stylesheet hides the inline options at; the hook reads
      false on first render, so before hydration a tap does what it does on a
      desktop, which is never wrong, only less tidy. */
-  const isPhone = useMediaQuery("(max-width: 640px)");
+  const isPhone = useIsPhone();
   const [isContrastSheetOpen, setIsContrastSheetOpen] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);

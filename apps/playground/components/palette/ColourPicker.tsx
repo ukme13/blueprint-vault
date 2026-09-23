@@ -8,9 +8,7 @@ import {
   type PointerEvent,
   type ReactNode,
 } from "react";
-import { BottomSheet } from "@astryxdesign/core/BottomSheet";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { Popover } from "@astryxdesign/core/Popover";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import {
@@ -26,6 +24,8 @@ import {
   rgbToOklch,
   type Hsv,
 } from "@blueprint/ui";
+import { Sheet } from "../Sheet";
+import { useIsPhone } from "../use-is-phone";
 import { useIsolatedTouch } from "../use-isolated-touch";
 import { useColourFormat } from "./ColourFormatContext";
 import { ColourFormatSelector } from "./ColourFormatSelector";
@@ -47,7 +47,7 @@ export function ColourPicker({
   triggerLabel,
 }: ColourPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const isPhone = useMediaQuery("(max-width: 640px)");
+  const isPhone = useIsPhone();
 
   const triggerButton = (
     <button
@@ -72,38 +72,20 @@ export function ColourPicker({
     return (
       <>
         {triggerButton}
-        {/* Escape closes the top sheet only. Astryx closes a sheet from a
-            React keydown on its dialog, and this sheet sits inside the one it
-            was opened from in the React tree, so the same Escape bubbled on
-            and closed that one too.
-
-            A div, not a span: Astryx moves a menu or popover out of any span
-            above it, to the span's parent. That put the format menu outside
-            this sheet's modal dialog, where the dialog makes everything inert:
-            the menu showed and could not be tapped. */}
-        <div
-          className={styles.stackedSheet}
-          onKeyDown={(event) => {
-            if (event.key === "Escape") event.stopPropagation();
-          }}
+        <Sheet
+          className={styles.colourPickerSheet}
+          isOpen={isOpen}
+          label={`${label} picker`}
+          onClose={() => setIsOpen(false)}
         >
-          <BottomSheet
-            height="hug"
-            isOpen={isOpen}
-            label={`${label} picker`}
-            onOpenChange={setIsOpen}
-          >
-            <div className={styles.colourPickerSheet}>
-              <ColourPickerPanel
-                inSheet
-                label={label}
-                value={value}
-                onChange={onChange}
-                onClose={() => setIsOpen(false)}
-              />
-            </div>
-          </BottomSheet>
-        </div>
+          <ColourPickerPanel
+            inSheet
+            label={label}
+            value={value}
+            onChange={onChange}
+            onClose={() => setIsOpen(false)}
+          />
+        </Sheet>
       </>
     );
   }
