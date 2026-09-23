@@ -153,11 +153,14 @@
   max-width: 62ch;
 }
 
+/* A pair of actions reads as one group, so they sit close: 8px at the
+   default 4px base. A spacing token rather than 8px, because the preview is
+   drawn from the workspace's own scale and follows it if the base changes. */
 .btnRow {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--spacing-4);
+  gap: var(--spacing-2);
 }
 
 .sectionHead {
