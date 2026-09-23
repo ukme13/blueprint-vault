@@ -74,8 +74,16 @@ export function ContrastTable({ tokens, palettes, mode }: ContrastTableProps) {
 
           return (
             <TableRow key={check.label}>
-              <TableCell>
-                <Text type="body">{check.label}</Text>
+              {/* One line for the pair's label ("Primary action text").
+                  break-normal as well as nowrap: Astryx Text breaks after any
+                  letter by default, which would size this column to one
+                  character. With the column sized to the label, no fixed
+                  minimum width is needed, and none that the scanner allows
+                  would fit the longest one. */}
+              <TableCell className="whitespace-nowrap">
+                <Text className="break-normal" type="body">
+                  {check.label}
+                </Text>
               </TableCell>
               {/* Foreground over background, one per line and never
                   wrapped. Astryx's Text defaults to word-break: break-word,

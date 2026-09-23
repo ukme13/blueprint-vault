@@ -157,6 +157,14 @@ export function ElevationSpecimen({
                       background: card,
                       boxShadow:
                         mode === "light" ? row.light.css : row.dark.css,
+                      /* A dark card on a dark ground has no visible edge for the
+                         shadow to read against. A faint white keyline draws it, the
+                         same one the studio's elevation editor uses; color-mix
+                         rather than rgba(, which the scanner rejects. */
+                      border:
+                        mode === "dark"
+                          ? "1px solid color-mix(in oklch, white 8%, transparent)"
+                          : undefined,
                     }}
                   />
                 </div>
