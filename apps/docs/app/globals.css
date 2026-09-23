@@ -484,6 +484,17 @@ html {
   border-radius: var(--radius-container);
 }
 
+/* Astryx applies max-width: 0 to all table cells via StyleX's overflowStyles,
+   which carries four IDs of specificity (:not(#\#)...). Even with w-20, CSS
+   max-width overrides width, compressing the cell to zero and causing
+   overflow-x: hidden to clip "Shade" to "S" and numbers like "100" to "1".
+   Clearing max-width allows declared column widths and content to display.
+   It is also why a nowrap name clipped instead of widening its column. */
+.astryx-table-cell,
+.astryx-table-header-cell {
+  max-width: none !important;
+}
+
 /* The header on a quiet ground. Its cells already draw a bottom border, so
    this only changes its colour and adds no second line. */
 .astryx-table-header-cell {
