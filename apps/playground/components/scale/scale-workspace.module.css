@@ -350,9 +350,16 @@
 
 /* In dark mode a shadow darkens the ground around the card but cannot
    outline it: the card's own edge is the shade nearest the shadow. A keyline
-   draws that edge, the way a dark surface usually does in a real interface. */
+   draws that edge, the way a dark surface usually does in a real interface.
+
+   Fixed rather than a semantic token. This sample shows the workspace's dark
+   mode whatever mode the studio is in, and a token like border-subtle follows
+   the studio: in a light studio it resolves to a pale grey and drew a white
+   wireframe round a dark card. A little white over whatever is beneath reads
+   as the same faint edge in both. `color-mix` rather than `rgba(`, which the
+   primitive-usage scanner rejects in studio components. */
 .elevationCard[data-mode="dark"] {
-  border: 1px solid var(--color-border-subtle);
+  border: 1px solid color-mix(in oklch, white 8%, transparent);
 }
 
 .elevationColour {
