@@ -137,9 +137,10 @@ code {
 
 :root {
   /* Named with `height` so it reads as the structural value it is. */
-  /* 56 plus the 8px under the header's content. Keep in step with
-     DOCS_HEADER_HEIGHT in lib/header.ts, which sizes the bar itself. */
-  --docs-header-height: 64px;
+  /* 16 above, the 28px logo, and 24 below: the extra 8px under the header's
+     content. Keep in step with DOCS_HEADER_HEIGHT in lib/header.ts, which
+     sizes the bar itself and says why it is not 64. */
+  --docs-header-height: 68px;
 }
 
 html {
