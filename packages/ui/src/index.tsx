@@ -1,4 +1,5 @@
 export * from "./button";
+export * from "./components/icons/brand";
 export * from "./button-tones";
 export type {
   HybridTokenPreset,

@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
-import { Heading } from "@astryxdesign/core/Heading";
-import { VStack } from "@astryxdesign/core/VStack";
 import { SPACING_GUIDANCE } from "../../../content/scale";
 import { FoundationsFrame } from "../../../components/FoundationsFrame";
-import { Prose } from "../../../components/Prose";
 import {
   SpacingSpecimen,
   SpacingTable,
@@ -27,28 +24,18 @@ export default function SpacingFoundationPage() {
     <FoundationsFrame
       path="foundations/spacing"
       summary={`The rhythm ${project.name} lays out on, and the names a developer installs it under.`}
+      sections={[
+        ...SPACING_GUIDANCE,
+        {
+          heading: "The steps",
+          body: <SpacingTable scale={project.spacing} />,
+        },
+        {
+          heading: "What each step looks like",
+          body: <SpacingSpecimen scale={project.spacing} />,
+        },
+      ]}
       title="Spacing"
-    >
-      <VStack gap={4}>
-        {SPACING_GUIDANCE.map((block) => (
-          <VStack gap={1} key={block.heading}>
-            <Heading level={2}>{block.heading}</Heading>
-            {block.paragraphs.map((paragraph) => (
-              <Prose key={paragraph}>{paragraph}</Prose>
-            ))}
-          </VStack>
-        ))}
-      </VStack>
-
-      <VStack gap={3}>
-        <Heading level={2}>The steps</Heading>
-        <SpacingTable scale={project.spacing} />
-      </VStack>
-
-      <VStack gap={3}>
-        <Heading level={2}>What each step looks like</Heading>
-        <SpacingSpecimen scale={project.spacing} />
-      </VStack>
-    </FoundationsFrame>
+    />
   );
 }

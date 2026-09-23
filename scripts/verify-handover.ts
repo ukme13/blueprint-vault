@@ -6,9 +6,13 @@ import { createRequire } from "node:module";
 import { chromium } from "@playwright/test";
 import { unzipSync } from "fflate";
 
-const blueprint = createRequire(import.meta.url)(
-  "@blueprint/ui",
-) as typeof import("@blueprint/ui");
+const require_ = createRequire(import.meta.url);
+const blueprint = require_("@blueprint/ui") as typeof import("@blueprint/ui");
+/* Its own entry point, because the routes a client never sees are kept out of
+   the barrel — see packages/ui/src/docs-routes.ts. */
+const routes = require_(
+  "@blueprint/ui/docs-routes",
+) as typeof import("@blueprint/ui/docs-routes");
 
 /**
  * A handover archive, opened the way a client opens it.
@@ -94,9 +98,7 @@ async function main(): Promise<void> {
      themselves, which catches a third door nobody has thought of. Against the
      archive rather than the build, because the archive is what a client is
      handed. */
-  const internal = blueprint
-    .docsRoutesFor("internal")
-    .filter((route) => route.audience === "internal");
+  const internal = routes.INTERNAL_DOCS_ROUTES;
 
   if (internal.length === 0) {
     console.log("ok   no internal route in the archive: none are declared yet");

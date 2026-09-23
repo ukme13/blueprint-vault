@@ -98,6 +98,13 @@ code {
   border-radius: var(--radius-container);
 }
 
+/* A paragraph's measure. About 70 characters, which is the range every
+   typographic source lands in for a single column of body text. The frame
+   caps nothing, so a table beside this spreads as wide as it needs. */
+.prose-measure {
+  max-width: 68ch;
+}
+
 /* Same checker as the studio draws behind a transparent swatch, from the same
    tokens. A swatch of a 12% border painted straight onto the page would read
    as a pale solid, which is the colour the row is explicitly saying it is not.
@@ -112,4 +119,333 @@ code {
     transparent 0
   );
   background-size: var(--spacing-2) var(--spacing-2);
+}
+
+/* ---------------------------------------------------------------------------
+   The documentation shell.
+
+   Astryx's Layout supplies the five regions; what is written here is the part
+   it leaves open — what sticks, what scrolls, what folds away at a breakpoint,
+   and the two nav columns' own look.
+
+   Every value is a token, with three exceptions the scanner allows and this
+   file should not grow a fourth of: structural widths and heights, which the
+   layout guide names as the one place a raw length belongs; `1px` hairlines;
+   and the `ch` measure below, which is a count of characters rather than a
+   length.
+   --------------------------------------------------------------------------- */
+
+:root {
+  /* Named with `height` so it reads as the structural value it is. */
+  --docs-header-height: 56px;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* So an anchor does not land a heading underneath the fixed header. */
+  scroll-padding-top: calc(var(--docs-header-height) + var(--spacing-5));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ---- header ---- */
+
+.site-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  width: 100%;
+  /* Fills the bar, so the mark and the control centre against the divider
+     rather than sitting on top of it. */
+  height: 100%;
+}
+
+.site-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  color: var(--color-fg-primary);
+  font-weight: 600;
+}
+
+.site-mark-wordmark {
+  display: block;
+  height: 24px;
+  width: auto;
+}
+
+.site-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+/* ---- left sidebar ---- */
+
+.docs-nav-group {
+  margin-bottom: var(--spacing-3);
+}
+
+.docs-nav-group summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-1) var(--spacing-2);
+  cursor: pointer;
+  list-style: none;
+  color: var(--color-fg-secondary);
+  font-weight: 600;
+}
+
+.docs-nav-group summary::-webkit-details-marker {
+  display: none;
+}
+
+.docs-nav-group summary::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 120ms ease;
+}
+
+.docs-nav-group[open] summary::after {
+  transform: rotate(225deg);
+}
+
+.docs-nav-group ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.docs-nav a {
+  display: block;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-element);
+  color: var(--color-fg-secondary);
+  text-decoration: none;
+}
+
+.docs-nav a:hover {
+  background: var(--color-surface-subtle);
+  color: var(--color-fg-primary);
+}
+
+.docs-nav a[aria-current="page"] {
+  background: var(--color-surface-raised);
+  color: var(--color-fg-primary);
+  font-weight: 600;
+}
+
+/* ---- content column ---- */
+
+.doc-column {
+  width: 100%;
+  max-width: 768px;
+  margin: 0 auto;
+}
+
+.page-head {
+  padding-bottom: var(--spacing-5);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* ---- right table of contents ---- */
+
+.page-nav-title {
+  margin: 0 0 var(--spacing-2);
+  padding-left: var(--spacing-3);
+  color: var(--color-fg-secondary);
+  font-weight: 600;
+}
+
+.page-nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-left: 1px solid var(--color-border-subtle);
+}
+
+.page-nav a {
+  display: block;
+  padding: var(--spacing-1) var(--spacing-3);
+  /* Over the rail, so the marker replaces it rather than sitting beside it. */
+  margin-left: -1px;
+  border-left: 1px solid transparent;
+  color: var(--color-fg-secondary);
+  text-decoration: none;
+}
+
+.page-nav a:hover {
+  color: var(--color-fg-primary);
+}
+
+.page-nav a[aria-current] {
+  border-left-color: var(--color-fg-primary);
+  color: var(--color-fg-primary);
+  font-weight: 600;
+}
+
+/* ---- footer ---- */
+
+/* Set well clear of the last section. A footer a paragraph away from the
+   reading reads as one more paragraph; the gap is what says the page is
+   over. The rule above it does the same job for anybody skimming. */
+.site-footer {
+  margin-top: var(--spacing-16);
+  padding-top: var(--spacing-8);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.site-footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-5);
+}
+
+.site-footer-name {
+  color: var(--color-fg-primary);
+}
+
+.site-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+}
+
+.site-footer-links a {
+  color: var(--color-fg-secondary);
+  text-decoration: none;
+}
+
+.site-footer-links a:hover {
+  color: var(--color-fg-primary);
+}
+
+.site-footer-note {
+  margin: var(--spacing-6) 0 0;
+  padding-top: var(--spacing-4);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+/* ---- what folds away ----
+
+   The on-page nav goes first: it is an aid to a page the reader can still
+   scroll. The site nav goes second, and at that width it is the last thing
+   with a fixed budget, so the content finally gets the screen. */
+
+@media (max-width: 1200px) {
+  .doc-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .doc-toc {
+    display: none;
+  }
+}
+
+@media (max-width: 800px) {
+  .sidebar-panel {
+    display: none;
+  }
+
+  .site-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-2);
+  }
+}
+
+/* What sticks.
+
+   The page owns the scrollbar — the alternative, a scroll container in the
+   middle of the layout, is what stopped `scroll-behavior: smooth` working:
+   a fragment link inside a container is that container's business, and the
+   declaration on `html` never reaches it.
+
+   So the three regions that should stay put say so themselves. The header
+   sits above both columns, which matters while a sticky column is scrolled
+   under it. */
+.astryx-layout-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--color-surface-base);
+}
+
+/* Astryx wraps the header's children in a box that pads 16px above and
+   below and sizes to its content. With a 28px control inside, that wrapper
+   measured 60 in a bar declared at 56: it overflowed by four, and the
+   divider — which is drawn on the bar — cut across the bottom of the mark
+   instead of sitting under it.
+
+   Making the wrapper exactly the bar's height, and a flex box that centres
+   what it holds, is the whole fix. The padding stays; it was never the
+   problem, and zeroing it as well changed nothing, which the test confirms by
+   passing either way. */
+.astryx-layout-header > * {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+.sidebar-panel,
+.doc-toc {
+  position: sticky;
+  top: var(--docs-header-height);
+  z-index: 1;
+  /* Its own scrollbar only once it is taller than the screen beside it, which
+     is what stops a long list taking its last few links off the bottom of the
+     page. */
+  max-height: calc(100vh - var(--docs-header-height));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--color-surface-base);
+}
+
+/* The reading column and the contents column, side by side inside the content
+   region rather than either side of it.
+
+   The contents used to be a region of its own, which put a hard edge down the
+   page: the footer below could only ever rule off the middle column, and
+   stopped a whole panel's width short of the scrollbar. Inside, the footer
+   spans both, which is what a rule across the bottom of a page should do. */
+.doc-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: var(--spacing-8);
+  align-items: start;
+}
+
+.doc-toc {
+  /* Sticky needs a start edge of its own once it is a grid item. */
+  top: calc(var(--docs-header-height) + var(--spacing-6));
+}
+
+/* A sticky child needs a parent that does not clip it, and Astryx gives the
+   panel slots an overflow of their own. */
+.astryx-layout,
+.astryx-layout-body {
+  overflow: visible;
+}
+
+/* A changelog entry's changes. A list, because that is what they are — the
+   alternative was a run of paragraphs, which reads as one long thought rather
+   than as several separate ones. */
+.changelog-list {
+  margin: 0;
+  padding-left: var(--spacing-5);
+  display: grid;
+  gap: var(--spacing-3);
 }

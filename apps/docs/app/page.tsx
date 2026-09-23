@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { docsRouteGroups } from "@blueprint/ui";
+import { docsRouteGroups } from "@blueprint/ui/docs-routes";
 import { docsAudience } from "../lib/audience";
 import styles from "./page.module.css";
 

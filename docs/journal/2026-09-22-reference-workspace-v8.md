@@ -8,7 +8,10 @@ renders was a version 5 file, written before alpha existed.
 
 The task was framed as "upgrade it to 6", because 6 is the version alpha
 introduced. The format is at **8**. Six added alpha, seven added
-`removedSeedRoles`, eight added the button schemes. A file three versions
+`removedSeedRoles`, eight moved preview frames and layout uses to the root of
+the document. (This entry first said eight was the button schemes. It was not;
+those arrived earlier, without a bump. Corrected while writing the changelog,
+which is what a changelog is for.) A file three versions
 behind is not a file one feature behind, and it is worth saying that the
 number was wrong in the framing rather than quietly landing an 8 under a
 heading that says 6.

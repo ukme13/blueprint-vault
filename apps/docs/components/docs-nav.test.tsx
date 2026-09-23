@@ -1,7 +1,11 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it } from "vitest";
-import { docsRouteGroups, type DocsRouteGroup } from "@blueprint/ui";
+import {
+  docsRouteGroups,
+  type DocsRouteGroup,
+} from "@blueprint/ui/docs-routes";
 import { DocsNav } from "./DocsNav";
+import { SiteFooter } from "./SiteFooter";
 import { docsAudience } from "../lib/audience";
 
 /* A list with an internal route in it, which the real one will not have until
@@ -134,6 +138,32 @@ describe("a list that does have an internal route in it", () => {
     expect(markup).not.toContain("Studio");
     expect(markup).not.toContain("/studio");
     expect(markup).toContain("Colour");
+  });
+});
+
+describe("the footer", () => {
+  it("links the routes this build's reader may open", () => {
+    /* The footer grew links after the reference design was copied, which made
+       it a second place a route name can reach a page — and one the archive's
+       path guard cannot see, because it reads file names and not their
+       contents. It reads the same filtered list the sidebar does, and this is
+       the assertion that it keeps doing so. */
+    const markup = renderToStaticMarkup(
+      <SiteFooter groups={docsRouteGroups("client")} />,
+    );
+
+    expect(markup).toContain("/foundations/colour");
+    expect(markup).toContain("/docs/button");
+  });
+
+  it("names no internal route for a client", () => {
+    const markup = renderToStaticMarkup(<SiteFooter groups={WITH_STUDIO} />);
+    expect(markup).toContain("/studio");
+
+    const client = WITH_STUDIO.filter((entry) => entry.group !== "Studio");
+    const forClient = renderToStaticMarkup(<SiteFooter groups={client} />);
+    expect(forClient).not.toContain("/studio");
+    expect(forClient).not.toContain("Getting started");
   });
 });
 
