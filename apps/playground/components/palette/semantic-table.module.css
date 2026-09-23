@@ -391,4 +391,32 @@
   .sidebar {
     display: none;
   }
+
+  /* Two rows: the search as wide as the screen allows with Add token at its
+     end, then the counter under it. In one row the search was squeezed
+     between the other two. Grid areas rather than a reorder in the markup, so
+     the reading order is the same at every width. */
+  .toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "search add"
+      "count count";
+    row-gap: var(--spacing-2);
+  }
+
+  .search {
+    grid-area: search;
+    width: 100%;
+    max-width: none;
+  }
+
+  .addToken {
+    grid-area: add;
+  }
+
+  .toolbarCount {
+    grid-area: count;
+    margin: 0;
+  }
 }

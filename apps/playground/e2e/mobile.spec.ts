@@ -331,6 +331,43 @@ test.describe("on a phone", () => {
   /* Not /typography: the seeded project has no type system, so that studio
      shows its create screen, with no tabs to underline. Its bar has the same
      rule as these two. */
+  test("lays the token search out as two rows", async ({
+    seededPage: page,
+  }) => {
+    await page.getByRole("button", { name: "Semantics" }).click();
+    const editor = page.getByRole("region", { name: "Semantic tokens" });
+    const [bar, search, add, count] = await Promise.all([
+      editor.locator("header").first().boundingBox(),
+      /* The field, not the textbox: the <input> sits inside the field's
+         own border and padding. */
+      editor
+        .locator("header")
+        .first()
+        .locator(":scope > div", {
+          has: page.getByRole("textbox", { name: "Search tokens" }),
+        })
+        .boundingBox(),
+      editor.getByRole("button", { name: "Add token" }).boundingBox(),
+      editor.locator("[data-selection-count]").boundingBox(),
+    ]);
+
+    /* Row one: the search runs from the bar's start to Add token, which
+       ends the row. */
+    expect(Math.abs(search!.x - bar!.x)).toBeLessThanOrEqual(1);
+    expect(add!.x).toBeGreaterThan(search!.x + search!.width);
+    expect(
+      Math.abs(add!.x + add!.width - (bar!.x + bar!.width)),
+    ).toBeLessThanOrEqual(1);
+    expect(add!.x - (search!.x + search!.width)).toBeLessThanOrEqual(16);
+
+    /* Row two: the counter, under them and at the start. */
+    expect(count!.y).toBeGreaterThanOrEqual(search!.y + search!.height);
+    expect(Math.abs(count!.x - bar!.x)).toBeLessThanOrEqual(1);
+    await expect(editor.locator("[data-selection-count]")).toHaveText(
+      /^\d+ tokens$/,
+    );
+  });
+
   for (const route of ["/colour", "/spacing"]) {
     test(`sets the tab underline on the top bar border on ${route}`, async ({
       seededPage: page,

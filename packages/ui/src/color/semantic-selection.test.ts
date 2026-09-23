@@ -10,6 +10,7 @@ import {
   describeSemanticEdit,
   EMPTY_SELECTION,
   filterSemanticTokens,
+  semanticCountLabel,
   selectAllVisible,
   selectionAfterClick,
   selectionWithin,
@@ -326,5 +327,21 @@ describe("describeSemanticEdit", () => {
     expect(
       describeSemanticEdit(before, moveToGroup(before, ["brand.wash"], "rule")),
     ).toBe("Moved brand.wash to rule.");
+  });
+});
+
+describe("semanticCountLabel", () => {
+  it("names the selection when there is one", () => {
+    expect(semanticCountLabel(3, 12, 72)).toBe("3 selected");
+  });
+
+  it("counts every token once when nothing narrows them", () => {
+    expect(semanticCountLabel(0, 72, 72)).toBe("72 tokens");
+    expect(semanticCountLabel(0, 1, 1)).toBe("1 token");
+    expect(semanticCountLabel(0, 0, 0)).toBe("0 tokens");
+  });
+
+  it("shows how many of them while a search or group narrows them", () => {
+    expect(semanticCountLabel(0, 12, 72)).toBe("12 of 72");
   });
 });

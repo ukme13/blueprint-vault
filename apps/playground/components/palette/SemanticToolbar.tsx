@@ -5,6 +5,7 @@ import {
   addSemanticToken,
   Button,
   type ColorTrack,
+  semanticCountLabel,
   type SemanticToken,
 } from "@blueprint/ui";
 import styles from "./semantic-table.module.css";
@@ -33,12 +34,14 @@ export function SemanticToolbar(props: SemanticToolbarProps) {
           onChange={props.onQueryChange}
         />
       </div>
-      <p className={styles.count} data-selection-count={props.selected}>
-        {props.selected > 0
-          ? `${props.selected} selected`
-          : `${props.visible} of ${props.total}`}
+      <p
+        className={`${styles.count} ${styles.toolbarCount}`}
+        data-selection-count={props.selected}
+      >
+        {semanticCountLabel(props.selected, props.visible, props.total)}
       </p>
       <Button
+        className={styles.addToken}
         scheme="neutral"
         size="small"
         variant="outlined"

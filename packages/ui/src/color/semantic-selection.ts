@@ -258,3 +258,20 @@ export function describeSemanticEdit(
   const label = semanticGroupLabel(groups[0]!);
   return `Moved ${countPhrase(left.length, left[0]!.id)} to ${label}.`;
 }
+
+/**
+ * The counter beside the token search.
+ *
+ * What is selected, when anything is. Otherwise how many tokens there are, and
+ * "12 of 72" only while a search or a group is narrowing them, because
+ * "72 of 72" names the same number twice.
+ */
+export function semanticCountLabel(
+  selected: number,
+  visible: number,
+  total: number,
+): string {
+  if (selected > 0) return `${selected} selected`;
+  if (visible === total) return `${total} ${total === 1 ? "token" : "tokens"}`;
+  return `${visible} of ${total}`;
+}
