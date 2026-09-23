@@ -554,9 +554,20 @@ test.describe("on a phone", () => {
     const sheet = page.getByRole("dialog", { name: /colour details$/ });
     /* The first: a picker opened from this sheet has one of its own inside. */
     await expect(sheet.locator(".astryx-bottom-sheet").first()).toBeVisible();
+    /* As on a desktop: no sliders in the sheet. The swatch opens the
+       picker, as a second sheet over this one. */
     await expect(
       sheet.getByRole("slider", { name: "Lightness slider" }),
-    ).toBeVisible();
+    ).toHaveCount(0);
+    await sheet
+      .getByRole("button", { name: /^Choose .* source colour$/ })
+      .click();
+    const picker = page.getByRole("dialog", {
+      name: /source colour picker$/,
+    });
+    await expect(picker.locator(".astryx-bottom-sheet")).toBeVisible();
+    await picker.getByRole("button", { name: /^Close .* picker$/ }).click();
+    await expect(picker).toBeHidden();
     await expect(
       sheet.getByRole("button", { name: "Save changes" }),
     ).toBeVisible();

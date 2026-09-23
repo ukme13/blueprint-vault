@@ -15,7 +15,7 @@ import {
   type ColorTrack,
 } from "@blueprint/ui";
 import { ConfirmDialog } from "../ConfirmDialog";
-import { ColourPicker, OklchChannels } from "./ColourPicker";
+import { ColourPicker } from "./ColourPicker";
 import { useColourFormat } from "./ColourFormatContext";
 import { usePaletteView } from "./PaletteViewContext";
 import styles from "./palette-workspace.module.css";
@@ -155,14 +155,6 @@ export function TrackDetailDialog({
               <code>{formatColour(seedDraft, colourFormat)}</code>
             </span>
           </div>
-          {/* The sheet has the room for the sliders in place, where the
-                dialog opens a picker. */}
-          {isPhone && (
-            <OklchChannels
-              value={seedDraft}
-              onChange={(value) => setSeedDraft(normalizeHex(value))}
-            />
-          )}
         </section>
 
         <section className={styles.trackDialogSection}>
