@@ -346,3 +346,32 @@ keeps the rail open as a drawer over the page.
 A `grid-template-rows` rule I added to make the specimens fill the height
 passed its test with the rule removed. A grid's single auto row already
 stretches, so the rule is gone.
+
+## The colour picker as a stacked sheet
+
+On a phone, `ColourPicker` opens a bottom sheet instead of a popover. That
+covers every place it appears: the shade inspector, a track's details, and
+the WCAG custom colour. Opened from another sheet, it is a second modal
+dialog, and the top layer stacks it above the first with its own backdrop,
+so no z-index is needed. The shade sheet shows the picker button again,
+beside the sliders.
+
+Two stacking problems, both found by tests:
+
+- **Escape closed both sheets.** Astryx closes a sheet from a React keydown
+  on its dialog, and the picker's sheet sits inside the other one in the
+  React tree, so the event bubbled on. A wrapper stops Escape above the
+  picker's sheet.
+- **A downward drag on the 2D field could swipe the picker shut.** The sheet
+  hands a touch that pulls down from the top of its scroll to its own drag,
+  through native listeners. The field stops its own touches natively.
+
+I removed that touch guard once, because a single run passed without it. A
+swipe from the header did close the sheet, so the harness was real. Three
+runs without the guard then failed one; five with it passed five. The test
+drives a real touch through the DevTools protocol, and it catches a missing
+guard only some of the time. Removing `touch-action: none` from the field
+fails it every time.
+
+**One passing run proves nothing about a race.** Run a timing-sensitive test
+several times, with and without the fix, before deciding which code is dead.

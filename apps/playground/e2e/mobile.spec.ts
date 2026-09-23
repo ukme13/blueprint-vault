@@ -424,7 +424,8 @@ test.describe("on a phone", () => {
 
     const sheet = page.getByRole("dialog", { name: /shade details$/ });
     await expect(sheet).toBeVisible();
-    await expect(sheet.locator(".astryx-bottom-sheet")).toBeVisible();
+    /* The first: a picker opened from this sheet has one of its own inside. */
+    await expect(sheet.locator(".astryx-bottom-sheet").first()).toBeVisible();
     for (const channel of ["Lightness", "Chroma", "Hue"]) {
       await expect(
         sheet.getByRole("slider", { name: `${channel} slider` }),
@@ -454,6 +455,96 @@ test.describe("on a phone", () => {
     await expect(swatch).toHaveAttribute("aria-pressed", "false");
   });
 
+  test("stacks the colour picker as a second sheet over the shade's", async ({
+    seededPage: page,
+  }) => {
+    /* From a device: the picker opened as a popover in the middle of the
+       screen, over the sheet it was opened from. */
+    await page
+      .getByRole("button", { name: /^Select / })
+      .nth(5)
+      .click();
+    const shadeSheet = page.getByRole("dialog", { name: /shade details$/ });
+    await expect(shadeSheet).toBeVisible();
+
+    const open = () =>
+      shadeSheet.getByRole("button", { name: /^Edit .* colour$/ }).click();
+    const picker = page.getByRole("dialog", { name: /colour picker$/ });
+
+    await open();
+    await expect(picker.locator(".astryx-bottom-sheet")).toBeVisible();
+    /* Above the shade sheet: its panel reaches the bottom edge, and it is the
+       one a tap at the middle of the screen lands in. */
+    const panel = await picker.locator(".astryx-bottom-sheet").boundingBox();
+    expect(panel!.y + panel!.height).toBeGreaterThanOrEqual(844);
+    expect(panel!.y).toBeGreaterThan(844 / 4);
+
+    /* The field and the hue slider, sized for a thumb. */
+    const field = await picker
+      .getByRole("button", { name: /saturation .* brightness/ })
+      .boundingBox();
+    expect(field!.height).toBeGreaterThanOrEqual(240);
+    expect(field!.width).toBeGreaterThan(300);
+    await expect(picker.getByRole("slider", { name: /hue$/ })).toBeVisible();
+
+    /* Every way out of the picker returns to the shade sheet, still open. */
+    await picker.getByRole("button", { name: /^Close .* picker$/ }).click();
+    await expect(picker).toBeHidden();
+    await expect(shadeSheet).toBeVisible();
+
+    await open();
+    await expect(picker).toBeVisible();
+    await page.mouse.click(195, 40);
+    await expect(picker).toBeHidden();
+    await expect(shadeSheet).toBeVisible();
+
+    await open();
+    await expect(picker).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(picker).toBeHidden();
+    await expect(shadeSheet).toBeVisible();
+  });
+
+  test("drags on the picker field without swiping the sheet away", async ({
+    seededPage: page,
+  }) => {
+    /* The sheet is swiped shut by a touch pulling down from the top of its
+       scroll, and the field is dragged by a touch too. A real touch, through
+       the DevTools protocol: a mouse drag never reaches the sheet's touch
+       listeners. */
+    await page
+      .getByRole("button", { name: /^Select / })
+      .nth(5)
+      .click();
+    const shadeSheet = page.getByRole("dialog", { name: /shade details$/ });
+    await shadeSheet.getByRole("button", { name: /^Edit .* colour$/ }).click();
+    const picker = page.getByRole("dialog", { name: /colour picker$/ });
+    const field = picker.getByRole("button", {
+      name: /saturation .* brightness/,
+    });
+    await expect(field).toBeVisible();
+    const before = await field.getAttribute("aria-label");
+    const box = (await field.boundingBox())!;
+
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true });
+    const x = box.x + box.width / 2;
+    const y = box.y + 20;
+    const touch = (type: "touchStart" | "touchMove" | "touchEnd", dy: number) =>
+      cdp.send("Input.dispatchTouchEvent", {
+        type,
+        touchPoints: type === "touchEnd" ? [] : [{ x, y: y + dy }],
+      });
+    await touch("touchStart", 0);
+    for (let dy = 20; dy <= 200; dy += 20) await touch("touchMove", dy);
+    await touch("touchEnd", 200);
+
+    await expect(picker).toBeVisible();
+    await expect(field).not.toHaveAttribute("aria-label", before!);
+    const after = await picker.locator(".astryx-bottom-sheet").boundingBox();
+    expect(after!.y + after!.height).toBeGreaterThanOrEqual(844);
+  });
+
   test("opens a track's details in a sheet", async ({ seededPage: page }) => {
     await page
       .getByRole("button", { name: /^Open .* colour details$/ })
@@ -461,7 +552,8 @@ test.describe("on a phone", () => {
       .click();
 
     const sheet = page.getByRole("dialog", { name: /colour details$/ });
-    await expect(sheet.locator(".astryx-bottom-sheet")).toBeVisible();
+    /* The first: a picker opened from this sheet has one of its own inside. */
+    await expect(sheet.locator(".astryx-bottom-sheet").first()).toBeVisible();
     await expect(
       sheet.getByRole("slider", { name: "Lightness slider" }),
     ).toBeVisible();

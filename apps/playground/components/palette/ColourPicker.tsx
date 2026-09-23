@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useCallback,
   useMemo,
   useState,
   type CSSProperties,
@@ -8,7 +9,9 @@ import {
   type PointerEvent,
   type ReactNode,
 } from "react";
+import { BottomSheet } from "@astryxdesign/core/BottomSheet";
 import { IconButton } from "@astryxdesign/core/IconButton";
+import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { Popover } from "@astryxdesign/core/Popover";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import {
@@ -44,6 +47,60 @@ export function ColourPicker({
   triggerLabel,
 }: ColourPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const isPhone = useMediaQuery("(max-width: 640px)");
+
+  const triggerButton = (
+    <button
+      aria-label={triggerLabel ?? `Choose ${label}`}
+      className={
+        trigger ? styles.colourPickerEditTrigger : styles.colourPickerTrigger
+      }
+      style={trigger ? undefined : { backgroundColor: value }}
+      type="button"
+      onClick={isPhone ? () => setIsOpen(true) : undefined}
+    >
+      {trigger}
+    </button>
+  );
+
+  /* On a phone the picker is a sheet from the bottom edge, not a popover in
+     the middle of the screen. Opened from inside another sheet — the shade
+     inspector, a track's details — it is a second modal dialog, and the top
+     layer stacks it above the first with its own backdrop; closing it
+     returns to the sheet underneath. No z-index is involved. */
+  if (isPhone) {
+    return (
+      <>
+        {triggerButton}
+        {/* Escape closes the top sheet only. Astryx closes a sheet from a
+            React keydown on its dialog, and this sheet sits inside the one it
+            was opened from in the React tree, so the same Escape bubbled on
+            and closed that one too. */}
+        <span
+          className={styles.stackedSheet}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") event.stopPropagation();
+          }}
+        >
+          <BottomSheet
+            isOpen={isOpen}
+            label={`${label} picker`}
+            onOpenChange={setIsOpen}
+          >
+            <div className={styles.colourPickerSheet}>
+              <ColourPickerPanel
+                isTouch
+                label={label}
+                value={value}
+                onChange={onChange}
+                onClose={() => setIsOpen(false)}
+              />
+            </div>
+          </BottomSheet>
+        </span>
+      </>
+    );
+  }
 
   return (
     <Popover
@@ -63,22 +120,15 @@ export function ColourPicker({
       }
       onOpenChange={setIsOpen}
     >
-      <button
-        aria-label={triggerLabel ?? `Choose ${label}`}
-        className={
-          trigger ? styles.colourPickerEditTrigger : styles.colourPickerTrigger
-        }
-        style={trigger ? undefined : { backgroundColor: value }}
-        type="button"
-      >
-        {trigger}
-      </button>
+      {triggerButton}
     </Popover>
   );
 }
 
 interface ColourPickerPanelProps extends ColourPickerProps {
   onClose: () => void;
+  /** In a sheet on a phone, where a drag on the field must not move the sheet. */
+  isTouch?: boolean;
 }
 
 interface ChannelControlProps {
@@ -191,7 +241,26 @@ function ColourPickerPanel({
   value,
   onChange,
   onClose,
+  isTouch = false,
 }: ColourPickerPanelProps) {
+  /* A drag on the field is choosing a colour. In a sheet, a touch that pulls
+     down from the top of the sheet's scroll is also how the sheet is swiped
+     shut, and the sheet listens with native listeners, which React's
+     stopPropagation reaches too late. So the field stops its own touches from
+     travelling up, natively. */
+  const fieldRef = useCallback(
+    (node: HTMLButtonElement | null) => {
+      if (!node || !isTouch) return;
+      const stop = (event: TouchEvent) => event.stopPropagation();
+      node.addEventListener("touchstart", stop, { passive: true });
+      node.addEventListener("touchmove", stop, { passive: true });
+      return () => {
+        node.removeEventListener("touchstart", stop);
+        node.removeEventListener("touchmove", stop);
+      };
+    },
+    [isTouch],
+  );
   const { colourFormat } = useColourFormat();
   const hsv = useMemo(() => hexToHsv(value), [value]);
   const rgb = useMemo(
@@ -308,6 +377,7 @@ function ColourPickerPanel({
       {colourFormat === "hex" && (
         <>
           <button
+            ref={fieldRef}
             aria-label={`${label} saturation ${Math.round(hsv.saturation * 100)} percent and brightness ${Math.round(hsv.value * 100)} percent`}
             className={styles.colourField}
             style={{ backgroundColor: `hsl(${hsv.hue} 100% 50%)` }}

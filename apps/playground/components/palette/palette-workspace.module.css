@@ -1708,3 +1708,28 @@
 .shadeSheetAnchor {
   padding-bottom: 12px;
 }
+
+/* The picker as a phone's sheet. Clear of the grab handle, and a taller field
+   than the popover's, since a thumb covers what a cursor does not. */
+.colourPickerSheet {
+  padding: var(--spacing-6, 24px) var(--spacing-4, 16px)
+    max(var(--spacing-4, 16px), env(safe-area-inset-bottom));
+  white-space: normal;
+}
+
+.colourPickerSheet .colourField {
+  height: 240px;
+}
+
+.colourPickerSheet .hueControl {
+  height: 36px;
+}
+
+.colourPickerSheet .colourPickerFooter {
+  margin: 0 calc(-1 * var(--spacing-4, 16px));
+}
+
+/* A wrapper for its key handling only; it takes no part in layout. */
+.stackedSheet {
+  display: contents;
+}
