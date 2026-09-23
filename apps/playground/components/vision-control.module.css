@@ -98,3 +98,36 @@
 .visionSeverity > * {
   width: 100%;
 }
+
+/* Below 640px the toolbar wraps and each opened panel takes a row of its own
+   (see palette-workspace.module.css). The group dissolves, so its button stays
+   in the line of buttons and its selector and slider can move below it. */
+@media (max-width: 640px) {
+  .visionGroup {
+    display: contents;
+  }
+
+  /* No longer joined to the selector, which is now a row down: a button with
+     two square corners pointing at nothing reads as broken. `revert-layer`
+     hands the corners back to the button's own styles rather than guessing
+     their radius here. */
+  .visionGroup[data-open="true"] .visionModeButton {
+    border-top-right-radius: revert-layer;
+    border-bottom-right-radius: revert-layer;
+  }
+
+  .visionOptions {
+    order: 3;
+    flex-basis: 100%;
+    width: auto;
+    border-left: 1px solid var(--color-action-primary);
+    border-radius: 8px;
+  }
+
+  .visionSeverity {
+    order: 4;
+    flex-basis: 100%;
+    width: auto;
+    margin-left: 0;
+  }
+}

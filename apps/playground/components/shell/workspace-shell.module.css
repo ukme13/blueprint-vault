@@ -121,6 +121,12 @@
     transform: translateX(-100%);
     transition: transform var(--rail-duration) var(--rail-ease);
     will-change: transform;
+    /* Opaque, and lifted. In its column the rail sat on AppShell's nav
+       region, which painted the ground behind it; fixed and out of that
+       region it had no background of its own — measured rgba(0, 0, 0, 0) —
+       so on a phone the palette cards showed straight through the menu. */
+    background-color: var(--color-surface-base);
+    box-shadow: var(--shadow-high);
   }
 
   .sideNav[data-collapsed="false"] {
@@ -139,8 +145,11 @@
     z-index: 49;
     border: 0;
     padding: 0;
-    background: var(--color-surface-overlay);
-    opacity: 0.6;
+    /* Astryx's scrim, the one its own dialogs sit on: dark in both modes.
+       This used `--color-surface-overlay`, which is a surface — the seeded
+       near-white role in light mode — so instead of dimming the page it
+       washed it out, and the menu over it read as more of the same. */
+    background: var(--color-overlay);
     cursor: pointer;
   }
 }

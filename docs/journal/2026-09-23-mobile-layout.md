@@ -154,3 +154,68 @@ printing boxes rather than by looking.
 
 **A prop named for the thing you want can mean the opposite.** `mobileNav
 ={false}` reads as "no special mobile handling" and means "no navigation".
+
+## Round three: the drawer you could see through
+
+From hardware again, with screenshots. Measured first at 390 and 430px, and
+the measurements narrowed three reports to two real bugs and one design
+problem.
+
+**The drawer had no background.** In its column the rail sat on AppShell's nav
+region, which painted the ground behind it. Fixed and out of that region it had
+none of its own — computed `rgba(0, 0, 0, 0)` — so the palette cards showed
+straight through the menu. It is `--color-surface-base` now, with
+`--shadow-high`.
+
+**The scrim was a surface.** The backdrop used `--color-surface-overlay`, the
+seeded semantic role that is near-white in light mode. So instead of dimming
+the page it washed it out, and a transparent menu over a pale page read as one
+mess. It uses `--color-overlay` now: Astryx's scrim, the one its own dialogs
+sit on, which this theme sets to 50% black in light mode and 80% in dark.
+
+Asked for as `rgba(0, 0, 0, 0.45)` and a literal shadow. Tokens instead,
+because the studio's chrome takes no raw colours, and because a scrim that
+matches every other dialog in the app is worth more than one that matches a
+number. Light mode, where the screenshots were taken, lands at 0.5.
+
+**The top bar was already two rows.** Actions at y=0–36, tabs at y=48–84, the
+trigger clear of both, at both widths. What looked cramped in the screenshot
+was the transparent drawer's own collapse button sitting over "Import". The
+tabs gained `white-space: nowrap` as asked; see below for what that did.
+
+**The toolbar was the design problem.** It already scrolled, and nothing
+escaped the screen — which is why last round's overflow test passed. But it
+was a single line that grew from 415px at rest to 657px with WCAG open and
+1019px with Vision open, and scrolled itself so that Add colour sat at x=−253
+while the options just opened hung off the right edge. You tapped a toggle and
+what it opened was not on the screen.
+
+Both the requested fixes were offered — a scrolling strip, or opened panels on
+a row of their own — and they cannot both hold: the panels live _inside_ the
+row of buttons, so a single scrolling line can only push them sideways. Below
+640px the toolbar wraps now and each opened panel takes a full row, with the
+Vision group dissolved by `display: contents` so its button stays in the line
+and its selector and slider can drop below. At 430px the buttons still fit on
+one line; at 390, Reset preset takes a line of its own.
+
+## A test that never failed, kept anyway and labelled as such
+
+"Keeps the studio tabs on one line" passed against the stylesheet without
+`nowrap`, at 390px and then at 320px. The tab items already hold one line in
+Chromium. I had written in its comment that 320 was where "Shade generator"
+breaks, before checking — it does not, and the comment now says so.
+
+It stays, because the report came from a real device, where a larger text
+setting is exactly what breaks a label onto two lines. But it is written down
+as a guard that has never caught anything, which is a different thing from a
+test, and the repository's own rule is that the difference matters.
+
+The drawer and toolbar tests both fail against the state on the device.
+
+## Lesson
+
+**Measure where the thing lands, not only whether it escapes.** Last round's
+overflow test was right and useless for this: nothing left the screen, and a
+toggle opened its controls somewhere you could not see them. The new test
+looks for controls off either edge after opening both panels, which is what a
+thumb experiences.

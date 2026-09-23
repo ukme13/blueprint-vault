@@ -1556,6 +1556,10 @@
     order: 2;
     overflow-x: auto;
     scrollbar-width: none;
+    /* One line that scrolls, never two that wrap. "Shade generator" is the
+       longest tab and the first to break onto a second line. */
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
   }
 
   .headerActions {
@@ -1594,9 +1598,34 @@
     display: none;
   }
 
+  /* Wraps rather than scrolls, and each opened panel takes a row of its own.
+
+     The panels live inside the row of buttons — WCAG's options between WCAG
+     and Vision, Vision's selector and slider inside its own group — so a
+     single scrolling line could only ever push them sideways. Measured on a
+     390px screen: 415px of toolbar at rest, 657px with WCAG open and 1019px
+     with Vision open, with Add colour scrolled to x=-253 and the options just
+     opened mostly off the right edge. Nothing escaped the screen; the thing
+     you had just tapped was simply not on it.
+
+     At 430px the buttons still fit on one line, so a phone that size sees the
+     strip it always did. At 390px Reset preset drops to a line of its own,
+     which is the cost of every control being visible without a swipe. */
   .toolbar {
-    overflow-x: auto;
-    padding: 0 14px;
+    flex-wrap: wrap;
+    row-gap: 8px;
+    padding: 8px 14px;
+  }
+
+  .contrastOptions {
+    order: 2;
+    flex-basis: 100%;
+  }
+
+  /* A divider between two groups that may now sit on different lines
+     separates nothing. */
+  .toolbarDivider {
+    display: none;
   }
 
   .creationCard {

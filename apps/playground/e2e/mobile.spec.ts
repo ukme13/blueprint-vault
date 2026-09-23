@@ -60,6 +60,117 @@ test.describe("on a phone", () => {
     expect(await width(), "the studio moved under the drawer").toBe(before);
   });
 
+  test("draws an opaque, lifted drawer over a dark scrim", async ({
+    seededPage: page,
+  }) => {
+    /* From a real device: the drawer had no background of its own once it
+       left AppShell's nav region — measured rgba(0, 0, 0, 0) — so the palette
+       cards showed through the menu, and the backdrop used a surface token
+       that is near-white in light mode, so it washed the page out rather than
+       dimming it. */
+    await page.getByRole("button", { name: "Open navigation" }).click();
+    await expect(page.locator(".astryx-side-nav")).toHaveAttribute(
+      "data-collapsed",
+      "false",
+    );
+
+    const { drawer, shadow, scrim } = await page.evaluate(() => {
+      /* Painted and read back rather than parsed. The drawer reports its
+         colour as oklch(...) and the scrim as rgba(...), and a pixel is the
+         one format every colour space ends up in. */
+      const paint = (colour: string) => {
+        const canvas = document.createElement("canvas");
+        canvas.width = 1;
+        canvas.height = 1;
+        const context = canvas.getContext("2d")!;
+        context.fillStyle = colour;
+        context.fillRect(0, 0, 1, 1);
+        const [red, green, blue, alpha] = context.getImageData(0, 0, 1, 1).data;
+        return {
+          alpha: alpha! / 255,
+          light: (0.2126 * red! + 0.7152 * green! + 0.0722 * blue!) / 255,
+        };
+      };
+      const nav = document.querySelector(".astryx-side-nav") as HTMLElement;
+      const backdrop = document.querySelector(
+        '[class*="railBackdrop"]',
+      ) as HTMLElement;
+      return {
+        drawer: paint(getComputedStyle(nav).backgroundColor),
+        shadow: getComputedStyle(nav).boxShadow,
+        scrim: paint(getComputedStyle(backdrop).backgroundColor),
+      };
+    });
+
+    expect(drawer.alpha, "the drawer is see-through").toBe(1);
+    expect(shadow, "the drawer sits flat on the page").not.toBe("none");
+
+    /* A dimming scrim: dark, and translucent enough to show the page is still
+       there. A surface colour fails the first half in light mode. */
+    expect(scrim.light, "the scrim lightens the page").toBeLessThan(0.2);
+    expect(scrim.alpha, "the scrim is not there").toBeGreaterThan(0.3);
+    expect(scrim.alpha, "the scrim hides the page").toBeLessThan(1);
+  });
+
+  test("gives opened toolbar panels a row instead of the edge of the screen", async ({
+    seededPage: page,
+  }) => {
+    /* Before: one scrolling line that grew from 415px to 1019px as WCAG 2 and
+       Vision opened, with Add colour scrolled to x=-253 and the controls just
+       opened off the right edge. Nothing escaped the screen, which is why the
+       overflow test above passed — the thing you had tapped was simply not on
+       it. So this looks for controls off either edge, not for overflow. */
+    await page.getByRole("button", { name: "WCAG 2", exact: true }).click();
+    await page.getByRole("button", { name: "Vision", exact: true }).click();
+
+    const { offscreen, scrolled } = await page.evaluate(() => {
+      const toolbar = document.querySelector(
+        '[aria-label="Palette toolbar"]',
+      ) as HTMLElement;
+      const viewport = window.innerWidth;
+      return {
+        scrolled: toolbar.scrollWidth > toolbar.clientWidth,
+        offscreen: [
+          ...toolbar.querySelectorAll<HTMLElement>(
+            'button, [role="slider"], [aria-label="Contrast comparison"]',
+          ),
+        ]
+          .filter((node) => {
+            const box = node.getBoundingClientRect();
+            return box.width > 0 && (box.right > viewport + 1 || box.left < -1);
+          })
+          .map((node) => (node.textContent ?? "").trim().slice(0, 20)),
+      };
+    });
+
+    expect(offscreen, offscreen.join(" | ")).toEqual([]);
+    expect(scrolled, "the toolbar is a scrolling line again").toBe(false);
+  });
+
+  test("keeps the studio tabs on one line", async ({ seededPage: page }) => {
+    /* A guard, and an honest one: this has never failed. It passed against the
+       stylesheet without \`white-space: nowrap\` at both 390px and 320px — the
+       tab items already hold one line in Chromium. The nowrap stays because
+       the report came from a real device, where a larger text setting or wider
+       system font is exactly what breaks a label onto two lines, and this is
+       the check that will say so if it ever happens here. At 320px, the
+       narrowest phone still in use, because that is the harder case. */
+    await page.setViewportSize({ width: 320, height: 700 });
+
+    /* The class rather than the role: these render as buttons carrying
+       Astryx's tab styling, not as role="tab", and a role query here found
+       nothing and would have passed on an empty set if it had been asked
+       for "at most one row". */
+    const tops = await page
+      .locator(".astryx-tab")
+      .evaluateAll((tabs) =>
+        tabs.map((tab) => Math.round(tab.getBoundingClientRect().top)),
+      );
+
+    expect(tops.length).toBeGreaterThan(1);
+    expect(new Set(tops).size, `tabs at ${tops.join(", ")}`).toBe(1);
+  });
+
   test("closes on the backdrop", async ({ seededPage: page }) => {
     await page.getByRole("button", { name: "Open navigation" }).click();
     await expect(page.locator(".astryx-side-nav")).toHaveAttribute(
