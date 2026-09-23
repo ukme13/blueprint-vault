@@ -11,13 +11,19 @@ test.describe("Workspace shell", () => {
     await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
   });
 
-  test("Home top bar is 72px", async ({ page }) => {
+  /* The Home bar is the rail's row height, and its mark sits where the rail
+     draws its monogram, so walking from the project library into a studio
+     does not make the brand jump. It used to be a 72px bar with the mark at
+     x=32, y=20; 724d7cd moved it to the rail's 52px and x=16, y=10. */
+  test("Home top bar is the rail's 52px, with the mark where the rail puts it", async ({
+    page,
+  }) => {
     const homeNav = page.getByRole("navigation", { name: "Blueprint" });
     const link = homeNav.getByRole("link", { name: "Blueprint" });
     await expect(link).toBeVisible();
     await expect
       .poll(() => homeNav.evaluate((el) => getComputedStyle(el).minHeight))
-      .toBe("72px");
+      .toBe("52px");
 
     // Home logo SVG has cropped viewBox and aspect ratio
     const svg = link.locator("svg");
@@ -28,14 +34,12 @@ test.describe("Workspace shell", () => {
     expect(bbox!.width).toBeGreaterThanOrEqual(80);
     expect(bbox!.height).toBe(32);
 
-    // Logo left edge sits on the page content edge, level with "Projects".
-    const heading = page.getByRole("heading", { level: 1, name: "Projects" });
-    const headingBox = await heading.boundingBox();
-    expect(headingBox).not.toBeNull();
-    expect(Math.abs(bbox!.x - headingBox!.x)).toBeLessThanOrEqual(1);
+    // Where the rail draws its monogram: the test below pins the same point.
+    expect(bbox!.x).toBe(16);
+    expect(bbox!.y).toBe(10);
   });
 
-  test("rail brand marks are 32px tall in both states, matching the Home wordmark", async ({
+  test("rail monogram is 32px at Home's point in both states, beside a 24px wordmark", async ({
     page,
   }) => {
     await createWorkspaceFromHome(page);
@@ -43,13 +47,18 @@ test.describe("Workspace shell", () => {
     const logoLink = rail.getByRole("link", { name: "Blueprint" });
     await expect(logoLink).toBeVisible();
 
+    /* The monogram is the 32px mark Home draws, at the same point; the
+       wordmark beside it is set smaller, at 24px. */
     const expandedMarks = logoLink.locator("svg");
     await expect(expandedMarks).toHaveCount(2);
-    for (const mark of await expandedMarks.all()) {
-      const box = await mark.boundingBox();
-      expect(box).not.toBeNull();
-      expect(box!.height).toBe(32);
-    }
+    const monogram = await expandedMarks.nth(0).boundingBox();
+    const wordmark = await expandedMarks.nth(1).boundingBox();
+    expect(monogram).not.toBeNull();
+    expect(wordmark).not.toBeNull();
+    expect(monogram!.height).toBe(32);
+    expect(monogram!.x).toBe(16);
+    expect(monogram!.y).toBe(10);
+    expect(wordmark!.height).toBe(24);
 
     await rail.getByRole("button", { name: "Collapse sidebar" }).click();
     const expandBtn = rail.getByRole("button", { name: "Expand sidebar" });
@@ -71,7 +80,7 @@ test.describe("Workspace shell", () => {
     ).toBeVisible();
     await expect
       .poll(() => homeNav.evaluate((el) => getComputedStyle(el).minHeight))
-      .toBe("72px");
+      .toBe("52px");
     await expect(
       page.getByRole("navigation", { name: "Blueprint workspaces" }),
     ).toHaveCount(0);
