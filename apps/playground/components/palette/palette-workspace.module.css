@@ -1733,3 +1733,22 @@
 .stackedSheet {
   display: contents;
 }
+
+/* The track sheet's buttons wrap rather than run off a narrow screen. */
+.trackSheet .trackDialogFooter {
+  flex-wrap: wrap;
+  padding-inline: var(--spacing-4, 16px);
+}
+
+/* The shade strip shares the sheet's width rather than scrolling: twenty
+   shades at their 20px minimum are 400px, wider than a phone's sheet, and
+   the scrollbar showed as a grey line under the strip. It is a preview, not
+   something to tap, so narrower swatches lose nothing. */
+.trackSheet .trackShadePreview {
+  grid-auto-columns: minmax(0, 1fr);
+  overflow-x: hidden;
+}
+
+.trackSheet .trackShadePreview > span {
+  min-width: 0;
+}

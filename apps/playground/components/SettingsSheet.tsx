@@ -2,14 +2,12 @@
 
 import { Children, type ReactNode } from "react";
 import { BottomSheet } from "@astryxdesign/core/BottomSheet";
-import { Icon } from "@astryxdesign/core/Icon";
-import { IconButton } from "@astryxdesign/core/IconButton";
 import { Text } from "@astryxdesign/core/Text";
 import { Button } from "@blueprint/ui";
 import styles from "./settings-sheet.module.css";
 
 /**
- * A phone's settings panel: a title, the controls, Reset / Cancel / Apply.
+ * A phone's settings panel: a title, the controls, Reset / Apply.
  *
  * On a narrow screen a toolbar toggle that grew its options inline had two bad
  * choices — push them off the edge of a scrolling strip, or wrap the strip onto
@@ -21,11 +19,14 @@ import styles from "./settings-sheet.module.css";
  * swipe-down and tap-the-scrim. What it has no opinion on is a header or a
  * footer, so those are here.
  *
- * The sheet edits a draft. Only Apply commits it; Cancel, the close button,
- * Escape, a swipe and a tap on the scrim all discard it. That makes every way
- * out except one mean the same thing, which is what lets `purpose="info"` —
- * dismiss on the scrim — be safe here: dismissing loses nothing that had been
- * committed.
+ * The sheet edits a draft. Only Apply commits it; Escape, a swipe and a tap
+ * on the scrim all discard it. That makes every way out except one mean the
+ * same thing, which is what lets `purpose="info"` — dismiss on the scrim — be
+ * safe here: dismissing loses nothing that had been committed.
+ *
+ * No Cancel and no close button. Those are the ways out a phone's sheet
+ * already has, and a third and fourth way to say the same thing crowded the
+ * footer.
  */
 
 interface SettingsSheetProps {
@@ -34,7 +35,7 @@ interface SettingsSheetProps {
   title: string;
   /** Put the draft back to how a fresh studio starts. Does not close. */
   onReset: () => void;
-  /** Discard the draft and close — every way out but Apply lands here. */
+  /** Discard the draft and close: the scrim, a swipe or Escape. */
   onCancel: () => void;
   /** Commit the draft and close. */
   onApply: () => void;
@@ -64,13 +65,6 @@ export function SettingsSheet({
           <Text as="h2" type="large" weight="semibold">
             {title}
           </Text>
-          <IconButton
-            icon={<Icon icon="close" />}
-            label="Close"
-            size="sm"
-            variant="ghost"
-            onClick={onCancel}
-          />
         </header>
 
         {/* Each setting in a wrapper of its own, which carries the divider.
@@ -96,19 +90,9 @@ export function SettingsSheet({
           >
             Reset
           </Button>
-          <span className={styles.footerEnd}>
-            <Button
-              scheme="neutral"
-              size="small"
-              variant="outlined"
-              onClick={onCancel}
-            >
-              Cancel
-            </Button>
-            <Button scheme="primary" size="small" onClick={onApply}>
-              Apply
-            </Button>
-          </span>
+          <Button scheme="primary" size="small" onClick={onApply}>
+            Apply
+          </Button>
         </footer>
       </div>
     </BottomSheet>

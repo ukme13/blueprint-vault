@@ -200,28 +200,31 @@ export function ShadeDetailPopover({
             {paletteName} · {shade.weight}
           </strong>
         </p>
-        <IconButton
-          icon={
-            <svg
-              aria-hidden="true"
-              fill="none"
-              height="16"
-              viewBox="0 0 16 16"
-              width="16"
-            >
-              <path
-                d="m4.5 4.5 7 7m0-7-7 7"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeWidth="1.5"
-              />
-            </svg>
-          }
-          label="Close shade details"
-          size="sm"
-          variant="ghost"
-          onClick={onClose}
-        />
+        {/* A phone's sheet closes from its backdrop, a swipe down or Escape, so it carries no close button of its own. */}
+        {!isSheet && (
+          <IconButton
+            icon={
+              <svg
+                aria-hidden="true"
+                fill="none"
+                height="16"
+                viewBox="0 0 16 16"
+                width="16"
+              >
+                <path
+                  d="m4.5 4.5 7 7m0-7-7 7"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeWidth="1.5"
+                />
+              </svg>
+            }
+            label="Close shade details"
+            size="sm"
+            variant="ghost"
+            onClick={onClose}
+          />
+        )}
       </header>
 
       <div className={styles.popoverValue}>

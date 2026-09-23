@@ -115,28 +115,31 @@ export function TrackDetailDialog({
           value={nameDraft}
           onChange={(event) => setNameDraft(event.target.value)}
         />
-        <IconButton
-          icon={
-            <svg
-              aria-hidden="true"
-              fill="none"
-              height="18"
-              viewBox="0 0 18 18"
-              width="18"
-            >
-              <path
-                d="m4 4 10 10m0-10L4 14"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeWidth="1.7"
-              />
-            </svg>
-          }
-          label="Close colour details"
-          size="sm"
-          variant="ghost"
-          onClick={closeDialog}
-        />
+        {/* A phone's sheet closes from its backdrop, a swipe down or Escape, so it carries no close button of its own. */}
+        {!isPhone && (
+          <IconButton
+            icon={
+              <svg
+                aria-hidden="true"
+                fill="none"
+                height="18"
+                viewBox="0 0 18 18"
+                width="18"
+              >
+                <path
+                  d="m4 4 10 10m0-10L4 14"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeWidth="1.7"
+                />
+              </svg>
+            }
+            label="Close colour details"
+            size="sm"
+            variant="ghost"
+            onClick={closeDialog}
+          />
+        )}
       </header>
 
       <section className={styles.trackDialogContent}>
@@ -241,14 +244,17 @@ export function TrackDetailDialog({
           Duplicate
         </Button>
         <span className={styles.trackDialogFooterSpacer} />
-        <Button
-          scheme="neutral"
-          size="medium"
-          variant="text"
-          onClick={closeDialog}
-        >
-          Cancel
-        </Button>
+        {/* Not on a phone: the sheet closes from its backdrop or a swipe. */}
+        {!isPhone && (
+          <Button
+            scheme="neutral"
+            size="medium"
+            variant="text"
+            onClick={closeDialog}
+          >
+            Cancel
+          </Button>
+        )}
         <Button
           disabled={!validName}
           scheme="primary"
@@ -271,6 +277,7 @@ export function TrackDetailDialog({
           covered the palette rows it was editing. The same content in both. */}
       {isPhone ? (
         <BottomSheet
+          height="hug"
           isOpen={isOpen}
           label={`${palette.name} colour details`}
           onOpenChange={onOpenChange}

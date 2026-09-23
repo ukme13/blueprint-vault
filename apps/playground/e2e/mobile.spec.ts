@@ -157,7 +157,11 @@ test.describe("on a phone", () => {
     const sheet = page.getByRole("dialog", { name: "WCAG contrast" });
     await expect(sheet).toBeVisible();
     await expect(sheet.getByRole("button", { name: "Reset" })).toBeVisible();
-    await expect(sheet.getByRole("button", { name: "Cancel" })).toBeVisible();
+    /* No Cancel and no close button: the scrim, a swipe and Escape are how a
+       phone's sheet is left. */
+    await expect(
+      sheet.getByRole("button", { name: /^(Cancel|Close)$/ }),
+    ).toHaveCount(0);
 
     const apply = sheet.getByRole("button", { name: "Apply" });
     const primary = await apply.evaluate(
@@ -229,7 +233,7 @@ test.describe("on a phone", () => {
     await expect(sheet.getByText("Measure against")).toBeVisible();
   });
 
-  test("discards the Vision draft on Cancel and on the scrim", async ({
+  test("discards the Vision draft on Escape and on the scrim", async ({
     seededPage: page,
   }) => {
     const chip = page.getByRole("button", { name: "Vision", exact: true });
@@ -239,7 +243,7 @@ test.describe("on a phone", () => {
        until Apply. */
     await chip.click();
     await expect(sheet.getByRole("switch")).toBeChecked();
-    await sheet.getByRole("button", { name: "Cancel" }).click();
+    await page.keyboard.press("Escape");
     await expect(sheet).toBeHidden();
     await expect(chip).toHaveAttribute("aria-pressed", "false");
 
@@ -450,7 +454,10 @@ test.describe("on a phone", () => {
     await expect(anchor).toBeChecked();
     await expect(swatch).toHaveAttribute("data-anchor", "true");
 
-    await sheet.getByRole("button", { name: "Close shade details" }).click();
+    await expect(
+      sheet.getByRole("button", { name: "Close shade details" }),
+    ).toHaveCount(0);
+    await page.keyboard.press("Escape");
     await expect(sheet).toBeHidden();
     await expect(swatch).toHaveAttribute("aria-pressed", "false");
   });
@@ -487,13 +494,20 @@ test.describe("on a phone", () => {
     expect(field!.width).toBeGreaterThan(300);
     await expect(picker.getByRole("slider", { name: /hue$/ })).toBeVisible();
 
-    /* Every way out of the picker returns to the shade sheet, still open. */
-    await picker.getByRole("button", { name: /^Close .* picker$/ }).click();
-    await expect(picker).toBeHidden();
-    await expect(shadeSheet).toBeVisible();
+    /* Sized to what is in it: no band of empty sheet under the value field. */
+    const sheetBox = await picker.locator(".astryx-bottom-sheet").boundingBox();
+    const valueBox = await picker
+      .locator("footer[class*=colourPickerFooter]")
+      .boundingBox();
+    expect(
+      sheetBox!.y + sheetBox!.height - (valueBox!.y + valueBox!.height),
+    ).toBeLessThan(80);
 
-    await open();
-    await expect(picker).toBeVisible();
+    /* No close button; every way out returns to the shade sheet, still
+       open. */
+    await expect(
+      picker.getByRole("button", { name: /^Close .* picker$/ }),
+    ).toHaveCount(0);
     await page.mouse.click(195, 40);
     await expect(picker).toBeHidden();
     await expect(shadeSheet).toBeVisible();
@@ -566,13 +580,39 @@ test.describe("on a phone", () => {
       name: /source colour picker$/,
     });
     await expect(picker.locator(".astryx-bottom-sheet")).toBeVisible();
-    await picker.getByRole("button", { name: /^Close .* picker$/ }).click();
+    await page.keyboard.press("Escape");
     await expect(picker).toBeHidden();
+
+    /* Save, and no Cancel or close button beside it. The footer fits: a
+       narrow screen once cut Save changes off and scrolled sideways. */
     await expect(
       sheet.getByRole("button", { name: "Save changes" }),
-    ).toBeVisible();
+    ).toBeInViewport({ ratio: 1 });
+    await expect(
+      sheet.getByRole("button", { name: /^(Cancel|Close colour details)$/ }),
+    ).toHaveCount(0);
+    const scrolls = await sheet.evaluate((dialog) =>
+      [...dialog.querySelectorAll<HTMLElement>("*")]
+        .filter((node) => node.clientWidth > 1)
+        .filter((node) => node.scrollWidth > node.clientWidth + 1)
+        .filter((node) => getComputedStyle(node).overflowX !== "visible")
+        .map((node) => `${node.scrollWidth} in ${node.clientWidth}`),
+    );
+    expect(scrolls, scrolls.join(" | ")).toEqual([]);
 
-    await sheet.getByRole("button", { name: "Close colour details" }).click();
+    /* Sized to what is in it, not to most of the screen. */
+    const panel = await sheet
+      .locator(".astryx-bottom-sheet")
+      .first()
+      .boundingBox();
+    const footer = await sheet
+      .locator("footer[class*=trackDialogFooter]")
+      .boundingBox();
+    expect(
+      panel!.y + panel!.height - (footer!.y + footer!.height),
+    ).toBeLessThan(80);
+
+    await page.keyboard.press("Escape");
     await expect(sheet).toBeHidden();
   });
 

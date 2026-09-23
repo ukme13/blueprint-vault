@@ -83,13 +83,14 @@ export function ColourPicker({
           }}
         >
           <BottomSheet
+            height="hug"
             isOpen={isOpen}
             label={`${label} picker`}
             onOpenChange={setIsOpen}
           >
             <div className={styles.colourPickerSheet}>
               <ColourPickerPanel
-                isTouch
+                inSheet
                 label={label}
                 value={value}
                 onChange={onChange}
@@ -127,8 +128,11 @@ export function ColourPicker({
 
 interface ColourPickerPanelProps extends ColourPickerProps {
   onClose: () => void;
-  /** In a sheet on a phone, where a drag on the field must not move the sheet. */
-  isTouch?: boolean;
+  /**
+   * In a sheet on a phone: a drag on the field must not move the sheet, and
+   * the sheet has no close button of its own.
+   */
+  inSheet?: boolean;
 }
 
 interface ChannelControlProps {
@@ -241,7 +245,7 @@ function ColourPickerPanel({
   value,
   onChange,
   onClose,
-  isTouch = false,
+  inSheet = false,
 }: ColourPickerPanelProps) {
   /* A drag on the field is choosing a colour. In a sheet, a touch that pulls
      down from the top of the sheet's scroll is also how the sheet is swiped
@@ -250,7 +254,7 @@ function ColourPickerPanel({
      travelling up, natively. */
   const fieldRef = useCallback(
     (node: HTMLButtonElement | null) => {
-      if (!node || !isTouch) return;
+      if (!node || !inSheet) return;
       const stop = (event: TouchEvent) => event.stopPropagation();
       node.addEventListener("touchstart", stop, { passive: true });
       node.addEventListener("touchmove", stop, { passive: true });
@@ -259,7 +263,7 @@ function ColourPickerPanel({
         node.removeEventListener("touchmove", stop);
       };
     },
-    [isTouch],
+    [inSheet],
   );
   const { colourFormat } = useColourFormat();
   const hsv = useMemo(() => hexToHsv(value), [value]);
@@ -350,28 +354,31 @@ function ColourPickerPanel({
     <section className={styles.colourPicker}>
       <header className={styles.colourPickerHeader}>
         <ColourFormatSelector label="Colour format" width={112} />
-        <IconButton
-          icon={
-            <svg
-              aria-hidden="true"
-              fill="none"
-              height="18"
-              viewBox="0 0 18 18"
-              width="18"
-            >
-              <path
-                d="m4 4 10 10m0-10L4 14"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeWidth="1.7"
-              />
-            </svg>
-          }
-          label={`Close ${label} picker`}
-          size="sm"
-          variant="ghost"
-          onClick={onClose}
-        />
+        {/* A phone's sheet closes from its backdrop, a swipe down or Escape, so it carries no close button of its own. */}
+        {!inSheet && (
+          <IconButton
+            icon={
+              <svg
+                aria-hidden="true"
+                fill="none"
+                height="18"
+                viewBox="0 0 18 18"
+                width="18"
+              >
+                <path
+                  d="m4 4 10 10m0-10L4 14"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeWidth="1.7"
+                />
+              </svg>
+            }
+            label={`Close ${label} picker`}
+            size="sm"
+            variant="ghost"
+            onClick={onClose}
+          />
+        )}
       </header>
 
       {colourFormat === "hex" && (

@@ -54,6 +54,7 @@ export function ShadeSheet({
 
   return (
     <BottomSheet
+      height="hug"
       isOpen={activeShade !== null && shade !== undefined}
       label={
         palette && shade
