@@ -308,3 +308,15 @@ The 8px bottom padding added to the top bar last round lifted the tab
 underline 8px off the bar's border. The tabs are the bar's last row, and
 their underline is positioned to land on that border, so the bar now has no
 bottom padding on a phone.
+
+## Preview on a phone is the phone
+
+At 640px and below, the Preview studio always draws the phone frame and
+hides the device bar, since there is nothing to switch between. The device
+chosen on a wider screen is kept for when the screen is wide again. Reset to
+default becomes an icon, the same way Reset preset did, with both buttons
+rendered and CSS choosing one. The stage padding drops to 12px, because 24px
+either side of a 342px frame is a lot of a 390px screen.
+
+`640px` sits in `components/preview/`, which a test scans for hardcoded
+measurements. Media queries are allowed there, and the scan passes.

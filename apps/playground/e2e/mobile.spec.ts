@@ -1,4 +1,5 @@
 import { expect, test } from "./fixtures";
+import { openPreview } from "./preview-fixtures";
 
 /*
  * The studio on a phone.
@@ -323,6 +324,33 @@ test.describe("on a phone", () => {
       ).toBeLessThanOrEqual(1);
     });
   }
+
+  test("previews as a phone, with Reset to default as an icon", async ({
+    page,
+  }) => {
+    /* Desktop chosen on a wide screen, then the window narrows. */
+    await page.setViewportSize({ width: 1280, height: 844 });
+    await openPreview(page);
+    const devices = page.getByRole("navigation", { name: "Preview devices" });
+    await devices.getByRole("button", { name: "Desktop" }).click();
+    const frame = page.locator("[data-preview-device]");
+    await expect(frame).toHaveAttribute("data-preview-device", "desktop");
+
+    await page.setViewportSize(PHONE);
+    await expect(frame).toHaveAttribute("data-preview-device", "phone");
+    await expect(devices).toBeHidden();
+
+    /* One reset, and it is the icon: a button with no text of its own. */
+    const reset = page
+      .locator('header[aria-label="Preview"]')
+      .getByRole("button", { name: "Reset to default" });
+    await expect(reset).toHaveCount(1);
+    expect((await reset.innerText()).trim()).toBe("");
+
+    /* The choice made on the wide screen is kept for when it is wide again. */
+    await page.setViewportSize({ width: 1280, height: 844 });
+    await expect(frame).toHaveAttribute("data-preview-device", "desktop");
+  });
 
   test("gives the top bar room above the menu button and Export", async ({
     seededPage: page,
