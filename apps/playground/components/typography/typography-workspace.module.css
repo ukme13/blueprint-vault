@@ -605,6 +605,13 @@
     padding: 0 14px;
   }
 
+  /* Room above the controls, by the expression the palette studio uses, so
+     Export lines up with the fixed menu button beside it. */
+  .topbar {
+    padding-block-start: max(var(--spacing-3, 12px), env(safe-area-inset-top));
+    padding-block-end: var(--spacing-2, 8px);
+  }
+
   .headerActions nav,
   .creationHeader nav {
     display: none;

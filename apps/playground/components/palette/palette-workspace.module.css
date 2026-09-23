@@ -1593,39 +1593,49 @@
     padding: 0 14px;
   }
 
+  /* Room above the controls. With no top padding the menu button and Export
+     sat against the top edge of the screen, under the status bar on a phone
+     that draws one over the page. The safe-area inset only counts once a page
+     opts into drawing under the notch; until then the 12px is what applies. */
+  .topbar {
+    padding-block-start: max(var(--spacing-3, 12px), env(safe-area-inset-top));
+    padding-block-end: var(--spacing-2, 8px);
+  }
+
   .headerActions nav,
   .creationHeaderActions nav {
     display: none;
   }
 
-  /* Wraps rather than scrolls, and each opened panel takes a row of its own.
+  /* One line of chips that swipes, and nothing else in it.
 
-     The panels live inside the row of buttons — WCAG's options between WCAG
-     and Vision, Vision's selector and slider inside its own group — so a
-     single scrolling line could only ever push them sideways. Measured on a
-     390px screen: 415px of toolbar at rest, 657px with WCAG open and 1019px
-     with Vision open, with Add colour scrolled to x=-253 and the options just
-     opened mostly off the right edge. Nothing escaped the screen; the thing
-     you had just tapped was simply not on it.
-
-     At 430px the buttons still fit on one line, so a phone that size sees the
-     strip it always did. At 390px Reset preset drops to a line of its own,
-     which is the cost of every control being visible without a swipe. */
+     The options WCAG 2 and Vision open used to grow inside this line — which
+     either pushed them off the edge of a scrolling strip or, wrapped, turned
+     the strip into three rows. On a phone they open in a bottom sheet
+     instead (ContrastSheet, VisionSheet), so this line only ever holds the
+     chips and stays one line at any width. */
   .toolbar {
-    flex-wrap: wrap;
-    row-gap: 8px;
-    padding: 8px 14px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    padding: 0 14px;
   }
 
+  /* In the sheet on a phone. Hidden here rather than left unrendered, so
+     there is no frame in which they show before the breakpoint is known. */
   .contrastOptions {
-    order: 2;
-    flex-basis: 100%;
+    display: none;
   }
 
-  /* A divider between two groups that may now sit on different lines
-     separates nothing. */
-  .toolbarDivider {
-    display: none;
+  /* On, said plainly: a filled chip. The tint the desktop uses reads as
+     "hovered" at arm's length, and on a phone the chip is the only sign the
+     checks are on — the options that show it on a desktop are in a sheet. */
+  .contrastModeButton[data-active="true"] {
+    border-color: var(--color-action-primary);
+    background: var(--color-action-primary);
+    color: var(--color-fg-on-action);
   }
 
   .creationCard {

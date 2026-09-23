@@ -674,13 +674,26 @@
 }
 
 @media (max-width: 900px) {
+  /* The palette studio's arrangement: actions on the first line, tabs on a
+     line of their own. With the tabs first, "Scale" sat under the fixed menu
+     button that appears below 768px. */
   .topbar {
+    flex-wrap: wrap;
     gap: 12px;
     padding-top: 10px;
     padding-bottom: 10px;
   }
 
+  .navigation {
+    flex: 1 1 100%;
+    order: 2;
+    overflow-x: auto;
+    scrollbar-width: none;
+    white-space: nowrap;
+  }
+
   .headerActions {
+    order: 1;
     margin-left: auto;
   }
 
@@ -707,6 +720,13 @@
 @media (max-width: 640px) {
   .topbar {
     padding: 0 14px;
+  }
+
+  /* Room above the controls, by the expression the palette studio uses, so
+     Export lines up with the fixed menu button beside it. */
+  .topbar {
+    padding-block-start: max(var(--spacing-3, 12px), env(safe-area-inset-top));
+    padding-block-end: var(--spacing-2, 8px);
   }
 
   /* A token row is five fixed columns — 8rem, 4rem, 4.5rem, 2.75rem and the

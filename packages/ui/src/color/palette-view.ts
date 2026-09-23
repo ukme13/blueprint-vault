@@ -113,3 +113,93 @@ function readBoolean(value: unknown, fallback: boolean): boolean {
 export function writePaletteView(view: PaletteViewPreferences): string {
   return JSON.stringify(view);
 }
+
+/* ---- what the phone's settings sheets edit ----
+
+   On a phone, WCAG 2 and Vision open a bottom sheet rather than toggling in
+   place, and the sheet edits a draft that only Apply commits. That needs a
+   way to set everything the sheet shows in one step: the context only had
+   toggles, and "turn this on with these options" built out of toggles depends
+   on what was already on, which is how a sheet ends up switching something
+   off by applying it. */
+
+/** What the Vision sheet edits: everything the chip carries. */
+export interface VisionSettings {
+  isSimulationOn: boolean;
+  deficiency: ColourVisionDeficiency;
+  severity: number;
+}
+
+export function visionSettingsOf(view: PaletteViewPreferences): VisionSettings {
+  return {
+    isSimulationOn: view.isSimulationOn,
+    deficiency: view.deficiency,
+    severity: view.severity,
+  };
+}
+
+/**
+ * A view with the Vision settings replaced.
+ *
+ * Through the same guards a stored view goes through, so a sheet cannot commit
+ * a severity the studio does not offer or a deficiency it has no matrix for.
+ * An unusable value keeps what the view already had rather than falling to a
+ * default — Apply should never change something the reader did not touch.
+ */
+export function withVisionSettings(
+  view: PaletteViewPreferences,
+  settings: VisionSettings,
+): PaletteViewPreferences {
+  return {
+    ...view,
+    isSimulationOn: settings.isSimulationOn,
+    deficiency: isColourVisionDeficiency(settings.deficiency)
+      ? settings.deficiency
+      : view.deficiency,
+    severity: isColourVisionSeverity(settings.severity)
+      ? settings.severity
+      : view.severity,
+  };
+}
+
+/** Where Reset takes the Vision sheet: how a fresh studio starts. */
+export const DEFAULT_VISION_SETTINGS: VisionSettings =
+  visionSettingsOf(DEFAULT_PALETTE_VIEW);
+
+/**
+ * The draft a Vision sheet opens with.
+ *
+ * On, whatever the chip was. Tapping Vision is asking to use it; a sheet that
+ * opened with its switch off would make Apply do nothing on the first visit,
+ * which is the one moment it has to work.
+ */
+export function visionDraftToOpen(
+  view: PaletteViewPreferences,
+): VisionSettings {
+  return { ...visionSettingsOf(view), isSimulationOn: true };
+}
+
+/** What the WCAG contrast is measured against. */
+export type ContrastTarget = "white" | "black" | "custom";
+
+/** What the WCAG sheet edits. */
+export interface ContrastSettings {
+  isOn: boolean;
+  target: ContrastTarget;
+  /** Used when `target` is `custom`, and kept when it is not. */
+  customColour: string;
+}
+
+/** Where Reset takes the WCAG sheet, and what a studio opens with. */
+export const DEFAULT_CONTRAST_SETTINGS: ContrastSettings = {
+  isOn: DEFAULT_PALETTE_VIEW.isContrastModeOpen,
+  target: "white",
+  customColour: "#7646ab",
+};
+
+/** The draft a WCAG sheet opens with — on, for the reason Vision's is. */
+export function contrastDraftToOpen(
+  settings: ContrastSettings,
+): ContrastSettings {
+  return { ...settings, isOn: true };
+}

@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { Selector } from "@astryxdesign/core/Selector";
 import { Slider } from "@astryxdesign/core/Slider";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
@@ -11,6 +13,7 @@ import {
   type ColourVisionDeficiency,
 } from "@blueprint/ui";
 import { usePaletteView } from "./palette/PaletteViewContext";
+import { VisionSheet } from "./VisionSheet";
 import styles from "./vision-control.module.css";
 
 /**
@@ -77,6 +80,11 @@ export function VisionControl() {
     toggleSimulation,
   } = usePaletteView();
   const isSimulationOn = simulation !== "normal";
+  /* On a phone the chip opens a sheet rather than toggling, and its options
+     stay out of the toolbar — the stylesheet hides them at the same
+     breakpoint, so there is no first-paint flash while this reads false. */
+  const isPhone = useMediaQuery("(max-width: 640px)");
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   return (
     <span className={styles.visionGroup} data-open={isSimulationOn}>
@@ -93,11 +101,12 @@ export function VisionControl() {
           scheme="neutral"
           size="small"
           variant="outlined"
-          onClick={toggleSimulation}
+          onClick={isPhone ? () => setIsSheetOpen(true) : toggleSimulation}
         >
           Vision
         </Button>
       </Tooltip>
+      <VisionSheet isOpen={isSheetOpen} onClose={() => setIsSheetOpen(false)} />
       {isSimulationOn && (
         <span className={styles.visionOptions}>
           <Selector

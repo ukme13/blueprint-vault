@@ -112,39 +112,115 @@ test.describe("on a phone", () => {
     expect(scrim.alpha, "the scrim hides the page").toBeLessThan(1);
   });
 
-  test("gives opened toolbar panels a row instead of the edge of the screen", async ({
+  test("keeps the toolbar one line of chips that swipes", async ({
     seededPage: page,
   }) => {
-    /* Before: one scrolling line that grew from 415px to 1019px as WCAG 2 and
-       Vision opened, with Add colour scrolled to x=-253 and the controls just
-       opened off the right edge. Nothing escaped the screen, which is why the
-       overflow test above passed — the thing you had tapped was simply not on
-       it. So this looks for controls off either edge, not for overflow. */
+    /* WCAG 2 and Vision used to grow their options into this line, which
+       either pushed them off a scrolling strip or wrapped it onto three rows.
+       On a phone the options are in a sheet, so tapping a chip must leave the
+       line as it was: one row, nothing inline. */
     await page.getByRole("button", { name: "WCAG 2", exact: true }).click();
-    await page.getByRole("button", { name: "Vision", exact: true }).click();
+    await page.getByRole("button", { name: "Apply" }).click();
 
-    const { offscreen, scrolled } = await page.evaluate(() => {
-      const toolbar = document.querySelector(
-        '[aria-label="Palette toolbar"]',
-      ) as HTMLElement;
-      const viewport = window.innerWidth;
-      return {
-        scrolled: toolbar.scrollWidth > toolbar.clientWidth,
-        offscreen: [
-          ...toolbar.querySelectorAll<HTMLElement>(
-            'button, [role="slider"], [aria-label="Contrast comparison"]',
-          ),
-        ]
-          .filter((node) => {
-            const box = node.getBoundingClientRect();
-            return box.width > 0 && (box.right > viewport + 1 || box.left < -1);
-          })
-          .map((node) => (node.textContent ?? "").trim().slice(0, 20)),
-      };
-    });
+    const toolbar = page.getByLabel("Palette toolbar");
+    const tops = await toolbar.locator("button").evaluateAll((buttons) =>
+      buttons
+        /* The sheets are rendered beside their chips and stay mounted,
+             parked below the screen, when shut. */
+        .filter((button) => !button.closest("dialog"))
+        .filter((button) => button.getBoundingClientRect().width > 0)
+        .map((button) => Math.round(button.getBoundingClientRect().top)),
+    );
+    expect(tops.length).toBeGreaterThan(2);
+    /* Within a couple of pixels rather than equal: the Vision chip sits in a
+       group with a border of its own. A second row would be 30px down. */
+    expect(
+      Math.max(...tops) - Math.min(...tops),
+      `chips at ${tops.join(", ")}`,
+    ).toBeLessThanOrEqual(4);
+    await expect(
+      toolbar.getByLabel("Contrast comparison", { exact: true }),
+    ).toBeHidden();
+    expect(
+      await toolbar.evaluate((node) => getComputedStyle(node).overflowX),
+    ).toBe("auto");
+  });
 
-    expect(offscreen, offscreen.join(" | ")).toEqual([]);
-    expect(scrolled, "the toolbar is a scrolling line again").toBe(false);
+  test("sets WCAG checks in a sheet, and fills the chip once they are on", async ({
+    seededPage: page,
+  }) => {
+    const chip = page.getByRole("button", { name: "WCAG 2", exact: true });
+    await chip.click();
+
+    const sheet = page.getByRole("dialog", { name: "WCAG contrast" });
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByRole("button", { name: "Reset" })).toBeVisible();
+    await expect(sheet.getByRole("button", { name: "Cancel" })).toBeVisible();
+
+    const apply = sheet.getByRole("button", { name: "Apply" });
+    const primary = await apply.evaluate(
+      (node) => getComputedStyle(node).backgroundColor,
+    );
+    await apply.click();
+
+    await expect(sheet).toBeHidden();
+    await expect(chip).toHaveAttribute("aria-pressed", "true");
+    /* Filled with the colour the Apply button is, not the desktop's tint.
+       Polled: the button eases its background, and a read mid-transition is
+       a mix of the two. */
+    await expect
+      .poll(() =>
+        chip.evaluate((node) => getComputedStyle(node).backgroundColor),
+      )
+      .toBe(primary);
+  });
+
+  test("discards the Vision draft on Cancel and on the scrim", async ({
+    seededPage: page,
+  }) => {
+    const chip = page.getByRole("button", { name: "Vision", exact: true });
+    const sheet = page.getByRole("dialog", { name: "Vision simulation" });
+
+    /* The sheet opens with simulation on in the draft; nothing is committed
+       until Apply. */
+    await chip.click();
+    await expect(sheet.getByRole("switch")).toBeChecked();
+    await sheet.getByRole("button", { name: "Cancel" }).click();
+    await expect(sheet).toBeHidden();
+    await expect(chip).toHaveAttribute("aria-pressed", "false");
+
+    /* The scrim covers everything above the sheet; the top of the screen is
+       where a thumb dismisses it. */
+    await chip.click();
+    await expect(sheet).toBeVisible();
+    await page.mouse.click(195, 40);
+    await expect(sheet).toBeHidden();
+    await expect(chip).toHaveAttribute("aria-pressed", "false");
+
+    await chip.click();
+    await sheet.getByRole("button", { name: "Apply" }).click();
+    await expect(chip).toHaveAttribute("aria-pressed", "true");
+
+    /* Reset is a draft change like any other: the defaults, then Apply. */
+    await chip.click();
+    await sheet.getByRole("button", { name: "Reset" }).click();
+    await expect(sheet.getByRole("switch")).not.toBeChecked();
+    await sheet.getByRole("button", { name: "Apply" }).click();
+    await expect(chip).toHaveAttribute("aria-pressed", "false");
+  });
+
+  test("gives the top bar room above the menu button and Export", async ({
+    seededPage: page,
+  }) => {
+    const trigger = await page
+      .getByRole("button", { name: "Open navigation" })
+      .boundingBox();
+    const exportButton = await page
+      .getByRole("button", { name: "Export palette" })
+      .boundingBox();
+
+    expect(trigger!.y).toBeGreaterThanOrEqual(12);
+    expect(Math.abs(exportButton!.y - trigger!.y)).toBeLessThanOrEqual(1);
   });
 
   test("keeps the studio tabs on one line", async ({ seededPage: page }) => {
@@ -244,6 +320,43 @@ test.describe("on a phone", () => {
       });
 
       expect(escaped, escaped.join(" | ")).toEqual([]);
+    });
+
+    test(`leaves nothing under the menu button on ${route}`, async ({
+      seededPage: page,
+    }) => {
+      /* The button is fixed over the studio's top bar. Overview's heading and
+         the Scale tab both sat under it until their bars made room. */
+      await page.goto(route);
+
+      const covered = await page
+        .getByRole("button", { name: "Open navigation" })
+        .evaluate((trigger) => {
+          const t = trigger.getBoundingClientRect();
+          return [...document.querySelectorAll<HTMLElement>("body *")]
+            .filter(
+              (node) => !trigger.contains(node) && !node.contains(trigger),
+            )
+            .filter((node) => {
+              const hasText = [...node.childNodes].some(
+                (child) =>
+                  child.nodeType === Node.TEXT_NODE &&
+                  (child.textContent ?? "").trim().length > 0,
+              );
+              const box = node.getBoundingClientRect();
+              return (
+                hasText &&
+                box.width > 0 &&
+                box.left < t.right &&
+                box.right > t.left &&
+                box.top < t.bottom &&
+                box.bottom > t.top
+              );
+            })
+            .map((node) => (node.textContent ?? "").trim().slice(0, 20));
+        });
+
+      expect(covered, covered.join(" | ")).toEqual([]);
     });
   }
 });

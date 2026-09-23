@@ -219,3 +219,41 @@ overflow test was right and useless for this: nothing left the screen, and a
 toggle opened its controls somewhere you could not see them. The new test
 looks for controls off either edge after opening both panels, which is what a
 thumb experiences.
+
+## Round four: the options go into a sheet
+
+The wrapped toolbar from round three worked and read as three rows of
+settings. This round the strip goes back to one line that swipes, and WCAG 2
+and Vision on a phone open a bottom sheet instead of growing inline: a title
+and close button, the controls, and Reset / Cancel / Apply. Astryx's
+`BottomSheet` supplies the slide, the scrim, the focus trap and the swipe;
+`SettingsSheet` adds the header and footer both sheets share.
+
+The sheet edits a draft. Only Apply commits it; Cancel, the close button,
+Escape, a swipe and the scrim all discard. That is what makes dismiss-on-scrim
+safe. The draft logic (`visionSettingsOf`, `withVisionSettings`, the
+draft-to-open helpers) is in `packages/ui` with unit tests, per the rule that a
+value-in, value-out function is domain logic.
+
+Each sheet has an on/off switch the desktop does not. On a desktop the chip
+is the switch; on a phone the chip opens the sheet, so without one a
+simulation turned on from a phone could not be turned off from it.
+
+A chip that is on is filled with the primary colour. The desktop's tint read
+as "hovered" at arm's length.
+
+The top bar got 12px above the controls (or the safe-area inset, once a page
+opts into one), and the menu button moved down to match, so it and Export
+share a top edge. Measuring every route for text under the fixed button found
+two collisions the palette studio did not have: Overview's heading and the
+Scale tab. Overview's bar now starts past the button; Scale's bar takes the
+palette's arrangement, with actions on the first line and tabs on their own.
+
+## The dev server, not the tests
+
+With the new per-route test, `page.goto` aborted on a different route each
+run against `pnpm dev`, with "Fast Refresh had to perform a full reload" in
+the log. That included the old "keeps every control inside the screen" tests.
+I did not retry on dev. I ran the spec once against `pnpm build && pnpm
+start`, which is how CI runs it, and all 19 passed. Each of the six new tests
+then failed against a build with its rule removed.

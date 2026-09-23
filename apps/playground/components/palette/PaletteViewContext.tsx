@@ -14,8 +14,10 @@ import {
   activeSimulation,
   readPaletteView,
   simulateHex,
+  withVisionSettings,
   writePaletteView,
   type ColourVisionDeficiency,
+  type VisionSettings,
   type ColourVisionSimulation,
   type PaletteViewPreferences,
 } from "@blueprint/ui";
@@ -32,6 +34,10 @@ interface PaletteViewContextValue extends PaletteViewPreferences {
   toggleSimulation: () => void;
   toggleContrastMode: () => void;
   closeContrastMode: () => void;
+  /** Everything the Vision sheet shows, committed in one step by Apply. */
+  setVisionSettings: (settings: VisionSettings) => void;
+  /** On or off outright, for the WCAG sheet — a toggle depends on what was. */
+  setContrastModeOpen: (isOpen: boolean) => void;
 }
 
 const PaletteViewContext = createContext<PaletteViewContextValue | null>(null);
@@ -110,6 +116,10 @@ export function PaletteViewProvider({ children }: { children: ReactNode }) {
           })),
         closeContrastMode: () =>
           setView((current) => ({ ...current, isContrastModeOpen: false })),
+        setVisionSettings: (settings) =>
+          setView((current) => withVisionSettings(current, settings)),
+        setContrastModeOpen: (isOpen) =>
+          setView((current) => ({ ...current, isContrastModeOpen: isOpen })),
       }}
     >
       {children}

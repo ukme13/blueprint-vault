@@ -17,6 +17,7 @@ import {
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { useToast } from "@astryxdesign/core/Toast";
+import { useMediaQuery } from "@astryxdesign/core/hooks";
 import {
   BLUEPRINT_20_PRESET,
   BUTTON_SCHEMES,
@@ -44,12 +45,15 @@ import {
   type ButtonScheme,
   type PaletteProjectData,
   type SemanticToken,
+  DEFAULT_CONTRAST_SETTINGS,
+  type ContrastTarget,
 } from "@blueprint/ui";
 import { SystemExportDialog } from "../SystemExportDialog";
 import { VisionControl } from "../VisionControl";
 import { StudioSliceEmpty } from "../shell/StudioSliceEmpty";
 import { PaletteControls } from "./PaletteControls";
 import { ColourPicker } from "./ColourPicker";
+import { ContrastSheet } from "./ContrastSheet";
 import { PaletteMatrix } from "./PaletteMatrix";
 import { PalettePreview } from "./PalettePreview";
 import { SemanticEditor } from "./SemanticEditor";
@@ -64,8 +68,6 @@ import {
 } from "./types";
 import { ColourFormatProvider } from "./ColourFormatContext";
 import { PaletteViewProvider, usePaletteView } from "./PaletteViewContext";
-
-type ContrastTarget = "white" | "black" | "custom";
 
 type PlaygroundSection = "shade-generator" | "semantics" | "accessibility";
 
@@ -188,10 +190,24 @@ function PaletteStudioContent() {
   const [activeTrackId, setActiveTrackId] = useState<string | null>(null);
   /* View modes live in context so they persist per device, alongside the
      colour format. Neither is part of the project. */
-  const { isContrastModeOpen, toggleContrastMode, closeContrastMode } =
-    usePaletteView();
-  const [contrastTarget, setContrastTarget] = useState<ContrastTarget>("white");
-  const [customContrastColour, setCustomContrastColour] = useState("#7646ab");
+  const {
+    isContrastModeOpen,
+    toggleContrastMode,
+    closeContrastMode,
+    setContrastModeOpen,
+  } = usePaletteView();
+  const [contrastTarget, setContrastTarget] = useState<ContrastTarget>(
+    DEFAULT_CONTRAST_SETTINGS.target,
+  );
+  const [customContrastColour, setCustomContrastColour] = useState(
+    DEFAULT_CONTRAST_SETTINGS.customColour,
+  );
+  /* On a phone, WCAG 2 opens a sheet rather than toggling in place. The same
+     breakpoint the stylesheet hides the inline options at; the hook reads
+     false on first render, so before hydration a tap does what it does on a
+     desktop, which is never wrong, only less tidy. */
+  const isPhone = useMediaQuery("(max-width: 640px)");
+  const [isContrastSheetOpen, setIsContrastSheetOpen] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   /* Read once on load, so an export carries the type scale without this
      component reading storage while it renders. */
@@ -700,11 +716,27 @@ function PaletteStudioContent() {
             scheme="neutral"
             size="small"
             variant="outlined"
-            onClick={toggleContrastMode}
+            onClick={
+              isPhone ? () => setIsContrastSheetOpen(true) : toggleContrastMode
+            }
           >
             WCAG 2
           </Button>
         </Tooltip>
+        <ContrastSheet
+          isOpen={isContrastSheetOpen}
+          settings={{
+            isOn: isContrastModeOpen,
+            target: contrastTarget,
+            customColour: customContrastColour,
+          }}
+          onApply={(settings) => {
+            setContrastModeOpen(settings.isOn);
+            setContrastTarget(settings.target);
+            setCustomContrastColour(settings.customColour);
+          }}
+          onClose={() => setIsContrastSheetOpen(false)}
+        />
         {isContrastModeOpen && (
           <section
             aria-label="Contrast comparison"

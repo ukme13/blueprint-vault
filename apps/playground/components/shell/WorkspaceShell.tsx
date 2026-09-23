@@ -446,7 +446,9 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           className={styles.railTrigger}
           icon={<Icon icon="menu" />}
           label="Open navigation"
-          size="md"
+          /* The height of the studio top bar's buttons, so the two line up;
+             a larger tap target is the other half of the reason. */
+          size="lg"
           variant="ghost"
           onClick={() => onCollapsedChange(false)}
         />
