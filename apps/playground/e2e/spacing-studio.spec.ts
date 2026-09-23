@@ -301,7 +301,9 @@ test.describe("The elevation editor", () => {
           cast: Number(high?.layers[1]?.opacity.dark.toFixed(2)),
         };
       })
-      .toEqual({ contact: 0.2, cast: 0.35 });
+      /* High's dark seed is contact 0.4, cast 0.55, and one ArrowUp is one
+         0.05 step on the cast alone. */
+      .toEqual({ contact: 0.4, cast: 0.6 });
   });
 
   test("keeps thumb visible inside pad at maximum contact and cast", async ({

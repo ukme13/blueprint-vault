@@ -88,7 +88,10 @@ function layer(
  * twice, and on a dark canvas that read as no shadow at all: the canvas is
  * already close to the shadow's own shade, so a thin layer of it barely moves
  * the pixels underneath. High keeps a stronger cast than contact in dark, so
- * a dialog still reads as further off the page than a menu.
+ * a dialog still reads as further off the page than a menu. That cast is
+ * 0.55, not 0.6: ELEVATION_OPACITY_MAX is 0.6, and a seed on the ceiling
+ * leaves the editor no room to make it stronger and parks the pad's thumb in
+ * its corner.
  */
 export const DEFAULT_ELEVATION_LEVELS: readonly ElevationLevel[] = [
   {
@@ -107,7 +110,7 @@ export const DEFAULT_ELEVATION_LEVELS: readonly ElevationLevel[] = [
     id: "high",
     name: "High",
     description: "A dialog over everything else.",
-    layers: [layer(2, 2, 0.1, 0.4), layer(8, 24, 0.1, 0.6)],
+    layers: [layer(2, 2, 0.1, 0.4), layer(8, 24, 0.1, 0.55)],
   },
 ];
 

@@ -3,6 +3,7 @@ import { generatePalettes } from "../color/palette";
 import type { ColorTrack } from "../color/types";
 import { defaultElevationScale, resolveElevation } from "./elevation";
 import {
+  ELEVATION_OPACITY_MAX,
   elevationColourOnTrack,
   elevationLayerName,
   elevationPreviewSurfaces,
@@ -22,14 +23,33 @@ function palette(): ColorTrack[] {
   });
 }
 
+describe("the seeded opacities", () => {
+  it("leave the editor room to go stronger", () => {
+    /* A seed on ELEVATION_OPACITY_MAX starts the control at its ceiling: the
+       editor cannot raise it, and the pad parks its thumb in the corner. High's
+       dark cast went to 0.6 once, and only an end-to-end test that pressed
+       ArrowUp and saw nothing move noticed. */
+    for (const level of defaultElevationScale().levels) {
+      for (const [index, layer] of level.layers.entries()) {
+        for (const mode of ["light", "dark"] as const) {
+          expect(
+            layer.opacity[mode],
+            `${level.id} layer ${index} ${mode}`,
+          ).toBeLessThan(ELEVATION_OPACITY_MAX);
+        }
+      }
+    }
+  });
+});
+
 describe("setLayerOpacity", () => {
   it("writes one layer in one mode and leaves the rest", () => {
-    /* High's seed disagrees with itself on dark: contact 0.4, cast 0.6. A
+    /* High's seed disagrees with itself on dark: contact 0.4, cast 0.55. A
        slider that painted every layer would make that state unreachable. */
     const start = defaultElevationScale();
     const high = start.levels.find((level) => level.id === "high")!;
     expect(high.layers[0]!.opacity.dark).toBe(0.4);
-    expect(high.layers[1]!.opacity.dark).toBe(0.6);
+    expect(high.layers[1]!.opacity.dark).toBe(0.55);
 
     const next = setLayerOpacity(start, "high", 1, "dark", 0.45);
     const edited = next.levels.find((level) => level.id === "high")!;
