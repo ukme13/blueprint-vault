@@ -53,14 +53,16 @@ const FORMATS: Array<{ value: ExportFormat; label: string }> = [
 const REPORT_FORMATS: ExportFormat[] = ["report-md", "report-json"];
 
 /**
- * The studio build stamped into a handover's README.
+ * The studio version stamped into a handover's README, which is what a client
+ * quotes when something in their file looks wrong.
  *
- * Written here rather than read from package.json, which a browser bundle has
- * no business importing. It is what a client quotes when something in their
- * file looks wrong, so it wants to move when the export format does rather
- * than on every patch release.
+ * `next.config.js` reads it from this app's package.json at build time, the
+ * same file `scripts/handover.ts` reads, so the two ways of making an archive
+ * cannot disagree. Referenced as a literal property because that is the only
+ * form Next replaces. The fallback is for a render that bypassed the config,
+ * which would be a build problem rather than a version.
  */
-const HANDOVER_VERSION = "0.1.0";
+const HANDOVER_VERSION = process.env.STUDIO_VERSION ?? "unknown";
 
 interface SystemExportDialogProps {
   isOpen: boolean;

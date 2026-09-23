@@ -1,11 +1,13 @@
 import type { ChangelogEntry } from "../content/guides/whats-new";
 
 /**
- * An entry's badge: "22 September 2026 · Schema v8".
+ * An entry's badge: "23 September 2026 · v0.2.0 · Schema v8".
  *
- * The agreed version scheme, and the argument for it is in the badge itself —
- * both halves are facts the repository holds, so neither can drift from what
- * is true while somebody forgets to bump a number.
+ * The date, the studio version, and the workspace file version. The file
+ * version says whether this build can open a given file; the studio version
+ * tells releases apart, which the file version cannot, since several ship at
+ * the same schema. Each half is held against the repository by a test, so
+ * none of them depends on somebody remembering to bump it.
  *
  * `en-GB` explicitly rather than the machine's locale. This string is rendered
  * at build time into a page that ships in an archive, so it must not depend on
@@ -22,5 +24,27 @@ export function changelogBadge(entry: ChangelogEntry): string {
     timeZone: "UTC",
     year: "numeric",
   });
-  return `${date} · Schema v${entry.schema}`;
+  return `${date} · v${entry.version} · Schema v${entry.schema}`;
+}
+
+/**
+ * Order two `major.minor.patch` versions: negative, zero, or positive.
+ *
+ * Numeric per part, so 0.10.0 sorts after 0.9.0, which a string comparison
+ * gets wrong. Throws on anything else rather than guessing, because a badge
+ * with a malformed version is an entry nobody checked.
+ */
+export function compareVersions(a: string, b: string): number {
+  const parse = (value: string): [number, number, number] => {
+    const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(value);
+    if (!match) throw new Error(`"${value}" is not major.minor.patch`);
+    return [Number(match[1]), Number(match[2]), Number(match[3])];
+  };
+  const left = parse(a);
+  const right = parse(b);
+  for (let part = 0; part < 3; part += 1) {
+    const difference = left[part]! - right[part]!;
+    if (difference !== 0) return difference;
+  }
+  return 0;
 }
