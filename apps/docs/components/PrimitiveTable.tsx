@@ -55,14 +55,12 @@ export function PrimitiveTable({
                     Variable and Value share the rest of the row and the
                     swatch sits at its far end.
 
-                    Real widths, not "hug the content". Every Astryx cell is
-                    overflow-x: hidden, and a cell that hides its overflow
-                    takes the width it is given at face value: its content
-                    never widens it. Asked for w-px, this column was exactly
-                    1px and showed "S" over "2", whatever the text inside
-                    was allowed to do. 80px holds the word "Shade" and any
-                    shade number; 56px holds a 24px swatch and the compact
-                    cell's padding either side. */}
+                    80px holds the word "Shade" and any shade number; 56px
+                    holds a 24px swatch and the compact cell's padding either
+                    side. These widths only take effect because globals.css
+                    lifts Astryx's max-width: 0 on every table cell, which
+                    otherwise overrides any width and clipped this column to
+                    "S" over "2". */}
                 <TableHeaderCell className="w-20 whitespace-nowrap">
                   Shade
                 </TableHeaderCell>
