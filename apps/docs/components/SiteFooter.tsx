@@ -1,5 +1,7 @@
 import { Text } from "@astryxdesign/core/Text";
 import type { DocsRouteGroup } from "@blueprint/ui/docs-routes";
+import { footerLinks } from "../lib/nav";
+import { STUDIO_URL } from "../lib/studio-url";
 
 /**
  * The foot of every page.
@@ -9,9 +11,12 @@ import type { DocsRouteGroup } from "@blueprint/ui/docs-routes";
  * reference's — there is no blog, no community and no social account to link,
  * and a footer full of dead links is decoration pretending to be navigation.
  *
- * So the links are the routes, out of the same list the sidebar and the
- * archive guard read. A client build's footer has no studio link in it for the
- * same reason its sidebar does not, and neither had to be told separately.
+ * The links used to be every route, which at fourteen was a second sidebar.
+ * Now an internal reader gets three destinations — Getting started, What's
+ * new, and the studio itself — and a client gets the sections it was sent.
+ * Both come out of the same audience-filtered list the sidebar and the
+ * archive guard read, so a client build's footer has no studio link in it for
+ * the same reason its sidebar does not. See `footerLinks`.
  *
  * The line about the archive is the one thing worth repeating at the bottom of
  * every page: a reader who arrived from a folder rather than a URL is holding
@@ -32,14 +37,22 @@ export function SiteFooter({ groups }: SiteFooterProps) {
           </Text>
         </span>
 
+        {/* Three destinations for an internal reader, and a client's own
+            sections for a client: see `footerLinks`. The studio opens in a new
+            tab, as the studio opens this guide, because it is the other
+            application rather than a page of this one. */}
         <nav aria-label="Footer" className="site-footer-links">
-          {groups.flatMap((group) =>
-            group.routes.map((route) => (
-              <a href={`/${route.path}`} key={route.path}>
-                <Text type="label">{route.label}</Text>
-              </a>
-            )),
-          )}
+          {footerLinks(groups, STUDIO_URL).map((link) => (
+            <a
+              href={link.href}
+              key={link.href}
+              {...(link.isExternal
+                ? { rel: "noreferrer", target: "_blank" }
+                : {})}
+            >
+              <Text type="label">{link.label}</Text>
+            </a>
+          ))}
         </nav>
       </div>
 

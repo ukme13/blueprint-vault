@@ -1,4 +1,7 @@
+import { Text } from "@astryxdesign/core/Text";
 import { BlueprintWordmark } from "@blueprint/ui";
+import type { DocsGroup } from "@blueprint/ui/docs-routes";
+import type { DocsSection } from "../lib/nav";
 import { ThemeControl } from "./ThemeControl";
 
 /**
@@ -17,7 +20,14 @@ import { ThemeControl } from "./ThemeControl";
  * The mode control lives here rather than on each page, because the mode is
  * the reader's and not the page's — the same reason the studio has one.
  */
-export function SiteHeader() {
+interface SiteHeaderProps {
+  /** One per group this build's reader receives; see `docsSections`. */
+  sections: readonly DocsSection[];
+  /** The section the current page is in, if it is in one. */
+  activeGroup?: DocsGroup;
+}
+
+export function SiteHeader({ sections, activeGroup }: SiteHeaderProps) {
   return (
     <div className="site-header">
       {/* eslint-disable-next-line @next/next/no-html-link-for-pages --
@@ -30,6 +40,31 @@ export function SiteHeader() {
       <a aria-label="Blueprint documentation" className="site-mark" href="/">
         <BlueprintWordmark className="site-mark-wordmark" />
       </a>
+
+      {/* The site's sections, centred. Built from the audience-filtered
+          route groups, so a client build has no Studio link to render. Plain
+          anchors for the same file:// reason as the mark above. aria-current
+          is "true" rather than "page": the link marks the section a page is
+          in, and the section's first page is only one of them. */}
+      {sections.length > 0 ? (
+        <nav
+          aria-label="Sections"
+          className="site-sections flex items-center gap-1 overflow-x-auto"
+        >
+          {sections.map((section) => (
+            <a
+              aria-current={section.group === activeGroup ? "true" : undefined}
+              className="rounded-element px-3 py-1.5 whitespace-nowrap text-fg-secondary hover:text-fg-primary aria-[current=true]:bg-surface-subtle aria-[current=true]:text-fg-primary"
+              href={section.href}
+              key={section.group}
+            >
+              <Text type="label" weight="semibold">
+                {section.group}
+              </Text>
+            </a>
+          ))}
+        </nav>
+      ) : null}
 
       <div className="site-header-actions">
         <ThemeControl />
