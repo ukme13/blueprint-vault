@@ -320,3 +320,29 @@ either side of a 342px frame is a lot of a 390px screen.
 
 `640px` sits in `components/preview/`, which a test scans for hardcoded
 measurements. Media queries are allowed there, and the scan passes.
+
+## Colour and Typography inspectors as sheets
+
+**Colour.** On a phone, a shade opens one bottom sheet for the whole matrix
+(`ShadeSheet`) instead of a popover on each swatch. The sheet shows the
+Lightness, Chroma and Hue sliders directly, pulled out of the picker as
+`OklchChannels`, where the popover had to open a second popover to reach
+them. The Manual/Anchor segmented control becomes an Anchor switch. The
+track dialog becomes a sheet on a phone too, with the same sliders under
+its source colour, and its two confirms moved onto `ConfirmDialog`.
+
+**Typography.** The inspector is one element, rendered beside the specimens
+on a wide screen and inside a bottom sheet on a phone. On a phone the
+specimens get the whole height, and a settings button in the toolbar opens
+the sheet, with the warning count as a badge.
+
+**What the tests found.** The `styles.spec` tests that narrow the window
+found a real bug: the grab handle floats over the sheet's first 24px, sat on
+the Settings/Groups/Warnings tabs, and took their taps. My own mobile test had
+only checked that the tabs were visible, so it now taps one. The same tests
+also start wide with the rail expanded, and a window narrowed past 768px
+keeps the rail open as a drawer over the page.
+
+A `grid-template-rows` rule I added to make the specimens fill the height
+passed its test with the rule removed. A grid's single auto row already
+stretches, so the rule is gone.

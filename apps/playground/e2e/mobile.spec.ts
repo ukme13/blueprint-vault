@@ -1,5 +1,6 @@
 import { expect, test } from "./fixtures";
 import { openPreview } from "./preview-fixtures";
+import { seedTypographyProject } from "./typography-fixtures";
 
 /*
  * The studio on a phone.
@@ -411,6 +412,102 @@ test.describe("on a phone", () => {
     /* The choice made on the wide screen is kept for when it is wide again. */
     await page.setViewportSize({ width: 1280, height: 844 });
     await expect(frame).toHaveAttribute("data-preview-device", "desktop");
+  });
+
+  test("opens a shade's details in a sheet, with the sliders in it", async ({
+    seededPage: page,
+  }) => {
+    /* From a device: the popover sat over the middle of the rows it
+       described, and its editor opened a second popover on top of it. */
+    const swatch = page.getByRole("button", { name: /^Select / }).nth(5);
+    await swatch.click();
+
+    const sheet = page.getByRole("dialog", { name: /shade details$/ });
+    await expect(sheet).toBeVisible();
+    await expect(sheet.locator(".astryx-bottom-sheet")).toBeVisible();
+    for (const channel of ["Lightness", "Chroma", "Hue"]) {
+      await expect(
+        sheet.getByRole("slider", { name: `${channel} slider` }),
+      ).toBeVisible();
+    }
+
+    /* Nothing is wider than the sheet. Screen-reader-only text is 1px wide
+       and clipped on purpose, so it is not counted. */
+    const scrolls = await sheet.evaluate((dialog) =>
+      [...dialog.querySelectorAll<HTMLElement>("*")]
+        .filter((node) => node.clientWidth > 1)
+        .filter((node) => node.scrollWidth > node.clientWidth + 1)
+        .filter((node) => getComputedStyle(node).overflowX !== "visible")
+        .map((node) => `${node.scrollWidth} in ${node.clientWidth}`),
+    );
+    expect(scrolls, scrolls.join(" | ")).toEqual([]);
+
+    /* The anchor switch pins the shade. */
+    const anchor = sheet.getByRole("switch", { name: "Anchor" });
+    await expect(anchor).not.toBeChecked();
+    await anchor.click();
+    await expect(anchor).toBeChecked();
+    await expect(swatch).toHaveAttribute("data-anchor", "true");
+
+    await sheet.getByRole("button", { name: "Close shade details" }).click();
+    await expect(sheet).toBeHidden();
+    await expect(swatch).toHaveAttribute("aria-pressed", "false");
+  });
+
+  test("opens a track's details in a sheet", async ({ seededPage: page }) => {
+    await page
+      .getByRole("button", { name: /^Open .* colour details$/ })
+      .first()
+      .click();
+
+    const sheet = page.getByRole("dialog", { name: /colour details$/ });
+    await expect(sheet.locator(".astryx-bottom-sheet")).toBeVisible();
+    await expect(
+      sheet.getByRole("slider", { name: "Lightness slider" }),
+    ).toBeVisible();
+    await expect(
+      sheet.getByRole("button", { name: "Save changes" }),
+    ).toBeVisible();
+
+    await sheet.getByRole("button", { name: "Close colour details" }).click();
+    await expect(sheet).toBeHidden();
+  });
+
+  test("gives the type specimens the height, and settings a sheet", async ({
+    page,
+  }) => {
+    /* From a device: the specimens and the settings split the screen, and
+       the specimens had room for two or three lines. */
+    await seedTypographyProject(page);
+    const steps = page.getByRole("region", { name: "Generated type steps" });
+    await expect(steps).toBeVisible();
+    await expect(
+      page.getByRole("region", { name: "Type scale settings" }),
+    ).toBeHidden();
+
+    const box = await steps.boundingBox();
+    expect(box!.y + box!.height).toBeGreaterThanOrEqual(PHONE.height - 1);
+    expect(box!.height).toBeGreaterThan(PHONE.height / 2);
+
+    await page.getByRole("button", { name: /^Type settings/ }).click();
+    const sheet = page.getByRole("dialog", { name: "Type scale settings" });
+    await expect(sheet.locator(".astryx-bottom-sheet")).toBeVisible();
+    for (const tab of ["Settings", "Groups", "Warnings"]) {
+      await expect(
+        sheet.getByRole("tab", { name: new RegExp(`^${tab}`) }),
+      ).toBeVisible();
+    }
+    await expect(sheet.getByLabel("Base font size")).toBeVisible();
+
+    /* The tabs take a tap. The grab handle floats over the sheet's first
+       24px, and with the tabs under it the handle took their taps. */
+    const groups = sheet.getByRole("tab", { name: /^Groups/ });
+    await groups.click({ timeout: 3000 });
+    await expect(groups).toHaveAttribute("aria-selected", "true");
+
+    /* The scrim closes it, back to the specimens. */
+    await page.mouse.click(195, 40);
+    await expect(sheet).toBeHidden();
   });
 
   test("gives the top bar room above the menu button and Export", async ({

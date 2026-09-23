@@ -92,6 +92,19 @@
   color: var(--color-fg-primary);
 }
 
+.settingsTrigger {
+  position: relative;
+  display: none;
+  margin-left: auto;
+}
+
+.settingsBadge {
+  position: absolute;
+  inset-block-start: calc(-1 * var(--spacing-1, 4px));
+  inset-inline-end: calc(-1 * var(--spacing-1, 4px));
+  pointer-events: none;
+}
+
 .toolbar {
   min-height: 50px;
   display: flex;
@@ -630,6 +643,28 @@
 
   .creationGrid {
     grid-template-columns: 1fr;
+  }
+
+  /* The specimens take the whole height; the settings open in a sheet from
+     the button in the toolbar. Split in two, the specimens had room for two
+     or three lines. The panel in the grid is left out on a phone, and hidden
+     here too for the first render, which cannot know the width yet. */
+  .editor > .inspector {
+    display: none;
+  }
+
+  .settingsTrigger {
+    display: inline-flex;
+  }
+
+  /* In the sheet the panel is laid out by the sheet: no border of its own,
+     and no scroll of its own inside the sheet's. */
+  .inspector {
+    border-top: 0;
+    overflow-y: visible;
+    /* Clear of the grab handle, which Astryx floats over the first 24px of
+       the sheet. Without it the handle sat on the tabs and took their taps. */
+    padding-top: var(--spacing-6, 24px);
   }
 }
 

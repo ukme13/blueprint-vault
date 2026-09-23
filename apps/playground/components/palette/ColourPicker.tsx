@@ -198,15 +198,6 @@ function ColourPickerPanel({
     () => hexToRgb(value).map((channel) => channel * 255),
     [value],
   );
-  const oklch = useMemo(() => rgbToOklch(...hexToRgb(value)), [value]);
-  const oklchGradients = useMemo(
-    () => [
-      createOklchGradient(0, oklch),
-      createOklchGradient(1, oklch),
-      createOklchGradient(2, oklch),
-    ],
-    [oklch],
-  );
   const [draft, setDraft] = useState(() => formatColour(value, colourFormat));
 
   /* Re-sync the draft during render rather than in an effect, so the input
@@ -286,12 +277,6 @@ function ColourPickerPanel({
     onChange(rgbToHex(next[0] / 255, next[1] / 255, next[2] / 255));
   };
 
-  const updateOklch = (index: number, channel: number) => {
-    const next = [...oklch] as [number, number, number];
-    next[index] = channel;
-    onChange(oklchToHex(...next));
-  };
-
   return (
     <section className={styles.colourPicker}>
       <header className={styles.colourPickerHeader}>
@@ -364,41 +349,7 @@ function ColourPickerPanel({
       )}
 
       {colourFormat === "oklch" && (
-        <section className={styles.colourChannels}>
-          <ChannelControl
-            label="Lightness"
-            min={0}
-            max={100}
-            step={0.1}
-            value={oklch[0] * 100}
-            gradient={oklchGradients[0]!.background}
-            hasOutOfGamut={oklchGradients[0]!.hasOutOfGamut}
-            thumbColour={value}
-            onChange={(next) => updateOklch(0, next / 100)}
-          />
-          <ChannelControl
-            label="Chroma"
-            min={0}
-            max={0.4}
-            step={0.001}
-            value={oklch[1]}
-            gradient={oklchGradients[1]!.background}
-            hasOutOfGamut={oklchGradients[1]!.hasOutOfGamut}
-            thumbColour={value}
-            onChange={(next) => updateOklch(1, next)}
-          />
-          <ChannelControl
-            label="Hue"
-            min={0}
-            max={360}
-            step={0.1}
-            value={oklch[2]}
-            gradient={oklchGradients[2]!.background}
-            hasOutOfGamut={oklchGradients[2]!.hasOutOfGamut}
-            thumbColour={value}
-            onChange={(next) => updateOklch(2, next)}
-          />
-        </section>
+        <OklchChannels value={value} onChange={onChange} />
       )}
 
       {colourFormat === "rgb" && (
@@ -444,6 +395,75 @@ function ColourPickerPanel({
           />
         </span>
       </footer>
+    </section>
+  );
+}
+
+/**
+ * Lightness, chroma and hue as three sliders.
+ *
+ * The OKLCH channels of the picker, on their own, so the phone's shade sheet
+ * can show them without the picker around them: a sheet already has the room
+ * a popover had to open a second popover to find.
+ */
+export function OklchChannels({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const oklch = useMemo(() => rgbToOklch(...hexToRgb(value)), [value]);
+  const oklchGradients = useMemo(
+    () => [
+      createOklchGradient(0, oklch),
+      createOklchGradient(1, oklch),
+      createOklchGradient(2, oklch),
+    ],
+    [oklch],
+  );
+
+  const updateOklch = (index: number, channel: number) => {
+    const next = [...oklch] as [number, number, number];
+    next[index] = channel;
+    onChange(oklchToHex(...next));
+  };
+
+  return (
+    <section className={styles.colourChannels}>
+      <ChannelControl
+        label="Lightness"
+        min={0}
+        max={100}
+        step={0.1}
+        value={oklch[0] * 100}
+        gradient={oklchGradients[0]!.background}
+        hasOutOfGamut={oklchGradients[0]!.hasOutOfGamut}
+        thumbColour={value}
+        onChange={(next) => updateOklch(0, next / 100)}
+      />
+      <ChannelControl
+        label="Chroma"
+        min={0}
+        max={0.4}
+        step={0.001}
+        value={oklch[1]}
+        gradient={oklchGradients[1]!.background}
+        hasOutOfGamut={oklchGradients[1]!.hasOutOfGamut}
+        thumbColour={value}
+        onChange={(next) => updateOklch(1, next)}
+      />
+      <ChannelControl
+        label="Hue"
+        min={0}
+        max={360}
+        step={0.1}
+        value={oklch[2]}
+        gradient={oklchGradients[2]!.background}
+        hasOutOfGamut={oklchGradients[2]!.hasOutOfGamut}
+        thumbColour={value}
+        onChange={(next) => updateOklch(2, next)}
+      />
     </section>
   );
 }

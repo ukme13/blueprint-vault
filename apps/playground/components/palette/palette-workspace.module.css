@@ -1681,3 +1681,30 @@
     flex-direction: column;
   }
 }
+
+/* The phone's sheets: a shade's details (ShadeSheet) and a track's
+   (TrackDetailDialog). The top padding is the grab handle's height, which
+   Astryx floats over the first 24px with a fade. `white-space` is reset
+   because a sheet inherits from wherever it sits in the DOM. */
+.shadeSheet,
+.trackSheet {
+  padding-top: var(--spacing-6, 24px);
+  padding-bottom: env(safe-area-inset-bottom);
+  white-space: normal;
+}
+
+/* The popover sizes itself to its content; the sheet is the screen's width. */
+.shadePopoverContent[data-layout="sheet"] {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
+.shadeSheetChannels,
+.shadeSheetAnchor {
+  padding: 0 12px;
+}
+
+.shadeSheetAnchor {
+  padding-bottom: 12px;
+}
