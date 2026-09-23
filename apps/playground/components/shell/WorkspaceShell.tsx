@@ -30,6 +30,7 @@ import {
   type ColorTrack,
 } from "@blueprint/ui";
 import { docsLink } from "../../lib/docs-url";
+import { STUDIO_VERSION } from "../../lib/studio-version";
 import { ThemeControl } from "../ThemeControl";
 import { NewTabLink } from "./NewTabLink";
 import { RailBrand } from "./RailBrand";
@@ -316,6 +317,30 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                     label="Studio guide"
                     size="lg"
                   />
+                  {/* Expanded only: the collapsed rail stays icon-only. Mounted
+                      on the same delayed switch as the rest of the expanded
+                      chrome and faded on the immediate one, so it leaves with
+                      the name field instead of popping. Kept on one line and
+                      clipped, so it never wraps while the width animates. On
+                      the rail's 16px column, level with the icons above. */}
+                  {isNavCollapsed ? null : (
+                    <div
+                      className="grid gap-1 overflow-hidden whitespace-nowrap px-2 pt-2 transition-opacity data-[collapsing=true]:opacity-0"
+                      data-collapsing={collapsed}
+                      style={{ transitionDuration: "var(--rail-fade)" }}
+                    >
+                      <p className="m-0 font-mono text-[11px] text-fg-muted">
+                        v{STUDIO_VERSION}
+                      </p>
+                      <p className="m-0 text-[11px] text-fg-muted">
+                        Press{" "}
+                        <kbd className="rounded border border-border-subtle bg-surface-subtle px-1 py-0.5 font-mono text-[10px] text-fg-secondary">
+                          Space
+                        </kbd>{" "}
+                        for Preview
+                      </p>
+                    </div>
+                  )}
                 </VStack>
               }
               topContent={
@@ -350,6 +375,19 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                     key={studio.href}
                     href={studio.href}
                     icon={studio.icon}
+                    endContent={
+                      studio.href === "/preview" && !isNavCollapsed ? (
+                        /* Hidden from assistive tech: the footer says the same
+                           thing in words, and a spec names this link exactly
+                           "Preview", which the badge text would change. */
+                        <kbd
+                          aria-hidden="true"
+                          className="rounded border border-border-subtle bg-surface-subtle px-1 py-0.5 font-mono text-[10px] text-fg-muted"
+                        >
+                          Space
+                        </kbd>
+                      ) : undefined
+                    }
                     isSelected={isCurrentStudio(pathname, studio.href)}
                     label={studio.label}
                     size="lg"
