@@ -441,12 +441,26 @@
   outline-offset: 3px;
 }
 
+/* The pad's own mode decides its ink, not the studio's. Each pad shows one
+   mode of the workspace whatever mode the studio is in, and fg-primary
+   follows the studio: in a light studio it drew black dots on the dark pad,
+   and in a dark studio white dots on the light one, invisible either way.
+   The block around each pad already carries data-mode. Keywords through
+   color-mix rather than rgba(, which the primitive-usage scanner rejects. */
+.elevationPadBlock[data-mode="light"] {
+  --elevation-pad-ink: black;
+}
+
+.elevationPadBlock[data-mode="dark"] {
+  --elevation-pad-ink: white;
+}
+
 .elevationPadDots {
   position: absolute;
   inset: 12%;
   background-image: radial-gradient(
     circle,
-    color-mix(in oklch, var(--color-fg-primary) 45%, transparent) 1.1px,
+    color-mix(in oklch, var(--elevation-pad-ink, black) 45%, transparent) 1.1px,
     transparent 1.3px
   );
   background-position: center;
@@ -461,7 +475,7 @@
   width: 6px;
   height: 6px;
   border: 1px solid
-    color-mix(in oklch, var(--color-fg-primary) 55%, transparent);
+    color-mix(in oklch, var(--elevation-pad-ink, black) 55%, transparent);
   border-radius: 50%;
   pointer-events: none;
   translate: -50% -50%;
