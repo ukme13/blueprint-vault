@@ -52,6 +52,12 @@ export function SemanticEditor({
   const [grouping, setGrouping] = useState<string[] | null>(null);
   const selection = useSemanticSelection(tokens);
   const isRail = useMediaQuery(`(max-width: ${RAIL_BELOW - 1}px)`);
+  /* On a phone the group sidebar is hidden so the table has the width, and
+     a group chosen before it went would go on hiding tokens with nothing on
+     screen to say so. Back to all of them, during render rather than in an
+     effect, so no frame shows the filtered table. */
+  const isPhone = useMediaQuery("(max-width: 640px)");
+  if (isPhone && selection.group !== null) selection.setGroup(null);
   const region = useRef<HTMLDivElement>(null);
 
   const consumers = { buttonSchemes };

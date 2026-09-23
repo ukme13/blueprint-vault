@@ -609,7 +609,9 @@
      Export lines up with the fixed menu button beside it. */
   .topbar {
     padding-block-start: max(var(--spacing-3, 12px), env(safe-area-inset-top));
-    padding-block-end: var(--spacing-2, 8px);
+    /* None below: the tabs are the last row, and their underline is set to
+       land on this bar's bottom border. Padding here lifted it off. */
+    padding-block-end: 0;
   }
 
   .headerActions nav,

@@ -293,3 +293,18 @@ project?") moved onto the same component, so it is a sheet on a phone too.
 The sheet's panel ends 48px below the screen, not at its edge. Astryx keeps
 that much in reserve for the slide, so the test checks "at or past the
 bottom, in the lower half" rather than an exact edge.
+
+## Semantics without the group sidebar, and a tab underline back on the line
+
+On a phone, the Semantics tab no longer shows the group sidebar. The table
+gets the full width and lists every token. A group chosen before the window
+narrowed is cleared during render, not in an effect. The test checks this
+directly: with the clear removed, a phone showed 22 of 78 tokens with nothing
+on screen to explain why. The phone block sits last in its stylesheet,
+because the base `.sidebar` rule comes later in the file than the tablet
+media block and would otherwise win.
+
+The 8px bottom padding added to the top bar last round lifted the tab
+underline 8px off the bar's border. The tabs are the bar's last row, and
+their underline is positioned to land on that border, so the bar now has no
+bottom padding on a phone.

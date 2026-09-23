@@ -9,6 +9,7 @@
  * The responsive contract, in one place so it cannot drift from the code:
  *   >= 1024  sidebar 220 | table fills
  *   <  1024  sidebar 56 (counts only, names in the tooltip) | table fills
+ *   <=  640  no sidebar; the table has the width and shows every group
  * The rail is a class rather than a different tree, so nothing moves between
  * the server's paint and the client's — `useMediaQuery` is false on the first
  * render by design.
@@ -378,4 +379,16 @@
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/* Last in the file so it outranks the .editor and .sidebar rules above it. */
+
+@media (max-width: 640px) {
+  .editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar {
+    display: none;
+  }
 }

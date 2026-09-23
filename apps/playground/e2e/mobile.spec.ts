@@ -273,6 +273,57 @@ test.describe("on a phone", () => {
     await expect(sheet).toBeHidden();
   });
 
+  test("shows every semantic token, with no group sidebar", async ({
+    seededPage: page,
+  }) => {
+    /* Chosen on a desktop, then the window narrows: the group has to let go,
+       or a filter nobody can see goes on hiding tokens. */
+    await page.setViewportSize({ width: 1280, height: 844 });
+    await page.getByRole("button", { name: "Semantics" }).click();
+    const editor = page.getByRole("region", { name: "Semantic tokens" });
+    const rows = editor.locator("tbody tr");
+    const groups = editor.getByRole("navigation", { name: "Token groups" });
+
+    await expect(rows.first()).toBeVisible();
+    const all = await rows.count();
+    await groups.getByRole("listitem").nth(1).click();
+    await expect.poll(() => rows.count()).toBeLessThan(all);
+
+    await page.setViewportSize(PHONE);
+    await expect(groups).toBeHidden();
+    await expect.poll(() => rows.count()).toBe(all);
+
+    const [table, width] = await Promise.all([
+      editor.locator("table").boundingBox(),
+      page.evaluate(() => window.innerWidth),
+    ]);
+    /* The table has the width the sidebar had: its left edge is the editor
+       padding, not 56px of rail and a gap. */
+    expect(table!.x).toBeLessThan(24);
+    expect(width).toBe(PHONE.width);
+  });
+
+  /* Not /typography: the seeded project has no type system, so that studio
+     shows its create screen, with no tabs to underline. Its bar has the same
+     rule as these two. */
+  for (const route of ["/colour", "/spacing"]) {
+    test(`sets the tab underline on the top bar border on ${route}`, async ({
+      seededPage: page,
+    }) => {
+      /* The tabs are the bar's last row. Bottom padding on the bar lifted
+         their underline 8px off its border. */
+      await page.goto(route);
+      /* Through locators, which wait for the tabs to render after goto. */
+      const underline = await page
+        .locator(".astryx-tab-indicator.selected")
+        .boundingBox();
+      const bar = await page.locator('header[class*="topbar"]').boundingBox();
+      expect(
+        Math.abs(underline!.y + underline!.height - (bar!.y + bar!.height)),
+      ).toBeLessThanOrEqual(1);
+    });
+  }
+
   test("gives the top bar room above the menu button and Export", async ({
     seededPage: page,
   }) => {
