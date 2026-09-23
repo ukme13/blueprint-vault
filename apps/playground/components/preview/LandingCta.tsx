@@ -31,11 +31,13 @@ export function LandingCta({
         <div className={styles.btnRow}>
           <InspectableButton
             document={landing}
+            system={system}
             id="landing-cta-primary"
             onInspect={onInspect}
           />
           <InspectableButton
             document={landing}
+            system={system}
             id="landing-cta-ghost"
             variant="outlined"
             onInspect={onInspect}

@@ -440,7 +440,7 @@ export function TypographyStudio() {
           <Button
             aria-label="Export type scale"
             scheme="neutral"
-            size="small"
+            size="medium"
             variant="outlined"
             onClick={() => setIsExportDialogOpen(true)}
           >

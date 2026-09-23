@@ -51,10 +51,22 @@ export function PrimitiveTable({
           <Table density="compact" dividers="rows" hasHover>
             <TableHeader>
               <TableRow isHeaderRow>
-                <TableHeaderCell>Shade</TableHeaderCell>
+                {/* Shade and the swatch get fixed, narrow columns, so
+                    Variable and Value share the rest of the row and the
+                    swatch sits at its far end.
+
+                    80px holds the word "Shade" and any shade number; 56px
+                    holds a 24px swatch and the compact cell's padding either
+                    side. These widths only take effect because globals.css
+                    lifts Astryx's max-width: 0 on every table cell, which
+                    otherwise overrides any width and clipped this column to
+                    "S" over "2". */}
+                <TableHeaderCell className="w-20 whitespace-nowrap">
+                  Shade
+                </TableHeaderCell>
                 <TableHeaderCell>Variable</TableHeaderCell>
                 <TableHeaderCell>Value</TableHeaderCell>
-                <TableHeaderCell>
+                <TableHeaderCell className="w-14">
                   <span className="sr-only">Swatch</span>
                 </TableHeaderCell>
               </TableRow>
@@ -62,26 +74,30 @@ export function PrimitiveTable({
             <TableBody>
               {track.rows.map((row) => (
                 <TableRow key={row.weight}>
-                  <TableCell>
+                  <TableCell className="whitespace-nowrap">
                     <Text type="code">{row.weight}</Text>
                   </TableCell>
-                  <TableCell>
-                    {/* Allowed to wrap. A name broken across two lines is one
-                        somebody has to reassemble before pasting, which is why
-                        this was `nowrap` — and measured on the built page, the
-                        cell clipped instead: `.astryx-table-cell` sets
-                        `overflow-x: hidden`, so at 900px
-                        `--color-action-primary-surface-hover` wanted 318px of
-                        a 154px cell and lost half its name with no scrollbar
-                        to say so. A wrapped name is ugly and complete; a
-                        clipped one is tidy and wrong, and it is the tidy one
-                        somebody copies. */}
-                    <Text type="code">{row.variable}</Text>
+                  <TableCell className="whitespace-nowrap">
+                    {/* One line, whole. This was allowed to wrap because an
+                        earlier nowrap clipped: `.astryx-table-cell` sets
+                        `overflow-x: hidden`, and at 900px a 318px name got a
+                        154px cell. The cell was that narrow because Astryx's
+                        Text defaults to word-break: break-word, which lets
+                        the browser size a column as if a name could break
+                        after any letter. break-normal ends that, so the column
+                        is at least as wide as its longest name and nowrap can
+                        no longer clip one. A name broken across two lines is
+                        one somebody has to reassemble before pasting. */}
+                    <Text className="break-normal" type="code">
+                      {row.variable}
+                    </Text>
                   </TableCell>
-                  <TableCell>
-                    <Text type="code">{row.value}</Text>
+                  <TableCell className="whitespace-nowrap">
+                    <Text className="break-normal" type="code">
+                      {row.value}
+                    </Text>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-right">
                     <Swatch
                       hex={row.hex}
                       label={`${track.name} ${row.weight}`}

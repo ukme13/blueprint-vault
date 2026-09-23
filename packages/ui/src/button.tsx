@@ -30,7 +30,7 @@ const cn = (...classes: (string | undefined | false | null)[]): string =>
  */
 const buttonVariants = cva(
   // Base styles applied to all button states
-  "inline-flex items-center justify-center font-semibold transition duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none",
+  "inline-flex items-center justify-center font-[inherit] font-semibold transition duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none",
   {
     variants: {
       /**

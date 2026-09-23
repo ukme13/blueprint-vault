@@ -3,6 +3,7 @@ import { generatePalettes } from "../color/palette";
 import type { ColorTrack } from "../color/types";
 import { defaultElevationScale, resolveElevation } from "./elevation";
 import {
+  ELEVATION_OPACITY_MAX,
   elevationColourOnTrack,
   elevationLayerName,
   elevationPreviewSurfaces,
@@ -22,24 +23,43 @@ function palette(): ColorTrack[] {
   });
 }
 
+describe("the seeded opacities", () => {
+  it("leave the editor room to go stronger", () => {
+    /* A seed on ELEVATION_OPACITY_MAX starts the control at its ceiling: the
+       editor cannot raise it, and the pad parks its thumb in the corner. High's
+       dark cast went to 0.6 once, and only an end-to-end test that pressed
+       ArrowUp and saw nothing move noticed. */
+    for (const level of defaultElevationScale().levels) {
+      for (const [index, layer] of level.layers.entries()) {
+        for (const mode of ["light", "dark"] as const) {
+          expect(
+            layer.opacity[mode],
+            `${level.id} layer ${index} ${mode}`,
+          ).toBeLessThan(ELEVATION_OPACITY_MAX);
+        }
+      }
+    }
+  });
+});
+
 describe("setLayerOpacity", () => {
   it("writes one layer in one mode and leaves the rest", () => {
-    /* High's seed disagrees with itself on dark: contact 0.2, cast 0.3. A
+    /* High's seed disagrees with itself on dark: contact 0.4, cast 0.55. A
        slider that painted every layer would make that state unreachable. */
     const start = defaultElevationScale();
     const high = start.levels.find((level) => level.id === "high")!;
-    expect(high.layers[0]!.opacity.dark).toBe(0.2);
-    expect(high.layers[1]!.opacity.dark).toBe(0.3);
+    expect(high.layers[0]!.opacity.dark).toBe(0.4);
+    expect(high.layers[1]!.opacity.dark).toBe(0.55);
 
     const next = setLayerOpacity(start, "high", 1, "dark", 0.45);
     const edited = next.levels.find((level) => level.id === "high")!;
 
     expect(edited.layers[1]!.opacity.dark).toBe(0.45);
-    expect(edited.layers[0]!.opacity.dark).toBe(0.2);
+    expect(edited.layers[0]!.opacity.dark).toBe(0.4);
     expect(edited.layers[1]!.opacity.light).toBe(0.1);
     expect(
       next.levels.find((level) => level.id === "low")!.layers[0]!.opacity.dark,
-    ).toBe(0.2);
+    ).toBe(0.4);
   });
 
   it("clamps rather than storing an alpha a shadow cannot use", () => {
@@ -60,7 +80,7 @@ describe("setLevelModeOpacities", () => {
     expect(high.layers[1]!.opacity.light).toBe(0.1);
     expect(
       next.levels.find((level) => level.id === "low")!.layers[1]!.opacity.dark,
-    ).toBe(0.2);
+    ).toBe(0.4);
   });
 
   it("leaves a missing level alone", () => {
@@ -150,6 +170,24 @@ describe("elevationLayerName", () => {
 });
 
 describe("elevationPreviewSurfaces", () => {
+  it("never paints the dark ground in the shadow's own shade", () => {
+    /* The default shadow is the darkest neutral. A ground of that same shade
+       composites any opacity of it to nothing, which is how every dark
+       shadow went invisible in the preview. */
+    const tracks = palette();
+    const surfaces = elevationPreviewSurfaces(tracks);
+    const neutral = tracks.find((track) => track.name === "neutral")!;
+    const darkest = [...neutral.shades].sort((a, b) => b.weight - a.weight)[0]!;
+    expect(surfaces.dark.ground).not.toBe(darkest.hex);
+  });
+
+  it("lifts the dark card off the dark ground", () => {
+    const surfaces = elevationPreviewSurfaces(palette());
+    /* Lighter than its ground, as a raised surface is in dark mode. Hex
+       string order stands in for lightness on a greyscale ramp. */
+    expect(surfaces.dark.card > surfaces.dark.ground).toBe(true);
+  });
+
   it("gives the dark sample a dark card, not a light one", () => {
     const surfaces = elevationPreviewSurfaces(palette());
     /* A light sticker on a dark ground is what this is here to stop. Hex

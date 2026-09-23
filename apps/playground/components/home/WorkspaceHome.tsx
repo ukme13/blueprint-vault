@@ -16,10 +16,10 @@ import {
   withSharedName,
   type WorkspaceProject,
 } from "@blueprint/ui";
+import { HomeEmptyState } from "./HomeEmptyState";
 import { NewProjectDialog } from "./NewProjectDialog";
 import { ProjectCard } from "./ProjectCard";
 import { RenameProjectDialog } from "./RenameProjectDialog";
-import { docsLink } from "../../lib/docs-url";
 import styles from "./home.module.css";
 
 function projectCountLabel(count: number) {
@@ -159,8 +159,13 @@ export function WorkspaceHome() {
   const isLibraryFull = summaries.length >= LIBRARY_CAPACITY;
   const pendingDelete = summaries.find((entry) => entry.id === pendingDeleteId);
 
+  const isEmpty = summaries.length === 0;
+
   return (
-    <div className={styles.page}>
+    /* A column only when empty, so the empty state can take the height left
+       under the header and centre in it. The populated page keeps its own
+       block flow. */
+    <div className={isEmpty ? `${styles.page} flex flex-col` : styles.page}>
       <header className={styles.header}>
         <div>
           <h1>Projects</h1>
@@ -196,25 +201,10 @@ export function WorkspaceHome() {
           </div>
         </div>
         <div className={styles.actions}>
-          {/* The other application, so an absolute URL from the environment
-              rather than a route. A new tab because this is a reference a
-              reader comes back from — losing the studio to read about it is
-              the wrong way round — and `noreferrer` with it, which is the
-              habit rather than a need on a site of our own. */}
-          <Button
-            href={docsLink("studio")}
-            rel="noreferrer"
-            scheme="neutral"
-            size="small"
-            target="_blank"
-            variant="text"
-          >
-            Studio guide
-          </Button>
           <Button
             disabled={isLibraryFull}
             scheme="neutral"
-            size="small"
+            size="medium"
             type="button"
             variant="text"
             onClick={() => importInputRef.current?.click()}
@@ -224,7 +214,7 @@ export function WorkspaceHome() {
           <Button
             disabled={isLibraryFull}
             scheme="primary"
-            size="small"
+            size="medium"
             type="button"
             onClick={openCreate}
           >
@@ -262,7 +252,9 @@ export function WorkspaceHome() {
             </li>
           ))}
         </ul>
-      ) : null}
+      ) : (
+        <HomeEmptyState onCreate={openCreate} />
+      )}
 
       <input
         ref={importInputRef}

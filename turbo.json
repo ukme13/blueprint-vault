@@ -11,7 +11,9 @@
         "BLUEPRINT_WORKSPACE",
         "BLUEPRINT_STATIC",
         "BLUEPRINT_AUDIENCE",
-        "NEXT_PUBLIC_DOCS_URL"
+        "NEXT_PUBLIC_DOCS_URL",
+        "NEXT_PUBLIC_STUDIO_URL",
+        "STUDIO_VERSION"
       ]
     },
     "lint": {

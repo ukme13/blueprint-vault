@@ -16,6 +16,7 @@ import { LinkProvider } from "@astryxdesign/core/Link";
 import { TopNav, TopNavHeading } from "@astryxdesign/core/TopNav";
 import { SideNav, SideNavItem } from "@astryxdesign/core/SideNav";
 import {
+  Button,
   browserWorkspaceStorage,
   defaultRadiusScale,
   generatePalettes,
@@ -28,7 +29,10 @@ import {
   workspaceHasStudios,
   type ColorTrack,
 } from "@blueprint/ui";
+import { docsLink } from "../../lib/docs-url";
+import { STUDIO_VERSION } from "../../lib/studio-version";
 import { ThemeControl } from "../ThemeControl";
+import { NewTabLink } from "./NewTabLink";
 import { RailBrand } from "./RailBrand";
 import { RAIL_MOTION, railMotionStyle } from "./rail-motion";
 import {
@@ -40,6 +44,7 @@ import {
   RadiusStudioIcon,
   SettingsMark,
   SpacingStudioIcon,
+  StudioGuideIcon,
   TypographyStudioIcon,
 } from "./shell-marks";
 import { WorkspaceSettingsDialog } from "./WorkspaceSettings";
@@ -49,6 +54,14 @@ import styles from "./workspace-shell.module.css";
 const RAIL_COLLAPSED_KEY = "blueprint.shell.rail-collapsed";
 const PREVIEW_RETURN_KEY = "blueprint.shell.preview-return";
 const EMPTY_PALETTES: ColorTrack[] = [];
+
+/**
+ * The guide on the docs site. Another application, so an absolute URL from the
+ * environment rather than a route, and it opens in a new tab: a guide is a
+ * reference somebody comes back from, and losing the studio to read about it
+ * is the wrong way round.
+ */
+const STUDIO_GUIDE_HREF = docsLink("studio");
 
 const STUDIOS = [
   { href: "/colour", label: "Colour", icon: ColourStudioIcon },
@@ -256,6 +269,19 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                   logoLabel="Blueprint"
                 />
               }
+              endContent={
+                <Button
+                  href={STUDIO_GUIDE_HREF}
+                  leftIcon={<StudioGuideIcon />}
+                  rel="noreferrer"
+                  scheme="neutral"
+                  size="small"
+                  target="_blank"
+                  variant="text"
+                >
+                  Studio guide
+                </Button>
+              }
             />
           ) : undefined
         }
@@ -278,6 +304,37 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                   isNavCollapsed={isNavCollapsed}
                   onCollapsedChange={onCollapsedChange}
                 />
+              }
+              /* Pinned to the bottom, apart from the studios: it is not one
+                 of them, and it leaves the app. Same item and size as the
+                 studios, so its icon keeps the rail's 20px column. */
+              footer={
+                <VStack gap={0.5}>
+                  <SideNavItem
+                    as={NewTabLink}
+                    href={STUDIO_GUIDE_HREF}
+                    icon={StudioGuideIcon}
+                    label="Studio guide"
+                    size="lg"
+                  />
+                  {/* Expanded only: the collapsed rail stays icon-only. Mounted
+                      on the same delayed switch as the rest of the expanded
+                      chrome and faded on the immediate one, so it leaves with
+                      the name field instead of popping. Kept on one line and
+                      clipped, so it never wraps while the width animates. On
+                      the rail's 16px column, level with the icons above. */}
+                  {isNavCollapsed ? null : (
+                    <div
+                      className="grid gap-1 overflow-hidden whitespace-nowrap px-2 pt-2 transition-opacity data-[collapsing=true]:opacity-0"
+                      data-collapsing={collapsed}
+                      style={{ transitionDuration: "var(--rail-fade)" }}
+                    >
+                      <p className="m-0 font-mono text-[11px] text-fg-muted">
+                        v{STUDIO_VERSION}
+                      </p>
+                    </div>
+                  )}
+                </VStack>
               }
               topContent={
                 <VStack gap={2} className={styles.topVStack}>
@@ -311,6 +368,19 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                     key={studio.href}
                     href={studio.href}
                     icon={studio.icon}
+                    endContent={
+                      studio.href === "/preview" && !isNavCollapsed ? (
+                        /* Hidden from assistive tech: the footer says the same
+                           thing in words, and a spec names this link exactly
+                           "Preview", which the badge text would change. */
+                        <kbd
+                          aria-hidden="true"
+                          className="rounded border border-border-subtle bg-surface-subtle px-1 py-0.5 font-mono text-[10px] text-fg-muted"
+                        >
+                          Space
+                        </kbd>
+                      ) : undefined
+                    }
                     isSelected={isCurrentStudio(pathname, studio.href)}
                     label={studio.label}
                     size="lg"

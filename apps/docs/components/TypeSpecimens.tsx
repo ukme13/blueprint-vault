@@ -1,4 +1,6 @@
 import type { CSSProperties } from "react";
+import { Card } from "@astryxdesign/core/Card";
+import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
 import { VStack } from "@astryxdesign/core/VStack";
 import {
@@ -90,20 +92,38 @@ function FontNote({ font }: { font: TypeFontRow }) {
 function Specimen({ row }: { row: TypeRoleRow }) {
   const Element = row.element;
   const style = specimenStyle(row);
+  /* One card per role, so the catalogue reads as a set of separate
+     specimens rather than one long run of type. The header is chrome, in the
+     studio's own face through Text's classes; only the two specimen lines
+     carry the role's inline style, which is what the font test reads. */
   return (
-    <VStack gap={2}>
-      <Text color="secondary" type="code">
-        {row.id} · {row.fontSizePx}px · {row.fontWeight} · {row.lineHeight}
-      </Text>
-      {/* The same element the role exports as, so the outline this page shows
-          is the outline a product using the role would get. */}
-      <Element style={style}>
-        {specimenTextForRole(row, "en", row.name)}
-      </Element>
-      <Element lang="th" style={style}>
-        {specimenTextForRole(row, "th", row.name)}
-      </Element>
-    </VStack>
+    <Card padding={4}>
+      <VStack gap={3}>
+        <HStack gap={2} hAlign="between" vAlign="center" wrap="wrap">
+          <HStack gap={2} vAlign="center">
+            <Text type="label" weight="semibold">
+              {row.name}
+            </Text>
+            <Text color="secondary" type="code">
+              &lt;{row.element}&gt;
+            </Text>
+          </HStack>
+          <Text color="secondary" type="code">
+            {row.fontSizePx}px · {row.fontWeight} · {row.lineHeight}
+          </Text>
+        </HStack>
+        <VStack gap={2}>
+          {/* The same element the role exports as, so the outline this page
+              shows is the outline a product using the role would get. */}
+          <Element style={style}>
+            {specimenTextForRole(row, "en", row.name)}
+          </Element>
+          <Element lang="th" style={style}>
+            {specimenTextForRole(row, "th", row.name)}
+          </Element>
+        </VStack>
+      </VStack>
+    </Card>
   );
 }
 

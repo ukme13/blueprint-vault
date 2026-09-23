@@ -70,6 +70,7 @@ function Plan({
       ) : null}
       <InspectableButton
         document={landing}
+        system={system}
         id={`landing-plan-${n}-cta`}
         invert={featured}
         variant={featured ? "contained" : "outlined"}

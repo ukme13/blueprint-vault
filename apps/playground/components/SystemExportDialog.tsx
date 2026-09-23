@@ -27,6 +27,7 @@ import {
 } from "@blueprint/ui";
 import { useColourFormat } from "./palette/ColourFormatContext";
 import styles from "./system-export-dialog.module.css";
+import { STUDIO_VERSION } from "../lib/studio-version";
 
 type ExportFormat =
   | "css"
@@ -52,15 +53,9 @@ const FORMATS: Array<{ value: ExportFormat; label: string }> = [
    value in it is a measurement, and a ratio has no hex notation. */
 const REPORT_FORMATS: ExportFormat[] = ["report-md", "report-json"];
 
-/**
- * The studio build stamped into a handover's README.
- *
- * Written here rather than read from package.json, which a browser bundle has
- * no business importing. It is what a client quotes when something in their
- * file looks wrong, so it wants to move when the export format does rather
- * than on every patch release.
- */
-const HANDOVER_VERSION = "0.1.0";
+/** The studio version stamped into a handover's README, which is what a client
+    quotes when something in their file looks wrong. */
+const HANDOVER_VERSION = STUDIO_VERSION;
 
 interface SystemExportDialogProps {
   isOpen: boolean;

@@ -352,6 +352,41 @@ test.describe("Workspace home", () => {
     await expect(card.getByText("0 colour families")).toBeVisible();
   });
 
+  test("an empty Home offers two ways forward", async ({ page }) => {
+    const start = page.getByRole("region", { name: "Get started" });
+    await expect(start).toBeVisible();
+    await expect(
+      start.getByRole("heading", { name: "Create your first project" }),
+    ).toBeVisible();
+    await expect(
+      start.getByRole("heading", { name: "Need help?" }),
+    ).toBeVisible();
+
+    /* The guide is another application, so a new tab rather than a route. */
+    const guide = start.getByRole("link", { name: "View guides" });
+    await expect(guide).toHaveAttribute("target", "_blank");
+    await expect(guide).toHaveAttribute("href", /\/studio$/);
+
+    /* The header keeps its own New project; this card's button must not share
+       that name, or the helper most specs use would match two buttons. */
+    await expect(page.getByRole("button", { name: "New project" })).toHaveCount(
+      1,
+    );
+
+    await start.getByRole("button", { name: "Create a project" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "New project" }),
+    ).toBeVisible();
+  });
+
+  test("the empty state leaves once there is a project", async ({ page }) => {
+    await createWorkspaceFromHome(page, "Only system");
+    await page.goto("/");
+    await expect(page.getByRole("region", { name: "Get started" })).toHaveCount(
+      0,
+    );
+  });
+
   test("deleting the last project returns empty Home", async ({ page }) => {
     await createWorkspaceFromHome(page, "Only system");
     await page.goto("/");

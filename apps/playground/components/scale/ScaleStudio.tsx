@@ -154,7 +154,7 @@ export function ScaleStudio() {
         <span className={styles.headerActions}>
           <Button
             scheme="neutral"
-            size="small"
+            size="medium"
             variant="outlined"
             onClick={() => setIsExportOpen(true)}
           >

@@ -3,6 +3,8 @@
 :global(nav).homeNav {
   min-height: 72px;
   padding-inline-start: var(--spacing-6, 24px);
+  /* Mirrored, so the guide button's edge sits on the right content edge. */
+  padding-inline-end: var(--spacing-6, 24px);
 }
 
 .sideNav {

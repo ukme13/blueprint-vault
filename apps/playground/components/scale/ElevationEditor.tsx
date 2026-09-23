@@ -21,7 +21,8 @@ export function ElevationCanvas({ scale, palettes }: ElevationCanvasProps) {
     <section aria-label="Elevation">
       <ol className={styles.elevationList}>
         {scale.levels.map((level) => (
-          <li key={level.id}>
+          /* 8px between the title row and its examples, which sat flush. */
+          <li key={level.id} className="grid gap-2">
             <div className={styles.elevationHead}>
               <strong>{level.name}</strong>
               <code>--shadow-{level.id}</code>
@@ -41,6 +42,7 @@ export function ElevationCanvas({ scale, palettes }: ElevationCanvasProps) {
                       <span
                         aria-label={`${level.name} on ${mode}`}
                         className={styles.elevationCard}
+                        data-mode={mode}
                         style={{
                           background: surfaces[mode].card,
                           boxShadow: resolved?.css,
