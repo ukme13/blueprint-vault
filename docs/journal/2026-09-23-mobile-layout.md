@@ -257,3 +257,22 @@ the log. That included the old "keeps every control inside the screen" tests.
 I did not retry on dev. I ran the spec once against `pnpm build && pnpm
 start`, which is how CI runs it, and all 19 passed. Each of the six new tests
 then failed against a build with its rule removed.
+
+## The sheet inherited the toolbar
+
+On a device, the Vision sheet showed a grey line under its footer and a faded
+title. The grey line was a horizontal scrollbar: the switch description sat
+on one line, 400px wide in a 388px sheet. `width="100%"` on the Switch did
+nothing. Walking up the ancestors found `white-space: nowrap` on every one of
+them. The sheet is rendered beside its chip, inside the toolbar, and a dialog
+in the top layer still inherits from where it sits in the DOM. The one-line
+toolbar rule was wrapping nothing in the sheet. The fix is `white-space:
+normal` on the sheet itself.
+
+The fade is Astryx's grab handle, which floats over the first 24px of content
+with a gradient to transparent. The title started 8px down, so it sat inside
+the fade. The sheet now pads its top by the handle's height, `--spacing-6`.
+
+**A rule set on a container reaches everything portalled or top-layered
+beneath it in the DOM.** Rendering somewhere else on screen is not the same as
+being somewhere else in the tree.

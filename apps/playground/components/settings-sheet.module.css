@@ -1,12 +1,20 @@
 /* The sheet's own layout. Astryx draws the sheet, the grab handle and the
    scrim; these arrange what goes inside it. */
 
+/* The top padding is the grab handle's height. Astryx floats the handle over
+   the first 24px of content, with a fade from the sheet's colour to clear, so
+   anything that starts inside it reads as washed out. */
 .sheet {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4, 16px);
-  padding: var(--spacing-2, 8px) var(--spacing-4, 16px)
+  padding: var(--spacing-6, 24px) var(--spacing-4, 16px)
     max(var(--spacing-4, 16px), env(safe-area-inset-bottom));
+  /* The sheets are rendered beside their chips, inside the palette toolbar,
+     and a dialog in the top layer still inherits from where it sits in the
+     DOM. On a phone the toolbar is `nowrap`, which kept every description
+     on one line, wider than the sheet, with a scrollbar under it. */
+  white-space: normal;
 }
 
 .header {

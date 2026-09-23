@@ -175,6 +175,34 @@ test.describe("on a phone", () => {
       .toBe(primary);
   });
 
+  test("lays the sheet out inside itself", async ({ seededPage: page }) => {
+    /* From a real device: a grey scrollbar under the footer and a washed-out
+       title. The sheet sits inside the toolbar in the DOM and inherited its
+       `nowrap`, so the switch description ran past the edge; and the title
+       started under the grab handle, which Astryx floats over the first 24px
+       with a fade. */
+    await page.getByRole("button", { name: "Vision", exact: true }).click();
+    const sheet = page.getByRole("dialog", { name: "Vision simulation" });
+    await expect(sheet).toBeVisible();
+
+    const layout = await sheet.evaluate((dialog) => {
+      const panel = dialog.querySelector(".astryx-bottom-sheet") as HTMLElement;
+      const heading = dialog.querySelector("h2") as HTMLElement;
+      return {
+        scrolls: [...panel.querySelectorAll<HTMLElement>("*")]
+          .filter((node) => node.scrollWidth > node.clientWidth + 1)
+          .filter((node) => getComputedStyle(node).overflowX !== "visible")
+          .map((node) => `${node.scrollWidth} in ${node.clientWidth}`),
+        headingTop:
+          heading.getBoundingClientRect().top -
+          panel.getBoundingClientRect().top,
+      };
+    });
+
+    expect(layout.scrolls, layout.scrolls.join(" | ")).toEqual([]);
+    expect(layout.headingTop).toBeGreaterThanOrEqual(24);
+  });
+
   test("discards the Vision draft on Cancel and on the scrim", async ({
     seededPage: page,
   }) => {
