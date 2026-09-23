@@ -162,6 +162,12 @@
   background: var(--color-surface-raised);
 }
 
+/* The phone's way to the settings. Shown below 640px only. */
+.settingsTrigger {
+  display: none;
+  margin-left: auto;
+}
+
 .historyButtons {
   display: flex;
   align-items: center;
@@ -752,5 +758,28 @@
     grid-column: 1 / -1;
     justify-self: start;
     max-width: 100%;
+  }
+}
+
+/* On a phone the canvas has the whole screen and the settings open in a
+   sheet from the toolbar. Last in the file so it outranks the rules above. */
+@media (max-width: 640px) {
+  .editor > .inspector {
+    display: none;
+  }
+
+  .settingsTrigger {
+    display: inline-flex;
+  }
+
+  /* In the sheet: no border of its own, no scroll of its own inside the
+     sheet's, and clear of the grab handle, which Astryx floats over the
+     first 24px. `white-space` is reset because a sheet inherits from where
+     it sits in the DOM. */
+  .inspector {
+    overflow-y: visible;
+    border-top: 0;
+    padding-top: var(--spacing-6, 24px);
+    white-space: normal;
   }
 }

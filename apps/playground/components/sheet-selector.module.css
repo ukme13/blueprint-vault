@@ -112,3 +112,8 @@
   margin: 0;
   color: var(--color-fg-muted);
 }
+
+/* A wrapper for its key handling only; it takes no part in layout. */
+.stacked {
+  display: contents;
+}

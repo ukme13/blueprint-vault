@@ -87,70 +87,81 @@ function PhoneSelector({
         <ChevronDown aria-hidden className={styles.chevron} />
       </button>
 
-      <BottomSheet
-        height="hug"
-        isOpen={isOpen}
-        label={label}
-        onOpenChange={(open) => {
-          if (!open) close();
+      {/* Escape closes this sheet only. Opened from inside another sheet, it
+          sits inside that one in the React tree, and Astryx closes a sheet
+          from a React keydown, so the same Escape would close both. A div,
+          not a span: Astryx moves menus out of a span. */}
+      <div
+        className={styles.stacked}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") event.stopPropagation();
         }}
       >
-        <div className={styles.sheet}>
-          <h2 className={styles.title}>{label}</h2>
-          {hasSearch && (
-            <TextInput
-              isLabelHidden
-              label={`Search ${label.toLowerCase()}`}
-              placeholder={searchPlaceholder ?? "Search"}
-              value={query}
-              width="100%"
-              onChange={setQuery}
-            />
-          )}
-
-          <div aria-label={label} className={styles.list} role="listbox">
-            {groups.length === 0 && (
-              <p className={styles.empty}>No results found</p>
+        <BottomSheet
+          height="hug"
+          isOpen={isOpen}
+          label={label}
+          onOpenChange={(open) => {
+            if (!open) close();
+          }}
+        >
+          <div className={styles.sheet}>
+            <h2 className={styles.title}>{label}</h2>
+            {hasSearch && (
+              <TextInput
+                isLabelHidden
+                label={`Search ${label.toLowerCase()}`}
+                placeholder={searchPlaceholder ?? "Search"}
+                value={query}
+                width="100%"
+                onChange={setQuery}
+              />
             )}
-            {groups.map((group, index) => (
-              <div
-                key={group.title ?? `group-${index}`}
-                aria-label={group.title}
-                className={styles.group}
-                role="group"
-              >
-                {group.title && (
-                  <p aria-hidden className={styles.groupTitle}>
-                    {group.title}
-                  </p>
-                )}
-                {group.options.map((option) => {
-                  const isSelected = option.value === value;
-                  return (
-                    <button
-                      key={option.value}
-                      aria-selected={isSelected}
-                      className={styles.option}
-                      disabled={option.disabled}
-                      role="option"
-                      type="button"
-                      onClick={() => choose(option)}
-                    >
-                      {renderIcon(option.icon)}
-                      <span className={styles.optionLabel}>
-                        {option.label ?? option.value}
-                      </span>
-                      {isSelected && (
-                        <Check aria-hidden className={styles.check} />
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
+
+            <div aria-label={label} className={styles.list} role="listbox">
+              {groups.length === 0 && (
+                <p className={styles.empty}>No results found</p>
+              )}
+              {groups.map((group, index) => (
+                <div
+                  key={group.title ?? `group-${index}`}
+                  aria-label={group.title}
+                  className={styles.group}
+                  role="group"
+                >
+                  {group.title && (
+                    <p aria-hidden className={styles.groupTitle}>
+                      {group.title}
+                    </p>
+                  )}
+                  {group.options.map((option) => {
+                    const isSelected = option.value === value;
+                    return (
+                      <button
+                        key={option.value}
+                        aria-selected={isSelected}
+                        className={styles.option}
+                        disabled={option.disabled}
+                        role="option"
+                        type="button"
+                        onClick={() => choose(option)}
+                      >
+                        {renderIcon(option.icon)}
+                        <span className={styles.optionLabel}>
+                          {option.label ?? option.value}
+                        </span>
+                        {isSelected && (
+                          <Check aria-hidden className={styles.check} />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </BottomSheet>
+        </BottomSheet>
+      </div>
     </>
   );
 }

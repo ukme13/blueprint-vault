@@ -451,3 +451,23 @@ The preview's row of controls sat 18px in on a phone, against the 14px of the
 toolbar and top bar above it. Its phone rule has to sit in the block at the
 end of the stylesheet: the base `.previewToolbar` rule comes after the
 earlier phone block and won the cascade on the first try.
+
+## Spacing, Radius and Elevation settings as a sheet
+
+`ScaleStudio` now follows the Typography pattern on a phone. The canvas has
+the whole screen, a settings button in the scale toolbar opens a bottom sheet,
+and the sheet holds the same inspector element the desktop shows beside the
+canvas. The Uses view has no inspector, so it has no button. The Elevation
+colour selectors are `SheetSelector`s, stacked on the settings sheet, so
+`SheetSelector` now stops Escape from bubbling up, like the picker and the
+confirmation.
+
+The native touch guard moved into `useIsolatedTouch`, shared by the colour
+picker's field and the elevation pad. For the pad it is defensive, and I say
+so in the code. A header swipe does close the sheet, so the harness is real,
+but the pad held against a real touch drag in four runs of four without the
+guard.
+
+`workspace-shell.spec.ts` has three failing tests (Home top bar 72px, rail
+marks 32px, Home has no rail). They fail the same way on the commit before
+this change. I reported them and left them alone.

@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { Selector } from "@astryxdesign/core/Selector";
+import { SheetSelector } from "../SheetSelector";
 import { Slider } from "@astryxdesign/core/Slider";
 import {
   COLOUR_MODES,
@@ -52,7 +52,7 @@ export function ElevationInspector({
               style={{ background: colour.hex }}
             />
             <div className={styles.elevationColourFields}>
-              <Selector
+              <SheetSelector
                 label="Shadow colour track"
                 options={palettes.map((item) => ({
                   label: item.name,
@@ -71,7 +71,7 @@ export function ElevationInspector({
                   );
                 }}
               />
-              <Selector
+              <SheetSelector
                 hasSearch={track.shades.length > 8}
                 label="Shadow colour weight"
                 options={track.shades.map((shade) => ({

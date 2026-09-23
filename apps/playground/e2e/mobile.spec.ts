@@ -1018,6 +1018,85 @@ test.describe("on a phone", () => {
     }
   });
 
+  for (const [route, section] of [
+    ["/spacing", "Spacing"],
+    ["/radius", "Radius"],
+    ["/elevation", "Elevation"],
+  ] as const) {
+    test(`gives the ${section.toLowerCase()} canvas the screen, and settings a sheet`, async ({
+      seededPage: page,
+    }) => {
+      /* As in the Typography studio: the canvas has the whole width, and the
+         settings are a sheet from the toolbar. */
+      await page.goto(route);
+      const canvas = page.getByRole("region", { name: `${section} canvas` });
+      await expect(canvas).toBeVisible();
+      const box = (await canvas.boundingBox())!;
+      expect(box.width).toBeGreaterThanOrEqual(PHONE.width - 2);
+      await expect(page.locator("[class*=editor] > aside")).toHaveCount(0);
+
+      await page
+        .getByRole("button", { name: `${section} settings`, exact: true })
+        .click();
+      const sheet = page.getByRole("dialog", { name: `${section} settings` });
+      await expect(sheet.locator(".astryx-bottom-sheet").first()).toBeVisible();
+      await expect(
+        /* Visible ones: a closed selector sheet inside holds a search field. */
+        sheet
+          .locator("input, [role=slider], [role=combobox], button")
+          .filter({ visible: true })
+          .first(),
+      ).toBeVisible();
+
+      if (section === "Elevation") {
+        /* Its colour selectors are sheets too, stacked on this one; Escape
+           closes only the top one. */
+        await sheet
+          .getByRole("button", { name: /^Shadow colour track: / })
+          .click();
+        const tracks = page.getByRole("dialog", {
+          name: "Shadow colour track",
+        });
+        await expect(tracks.locator(".astryx-bottom-sheet")).toBeVisible();
+        await page.keyboard.press("Escape");
+        await expect(tracks).toBeHidden();
+        await expect(page.locator("dialog[open]")).toHaveCount(1);
+        await expect(sheet).toBeVisible();
+
+        /* A drag down on a shadow pad sets the shadow; it does not swipe the
+           sheet shut. A real touch, as the sheet listens for touches. */
+        const pad = sheet.getByRole("button", {
+          name: "Low light contact and cast",
+        });
+        const readout = pad.locator("xpath=following-sibling::*[1]");
+        const before = await readout.textContent();
+        const padBox = (await pad.boundingBox())!;
+        const cdp = await page.context().newCDPSession(page);
+        await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true });
+        const x = padBox.x + padBox.width / 2;
+        const y = padBox.y + 8;
+        const touch = (
+          type: "touchStart" | "touchMove" | "touchEnd",
+          dy: number,
+        ) =>
+          cdp.send("Input.dispatchTouchEvent", {
+            type,
+            touchPoints: type === "touchEnd" ? [] : [{ x, y: y + dy }],
+          });
+        await touch("touchStart", 0);
+        for (let dy = 10; dy <= padBox.height - 16; dy += 10) {
+          await touch("touchMove", dy);
+        }
+        await touch("touchEnd", padBox.height - 16);
+        await expect(sheet).toBeVisible();
+        await expect(readout).not.toHaveText(before!);
+      }
+
+      await page.mouse.click(195, 40);
+      await expect(sheet).toBeHidden();
+    });
+  }
+
   test("gives the top bar room above the menu button and Export", async ({
     seededPage: page,
   }) => {

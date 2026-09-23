@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useCallback,
   useMemo,
   useState,
   type CSSProperties,
@@ -27,6 +26,7 @@ import {
   rgbToOklch,
   type Hsv,
 } from "@blueprint/ui";
+import { useIsolatedTouch } from "../use-isolated-touch";
 import { useColourFormat } from "./ColourFormatContext";
 import { ColourFormatSelector } from "./ColourFormatSelector";
 import styles from "./palette-workspace.module.css";
@@ -252,24 +252,8 @@ function ColourPickerPanel({
   onClose,
   inSheet = false,
 }: ColourPickerPanelProps) {
-  /* A drag on the field is choosing a colour. In a sheet, a touch that pulls
-     down from the top of the sheet's scroll is also how the sheet is swiped
-     shut, and the sheet listens with native listeners, which React's
-     stopPropagation reaches too late. So the field stops its own touches from
-     travelling up, natively. */
-  const fieldRef = useCallback(
-    (node: HTMLButtonElement | null) => {
-      if (!node || !inSheet) return;
-      const stop = (event: TouchEvent) => event.stopPropagation();
-      node.addEventListener("touchstart", stop, { passive: true });
-      node.addEventListener("touchmove", stop, { passive: true });
-      return () => {
-        node.removeEventListener("touchstart", stop);
-        node.removeEventListener("touchmove", stop);
-      };
-    },
-    [inSheet],
-  );
+  /* A drag on the field is choosing a colour, not swiping the sheet shut. */
+  const fieldRef = useIsolatedTouch<HTMLButtonElement>(inSheet);
   const { colourFormat } = useColourFormat();
   const hsv = useMemo(() => hexToHsv(value), [value]);
   const rgb = useMemo(
