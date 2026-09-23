@@ -1,9 +1,22 @@
+import type { Page } from "@playwright/test";
 import {
   createWorkspaceFromHome,
   expect,
   readStoredWorkspace,
   test,
 } from "./fixtures";
+
+/** Pick one of a project card's actions from its `···` menu. */
+async function cardAction(
+  page: Page,
+  project: string,
+  action: "Rename" | "Duplicate" | "Delete" | "Export",
+): Promise<void> {
+  await page
+    .getByRole("button", { name: `More actions for ${project}` })
+    .click();
+  await page.getByRole("menuitem", { name: action }).click();
+}
 
 /**
  * Home is the one create path: name + Blueprint seed, then the colour bench.
@@ -167,7 +180,7 @@ test.describe("Workspace home", () => {
     await createWorkspaceFromHome(page, "Second system");
     await page.goto("/");
 
-    await page.getByRole("button", { name: "Delete First system" }).click();
+    await cardAction(page, "First system", "Delete");
     const dialog = page.getByRole("alertdialog");
     await expect(dialog).toBeVisible();
     await dialog.getByRole("button", { name: "Delete project" }).click();
@@ -185,7 +198,7 @@ test.describe("Workspace home", () => {
     await createWorkspaceFromHome(page, "Original name");
     await page.goto("/");
 
-    await page.getByRole("button", { name: "Rename Original name" }).click();
+    await cardAction(page, "Original name", "Rename");
     const dialog = page.getByRole("dialog", { name: "Rename project" });
     await expect(dialog).toBeVisible();
     await dialog.getByLabel("Project name").fill("Updated name");
@@ -203,7 +216,7 @@ test.describe("Workspace home", () => {
     await createWorkspaceFromHome(page, "Base system");
     await page.goto("/");
 
-    await page.getByRole("button", { name: "Duplicate Base system" }).click();
+    await cardAction(page, "Base system", "Duplicate");
 
     await expect(
       page.getByRole("heading", { name: "Base system copy" }),
@@ -211,7 +224,7 @@ test.describe("Workspace home", () => {
     await expect(page.getByText("You have 2 projects.")).toBeVisible();
   });
 
-  test("card thumbnail fills the top with no padding, has action icons, and current card has accent border", async ({
+  test("card thumbnail fills the top with no padding, has an actions menu, and current card has accent border", async ({
     page,
   }) => {
     await createWorkspaceFromHome(page, "First system");
@@ -220,18 +233,15 @@ test.describe("Workspace home", () => {
     const card = page.locator("li").filter({ hasText: "First system" });
     await expect(card).toBeVisible();
 
-    await expect(
-      card.getByRole("button", { name: "Rename First system" }),
-    ).toBeAttached();
-    await expect(
-      card.getByRole("button", { name: "Duplicate First system" }),
-    ).toBeAttached();
-    await expect(
-      card.getByRole("button", { name: "Export First system" }),
-    ).toBeAttached();
-    await expect(
-      card.getByRole("button", { name: "Delete First system" }),
-    ).toBeAttached();
+    /* The actions are one `···` menu beside the name, not icons over the
+       mosaic. */
+    await card
+      .getByRole("button", { name: "More actions for First system" })
+      .click();
+    for (const action of ["Rename", "Duplicate", "Export", "Delete"]) {
+      await expect(page.getByRole("menuitem", { name: action })).toBeVisible();
+    }
+    await page.keyboard.press("Escape");
     await expect(card.getByText(/Edited just now/)).toBeVisible();
     await expect(page.getByText("1 / 8 used")).toBeVisible();
 
@@ -253,7 +263,7 @@ test.describe("Workspace home", () => {
     await page.goto("/");
     /* Duplicate rather than create: it stays on Home, so the second card
        arrives without another round trip through a studio. */
-    await page.getByRole("button", { name: "Duplicate First system" }).click();
+    await cardAction(page, "First system", "Duplicate");
 
     const cards = page.locator("ul li > div");
     await expect(cards).toHaveCount(2);
@@ -294,9 +304,7 @@ test.describe("Workspace home", () => {
     await page.goto("/");
 
     const downloadPromise = page.waitForEvent("download");
-    await page
-      .getByRole("button", { name: "Export Exportable system" })
-      .click();
+    await cardAction(page, "Exportable system", "Export");
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toBe(
       "exportable-system.blueprint.json",
@@ -391,7 +399,7 @@ test.describe("Workspace home", () => {
     await createWorkspaceFromHome(page, "Only system");
     await page.goto("/");
 
-    await page.getByRole("button", { name: "Delete Only system" }).click();
+    await cardAction(page, "Only system", "Delete");
     await page.getByRole("button", { name: "Delete project" }).click();
 
     await expect(page.getByText("You have 0 projects.")).toBeVisible();

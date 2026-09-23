@@ -1,4 +1,10 @@
-import { PROJECT_STORAGE_KEY, defaultProject, expect, test } from "./fixtures";
+import {
+  PROJECT_STORAGE_KEY,
+  createWorkspaceFromHome,
+  defaultProject,
+  expect,
+  test,
+} from "./fixtures";
 import { openPreview } from "./preview-fixtures";
 import {
   TYPOGRAPHY_STORAGE_KEY,
@@ -1194,6 +1200,59 @@ test.describe("on a phone", () => {
       .boundingBox())!;
     const footerBox = (await footer.boundingBox())!;
     expect(download.width).toBeGreaterThanOrEqual(footerBox.width - 2 * 16 - 1);
+  });
+
+  test("lays Home out for a phone: header rows, a card menu, a slot to fill", async ({
+    page,
+  }) => {
+    /* An empty library, as the Home suite starts from. */
+    await page.goto("/");
+    await page.evaluate(() => {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+    });
+    await page.reload();
+    await createWorkspaceFromHome(page, "First system");
+    await page.goto("/");
+
+    /* Row one: the heading and the capacity pill. */
+    const heading = (await page
+      .getByRole("heading", { level: 1, name: "Projects" })
+      .boundingBox())!;
+    const pill = (await page.getByText("1 / 8 used").boundingBox())!;
+    expect(
+      Math.abs(pill.y + pill.height / 2 - (heading.y + heading.height / 2)),
+    ).toBeLessThanOrEqual(8);
+    expect(pill.x).toBeGreaterThan(heading.x + heading.width);
+
+    /* Row two: two equal halves, New project first. */
+    const create = (await page
+      .getByRole("button", { name: "New project", exact: true })
+      .boundingBox())!;
+    const importButton = (await page
+      .getByRole("button", { name: "Import project", exact: true })
+      .boundingBox())!;
+    expect(create.y).toBeGreaterThan(heading.y + heading.height);
+    expect(Math.abs(create.y - importButton.y)).toBeLessThanOrEqual(1);
+    expect(create.x).toBeLessThan(importButton.x);
+    expect(Math.abs(create.width - importButton.width)).toBeLessThanOrEqual(1);
+
+    /* The card's actions are one menu, and pressing it does not open the
+       project under it. */
+    await page
+      .getByRole("button", { name: "More actions for First system" })
+      .click();
+    for (const action of ["Rename", "Duplicate", "Export", "Delete"]) {
+      await expect(page.getByRole("menuitem", { name: action })).toBeVisible();
+    }
+    await expect(page).toHaveURL(/\/$/);
+    await page.keyboard.press("Escape");
+
+    /* The next slot, dashed, opens New project. */
+    await page.getByRole("button", { name: "Create new workspace" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "New project" }),
+    ).toBeVisible();
   });
 
   test("gives the top bar room above the menu button and Export", async ({

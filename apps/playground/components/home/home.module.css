@@ -128,12 +128,29 @@
   color: inherit;
   overflow: hidden;
   transition:
-    border-color 0.15s ease,
-    box-shadow 0.15s ease;
+    border-color 150ms ease,
+    transform 150ms ease,
+    box-shadow 150ms ease;
 }
 
+/* Lifts a little under a pointer, and presses in under a finger. */
 .card:hover {
   border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-low, none);
+  transform: translateY(-1px);
+}
+
+.card:active {
+  box-shadow: none;
+  transform: scale(0.99);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .card:hover,
+  .card:active {
+    transform: none;
+  }
 }
 
 .card:has(.cardLink:focus-visible) {
@@ -153,78 +170,6 @@
   overflow: hidden;
 }
 
-.cardActionsOverlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 52px;
-  display: flex;
-  align-items: flex-start;
-  gap: 6px;
-  padding: 8px 10px;
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklch, var(--color-surface-base) 85%, transparent) 0%,
-    color-mix(in oklch, var(--color-surface-base) 45%, transparent) 55%,
-    transparent 100%
-  );
-  opacity: 0;
-  transition: opacity 0.15s ease-in-out;
-  pointer-events: none;
-  z-index: 2;
-}
-
-.card:hover .cardActionsOverlay,
-.card:focus-within .cardActionsOverlay,
-.cardCurrent .cardActionsOverlay {
-  opacity: 1;
-  pointer-events: auto;
-}
-
-.cardActionButton {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  padding: 0;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: color-mix(in oklch, var(--color-fg-primary) 85%, transparent);
-  cursor: pointer;
-  transition:
-    background-color 0.12s ease,
-    color 0.12s ease,
-    transform 0.1s ease;
-  pointer-events: auto;
-}
-
-.cardActionButton:hover {
-  background: color-mix(in oklch, var(--color-fg-primary) 12%, transparent);
-  color: var(--color-fg-primary);
-}
-
-.cardActionButton:active {
-  transform: scale(0.94);
-}
-
-.cardActionButton:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 1px;
-}
-
-.cardActionButton:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
-
-.cardActionButtonDestructive:hover {
-  background: color-mix(in oklch, var(--color-status-error) 15%, transparent);
-  color: var(--color-status-error);
-}
-
 .cardContent {
   display: grid;
   align-content: start;
@@ -232,7 +177,26 @@
   padding: 14px 16px 16px;
 }
 
+/* The name, with the `···` menu at the end of its line. */
+.cardTitleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2, 8px);
+  min-width: 0;
+}
+
+/* Above the link's hit area, which covers the card: a press on the menu
+   opens the menu, not the project. */
+.cardMenu {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  margin-inline-start: auto;
+}
+
 .cardContent h2 {
+  flex: 1;
+  min-width: 0;
   margin: 0;
   overflow: hidden;
   color: var(--color-fg-primary);
@@ -258,10 +222,52 @@
   cursor: pointer;
 }
 
-.cardContent p {
+.cardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1, 4px);
   margin: 0;
+}
+
+.cardBadge {
+  padding: 2px 8px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-full, 9999px);
+  background: var(--color-surface-base);
   color: var(--color-fg-muted);
-  font-size: 13px;
+  font-size: 12px;
+}
+
+/* The next empty slot in the library, drawn as a card waiting to be made. */
+.ghostCard {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2, 8px);
+  min-height: 160px;
+  padding: var(--spacing-4, 16px);
+  border: 1.5px dashed var(--color-border-default);
+  border-radius: var(--radius-container, 14px);
+  background: transparent;
+  color: var(--color-fg-muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.ghostCard:hover {
+  border-color: var(--color-action-primary);
+  color: var(--color-fg-primary);
+}
+
+.ghostCard:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
 }
 
 .mosaic,
@@ -328,9 +334,39 @@
   .header {
     align-items: stretch;
     flex-direction: column;
+    gap: var(--spacing-3, 12px);
   }
 
+  /* Row one: the heading and the capacity pill. The count beside them says
+     what the pill already says. */
+  .header > div:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-3, 12px);
+  }
+
+  .countRow {
+    margin-top: 0;
+  }
+
+  .count {
+    display: none;
+  }
+
+  /* Row two: two halves, New project first. */
   .actions {
-    justify-content: flex-end;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-2, 8px);
+  }
+
+  .newAction {
+    order: -1;
+  }
+
+  .newAction,
+  .importAction {
+    width: 100%;
   }
 }

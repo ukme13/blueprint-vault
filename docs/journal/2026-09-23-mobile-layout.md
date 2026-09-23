@@ -471,3 +471,24 @@ guard.
 `workspace-shell.spec.ts` has three failing tests (Home top bar 72px, rail
 marks 32px, Home has no rail). They fail the same way on the commit before
 this change. I reported them and left them alone.
+
+## Home: header rows, a card menu, and a slot to fill
+
+On a phone, Home's header is two rows: "Projects" with the capacity pill,
+then New project and Import project as two equal halves, New project first.
+The count line is hidden there, because the pill says the same thing. Both
+buttons carry icons at every width.
+
+A project card's four icons over the mosaic are now one `···` menu beside
+the name (Rename, Duplicate, Export, and Delete after a divider). They had
+been hover-only, which a phone does not have, so there they sat permanently,
+small, over the palette. The menu sits above the link's hit area, so opening
+it does not open the project. The card shows its family count and edit time
+as badges, lifts on hover and presses in on touch, and does neither under
+reduced motion.
+
+While the library has room, a dashed "Create new workspace" card ends the
+grid. It was "Create new project" first, and Playwright's name matching is a
+case-insensitive substring by default, so every `name: "New project"` in the
+suite now matched two buttons. The requested wording avoids that without
+touching seven specs.
