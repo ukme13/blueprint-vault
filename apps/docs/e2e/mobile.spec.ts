@@ -75,20 +75,65 @@ test.describe("on a phone", () => {
   });
 
   test("scrolls a wide table inside its own frame", async ({ page }) => {
+    /* The semantic page's contrast tables, not the colour page's. Once the
+       tables ran full bleed, the colour table's 381px fitted a 390px screen
+       and this test — which was pointed at it — had nothing left to scroll.
+       The comment below predicted exactly that. The contrast tables are five
+       columns and about 480px wider than a phone, which is the case the
+       scrolling exists for. */
+    await page.goto("/foundations/semantic");
+
+    const frames = await page.evaluate(() =>
+      [...document.querySelectorAll(".astryx-table-scroll-wrapper")].map(
+        (node) => ({
+          extra: node.scrollWidth - node.clientWidth,
+          overflowX: getComputedStyle(node).overflowX,
+        }),
+      ),
+    );
+    const wide = frames.filter((frame) => frame.extra > 0);
+
+    /* There is more table than frame — asserted, so this does not quietly
+       become a test of tables that happen to fit. */
+    expect(
+      wide.length,
+      "no table on the page is wider than a phone",
+    ).toBeGreaterThan(0);
+    for (const frame of wide) expect(frame.overflowX).toBe("auto");
+
+    const { doc, viewport } = await page.evaluate(() => ({
+      doc: document.documentElement.scrollWidth,
+      viewport: window.innerWidth,
+    }));
+    expect(doc, "the page scrolled instead of the table").toBe(viewport);
+  });
+
+  test("runs every table from one edge of the screen to the other", async ({
+    page,
+  }) => {
+    /* Full bleed: out of the gutter, flush with both edges. Every table on the
+       page, not the first — they share one rule, and a second table sitting
+       inside a different wrapper would be exactly how one of them got left
+       behind. */
     await page.goto(ROUTE);
 
-    const frame = page.locator(".astryx-table-scroll-wrapper").first();
-    const { width, scrollWidth, overflowX } = await frame.evaluate((node) => ({
-      width: node.getBoundingClientRect().width,
-      scrollWidth: node.scrollWidth,
-      overflowX: getComputedStyle(node).overflowX,
-    }));
+    const edges = await page.evaluate(() =>
+      [...document.querySelectorAll(".astryx-table-scroll-wrapper")].map(
+        (node) => {
+          const box = node.getBoundingClientRect();
+          return { left: Math.round(box.left), right: Math.round(box.right) };
+        },
+      ),
+    );
+    const viewport = await page.evaluate(() => window.innerWidth);
 
-    expect(overflowX).toBe("auto");
-    /* There is more table than frame — which is the case the scrolling is for,
-       and worth asserting so this does not quietly become a test of a table
-       that happens to fit. */
-    expect(scrollWidth).toBeGreaterThan(width);
+    expect(edges.length).toBeGreaterThan(0);
+    for (const edge of edges) {
+      expect(edge, "a table sits inside the gutter").toEqual({
+        left: 0,
+        right: viewport,
+      });
+    }
   });
 
   test("opens a drawer that reaches every section", async ({ page }) => {

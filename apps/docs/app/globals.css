@@ -571,8 +571,22 @@ html {
   /* A table framed to the gutter rather than to the text. On a narrow screen
      the few pixels either side are the difference between a column fitting
      and not. */
+  /* Full bleed on a phone. The table leaves the gutter and runs from one
+     edge of the screen to the other, and loses the side borders and the
+     rounded corners with it — a frame inset by 16px on a 390px screen spends
+     32px on showing that a table is a table. The negative margin is the
+     content region's own padding, so it lands exactly on the screen edge. The
+     cells keep their padding, so the first column still starts off the edge.
+
+     Width rather than max-width: the base rule caps the wrapper at 100% of
+     the column, which is exactly what this undoes. */
   .astryx-table-scroll-wrapper {
     margin-block: var(--spacing-4);
+    margin-inline: calc(-1 * var(--spacing-4));
+    width: calc(100% + 2 * var(--spacing-4));
+    max-width: none;
+    border-inline: 0;
+    border-radius: 0;
   }
 
   .sidebar-panel {
