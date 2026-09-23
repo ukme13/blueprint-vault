@@ -92,8 +92,13 @@ export function SemanticTable({ tokens, palettes }: SemanticTableProps) {
               <TableRow isHeaderRow>
                 <TableHeaderCell>Role</TableHeaderCell>
                 <TableHeaderCell>Variable</TableHeaderCell>
-                <TableHeaderCell>Light</TableHeaderCell>
-                <TableHeaderCell>Dark</TableHeaderCell>
+                {/* The two modes are the same kind of column, compared
+                    across the row, so they get the same width: a quarter of
+                    the table each. Sized by content, whichever mode had the
+                    longer reference ("success 100 at 18%") took more room
+                    and the pair stopped lining up down the table. */}
+                <TableHeaderCell className="w-1/4">Light</TableHeaderCell>
+                <TableHeaderCell className="w-1/4">Dark</TableHeaderCell>
               </TableRow>
             </TableHeader>
             <TableBody>
