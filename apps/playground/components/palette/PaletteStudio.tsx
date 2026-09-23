@@ -635,7 +635,7 @@ function PaletteStudioContent() {
           <Button
             aria-label="Import palette"
             scheme="neutral"
-            size="small"
+            size="medium"
             variant="text"
             onClick={() => headerImportInputRef.current?.click()}
           >
@@ -645,7 +645,7 @@ function PaletteStudioContent() {
             aria-label="Export palette"
             className={styles.exportButton}
             scheme="neutral"
-            size="small"
+            size="medium"
             variant="outlined"
             onClick={() => setIsExportDialogOpen(true)}
           >
@@ -665,7 +665,7 @@ function PaletteStudioContent() {
         <Button
           className={styles.addButton}
           scheme="neutral"
-          size="small"
+          size="medium"
           variant="outlined"
           leftIcon={<span aria-hidden="true">＋</span>}
           onClick={() =>
@@ -698,7 +698,7 @@ function PaletteStudioContent() {
             className={styles.contrastModeButton}
             data-active={isContrastModeOpen}
             scheme="neutral"
-            size="small"
+            size="medium"
             variant="outlined"
             onClick={toggleContrastMode}
           >

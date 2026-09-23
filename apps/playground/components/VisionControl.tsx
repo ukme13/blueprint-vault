@@ -91,7 +91,7 @@ export function VisionControl() {
           data-active={isSimulationOn}
           leftIcon={<VisionIcon />}
           scheme="neutral"
-          size="small"
+          size="medium"
           variant="outlined"
           onClick={toggleSimulation}
         >
