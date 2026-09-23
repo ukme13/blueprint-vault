@@ -172,6 +172,7 @@ export function PreviewSite({
           <div className={styles.navCta}>
             <InspectableButton
               document={shell}
+              system={system}
               id="shell-action"
               onInspect={onInspectShell}
             />

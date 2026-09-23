@@ -140,6 +140,7 @@ function Split({
           <div className={styles.btnRow}>
             <InspectableButton
               document={landing}
+              system={system}
               id={`landing-split-${prefix}-cta`}
               onInspect={onInspect}
             />

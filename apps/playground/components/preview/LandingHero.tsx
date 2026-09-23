@@ -40,11 +40,13 @@ export function LandingHero({
         <div className={styles.btnRow}>
           <InspectableButton
             document={landing}
+            system={system}
             id="landing-hero-cta"
             onInspect={onInspect}
           />
           <InspectableButton
             document={landing}
+            system={system}
             id="landing-hero-ghost"
             variant="outlined"
             onInspect={onInspect}
