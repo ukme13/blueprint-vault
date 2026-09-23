@@ -54,8 +54,13 @@ export function PrimitiveTable({
                 {/* Shade and the swatch hug their content (w-px: a column
                     asks for 1px and grows only to what it holds), so Variable
                     and Value share the rest of the row and the swatch sits
-                    at its far end. */}
-                <TableHeaderCell className="w-px whitespace-nowrap">
+                    at its far end. "Grows to what it holds" only holds if
+                    the text refuses to break: Astryx's cells, header cells
+                    included, let text break after any letter, and with w-px
+                    alone this column shrank to one character, "S" over "2".
+                    break-normal makes the word and the number unbreakable,
+                    so the column is exactly as wide as the wider of them. */}
+                <TableHeaderCell className="w-px whitespace-nowrap break-normal">
                   Shade
                 </TableHeaderCell>
                 <TableHeaderCell>Variable</TableHeaderCell>
@@ -68,8 +73,10 @@ export function PrimitiveTable({
             <TableBody>
               {track.rows.map((row) => (
                 <TableRow key={row.weight}>
-                  <TableCell className="w-px whitespace-nowrap">
-                    <Text type="code">{row.weight}</Text>
+                  <TableCell className="w-px whitespace-nowrap break-normal">
+                    <Text className="break-normal" type="code">
+                      {row.weight}
+                    </Text>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
                     {/* One line, whole. This was allowed to wrap because an
