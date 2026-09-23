@@ -6,7 +6,9 @@ import {
   TableHeaderCell,
   TableRow,
 } from "@astryxdesign/core/Table";
+import { HStack } from "@astryxdesign/core/HStack";
 import { Text } from "@astryxdesign/core/Text";
+import { VStack } from "@astryxdesign/core/VStack";
 import {
   assessTextChecks,
   describeReference,
@@ -75,44 +77,62 @@ export function ContrastTable({ tokens, palettes, mode }: ContrastTableProps) {
               <TableCell>
                 <Text type="body">{check.label}</Text>
               </TableCell>
-              <TableCell>
-                <Text type="code">
-                  {/* A readable foreground is black or white chosen for the
-                      fill rather than a role, so saying its id would name a
-                      token that is not what was measured. */}
-                  {check.isForegroundReadable
-                    ? `readable on ${check.backgroundToken}`
-                    : `${check.foregroundToken} on ${check.backgroundToken}`}
-                </Text>
-              </TableCell>
-              <TableCell>
-                <span className="inline-flex items-center gap-2">
-                  {/* Solid, and deliberately: `assessTextChecks` composites a
-                      transparent side over its ground before measuring, so
-                      these two hexes are the colours the ratio was taken
-                      from. A checker here would draw the reference rather
-                      than the result, and the result is what was measured.
-                      The text beside them names the alpha that produced it. */}
-                  <Swatch
-                    hex={check.foreground}
-                    label={`${check.label} text`}
-                  />
-                  <Swatch
-                    hex={check.background}
-                    label={`${check.label} background`}
-                  />
+              {/* Foreground over background, one per line and never
+                  wrapped. As one run of text these columns squeezed in the
+                  768px column and broke token names mid-word, "surface.bas"
+                  over "e"; stacked, each line is short enough to fit whole,
+                  and the table scrolls sideways before it breaks one. */}
+              <TableCell className="whitespace-nowrap">
+                <VStack gap={0.5}>
                   <Text type="code">
-                    {foreground && !check.isForegroundReadable
-                      ? describeReference(foreground)
-                      : check.foreground}
-                    {" on "}
-                    {background
-                      ? describeReference(background)
-                      : check.background}
+                    {/* A readable foreground is black or white chosen for the
+                        fill rather than a role, so saying its id would name a
+                        token that is not what was measured. */}
+                    {check.isForegroundReadable
+                      ? "readable"
+                      : check.foregroundToken}
                   </Text>
-                </span>
+                  <Text color="secondary" type="code">
+                    {`on ${check.backgroundToken}`}
+                  </Text>
+                </VStack>
               </TableCell>
-              <TableCell>
+              <TableCell className="whitespace-nowrap">
+                {/* Solid, and deliberately: `assessTextChecks` composites a
+                    transparent side over its ground before measuring, so
+                    these two hexes are the colours the ratio was taken from.
+                    A checker here would draw the reference rather than the
+                    result, and the result is what was measured. The text
+                    beside each names the alpha that produced it. Each swatch
+                    now sits on the line it describes. */}
+                <VStack gap={1}>
+                  <HStack gap={1.5} vAlign="center">
+                    <Swatch
+                      hex={check.foreground}
+                      label={`${check.label} text`}
+                    />
+                    <Text type="code">
+                      {foreground && !check.isForegroundReadable
+                        ? describeReference(foreground)
+                        : check.foreground}
+                    </Text>
+                  </HStack>
+                  <HStack gap={1.5} vAlign="center">
+                    <Swatch
+                      hex={check.background}
+                      label={`${check.label} background`}
+                    />
+                    <Text color="secondary" type="code">
+                      {`on ${
+                        background
+                          ? describeReference(background)
+                          : check.background
+                      }`}
+                    </Text>
+                  </HStack>
+                </VStack>
+              </TableCell>
+              <TableCell className="whitespace-nowrap">
                 <Text type="code">{check.result.ratio.toFixed(2)}:1</Text>
               </TableCell>
               <TableCell>

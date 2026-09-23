@@ -10,6 +10,7 @@ import { docsRouteGroups } from "@blueprint/ui/docs-routes";
 import { DocsNav } from "../../../components/DocsNav";
 import { SiteHeader } from "../../../components/SiteHeader";
 import { docsAudience } from "../../../lib/audience";
+import { DOCS_HEADER_HEIGHT } from "../../../lib/header";
 import { activeDocsGroup, docsSections, sidebarGroups } from "../../../lib/nav";
 
 const PATH = "docs/button";
@@ -49,7 +50,7 @@ export default function ButtonDocsLayout({
          The theme control that sat in the content's corner now comes with
          it, as it does everywhere else. */
       header={
-        <LayoutHeader hasDivider height={56}>
+        <LayoutHeader hasDivider height={DOCS_HEADER_HEIGHT}>
           <SiteHeader
             activeGroup={activeDocsGroup(groups, PATH)}
             sections={docsSections(groups)}
