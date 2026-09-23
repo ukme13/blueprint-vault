@@ -709,7 +709,8 @@ test.describe("on a phone", () => {
 
     await page.getByRole("button", { name: /^Type settings/ }).click();
     const sheet = page.getByRole("dialog", { name: "Type scale settings" });
-    await expect(sheet.locator(".astryx-bottom-sheet")).toBeVisible();
+    /* The first: each group's delete confirmation is a sheet inside it. */
+    await expect(sheet.locator(".astryx-bottom-sheet").first()).toBeVisible();
     for (const tab of ["Settings", "Groups", "Warnings"]) {
       await expect(
         sheet.getByRole("tab", { name: new RegExp(`^${tab}`) }),
@@ -795,6 +796,102 @@ test.describe("on a phone", () => {
       .boundingBox();
     const panelBox = await panel.boundingBox();
     expect(add!.width).toBeGreaterThan(panelBox!.width * 0.8);
+  });
+
+  test("keeps a type group's fields inside it, and asks before deleting it", async ({
+    page,
+  }) => {
+    await seedTypographyProject(page);
+    await page.getByRole("button", { name: /^Type settings/ }).click();
+    const sheet = page.getByRole("dialog", { name: "Type scale settings" });
+    await sheet.getByRole("tab", { name: /^Groups/ }).click();
+    const group = sheet.locator("#inspector-groups [role=group]").first();
+    const name = (await group.locator("[class*=roleGroupName]").textContent())!;
+
+    /* From a device: the line-height and spacing fields kept their natural
+       width and ran past the right edge of the card. Nothing may cross the
+       inside edge of the group card or of a role card. */
+    const escaped = await group.evaluate((card: HTMLElement) => {
+      const inner = (el: HTMLElement) => {
+        const box = el.getBoundingClientRect();
+        const style = getComputedStyle(el);
+        return (
+          box.right -
+          parseFloat(style.paddingRight) -
+          parseFloat(style.borderRightWidth)
+        );
+      };
+      const boxes = [
+        card,
+        ...card.querySelectorAll<HTMLElement>("[class*=roleTableRow]"),
+      ];
+      return boxes.flatMap((box) =>
+        [...box.querySelectorAll<HTMLElement>("*")]
+          .filter((node) => {
+            const rect = node.getBoundingClientRect();
+            return rect.width > 0 && rect.right > inner(box) + 1;
+          })
+          .map((node) => node.tagName),
+      );
+    });
+    expect(escaped, escaped.join(" | ")).toEqual([]);
+
+    /* Each role is a card of its own inside the group. */
+    const role = group.locator("[class*=roleTableRow]").first();
+    const roleStyle = await role.evaluate((node) => {
+      const style = getComputedStyle(node);
+      return { border: style.borderTopWidth, padding: style.paddingTop };
+    });
+    expect(roleStyle).toEqual({ border: "1px", padding: "12px" });
+
+    /* Add role is the last thing in the group, across its width. */
+    const rows = group.locator("[class*=roleTableRow]");
+    const before = await rows.count();
+    const add = group.getByRole("button", { name: "Add role" });
+    const addBox = (await add.boundingBox())!;
+    const lastRole = (await rows.last().boundingBox())!;
+    expect(addBox.y).toBeGreaterThan(lastRole.y + lastRole.height - 1);
+    expect(addBox.width).toBeGreaterThan(lastRole.width - 2);
+    await add.click();
+    await expect(rows).toHaveCount(before + 1);
+
+    /* The trash is beside the name, and asks first. */
+    const trash = group.getByRole("button", { name: `Remove ${name} group` });
+    const nameField = group.getByRole("textbox").first();
+    const [trashBox, nameBox] = [
+      (await trash.boundingBox())!,
+      (await nameField.boundingBox())!,
+    ];
+    expect(
+      Math.abs(
+        trashBox.y + trashBox.height / 2 - (nameBox.y + nameBox.height / 2),
+      ),
+    ).toBeLessThanOrEqual(4);
+
+    const confirm = page.getByRole("dialog", {
+      name: `Delete group "${name}"?`,
+    });
+    await trash.click();
+    await expect(confirm).toBeVisible();
+    /* Escape closes the question, not the settings under it. */
+    await page.keyboard.press("Escape");
+    await expect(confirm).toBeHidden();
+    await expect(sheet).toBeVisible();
+    await expect(page.locator("dialog[open]")).toHaveCount(1);
+
+    await trash.click();
+    await confirm.getByRole("button", { name: "Cancel" }).click();
+    await expect(confirm).toBeHidden();
+    await expect(
+      sheet.locator("[class*=roleGroupName]", { hasText: name }),
+    ).toHaveCount(1);
+
+    await trash.click();
+    await confirm.getByRole("button", { name: "Delete group" }).click();
+    await expect(
+      sheet.locator("[class*=roleGroupName]", { hasText: name }),
+    ).toHaveCount(0);
+    await expect(sheet).toBeVisible();
   });
 
   test("gives the top bar room above the menu button and Export", async ({

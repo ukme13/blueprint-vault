@@ -413,3 +413,25 @@ contents: the letter-spacing field slid over the line-height field and took
 its clicks. The desktop line-height tests caught it. On desktop those two
 wrappers are `display: contents` now, and the grid treatment applies on a
 phone only.
+
+## Type group cards: overflow, role cards, Add role, delete confirm
+
+On a phone, in the Groups tab:
+
+- **Overflow.** The line-height and spacing inputs kept their natural width,
+  209px and 233px, in cells 171px wide, and ran past the card. Number fields
+  in a role now shrink to their cell. My first rule matched every `input`
+  and stretched a 1ch helper inside the size field past the edge; it is
+  scoped to the number inputs now.
+- **Role cards.** Each role has its own border, 12px padding, container
+  radius and base surface inside the group's raised card.
+- **Add role** is a full-width button under the roles, instead of an icon
+  in the header.
+- **Delete group** sits beside the group name and asks first, through
+  `ConfirmDialog`. That is a sheet stacked on the settings sheet, so
+  `ConfirmDialog` now stops Escape from bubbling up, the same guard the
+  colour picker has.
+
+A checker that measured only scrolling had missed the overflow: nothing
+scrolled, the inputs just drew past the edge. The test now compares every
+element with the inside edge of its card.

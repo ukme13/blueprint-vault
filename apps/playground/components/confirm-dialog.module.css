@@ -26,3 +26,8 @@
 .actions > * {
   width: 100%;
 }
+
+/* A wrapper for its key handling only; it takes no part in layout. */
+.stacked {
+  display: contents;
+}
