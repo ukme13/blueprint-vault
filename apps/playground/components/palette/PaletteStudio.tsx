@@ -665,7 +665,7 @@ function PaletteStudioContent() {
         <Button
           className={styles.addButton}
           scheme="neutral"
-          size="medium"
+          size="small"
           variant="outlined"
           leftIcon={<span aria-hidden="true">＋</span>}
           onClick={() =>
@@ -698,7 +698,7 @@ function PaletteStudioContent() {
             className={styles.contrastModeButton}
             data-active={isContrastModeOpen}
             scheme="neutral"
-            size="medium"
+            size="small"
             variant="outlined"
             onClick={toggleContrastMode}
           >
