@@ -728,6 +728,75 @@ test.describe("on a phone", () => {
     await expect(sheet).toBeHidden();
   });
 
+  test("folds the type groups, and moves them with buttons", async ({
+    page,
+  }) => {
+    /* Every group open was a scroll of every role in the system; the drag
+       handle fought the sheet it sits in; and a role was one row of a table
+       576px wide, scrolling sideways inside the sheet. */
+    await seedTypographyProject(page);
+    await page.getByRole("button", { name: /^Type settings/ }).click();
+    const sheet = page.getByRole("dialog", { name: "Type scale settings" });
+    await sheet.getByRole("tab", { name: /^Groups/ }).click();
+    const panel = sheet.locator("#inspector-groups");
+
+    const toggles = panel.locator("button[aria-controls^='role-group-']");
+    const names = () =>
+      toggles.evaluateAll((buttons) =>
+        buttons.map(
+          (b) => b.querySelector("[class*=roleGroupName]")!.textContent,
+        ),
+      );
+    const first = await names();
+    expect(first.length).toBeGreaterThan(2);
+
+    /* Only the first open, each with its count. */
+    await expect(toggles.first()).toHaveAttribute("aria-expanded", "true");
+    for (let i = 1; i < first.length; i += 1) {
+      await expect(toggles.nth(i)).toHaveAttribute("aria-expanded", "false");
+    }
+    await expect(toggles.first()).toContainText(/\d+ roles?$/);
+
+    await toggles.nth(1).click();
+    await expect(toggles.nth(1)).toHaveAttribute("aria-expanded", "true");
+    await toggles.first().click();
+    await expect(toggles.first()).toHaveAttribute("aria-expanded", "false");
+
+    /* No drag handle; a step up or down instead. */
+    await expect(
+      panel.getByRole("button", { name: /^Reorder .* group$/ }),
+    ).toHaveCount(0);
+    await expect(
+      panel.getByRole("button", { name: `Move ${first[0]} up` }),
+    ).toBeDisabled();
+    await panel.getByRole("button", { name: `Move ${first[0]} down` }).click();
+    await expect.poll(names).toEqual([first[1], first[0], ...first.slice(2)]);
+
+    /* A role is a card: Font and Weight side by side, each captioned, and
+       nothing wider than the sheet. */
+    const row = panel.locator("[class*=roleTableRow]").first();
+    const font = await row.locator("[class*=fontCell]").boundingBox();
+    const weight = await row.locator("[class*=weightCell]").boundingBox();
+    expect(Math.abs(font!.y - weight!.y)).toBeLessThanOrEqual(1);
+    expect(weight!.x).toBeGreaterThan(font!.x + font!.width - 1);
+    await expect(row.getByText("Weight", { exact: true })).toBeVisible();
+    const scrolls = await panel.evaluate((node) =>
+      [...node.querySelectorAll<HTMLElement>("*")]
+        .filter((el) => el.clientWidth > 1)
+        .filter((el) => el.scrollWidth > el.clientWidth + 1)
+        .filter((el) => getComputedStyle(el).overflowX !== "visible")
+        .map((el) => `${el.scrollWidth} in ${el.clientWidth}`),
+    );
+    expect(scrolls, scrolls.join(" | ")).toEqual([]);
+
+    /* The lone Add group button takes the row. */
+    const add = await panel
+      .getByRole("button", { name: "Add group" })
+      .boundingBox();
+    const panelBox = await panel.boundingBox();
+    expect(add!.width).toBeGreaterThan(panelBox!.width * 0.8);
+  });
+
   test("gives the top bar room above the menu button and Export", async ({
     seededPage: page,
   }) => {

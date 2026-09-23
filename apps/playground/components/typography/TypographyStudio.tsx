@@ -10,6 +10,10 @@ import {
 import { Selector } from "@astryxdesign/core/Selector";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import {
+  openRoleGroupIds,
+  renameGroup,
+  renameOpenRoleGroup,
+  toggleRoleGroup,
   assessBodyFontSize,
   assessLineHeight,
   assessRoleWeights,
@@ -198,6 +202,7 @@ export function TypographyStudio() {
     removeRole,
     renameFont,
     renameGroupById,
+    shiftGroup,
     setGoogleFont,
     setLocalFont,
     reorderGroups,
@@ -218,6 +223,11 @@ export function TypographyStudio() {
     "settings" | "groups" | "warnings"
   >("settings");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  /* On a phone the groups are an accordion. Null until somebody opens or
+     closes one, so the first group is open by default. */
+  const [storedOpenGroups, setStoredOpenGroups] = useState<string[] | null>(
+    null,
+  );
   const isPhone = useMediaQuery("(max-width: 640px)");
 
   /* A drag has to start past a few pixels, or every click on a handle is a
@@ -426,6 +436,8 @@ export function TypographyStudio() {
   /* The settings, the groups and the warnings. One element, rendered beside
      the specimens on a wide screen and in a bottom sheet on a phone, so the
      two can never offer different controls. */
+  const openGroups = openRoleGroupIds(storedOpenGroups, system.groups);
+
   const inspectorContent = (
     <>
       {/* TabList takes no className, so the tabs are reached through a
@@ -601,9 +613,28 @@ export function TypographyStudio() {
             items={system.groups.map((group) => group.id)}
             strategy={verticalListSortingStrategy}
           >
-            {system.groups.map((group) => (
+            {system.groups.map((group, index) => (
               <RoleGroupEditor
                 key={group.id}
+                accordion={
+                  isPhone
+                    ? {
+                        isOpen: openGroups.includes(group.id),
+                        onToggle: () =>
+                          setStoredOpenGroups(
+                            toggleRoleGroup(openGroups, group.id),
+                          ),
+                        onMoveUp:
+                          index > 0
+                            ? () => shiftGroup(group.id, -1)
+                            : undefined,
+                        onMoveDown:
+                          index < system.groups.length - 1
+                            ? () => shiftGroup(group.id, 1)
+                            : undefined,
+                      }
+                    : undefined
+                }
                 canAddRole={canAddRole(system, group)}
                 deviceId={activeDevice.id}
                 fonts={system.fonts}
@@ -620,7 +651,19 @@ export function TypographyStudio() {
                   updateGroup(group.id, { autoLineHeightRatio })
                 }
                 onLabelChange={(label) => updateGroup(group.id, { label })}
-                onLabelCommit={() => renameGroupById(group.id, group.label)}
+                onLabelCommit={() => {
+                  /* Renaming re-slugs the id the open state is kept by, so
+                     the new id is worked out the way the rename will, and
+                     the group stays open under it. */
+                  const renamed = renameGroup(system, group.id, group.label)
+                    .groups[index]?.id;
+                  if (renamed && renamed !== group.id) {
+                    setStoredOpenGroups(
+                      renameOpenRoleGroup(openGroups, group.id, renamed),
+                    );
+                  }
+                  renameGroupById(group.id, group.label);
+                }}
                 onRemove={() => removeGroup(group.id)}
                 onRoleChange={updateRole}
                 onRoleRemove={removeRole}

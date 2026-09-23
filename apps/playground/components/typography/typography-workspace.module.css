@@ -1057,3 +1057,189 @@
 .fontPickerField {
   display: contents;
 }
+
+/* A role's fields, each in a cell with a caption for a phone, where the
+   column headers are hidden. On a wider panel the table is laid out as it was
+   before the cells: the font and weight wrappers are new, so they drop their
+   boxes and the controls are the table's cells again; the size, line-height
+   and spacing wrappers were already there. Made grids here, they sized to
+   their contents, and the spacing field slid over the line-height field. */
+.fontCell,
+.weightCell {
+  display: contents;
+}
+
+.roleFieldCaption {
+  display: none;
+}
+
+/* Wraps a group's fields and roles so the accordion can fold them. It takes
+   no part in the card's layout. */
+.roleGroupBody {
+  display: contents;
+}
+
+/* On a phone the inspector is a sheet, and the groups are an accordion. */
+.roleGroupSummary {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.roleGroupToggle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.roleGroupToggle:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.roleGroupChevron {
+  flex-shrink: 0;
+  width: var(--spacing-4);
+  height: var(--spacing-4);
+  rotate: -90deg;
+  transition: rotate 150ms ease;
+}
+
+.roleGroupChevron[data-open] {
+  rotate: 0deg;
+}
+
+.roleGroupName {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roleGroupCount {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+@media (max-width: 640px) {
+  /* A lone button takes the row, as Add font does on a narrow panel. */
+  .addEntryButton {
+    justify-self: stretch;
+    width: 100%;
+  }
+
+  /* The group's own fields: the name on a line of its own, the line-height
+     ratio and the indexing beside the add and remove buttons under it. */
+  .roleGroupBody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+  }
+
+  .roleGroupHeader {
+    flex-wrap: wrap;
+    justify-content: start;
+  }
+
+  .roleGroupMeta {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    flex-basis: 100%;
+  }
+
+  .roleGroupMeta > :first-child {
+    grid-column: 1 / -1;
+  }
+
+  .roleGroupActions {
+    margin-inline-start: auto;
+  }
+
+  /* A role is a small card of labelled fields rather than a row of a table
+     576px wide that scrolled sideways inside the sheet. */
+  .roleTable {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+    overflow-x: visible;
+  }
+
+  .roleTableHead {
+    display: none;
+  }
+
+  .roleTableRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas:
+      "name remove"
+      "size size"
+      "font weight"
+      "lineheight spacing";
+    gap: var(--spacing-2);
+    align-items: end;
+  }
+
+  .roleTableRow + .roleTableRow {
+    padding-top: var(--spacing-3);
+    border-top: 1px solid var(--color-border-subtle);
+  }
+
+  .roleTableRow > .roleSettingLabel {
+    grid-area: name;
+    align-self: center;
+    font-weight: 600;
+  }
+
+  .roleTableRow > button {
+    grid-area: remove;
+    justify-self: end;
+  }
+
+  .sizeCell,
+  .fontCell,
+  .weightCell,
+  .lineHeightCell,
+  .spacingCell {
+    display: grid;
+    min-width: 0;
+  }
+
+  .sizeCell {
+    grid-area: size;
+  }
+
+  .fontCell {
+    grid-area: font;
+  }
+
+  .weightCell {
+    grid-area: weight;
+  }
+
+  .lineHeightCell {
+    grid-area: lineheight;
+  }
+
+  .spacingCell {
+    grid-area: spacing;
+  }
+
+  .roleFieldCaption {
+    display: block;
+    margin-bottom: var(--spacing-1);
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+  }
+}

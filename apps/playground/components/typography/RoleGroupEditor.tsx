@@ -2,6 +2,8 @@
 
 import {
   AlignVerticalSpaceAround,
+  ChevronDown,
+  ChevronUp,
   GripVertical,
   Plus,
   Trash2,
@@ -53,6 +55,19 @@ export interface RoleGroupEditorProps {
   onLetterSpacingOverride: (id: string, letterSpacingPx: number) => void;
   onLetterSpacingRelink: (id: string) => void;
   onRoleRemove: (id: string) => void;
+  /**
+   * On a phone, where the groups are an accordion: whether this one is open,
+   * and moving it by a step, since a drag inside a scrolling sheet fights
+   * the sheet. Absent, the group is always open and reorders by drag.
+   */
+  accordion?: {
+    isOpen: boolean;
+    onToggle: () => void;
+    /** Absent for the first group. */
+    onMoveUp?: () => void;
+    /** Absent for the last group. */
+    onMoveDown?: () => void;
+  };
 }
 
 /** One group of roles in the inspector: its header, its meta, and its rows. */
@@ -78,7 +93,10 @@ export function RoleGroupEditor({
   onLetterSpacingOverride,
   onLetterSpacingRelink,
   onRoleRemove,
+  accordion,
 }: RoleGroupEditorProps) {
+  const isOpen = accordion ? accordion.isOpen : true;
+  const bodyId = `role-group-${group.id}`;
   /* The card is the sortable, and the handle is the only thing that starts a
      drag: the card is full of fields, and a press on one of them is somebody
      editing rather than dragging. */
@@ -115,127 +133,177 @@ export function RoleGroupEditor({
         opacity: isDragging ? 0.6 : undefined,
       }}
     >
-      <div className={styles.roleGroupHeader}>
-        <Button
-          ref={setActivatorNodeRef}
-          aria-label={`Reorder ${group.label} group`}
-          className="h-8! w-6! cursor-grab [&_svg]:size-4!"
-          scheme="neutral"
-          size="icon"
-          variant="text"
-          {...attributes}
-          {...listeners}
-        >
-          <GripVertical aria-hidden="true" />
-        </Button>
+      {accordion && (
+        <div className={styles.roleGroupSummary}>
+          <button
+            aria-controls={bodyId}
+            aria-expanded={isOpen}
+            className={styles.roleGroupToggle}
+            type="button"
+            onClick={accordion.onToggle}
+          >
+            <ChevronDown
+              aria-hidden="true"
+              className={styles.roleGroupChevron}
+              data-open={isOpen || undefined}
+            />
+            <span className={styles.roleGroupName}>{group.label}</span>
+            <span className={styles.roleGroupCount}>
+              {roles.length} {roles.length === 1 ? "role" : "roles"}
+            </span>
+          </button>
+          <Button
+            aria-label={`Move ${group.label} up`}
+            className="h-8! w-8! [&_svg]:size-4!"
+            disabled={!accordion.onMoveUp}
+            scheme="neutral"
+            size="icon"
+            variant="text"
+            onClick={accordion.onMoveUp}
+          >
+            <ChevronUp aria-hidden="true" />
+          </Button>
+          <Button
+            aria-label={`Move ${group.label} down`}
+            className="h-8! w-8! [&_svg]:size-4!"
+            disabled={!accordion.onMoveDown}
+            scheme="neutral"
+            size="icon"
+            variant="text"
+            onClick={accordion.onMoveDown}
+          >
+            <ChevronDown aria-hidden="true" />
+          </Button>
+        </div>
+      )}
 
-        <div className={styles.roleGroupMeta}>
-          <TextInput
-            label={`${group.id} name`}
-            isLabelHidden
-            value={group.label}
-            /* Typing changes the label only. Renaming re-slugs the group id,
+      {isOpen && (
+        <div className={styles.roleGroupBody} id={bodyId}>
+          <div className={styles.roleGroupHeader}>
+            {!accordion && (
+              <Button
+                ref={setActivatorNodeRef}
+                aria-label={`Reorder ${group.label} group`}
+                className="h-8! w-6! cursor-grab [&_svg]:size-4!"
+                scheme="neutral"
+                size="icon"
+                variant="text"
+                {...attributes}
+                {...listeners}
+              >
+                <GripVertical aria-hidden="true" />
+              </Button>
+            )}
+
+            <div className={styles.roleGroupMeta}>
+              <TextInput
+                label={`${group.id} name`}
+                isLabelHidden
+                value={group.label}
+                /* Typing changes the label only. Renaming re-slugs the group id,
                which is this row's React key, so doing it per keystroke
                remounted the field and dropped focus after one character. It
                also renamed every role in the group on each letter typed. */
-            onChange={onLabelChange}
-            onBlur={onLabelCommit}
-            /* Enter blurs rather than renaming directly, so both paths commit
+                onChange={onLabelChange}
+                onBlur={onLabelCommit}
+                /* Enter blurs rather than renaming directly, so both paths commit
                through the same handler. */
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                event.currentTarget.blur();
-              }
-            }}
-          />
-          {/* Beside the name: the ratio `auto` line height uses for every
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    event.currentTarget.blur();
+                  }
+                }}
+              />
+              {/* Beside the name: the ratio `auto` line height uses for every
               role in this group. */}
-          <NumberInput
-            isLabelHidden
-            isWheelEnabled={false}
-            label={`${group.id} auto line height`}
-            max={MAX_LINE_HEIGHT_RATIO}
-            min={MIN_LINE_HEIGHT_RATIO}
-            startIcon={AlignVerticalSpaceAround}
-            step={0.1}
-            value={group.autoLineHeightRatio}
-            onChange={onAutoLineHeightRatioChange}
-          />
-          {/* How this group's roles are numbered, a property of the name
+              <NumberInput
+                isLabelHidden
+                isWheelEnabled={false}
+                label={`${group.id} auto line height`}
+                max={MAX_LINE_HEIGHT_RATIO}
+                min={MIN_LINE_HEIGHT_RATIO}
+                startIcon={AlignVerticalSpaceAround}
+                step={0.1}
+                value={group.autoLineHeightRatio}
+                onChange={onAutoLineHeightRatioChange}
+              />
+              {/* How this group's roles are numbered, a property of the name
               next to it. */}
-          <Selector
-            label={`${group.id} indexing`}
-            isLabelHidden
-            options={(["number", "size"] as TypeIndexing[]).map((mode) => ({
-              label: TYPE_INDEXING_LABELS[mode],
-              value: mode,
-            }))}
-            value={group.indexing}
-            onChange={(value) => onIndexingChange(value as TypeIndexing)}
-          />
-        </div>
+              <Selector
+                label={`${group.id} indexing`}
+                isLabelHidden
+                options={(["number", "size"] as TypeIndexing[]).map((mode) => ({
+                  label: TYPE_INDEXING_LABELS[mode],
+                  value: mode,
+                }))}
+                value={group.indexing}
+                onChange={(value) => onIndexingChange(value as TypeIndexing)}
+              />
+            </div>
 
-        <div className={styles.roleGroupActions}>
-          <Button
-            aria-label={`Add a role to ${group.label}`}
-            className="h-8! w-8! [&_svg]:size-4!"
-            disabled={!canAddRole}
-            scheme="neutral"
-            size="icon"
-            variant="outlined"
-            onClick={onAddRole}
-          >
-            <Plus aria-hidden="true" />
-          </Button>
-          <Button
-            aria-label={`Remove ${group.label} group`}
-            className="h-8! w-8! [&_svg]:size-4!"
-            scheme="neutral"
-            size="icon"
-            variant="outlined"
-            onClick={onRemove}
-          >
-            <Trash2 aria-hidden="true" />
-          </Button>
-        </div>
-      </div>
-
-      {roles.length === 0 ? (
-        <p className={styles.roleGroupEmpty}>No roles yet.</p>
-      ) : (
-        <div className={styles.roleTable}>
-          {/* Column headers once per group, so each role is one readable row
-              instead of repeating its own name on every control. */}
-          <div className={styles.roleTableHead} aria-hidden="true">
-            <span>Role</span>
-            <span>Size</span>
-            <span>Font</span>
-            <span>Weight</span>
-            <span>Line height</span>
-            <span>Spacing</span>
-            <span />
+            <div className={styles.roleGroupActions}>
+              <Button
+                aria-label={`Add a role to ${group.label}`}
+                className="h-8! w-8! [&_svg]:size-4!"
+                disabled={!canAddRole}
+                scheme="neutral"
+                size="icon"
+                variant="outlined"
+                onClick={onAddRole}
+              >
+                <Plus aria-hidden="true" />
+              </Button>
+              <Button
+                aria-label={`Remove ${group.label} group`}
+                className="h-8! w-8! [&_svg]:size-4!"
+                scheme="neutral"
+                size="icon"
+                variant="outlined"
+                onClick={onRemove}
+              >
+                <Trash2 aria-hidden="true" />
+              </Button>
+            </div>
           </div>
 
-          {roles.map((role) => (
-            <RoleRow
-              key={role.id}
-              deviceId={deviceId}
-              fonts={fonts}
-              role={role}
-              sizePresets={sizePresets}
-              steps={steps}
-              system={system}
-              onBindStep={onBindStep}
-              onLineHeightOverride={onLineHeightOverride}
-              onLineHeightRelink={onLineHeightRelink}
-              onLetterSpacingOverride={onLetterSpacingOverride}
-              onLetterSpacingRelink={onLetterSpacingRelink}
-              onRoleChange={onRoleChange}
-              onRoleRemove={onRoleRemove}
-              onUnlinkSize={onUnlinkSize}
-            />
-          ))}
+          {roles.length === 0 ? (
+            <p className={styles.roleGroupEmpty}>No roles yet.</p>
+          ) : (
+            <div className={styles.roleTable}>
+              {/* Column headers once per group, so each role is one readable row
+              instead of repeating its own name on every control. */}
+              <div className={styles.roleTableHead} aria-hidden="true">
+                <span>Role</span>
+                <span>Size</span>
+                <span>Font</span>
+                <span>Weight</span>
+                <span>Line height</span>
+                <span>Spacing</span>
+                <span />
+              </div>
+
+              {roles.map((role) => (
+                <RoleRow
+                  key={role.id}
+                  deviceId={deviceId}
+                  fonts={fonts}
+                  role={role}
+                  sizePresets={sizePresets}
+                  steps={steps}
+                  system={system}
+                  onBindStep={onBindStep}
+                  onLineHeightOverride={onLineHeightOverride}
+                  onLineHeightRelink={onLineHeightRelink}
+                  onLetterSpacingOverride={onLetterSpacingOverride}
+                  onLetterSpacingRelink={onLetterSpacingRelink}
+                  onRoleChange={onRoleChange}
+                  onRoleRemove={onRoleRemove}
+                  onUnlinkSize={onUnlinkSize}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -391,3 +391,25 @@ from inside every sheet that has a format menu.
 **On a phone, an Astryx layer must have no span, button or label anywhere
 above it inside a sheet.** It will render, and look right in a screenshot,
 and not take a tap.
+
+## Type groups as an accordion on a phone
+
+In the Typography settings sheet on a phone, the Groups tab is an accordion.
+Each group folds under a header with its name and role count, and only the
+first starts open. The open state is kept by group id. Renaming re-slugs the
+id, so the rename works out the new id the way `renameGroup` will, and the
+group stays open. The helpers (`openRoleGroupIds`, `toggleRoleGroup`,
+`renameOpenRoleGroup`) are in `packages/ui` with unit tests.
+
+On a phone there is no drag handle. ▲/▼ buttons move a group one step
+through the existing `shiftGroup`, because a drag inside a scrolling sheet
+fights the sheet. A role is a small card with captioned fields instead of a
+table row 576px wide that scrolled sideways. Add font and Add group take the
+full row.
+
+**A wrapper that "adds nothing" still changes layout.** The new font and
+weight cells were first grids, and in the desktop table they sized to their
+contents: the letter-spacing field slid over the line-height field and took
+its clicks. The desktop line-height tests caught it. On desktop those two
+wrappers are `display: contents` now, and the grid treatment applies on a
+phone only.
