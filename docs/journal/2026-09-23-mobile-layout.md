@@ -276,3 +276,20 @@ the fade. The sheet now pads its top by the handle's height, `--spacing-6`.
 **A rule set on a container reaches everything portalled or top-layered
 beneath it in the DOM.** Rendering somewhere else on screen is not the same as
 being somewhere else in the tree.
+
+## Reset preset: an icon, and a question first
+
+On a phone, Reset preset was a text label at the far end of a strip you had
+to scroll. It is now an icon button (`RotateCcw`) beside Vision. Both buttons
+are rendered and CSS picks one, so no frame ever shows the wrong one, and
+the hidden one is also hidden from assistive tech.
+
+Reset used to act on the first tap and throw away every lightness step you
+had changed. It now asks first, through a new `ConfirmDialog`: Astryx's
+`AlertDialog` on a desktop, a bottom sheet on a phone with full-width
+buttons and Cancel nearest the thumb. The import confirm ("Replace current
+project?") moved onto the same component, so it is a sheet on a phone too.
+
+The sheet's panel ends 48px below the screen, not at its edge. Astryx keeps
+that much in reserve for the slide, so the test checks "at or past the
+bottom, in the lower half" rather than an exact edge.

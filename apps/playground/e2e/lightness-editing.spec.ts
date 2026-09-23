@@ -42,6 +42,10 @@ test.describe("Lightness editing", () => {
     await expect(input).toHaveValue("48");
 
     await page.getByRole("button", { name: "Reset preset" }).click();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: "Reset preset" })
+      .click();
 
     await expect(input).toHaveValue("50");
   });

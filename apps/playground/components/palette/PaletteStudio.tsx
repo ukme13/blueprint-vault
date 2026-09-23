@@ -8,7 +8,7 @@ import {
   type ChangeEvent,
   type CSSProperties,
 } from "react";
-import { AlertDialog } from "@astryxdesign/core/AlertDialog";
+import { IconButton } from "@astryxdesign/core/IconButton";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
 import {
   SegmentedControl,
@@ -18,6 +18,7 @@ import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { useToast } from "@astryxdesign/core/Toast";
 import { useMediaQuery } from "@astryxdesign/core/hooks";
+import { RotateCcw } from "lucide-react";
 import {
   BLUEPRINT_20_PRESET,
   BUTTON_SCHEMES,
@@ -48,6 +49,7 @@ import {
   DEFAULT_CONTRAST_SETTINGS,
   type ContrastTarget,
 } from "@blueprint/ui";
+import { ConfirmDialog } from "../ConfirmDialog";
 import { SystemExportDialog } from "../SystemExportDialog";
 import { VisionControl } from "../VisionControl";
 import { StudioSliceEmpty } from "../shell/StudioSliceEmpty";
@@ -209,6 +211,7 @@ function PaletteStudioContent() {
   const isPhone = useMediaQuery("(max-width: 640px)");
   const [isContrastSheetOpen, setIsContrastSheetOpen] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   /* Read once on load, so an export carries the type scale without this
      component reading storage while it renders. */
   const [foreign, setForeign] = useState<ForeignSlices>(emptyForeignSlices);
@@ -768,13 +771,24 @@ function PaletteStudioContent() {
           </section>
         )}
         <VisionControl />
+        {/* On a phone Reset preset is an icon beside Vision rather than a
+            label at the far end of a strip that scrolls. Both are rendered and
+            CSS picks one, so there is no frame with the wrong one. */}
+        <IconButton
+          className={styles.resetIconButton}
+          icon={<RotateCcw aria-hidden className="size-4" />}
+          label="Reset preset"
+          size="sm"
+          variant="ghost"
+          onClick={() => setIsResetConfirmOpen(true)}
+        />
         <span className={styles.toolbarDivider} />
         <Button
           className={styles.resetButton}
           scheme="neutral"
           size="xs"
           variant="text"
-          onClick={resetLightness}
+          onClick={() => setIsResetConfirmOpen(true)}
         >
           Reset preset
         </Button>
@@ -900,7 +914,19 @@ function PaletteStudioContent() {
         onOpenChange={setIsExportDialogOpen}
       />
 
-      <AlertDialog
+      <ConfirmDialog
+        actionLabel="Reset preset"
+        description="The shade count and every lightness step go back to Blueprint 20. Changes you have made to them will be lost."
+        isOpen={isResetConfirmOpen}
+        title="Reset to Blueprint 20?"
+        onAction={() => {
+          resetLightness();
+          setIsResetConfirmOpen(false);
+        }}
+        onCancel={() => setIsResetConfirmOpen(false)}
+      />
+
+      <ConfirmDialog
         actionLabel="Import project"
         description={`This replaces ${name} in this browser with ${pendingImport?.name ?? "the imported project"}. Export the current project first if you want to keep it.`}
         isOpen={pendingImport !== null}
@@ -923,9 +949,7 @@ function PaletteStudioContent() {
           setActiveTrackId(null);
           closeContrastMode();
         }}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) setPendingImport(null);
-        }}
+        onCancel={() => setPendingImport(null)}
       />
     </div>
   );

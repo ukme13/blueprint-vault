@@ -237,6 +237,42 @@ test.describe("on a phone", () => {
     await expect(chip).toHaveAttribute("aria-pressed", "false");
   });
 
+  test("puts Reset preset beside Vision, behind a confirm sheet", async ({
+    seededPage: page,
+  }) => {
+    const toolbar = page.getByLabel("Palette toolbar");
+    const vision = await toolbar
+      .getByRole("button", { name: "Vision", exact: true })
+      .boundingBox();
+    const reset = toolbar.getByRole("button", { name: "Reset preset" });
+    /* One Reset preset on a phone, and it is the icon: the label is hidden. */
+    await expect(reset).toHaveCount(1);
+    const box = await reset.boundingBox();
+    expect(box!.x - (vision!.x + vision!.width)).toBeLessThanOrEqual(16);
+    expect(box!.x).toBeGreaterThan(vision!.x);
+    expect(
+      Math.abs(box!.y + box!.height / 2 - (vision!.y + vision!.height / 2)),
+    ).toBeLessThanOrEqual(2);
+
+    /* A sheet from the bottom edge, not a centred alert. */
+    await reset.click();
+    const sheet = page.getByRole("dialog", { name: "Reset to Blueprint 20?" });
+    await expect(sheet).toBeVisible();
+    const panel = await sheet.locator(".astryx-bottom-sheet").boundingBox();
+    /* At or past the bottom edge: Astryx keeps 48px of the panel below the
+       screen as room for the slide. And in the lower half, where a centred
+       alert would not be. */
+    expect(panel!.y + panel!.height).toBeGreaterThanOrEqual(844);
+    expect(panel!.y).toBeGreaterThan(844 / 2);
+
+    await sheet.getByRole("button", { name: "Cancel" }).click();
+    await expect(sheet).toBeHidden();
+
+    await reset.click();
+    await sheet.getByRole("button", { name: "Reset preset" }).click();
+    await expect(sheet).toBeHidden();
+  });
+
   test("gives the top bar room above the menu button and Export", async ({
     seededPage: page,
   }) => {
