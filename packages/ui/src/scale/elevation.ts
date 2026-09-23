@@ -83,24 +83,31 @@ function layer(
  * layer and a cast layer, because a single shadow reads as a sticker: the tight
  * one says the edge is off the surface, the wide one says how far.
  */
+/*
+ * Dark opacities are four to six times the light ones. The first seeds used
+ * twice, and on a dark canvas that read as no shadow at all: the canvas is
+ * already close to the shadow's own shade, so a thin layer of it barely moves
+ * the pixels underneath. High keeps a stronger cast than contact in dark, so
+ * a dialog still reads as further off the page than a menu.
+ */
 export const DEFAULT_ELEVATION_LEVELS: readonly ElevationLevel[] = [
   {
     id: "low",
     name: "Low",
     description: "A card resting on the page.",
-    layers: [layer(1, 1, 0.1, 0.2), layer(2, 8, 0.1, 0.2)],
+    layers: [layer(1, 1, 0.1, 0.4), layer(2, 8, 0.1, 0.4)],
   },
   {
     id: "med",
     name: "Medium",
     description: "A menu or a popover above the page.",
-    layers: [layer(1, 2, 0.1, 0.2), layer(2, 12, 0.1, 0.2)],
+    layers: [layer(1, 2, 0.1, 0.4), layer(2, 12, 0.1, 0.4)],
   },
   {
     id: "high",
     name: "High",
     description: "A dialog over everything else.",
-    layers: [layer(2, 2, 0.1, 0.2), layer(8, 24, 0.1, 0.3)],
+    layers: [layer(2, 2, 0.1, 0.4), layer(8, 24, 0.1, 0.6)],
   },
 ];
 

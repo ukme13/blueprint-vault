@@ -41,6 +41,7 @@ export function ElevationCanvas({ scale, palettes }: ElevationCanvasProps) {
                       <span
                         aria-label={`${level.name} on ${mode}`}
                         className={styles.elevationCard}
+                        data-mode={mode}
                         style={{
                           background: surfaces[mode].card,
                           boxShadow: resolved?.css,

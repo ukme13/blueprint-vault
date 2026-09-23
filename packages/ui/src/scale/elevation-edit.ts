@@ -166,16 +166,22 @@ export function elevationPreviewSurfaces(
   const shades = [...(track?.shades ?? [])].sort((a, b) => a.weight - b.weight);
   const lightest = shades[0]?.hex;
   const nextLight = shades[1]?.hex ?? lightest;
-  const darkest = shades.at(-1)?.hex;
-  const nextDark = shades.at(-2)?.hex ?? darkest;
+  /* Dark starts one step up from the darkest shade, not on it. The default
+     shadow is drawn in the darkest neutral, and a colour laid over itself is
+     the same colour at any opacity, so a ground of that shade made every dark
+     shadow invisible here — while on a real page, whose seeded dark canvas
+     sits a few steps up the track, the same shadow shows. The card is one step
+     lighter again, the way a raised surface lifts off the canvas. */
+  const darkGround = shades.at(-2)?.hex ?? shades.at(-1)?.hex;
+  const darkCard = shades.at(-3)?.hex ?? darkGround;
   return {
     light: {
       ground: nextLight ?? "var(--color-neutral-50)",
       card: lightest ?? "var(--color-neutral-50)",
     },
     dark: {
-      ground: darkest ?? "var(--color-neutral-900)",
-      card: nextDark ?? "var(--color-neutral-800)",
+      ground: darkGround ?? "var(--color-neutral-900)",
+      card: darkCard ?? "var(--color-neutral-800)",
     },
   };
 }

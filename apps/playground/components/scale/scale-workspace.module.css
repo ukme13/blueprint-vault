@@ -348,6 +348,13 @@
   border-radius: var(--radius-element);
 }
 
+/* In dark mode a shadow darkens the ground around the card but cannot
+   outline it: the card's own edge is the shade nearest the shadow. A keyline
+   draws that edge, the way a dark surface usually does in a real interface. */
+.elevationCard[data-mode="dark"] {
+  border: 1px solid var(--color-border-subtle);
+}
+
 .elevationColour {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
