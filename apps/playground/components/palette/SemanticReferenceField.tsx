@@ -57,6 +57,7 @@ export function ReferenceField({
   const isPhone = useIsPhone();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [hasOpened, setHasOpened] = useState(false);
   const [query, setQuery] = useState("");
   const resolved = resolveSemantic(token, mode, palettes);
   if (!resolved) return null;
@@ -74,9 +75,14 @@ export function ReferenceField({
   /* One list of every shade, grouped by track and found by typing
      ("secondary 500"), on every width: a sheet on a phone, a popover under
      the chip on a wider screen. */
-  const options = shadeOptionSections(palettes, (hex) => (
-    <TransparencySwatch alpha={1} colour={seen(hex)} />
-  ));
+  /* Only where a list can show: the phone sheet, or a popover that has
+     been opened. */
+  const options =
+    isPhone || hasOpened
+      ? shadeOptionSections(palettes, (hex) => (
+          <TransparencySwatch alpha={1} colour={seen(hex)} />
+        ))
+      : [];
   const value = shadeOptionValue({
     trackId: track.id,
     weight: resolved.weight,
@@ -143,32 +149,38 @@ export function ReferenceField({
       ) : (
         <Popover
           alignment="start"
+          /* Built on the first open, then kept. Astryx's Popover keeps its
+             content mounted while closed, so a list in every chip meant
+             144 hidden lists of every shade, re-rendered with the table on
+             each edit; adding a token hung the page. */
           content={
-            /* No padding of its own: the search row and the list run to the
-               popover's edges, so the list scrolls against the edge rather
-               than inside an inset box. */
-            <section className="flex flex-col">
-              {warning && (
-                <p className="m-0 border-b border-border-subtle px-4 py-3">
-                  {warning}
-                </p>
-              )}
-              <SelectorOptionList
-                density="compact"
-                hasAutoFocus
-                hasSearch
-                label={`${token.name} ${mode}`}
-                options={options}
-                query={query}
-                searchPlaceholder="Search shades"
-                value={value}
-                onChoose={(option) => {
-                  choose(option.value);
-                  closePicker();
-                }}
-                onQueryChange={setQuery}
-              />
-            </section>
+            hasOpened ? (
+              /* No padding of its own: the search row and the list run to the
+                 popover's edges, so the list scrolls against the edge rather
+                 than inside an inset box. */
+              <section className="flex flex-col">
+                {warning && (
+                  <p className="m-0 border-b border-border-subtle px-4 py-3">
+                    {warning}
+                  </p>
+                )}
+                <SelectorOptionList
+                  density="compact"
+                  hasAutoFocus
+                  hasSearch
+                  label={`${token.name} ${mode}`}
+                  options={options}
+                  query={query}
+                  searchPlaceholder="Search shades"
+                  value={value}
+                  onChoose={(option) => {
+                    choose(option.value);
+                    closePicker();
+                  }}
+                  onQueryChange={setQuery}
+                />
+              </section>
+            ) : null
           }
           hasAutoFocus={false}
           isOpen={isPickerOpen}
@@ -176,9 +188,11 @@ export function ReferenceField({
           placement="below"
           style={{ padding: 0 }}
           width={280}
-          onOpenChange={(open) =>
-            open ? setIsPickerOpen(true) : closePicker()
-          }
+          onOpenChange={(open) => {
+            if (!open) return closePicker();
+            setHasOpened(true);
+            setIsPickerOpen(true);
+          }}
         >
           {chip}
         </Popover>
