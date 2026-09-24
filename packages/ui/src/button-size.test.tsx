@@ -1,4 +1,3 @@
-import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { Button } from "./button";
@@ -15,9 +14,7 @@ import { Button } from "./button";
 const HEIGHTS = { small: "h-7", medium: "h-8", large: "h-9" } as const;
 
 function classesAt(size?: keyof typeof HEIGHTS | "icon"): string[] {
-  const markup = renderToStaticMarkup(
-    createElement(Button, { size, children: "Label" }),
-  );
+  const markup = renderToStaticMarkup(<Button size={size}>Label</Button>);
   const match = /class="([^"]*)"/.exec(markup);
   /* Static markup escapes the & in a variant like [&_svg]. */
   return (match?.[1] ?? "").replaceAll("&amp;", "&").split(/\s+/);
