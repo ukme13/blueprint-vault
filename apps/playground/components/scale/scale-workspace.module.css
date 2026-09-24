@@ -368,25 +368,6 @@
   border: 1px solid color-mix(in oklch, white 8%, transparent);
 }
 
-.elevationColour {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 12px;
-  align-items: start;
-}
-
-.elevationSwatch {
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-inner);
-}
-
-.elevationColourFields {
-  display: grid;
-  gap: 8px;
-}
-
 .elevationLayer {
   display: grid;
   gap: 8px;

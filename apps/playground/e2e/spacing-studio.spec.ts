@@ -406,8 +406,10 @@ test.describe("The elevation editor", () => {
       await sample.evaluate((node) => getComputedStyle(node).boxShadow),
     );
 
-    await page.getByLabel("Shadow colour track").click();
-    await page.getByRole("option", { name: "primary", exact: true }).click();
+    await page.getByLabel("Shadow colour", { exact: true }).click();
+    await page
+      .getByRole("option", { name: "primary 500", exact: true })
+      .click();
 
     await expect
       .poll(async () =>

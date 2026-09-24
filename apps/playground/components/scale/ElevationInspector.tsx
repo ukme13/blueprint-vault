@@ -7,7 +7,6 @@ import {
   COLOUR_MODES,
   ELEVATION_OPACITY_MAX,
   ELEVATION_OPACITY_STEP,
-  elevationColourOnTrack,
   elevationLayerName,
   elevationPreviewSurfaces,
   resolveElevationColour,
@@ -17,6 +16,7 @@ import {
   type ColorTrack,
   type ElevationScale,
 } from "@blueprint/ui";
+import { TransparencySwatch } from "../palette/TransparencySwatch";
 import { ElevationPad } from "./ElevationPad";
 import styles from "./scale-workspace.module.css";
 
@@ -45,57 +45,43 @@ export function ElevationInspector({
           it pale on dark draws a halo. Strength is what changes.
         </p>
         {track ? (
-          <div className={styles.elevationColour}>
-            <span
-              aria-hidden="true"
-              className={styles.elevationSwatch}
-              style={{ background: colour.hex }}
-            />
-            <div className={styles.elevationColourFields}>
-              <SheetSelector
-                label="Shadow colour track"
-                options={palettes.map((item) => ({
-                  label: item.name,
-                  value: item.id,
-                }))}
-                size="sm"
-                value={track.id}
-                onChange={(trackId) => {
-                  const next = palettes.find((item) => item.id === trackId);
-                  if (!next) return;
-                  onChange(
-                    setElevationColour(
-                      scale,
-                      elevationColourOnTrack(scale.colour, next),
-                    ),
-                  );
-                }}
-              />
-              <SheetSelector
-                hasSearch={track.shades.length > 8}
-                label="Shadow colour weight"
-                options={track.shades.map((shade) => ({
-                  label: String(shade.weight),
-                  value: String(shade.weight),
-                }))}
-                searchPlaceholder="Search weights..."
-                size="sm"
-                value={String(
-                  track.shades.some((shade) => shade.weight === colour.weight)
-                    ? colour.weight
-                    : track.shades.at(-1)?.weight,
-                )}
-                onChange={(weight) =>
-                  onChange(
-                    setElevationColour(scale, {
-                      trackId: track.id,
-                      weight: Number(weight),
-                    }),
-                  )
-                }
-              />
-            </div>
-          </div>
+          /* One list of every shade, grouped by track and found by typing
+             ("primary 900"), rather than a track selector and a weight
+             selector. The swatch rides in the trigger. */
+          <SheetSelector
+            hasSearch
+            label="Shadow colour"
+            options={palettes.map((item) => ({
+              type: "section" as const,
+              title: item.name,
+              options: item.shades.map((shade) => ({
+                label: `${item.name} ${shade.weight}`,
+                value: `${item.id}:${shade.weight}`,
+                icon: <TransparencySwatch alpha={1} colour={shade.hex} />,
+              })),
+            }))}
+            searchPlaceholder="Search shades"
+            size="sm"
+            startIcon={<TransparencySwatch alpha={1} colour={colour.hex} />}
+            value={`${track.id}:${
+              track.shades.some((shade) => shade.weight === colour.weight)
+                ? colour.weight
+                : track.shades.at(-1)?.weight
+            }`}
+            onChange={(next) => {
+              const split = next.lastIndexOf(":");
+              const picked = palettes.find(
+                (item) => item.id === next.slice(0, split),
+              );
+              if (!picked) return;
+              onChange(
+                setElevationColour(scale, {
+                  trackId: picked.id,
+                  weight: Number(next.slice(split + 1)),
+                }),
+              );
+            }}
+          />
         ) : (
           <p className={styles.settingHint}>
             Build a palette first. Until then the shadows fall back to black.

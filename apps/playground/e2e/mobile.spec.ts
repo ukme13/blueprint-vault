@@ -1117,14 +1117,10 @@ test.describe("on a phone", () => {
       ).toBeVisible();
 
       if (section === "Elevation") {
-        /* Its colour selectors are sheets too, stacked on this one; Escape
+        /* Its colour selector is a sheet too, stacked on this one; Escape
            closes only the top one. */
-        await sheet
-          .getByRole("button", { name: /^Shadow colour track: / })
-          .click();
-        const tracks = page.getByRole("dialog", {
-          name: "Shadow colour track",
-        });
+        await sheet.getByRole("button", { name: /^Shadow colour: / }).click();
+        const tracks = page.getByRole("dialog", { name: "Shadow colour" });
         await expect(tracks.locator(".astryx-bottom-sheet")).toBeVisible();
         await page.keyboard.press("Escape");
         await expect(tracks).toBeHidden();
