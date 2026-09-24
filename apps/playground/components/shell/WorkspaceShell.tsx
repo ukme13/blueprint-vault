@@ -184,8 +184,8 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
        says. The preference is about how wide a rail should be beside the
        content; below 768px the rail is over the content, and "expanded" there
        means a drawer covering the studio before anybody asked for one. */
-    const isNarrow = window.matchMedia("(max-width: 768px)").matches;
-    const shut = isStored || isNarrow;
+    const narrow = window.matchMedia("(max-width: 768px)");
+    const shut = isStored || narrow.matches;
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCollapsed(shut);
@@ -193,6 +193,22 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     setIsNavCollapsed(shut);
 
     setIsHydrated(true);
+
+    /* The same rule when the width changes, not only on load. A window
+       narrowed past 768px, or a tablet turned upright, would otherwise keep
+       an expanded rail, which below the breakpoint is an open drawer with a
+       backdrop over the whole studio. Crossing into narrow shuts it; crossing
+       back restores the stored preference. Neither writes the preference:
+       the width decided this, not the person. */
+    const onWidthChange = (event: MediaQueryListEvent) => {
+      const next =
+        event.matches ||
+        window.localStorage.getItem(RAIL_COLLAPSED_KEY) === "1";
+      setCollapsed(next);
+      setIsNavCollapsed(next);
+    };
+    narrow.addEventListener("change", onWidthChange);
+    return () => narrow.removeEventListener("change", onWidthChange);
   }, []);
 
   const onCollapsedChange = useCallback((next: boolean) => {
