@@ -126,7 +126,7 @@
 .toolbar {
   display: flex;
   align-items: center;
-  gap: var(--spacing-3);
+  gap: var(--spacing-2);
 }
 
 /* The count sits at the far right, after Add token, clear of the controls.
