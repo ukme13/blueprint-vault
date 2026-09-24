@@ -1288,9 +1288,7 @@ test.describe("on a phone", () => {
     const heading = (await page
       .getByRole("heading", { level: 1, name: "Projects" })
       .boundingBox())!;
-    const count = (await page
-      .getByText("You have 1 / 8 projects.")
-      .boundingBox())!;
+    const count = (await page.getByText("1 / 8 used").boundingBox())!;
     expect(
       Math.abs(count.y + count.height / 2 - (heading.y + heading.height / 2)),
     ).toBeLessThanOrEqual(8);

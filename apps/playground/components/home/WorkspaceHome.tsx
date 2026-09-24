@@ -175,7 +175,14 @@ export function WorkspaceHome() {
         <div>
           <h1>Projects</h1>
           <p className={styles.count} role="status">
-            {projectCountLabel(summaries.length)}
+            {/* The sentence on a wide screen; on a phone, beside the heading,
+                only the numbers. */}
+            <span className="max-sm:hidden">
+              {projectCountLabel(summaries.length)}
+            </span>
+            <span className="sm:hidden">
+              {summaries.length} / {LIBRARY_CAPACITY} used
+            </span>
           </p>
         </div>
         <div className={styles.actions}>
