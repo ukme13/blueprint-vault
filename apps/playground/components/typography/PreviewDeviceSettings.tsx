@@ -11,6 +11,8 @@ import {
   type PreviewDevice,
 } from "@blueprint/ui";
 import styles from "./typography-workspace.module.css";
+import { renderPickerSheet } from "../picker-sheet";
+import { useIsPhone } from "../use-is-phone";
 
 interface PreviewDeviceSettingsProps {
   devices: readonly PreviewDevice[];
@@ -25,6 +27,7 @@ export function PreviewDeviceSettings({
   detachedRatios,
   onRatioChange,
 }: PreviewDeviceSettingsProps) {
+  const isPhone = useIsPhone();
   return (
     <div className={styles.settingGroup}>
       <h2>Type ratios</h2>
@@ -49,6 +52,7 @@ export function PreviewDeviceSettings({
                 min={MIN_RATIO}
                 popoverTitle="Modular Scale Presets"
                 presets={presets}
+                sheet={isPhone ? renderPickerSheet : undefined}
                 searchPlaceholder="Search scale presets..."
                 step={0.001}
                 value={resolveHybridValue(

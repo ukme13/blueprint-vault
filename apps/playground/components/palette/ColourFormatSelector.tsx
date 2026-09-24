@@ -1,12 +1,12 @@
 "use client";
 
-import { Selector } from "@astryxdesign/core/Selector";
 import {
   COLOUR_FORMAT_LABELS,
   COLOUR_FORMATS,
   type ColourFormat,
 } from "@blueprint/ui";
 import { useColourFormat } from "./ColourFormatContext";
+import { SheetSelector } from "../SheetSelector";
 
 const OPTIONS = COLOUR_FORMATS.map((format) => ({
   label: COLOUR_FORMAT_LABELS[format],
@@ -25,7 +25,7 @@ export function ColourFormatSelector({
   const { colourFormat, setColourFormat } = useColourFormat();
 
   return (
-    <Selector
+    <SheetSelector
       isLabelHidden
       label={label}
       options={OPTIONS}

@@ -631,13 +631,20 @@ test.describe("on a phone", () => {
        above the picker put the menu outside the sheet's modal dialog, which
        makes everything outside it inert. Tried from each sheet that holds a
        format menu. */
+    /* The format is itself a sheet on a phone, opened over the one it
+       sits in. */
     const choose = async (
       sheet: ReturnType<typeof page.getByRole>,
       format: "HEX" | "RGB" | "OKLCH",
     ) => {
-      await sheet.getByRole("combobox").first().click();
-      await page.getByRole("option", { name: format }).click({ timeout: 3000 });
-      await expect(sheet.getByRole("combobox").first()).toHaveText(format);
+      const trigger = sheet.getByRole("button", { name: /colour format: /i });
+      await trigger.click();
+      const formats = page.getByRole("dialog", { name: /colour format$/i });
+      await formats.getByRole("option", { name: format }).click();
+      await expect(formats).toBeHidden();
+      await expect(trigger).toHaveAccessibleName(
+        new RegExp(`colour format: ${format}$`, "i"),
+      );
     };
 
     /* The shade sheet's own menu, then the picker opened from it. */
@@ -1212,7 +1219,7 @@ test.describe("on a phone", () => {
     /* The colour format under the chips, the code the dialog's width. */
     const strip = (await formats.boundingBox())!;
     const colour = (await dialog
-      .getByRole("combobox", { name: "Export colour format" })
+      .getByRole("button", { name: /^Export colour format: / })
       .boundingBox())!;
     expect(colour.y).toBeGreaterThanOrEqual(strip.y + strip.height - 1);
 

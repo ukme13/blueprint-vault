@@ -9,7 +9,6 @@ import {
   LayoutContent,
   VStack,
 } from "@astryxdesign/core/Layout";
-import { Selector } from "@astryxdesign/core/Selector";
 import { Text } from "@astryxdesign/core/Text";
 import {
   PREVIEW_FILL_TOKEN_GROUPS,
@@ -26,6 +25,7 @@ import {
   previewImageErrorCopy,
   type PreviewImageError,
 } from "./PreviewSectionMenu";
+import { SheetSelector } from "./SheetSelector";
 
 /**
  * Token picker for a frozen `/preview` band. Image upload stays on the ⋯.
@@ -114,7 +114,7 @@ export function PreviewSectionInspector({
                   {previewImageErrorCopy(error)}
                 </Text>
               ) : null}
-              <Selector
+              <SheetSelector
                 label="Background colour"
                 options={options}
                 placeholder="Token"

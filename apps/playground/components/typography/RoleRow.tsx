@@ -2,7 +2,6 @@
 
 import { X } from "lucide-react";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
-import { Selector } from "@astryxdesign/core/Selector";
 import {
   Button,
   HybridTokenizedInput,
@@ -23,6 +22,9 @@ import {
 } from "@blueprint/ui";
 import { LineHeightInput } from "./LineHeightInput";
 import styles from "./typography-workspace.module.css";
+import { SheetSelector } from "../SheetSelector";
+import { renderPickerSheet } from "../picker-sheet";
+import { useIsPhone } from "../use-is-phone";
 
 export interface RoleRowProps {
   role: TypeRole;
@@ -57,6 +59,7 @@ export function RoleRow({
   onRoleChange,
   onRoleRemove,
 }: RoleRowProps) {
+  const isPhone = useIsPhone();
   const sizeUnlinked = isRoleUnlinkedOnDevice(role, deviceId);
   const lineHeightUnlinked = isLineHeightUnlinkedOnDevice(role, deviceId);
   const letterSpacingUnlinked = isLetterSpacingUnlinkedOnDevice(role, deviceId);
@@ -82,6 +85,7 @@ export function RoleRow({
           min={1}
           popoverTitle="Type steps"
           presets={sizePresets}
+          sheet={isPhone ? renderPickerSheet : undefined}
           searchPlaceholder="Search steps..."
           step={1}
           value={hybridValueFromStepOffset(
@@ -103,7 +107,7 @@ export function RoleRow({
         <span aria-hidden="true" className={styles.roleFieldCaption}>
           Font
         </span>
-        <Selector
+        <SheetSelector
           label={`${role.id} font`}
           isLabelHidden
           options={fonts.map((font) => ({
