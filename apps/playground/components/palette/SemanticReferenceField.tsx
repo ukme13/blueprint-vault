@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Popover } from "@astryxdesign/core/Popover";
-import { Selector } from "@astryxdesign/core/Selector";
 import {
   parseShadeOptionValue,
   repointSemanticToken,
@@ -14,6 +13,7 @@ import {
   type SemanticMiss,
   type SemanticToken,
 } from "@blueprint/ui";
+import { SelectorOptionList } from "../SelectorOptionList";
 import { SelectorSheet } from "../SheetSelector";
 import { useIsPhone } from "../use-is-phone";
 import { usePaletteView } from "./PaletteViewContext";
@@ -43,7 +43,7 @@ const MISSING_REASON: Record<SemanticMiss, string> = {
   alpha: "The stored transparency is outside 0 to 100%, and is being clamped.",
 };
 
-/** A Figma-like chip that always shows its colour; its popover edits the alias. */
+/** A Figma-like chip that always shows its colour; it opens a list of every shade. */
 export function ReferenceField({
   token,
   mode,
@@ -56,6 +56,9 @@ export function ReferenceField({
   const { seen } = usePaletteView();
   const isPhone = useIsPhone();
   const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+  const [hasOpened, setHasOpened] = useState(false);
+  const [query, setQuery] = useState("");
   const resolved = resolveSemantic(token, mode, palettes);
   if (!resolved) return null;
 
@@ -68,6 +71,38 @@ export function ReferenceField({
         alpha: token[mode].alpha,
       }),
     );
+
+  /* One list of every shade, grouped by track and found by typing
+     ("secondary 500"), on every width: a sheet on a phone, a popover under
+     the chip on a wider screen. */
+  /* Only where a list can show: the phone sheet, or a popover that has
+     been opened. */
+  const options =
+    isPhone || hasOpened
+      ? shadeOptionSections(palettes, (hex) => (
+          <TransparencySwatch alpha={1} colour={seen(hex)} />
+        ))
+      : [];
+  const value = shadeOptionValue({
+    trackId: track.id,
+    weight: resolved.weight,
+  });
+  const choose = (next: string) => {
+    const picked = parseShadeOptionValue(next);
+    if (picked) repoint(picked);
+  };
+  const closePicker = () => {
+    setIsPickerOpen(false);
+    setQuery("");
+  };
+  const warning = resolved.missing ? (
+    <span
+      className={styles.referenceWarning}
+      title={MISSING_REASON[resolved.missing]}
+    >
+      {MISSING_LABEL[resolved.missing]}
+    </span>
+  ) : undefined;
 
   const chip = (
     <button
@@ -103,84 +138,61 @@ export function ReferenceField({
             hasSearch
             isOpen={isSheetOpen}
             label={`${token.name} ${mode}`}
-            notice={
-              resolved.missing ? (
-                <span
-                  className={styles.referenceWarning}
-                  title={MISSING_REASON[resolved.missing]}
-                >
-                  {MISSING_LABEL[resolved.missing]}
-                </span>
-              ) : undefined
-            }
-            options={shadeOptionSections(palettes, (hex) => (
-              <TransparencySwatch alpha={1} colour={seen(hex)} />
-            ))}
+            notice={warning}
+            options={options}
             searchPlaceholder="Search shades"
-            value={shadeOptionValue({
-              trackId: track.id,
-              weight: resolved.weight,
-            })}
-            onChange={(next) => {
-              const picked = parseShadeOptionValue(next);
-              if (picked) repoint(picked);
-            }}
+            value={value}
+            onChange={choose}
             onClose={() => setIsSheetOpen(false)}
           />
         </>
       ) : (
         <Popover
           alignment="start"
+          /* Built on the first open, then kept. Astryx's Popover keeps its
+             content mounted while closed, so a list in every chip meant
+             144 hidden lists of every shade, re-rendered with the table on
+             each edit; adding a token hung the page. */
           content={
-            <section className={styles.referencePicker}>
-              <Selector
-                isLabelHidden
-                label={`${token.name} ${mode} track`}
-                options={palettes.map((item) => ({
-                  label: item.name,
-                  value: item.id,
-                }))}
-                value={track.id}
-                onChange={(trackId) => {
-                  const next = palettes.find((item) => item.id === trackId);
-                  const keeps = next?.shades.some(
-                    (shade) => shade.weight === resolved.weight,
-                  );
-                  repoint({
-                    trackId,
-                    weight: keeps
-                      ? resolved.weight
-                      : (next?.shades[Math.floor((next.shades.length - 1) / 2)]
-                          ?.weight ?? resolved.weight),
-                  });
-                }}
-              />
-              <Selector
-                isLabelHidden
-                label={`${token.name} ${mode} weight`}
-                options={track.shades.map((shade) => ({
-                  label: String(shade.weight),
-                  value: String(shade.weight),
-                }))}
-                value={String(resolved.weight)}
-                onChange={(weight) =>
-                  repoint({ trackId: track.id, weight: Number(weight) })
-                }
-              />
-              {resolved.missing && (
-                <span
-                  className={styles.referenceWarning}
-                  title={MISSING_REASON[resolved.missing]}
-                >
-                  {MISSING_LABEL[resolved.missing]}
-                </span>
-              )}
-            </section>
+            hasOpened ? (
+              /* No padding of its own: the search row and the list run to the
+                 popover's edges, so the list scrolls against the edge rather
+                 than inside an inset box. */
+              <section className="flex flex-col">
+                {warning && (
+                  <p className="m-0 border-b border-border-subtle px-4 py-3">
+                    {warning}
+                  </p>
+                )}
+                <SelectorOptionList
+                  density="compact"
+                  hasAutoFocus
+                  hasSearch
+                  label={`${token.name} ${mode}`}
+                  options={options}
+                  query={query}
+                  searchPlaceholder="Search shades"
+                  value={value}
+                  onChoose={(option) => {
+                    choose(option.value);
+                    closePicker();
+                  }}
+                  onQueryChange={setQuery}
+                />
+              </section>
+            ) : null
           }
           hasAutoFocus={false}
+          isOpen={isPickerOpen}
           label={`${token.name} ${mode} reference`}
           placement="below"
+          style={{ padding: 0 }}
           width={280}
+          onOpenChange={(open) => {
+            if (!open) return closePicker();
+            setHasOpened(true);
+            setIsPickerOpen(true);
+          }}
         >
           {chip}
         </Popover>

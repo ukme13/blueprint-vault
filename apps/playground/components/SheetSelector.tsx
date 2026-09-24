@@ -1,15 +1,10 @@
 "use client";
 
 import { useState, type ComponentProps, type ReactNode } from "react";
-import { Icon } from "@astryxdesign/core/Icon";
 import { Selector } from "@astryxdesign/core/Selector";
-import { TextInput } from "@astryxdesign/core/TextInput";
-import { Check, ChevronDown } from "lucide-react";
-import {
-  findSheetOption,
-  sheetOptionGroups,
-  type SheetOption,
-} from "@blueprint/ui";
+import { ChevronDown } from "lucide-react";
+import { findSheetOption, type SheetOption } from "@blueprint/ui";
+import { SelectorOptionList, renderOptionIcon } from "./SelectorOptionList";
 import { Sheet } from "./Sheet";
 import styles from "./sheet-selector.module.css";
 import { useIsPhone } from "./use-is-phone";
@@ -27,13 +22,6 @@ import { useIsPhone } from "./use-is-phone";
  */
 
 type SheetSelectorProps = ComponentProps<typeof Selector>;
-
-function renderIcon(icon: unknown): ReactNode {
-  if (icon === undefined || icon === null) return null;
-  /* Astryx accepts an icon's name as well as an element. */
-  if (typeof icon === "string") return <Icon icon={icon as never} />;
-  return icon as ReactNode;
-}
 
 export function SheetSelector(props: SheetSelectorProps) {
   const isPhone = useIsPhone();
@@ -70,7 +58,7 @@ function PhoneSelector({
         type="button"
         onClick={() => setIsOpen(true)}
       >
-        {renderIcon(startIcon)}
+        {renderOptionIcon(startIcon)}
         <span className={styles.triggerValue}>
           {selected
             ? renderValue
@@ -130,7 +118,6 @@ export function SelectorSheet({
   notice,
 }: SelectorSheetProps) {
   const [query, setQuery] = useState("");
-  const groups = sheetOptionGroups(options, query);
 
   const close = () => {
     onClose();
@@ -151,56 +138,16 @@ export function SelectorSheet({
     >
       <h2 className={styles.title}>{label}</h2>
       {notice}
-      {hasSearch && (
-        <TextInput
-          isLabelHidden
-          label={`Search ${label.toLowerCase()}`}
-          placeholder={searchPlaceholder ?? "Search"}
-          value={query}
-          width="100%"
-          onChange={setQuery}
-        />
-      )}
-
-      <div aria-label={label} className={styles.list} role="listbox">
-        {groups.length === 0 && (
-          <p className={styles.empty}>No results found</p>
-        )}
-        {groups.map((group, index) => (
-          <div
-            key={group.title ?? `group-${index}`}
-            aria-label={group.title}
-            className={styles.group}
-            role="group"
-          >
-            {group.title && (
-              <p aria-hidden className={styles.groupTitle}>
-                {group.title}
-              </p>
-            )}
-            {group.options.map((option) => {
-              const isSelected = option.value === value;
-              return (
-                <button
-                  key={option.value}
-                  aria-selected={isSelected}
-                  className={styles.option}
-                  disabled={option.disabled}
-                  role="option"
-                  type="button"
-                  onClick={() => choose(option)}
-                >
-                  {renderIcon(option.icon)}
-                  <span className={styles.optionLabel}>
-                    {option.label ?? option.value}
-                  </span>
-                  {isSelected && <Check aria-hidden className={styles.check} />}
-                </button>
-              );
-            })}
-          </div>
-        ))}
-      </div>
+      <SelectorOptionList
+        hasSearch={hasSearch}
+        label={label}
+        options={options}
+        query={query}
+        searchPlaceholder={searchPlaceholder}
+        value={value}
+        onChoose={choose}
+        onQueryChange={setQuery}
+      />
     </Sheet>
   );
 }
