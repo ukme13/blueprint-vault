@@ -170,8 +170,54 @@ describe("palette generation", () => {
     expect(sourceAnchor.hex).toBe("#7646ab");
     expect(shadeBetween.H).not.toBe(base.shades[7]!.H);
     expect(anchoredBefore.hex).not.toBe(baseBefore.hex);
-    expect(anchored.shades[0]!.hex).toBe(base.shades[0]!.hex);
+    /* The lightest shade sits outside the custom anchor, so it takes that
+       anchor's hue at its own lightness. The darkest sits beyond the source,
+       which did not move, so it is unchanged. */
+    expect(anchored.shades[0]!.hex).not.toBe(base.shades[0]!.hex);
+    expect(anchored.shades[0]!.H).toBeCloseTo(customAnchor.H, 0);
+    expect(anchored.shades[0]!.L).toBeCloseTo(base.shades[0]!.L, 5);
     expect(anchored.shades.at(-1)!.hex).toBe(base.shades.at(-1)!.hex);
+  });
+
+  it("tints the shades lighter than the first anchor from that anchor", () => {
+    /* An orange track with purple set at 50: 25 used to stay orange. */
+    const track = { id: "accent", name: "accent", seedHex: "#e0662c" };
+    const base = generatePaletteFromPreset(track, BLUEPRINT_20_PRESET);
+    const anchored = generatePaletteFromPreset(
+      {
+        ...track,
+        adjustments: { anchors: { 50: "#e0b0ff" }, manualOverrides: {} },
+      },
+      BLUEPRINT_20_PRESET,
+    );
+    const anchor = anchored.shades.find((shade) => shade.weight === 50)!;
+    const lightest = anchored.shades.find((shade) => shade.weight === 25)!;
+    const baseLightest = base.shades.find((shade) => shade.weight === 25)!;
+
+    expect(lightest.H).toBeCloseTo(anchor.H, 5);
+    expect(lightest.L).toBeCloseTo(baseLightest.L, 5);
+    expect(lightest.L).toBeGreaterThan(anchor.L);
+    /* Index 0, so the extrapolated chroma is the light end's floor. */
+    expect(lightest.C).toBeCloseTo(0.01, 5);
+  });
+
+  it("tints the shades darker than the last anchor from that anchor", () => {
+    const track = { id: "accent", name: "accent", seedHex: "#e0662c" };
+    const base = generatePaletteFromPreset(track, BLUEPRINT_20_PRESET);
+    const anchored = generatePaletteFromPreset(
+      {
+        ...track,
+        adjustments: { anchors: { 900: "#2a1450" }, manualOverrides: {} },
+      },
+      BLUEPRINT_20_PRESET,
+    );
+    const anchor = anchored.shades.find((shade) => shade.weight === 900)!;
+    const darkest = anchored.shades.find((shade) => shade.weight === 950)!;
+    const baseDarkest = base.shades.find((shade) => shade.weight === 950)!;
+
+    expect(darkest.H).toBeCloseTo(anchor.H, 5);
+    expect(darkest.L).toBeCloseTo(baseDarkest.L, 5);
+    expect(darkest.C).toBeCloseTo(0.025, 5);
   });
 
   it("interpolates hue through the shortest path around the hue circle", () => {
