@@ -110,8 +110,9 @@ test.describe("The semantic editor", () => {
     const darkBefore = await swatch(editor, "action.primary", "dark");
 
     await editor.getByLabel("Edit Action primary light reference").click();
-    await editor.getByLabel("Action primary light weight").click();
-    await page.getByRole("option", { name: "100", exact: true }).click();
+    await page
+      .getByRole("option", { name: "primary 100", exact: true })
+      .click();
 
     await expect
       .poll(() => swatch(editor, "action.primary", "dark"))
@@ -154,8 +155,9 @@ test.describe("The semantic editor", () => {
   test("keeps the layer across a reload", async ({ seededPage: page }) => {
     const editor = await openSemantics(page);
     await editor.getByLabel("Edit Action primary light reference").click();
-    await editor.getByLabel("Action primary light weight").click();
-    await page.getByRole("option", { name: "100", exact: true }).click();
+    await page
+      .getByRole("option", { name: "primary 100", exact: true })
+      .click();
 
     await expect
       .poll(async () => {

@@ -147,3 +147,29 @@
   margin: 0;
   color: var(--color-fg-muted);
 }
+
+/*
+ * The same list in a desktop popover: a dropdown's rows under a pointer, and
+ * a list that scrolls inside a fixed height rather than growing the popover
+ * down the page.
+ */
+.list[data-density="compact"] {
+  gap: var(--spacing-2);
+  max-height: 20rem;
+  overflow-y: auto;
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.list[data-density="compact"] .groupTitle {
+  padding: 0 var(--spacing-2);
+  font-size: var(--font-size-xs, 0.75rem);
+}
+
+.list[data-density="compact"] .option {
+  min-height: var(--size-element-md);
+  border-radius: var(--radius-inner);
+}
+
+.list[data-density="compact"] .option:hover {
+  background: var(--color-surface-subtle);
+}
