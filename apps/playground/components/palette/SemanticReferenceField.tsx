@@ -144,8 +144,15 @@ export function ReferenceField({
         <Popover
           alignment="start"
           content={
-            <section className={styles.referencePicker}>
-              {warning}
+            /* No padding of its own: the search row and the list run to the
+               popover's edges, so the list scrolls against the edge rather
+               than inside an inset box. */
+            <section className="flex flex-col">
+              {warning && (
+                <p className="m-0 border-b border-border-subtle px-3 py-2">
+                  {warning}
+                </p>
+              )}
               <SelectorOptionList
                 density="compact"
                 hasAutoFocus
@@ -167,7 +174,8 @@ export function ReferenceField({
           isOpen={isPickerOpen}
           label={`${token.name} ${mode} reference`}
           placement="below"
-          width={240}
+          style={{ padding: 0 }}
+          width={260}
           onOpenChange={(open) =>
             open ? setIsPickerOpen(true) : closePicker()
           }

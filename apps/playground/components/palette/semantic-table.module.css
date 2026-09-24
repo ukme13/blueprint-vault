@@ -312,11 +312,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.referencePicker {
-  display: grid;
-  gap: var(--spacing-3);
-}
-
 .referenceWarning {
   color: var(--color-status-warning);
   font-size: var(--font-size-xs, 0.75rem);

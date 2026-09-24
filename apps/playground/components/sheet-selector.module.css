@@ -157,6 +157,7 @@
   gap: var(--spacing-2);
   max-height: 20rem;
   overflow-y: auto;
+  padding: var(--spacing-1);
   font-size: var(--font-size-sm, 0.875rem);
 }
 

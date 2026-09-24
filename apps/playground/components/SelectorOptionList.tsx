@@ -3,7 +3,7 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { Icon } from "@astryxdesign/core/Icon";
 import { TextInput } from "@astryxdesign/core/TextInput";
-import { Check } from "lucide-react";
+import { Check, Search } from "lucide-react";
 import {
   sheetOptionGroups,
   type SheetOption,
@@ -104,13 +104,28 @@ export function SelectorOptionList({
 
   return (
     <>
-      {hasSearch && (
+      {hasSearch && density === "compact" && (
+        /* A dropdown's header: a magnifier and a borderless field over a
+           line the width of the panel, as Astryx's own Selector draws it. */
+        <label className="flex items-center gap-2 border-b border-border-subtle px-3 py-2">
+          <Search aria-hidden className="size-4 shrink-0 text-fg-muted" />
+          <input
+            ref={searchRef}
+            aria-label={`Search ${label.toLowerCase()}`}
+            className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-fg-primary outline-none placeholder:text-fg-muted"
+            placeholder={searchPlaceholder ?? "Search"}
+            type="search"
+            value={query}
+            onChange={(event) => onQueryChange(event.target.value)}
+          />
+        </label>
+      )}
+      {hasSearch && density === "comfortable" && (
         <TextInput
           ref={searchRef}
           isLabelHidden
           label={`Search ${label.toLowerCase()}`}
           placeholder={searchPlaceholder ?? "Search"}
-          size={density === "compact" ? "sm" : undefined}
           value={query}
           width="100%"
           onChange={onQueryChange}
