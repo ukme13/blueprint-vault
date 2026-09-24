@@ -375,6 +375,32 @@ test.describe("on a phone", () => {
     );
   });
 
+  test("scrolls the Uses table and picks a step from a sheet", async ({
+    seededPage: page,
+  }) => {
+    /* Three device columns shared out by a phone broke "40" over two lines.
+       Each column now has a width, and the table scrolls sideways instead. */
+    await page.goto("/spacing");
+    await page
+      .getByRole("navigation", { name: "Scale sections" })
+      .getByRole("button", { name: "Uses" })
+      .click();
+    const uses = page.getByRole("region", { name: "Spacing uses" });
+    const scroller = uses.locator("table").locator("xpath=..");
+    const { width, scrollWidth } = await scroller.evaluate((node) => ({
+      width: node.getBoundingClientRect().width,
+      scrollWidth: node.scrollWidth,
+    }));
+    expect(scrollWidth).toBeGreaterThan(width);
+
+    await uses.getByLabel("Container inset on Phone").click();
+    const sheet = page.getByRole("dialog", { name: "Spacing steps" });
+    await expect(sheet).toBeVisible();
+    await expect(
+      sheet.getByRole("listbox", { name: "Spacing steps" }),
+    ).toBeVisible();
+  });
+
   test("lays the token search out as two rows", async ({
     seededPage: page,
   }) => {
