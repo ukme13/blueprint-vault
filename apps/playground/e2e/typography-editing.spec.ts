@@ -1175,8 +1175,16 @@ test.describe("Where a Selector menu opens", () => {
     /* Twice, because the first open was the worst of it: the menu had not been
        laid out, so the margin was measured against a height it did not have. */
     for (let open = 1; open <= 2; open += 1) {
-      await trigger.click();
-      await expect(page.getByRole("option").first()).toBeVisible();
+      /* With a retry: the second open comes straight after an Escape, and a
+         click under 100ms after a popover closes is dropped while Astryx
+         waits for the browser's asynchronous toggle event. No hand is that
+         fast. A menu that never reopens still fails. */
+      await expect(async () => {
+        await trigger.click();
+        await expect(page.getByRole("option").first()).toBeVisible({
+          timeout: 1000,
+        });
+      }).toPass({ timeout: 5000 });
       await expectAgainstTrigger(page, trigger);
       await page.keyboard.press("Escape");
       await expect(page.getByRole("option")).toHaveCount(0);

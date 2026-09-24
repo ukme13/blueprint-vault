@@ -642,6 +642,36 @@ test.describe("on a phone", () => {
     expect(after!.y + after!.height).toBeGreaterThanOrEqual(844);
   });
 
+  test("closes only the sheet that is sliding away when Escape comes early", async ({
+    seededPage: page,
+  }) => {
+    /* Three stacked: a track's sheet, the colour picker over it, and the
+       format sheet over that. Escape pressed while the format sheet is still
+       sliding away, when focus has already left it for the body, used to
+       close all three: the browser sends `cancel` to the closing sheet, and
+       React carries it up through the sheets beneath. */
+    await page
+      .getByRole("button", { name: /^Open .* colour details$/ })
+      .first()
+      .click();
+    const track = page.getByRole("dialog", { name: /colour details$/ });
+    await track
+      .getByRole("button", { name: /^Choose .* source colour$/ })
+      .click();
+    const picker = page.getByRole("dialog", { name: /source colour picker$/ });
+    await picker.getByRole("button", { name: /^Colour format: / }).click();
+    const formats = page.getByRole("dialog", { name: "Colour format" });
+    await formats.getByRole("option", { name: "OKLCH" }).click();
+    await expect(formats).toBeHidden();
+
+    /* Straight away, while it is still an open dialog on its way out. */
+    await page.keyboard.press("Escape");
+
+    await expect(page.locator("dialog[open]")).toHaveCount(2);
+    await expect(picker).toBeVisible();
+    await expect(track).toBeVisible();
+  });
+
   test("switches colour format from inside every sheet", async ({
     seededPage: page,
   }) => {
@@ -656,11 +686,16 @@ test.describe("on a phone", () => {
       sheet: ReturnType<typeof page.getByRole>,
       format: "HEX" | "RGB" | "OKLCH",
     ) => {
+      const open = page.locator("dialog[open]");
+      const before = await open.count();
       const trigger = sheet.getByRole("button", { name: /colour format: /i });
       await trigger.click();
       const formats = page.getByRole("dialog", { name: /colour format$/i });
       await formats.getByRole("option", { name: format }).click();
       await expect(formats).toBeHidden();
+      /* Closed, not only hidden: it is still an open dialog while it slides
+         away, and an Escape pressed then is its own, not the sheet below. */
+      await expect(open).toHaveCount(before);
       await expect(trigger).toHaveAccessibleName(
         new RegExp(`colour format: ${format}$`, "i"),
       );
@@ -748,6 +783,10 @@ test.describe("on a phone", () => {
     await expect(picker.locator(".astryx-bottom-sheet").first()).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(picker).toBeHidden();
+    /* Closed, not only hidden. The picker sits inside this sheet in the DOM
+       and is still an open dialog while it slides away, and the overflow
+       check below would measure it mid-exit rather than this sheet at rest. */
+    await expect(page.locator("dialog[open]")).toHaveCount(1);
 
     /* Save, and no Cancel or close button beside it. The footer fits: a
        narrow screen once cut Save changes off and scrolled sideways. */
