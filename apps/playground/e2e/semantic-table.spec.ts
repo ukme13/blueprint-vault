@@ -663,9 +663,19 @@ test.describe("Folder names and spreadsheet editing", () => {
     await expect(list.getByRole("option")).toHaveCount(1);
     await list.getByRole("option", { name: "primary 500" }).click();
     await expect(list).toBeHidden();
+    const chip = editor.getByLabel(/Edit Border subtle light reference/i);
+    await expect(chip).toContainText("primary/500");
+
+    /* And again after a choice. The popover keeps its list mounted while
+       closed, so centring only on mount opened this one at the top. */
+    await chip.click();
+    await page.keyboard.type("neutral 900");
+    await list.getByRole("option", { name: "neutral 900" }).click();
+    await expect(list).toBeHidden();
+    await chip.click();
     await expect(
-      editor.getByLabel(/Edit Border subtle light reference/i),
-    ).toContainText("primary/500");
+      list.getByRole("option", { name: "neutral 900", selected: true }),
+    ).toBeInViewport({ ratio: 1 });
   });
 
   test("column separators can be resized with the keyboard", async ({

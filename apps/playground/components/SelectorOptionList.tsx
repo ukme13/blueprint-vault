@@ -60,17 +60,24 @@ export function SelectorOptionList({
 
   /*
    * Open on the chosen option, centred, rather than at the top of a long
-   * list. Once, when the list appears: after that the scroll is the
-   * person's. A list that scrolls itself (compact) moves its own scrollTop,
-   * so the page under a popover never jumps; in a sheet the sheet scrolls.
+   * list. Every time the list is shown, not once: Astryx's Popover and
+   * BottomSheet keep their content mounted while closed and only hide it, so
+   * a mount effect centred the first open and never the next. A hidden list
+   * has no height, so a ResizeObserver sees each open as the height going
+   * from zero to something. A search that narrows an open list changes the
+   * height but never to zero, so it does not re-centre.
+   *
+   * A list that scrolls itself (compact) moves its own scrollTop, so the page
+   * under a popover never jumps; in a sheet the sheet scrolls.
    */
   useLayoutEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
     const centre = () => {
-      const list = listRef.current;
-      const selected = list?.querySelector<HTMLElement>(
+      const selected = list.querySelector<HTMLElement>(
         '[aria-selected="true"]',
       );
-      if (!list || !selected || list.clientHeight === 0) return;
+      if (!selected) return;
       if (list.scrollHeight > list.clientHeight) {
         const listBox = list.getBoundingClientRect();
         const optionBox = selected.getBoundingClientRect();
@@ -80,11 +87,14 @@ export function SelectorOptionList({
         selected.scrollIntoView({ block: "center" });
       }
     };
-    /* Now, and again on the next frame: a popover can mount its content
-       before it has a size, and then the first pass measures nothing. */
-    centre();
-    const frame = requestAnimationFrame(centre);
-    return () => cancelAnimationFrame(frame);
+    let wasShown = false;
+    const observer = new ResizeObserver(() => {
+      const isShown = list.clientHeight > 0;
+      if (isShown && !wasShown) centre();
+      wasShown = isShown;
+    });
+    observer.observe(list);
+    return () => observer.disconnect();
   }, []);
 
   return (
