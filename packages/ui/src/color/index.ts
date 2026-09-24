@@ -21,6 +21,7 @@ export * from "./theme-mode";
 export * from "./token-rows";
 export * from "./colour-mode";
 export * from "./composite";
+export * from "./contrast-profiles";
 export * from "./transitions";
 export * from "./types";
 export * from "./vision";

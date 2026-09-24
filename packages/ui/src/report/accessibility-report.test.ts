@@ -198,7 +198,10 @@ describe("formatAccessibilityReportMarkdown", () => {
       tracks: [
         { id: "primary", name: "primary", seedHex: "#7646ab" },
         { id: "neutral", name: "neutral", seedHex: "#737373" },
-        { id: "success", name: "success", seedHex: "#802020" },
+        /* Seeded where its source shade lands on 500, which is where the
+           status fill follows it and the pair is the borderline one. See the
+           same palette in preview-assessment.test.ts. */
+        { id: "success", name: "success", seedHex: "#984742" },
       ],
       lightnessValues: LIGHTNESS,
     });

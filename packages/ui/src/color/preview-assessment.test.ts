@@ -262,7 +262,11 @@ function weakeningPalette(): ColorTrack[] {
   return palette([
     { id: "primary", name: "primary", seedHex: "#7646ab" },
     { id: "neutral", name: "neutral", seedHex: "#737373" },
-    { id: "success", name: "success", seedHex: "#802020" },
+    /* Seeded at the colour whose source shade lands on 500. The status fill
+       follows the track's source shade, and this pair is the borderline one
+       only when the fill sits there: 4.73:1, and 4.29:1 simulated. Seeded at
+       #802020 the source is 600 and the pair clears AA with room to spare. */
+    { id: "success", name: "success", seedHex: "#984742" },
   ]);
 }
 

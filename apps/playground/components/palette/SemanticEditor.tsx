@@ -171,6 +171,7 @@ export function SemanticEditor({
               if (added) setEditing({ id: added.id, cell: "name" });
             }}
             onQueryChange={selection.setQuery}
+            onReplace={onChange}
             palettes={palettes}
             query={selection.query}
             selected={selection.selected.length}

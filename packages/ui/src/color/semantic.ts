@@ -1,5 +1,13 @@
 import { contrastRatio } from "./accessibility";
 import { alphaHex } from "./composite";
+import {
+  CONTRAST_PROFILE_SPECS,
+  sourceWeight,
+  toneWeights,
+  type ContrastProfile,
+  type ContrastProfileSpec,
+  type ToneWeights,
+} from "./contrast-profiles";
 import type { ColorTrack, ShadeItem } from "./types";
 
 /**
@@ -142,6 +150,11 @@ interface SeedRole {
    * can act on rather than a grey they cannot explain.
    */
   requireTrack?: boolean;
+  /**
+   * A track by id, for a tone somebody added to a track of their own choosing
+   * rather than one of the named roles. Takes the place of `track`.
+   */
+  trackId?: string;
 }
 
 type TrackRole =
@@ -199,6 +212,15 @@ interface ToneSpec {
   foreground: [light: number, dark: number];
   /** Keep the track name when the palette has not got one. See `requireTrack`. */
   requireTrack?: boolean;
+  /**
+   * Whether the fill follows the track's locked source shade.
+   *
+   * True for every tone that is a brand or status colour: the fill is that
+   * colour as it was measured, wherever on the ramp it sits. False for the
+   * neutral action, whose fill crosses the ramp — black on light, white on
+   * dark — and has no single brand weight to follow.
+   */
+  followsSource?: boolean;
 }
 
 /** The pale ground and its hover, the same for every tone. */
@@ -207,7 +229,22 @@ const TONE_SURFACE_HOVER: [number, number] = [100, 900];
 /** Measured: the one weight that clears 3:1 on both canvases. */
 const TONE_BORDER = 450;
 
-function toneRoles(tone: ToneSpec): SeedRole[] {
+/** The weights a tone declares, before any palette or profile is applied. */
+function declaredWeights(tone: ToneSpec): ToneWeights {
+  return {
+    fill: tone.fill,
+    hover: tone.hover,
+    active: tone.active,
+    border: [TONE_BORDER, TONE_BORDER],
+  };
+}
+
+function toneRoles(
+  tone: ToneSpec,
+  weights: ToneWeights = declaredWeights(tone),
+  profile: ContrastProfileSpec = CONTRAST_PROFILE_SPECS.standard,
+  trackId?: string,
+): SeedRole[] {
   const of = (
     suffix: string,
     label: string,
@@ -224,6 +261,7 @@ function toneRoles(tone: ToneSpec): SeedRole[] {
     preferDarkWeight: dark,
     alpha,
     requireTrack: tone.requireTrack,
+    trackId,
   });
 
   return [
@@ -233,25 +271,26 @@ function toneRoles(tone: ToneSpec): SeedRole[] {
       description: tone.description,
       track: tone.track,
       position: tone.position,
-      preferWeight: tone.fill[0],
-      preferDarkWeight: tone.fill[1],
+      preferWeight: weights.fill[0],
+      preferDarkWeight: weights.fill[1],
       requireTrack: tone.requireTrack,
+      trackId,
     },
-    of("hover", "hover", "The fill under the pointer.", tone.hover),
-    of("active", "active", "The fill while it is pressed.", tone.active),
+    of("hover", "hover", "The fill under the pointer.", weights.hover),
+    of("active", "active", "The fill while it is pressed.", weights.active),
     of(
       "surface",
       "surface",
       "The soft ground of an alert, a ghost control or a hovered outline.",
       TONE_SURFACE,
-      [0.12, 0.16],
+      profile.surfaceAlpha,
     ),
     of(
       "surface-hover",
       "surface hover",
       "That soft ground, hovered or pressed.",
       TONE_SURFACE_HOVER,
-      [0.18, 0.22],
+      profile.surfaceHoverAlpha,
     ),
     of(
       "fg",
@@ -259,10 +298,12 @@ function toneRoles(tone: ToneSpec): SeedRole[] {
       "Text and icons on the surface, and on the canvas.",
       tone.foreground,
     ),
-    of("border", "border", "The edge of an outlined control or an alert.", [
-      TONE_BORDER,
-      TONE_BORDER,
-    ]),
+    of(
+      "border",
+      "border",
+      "The edge of an outlined control or an alert.",
+      weights.border,
+    ),
   ];
 }
 
@@ -335,6 +376,7 @@ const TONES: readonly ToneSpec[] = [
     fill: [950, 50],
     hover: [900, 100],
     active: [850, 150],
+    followsSource: false,
     onFill: "fg.on-neutral",
     onFillName: "Foreground on neutral",
     /* Body text, because a neutral text button's label is body text. */
@@ -610,63 +652,120 @@ function mirrored(track: ColorTrack, weight: number): ShadeItem {
  * nothing to point at, which is a state the studio reaches whenever the last
  * track is deleted.
  */
-export function seedSemanticTokens(tracks: ColorTrack[]): SemanticToken[] {
+export function seedSemanticTokens(
+  tracks: ColorTrack[],
+  profile: ContrastProfile = "standard",
+): SemanticToken[] {
   if (tracks.length === 0) return [];
+
+  /* The tones' roles are worked out for this palette and profile; every other
+     role is as written. `SEED_ROLES` still decides ids, names and order. */
+  const toneRoleFor = new Map<string, SeedRole>();
+  for (const tone of TONES) {
+    for (const role of seededToneRoles(tone, tracks, profile)) {
+      toneRoleFor.set(role.id, role);
+    }
+  }
+  const roles = SEED_ROLES.map((role) => toneRoleFor.get(role.id) ?? role);
 
   /* Fills first, then the labels that measure against them. Every role a
      `readableOn` names is an ordinary role in this same list, so one pass
      would depend on the order somebody happened to write them in. */
   const seeded = new Map<string, SemanticToken>();
-  const ordered = [
-    ...SEED_ROLES.filter((role) => role.readableOn === undefined),
-    ...SEED_ROLES.filter((role) => role.readableOn !== undefined),
-  ];
-
-  for (const role of ordered) {
-    const track = trackFor(tracks, role.track);
-    /* The shades come from whatever track the chain landed on — weights are
-       the same across a Blueprint palette — but the reference keeps the name
-       the role asked for when it must. See `requireTrack`. */
-    const referencedTrackId =
-      role.requireTrack === true && track.name !== role.track
-        ? role.track
-        : track.id;
-    const light =
-      (role.preferWeight === undefined
-        ? undefined
-        : track.shades.find((shade) => shade.weight === role.preferWeight)) ??
-      shadeAt(track, role.position);
-    const dark =
-      (role.preferDarkWeight === undefined
-        ? undefined
-        : track.shades.find(
-            (shade) => shade.weight === role.preferDarkWeight,
-          )) ?? mirrored(track, light.weight);
-    const measured =
-      role.readableOn === undefined
-        ? null
-        : readableEnds(track, seeded.get(role.readableOn), tracks);
-
-    seeded.set(role.id, {
-      id: role.id,
-      name: role.name,
-      description: role.description,
-      light: {
-        trackId: referencedTrackId,
-        weight: measured?.light.weight ?? light.weight,
-        ...(role.alpha === undefined ? {} : { alpha: role.alpha[0] }),
-      },
-      dark: {
-        trackId: referencedTrackId,
-        weight: measured?.dark.weight ?? dark.weight,
-        ...(role.alpha === undefined ? {} : { alpha: role.alpha[1] }),
-      },
-    });
+  for (const role of [
+    ...roles.filter((each) => each.readableOn === undefined),
+    ...roles.filter((each) => each.readableOn !== undefined),
+  ]) {
+    seeded.set(role.id, seedToken(role, tracks, seeded));
   }
 
   /* Back into the order the roles are written in, which is the order the
      Semantics table groups them and the export writes them. */
-  return SEED_ROLES.map((role) => seeded.get(role.id)!);
+  return roles.map((role) => seeded.get(role.id)!);
+}
+
+/**
+ * A seeded tone's roles, for this palette and profile.
+ *
+ * The fill is the track's locked source shade — the brand colour where it was
+ * measured, 300 for a pale brand and 700 for a deep one — rather than a weight
+ * written here. The tone's declared fill is only the fallback, for a track
+ * without a source shade, or a palette without the track at all, where the
+ * chain lands on another track whose brand colour is not this tone's.
+ */
+function seededToneRoles(
+  tone: ToneSpec,
+  tracks: ColorTrack[],
+  profile: ContrastProfile,
+): SeedRole[] {
+  const spec = CONTRAST_PROFILE_SPECS[profile];
+  const track = trackFor(tracks, tone.track);
+
+  if (tone.followsSource === false) {
+    const border = toneWeights(track, 500, 0, profile).border;
+    return toneRoles(tone, { ...declaredWeights(tone), border }, spec);
+  }
+
+  const isOwnTrack = track.name === tone.track || tone.track === "primary";
+  const base = (isOwnTrack ? sourceWeight(track) : undefined) ?? tone.fill[0];
+  const weights = toneWeights(
+    track,
+    base,
+    tone.fill[1] - tone.fill[0],
+    profile,
+  );
+  return toneRoles(tone, weights, spec);
+}
+
+/** One role, resolved against the palette. */
+function seedToken(
+  role: SeedRole,
+  tracks: ColorTrack[],
+  seeded: ReadonlyMap<string, SemanticToken>,
+): SemanticToken {
+  const track =
+    (role.trackId === undefined
+      ? undefined
+      : tracks.find((each) => each.id === role.trackId)) ??
+    trackFor(tracks, role.track);
+  /* The shades come from whatever track the chain landed on — weights are
+     the same across a Blueprint palette — but the reference keeps the name
+     the role asked for when it must. See `requireTrack`. */
+  const referencedTrackId =
+    role.trackId ??
+    (role.requireTrack === true && track.name !== role.track
+      ? role.track
+      : track.id);
+  const light =
+    (role.preferWeight === undefined
+      ? undefined
+      : track.shades.find((shade) => shade.weight === role.preferWeight)) ??
+    shadeAt(track, role.position);
+  const dark =
+    (role.preferDarkWeight === undefined
+      ? undefined
+      : track.shades.find((shade) => shade.weight === role.preferDarkWeight)) ??
+    mirrored(track, light.weight);
+  const measured =
+    role.readableOn === undefined
+      ? null
+      : readableEnds(track, seeded.get(role.readableOn), tracks);
+
+  return {
+    id: role.id,
+    name: role.name,
+    description: role.description,
+    light: {
+      trackId: referencedTrackId,
+      weight: measured?.light.weight ?? light.weight,
+      ...(role.alpha === undefined ? {} : { alpha: role.alpha[0] }),
+    },
+    dark: {
+      trackId: referencedTrackId,
+      weight: measured?.dark.weight ?? dark.weight,
+      ...(role.alpha === undefined ? {} : { alpha: role.alpha[1] }),
+    },
+  };
 }
 
 /**
@@ -1136,4 +1235,192 @@ export function rememberRemovedSeedRoles(
   );
 
   return [...kept, ...added];
+}
+
+/**
+ * A tone somebody adds: a name, a track, and where on it the fill sits.
+ */
+export interface ToneFamilySpec {
+  /**
+   * What the tone is called, as typed: "accent", "promo", "status.promo".
+   *
+   * A name without a group goes into `action`, beside the seeded actions: the
+   * table groups by the part of an id before its first dot, and a bare
+   * `accent` family would otherwise be seven groups of one.
+   */
+  name: string;
+  trackId: string;
+  /** Defaults to the track's locked source shade, then to 500. */
+  baseWeight?: number;
+}
+
+/** The ids a tone family takes, the fill's first. */
+export function toneFamilyIds(name: string): {
+  fill: string;
+  onFill: string;
+  all: string[];
+} {
+  const slug = semanticId(name) || "tone";
+  const fill = slug.includes(".") ? slug : `action.${slug}`;
+  const leaf = fill.slice(fill.lastIndexOf(".") + 1);
+  const onFill = `fg.on-${leaf}`;
+  return {
+    fill,
+    onFill,
+    all: [
+      fill,
+      `${fill}-hover`,
+      `${fill}-active`,
+      `${fill}-surface`,
+      `${fill}-surface-hover`,
+      `${fill}-fg`,
+      `${fill}-border`,
+      onFill,
+    ],
+  };
+}
+
+/** "action.promo-code" → "Promo code". */
+function toneLabel(fill: string): string {
+  const leaf = fill.slice(fill.lastIndexOf(".") + 1).replace(/-/g, " ");
+  return leaf.charAt(0).toUpperCase() + leaf.slice(1);
+}
+
+/**
+ * A tone's eight tokens, for a track and a profile.
+ *
+ * The same shape the seeded tones have — a fill, its hover and active, a soft
+ * ground and its hover, a foreground, an edge, and the label on the fill —
+ * built by the same code, so an added tone and a seeded one cannot differ in
+ * anything but where they point.
+ *
+ * Empty when the track is not in the palette.
+ */
+export function generateToneFamily(
+  tracks: ColorTrack[],
+  spec: ToneFamilySpec,
+  profile: ContrastProfile = "standard",
+): SemanticToken[] {
+  const track = tracks.find((each) => each.id === spec.trackId);
+  if (!track) return [];
+
+  const ids = toneFamilyIds(spec.name);
+  const label = toneLabel(ids.fill);
+  const base = spec.baseWeight ?? sourceWeight(track) ?? 500;
+  const tone: ToneSpec = {
+    id: ids.fill,
+    name: label,
+    description: `The fill of a ${label.toLowerCase()} control.`,
+    /* Unused: the roles below name the track by id. */
+    track: "primary",
+    position: 0.55,
+    fill: [base, base - 50],
+    hover: [base + 50, base - 100],
+    active: [base + 100, base - 150],
+    onFill: ids.onFill,
+    onFillName: `Foreground on ${label.toLowerCase()}`,
+    foreground: [900, 100],
+  };
+  const weights = toneWeights(track, base, -50, profile);
+  const roles = [
+    ...toneRoles(tone, weights, CONTRAST_PROFILE_SPECS[profile], track.id),
+    onFillRole(tone),
+  ];
+
+  const seeded = new Map<string, SemanticToken>();
+  for (const role of roles)
+    seeded.set(role.id, seedToken(role, tracks, seeded));
+  return roles.map((role) => seeded.get(role.id)!);
+}
+
+/**
+ * Append a tone family to the layer, or say why not.
+ *
+ * Refuses the whole family when any of its ids is taken rather than renaming
+ * the clashing ones: `action.accent.2-hover` beside `action.accent-hover`
+ * would be a family nobody could read, and overwriting would lose somebody's
+ * edits without asking.
+ */
+export function addToneFamily(
+  tokens: SemanticToken[],
+  family: SemanticToken[],
+): { layer: SemanticToken[]; clashes: string[] } {
+  const taken = new Set(tokens.map((token) => token.id));
+  const clashes = family.map((token) => token.id).filter((id) => taken.has(id));
+  return clashes.length > 0
+    ? { layer: tokens, clashes }
+    : { layer: [...tokens, ...family], clashes: [] };
+}
+
+/** Every id a seeded tone family takes, the labels on the fills included. */
+export const SEEDED_TONE_IDS: readonly string[] = TONES.flatMap((each) => [
+  ...toneRoles(each).map((role) => role.id),
+  each.onFill,
+]);
+
+/**
+ * Point the seeded tones back at the palette's locked source shades.
+ *
+ * Only the references move. A tone's names and descriptions are the person's
+ * to edit and stay as they are; a tone they removed stays removed, because
+ * bringing it back would undo a choice rather than follow the palette; and a
+ * tone they added themselves is not a seeded one and is left alone.
+ *
+ * `changed` lists the tokens whose references move, so the studio can ask
+ * before a sync overwrites something somebody set by hand — and say nothing
+ * is going to change when nothing is.
+ */
+export function syncTonesWithAnchors(
+  tokens: SemanticToken[],
+  tracks: ColorTrack[],
+  profile: ContrastProfile = "standard",
+): { layer: SemanticToken[]; changed: string[] } {
+  const fresh = new Map(
+    seedSemanticTokens(tracks, profile).map((token) => [token.id, token]),
+  );
+  const toneIds = new Set(SEEDED_TONE_IDS);
+  const same = (a: SemanticReference, b: SemanticReference) =>
+    a.trackId === b.trackId && a.weight === b.weight && a.alpha === b.alpha;
+
+  const changed: string[] = [];
+  const layer = tokens.map((token) => {
+    const next = toneIds.has(token.id) ? fresh.get(token.id) : undefined;
+    if (!next || (same(token.light, next.light) && same(token.dark, next.dark)))
+      return token;
+    changed.push(token.id);
+    return { ...token, light: next.light, dark: next.dark };
+  });
+  return { layer: changed.length > 0 ? layer : tokens, changed };
+}
+
+/**
+ * How well the label on a tone's fill reads, per mode, against a profile's
+ * target.
+ *
+ * Measured on the family as it would be added, so the dialog can say whether
+ * a high-contrast tone on a mid-tone brand colour reaches 7:1 before anybody
+ * commits to it. Null for a mode that does not resolve.
+ */
+export function toneFamilyContrast(
+  family: SemanticToken[],
+  tracks: ColorTrack[],
+  profile: ContrastProfile = "standard",
+): {
+  target: number;
+  light: number | null;
+  dark: number | null;
+} {
+  const fill = family[0];
+  const label = family.at(-1);
+  const ratio = (mode: ColourMode) => {
+    if (!fill || !label) return null;
+    const on = resolveSemantic(fill, mode, tracks);
+    const text = resolveSemantic(label, mode, tracks);
+    return on && text ? contrastRatio(text.hex, on.hex) : null;
+  };
+  return {
+    target: CONTRAST_PROFILE_SPECS[profile].onFillContrast,
+    light: ratio("light"),
+    dark: ratio("dark"),
+  };
 }
