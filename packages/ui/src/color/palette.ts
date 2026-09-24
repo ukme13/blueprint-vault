@@ -68,6 +68,10 @@ function shadeFromHex(
   };
 }
 
+function withLCH(shade: ShadeItem, L: number, C: number, H: number): ShadeItem {
+  return { ...shade, L, C, H, hex: oklchToHex(L, C, H) };
+}
+
 function applyTrackAdjustments(
   shades: ShadeItem[],
   adjustments: TrackAdjustments,
@@ -88,19 +92,50 @@ function applyTrackAdjustments(
     },
   );
 
-  const anchorIndexes =
-    customAnchorIndexes.length > 0
-      ? [
-          ...new Set([
-            0,
-            sourceIndex,
-            ...customAnchorIndexes,
-            adjusted.length - 1,
-          ]),
-        ]
-          .filter((index) => index >= 0)
-          .sort((first, second) => first - second)
-      : [sourceIndex];
+  /*
+   * Only real anchors: the source and the custom ones. The two ends used to be
+   * listed too, which froze weight 25 at the seed's hue — an orange 25 beside
+   * a purple anchor at 50, with nothing between them to blend.
+   */
+  const anchorIndexes = [...new Set([sourceIndex, ...customAnchorIndexes])]
+    .filter((index) => index >= 0)
+    .sort((first, second) => first - second);
+
+  const firstAnchorIndex = anchorIndexes[0];
+  const lastAnchorIndex = anchorIndexes.at(-1);
+
+  /*
+   * Past either end, a shade extrapolates from its nearest anchor with the
+   * formula generatePalette uses around the seed: the anchor's hue, its own
+   * target lightness (already on the shade), and chroma easing to 0.01 at
+   * the light end and 0.025 at the dark end.
+   */
+  if (firstAnchorIndex !== undefined && lastAnchorIndex !== undefined) {
+    const first = adjusted[firstAnchorIndex]!;
+    for (let index = 0; index < firstAnchorIndex; index++) {
+      const factor = index / firstAnchorIndex;
+      const C = 0.01 + factor * (first.C - 0.01);
+      adjusted[index] = withLCH(
+        adjusted[index]!,
+        adjusted[index]!.L,
+        C,
+        first.H,
+      );
+    }
+
+    const last = adjusted[lastAnchorIndex]!;
+    const span = adjusted.length - 1 - lastAnchorIndex;
+    for (let index = lastAnchorIndex + 1; index < adjusted.length; index++) {
+      const factor = (index - lastAnchorIndex) / span;
+      const C = last.C - factor * (last.C - 0.025);
+      adjusted[index] = withLCH(
+        adjusted[index]!,
+        adjusted[index]!.L,
+        C,
+        last.H,
+      );
+    }
+  }
 
   for (let point = 0; point < anchorIndexes.length - 1; point++) {
     const startIndex = anchorIndexes[point]!;
@@ -114,13 +149,7 @@ function applyTrackAdjustments(
       const L = start.L + (end.L - start.L) * progress;
       const C = start.C + (end.C - start.C) * progress;
       const H = interpolateHue(start.H, end.H, progress);
-      adjusted[index] = {
-        ...adjusted[index]!,
-        L,
-        C,
-        H,
-        hex: oklchToHex(L, C, H),
-      };
+      adjusted[index] = withLCH(adjusted[index]!, L, C, H);
     }
   }
 
