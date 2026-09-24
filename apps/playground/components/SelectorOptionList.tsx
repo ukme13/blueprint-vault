@@ -35,6 +35,11 @@ interface SelectorOptionListProps {
    * scrolls inside a fixed height.
    */
   density?: "comfortable" | "compact";
+  /**
+   * What sits above the search in a phone sheet: its title, and a notice if
+   * it has one. Held at the top with the search while the options scroll.
+   */
+  header?: ReactNode;
   /** Focus the search each time the list is shown, so typing filters at once. */
   hasAutoFocus?: boolean;
 }
@@ -54,6 +59,7 @@ export function SelectorOptionList({
   searchPlaceholder,
   density = "comfortable",
   hasAutoFocus,
+  header,
 }: SelectorOptionListProps) {
   const groups = sheetOptionGroups([...options], query);
   const listRef = useRef<HTMLDivElement>(null);
@@ -120,16 +126,24 @@ export function SelectorOptionList({
           />
         </label>
       )}
-      {hasSearch && density === "comfortable" && (
-        <TextInput
-          ref={searchRef}
-          isLabelHidden
-          label={`Search ${label.toLowerCase()}`}
-          placeholder={searchPlaceholder ?? "Search"}
-          value={query}
-          width="100%"
-          onChange={onQueryChange}
-        />
+      {density === "comfortable" && (header || hasSearch) && (
+        /* Held at the top of the sheet while the options scroll under it:
+           a long list of shades used to carry the search off the screen,
+           and with it the way to narrow the list. */
+        <div className={styles.stickyHead}>
+          {header}
+          {hasSearch && (
+            <TextInput
+              ref={searchRef}
+              isLabelHidden
+              label={`Search ${label.toLowerCase()}`}
+              placeholder={searchPlaceholder ?? "Search"}
+              value={query}
+              width="100%"
+              onChange={onQueryChange}
+            />
+          )}
+        </div>
       )}
 
       <div

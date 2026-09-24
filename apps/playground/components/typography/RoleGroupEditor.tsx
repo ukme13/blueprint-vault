@@ -159,7 +159,6 @@ export function RoleGroupEditor({
           </button>
           <Button
             aria-label={`Move ${group.label} up`}
-            className="h-8! w-8! [&_svg]:size-4!"
             disabled={!accordion.onMoveUp}
             scheme="neutral"
             size="icon"
@@ -170,7 +169,6 @@ export function RoleGroupEditor({
           </Button>
           <Button
             aria-label={`Move ${group.label} down`}
-            className="h-8! w-8! [&_svg]:size-4!"
             disabled={!accordion.onMoveDown}
             scheme="neutral"
             size="icon"
@@ -189,7 +187,7 @@ export function RoleGroupEditor({
               <Button
                 ref={setActivatorNodeRef}
                 aria-label={`Reorder ${group.label} group`}
-                className="h-8! w-6! cursor-grab [&_svg]:size-4!"
+                className="w-6! cursor-grab"
                 scheme="neutral"
                 size="icon"
                 variant="text"
@@ -253,7 +251,6 @@ export function RoleGroupEditor({
               {!accordion && (
                 <Button
                   aria-label={`Add a role to ${group.label}`}
-                  className="h-8! w-8! [&_svg]:size-4!"
                   disabled={!canAddRole}
                   scheme="neutral"
                   size="icon"
@@ -265,7 +262,6 @@ export function RoleGroupEditor({
               )}
               <Button
                 aria-label={`Remove ${group.label} group`}
-                className="h-8! w-8! [&_svg]:size-4!"
                 scheme="neutral"
                 size="icon"
                 variant="outlined"

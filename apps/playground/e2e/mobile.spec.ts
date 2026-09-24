@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import {
   PROJECT_STORAGE_KEY,
   createWorkspaceFromHome,
@@ -304,6 +305,13 @@ test.describe("on a phone", () => {
        alert would not be. */
     expect(panel!.y + panel!.height).toBeGreaterThanOrEqual(844);
     expect(panel!.y).toBeGreaterThan(844 / 2);
+
+    /* A thumb's target: 44px, not the 36px a large button is beside a
+       field. */
+    for (const name of ["Reset preset", "Cancel"]) {
+      const box = await sheet.getByRole("button", { name }).boundingBox();
+      expect(Math.round(box!.height), name).toBe(44);
+    }
 
     await sheet.getByRole("button", { name: "Cancel" }).click();
     await expect(sheet).toBeHidden();
@@ -977,6 +985,71 @@ test.describe("on a phone", () => {
     await expect(sheet).toBeVisible();
   });
 
+  test("keeps a selector sheet's search at the top while its list scrolls", async ({
+    page,
+  }) => {
+    /* A long list of shades used to carry the title and search off the top
+       of the sheet as it scrolled, and with them the way to narrow it. */
+    await page.addInitScript(
+      ({ pk, p, tk, t }) => {
+        window.localStorage.setItem(pk, JSON.stringify(p));
+        window.localStorage.setItem(tk, JSON.stringify(t));
+      },
+      {
+        pk: PROJECT_STORAGE_KEY,
+        p: defaultProject(),
+        tk: TYPOGRAPHY_STORAGE_KEY,
+        t: defaultTypographyProject(),
+      },
+    );
+    await page.goto("/typography");
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    await page.getByRole("button", { name: /^Text colour: / }).click();
+
+    const sheet = page.getByRole("dialog", { name: "Text colour" });
+    const search = sheet.getByRole("textbox");
+    await expect(search).toBeVisible();
+
+    /* To the end of the sheet's own scroll. */
+    const scrolled = await sheet.evaluate((dialog) => {
+      const scroller = [...dialog.querySelectorAll<HTMLElement>("*")].find(
+        (node) =>
+          node.scrollHeight > node.clientHeight + 1 &&
+          /auto|scroll/.test(getComputedStyle(node).overflowY),
+      );
+      if (!scroller) return 0;
+      scroller.scrollTop = scroller.scrollHeight;
+      return scroller.scrollTop;
+    });
+    expect(scrolled, "the list is long enough to scroll").toBeGreaterThan(200);
+
+    const panel = (await sheet
+      .locator(".astryx-bottom-sheet")
+      .first()
+      .boundingBox())!;
+    const box = (await search.boundingBox())!;
+    await expect(search).toBeInViewport();
+    expect(box.y - panel.y, "the search stays near the top").toBeLessThan(120);
+    await expect(
+      sheet.getByRole("heading", { name: "Text colour" }),
+    ).toBeInViewport();
+  });
+
+  test("opens the preview weight as a sheet", async ({ page }) => {
+    /* A Google font, so there are weights to choose between. */
+    await seedTypographyProject(page, {
+      ...defaultTypographyProject(),
+      fontFamily: "Inter, ui-sans-serif, system-ui",
+    });
+    const trigger = page.getByRole("button", { name: /^Preview weight: / });
+    await expect(trigger).toBeVisible();
+    await trigger.click();
+    const sheet = page.getByRole("dialog", { name: "Preview weight" });
+    await expect(sheet.locator(".astryx-bottom-sheet").first()).toBeVisible();
+    await sheet.getByRole("option").last().click();
+    await expect(sheet).toBeHidden();
+  });
+
   test("picks preview colours and text presets from a sheet", async ({
     page,
   }) => {
@@ -1311,6 +1384,35 @@ test.describe("on a phone", () => {
     await expect(
       page.getByRole("dialog", { name: "New project" }),
     ).toBeVisible();
+  });
+
+  /* A medium button is 32px, the field it would sit beside; the menu button
+     beside Export is 36px. On a phone they share a row. */
+  const expectExportLevelWithMenu = async (page: Page) => {
+    const exportButton = page.getByRole("button", { name: /^Export/ }).first();
+    await expect(exportButton).toBeVisible();
+    const menu = (await page
+      .getByRole("button", { name: "Open navigation" })
+      .boundingBox())!;
+    const box = (await exportButton.boundingBox())!;
+    expect(Math.round(box.height)).toBe(Math.round(menu.height));
+    expect(Math.abs(box.y - menu.y)).toBeLessThanOrEqual(1);
+  };
+
+  for (const route of ["/colour", "/spacing", "/elevation"]) {
+    test(`makes Export the menu button's height on ${route}`, async ({
+      seededPage: page,
+    }) => {
+      await page.goto(route);
+      await expectExportLevelWithMenu(page);
+    });
+  }
+
+  test("makes Export the menu button's height on /typography", async ({
+    page,
+  }) => {
+    await seedTypographyProject(page);
+    await expectExportLevelWithMenu(page);
   });
 
   test("gives the top bar room above the menu button and Export", async ({

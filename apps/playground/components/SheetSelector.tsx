@@ -136,10 +136,14 @@ export function SelectorSheet({
       label={label}
       onClose={close}
     >
-      <h2 className={styles.title}>{label}</h2>
-      {notice}
       <SelectorOptionList
         hasSearch={hasSearch}
+        header={
+          <>
+            <h2 className={styles.title}>{label}</h2>
+            {notice}
+          </>
+        }
         label={label}
         options={options}
         query={query}

@@ -73,7 +73,7 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   align-items: center;
-  gap: 14px;
+  gap: var(--spacing-2, 8px);
 }
 
 .creationHeader nav {
@@ -290,7 +290,7 @@
 .deviceRow {
   display: grid;
   grid-template-columns: 4.75rem minmax(0, 1fr);
-  column-gap: var(--spacing-1);
+  column-gap: var(--spacing-2);
   align-items: center;
 }
 
@@ -751,7 +751,7 @@
 
 .roleGroupActions {
   display: flex;
-  gap: var(--spacing-1);
+  gap: var(--spacing-2);
   align-items: center;
 }
 
@@ -792,7 +792,7 @@
   grid-template-columns:
     minmax(5rem, 0.8fr) minmax(11rem, 1.8fr) minmax(6rem, 1fr)
     minmax(4.5rem, 0.7fr) minmax(4.5rem, 0.7fr) minmax(5rem, 0.8fr) auto;
-  column-gap: var(--spacing-1);
+  column-gap: var(--spacing-2);
   row-gap: var(--spacing-2);
   align-items: center;
   overflow-x: auto;
@@ -1287,5 +1287,14 @@
     margin-bottom: var(--spacing-1);
     color: var(--color-text-secondary);
     font-size: var(--font-size-sm);
+  }
+}
+
+/* On a phone the header's buttons are the fixed menu button's height, 36px
+   (--size-element-lg), so the row they share lines up. A medium button is
+   32px. Last in the file so it outranks the rules above. */
+@media (max-width: 640px) {
+  .headerActions > button {
+    height: var(--size-element-lg, 36px);
   }
 }

@@ -64,7 +64,7 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   align-items: center;
-  gap: 14px;
+  gap: var(--spacing-2, 8px);
 }
 
 .creationHeaderActions {
@@ -531,6 +531,10 @@
   position: relative;
   min-width: 10ch;
   width: 100%;
+  /* The height of the details button beside it, whose edge its own shows
+     against when hovered or focused. */
+  box-sizing: border-box;
+  height: 28px;
   padding: 3px 4px;
   overflow: hidden;
   border: 1px solid transparent;
@@ -1724,4 +1728,13 @@
 
 .trackSheet .trackShadePreview > span {
   min-width: 0;
+}
+
+/* On a phone the header's buttons are the fixed menu button's height, 36px
+   (--size-element-lg), so the row they share lines up. A medium button is
+   32px. Last in the file so it outranks the rules above. */
+@media (max-width: 640px) {
+  .headerActions > button {
+    height: var(--size-element-lg, 36px);
+  }
 }

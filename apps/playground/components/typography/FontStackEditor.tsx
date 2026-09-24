@@ -192,7 +192,6 @@ export function FontStackEditor({
             /* Sized against the name field beside it. See the note on the
                role row's trash: `cn` is a plain join, so the CVA size stays
                on the element and only the important suffix beats it. */
-            className="h-8! w-8! [&_svg]:size-4!"
             scheme="neutral"
             size="icon"
             variant="outlined"
@@ -239,7 +238,6 @@ export function FontStackEditor({
               /* The same button as the entry's trash, with a different glyph:
                  they do the same kind of thing at different scopes, and one of
                  them reading as filled made it look like the louder action. */
-              className="h-8! w-8! [&_svg]:size-4!"
               scheme="neutral"
               size="icon"
               variant="outlined"
