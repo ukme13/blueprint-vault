@@ -28,3 +28,17 @@ every developer machine. No routine run exercises that now. For changes to
 effects, storage, providers or persistence, run the affected specs with
 `E2E_DEV=1` too before merging. A dev-mode CI job would close the gap for
 good; it was left out in August for the ~2.5 minutes it adds.
+
+## The docs suite, the same way
+
+The docs suite already built for production, but it served on 3001, the docs'
+own dev and start port, and reused whatever answered there. A docs dev server
+left open answered the suite in place of the build. It now runs `next build`
+and `next start --port 3005`, calling `next start` directly because the
+app's start script pins 3001, and never reuses a server. `E2E_DEV=1` reuses
+the docs dev server on 3001. All 50 docs tests pass in 1m13s, build included.
+
+| Suite      | Port | Server                 | `E2E_DEV=1` |
+| ---------- | ---- | ---------------------- | ----------- |
+| playground | 3004 | build, then start      | dev on 3000 |
+| docs       | 3005 | generate, build, start | dev on 3001 |
