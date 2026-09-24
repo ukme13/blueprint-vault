@@ -1725,3 +1725,12 @@
 .trackSheet .trackShadePreview > span {
   min-width: 0;
 }
+
+/* On a phone the header's buttons are the fixed menu button's height, 36px
+   (--size-element-lg), so the row they share lines up. A medium button is
+   32px. Last in the file so it outranks the rules above. */
+@media (max-width: 640px) {
+  .headerActions > button {
+    height: var(--size-element-lg, 36px);
+  }
+}

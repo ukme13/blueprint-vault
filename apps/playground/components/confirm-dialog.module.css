@@ -17,6 +17,10 @@
   margin-top: var(--spacing-3, 12px);
 }
 
+/* 44px, a thumb's target, on the one sheet that is only a question: the
+   large button is 36px now, the height of the field it would sit beside, and
+   there is no field here. */
 .actions > * {
   width: 100%;
+  height: var(--spacing-11, 44px);
 }

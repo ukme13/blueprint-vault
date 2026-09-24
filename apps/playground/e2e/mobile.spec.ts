@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import {
   PROJECT_STORAGE_KEY,
   createWorkspaceFromHome,
@@ -304,6 +305,13 @@ test.describe("on a phone", () => {
        alert would not be. */
     expect(panel!.y + panel!.height).toBeGreaterThanOrEqual(844);
     expect(panel!.y).toBeGreaterThan(844 / 2);
+
+    /* A thumb's target: 44px, not the 36px a large button is beside a
+       field. */
+    for (const name of ["Reset preset", "Cancel"]) {
+      const box = await sheet.getByRole("button", { name }).boundingBox();
+      expect(Math.round(box!.height), name).toBe(44);
+    }
 
     await sheet.getByRole("button", { name: "Cancel" }).click();
     await expect(sheet).toBeHidden();
@@ -1311,6 +1319,35 @@ test.describe("on a phone", () => {
     await expect(
       page.getByRole("dialog", { name: "New project" }),
     ).toBeVisible();
+  });
+
+  /* A medium button is 32px, the field it would sit beside; the menu button
+     beside Export is 36px. On a phone they share a row. */
+  const expectExportLevelWithMenu = async (page: Page) => {
+    const exportButton = page.getByRole("button", { name: /^Export/ }).first();
+    await expect(exportButton).toBeVisible();
+    const menu = (await page
+      .getByRole("button", { name: "Open navigation" })
+      .boundingBox())!;
+    const box = (await exportButton.boundingBox())!;
+    expect(Math.round(box.height)).toBe(Math.round(menu.height));
+    expect(Math.abs(box.y - menu.y)).toBeLessThanOrEqual(1);
+  };
+
+  for (const route of ["/colour", "/spacing", "/elevation"]) {
+    test(`makes Export the menu button's height on ${route}`, async ({
+      seededPage: page,
+    }) => {
+      await page.goto(route);
+      await expectExportLevelWithMenu(page);
+    });
+  }
+
+  test("makes Export the menu button's height on /typography", async ({
+    page,
+  }) => {
+    await seedTypographyProject(page);
+    await expectExportLevelWithMenu(page);
   });
 
   test("gives the top bar room above the menu button and Export", async ({
