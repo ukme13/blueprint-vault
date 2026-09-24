@@ -154,20 +154,23 @@
  * down the page.
  */
 .list[data-density="compact"] {
-  gap: var(--spacing-2);
-  max-height: 20rem;
+  gap: var(--spacing-4);
+  max-height: 22rem;
   overflow-y: auto;
-  padding: var(--spacing-1);
+  padding: var(--spacing-2);
   font-size: var(--font-size-sm, 0.875rem);
 }
 
 .list[data-density="compact"] .groupTitle {
-  padding: 0 var(--spacing-2);
+  margin-bottom: var(--spacing-1);
+  padding: 0 var(--spacing-3);
   font-size: var(--font-size-xs, 0.75rem);
 }
 
 .list[data-density="compact"] .option {
-  min-height: var(--size-element-md);
+  gap: var(--spacing-3);
+  min-height: var(--size-element-lg);
+  padding: 0 var(--spacing-3);
   border-radius: var(--radius-inner);
 }
 

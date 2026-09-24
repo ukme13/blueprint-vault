@@ -107,7 +107,7 @@ export function SelectorOptionList({
       {hasSearch && density === "compact" && (
         /* A dropdown's header: a magnifier and a borderless field over a
            line the width of the panel, as Astryx's own Selector draws it. */
-        <label className="flex items-center gap-2 border-b border-border-subtle px-3 py-2">
+        <label className="flex items-center gap-3 border-b border-border-subtle px-4 py-3">
           <Search aria-hidden className="size-4 shrink-0 text-fg-muted" />
           <input
             ref={searchRef}

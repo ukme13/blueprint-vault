@@ -149,7 +149,7 @@ export function ReferenceField({
                than inside an inset box. */
             <section className="flex flex-col">
               {warning && (
-                <p className="m-0 border-b border-border-subtle px-3 py-2">
+                <p className="m-0 border-b border-border-subtle px-4 py-3">
                   {warning}
                 </p>
               )}
@@ -175,7 +175,7 @@ export function ReferenceField({
           label={`${token.name} ${mode} reference`}
           placement="below"
           style={{ padding: 0 }}
-          width={260}
+          width={280}
           onOpenChange={(open) =>
             open ? setIsPickerOpen(true) : closePicker()
           }
