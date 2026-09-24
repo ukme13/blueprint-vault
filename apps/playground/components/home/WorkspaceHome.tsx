@@ -3,6 +3,7 @@
 import { useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { AlertDialog } from "@astryxdesign/core/AlertDialog";
+import { Import, Plus } from "lucide-react";
 import {
   Button,
   DEFAULT_WORKSPACE_NAME,
@@ -202,17 +203,21 @@ export function WorkspaceHome() {
         </div>
         <div className={styles.actions}>
           <Button
+            className={styles.importAction}
             disabled={isLibraryFull}
+            leftIcon={<Import aria-hidden />}
             scheme="neutral"
             size="medium"
             type="button"
-            variant="text"
+            variant="outlined"
             onClick={() => importInputRef.current?.click()}
           >
             Import project
           </Button>
           <Button
+            className={styles.newAction}
             disabled={isLibraryFull}
+            leftIcon={<Plus aria-hidden />}
             scheme="primary"
             size="medium"
             type="button"
@@ -251,6 +256,20 @@ export function WorkspaceHome() {
               />
             </li>
           ))}
+          {/* The next slot, while there is one: somewhere to start another
+              project in the space a library of one or two leaves empty. */}
+          {!isLibraryFull && (
+            <li>
+              <button
+                className={styles.ghostCard}
+                type="button"
+                onClick={openCreate}
+              >
+                <Plus aria-hidden className="size-5" />
+                Create new workspace
+              </button>
+            </li>
+          )}
         </ul>
       ) : (
         <HomeEmptyState onCreate={openCreate} />

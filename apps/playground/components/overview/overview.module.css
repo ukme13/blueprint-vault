@@ -369,6 +369,15 @@
   }
 }
 
+/* Below 768px the rail becomes a drawer opened by a menu button fixed at the
+   top left, 36px wide and 8px in. The heading starts past it rather than
+   under it. */
+@media (max-width: 768px) {
+  .topBar {
+    padding-inline-start: calc(var(--spacing-2, 8px) * 2 + 36px);
+  }
+}
+
 @media (max-width: 680px) {
   .bentoGrid {
     grid-template-columns: 1fr;

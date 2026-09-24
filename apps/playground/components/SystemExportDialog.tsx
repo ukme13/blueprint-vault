@@ -6,6 +6,7 @@ import { Dialog } from "@astryxdesign/core/Dialog";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Selector } from "@astryxdesign/core/Selector";
+import { useIsPhone } from "./use-is-phone";
 import { strToU8, zipSync } from "fflate";
 import {
   Button,
@@ -237,6 +238,11 @@ export function SystemExportDialog({
     }
   };
 
+  /* On a phone the code is capped by the screen, so it fits between the
+     formats and Download. At 430px it was taller than the room it had and its
+     bottom slid under the footer. */
+  const isPhone = useIsPhone();
+
   return (
     <Dialog
       aria-label="Export palette"
@@ -260,8 +266,12 @@ export function SystemExportDialog({
       </header>
       <div className={styles.exportDialogBody}>
         <section className={styles.exportSettings} aria-label="Export settings">
-          <h3>Format</h3>
-          <div className={styles.exportFormatGrid}>
+          <h3 id="export-format-label">Format</h3>
+          <div
+            aria-labelledby="export-format-label"
+            className={styles.exportFormatGrid}
+            role="group"
+          >
             {FORMATS.map((format) => (
               <Button
                 key={format.value}
@@ -307,7 +317,7 @@ export function SystemExportDialog({
                   ? "markdown"
                   : "css"
             }
-            maxHeight="430px"
+            maxHeight={isPhone ? "40dvh" : "430px"}
             hasLineNumbers
             size="sm"
             width="100%"
@@ -324,7 +334,9 @@ export function SystemExportDialog({
               accept=".json,.blueprint.json,application/json"
               onChange={importProject}
             />
+            {/* Not on a phone: a file picker is the desktop's way in. */}
             <Button
+              className={styles.exportImport}
               scheme="neutral"
               size="medium"
               variant="text"
@@ -341,6 +353,7 @@ export function SystemExportDialog({
         )}
         <span className={styles.exportDialogFooterSpacer} />
         <Button
+          className={styles.exportDownload}
           scheme="primary"
           size="medium"
           variant="contained"

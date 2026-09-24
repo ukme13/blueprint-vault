@@ -5,6 +5,7 @@ import {
   SegmentedControl,
   SegmentedControlItem,
 } from "@astryxdesign/core/SegmentedControl";
+import { Switch } from "@astryxdesign/core/Switch";
 import { useToast } from "@astryxdesign/core/Toast";
 import {
   assessNonTextContrast,
@@ -33,6 +34,12 @@ interface ShadeDetailPopoverProps {
   onManualChange: (hex: string | null) => void;
   onSourceChange: (hex: string) => void;
   onClose: () => void;
+  /**
+   * `sheet` is the phone's bottom sheet: no close button of its own, and
+   * the anchor control is a switch. Editing is the same as in the popover —
+   * the button beside the value opens the picker.
+   */
+  layout?: "popover" | "sheet";
 }
 
 function contrastGrade(aaa: boolean, aa: boolean): "AAA" | "AA" | "Fail" {
@@ -72,7 +79,9 @@ export function ShadeDetailPopover({
   onManualChange,
   onSourceChange,
   onClose,
+  layout = "popover",
 }: ShadeDetailPopoverProps) {
+  const isSheet = layout === "sheet";
   const { seen, view } = usePaletteView();
   const { colourFormat } = useColourFormat();
   const { copyText } = useCopyFeedback(1200);
@@ -177,7 +186,10 @@ export function ShadeDetailPopover({
   };
 
   return (
-    <section className={styles.shadePopoverContent}>
+    <section
+      className={styles.shadePopoverContent}
+      data-layout={isSheet ? "sheet" : undefined}
+    >
       <header>
         <p>
           {/* The shade as it is being looked at. The hex below and the picker
@@ -188,28 +200,31 @@ export function ShadeDetailPopover({
             {paletteName} · {shade.weight}
           </strong>
         </p>
-        <IconButton
-          icon={
-            <svg
-              aria-hidden="true"
-              fill="none"
-              height="16"
-              viewBox="0 0 16 16"
-              width="16"
-            >
-              <path
-                d="m4.5 4.5 7 7m0-7-7 7"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeWidth="1.5"
-              />
-            </svg>
-          }
-          label="Close shade details"
-          size="sm"
-          variant="ghost"
-          onClick={onClose}
-        />
+        {/* A phone's sheet closes from its backdrop, a swipe down or Escape, so it carries no close button of its own. */}
+        {!isSheet && (
+          <IconButton
+            icon={
+              <svg
+                aria-hidden="true"
+                fill="none"
+                height="16"
+                viewBox="0 0 16 16"
+                width="16"
+              >
+                <path
+                  d="m4.5 4.5 7 7m0-7-7 7"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeWidth="1.5"
+                />
+              </svg>
+            }
+            label="Close shade details"
+            size="sm"
+            variant="ghost"
+            onClick={onClose}
+          />
+        )}
       </header>
 
       <div className={styles.popoverValue}>
@@ -248,23 +263,40 @@ export function ShadeDetailPopover({
         </div>
       </div>
 
+      {/* The source shade is the track's seed and is always the anchor, so
+          it has nothing to switch. */}
+      {isSheet && shade.anchorType !== "source" && (
+        <div className={styles.shadeSheetAnchor}>
+          <Switch
+            description="Hold this colour and bend the scale around it."
+            label="Anchor"
+            value={shade.anchorType === "custom"}
+            onChange={(isAnchor) =>
+              changeEditMode(isAnchor ? "anchor" : "manual")
+            }
+          />
+        </div>
+      )}
+
       {(shade.isOverridden || shade.anchorType === "custom") && (
         <section
           aria-label="Shade edit controls"
           className={styles.popoverAnchorEditor}
         >
-          <span className={styles.shadeEditModeControl}>
-            <SegmentedControl
-              label="Shade colour mode"
-              layout="fill"
-              size="sm"
-              value={shade.anchorType === "custom" ? "anchor" : "manual"}
-              onChange={changeEditMode}
-            >
-              <SegmentedControlItem label="Manual" value="manual" />
-              <SegmentedControlItem label="Anchor" value="anchor" />
-            </SegmentedControl>
-          </span>
+          {!isSheet && (
+            <span className={styles.shadeEditModeControl}>
+              <SegmentedControl
+                label="Shade colour mode"
+                layout="fill"
+                size="sm"
+                value={shade.anchorType === "custom" ? "anchor" : "manual"}
+                onChange={changeEditMode}
+              >
+                <SegmentedControlItem label="Manual" value="manual" />
+                <SegmentedControlItem label="Anchor" value="anchor" />
+              </SegmentedControl>
+            </span>
+          )}
           <Button
             scheme="neutral"
             size="xs"

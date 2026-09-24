@@ -98,3 +98,28 @@
 .visionSeverity > * {
   width: 100%;
 }
+
+/* Below 640px the chip opens a bottom sheet (VisionSheet) instead of growing
+   its options along the toolbar, so the options are hidden here — in CSS, so
+   they never show for a frame before the breakpoint is known. */
+@media (max-width: 640px) {
+  .visionOptions,
+  .visionSeverity {
+    display: none;
+  }
+
+  /* Not joined to anything any more, so the corners it squares off to meet
+     the selector come back. `revert-layer` hands them to the button's own
+     styles rather than guessing its radius here. */
+  .visionGroup[data-open="true"] .visionModeButton {
+    border-top-right-radius: revert-layer;
+    border-bottom-right-radius: revert-layer;
+  }
+
+  /* On, said plainly: a filled chip, for the reason the WCAG chip is. */
+  .visionModeButton[data-active="true"] {
+    border-color: var(--color-action-primary);
+    background: var(--color-action-primary);
+    color: var(--color-fg-on-action);
+  }
+}

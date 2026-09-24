@@ -1,0 +1,22 @@
+/* The sheet's padding, its white-space and its Escape are Sheet's. */
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2, 8px);
+}
+
+.sheet h2,
+.sheet p {
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2, 8px);
+  margin-top: var(--spacing-3, 12px);
+}
+
+.actions > * {
+  width: 100%;
+}

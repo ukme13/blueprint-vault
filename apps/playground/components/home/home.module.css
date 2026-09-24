@@ -304,6 +304,38 @@
   min-height: 0;
 }
 
+/* The next empty slot in the library, drawn as a card waiting to be made. */
+.ghostCard {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2, 8px);
+  min-height: 160px;
+  padding: var(--spacing-4, 16px);
+  border: 1.5px dashed var(--color-border-default);
+  border-radius: var(--radius-container, 14px);
+  background: transparent;
+  color: var(--color-fg-muted);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease;
+}
+
+.ghostCard:hover {
+  border-color: var(--color-action-primary);
+  color: var(--color-fg-primary);
+}
+
+.ghostCard:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
 .formError {
   margin: 0 0 16px;
   color: var(--color-status-error);
@@ -328,9 +360,39 @@
   .header {
     align-items: stretch;
     flex-direction: column;
+    gap: var(--spacing-3, 12px);
   }
 
+  /* Row one: the heading and the capacity pill. The count beside them says
+     what the pill already says. */
+  .header > div:first-child {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-3, 12px);
+  }
+
+  .countRow {
+    margin-top: 0;
+  }
+
+  .count {
+    display: none;
+  }
+
+  /* Row two: two halves, New project first. */
   .actions {
-    justify-content: flex-end;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-2, 8px);
+  }
+
+  .newAction {
+    order: -1;
+  }
+
+  .newAction,
+  .importAction {
+    width: 100%;
   }
 }

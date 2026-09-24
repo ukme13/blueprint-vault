@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
-import { Redo2, Undo2 } from "lucide-react";
+import { Redo2, SlidersHorizontal, Undo2 } from "lucide-react";
 import {
   Button,
   DEFAULT_WORKSPACE_NAME,
@@ -20,7 +20,9 @@ import {
   useWorkspaceStore,
   type HybridTokenizedValue,
 } from "@blueprint/ui";
+import { Sheet } from "../Sheet";
 import { SystemExportDialog } from "../SystemExportDialog";
+import { useIsPhone } from "../use-is-phone";
 import { ElevationCanvas } from "./ElevationEditor";
 import { ElevationInspector } from "./ElevationInspector";
 import { LayoutUsesTable } from "./LayoutUsesTable";
@@ -49,6 +51,10 @@ export function ScaleStudio() {
   const history = useScaleHistory(store);
   const [detachedBaseUnit, setDetachedBaseUnit] = useState<number | null>(null);
   const [isExportOpen, setIsExportOpen] = useState(false);
+  /* On a phone the settings are a sheet, opened from the toolbar, and the
+     canvas has the whole screen. As in the Typography studio. */
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const isPhone = useIsPhone();
   const [studioView, setStudioView] = useState<StudioView>("scale");
   const [viewSection, setViewSection] = useState(activeSection);
   if (viewSection !== activeSection) {
@@ -123,6 +129,32 @@ export function ScaleStudio() {
     />
   );
 
+  const sectionLabel =
+    activeSection === "spacing"
+      ? "Spacing settings"
+      : activeSection === "radius"
+        ? "Radius settings"
+        : "Elevation settings";
+
+  /* One element, rendered beside the canvas on a wide screen and in a bottom
+     sheet on a phone, so the two can never offer different controls. */
+  const inspectorContent = (
+    <>
+      <div className={styles.inspectorHeader}>{sectionLabel}</div>
+      {activeSection === "spacing" && spacingInspector}
+      {activeSection === "radius" && radiusInspector}
+      {activeSection === "elevation" && (
+        <ElevationInspector
+          palettes={palettes}
+          scale={elevation}
+          onChange={(next, editKey) =>
+            history.write({ elevation: next }, { editKey })
+          }
+        />
+      )}
+    </>
+  );
+
   if (!store.hasLoaded) {
     return (
       <div
@@ -184,6 +216,19 @@ export function ScaleStudio() {
             onClick={history.redo}
           />
         </span>
+        {/* A phone's way to the settings; CSS shows it only there. None in
+            the Uses view, which has no settings panel. */}
+        {!showUses && (
+          <span className={styles.settingsTrigger}>
+            <IconButton
+              icon={<SlidersHorizontal aria-hidden className="size-4" />}
+              label={sectionLabel}
+              size="md"
+              variant="secondary"
+              onClick={() => setIsSettingsOpen(true)}
+            />
+          </span>
+        )}
       </section>
 
       <section
@@ -259,27 +304,25 @@ export function ScaleStudio() {
               }}
             />
 
-            <aside className={styles.inspector}>
-              <div className={styles.inspectorHeader}>
-                {activeSection === "spacing" && "Spacing settings"}
-                {activeSection === "radius" && "Radius settings"}
-                {activeSection === "elevation" && "Elevation settings"}
-              </div>
-              {activeSection === "spacing" && spacingInspector}
-              {activeSection === "radius" && radiusInspector}
-              {activeSection === "elevation" && (
-                <ElevationInspector
-                  palettes={palettes}
-                  scale={elevation}
-                  onChange={(next, editKey) =>
-                    history.write({ elevation: next }, { editKey })
-                  }
-                />
-              )}
-            </aside>
+            {/* In a sheet on a phone. Hidden by CSS as well as left out here,
+                since the first render cannot know the width yet. */}
+            {!isPhone && (
+              <aside className={styles.inspector}>{inspectorContent}</aside>
+            )}
           </>
         )}
       </section>
+
+      {isPhone && !showUses && (
+        <Sheet
+          isOpen={isSettingsOpen}
+          label={sectionLabel}
+          padding="flush"
+          onClose={() => setIsSettingsOpen(false)}
+        >
+          <aside className={styles.inspector}>{inspectorContent}</aside>
+        </Sheet>
+      )}
 
       <SystemExportDialog
         isOpen={isExportOpen}

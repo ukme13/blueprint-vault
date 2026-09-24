@@ -7,6 +7,23 @@ import {
 import { showInspectorPanel } from "./typography-fixtures";
 
 /**
+ * Open the type settings sheet on a phone-width window.
+ *
+ * These tests start wide, with the rail expanded, and a window narrowed past
+ * the breakpoint keeps it open as a drawer over the page. Closed first.
+ */
+async function openSettingsSheet(page: Page): Promise<void> {
+  const backdrop = page.getByRole("button", { name: "Close navigation" });
+  if (await backdrop.isVisible()) {
+    /* Tapped to the right of the 260px drawer, as a thumb would. */
+    const width = page.viewportSize()!.width;
+    await page.mouse.click(width - 10, 500);
+    await expect(backdrop).toBeHidden();
+  }
+  await page.getByRole("button", { name: /^Type settings/ }).click();
+}
+
+/**
  * Computed-style coverage for the rules nothing else asserts.
  *
  * A stylesheet that fails to parse is caught by the build, but only because a
@@ -73,6 +90,8 @@ test.describe("Typography studio styles", () => {
     await expect(settings).toBeVisible();
 
     await page.setViewportSize({ width: 320, height: 900 });
+    /* On a phone the panel is in a sheet, opened from the toolbar. */
+    await openSettingsSheet(page);
     const addFont = settings.getByRole("button", { name: "Add font" });
     const addGroup = settings.getByRole("button", { name: "Add group" });
 
@@ -95,12 +114,22 @@ test.describe("Typography studio styles", () => {
        the panel, and everything measured against it followed. */
     for (const width of [900, 500, 360, 320]) {
       await page.setViewportSize({ width, height: 900 });
+      /* At 640 and below the panel is in a sheet, opened from the toolbar. */
+      const isPhone = width <= 640;
+      if (isPhone) {
+        await openSettingsSheet(page);
+      }
+      await expect(settings).toBeVisible();
       const overflow = await settings.evaluate(
         (el) => el.scrollWidth - el.clientWidth,
       );
       expect(overflow, `no sideways scroll at ${width}px`).toBeLessThanOrEqual(
         1,
       );
+      if (isPhone) {
+        await page.keyboard.press("Escape");
+        await expect(settings).toBeHidden();
+      }
     }
   });
 

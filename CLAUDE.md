@@ -80,6 +80,20 @@ We absolutely DO NOT use standard Tailwind raw utility colors (e.g., `bg-orange-
    propose two or three alternative visual concepts and let the user choose
    before writing any code.
 
+## 📱 Phone Layouts
+
+1. **On a phone, every selector opens as a bottom sheet.** Below
+   `PHONE_MEDIA_QUERY` (640px, `apps/playground/components/use-is-phone.ts`),
+   no dropdown or popover of options: a short list pinned under a small
+   trigger is hard to scroll with a thumb. Use `SheetSelector` wherever you
+   would use Astryx `Selector` — same props, and still a dropdown on wider
+   screens. A control with a trigger of its own, such as the semantic table's
+   colour chip, opens `SelectorSheet` directly, so every choice on a phone is
+   the same sheet.
+2. **One searchable list beats chained selectors.** Where a value is a pair,
+   such as a track and a weight, a phone gets one grouped list of every
+   combination with search ("secondary 500"), not one selector per part.
+
 ## 🏛️ Architecture Constraints
 
 1. **Domain logic lives in `packages/ui`.** Pure data transformations, state

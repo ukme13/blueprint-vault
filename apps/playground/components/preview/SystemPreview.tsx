@@ -41,6 +41,7 @@ import {
   type PreviewSectionId,
   useWorkspaceStore,
 } from "@blueprint/ui";
+import { useIsPhone } from "../use-is-phone";
 import { useThemeMode } from "../../app/theme-provider";
 import { PreviewInspector } from "../PreviewInspector";
 import { PreviewSectionInspector } from "../PreviewSectionInspector";
@@ -89,7 +90,10 @@ export function SystemPreview() {
   const sections = typography.previewSections ?? seedPreviewSections();
   const devices =
     project?.previewDevices ?? defaultPreviewDevices(system.ratio);
-  const frame = resolvePreviewDevice(deviceId, devices);
+  /* A phone previews as a phone. The device bar is hidden there, so the
+     choice made on a wider screen is kept for when it is wide again. */
+  const isPhone = useIsPhone();
+  const frame = resolvePreviewDevice(isPhone ? "phone" : deviceId, devices);
 
   useGoogleFontsLink(system, undefined, 400);
   useLocalFonts(system);

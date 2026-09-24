@@ -8,7 +8,7 @@ import {
   type ChangeEvent,
   type CSSProperties,
 } from "react";
-import { AlertDialog } from "@astryxdesign/core/AlertDialog";
+import { IconButton } from "@astryxdesign/core/IconButton";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
 import {
   SegmentedControl,
@@ -17,6 +17,8 @@ import {
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { useToast } from "@astryxdesign/core/Toast";
+import { useIsPhone } from "../use-is-phone";
+import { RotateCcw } from "lucide-react";
 import {
   BLUEPRINT_20_PRESET,
   BUTTON_SCHEMES,
@@ -44,12 +46,16 @@ import {
   type ButtonScheme,
   type PaletteProjectData,
   type SemanticToken,
+  DEFAULT_CONTRAST_SETTINGS,
+  type ContrastTarget,
 } from "@blueprint/ui";
+import { ConfirmDialog } from "../ConfirmDialog";
 import { SystemExportDialog } from "../SystemExportDialog";
 import { VisionControl } from "../VisionControl";
 import { StudioSliceEmpty } from "../shell/StudioSliceEmpty";
 import { PaletteControls } from "./PaletteControls";
 import { ColourPicker } from "./ColourPicker";
+import { ContrastSheet } from "./ContrastSheet";
 import { PaletteMatrix } from "./PaletteMatrix";
 import { PalettePreview } from "./PalettePreview";
 import { SemanticEditor } from "./SemanticEditor";
@@ -64,8 +70,6 @@ import {
 } from "./types";
 import { ColourFormatProvider } from "./ColourFormatContext";
 import { PaletteViewProvider, usePaletteView } from "./PaletteViewContext";
-
-type ContrastTarget = "white" | "black" | "custom";
 
 type PlaygroundSection = "shade-generator" | "semantics" | "accessibility";
 
@@ -188,11 +192,26 @@ function PaletteStudioContent() {
   const [activeTrackId, setActiveTrackId] = useState<string | null>(null);
   /* View modes live in context so they persist per device, alongside the
      colour format. Neither is part of the project. */
-  const { isContrastModeOpen, toggleContrastMode, closeContrastMode } =
-    usePaletteView();
-  const [contrastTarget, setContrastTarget] = useState<ContrastTarget>("white");
-  const [customContrastColour, setCustomContrastColour] = useState("#7646ab");
+  const {
+    isContrastModeOpen,
+    toggleContrastMode,
+    closeContrastMode,
+    setContrastModeOpen,
+  } = usePaletteView();
+  const [contrastTarget, setContrastTarget] = useState<ContrastTarget>(
+    DEFAULT_CONTRAST_SETTINGS.target,
+  );
+  const [customContrastColour, setCustomContrastColour] = useState(
+    DEFAULT_CONTRAST_SETTINGS.customColour,
+  );
+  /* On a phone, WCAG 2 opens a sheet rather than toggling in place. The same
+     breakpoint the stylesheet hides the inline options at; the hook reads
+     false on first render, so before hydration a tap does what it does on a
+     desktop, which is never wrong, only less tidy. */
+  const isPhone = useIsPhone();
+  const [isContrastSheetOpen, setIsContrastSheetOpen] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   /* Read once on load, so an export carries the type scale without this
      component reading storage while it renders. */
   const [foreign, setForeign] = useState<ForeignSlices>(emptyForeignSlices);
@@ -700,11 +719,27 @@ function PaletteStudioContent() {
             scheme="neutral"
             size="small"
             variant="outlined"
-            onClick={toggleContrastMode}
+            onClick={
+              isPhone ? () => setIsContrastSheetOpen(true) : toggleContrastMode
+            }
           >
             WCAG 2
           </Button>
         </Tooltip>
+        <ContrastSheet
+          isOpen={isContrastSheetOpen}
+          settings={{
+            isOn: isContrastModeOpen,
+            target: contrastTarget,
+            customColour: customContrastColour,
+          }}
+          onApply={(settings) => {
+            setContrastModeOpen(settings.isOn);
+            setContrastTarget(settings.target);
+            setCustomContrastColour(settings.customColour);
+          }}
+          onClose={() => setIsContrastSheetOpen(false)}
+        />
         {isContrastModeOpen && (
           <section
             aria-label="Contrast comparison"
@@ -736,13 +771,24 @@ function PaletteStudioContent() {
           </section>
         )}
         <VisionControl />
+        {/* On a phone Reset preset is an icon beside Vision rather than a
+            label at the far end of a strip that scrolls. Both are rendered and
+            CSS picks one, so there is no frame with the wrong one. */}
+        <IconButton
+          className={styles.resetIconButton}
+          icon={<RotateCcw aria-hidden className="size-4" />}
+          label="Reset preset"
+          size="sm"
+          variant="ghost"
+          onClick={() => setIsResetConfirmOpen(true)}
+        />
         <span className={styles.toolbarDivider} />
         <Button
           className={styles.resetButton}
           scheme="neutral"
           size="xs"
           variant="text"
-          onClick={resetLightness}
+          onClick={() => setIsResetConfirmOpen(true)}
         >
           Reset preset
         </Button>
@@ -868,7 +914,19 @@ function PaletteStudioContent() {
         onOpenChange={setIsExportDialogOpen}
       />
 
-      <AlertDialog
+      <ConfirmDialog
+        actionLabel="Reset preset"
+        description="The shade count and every lightness step go back to Blueprint 20. Changes you have made to them will be lost."
+        isOpen={isResetConfirmOpen}
+        title="Reset to Blueprint 20?"
+        onAction={() => {
+          resetLightness();
+          setIsResetConfirmOpen(false);
+        }}
+        onCancel={() => setIsResetConfirmOpen(false)}
+      />
+
+      <ConfirmDialog
         actionLabel="Import project"
         description={`This replaces ${name} in this browser with ${pendingImport?.name ?? "the imported project"}. Export the current project first if you want to keep it.`}
         isOpen={pendingImport !== null}
@@ -891,9 +949,7 @@ function PaletteStudioContent() {
           setActiveTrackId(null);
           closeContrastMode();
         }}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) setPendingImport(null);
-        }}
+        onCancel={() => setPendingImport(null)}
       />
     </div>
   );

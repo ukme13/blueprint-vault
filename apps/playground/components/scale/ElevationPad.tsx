@@ -6,6 +6,7 @@ import {
   ELEVATION_OPACITY_STEP,
   snapElevationOpacity,
 } from "@blueprint/ui";
+import { useIsolatedTouch } from "../use-isolated-touch";
 import styles from "./scale-workspace.module.css";
 
 const PAD_INSET_RATIO = 0.12;
@@ -29,6 +30,11 @@ export function ElevationPad({
   shadow: string;
   onChange: (contact: number, cast: number) => void;
 }) {
+  /* In the settings sheet on a phone, a drag on the pad sets the shadow,
+     not swipes the sheet shut. Defensive here: the pad held against a real
+     touch drag in four runs of four without this, where the colour field,
+     the same kind of control, lost one run in three. */
+  const padRef = useIsolatedTouch<HTMLButtonElement>();
   const contactMix = Math.round((contact / ELEVATION_OPACITY_MAX) * 100);
   const castMix = Math.round((cast / ELEVATION_OPACITY_MAX) * 100);
 
@@ -86,6 +92,7 @@ export function ElevationPad({
     <button
       aria-label={label}
       aria-valuetext={`contact ${Math.round(contact * 100)} percent, cast ${Math.round(cast * 100)} percent`}
+      ref={padRef}
       className={styles.elevationPad}
       style={
         {

@@ -162,6 +162,12 @@
   background: var(--color-surface-raised);
 }
 
+/* The phone's way to the settings. Shown below 640px only. */
+.settingsTrigger {
+  display: none;
+  margin-left: auto;
+}
+
 .historyButtons {
   display: flex;
   align-items: center;
@@ -674,13 +680,26 @@
 }
 
 @media (max-width: 900px) {
+  /* The palette studio's arrangement: actions on the first line, tabs on a
+     line of their own. With the tabs first, "Scale" sat under the fixed menu
+     button that appears below 768px. */
   .topbar {
+    flex-wrap: wrap;
     gap: 12px;
     padding-top: 10px;
     padding-bottom: 10px;
   }
 
+  .navigation {
+    flex: 1 1 100%;
+    order: 2;
+    overflow-x: auto;
+    scrollbar-width: none;
+    white-space: nowrap;
+  }
+
   .headerActions {
+    order: 1;
     margin-left: auto;
   }
 
@@ -707,5 +726,67 @@
 @media (max-width: 640px) {
   .topbar {
     padding: 0 14px;
+  }
+
+  /* Room above the controls, by the expression the palette studio uses, so
+     Export lines up with the fixed menu button beside it. */
+  .topbar {
+    padding-block-start: max(var(--spacing-3, 12px), env(safe-area-inset-top));
+    /* None below: the tabs are the last row, and their underline is set to
+       land on this bar's bottom border. Padding here lifted it off. */
+    padding-block-end: 0;
+  }
+
+  /* A token row is five fixed columns — 8rem, 4rem, 4.5rem, 2.75rem and the
+     bar — which comes to 356px of reservations before the bar is drawn.
+     Measured on a 390px screen: the bar had about six pixels to live in and
+     the largest steps ran off the edge and were clipped.
+
+     The labels on one line and the bar on a line of its own under them,
+     drawn at its own length from the left. It was flex-wrapped once, with
+     `flex-basis: 100%` to force the new line, and that overrode the bar's
+     width: every step drew the full width of the screen, and 0px looked the
+     same as 20px. */
+  .tokenRow {
+    grid-template-columns: auto auto auto minmax(0, 1fr);
+    align-items: baseline;
+    column-gap: var(--spacing-2);
+    row-gap: var(--spacing-1);
+  }
+
+  .tokenBar {
+    grid-column: 1 / -1;
+    justify-self: start;
+    max-width: 100%;
+  }
+}
+
+/* On a phone the canvas has the whole screen and the settings open in a
+   sheet from the toolbar. Last in the file so it outranks the rules above. */
+@media (max-width: 640px) {
+  /* Elevation has no tab row, so the bar is only its actions. The bottom
+     padding matches the top and the bar is its content's height, so Export
+     sits level with the menu button at 12px and centred in the bar. With no
+     padding below and a 64px floor, it sat 7.5px lower than the button. */
+  .topbar:not(:has(.navigation)) {
+    min-height: 0;
+    padding-block-end: max(var(--spacing-3, 12px), env(safe-area-inset-top));
+  }
+
+  .editor > .inspector {
+    display: none;
+  }
+
+  .settingsTrigger {
+    display: inline-flex;
+  }
+
+  /* In the sheet: no border of its own, no scroll of its own inside the
+     sheet's, and clear of the grab handle, which Astryx floats over the
+     first 24px. `white-space` is reset because a sheet inherits from where
+     it sits in the DOM. */
+  .inspector {
+    overflow-y: visible;
+    border-top: 0;
   }
 }

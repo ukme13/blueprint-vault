@@ -2,6 +2,8 @@
 
 import type { ReactNode } from "react";
 import { Button } from "@astryxdesign/core/Button";
+import { IconButton } from "@astryxdesign/core/IconButton";
+import { RotateCcw } from "lucide-react";
 import type { ColourMode, PreviewDevice } from "@blueprint/ui";
 import { VisionControl } from "./VisionControl";
 import { PreviewDeviceBar } from "./typography/PreviewDeviceBar";
@@ -29,6 +31,10 @@ import styles from "./preview-chrome.module.css";
  * draws from `light-dark()` chrome tokens, which resolve against whatever
  * `color-scheme` is in force. Naming the resolved mode here is what keeps a
  * `system` page from resolving those two against different answers.
+ *
+ * On a phone the frame is always the phone, so the device bar is hidden, and
+ * Reset to default is an icon. Both buttons are rendered and CSS picks one,
+ * so no frame shows the wrong one before the breakpoint is known.
  *
  * The workspace name does not belong here. The bar is for switching the
  * preview frame; phone and tablet draw a device edge so the canvas is not
@@ -65,19 +71,30 @@ export function PreviewChrome({
       >
         <PreviewDeviceBar
           activeId={device.id}
-          className="mr-auto"
+          className={`mr-auto ${styles.deviceBar}`}
           devices={devices}
           onChange={onDeviceChange}
         />
-        <div className="flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2">
           <VisionControl />
           {onResetToDefault ? (
-            <Button
-              label="Reset to default"
-              size="sm"
-              variant="secondary"
-              onClick={onResetToDefault}
-            />
+            <>
+              <Button
+                className={styles.resetLabel}
+                label="Reset to default"
+                size="sm"
+                variant="secondary"
+                onClick={onResetToDefault}
+              />
+              <IconButton
+                className={styles.resetIcon}
+                icon={<RotateCcw aria-hidden className="size-4" />}
+                label="Reset to default"
+                size="sm"
+                variant="ghost"
+                onClick={onResetToDefault}
+              />
+            </>
           ) : null}
         </div>
       </header>

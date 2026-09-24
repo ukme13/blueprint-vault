@@ -24,6 +24,9 @@ import {
   rgbToOklch,
   type Hsv,
 } from "@blueprint/ui";
+import { Sheet } from "../Sheet";
+import { useIsPhone } from "../use-is-phone";
+import { useIsolatedTouch } from "../use-isolated-touch";
 import { useColourFormat } from "./ColourFormatContext";
 import { ColourFormatSelector } from "./ColourFormatSelector";
 import styles from "./palette-workspace.module.css";
@@ -44,6 +47,48 @@ export function ColourPicker({
   triggerLabel,
 }: ColourPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const isPhone = useIsPhone();
+
+  const triggerButton = (
+    <button
+      aria-label={triggerLabel ?? `Choose ${label}`}
+      className={
+        trigger ? styles.colourPickerEditTrigger : styles.colourPickerTrigger
+      }
+      style={trigger ? undefined : { backgroundColor: value }}
+      type="button"
+      onClick={isPhone ? () => setIsOpen(true) : undefined}
+    >
+      {trigger}
+    </button>
+  );
+
+  /* On a phone the picker is a sheet from the bottom edge, not a popover in
+     the middle of the screen. Opened from inside another sheet — the shade
+     inspector, a track's details — it is a second modal dialog, and the top
+     layer stacks it above the first with its own backdrop; closing it
+     returns to the sheet underneath. No z-index is involved. */
+  if (isPhone) {
+    return (
+      <>
+        {triggerButton}
+        <Sheet
+          className={styles.colourPickerSheet}
+          isOpen={isOpen}
+          label={`${label} picker`}
+          onClose={() => setIsOpen(false)}
+        >
+          <ColourPickerPanel
+            inSheet
+            label={label}
+            value={value}
+            onChange={onChange}
+            onClose={() => setIsOpen(false)}
+          />
+        </Sheet>
+      </>
+    );
+  }
 
   return (
     <Popover
@@ -63,22 +108,18 @@ export function ColourPicker({
       }
       onOpenChange={setIsOpen}
     >
-      <button
-        aria-label={triggerLabel ?? `Choose ${label}`}
-        className={
-          trigger ? styles.colourPickerEditTrigger : styles.colourPickerTrigger
-        }
-        style={trigger ? undefined : { backgroundColor: value }}
-        type="button"
-      >
-        {trigger}
-      </button>
+      {triggerButton}
     </Popover>
   );
 }
 
 interface ColourPickerPanelProps extends ColourPickerProps {
   onClose: () => void;
+  /**
+   * In a sheet on a phone: a drag on the field must not move the sheet, and
+   * the sheet has no close button of its own.
+   */
+  inSheet?: boolean;
 }
 
 interface ChannelControlProps {
@@ -191,21 +232,15 @@ function ColourPickerPanel({
   value,
   onChange,
   onClose,
+  inSheet = false,
 }: ColourPickerPanelProps) {
+  /* A drag on the field is choosing a colour, not swiping the sheet shut. */
+  const fieldRef = useIsolatedTouch<HTMLButtonElement>(inSheet);
   const { colourFormat } = useColourFormat();
   const hsv = useMemo(() => hexToHsv(value), [value]);
   const rgb = useMemo(
     () => hexToRgb(value).map((channel) => channel * 255),
     [value],
-  );
-  const oklch = useMemo(() => rgbToOklch(...hexToRgb(value)), [value]);
-  const oklchGradients = useMemo(
-    () => [
-      createOklchGradient(0, oklch),
-      createOklchGradient(1, oklch),
-      createOklchGradient(2, oklch),
-    ],
-    [oklch],
   );
   const [draft, setDraft] = useState(() => formatColour(value, colourFormat));
 
@@ -286,43 +321,41 @@ function ColourPickerPanel({
     onChange(rgbToHex(next[0] / 255, next[1] / 255, next[2] / 255));
   };
 
-  const updateOklch = (index: number, channel: number) => {
-    const next = [...oklch] as [number, number, number];
-    next[index] = channel;
-    onChange(oklchToHex(...next));
-  };
-
   return (
     <section className={styles.colourPicker}>
       <header className={styles.colourPickerHeader}>
         <ColourFormatSelector label="Colour format" width={112} />
-        <IconButton
-          icon={
-            <svg
-              aria-hidden="true"
-              fill="none"
-              height="18"
-              viewBox="0 0 18 18"
-              width="18"
-            >
-              <path
-                d="m4 4 10 10m0-10L4 14"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeWidth="1.7"
-              />
-            </svg>
-          }
-          label={`Close ${label} picker`}
-          size="sm"
-          variant="ghost"
-          onClick={onClose}
-        />
+        {/* A phone's sheet closes from its backdrop, a swipe down or Escape, so it carries no close button of its own. */}
+        {!inSheet && (
+          <IconButton
+            icon={
+              <svg
+                aria-hidden="true"
+                fill="none"
+                height="18"
+                viewBox="0 0 18 18"
+                width="18"
+              >
+                <path
+                  d="m4 4 10 10m0-10L4 14"
+                  stroke="currentColor"
+                  strokeLinecap="round"
+                  strokeWidth="1.7"
+                />
+              </svg>
+            }
+            label={`Close ${label} picker`}
+            size="sm"
+            variant="ghost"
+            onClick={onClose}
+          />
+        )}
       </header>
 
       {colourFormat === "hex" && (
         <>
           <button
+            ref={fieldRef}
             aria-label={`${label} saturation ${Math.round(hsv.saturation * 100)} percent and brightness ${Math.round(hsv.value * 100)} percent`}
             className={styles.colourField}
             style={{ backgroundColor: `hsl(${hsv.hue} 100% 50%)` }}
@@ -364,41 +397,7 @@ function ColourPickerPanel({
       )}
 
       {colourFormat === "oklch" && (
-        <section className={styles.colourChannels}>
-          <ChannelControl
-            label="Lightness"
-            min={0}
-            max={100}
-            step={0.1}
-            value={oklch[0] * 100}
-            gradient={oklchGradients[0]!.background}
-            hasOutOfGamut={oklchGradients[0]!.hasOutOfGamut}
-            thumbColour={value}
-            onChange={(next) => updateOklch(0, next / 100)}
-          />
-          <ChannelControl
-            label="Chroma"
-            min={0}
-            max={0.4}
-            step={0.001}
-            value={oklch[1]}
-            gradient={oklchGradients[1]!.background}
-            hasOutOfGamut={oklchGradients[1]!.hasOutOfGamut}
-            thumbColour={value}
-            onChange={(next) => updateOklch(1, next)}
-          />
-          <ChannelControl
-            label="Hue"
-            min={0}
-            max={360}
-            step={0.1}
-            value={oklch[2]}
-            gradient={oklchGradients[2]!.background}
-            hasOutOfGamut={oklchGradients[2]!.hasOutOfGamut}
-            thumbColour={value}
-            onChange={(next) => updateOklch(2, next)}
-          />
-        </section>
+        <OklchChannels value={value} onChange={onChange} />
       )}
 
       {colourFormat === "rgb" && (
@@ -444,6 +443,69 @@ function ColourPickerPanel({
           />
         </span>
       </footer>
+    </section>
+  );
+}
+
+/** Lightness, chroma and hue as three sliders: the picker's OKLCH format. */
+function OklchChannels({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const oklch = useMemo(() => rgbToOklch(...hexToRgb(value)), [value]);
+  const oklchGradients = useMemo(
+    () => [
+      createOklchGradient(0, oklch),
+      createOklchGradient(1, oklch),
+      createOklchGradient(2, oklch),
+    ],
+    [oklch],
+  );
+
+  const updateOklch = (index: number, channel: number) => {
+    const next = [...oklch] as [number, number, number];
+    next[index] = channel;
+    onChange(oklchToHex(...next));
+  };
+
+  return (
+    <section className={styles.colourChannels}>
+      <ChannelControl
+        label="Lightness"
+        min={0}
+        max={100}
+        step={0.1}
+        value={oklch[0] * 100}
+        gradient={oklchGradients[0]!.background}
+        hasOutOfGamut={oklchGradients[0]!.hasOutOfGamut}
+        thumbColour={value}
+        onChange={(next) => updateOklch(0, next / 100)}
+      />
+      <ChannelControl
+        label="Chroma"
+        min={0}
+        max={0.4}
+        step={0.001}
+        value={oklch[1]}
+        gradient={oklchGradients[1]!.background}
+        hasOutOfGamut={oklchGradients[1]!.hasOutOfGamut}
+        thumbColour={value}
+        onChange={(next) => updateOklch(1, next)}
+      />
+      <ChannelControl
+        label="Hue"
+        min={0}
+        max={360}
+        step={0.1}
+        value={oklch[2]}
+        gradient={oklchGradients[2]!.background}
+        hasOutOfGamut={oklchGradients[2]!.hasOutOfGamut}
+        thumbColour={value}
+        onChange={(next) => updateOklch(2, next)}
+      />
     </section>
   );
 }

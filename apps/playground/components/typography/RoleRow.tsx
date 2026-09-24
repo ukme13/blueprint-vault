@@ -67,7 +67,13 @@ export function RoleRow({
       <span className={styles.roleSettingLabel}>{role.id}</span>
 
       {/* A bound chip is a step on the ramp; typing a size unlinks it. */}
+      {/* Each field carries a caption the phone shows, where the table's
+          column headers are hidden and a role is a small card of fields. On a
+          wider panel the caption is hidden and the header names the column. */}
       <div className={styles.sizeCell}>
+        <span aria-hidden="true" className={styles.roleFieldCaption}>
+          Size
+        </span>
         <HybridTokenizedInput
           decimals={0}
           isLabelHidden
@@ -93,30 +99,43 @@ export function RoleRow({
         />
       </div>
 
-      <Selector
-        label={`${role.id} font`}
-        isLabelHidden
-        options={fonts.map((font) => ({
-          label: font.name,
-          value: font.id,
-        }))}
-        value={role.fontId}
-        onChange={(value) => onRoleChange(role.id, { fontId: value })}
-      />
-      <NumberInput
-        isIntegerOnly
-        isLabelHidden
-        label={`${role.id} font weight`}
-        min={100}
-        max={900}
-        step={100}
-        value={role.fontWeight}
-        onChange={(value) => onRoleChange(role.id, { fontWeight: value })}
-      />
+      <div className={styles.fontCell}>
+        <span aria-hidden="true" className={styles.roleFieldCaption}>
+          Font
+        </span>
+        <Selector
+          label={`${role.id} font`}
+          isLabelHidden
+          options={fonts.map((font) => ({
+            label: font.name,
+            value: font.id,
+          }))}
+          value={role.fontId}
+          onChange={(value) => onRoleChange(role.id, { fontId: value })}
+        />
+      </div>
+      <div className={styles.weightCell}>
+        <span aria-hidden="true" className={styles.roleFieldCaption}>
+          Weight
+        </span>
+        <NumberInput
+          isIntegerOnly
+          isLabelHidden
+          label={`${role.id} font weight`}
+          min={100}
+          max={900}
+          step={100}
+          value={role.fontWeight}
+          onChange={(value) => onRoleChange(role.id, { fontWeight: value })}
+        />
+      </div>
       <div
-        className={lineHeightUnlinked ? styles.lineHeightUnlinked : undefined}
+        className={`${styles.lineHeightCell} ${lineHeightUnlinked ? styles.lineHeightUnlinked : ""}`}
         data-unlinked={lineHeightUnlinked ? "true" : undefined}
       >
+        <span aria-hidden="true" className={styles.roleFieldCaption}>
+          Line height
+        </span>
         <LineHeightInput
           label={`${role.id} line height`}
           config={lineHeightConfigOnDevice(role, deviceId)}
@@ -135,11 +154,12 @@ export function RoleRow({
         />
       </div>
       <div
-        className={
-          letterSpacingUnlinked ? styles.letterSpacingUnlinked : undefined
-        }
+        className={`${styles.spacingCell} ${letterSpacingUnlinked ? styles.letterSpacingUnlinked : ""}`}
         data-unlinked={letterSpacingUnlinked ? "true" : undefined}
       >
+        <span aria-hidden="true" className={styles.roleFieldCaption}>
+          Spacing
+        </span>
         <NumberInput
           hasClear={letterSpacingUnlinked}
           isLabelHidden

@@ -28,6 +28,8 @@ interface PaletteRowProps {
     targetId: string,
     position: "before" | "after",
   ) => void;
+  /** False on a phone, where shade details open in a sheet. */
+  hasShadePopovers?: boolean;
 }
 
 export function PaletteRow({
@@ -45,6 +47,7 @@ export function PaletteRow({
   onTrackOpen,
   onTrackMove,
   onTrackReorder,
+  hasShadePopovers = true,
 }: PaletteRowProps) {
   const [dropPosition, setDropPosition] = useState<"before" | "after" | null>(
     null,
@@ -114,6 +117,7 @@ export function PaletteRow({
             paletteName={palette.name}
             shade={shade}
             isSelected={isSelected}
+            hasPopover={hasShadePopovers}
             contrastReferenceHex={contrastReferenceHex}
             wcagComparisonHex={wcagComparisonHex}
             wcagComparisonLabel={wcagComparisonLabel}

@@ -1,10 +1,24 @@
 /* Astryx TopNav pads 8px and the heading link pads 8px; 24px more puts the
    logo's left edge on the Home page's 32px content edge, level with "Projects". */
+/* Home's bar puts the wordmark exactly where the rail puts it in a workspace,
+   so going from Home into a studio does not move the logo.
+
+   Measured, at 1280px and at 390px alike: the rail draws its monogram at
+   x=16, y=10, 32px tall. Home drew the same 32px mark at x=32, y=20 — 24px of
+   bar padding plus the heading's own 8px, centred in a 72px bar. So the bar
+   pads 8px, which with the heading's 8 lands on 16, and is the rail's
+   collapsed width tall, 52px, which centres a 32px mark at 10. The same
+   expression as `--rail-collapsed-width` below: one number for both, and it
+   stays one number if either moves.
+
+   Mirrored on the right, so the guide button sits as far in from its edge as
+   the wordmark does from its own. It used to line up with the content's right
+   edge instead; a bar that is 8px on one side and 24px on the other reads as
+   lopsided, and the logo is the edge people compare. */
 :global(nav).homeNav {
-  min-height: 72px;
-  padding-inline-start: var(--spacing-6, 24px);
-  /* Mirrored, so the guide button's edge sits on the right content edge. */
-  padding-inline-end: var(--spacing-6, 24px);
+  min-height: calc(var(--spacing-12, 48px) + var(--spacing-1, 4px));
+  padding-inline-start: var(--spacing-2, 8px);
+  padding-inline-end: var(--spacing-2, 8px);
 }
 
 .sideNav {
@@ -83,5 +97,100 @@
   .sideNav *,
   .sideNav :global(.astryx-side-nav-item) span {
     transition: none !important;
+  }
+}
+
+/* ---- below the mobile breakpoint ----
+
+   The rail stops being a column and becomes a drawer over the page.
+
+   Animating its width worked on a desktop and was violent on a phone: 52px to
+   260px against a 390px screen left the content 115px, so every expand
+   reflowed and re-wrapped the whole studio and then undid it. Nothing about
+   that is fixable by making the animation nicer — a rail that takes two
+   thirds of the viewport cannot share the row.
+
+   So below 768px it leaves the flow entirely. `position: fixed`, off-canvas
+   when closed, slid in over a backdrop when open; the page underneath does
+   not move at all. Transform rather than width, because a transform is
+   composited and a width is a reflow of everything beside it.
+
+   In CSS rather than behind a JavaScript breakpoint, so the first paint is
+   already right. AppShell offers its own drawer below the same breakpoint and
+   it is turned off in the component: two mechanisms for one job is how a
+   phone ends up with an empty bar and a drawer nothing opens. */
+@media (max-width: 768px) {
+  .sideNav,
+  .sideNav[data-collapsed="true"] {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    z-index: 50;
+    width: var(--rail-expanded-width);
+    /* Never the whole screen, so the page behind stays visible and the drawer
+       reads as covering it rather than as being it. */
+    max-width: 80vw;
+    height: 100%;
+    height: 100dvh;
+    transform: translateX(-100%);
+    transition: transform var(--rail-duration) var(--rail-ease);
+    will-change: transform;
+    /* Opaque, and lifted. In its column the rail sat on AppShell's nav
+       region, which painted the ground behind it; fixed and out of that
+       region it had no background of its own — measured rgba(0, 0, 0, 0) —
+       so on a phone the palette cards showed straight through the menu. */
+    background-color: var(--color-surface-base);
+    box-shadow: var(--shadow-high);
+  }
+
+  .sideNav[data-collapsed="false"] {
+    transform: translateX(0);
+  }
+
+  /* Labels are never faded out down here: there is no collapsed rail to fade
+     them for, and a hidden label in a drawer is a nav item with no name. */
+  .sideNav[data-collapsed="true"] :global(.astryx-side-nav-item) span {
+    opacity: 1;
+  }
+
+  .railBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 49;
+    border: 0;
+    padding: 0;
+    /* Astryx's scrim, the one its own dialogs sit on: dark in both modes.
+       This used `--color-surface-overlay`, which is a surface — the seeded
+       near-white role in light mode — so instead of dimming the page it
+       washed it out, and the menu over it read as more of the same. */
+    background: var(--color-overlay);
+    cursor: pointer;
+  }
+}
+
+/* A backdrop and a trigger are phone controls. Above the breakpoint the rail
+   is a column that expands itself and there is nothing to dismiss. */
+.railBackdrop,
+.railTrigger {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .railBackdrop {
+    display: block;
+  }
+
+  .railTrigger {
+    display: inline-flex;
+    position: fixed;
+    /* Level with the studio's own top bar, which pads its first row by the
+       same expression, so the menu button and Export share a top edge and,
+       being the same height, a centre. It used to sit at 8px against a bar
+       with none, which is what read as jammed against the top of the screen. */
+    inset-block-start: max(var(--spacing-3, 12px), env(safe-area-inset-top));
+    inset-inline-start: var(--spacing-2);
+    z-index: 48;
+    background: var(--color-surface-raised);
+    box-shadow: var(--shadow-low, none);
   }
 }

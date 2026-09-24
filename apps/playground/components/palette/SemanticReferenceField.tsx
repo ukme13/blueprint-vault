@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Popover } from "@astryxdesign/core/Popover";
 import { Selector } from "@astryxdesign/core/Selector";
 import {
@@ -10,6 +11,8 @@ import {
   type SemanticMiss,
   type SemanticToken,
 } from "@blueprint/ui";
+import { SelectorSheet } from "../SheetSelector";
+import { useIsPhone } from "../use-is-phone";
 import { usePaletteView } from "./PaletteViewContext";
 import { SemanticAlphaField } from "./SemanticAlphaField";
 import { TransparencySwatch } from "./TransparencySwatch";
@@ -48,6 +51,8 @@ export function ReferenceField({
   onAlphaMove,
 }: ReferenceFieldProps) {
   const { seen } = usePaletteView();
+  const isPhone = useIsPhone();
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const resolved = resolveSemantic(token, mode, palettes);
   if (!resolved) return null;
 
@@ -61,78 +66,128 @@ export function ReferenceField({
       }),
     );
 
+  const chip = (
+    <button
+      aria-haspopup={isPhone ? "dialog" : undefined}
+      aria-label={`Edit ${token.name} ${mode} reference`}
+      className={styles.referenceChip}
+      data-mode={mode}
+      data-semantic-cell={mode}
+      data-semantic-token={token.id}
+      type="button"
+      /* On a phone the chip opens the sheet itself; on a wide screen the
+         Popover around it owns the click, so none is set here. */
+      onClick={isPhone ? () => setIsSheetOpen(true) : undefined}
+    >
+      <TransparencySwatch alpha={resolved.alpha} colour={seen(resolved.hex)} />
+      <span>
+        {track.name}/{resolved.weight}
+      </span>
+    </button>
+  );
+
   return (
     <div className={styles.referenceField}>
-      <Popover
-        alignment="start"
-        content={
-          <section className={styles.referencePicker}>
-            <Selector
-              isLabelHidden
-              label={`${token.name} ${mode} track`}
-              options={palettes.map((item) => ({
-                label: item.name,
-                value: item.id,
-              }))}
-              value={track.id}
-              onChange={(trackId) => {
-                const next = palettes.find((item) => item.id === trackId);
-                const keeps = next?.shades.some(
-                  (shade) => shade.weight === resolved.weight,
-                );
-                repoint({
-                  trackId,
-                  weight: keeps
-                    ? resolved.weight
-                    : (next?.shades[Math.floor((next.shades.length - 1) / 2)]
-                        ?.weight ?? resolved.weight),
-                });
-              }}
-            />
-            <Selector
-              isLabelHidden
-              label={`${token.name} ${mode} weight`}
-              options={track.shades.map((shade) => ({
-                label: String(shade.weight),
-                value: String(shade.weight),
-              }))}
-              value={String(resolved.weight)}
-              onChange={(weight) =>
-                repoint({ trackId: track.id, weight: Number(weight) })
-              }
-            />
-            {resolved.missing && (
-              <span
-                className={styles.referenceWarning}
-                title={MISSING_REASON[resolved.missing]}
-              >
-                {MISSING_LABEL[resolved.missing]}
-              </span>
-            )}
-          </section>
-        }
-        hasAutoFocus={false}
-        label={`${token.name} ${mode} reference`}
-        placement="below"
-        width={280}
-      >
-        <button
-          aria-label={`Edit ${token.name} ${mode} reference`}
-          className={styles.referenceChip}
-          data-mode={mode}
-          data-semantic-cell={mode}
-          data-semantic-token={token.id}
-          type="button"
-        >
-          <TransparencySwatch
-            alpha={resolved.alpha}
-            colour={seen(resolved.hex)}
+      {isPhone ? (
+        <>
+          {/* On a phone the chip opens one searchable list of every shade,
+              grouped by track, instead of a popover with a track selector and
+              a weight selector: the search finds "secondary 500" faster than
+              two dropdowns, and a sheet gives the rows a thumb can hit. The
+              same list and sheet as every other selector on a phone. */}
+          {chip}
+          <SelectorSheet
+            hasSearch
+            isOpen={isSheetOpen}
+            label={`${token.name} ${mode}`}
+            notice={
+              resolved.missing ? (
+                <span
+                  className={styles.referenceWarning}
+                  title={MISSING_REASON[resolved.missing]}
+                >
+                  {MISSING_LABEL[resolved.missing]}
+                </span>
+              ) : undefined
+            }
+            options={palettes.map((item) => ({
+              type: "section" as const,
+              title: item.name,
+              options: item.shades.map((shade) => ({
+                label: `${item.name} ${shade.weight}`,
+                value: `${item.id}:${shade.weight}`,
+                icon: <TransparencySwatch alpha={1} colour={seen(shade.hex)} />,
+              })),
+            }))}
+            searchPlaceholder="Search shades"
+            value={`${track.id}:${resolved.weight}`}
+            onChange={(next) => {
+              const split = next.lastIndexOf(":");
+              repoint({
+                trackId: next.slice(0, split),
+                weight: Number(next.slice(split + 1)),
+              });
+            }}
+            onClose={() => setIsSheetOpen(false)}
           />
-          <span>
-            {track.name}/{resolved.weight}
-          </span>
-        </button>
-      </Popover>
+        </>
+      ) : (
+        <Popover
+          alignment="start"
+          content={
+            <section className={styles.referencePicker}>
+              <Selector
+                isLabelHidden
+                label={`${token.name} ${mode} track`}
+                options={palettes.map((item) => ({
+                  label: item.name,
+                  value: item.id,
+                }))}
+                value={track.id}
+                onChange={(trackId) => {
+                  const next = palettes.find((item) => item.id === trackId);
+                  const keeps = next?.shades.some(
+                    (shade) => shade.weight === resolved.weight,
+                  );
+                  repoint({
+                    trackId,
+                    weight: keeps
+                      ? resolved.weight
+                      : (next?.shades[Math.floor((next.shades.length - 1) / 2)]
+                          ?.weight ?? resolved.weight),
+                  });
+                }}
+              />
+              <Selector
+                isLabelHidden
+                label={`${token.name} ${mode} weight`}
+                options={track.shades.map((shade) => ({
+                  label: String(shade.weight),
+                  value: String(shade.weight),
+                }))}
+                value={String(resolved.weight)}
+                onChange={(weight) =>
+                  repoint({ trackId: track.id, weight: Number(weight) })
+                }
+              />
+              {resolved.missing && (
+                <span
+                  className={styles.referenceWarning}
+                  title={MISSING_REASON[resolved.missing]}
+                >
+                  {MISSING_LABEL[resolved.missing]}
+                </span>
+              )}
+            </section>
+          }
+          hasAutoFocus={false}
+          label={`${token.name} ${mode} reference`}
+          placement="below"
+          width={280}
+        >
+          {chip}
+        </Popover>
+      )}
       <SemanticAlphaField
         label={`${token.name} ${mode} transparency`}
         mode={mode}

@@ -78,3 +78,27 @@
   min-height: 0;
   flex-direction: column;
 }
+
+/* The phone's Reset to default; the label is the desktop's. */
+.resetIcon {
+  display: none;
+}
+
+/* On a phone the preview is always the phone frame, so there is nothing to
+   switch between and the bar goes. Last in the file so it outranks the rules
+   above. */
+@media (max-width: 640px) {
+  .deviceBar,
+  .resetLabel {
+    display: none;
+  }
+
+  .resetIcon {
+    display: inline-flex;
+  }
+
+  /* 24px either side of a 342px frame is a lot of a 390px screen. */
+  .stage {
+    padding: var(--spacing-3);
+  }
+}

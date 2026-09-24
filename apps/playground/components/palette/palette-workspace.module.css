@@ -123,7 +123,13 @@
 .toolbar[data-tools="vision-only"] .contrastModeButton,
 .toolbar[data-tools="vision-only"] .contrastOptions,
 .toolbar[data-tools="vision-only"] .toolbarDivider,
-.toolbar[data-tools="vision-only"] .resetButton {
+.toolbar[data-tools="vision-only"] .resetButton,
+.toolbar[data-tools="vision-only"] .resetIconButton {
+  display: none;
+}
+
+/* The phone's Reset preset; the label is the desktop's. */
+.toolbar .resetIconButton {
   display: none;
 }
 
@@ -347,6 +353,12 @@
 .matrixScroller {
   max-width: 100%;
   overflow-x: auto;
+  /* Momentum on the iOS versions that still ask for it. The grid is 940px
+     against a 353px canvas on a phone, so this is the surface a reader swipes
+     to see the 25 to 950 interval — it should feel like the rest of the
+     phone. */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
   padding: 0;
 }
 
@@ -1550,6 +1562,10 @@
     order: 2;
     overflow-x: auto;
     scrollbar-width: none;
+    /* One line that scrolls, never two that wrap. "Shade generator" is the
+       longest tab and the first to break onto a second line. */
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
   }
 
   .headerActions {
@@ -1583,14 +1599,64 @@
     padding: 0 14px;
   }
 
+  /* Room above the controls. With no top padding the menu button and Export
+     sat against the top edge of the screen, under the status bar on a phone
+     that draws one over the page. The safe-area inset only counts once a page
+     opts into drawing under the notch; until then the 12px is what applies. */
+  .topbar {
+    padding-block-start: max(var(--spacing-3, 12px), env(safe-area-inset-top));
+    /* None below: the tabs are the last row, and their underline is set to
+       land on this bar's bottom border. Padding here lifted it off. */
+    padding-block-end: 0;
+  }
+
   .headerActions nav,
   .creationHeaderActions nav {
     display: none;
   }
 
+  /* One line of chips that swipes, and nothing else in it.
+
+     The options WCAG 2 and Vision open used to grow inside this line — which
+     either pushed them off the edge of a scrolling strip or, wrapped, turned
+     the strip into three rows. On a phone they open in a bottom sheet
+     instead (ContrastSheet, VisionSheet), so this line only ever holds the
+     chips and stays one line at any width. */
   .toolbar {
+    flex-wrap: nowrap;
     overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
     padding: 0 14px;
+  }
+
+  /* In the sheet on a phone. Hidden here rather than left unrendered, so
+     there is no frame in which they show before the breakpoint is known. */
+  .contrastOptions {
+    display: none;
+  }
+
+  /* Reset preset becomes an icon beside Vision, where the thumb already is,
+     instead of a label at the far end of the strip. The `vision-only` rule
+     above still wins, being more specific. */
+  .toolbar .resetIconButton {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+
+  .toolbar .resetButton,
+  .toolbarDivider {
+    display: none;
+  }
+
+  /* On, said plainly: a filled chip. The tint the desktop uses reads as
+     "hovered" at arm's length, and on a phone the chip is the only sign the
+     checks are on — the options that show it on a desktop are in a sheet. */
+  .contrastModeButton[data-active="true"] {
+    border-color: var(--color-action-primary);
+    background: var(--color-action-primary);
+    color: var(--color-fg-on-action);
   }
 
   .creationCard {
@@ -1614,4 +1680,48 @@
     align-items: stretch;
     flex-direction: column;
   }
+}
+
+/* The popover sizes itself to its content; the sheet is the screen's width. */
+.shadePopoverContent[data-layout="sheet"] {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+
+.shadeSheetAnchor {
+  padding: 12px 12px;
+}
+
+/* The picker as a phone's sheet: a taller field than the popover's, since a
+   thumb covers what a cursor does not. */
+.colourPickerSheet .colourField {
+  height: 240px;
+}
+
+.colourPickerSheet .hueControl {
+  height: 36px;
+}
+
+.colourPickerSheet .colourPickerFooter {
+  margin: 0 calc(-1 * var(--spacing-4, 16px));
+}
+
+/* The track sheet's buttons wrap rather than run off a narrow screen. */
+.trackSheet .trackDialogFooter {
+  flex-wrap: wrap;
+  padding-inline: var(--spacing-4, 16px);
+}
+
+/* The shade strip shares the sheet's width rather than scrolling: twenty
+   shades at their 20px minimum are 400px, wider than a phone's sheet, and
+   the scrollbar showed as a grey line under the strip. It is a preview, not
+   something to tap, so narrower swatches lose nothing. */
+.trackSheet .trackShadePreview {
+  grid-auto-columns: minmax(0, 1fr);
+  overflow-x: hidden;
+}
+
+.trackSheet .trackShadePreview > span {
+  min-width: 0;
 }

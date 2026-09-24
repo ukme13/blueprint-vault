@@ -1,7 +1,8 @@
 import { Text } from "@astryxdesign/core/Text";
 import { BlueprintWordmark } from "@blueprint/ui";
-import type { DocsGroup } from "@blueprint/ui/docs-routes";
+import type { DocsGroup, DocsRouteGroup } from "@blueprint/ui/docs-routes";
 import type { DocsSection } from "../lib/nav";
+import { MobileMenu } from "./MobileMenu";
 import { ThemeControl } from "./ThemeControl";
 
 /**
@@ -25,21 +26,38 @@ interface SiteHeaderProps {
   sections: readonly DocsSection[];
   /** The section the current page is in, if it is in one. */
   activeGroup?: DocsGroup;
+  /** Every group, for the drawer a narrow screen navigates by. */
+  groups: readonly DocsRouteGroup[];
+  /** The current page's path, so the drawer can mark it. No leading slash. */
+  path: string;
 }
 
-export function SiteHeader({ sections, activeGroup }: SiteHeaderProps) {
+export function SiteHeader({
+  sections,
+  activeGroup,
+  groups,
+  path,
+}: SiteHeaderProps) {
   return (
     <div className="site-header">
-      {/* eslint-disable-next-line @next/next/no-html-link-for-pages --
-          A plain anchor on purpose, as in DocsNav. These pages ship inside a
-          handover and are opened from a folder over file://, where there is
-          no server for a router to ask. `scripts/handover.ts` rewrites an
-          absolute href to a relative one on the way into the archive; it
-          cannot rewrite a client-side router. The rule is right about an
-          ordinary Next app and wrong about this one. */}
-      <a aria-label="Blueprint documentation" className="site-mark" href="/">
-        <BlueprintWordmark className="site-mark-wordmark" />
-      </a>
+      {/* One cell, two things. The bar is a three-column grid and the toggle
+          was added as a fourth child — which pushed the theme control into an
+          implicit second row, 20px below a bar with a fixed height, on top of
+          the first paragraph. Grouping it with the mark keeps the grid three
+          wide. */}
+      <div className="site-header-start">
+        <MobileMenu currentPath={path} groups={groups} />
+        {/* eslint-disable-next-line @next/next/no-html-link-for-pages --
+            A plain anchor on purpose, as in DocsNav. These pages ship inside a
+            handover and are opened from a folder over file://, where there is
+            no server for a router to ask. `scripts/handover.ts` rewrites an
+            absolute href to a relative one on the way into the archive; it
+            cannot rewrite a client-side router. The rule is right about an
+            ordinary Next app and wrong about this one. */}
+        <a aria-label="Blueprint documentation" className="site-mark" href="/">
+          <BlueprintWordmark className="site-mark-wordmark" />
+        </a>
+      </div>
 
       {/* The site's sections, centred. Built from the audience-filtered
           route groups, so a client build has no Studio link to render. Plain
