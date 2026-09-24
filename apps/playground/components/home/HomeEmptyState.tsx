@@ -82,8 +82,8 @@ function EmptyStateCard({
   title: string;
 }) {
   return (
-    <li className="flex flex-col gap-4 rounded-container border border-border-subtle bg-surface-raised p-6">
-      <div className="grid h-24 place-items-center rounded-element border border-border-subtle bg-surface-base">
+    <li className="flex flex-col gap-4 rounded-container border border-border-subtle bg-surface-raised p-4">
+      <div className="grid h-36 place-items-center rounded-element border border-border-subtle bg-surface-base">
         {art}
       </div>
       <div className="flex flex-col gap-1">
