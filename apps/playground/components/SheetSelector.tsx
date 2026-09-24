@@ -51,6 +51,9 @@ function PhoneSelector({
   searchPlaceholder,
   startIcon,
   renderValue,
+  variant = "input",
+  size = "md",
+  width = "100%",
 }: SheetSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const selected = findSheetOption(options, value ?? undefined);
@@ -61,6 +64,9 @@ function PhoneSelector({
         aria-haspopup="dialog"
         aria-label={`${label}: ${selected?.label ?? selected?.value ?? placeholder}`}
         className={styles.trigger}
+        data-size={size}
+        data-variant={variant}
+        style={{ width: variant === "ghost" ? undefined : width }}
         type="button"
         onClick={() => setIsOpen(true)}
       >

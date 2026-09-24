@@ -18,10 +18,50 @@
   outline-offset: 2px;
 }
 
+/*
+ * The input variant, which is Astryx's default: a field like the studio's
+ * other inputs (the HybridTokenizedInput field), not bare text. Ghost keeps
+ * the plain trigger above, for toolbars.
+ */
+.trigger[data-variant="input"] {
+  gap: var(--spacing-2);
+  min-height: 0;
+  height: var(--size-element-md);
+  max-width: 100%;
+  border: 1px solid var(--color-border-default);
+  background: var(--color-surface-subtle);
+  font-size: var(--font-size-sm, 0.875rem);
+  text-align: left;
+  transition: border-color 120ms ease;
+}
+
+.trigger[data-variant="input"][data-size="sm"] {
+  height: var(--size-element-sm);
+}
+
+.trigger[data-variant="input"][data-size="lg"] {
+  height: var(--size-element-lg);
+}
+
+.trigger[data-variant="input"]:hover {
+  border-color: var(--color-border-strong);
+}
+
+.trigger[data-variant="input"] .triggerValue {
+  flex: 1 1 auto;
+}
+
+.trigger[data-variant="input"] .chevron {
+  flex: none;
+}
+
 .triggerValue {
   display: inline-flex;
   align-items: center;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chevron {
