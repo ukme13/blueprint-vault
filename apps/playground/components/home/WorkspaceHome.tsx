@@ -23,9 +23,13 @@ import { ProjectCard } from "./ProjectCard";
 import { RenameProjectDialog } from "./RenameProjectDialog";
 import styles from "./home.module.css";
 
+/* Plain words, the count and the limit in one line. At the limit it also
+   says what to do, since Import and New project are disabled then. */
 function projectCountLabel(count: number) {
-  if (count === 1) return "You have 1 project.";
-  return `You have ${count} projects.`;
+  const label = `You have ${count} / ${LIBRARY_CAPACITY} projects.`;
+  return count >= LIBRARY_CAPACITY
+    ? `${label} Delete one to add another.`
+    : label;
 }
 
 /**
@@ -170,36 +174,16 @@ export function WorkspaceHome() {
       <header className={styles.header}>
         <div>
           <h1>Projects</h1>
-          <div className={styles.countRow}>
-            <p className={styles.count}>
+          <p className={styles.count} role="status">
+            {/* The sentence on a wide screen; on a phone, beside the heading,
+                only the numbers. */}
+            <span className="max-sm:hidden">
               {projectCountLabel(summaries.length)}
-            </p>
-            <div
-              className={
-                isLibraryFull
-                  ? `${styles.capacityIndicator} ${styles.capacityIndicatorFull}`
-                  : styles.capacityIndicator
-              }
-              role="status"
-              title={
-                isLibraryFull
-                  ? `Storage limit reached (${summaries.length} / ${LIBRARY_CAPACITY} projects). Delete one to add another.`
-                  : `${summaries.length} of ${LIBRARY_CAPACITY} projects used`
-              }
-            >
-              <div aria-hidden className={styles.capacityTrack}>
-                <div
-                  className={styles.capacityBar}
-                  style={{
-                    width: `${Math.min(100, (summaries.length / LIBRARY_CAPACITY) * 100)}%`,
-                  }}
-                />
-              </div>
-              <span className={styles.capacityLabel}>
-                {summaries.length} / {LIBRARY_CAPACITY} used
-              </span>
-            </div>
-          </div>
+            </span>
+            <span className="sm:hidden">
+              {summaries.length} / {LIBRARY_CAPACITY} used
+            </span>
+          </p>
         </div>
         <div className={styles.actions}>
           <Button

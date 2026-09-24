@@ -32,7 +32,7 @@ test.describe("Dialog dismissal", () => {
 
     await expect(dialog).toBeHidden();
     /* Dismissing is not creating. */
-    await expect(page.getByText("You have 0 projects.")).toBeVisible();
+    await expect(page.getByText("You have 0 / 8 projects.")).toBeVisible();
   });
 
   test("the backdrop closes Rename", async ({ page }) => {

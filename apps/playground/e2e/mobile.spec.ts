@@ -1284,15 +1284,15 @@ test.describe("on a phone", () => {
     await createWorkspaceFromHome(page, "First system");
     await page.goto("/");
 
-    /* Row one: the heading and the capacity pill. */
+    /* Row one: the heading and the count beside it. */
     const heading = (await page
       .getByRole("heading", { level: 1, name: "Projects" })
       .boundingBox())!;
-    const pill = (await page.getByText("1 / 8 used").boundingBox())!;
+    const count = (await page.getByText("1 / 8 used").boundingBox())!;
     expect(
-      Math.abs(pill.y + pill.height / 2 - (heading.y + heading.height / 2)),
+      Math.abs(count.y + count.height / 2 - (heading.y + heading.height / 2)),
     ).toBeLessThanOrEqual(8);
-    expect(pill.x).toBeGreaterThan(heading.x + heading.width);
+    expect(count.x).toBeGreaterThan(heading.x + heading.width);
 
     /* Row two: two equal halves, New project first. */
     const create = (await page

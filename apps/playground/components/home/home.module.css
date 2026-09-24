@@ -32,63 +32,10 @@
   letter-spacing: -0.02em;
 }
 
-.countRow {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 4px;
-}
-
 .count {
-  margin: 0;
+  margin: 4px 0 0;
   color: var(--color-fg-muted);
   font-size: 14px;
-}
-
-.capacityIndicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 3px 8px;
-  border-radius: var(--radius-inner, 6px);
-  background: var(--color-surface-subtle);
-  border: 1px solid var(--color-border-subtle);
-}
-
-.capacityIndicatorFull {
-  border-color: var(--color-status-warning);
-  background: color-mix(in oklch, var(--color-status-warning) 10%, transparent);
-}
-
-.capacityTrack {
-  width: 44px;
-  height: 5px;
-  border-radius: 9999px;
-  background: var(--color-border-default);
-  overflow: hidden;
-}
-
-.capacityBar {
-  height: 100%;
-  border-radius: 9999px;
-  background: var(--color-action-primary);
-  transition: width 0.2s ease;
-}
-
-.capacityIndicatorFull .capacityBar {
-  background: var(--color-status-warning);
-}
-
-.capacityLabel {
-  color: var(--color-fg-muted);
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-}
-
-.capacityIndicatorFull .capacityLabel {
-  color: var(--color-fg-primary);
 }
 
 .actions {
@@ -363,8 +310,7 @@
     gap: var(--spacing-3, 12px);
   }
 
-  /* Row one: the heading and the capacity pill. The count beside them says
-     what the pill already says. */
+  /* Row one: the heading, and the count beside it. */
   .header > div:first-child {
     display: flex;
     align-items: center;
@@ -372,12 +318,9 @@
     gap: var(--spacing-3, 12px);
   }
 
-  .countRow {
-    margin-top: 0;
-  }
-
   .count {
-    display: none;
+    margin-top: 0;
+    text-align: right;
   }
 
   /* Row two: two halves, New project first. */
