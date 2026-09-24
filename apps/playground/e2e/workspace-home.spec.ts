@@ -145,7 +145,7 @@ test.describe("Workspace home", () => {
     await expect(
       page.getByRole("heading", { name: "Second system" }),
     ).toBeVisible();
-    await expect(page.getByText("You have 2 projects.")).toBeVisible();
+    await expect(page.getByText("You have 2 / 8 projects.")).toBeVisible();
   });
 
   test("clicking another card opens that name on the rail", async ({
@@ -178,7 +178,7 @@ test.describe("Workspace home", () => {
     await expect(
       page.getByRole("heading", { name: "Second system" }),
     ).toBeVisible();
-    await expect(page.getByText("You have 1 project.")).toBeVisible();
+    await expect(page.getByText("You have 1 / 8 projects.")).toBeVisible();
   });
 
   test("renames a project from the card", async ({ page }) => {
@@ -208,7 +208,7 @@ test.describe("Workspace home", () => {
     await expect(
       page.getByRole("heading", { name: "Base system copy" }),
     ).toBeVisible();
-    await expect(page.getByText("You have 2 projects.")).toBeVisible();
+    await expect(page.getByText("You have 2 / 8 projects.")).toBeVisible();
   });
 
   test("card thumbnail fills the top with no padding, has action icons, and current card has accent border", async ({
@@ -233,7 +233,6 @@ test.describe("Workspace home", () => {
       card.getByRole("button", { name: "Delete First system" }),
     ).toBeAttached();
     await expect(card.getByText(/Edited just now/)).toBeVisible();
-    await expect(page.getByText("1 / 8 used")).toBeVisible();
 
     const cardBox = await card.boundingBox();
     const mosaic = card.locator("[data-mosaic-track]").first();
@@ -394,7 +393,7 @@ test.describe("Workspace home", () => {
     await page.getByRole("button", { name: "Delete Only system" }).click();
     await page.getByRole("button", { name: "Delete project" }).click();
 
-    await expect(page.getByText("You have 0 projects.")).toBeVisible();
+    await expect(page.getByText("You have 0 / 8 projects.")).toBeVisible();
     await expect(page.getByRole("link", { name: /Only system/ })).toHaveCount(
       0,
     );
