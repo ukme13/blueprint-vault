@@ -985,6 +985,71 @@ test.describe("on a phone", () => {
     await expect(sheet).toBeVisible();
   });
 
+  test("keeps a selector sheet's search at the top while its list scrolls", async ({
+    page,
+  }) => {
+    /* A long list of shades used to carry the title and search off the top
+       of the sheet as it scrolled, and with them the way to narrow it. */
+    await page.addInitScript(
+      ({ pk, p, tk, t }) => {
+        window.localStorage.setItem(pk, JSON.stringify(p));
+        window.localStorage.setItem(tk, JSON.stringify(t));
+      },
+      {
+        pk: PROJECT_STORAGE_KEY,
+        p: defaultProject(),
+        tk: TYPOGRAPHY_STORAGE_KEY,
+        t: defaultTypographyProject(),
+      },
+    );
+    await page.goto("/typography");
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+    await page.getByRole("button", { name: /^Text colour: / }).click();
+
+    const sheet = page.getByRole("dialog", { name: "Text colour" });
+    const search = sheet.getByRole("textbox");
+    await expect(search).toBeVisible();
+
+    /* To the end of the sheet's own scroll. */
+    const scrolled = await sheet.evaluate((dialog) => {
+      const scroller = [...dialog.querySelectorAll<HTMLElement>("*")].find(
+        (node) =>
+          node.scrollHeight > node.clientHeight + 1 &&
+          /auto|scroll/.test(getComputedStyle(node).overflowY),
+      );
+      if (!scroller) return 0;
+      scroller.scrollTop = scroller.scrollHeight;
+      return scroller.scrollTop;
+    });
+    expect(scrolled, "the list is long enough to scroll").toBeGreaterThan(200);
+
+    const panel = (await sheet
+      .locator(".astryx-bottom-sheet")
+      .first()
+      .boundingBox())!;
+    const box = (await search.boundingBox())!;
+    await expect(search).toBeInViewport();
+    expect(box.y - panel.y, "the search stays near the top").toBeLessThan(120);
+    await expect(
+      sheet.getByRole("heading", { name: "Text colour" }),
+    ).toBeInViewport();
+  });
+
+  test("opens the preview weight as a sheet", async ({ page }) => {
+    /* A Google font, so there are weights to choose between. */
+    await seedTypographyProject(page, {
+      ...defaultTypographyProject(),
+      fontFamily: "Inter, ui-sans-serif, system-ui",
+    });
+    const trigger = page.getByRole("button", { name: /^Preview weight: / });
+    await expect(trigger).toBeVisible();
+    await trigger.click();
+    const sheet = page.getByRole("dialog", { name: "Preview weight" });
+    await expect(sheet.locator(".astryx-bottom-sheet").first()).toBeVisible();
+    await sheet.getByRole("option").last().click();
+    await expect(sheet).toBeHidden();
+  });
+
   test("picks preview colours and text presets from a sheet", async ({
     page,
   }) => {

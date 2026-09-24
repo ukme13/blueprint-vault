@@ -31,7 +31,8 @@ export function LayoutUsesRowMenu({
       button={{
         "aria-label": label,
         label: "…",
-        size: "sm",
+        /* The value fields beside it are 32px. */
+        size: "md",
         variant: "ghost",
       }}
       hasChevron={false}

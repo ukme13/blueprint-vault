@@ -49,7 +49,7 @@ export function PaletteControls({
             aria-label="Remove one shade"
             disabled={shadeCount <= MIN_SHADE_COUNT}
             scheme="neutral"
-            size="small"
+            size="medium"
             variant="outlined"
             onClick={() => onShadeCountChange(shadeCount - 1)}
           >
@@ -70,7 +70,7 @@ export function PaletteControls({
             aria-label="Add one shade"
             disabled={shadeCount >= MAX_SHADE_COUNT}
             scheme="neutral"
-            size="small"
+            size="medium"
             variant="outlined"
             onClick={() => onShadeCountChange(shadeCount + 1)}
           >

@@ -77,6 +77,28 @@
   gap: var(--spacing-3, 12px);
 }
 
+/*
+ * The title and search, held at the top while the options scroll.
+ *
+ * Painted in the sheet's own surface so rows pass under it. Its padding
+ * reaches up behind the grab handle and down over the gap above the list, and
+ * the negative margins give that room back, so no row shows above it. Stacked
+ * under the handle, which Astryx floats over the sheet's first 24px.
+ */
+.stickyHead {
+  position: sticky;
+  top: 0;
+  z-index: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3, 12px);
+  margin-top: calc(-1 * var(--spacing-6, 24px));
+  margin-bottom: calc(-1 * var(--spacing-3, 12px));
+  padding-top: var(--spacing-6, 24px);
+  padding-bottom: var(--spacing-3, 12px);
+  background: var(--color-background-surface);
+}
+
 .title {
   margin: 0;
   font-size: var(--font-size-lg, 1rem);

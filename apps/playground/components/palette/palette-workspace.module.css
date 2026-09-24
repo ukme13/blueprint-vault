@@ -531,6 +531,10 @@
   position: relative;
   min-width: 10ch;
   width: 100%;
+  /* The height of the details button beside it, whose edge its own shows
+     against when hovered or focused. */
+  box-sizing: border-box;
+  height: 28px;
   padding: 3px 4px;
   overflow: hidden;
   border: 1px solid transparent;

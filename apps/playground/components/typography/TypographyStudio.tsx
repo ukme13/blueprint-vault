@@ -7,7 +7,6 @@ import {
   SegmentedControl,
   SegmentedControlItem,
 } from "@astryxdesign/core/SegmentedControl";
-import { Selector } from "@astryxdesign/core/Selector";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import {
   openRoleGroupIds,
@@ -78,6 +77,7 @@ import { Badge } from "@astryxdesign/core/Badge";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { SlidersHorizontal } from "lucide-react";
 import { Sheet } from "../Sheet";
+import { SheetSelector } from "../SheetSelector";
 import { StudioSliceEmpty } from "../shell/StudioSliceEmpty";
 import { useIsPhone } from "../use-is-phone";
 import { TypographyExportDialog } from "./TypographyExportDialog";
@@ -842,7 +842,7 @@ export function TypographyStudio() {
 
               {previewWeights.length > 1 && (
                 <div className="w-28">
-                  <Selector
+                  <SheetSelector
                     isLabelHidden
                     label="Preview weight"
                     options={previewWeights.map((weight) => ({
