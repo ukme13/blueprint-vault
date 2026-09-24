@@ -419,4 +419,10 @@
     grid-area: count;
     margin: 0;
   }
+
+  /* The phone's larger input text clipped "100%" at 3.5rem. */
+  .alphaField {
+    width: 4.5rem;
+    min-width: 4.5rem;
+  }
 }
