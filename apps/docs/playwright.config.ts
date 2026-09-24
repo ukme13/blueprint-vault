@@ -9,12 +9,22 @@ import { defineConfig, devices } from "@playwright/test";
  * the claim about the site: that a built page, served, shows what the
  * reference workspace says, in whichever mode the reader is in.
  *
- * Its own port, 3001, which is what the app's `dev` and `start` already use.
- * A suite that shared 3000 with the studio would pass or fail depending on
- * which app somebody happened to be running.
+ * Its own port, 3005: not the studio's 3000 or its suite's 3004, and not
+ * 3001, where the docs' own `dev` and `start` run. It used to be 3001 with
+ * the running server reused, so a docs dev server left open answered the
+ * suite in place of the build, and tested whatever it had compiled rather
+ * than what `next build` renders. A server is never reused now; a busy port
+ * fails the run rather than testing the wrong thing. 3002 is not ours.
+ *
+ * `E2E_DEV=1` runs against the docs dev server on 3001 instead, reusing it,
+ * as the studio's suite does on 3000.
  *
  * See docs/roadmap/foundations-handover.md.
  */
+const useDevServer = !process.env.CI && process.env.E2E_DEV === "1";
+const port = useDevServer ? 3001 : 3005;
+const docsOrigin = `http://localhost:${port}`;
+
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
@@ -23,7 +33,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : 4,
   reporter: "list",
   use: {
-    baseURL: "http://localhost:3001",
+    baseURL: docsOrigin,
     trace: "on-first-retry",
     /*
      * The same setting, and the same reasoning, as the playground's config.
@@ -41,14 +51,17 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
     /*
-     * A production server, not `next dev`. These pages are static and the
-     * thing being checked is what `next build` renders from the workspace —
-     * dev-mode output is a different artefact, and the export the handover
-     * ships is built from this one.
+     * A production server unless `E2E_DEV=1` asks otherwise. These pages are
+     * static and the thing being checked is what `next build` renders from
+     * the workspace — dev-mode output is a different artefact, and the export
+     * the handover ships is built from this one.
      */
-    command: "pnpm build && pnpm start",
-    url: "http://localhost:3001",
-    reuseExistingServer: !process.env.CI,
+    command: useDevServer
+      ? "pnpm dev"
+      : /* next start directly: the app's start script pins --port 3001. */
+        `pnpm build && pnpm exec next start --port ${port}`,
+    url: docsOrigin,
+    reuseExistingServer: useDevServer,
     timeout: 180_000,
   },
 });

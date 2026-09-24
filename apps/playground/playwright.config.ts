@@ -1,7 +1,33 @@
 import { defineConfig, devices } from "@playwright/test";
 
+/*
+ * A production build, locally as in CI.
+ *
+ * Local runs used to start `next dev`, or reuse whatever already answered on
+ * 3000, which was usually somebody's own dev server. Dev mode compiles each
+ * route on first request and reloads on file changes, and under four workers
+ * that surfaced as tests failing on a navigation or a first paint and passing
+ * when run alone. CI never saw it, because CI builds. So a local run builds
+ * too, and a red local suite means the same thing a red CI run does.
+ *
+ * Its own port, 3004, so it never lands on a dev server: 3000 is the studio's
+ * `dev`, 3001 the docs, and 3002 is not ours to touch. A server is never
+ * reused, because one left running from an earlier build would test old code;
+ * if the port is taken, the run says so rather than testing the wrong thing.
+ *
+ * `E2E_DEV=1` runs against the dev server on 3000 instead, reusing it, for a
+ * quick loop on one spec. Expect the flakiness that comes with it.
+ *
+ * The cost: no routine run is in dev mode now, so nothing routinely catches a
+ * bug that only React StrictMode's double-invoked effects expose. One did
+ * once — a load/persist race in ColourFormatProvider, PR #42 — green on CI and
+ * red on every dev machine. Before merging anything that touches effects,
+ * storage or providers, run the affected specs with `E2E_DEV=1` as well.
+ */
+const useDevServer = !process.env.CI && process.env.E2E_DEV === "1";
+const port = useDevServer ? 3000 : 3004;
 const playgroundOrigin =
-  process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
+  process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -51,10 +77,18 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-  webServer: {
-    command: process.env.CI ? "pnpm build && pnpm start" : "pnpm dev",
-    url: playgroundOrigin,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: useDevServer
+    ? {
+        command: "pnpm dev",
+        url: playgroundOrigin,
+        reuseExistingServer: true,
+        timeout: 120_000,
+      }
+    : {
+        command: `pnpm build && pnpm start --port ${port}`,
+        url: playgroundOrigin,
+        reuseExistingServer: false,
+        /* A cold `next build` takes a minute or two on its own. */
+        timeout: 300_000,
+      },
 });
