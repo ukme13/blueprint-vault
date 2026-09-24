@@ -346,6 +346,35 @@ test.describe("on a phone", () => {
   /* Not /typography: the seeded project has no type system, so that studio
      shows its create screen, with no tabs to underline. Its bar has the same
      rule as these two. */
+  test("picks a semantic colour from one searchable sheet", async ({
+    seededPage: page,
+  }) => {
+    /* One list of every shade, found by typing, instead of a track selector
+       and a weight selector in a popover. */
+    await page.getByRole("button", { name: "Semantics" }).click();
+    const chip = page
+      .getByRole("button", { name: / light reference$/ })
+      .first();
+    const chipName = await chip.getAttribute("aria-label");
+    await chip.click();
+
+    const sheet = page.getByRole("dialog", {
+      name: chipName!.replace(/^Edit /, "").replace(/ reference$/, ""),
+    });
+    await expect(sheet).toBeVisible();
+    await expect(sheet.getByRole("combobox")).toHaveCount(0);
+
+    await sheet.getByRole("textbox").fill("secondary 500");
+    await sheet
+      .getByRole("option", { name: "secondary 500", exact: true })
+      .click();
+
+    await expect(sheet).toBeHidden();
+    await expect(page.getByRole("button", { name: chipName! })).toContainText(
+      "secondary/500",
+    );
+  });
+
   test("lays the token search out as two rows", async ({
     seededPage: page,
   }) => {

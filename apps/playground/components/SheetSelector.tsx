@@ -53,19 +53,7 @@ function PhoneSelector({
   renderValue,
 }: SheetSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [query, setQuery] = useState("");
   const selected = findSheetOption(options, value ?? undefined);
-  const groups = sheetOptionGroups(options, query);
-
-  const close = () => {
-    setIsOpen(false);
-    setQuery("");
-  };
-
-  const choose = (option: SheetOption) => {
-    onChange?.(option.value);
-    close();
-  };
 
   return (
     <>
@@ -87,66 +75,126 @@ function PhoneSelector({
         <ChevronDown aria-hidden className={styles.chevron} />
       </button>
 
-      <Sheet
-        className={styles.sheet}
+      <SelectorSheet
+        hasSearch={hasSearch}
         isOpen={isOpen}
         label={label}
-        onClose={close}
-      >
-        <h2 className={styles.title}>{label}</h2>
-        {hasSearch && (
-          <TextInput
-            isLabelHidden
-            label={`Search ${label.toLowerCase()}`}
-            placeholder={searchPlaceholder ?? "Search"}
-            value={query}
-            width="100%"
-            onChange={setQuery}
-          />
-        )}
-
-        <div aria-label={label} className={styles.list} role="listbox">
-          {groups.length === 0 && (
-            <p className={styles.empty}>No results found</p>
-          )}
-          {groups.map((group, index) => (
-            <div
-              key={group.title ?? `group-${index}`}
-              aria-label={group.title}
-              className={styles.group}
-              role="group"
-            >
-              {group.title && (
-                <p aria-hidden className={styles.groupTitle}>
-                  {group.title}
-                </p>
-              )}
-              {group.options.map((option) => {
-                const isSelected = option.value === value;
-                return (
-                  <button
-                    key={option.value}
-                    aria-selected={isSelected}
-                    className={styles.option}
-                    disabled={option.disabled}
-                    role="option"
-                    type="button"
-                    onClick={() => choose(option)}
-                  >
-                    {renderIcon(option.icon)}
-                    <span className={styles.optionLabel}>
-                      {option.label ?? option.value}
-                    </span>
-                    {isSelected && (
-                      <Check aria-hidden className={styles.check} />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-      </Sheet>
+        options={options}
+        searchPlaceholder={searchPlaceholder}
+        value={value ?? undefined}
+        onChange={(next) => onChange?.(next)}
+        onClose={() => setIsOpen(false)}
+      />
     </>
+  );
+}
+
+interface SelectorSheetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  /** The sheet's title, and its accessible name. */
+  label: string;
+  options: SheetSelectorProps["options"];
+  value: string | undefined;
+  onChange: (value: string) => void;
+  hasSearch?: boolean;
+  searchPlaceholder?: string;
+  /** Shown under the title, above the search: a warning about the value. */
+  notice?: ReactNode;
+}
+
+/**
+ * The option sheet on its own, for a trigger that is not a selector.
+ *
+ * `SheetSelector` opens this from its own button. A control with a trigger
+ * of its own, such as the semantic table's colour chip, opens it directly,
+ * so every choice on a phone is the same sheet: one searchable list, rows a
+ * thumb can hit, closed by a choice, the backdrop, a swipe or Escape. The
+ * search resets when it closes, so the next open starts from everything.
+ */
+export function SelectorSheet({
+  isOpen,
+  onClose,
+  label,
+  options,
+  value,
+  onChange,
+  hasSearch,
+  searchPlaceholder,
+  notice,
+}: SelectorSheetProps) {
+  const [query, setQuery] = useState("");
+  const groups = sheetOptionGroups(options, query);
+
+  const close = () => {
+    onClose();
+    setQuery("");
+  };
+
+  const choose = (option: SheetOption) => {
+    onChange(option.value);
+    close();
+  };
+
+  return (
+    <Sheet
+      className={styles.sheet}
+      isOpen={isOpen}
+      label={label}
+      onClose={close}
+    >
+      <h2 className={styles.title}>{label}</h2>
+      {notice}
+      {hasSearch && (
+        <TextInput
+          isLabelHidden
+          label={`Search ${label.toLowerCase()}`}
+          placeholder={searchPlaceholder ?? "Search"}
+          value={query}
+          width="100%"
+          onChange={setQuery}
+        />
+      )}
+
+      <div aria-label={label} className={styles.list} role="listbox">
+        {groups.length === 0 && (
+          <p className={styles.empty}>No results found</p>
+        )}
+        {groups.map((group, index) => (
+          <div
+            key={group.title ?? `group-${index}`}
+            aria-label={group.title}
+            className={styles.group}
+            role="group"
+          >
+            {group.title && (
+              <p aria-hidden className={styles.groupTitle}>
+                {group.title}
+              </p>
+            )}
+            {group.options.map((option) => {
+              const isSelected = option.value === value;
+              return (
+                <button
+                  key={option.value}
+                  aria-selected={isSelected}
+                  className={styles.option}
+                  disabled={option.disabled}
+                  role="option"
+                  type="button"
+                  onClick={() => choose(option)}
+                >
+                  {renderIcon(option.icon)}
+                  <span className={styles.optionLabel}>
+                    {option.label ?? option.value}
+                  </span>
+                  {isSelected && <Check aria-hidden className={styles.check} />}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+    </Sheet>
   );
 }
