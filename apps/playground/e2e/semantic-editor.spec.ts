@@ -125,7 +125,7 @@ test.describe("The semantic editor", () => {
     /* The id is the exported name, so a rename that left it alone would let
        the label and the variable a developer writes drift apart. */
     const editor = await openSemantics(page);
-    await editor.getByRole("button", { name: "Add token" }).click();
+    await editor.getByRole("button", { name: "Add", exact: true }).click();
     const field = editor.getByLabel("custom.new-token name");
 
     await field.fill("brand-wash");
@@ -142,7 +142,7 @@ test.describe("The semantic editor", () => {
   test("adds and removes a token", async ({ seededPage: page }) => {
     const editor = await openSemantics(page);
 
-    await editor.getByRole("button", { name: "Add token" }).click();
+    await editor.getByRole("button", { name: "Add", exact: true }).click();
     await expect(editor.locator("tr:has([data-token])")).toHaveCount(73);
 
     /* Through the row menu since stage 4a: the per-row Remove button became

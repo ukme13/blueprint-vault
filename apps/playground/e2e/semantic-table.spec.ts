@@ -475,7 +475,7 @@ test.describe("Operating on a selection", () => {
   }) => {
     const editor = await openSemantics(page);
 
-    await editor.getByRole("button", { name: "Add token" }).click();
+    await editor.getByRole("button", { name: "Add", exact: true }).click();
     const name = editor.getByLabel("custom.new-token name");
     await expect(name).toBeFocused();
     await name.fill("pending");
@@ -531,7 +531,7 @@ test.describe("Folder names and spreadsheet editing", () => {
   }) => {
     const editor = await openSemantics(page);
     await groupEntry(editor, "Status").click();
-    await editor.getByRole("button", { name: "Add token" }).click();
+    await editor.getByRole("button", { name: "Add", exact: true }).click();
 
     const field = editor.getByLabel("status.new-token name");
     await expect(field).toBeFocused();
@@ -546,7 +546,7 @@ test.describe("Folder names and spreadsheet editing", () => {
   }) => {
     const editor = await openSemantics(page);
     await groupEntry(editor, "Status").click();
-    await editor.getByRole("button", { name: "Add token" }).click();
+    await editor.getByRole("button", { name: "Add", exact: true }).click();
 
     const field = editor.getByLabel("status.new-token name");
     await field.fill("token");
@@ -569,7 +569,7 @@ test.describe("Folder names and spreadsheet editing", () => {
       .getByRole("listitem")
       .filter({ hasText: "All" })
       .click();
-    await editor.getByRole("button", { name: "Add token" }).click();
+    await editor.getByRole("button", { name: "Add", exact: true }).click();
 
     const field = editor.getByLabel("custom.new-token name");
     await field.fill("primary.x");

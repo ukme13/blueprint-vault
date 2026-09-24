@@ -404,7 +404,7 @@
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
       "search add"
-      "count count";
+      "count sync";
     row-gap: var(--spacing-2);
   }
 
@@ -414,8 +414,13 @@
     max-width: none;
   }
 
-  .addToken {
+  .addGroup {
     grid-area: add;
+  }
+
+  .syncAnchors {
+    grid-area: sync;
+    justify-self: end;
   }
 
   .toolbarCount {
@@ -428,4 +433,53 @@
     width: 4.5rem;
     min-width: 4.5rem;
   }
+}
+
+/* The Add tone and Sync dialogs. */
+.toneFields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2, 8px);
+}
+
+.toneFieldLabel {
+  font-size: var(--font-size-sm, 0.75rem);
+  font-weight: 600;
+}
+
+.toneHint {
+  margin: 0;
+  color: var(--color-fg-secondary);
+  font-size: var(--font-size-sm, 0.75rem);
+}
+
+.toneSummary {
+  margin: 0;
+  font-weight: 600;
+}
+
+.toneError {
+  margin: 0;
+  color: var(--color-status-error);
+  font-size: var(--font-size-sm, 0.75rem);
+}
+
+.tonePreview {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3, 12px);
+}
+
+.toneSwatches {
+  display: inline-flex;
+  flex-shrink: 0;
+  gap: var(--spacing-1, 4px);
+}
+
+.toneSwatch {
+  display: inline-block;
+  width: var(--spacing-5, 20px);
+  height: var(--spacing-5, 20px);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-inner, 4px);
 }
