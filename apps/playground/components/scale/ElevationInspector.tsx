@@ -9,10 +9,13 @@ import {
   ELEVATION_OPACITY_STEP,
   elevationLayerName,
   elevationPreviewSurfaces,
+  parseShadeOptionValue,
   resolveElevationColour,
   setElevationColour,
   setLayerOpacity,
   setLevelModeOpacities,
+  shadeOptionSections,
+  shadeOptionValue,
   type ColorTrack,
   type ElevationScale,
 } from "@blueprint/ui";
@@ -51,35 +54,28 @@ export function ElevationInspector({
           <SheetSelector
             hasSearch
             label="Shadow colour"
-            options={palettes.map((item) => ({
-              type: "section" as const,
-              title: item.name,
-              options: item.shades.map((shade) => ({
-                label: `${item.name} ${shade.weight}`,
-                value: `${item.id}:${shade.weight}`,
-                icon: <TransparencySwatch alpha={1} colour={shade.hex} />,
-              })),
-            }))}
+            options={shadeOptionSections(palettes, (hex) => (
+              <TransparencySwatch alpha={1} colour={hex} />
+            ))}
             searchPlaceholder="Search shades"
             size="sm"
             startIcon={<TransparencySwatch alpha={1} colour={colour.hex} />}
-            value={`${track.id}:${
-              track.shades.some((shade) => shade.weight === colour.weight)
+            value={shadeOptionValue({
+              trackId: track.id,
+              weight: track.shades.some(
+                (shade) => shade.weight === colour.weight,
+              )
                 ? colour.weight
-                : track.shades.at(-1)?.weight
-            }`}
+                : (track.shades.at(-1)?.weight ?? colour.weight),
+            })}
             onChange={(next) => {
-              const split = next.lastIndexOf(":");
-              const picked = palettes.find(
-                (item) => item.id === next.slice(0, split),
-              );
-              if (!picked) return;
-              onChange(
-                setElevationColour(scale, {
-                  trackId: picked.id,
-                  weight: Number(next.slice(split + 1)),
-                }),
-              );
+              const picked = parseShadeOptionValue(next);
+              if (
+                picked &&
+                palettes.some((item) => item.id === picked.trackId)
+              ) {
+                onChange(setElevationColour(scale, picked));
+              }
             }}
           />
         ) : (

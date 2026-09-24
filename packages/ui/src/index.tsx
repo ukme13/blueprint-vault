@@ -21,6 +21,7 @@ export type {
 } from "./HybridTokenizedInput";
 export * from "./history";
 export * from "./selector-sheet";
+export * from "./shade-options";
 export * from "./use-colour-mode";
 export * from "./color";
 export * from "./scale";

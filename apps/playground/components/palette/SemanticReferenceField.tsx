@@ -4,8 +4,11 @@ import { useState } from "react";
 import { Popover } from "@astryxdesign/core/Popover";
 import { Selector } from "@astryxdesign/core/Selector";
 import {
+  parseShadeOptionValue,
   repointSemanticToken,
   resolveSemantic,
+  shadeOptionSections,
+  shadeOptionValue,
   type ColorTrack,
   type ColourMode,
   type SemanticMiss,
@@ -110,23 +113,17 @@ export function ReferenceField({
                 </span>
               ) : undefined
             }
-            options={palettes.map((item) => ({
-              type: "section" as const,
-              title: item.name,
-              options: item.shades.map((shade) => ({
-                label: `${item.name} ${shade.weight}`,
-                value: `${item.id}:${shade.weight}`,
-                icon: <TransparencySwatch alpha={1} colour={seen(shade.hex)} />,
-              })),
-            }))}
+            options={shadeOptionSections(palettes, (hex) => (
+              <TransparencySwatch alpha={1} colour={seen(hex)} />
+            ))}
             searchPlaceholder="Search shades"
-            value={`${track.id}:${resolved.weight}`}
+            value={shadeOptionValue({
+              trackId: track.id,
+              weight: resolved.weight,
+            })}
             onChange={(next) => {
-              const split = next.lastIndexOf(":");
-              repoint({
-                trackId: next.slice(0, split),
-                weight: Number(next.slice(split + 1)),
-              });
+              const picked = parseShadeOptionValue(next);
+              if (picked) repoint(picked);
             }}
             onClose={() => setIsSheetOpen(false)}
           />

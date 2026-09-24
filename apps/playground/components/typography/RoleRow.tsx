@@ -23,8 +23,7 @@ import {
 import { LineHeightInput } from "./LineHeightInput";
 import styles from "./typography-workspace.module.css";
 import { SheetSelector } from "../SheetSelector";
-import { renderPickerSheet } from "../picker-sheet";
-import { useIsPhone } from "../use-is-phone";
+import { usePickerSheet } from "../picker-sheet";
 
 export interface RoleRowProps {
   role: TypeRole;
@@ -59,7 +58,7 @@ export function RoleRow({
   onRoleChange,
   onRoleRemove,
 }: RoleRowProps) {
-  const isPhone = useIsPhone();
+  const pickerSheet = usePickerSheet();
   const sizeUnlinked = isRoleUnlinkedOnDevice(role, deviceId);
   const lineHeightUnlinked = isLineHeightUnlinkedOnDevice(role, deviceId);
   const letterSpacingUnlinked = isLetterSpacingUnlinkedOnDevice(role, deviceId);
@@ -85,7 +84,7 @@ export function RoleRow({
           min={1}
           popoverTitle="Type steps"
           presets={sizePresets}
-          sheet={isPhone ? renderPickerSheet : undefined}
+          sheet={pickerSheet}
           searchPlaceholder="Search steps..."
           step={1}
           value={hybridValueFromStepOffset(
