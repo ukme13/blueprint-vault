@@ -71,3 +71,21 @@ test("a Uses row's menu matches the fields in its row", async ({
   expect(fieldHeight).toBe(32);
   expect(await height(menu)).toBe(fieldHeight);
 });
+
+test("the Semantics Add control and Sync match the search field", async ({
+  seededPage: page,
+}) => {
+  /* The combined Add control came from a branch written before buttons took
+     the input heights, at 28px beside a 32px search. */
+  await page.getByRole("button", { name: "Semantics" }).click();
+  const editor = page.getByRole("region", { name: "Semantic tokens" });
+  const search = fieldBox(editor.getByLabel("Search tokens")).first();
+  const searchHeight = await height(search);
+  expect(searchHeight).toBe(32);
+  expect(await height(editor.getByRole("group", { name: "Add" }))).toBe(
+    searchHeight,
+  );
+  expect(
+    await height(editor.getByRole("button", { name: "Sync", exact: true })),
+  ).toBe(searchHeight);
+});
