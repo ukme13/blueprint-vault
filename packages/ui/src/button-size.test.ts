@@ -14,12 +14,13 @@ import { Button } from "./button";
  */
 const HEIGHTS = { small: "h-7", medium: "h-8", large: "h-9" } as const;
 
-function classesAt(size?: keyof typeof HEIGHTS): string[] {
+function classesAt(size?: keyof typeof HEIGHTS | "icon"): string[] {
   const markup = renderToStaticMarkup(
-    createElement(Button, size === undefined ? {} : { size }, "Label"),
+    createElement(Button, { size, children: "Label" }),
   );
   const match = /class="([^"]*)"/.exec(markup);
-  return (match?.[1] ?? "").split(/\s+/);
+  /* Static markup escapes the & in a variant like [&_svg]. */
+  return (match?.[1] ?? "").replaceAll("&amp;", "&").split(/\s+/);
 }
 
 describe("Button heights", () => {
@@ -36,5 +37,14 @@ describe("Button heights", () => {
 
   it("defaults to medium, the default input's height", () => {
     expect(classesAt()).toContain("h-8");
+  });
+
+  it("draws an icon button square at the default input's height", () => {
+    /* It was 36px, and every icon button beside a field carried an
+       h-8! w-8! override to undo that. */
+    const classes = classesAt("icon");
+    expect(classes).toContain("h-8");
+    expect(classes).toContain("w-8");
+    expect(classes).toContain("[&_svg]:size-4");
   });
 });

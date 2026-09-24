@@ -183,11 +183,6 @@ export function RoleRow({
       </div>
       <Button
         aria-label={`Remove ${role.id}`}
-        /* Down from the icon size's 36px to match the inputs beside
-           it. `cn` here is a plain join rather than tailwind-merge,
-           so the CVA class is still on the element and only source
-           order decides — hence the important suffix. */
-        className="h-8! w-8! [&_svg]:size-4!"
         scheme="neutral"
         size="icon"
         variant="outlined"

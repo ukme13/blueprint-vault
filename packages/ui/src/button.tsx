@@ -66,7 +66,9 @@ const buttonVariants = cva(
         large:
           "h-9 px-6 py-0 text-base rounded-element gap-2.5 [&_svg]:size-4.5",
         xl: "h-14 px-8 py-0 text-lg rounded-element gap-3 [&_svg]:size-5.5 font-bold",
-        icon: "h-9 w-9 p-0 rounded-element [&_svg]:size-5",
+        /* Square, and the default input's height, so an icon button beside a
+           field lines up with it without an override. */
+        icon: "h-8 w-8 p-0 rounded-element [&_svg]:size-4",
       },
     },
 

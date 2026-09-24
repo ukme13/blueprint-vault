@@ -43,7 +43,7 @@ export function SemanticToolbar(props: SemanticToolbarProps) {
       <Button
         className={styles.addToken}
         scheme="neutral"
-        size="small"
+        size="medium"
         variant="outlined"
         onClick={() => {
           const group = props.group ?? "custom";

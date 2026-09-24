@@ -134,7 +134,6 @@ function PreviewFrames({
               ) : (
                 <Button
                   aria-label={`Remove ${device.name}`}
-                  className="h-8! w-8! [&_svg]:size-4!"
                   scheme="neutral"
                   size="icon"
                   variant="outlined"

@@ -76,7 +76,7 @@ export function SemanticNewGroupDialog({
             <HStack gap={2} hAlign="end">
               <Button
                 scheme="neutral"
-                size="small"
+                size="medium"
                 variant="outlined"
                 onClick={close}
               >
@@ -85,7 +85,7 @@ export function SemanticNewGroupDialog({
               <Button
                 disabled={!trimmed}
                 scheme="primary"
-                size="small"
+                size="medium"
                 variant="contained"
                 onClick={commit}
               >
