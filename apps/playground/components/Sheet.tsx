@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, ReactNode, SyntheticEvent } from "react";
 import { BottomSheet } from "@astryxdesign/core/BottomSheet";
 import styles from "./sheet.module.css";
 
@@ -15,7 +15,12 @@ import styles from "./sheet.module.css";
  *   toolbar inherited its `nowrap`.
  * - **Escape for itself only.** Astryx closes a sheet from a React keydown on
  *   its dialog. A sheet opened from inside another sits inside it in the React
- *   tree, so the same Escape bubbled on and closed both. Stopped here. The
+ *   tree, so the same Escape bubbled on and closed both. Stopped here — the
+ *   keydown, and the dialog's `cancel` too. When a sheet is still sliding
+ *   away, focus has already left it for the body, so no keydown handler sees
+ *   the Escape; the browser sends `cancel` to the closing sheet instead, and
+ *   React carries `cancel` up its own tree even though the DOM event does not
+ *   bubble. Every sheet above it in that tree closed with it. The
  *   wrapper is a div, not a span: Astryx moves menus and popovers out of any
  *   span above them, out of the sheet's modal dialog, where they cannot be
  *   tapped.
@@ -24,6 +29,12 @@ import styles from "./sheet.module.css";
  * own controls. `padding="flush"` only clears the handle, for a sheet holding
  * a panel that brings its own padding.
  */
+
+/* React's types list `onCancel` for a <dialog> alone, but React calls it on
+   every element the synthetic event passes through, a div included. */
+const stopCancel = {
+  onCancel: (event: SyntheticEvent) => event.stopPropagation(),
+};
 
 type BottomSheetHeight = ComponentProps<typeof BottomSheet>["height"];
 
@@ -53,6 +64,7 @@ export function Sheet({
   return (
     <div
       className={styles.escapeScope}
+      {...stopCancel}
       onKeyDown={(event) => {
         if (event.key === "Escape") event.stopPropagation();
       }}
