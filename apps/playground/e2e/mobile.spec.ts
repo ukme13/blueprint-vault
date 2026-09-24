@@ -543,10 +543,15 @@ test.describe("on a phone", () => {
     const picker = page.getByRole("dialog", { name: /colour picker$/ });
 
     await open();
-    await expect(picker.locator(".astryx-bottom-sheet")).toBeVisible();
+    /* First: the picker's own panel. Its colour format selector holds a
+       closed sheet of its own, which also matches. */
+    await expect(picker.locator(".astryx-bottom-sheet").first()).toBeVisible();
     /* Above the shade sheet: its panel reaches the bottom edge, and it is the
        one a tap at the middle of the screen lands in. */
-    const panel = await picker.locator(".astryx-bottom-sheet").boundingBox();
+    const panel = await picker
+      .locator(".astryx-bottom-sheet")
+      .first()
+      .boundingBox();
     expect(panel!.y + panel!.height).toBeGreaterThanOrEqual(844);
     expect(panel!.y).toBeGreaterThan(844 / 4);
 
@@ -559,7 +564,10 @@ test.describe("on a phone", () => {
     await expect(picker.getByRole("slider", { name: /hue$/ })).toBeVisible();
 
     /* Sized to what is in it: no band of empty sheet under the value field. */
-    const sheetBox = await picker.locator(".astryx-bottom-sheet").boundingBox();
+    const sheetBox = await picker
+      .locator(".astryx-bottom-sheet")
+      .first()
+      .boundingBox();
     const valueBox = await picker
       .locator("footer[class*=colourPickerFooter]")
       .boundingBox();
@@ -619,7 +627,10 @@ test.describe("on a phone", () => {
 
     await expect(picker).toBeVisible();
     await expect(field).not.toHaveAttribute("aria-label", before!);
-    const after = await picker.locator(".astryx-bottom-sheet").boundingBox();
+    const after = await picker
+      .locator(".astryx-bottom-sheet")
+      .first()
+      .boundingBox();
     expect(after!.y + after!.height).toBeGreaterThanOrEqual(844);
   });
 
@@ -726,7 +737,7 @@ test.describe("on a phone", () => {
     const picker = page.getByRole("dialog", {
       name: /source colour picker$/,
     });
-    await expect(picker.locator(".astryx-bottom-sheet")).toBeVisible();
+    await expect(picker.locator(".astryx-bottom-sheet").first()).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(picker).toBeHidden();
 
