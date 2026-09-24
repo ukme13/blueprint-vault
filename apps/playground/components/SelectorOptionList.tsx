@@ -35,7 +35,7 @@ interface SelectorOptionListProps {
    * scrolls inside a fixed height.
    */
   density?: "comfortable" | "compact";
-  /** Focus the search when the list appears, so typing filters at once. */
+  /** Focus the search each time the list is shown, so typing filters at once. */
   hasAutoFocus?: boolean;
 }
 
@@ -57,6 +57,7 @@ export function SelectorOptionList({
 }: SelectorOptionListProps) {
   const groups = sheetOptionGroups([...options], query);
   const listRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLInputElement>(null);
 
   /*
    * Open on the chosen option, centred, rather than at the top of a long
@@ -90,18 +91,22 @@ export function SelectorOptionList({
     let wasShown = false;
     const observer = new ResizeObserver(() => {
       const isShown = list.clientHeight > 0;
-      if (isShown && !wasShown) centre();
+      if (isShown && !wasShown) {
+        centre();
+        /* The same for focus: Astryx focuses on mount only. */
+        if (hasAutoFocus) searchRef.current?.focus({ preventScroll: true });
+      }
       wasShown = isShown;
     });
     observer.observe(list);
     return () => observer.disconnect();
-  }, []);
+  }, [hasAutoFocus]);
 
   return (
     <>
       {hasSearch && (
         <TextInput
-          hasAutoFocus={hasAutoFocus}
+          ref={searchRef}
           isLabelHidden
           label={`Search ${label.toLowerCase()}`}
           placeholder={searchPlaceholder ?? "Search"}
