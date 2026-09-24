@@ -216,7 +216,9 @@ export function OverviewStudio() {
       <header className={styles.topBar}>
         <div className={styles.topBarHeading}>
           <h1 className={styles.pageTitle}>Overview</h1>
-          <span className={styles.pageSubtitle}>
+          {/* Hidden on a phone, where it wrapped to two lines beside the
+              title and crowded Vision. */}
+          <span className={`${styles.pageSubtitle} max-sm:hidden`}>
             Design system specimen board
           </span>
         </div>
