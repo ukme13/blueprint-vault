@@ -38,9 +38,44 @@ On a phone this is an Escape, or an Android back gesture, during a sheet's
   showed on the first production-build run, which is what that change was
   for.
 
-## Not fixed here
+## The colour chip test, the same week
 
-`semantic-table.spec.ts` › "the colour chip opens the reference picker" fails
-on a local production build, on `main` as well. Reopening the chip should
-centre the chosen option, and the option isn't fully in view. It came with
-#154, and it is left for its own branch.
+`semantic-table.spec.ts` › "the colour chip opens the reference picker" also
+failed on a local production build, and on `main`. It reported the chosen
+option out of view after reopening the chip. Probed, the option was fine; the
+popover had not reopened at all.
+
+The test clicks the chip the moment the list reports hidden. Astryx keeps its
+popover state in step with the browser's `toggle` event, which fires
+asynchronously after the popover hides, and a trigger click that lands before
+it is handled against the stale state and dropped. Measured: a click 0ms
+after a choice is lost, and 100ms or later opens every time. Nobody sees a
+list close and clicks again inside 100ms, so this is the test's race, not
+the app's. That is the difference from the Escape bug, where an Android back
+gesture during the slide-out could reach it.
+
+So the test reopens the chip with a retry, a click and then up to a second
+to show, for up to five seconds. A popover that never reopens still fails.
+With the list's centring switched off, the test still fails on the option
+being out of view, which is what it is for.
+
+**A test that passes on dev and fails on a production build is not flaky by
+default.** Both failures here were deterministic once the timing was a
+production build's, one of them in the app and one in the test. It took a
+probe on the real build to tell which was which.
+
+## Two more, from the full suite
+
+With both of those fixed, a full production-build run turned up two tests
+that failed only under the load of the whole suite, and passed alone.
+
+- `mobile.spec.ts` › "opens a track's details in a sheet" closed the nested
+  picker with Escape, waited for it to be hidden, and then measured the track
+  sheet for overflow. The picker is still an open `<dialog>` inside that
+  sheet while it slides away, so under load the scan caught it mid-exit
+  ("390 in 388"). It now waits for one `dialog[open]` before measuring.
+- `typography-editing.spec.ts` › "stays against it with no room below, and
+  on every reopen" reopened a Selector straight after Escape: the colour
+  chip's race again. It gets the same retry.
+
+Each passed five of five after the fix, and the full suite 441 of 441.

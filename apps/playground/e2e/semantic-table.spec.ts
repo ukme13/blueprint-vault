@@ -666,13 +666,26 @@ test.describe("Folder names and spreadsheet editing", () => {
     const chip = editor.getByLabel(/Edit Border subtle light reference/i);
     await expect(chip).toContainText("primary/500");
 
+    /* Reopened once the close has settled. Astryx syncs its popover state
+       from the browser's toggle event, which fires asynchronously after the
+       popover hides; a click inside that window, under 100ms after a choice,
+       is handled against the stale state and dropped. No hand is that fast,
+       so a click that lands there is tried again rather than counted. A
+       popover that never reopens still fails here. */
+    const reopen = async () => {
+      await expect(async () => {
+        await chip.click();
+        await expect(list).toBeVisible({ timeout: 1000 });
+      }).toPass({ timeout: 5000 });
+    };
+
     /* And again after a choice. The popover keeps its list mounted while
        closed, so centring only on mount opened this one at the top. */
-    await chip.click();
+    await reopen();
     await page.keyboard.type("neutral 900");
     await list.getByRole("option", { name: "neutral 900" }).click();
     await expect(list).toBeHidden();
-    await chip.click();
+    await reopen();
     await expect(
       list.getByRole("option", { name: "neutral 900", selected: true }),
     ).toBeInViewport({ ratio: 1 });

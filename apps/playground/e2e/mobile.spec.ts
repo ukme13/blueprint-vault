@@ -783,6 +783,10 @@ test.describe("on a phone", () => {
     await expect(picker.locator(".astryx-bottom-sheet").first()).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(picker).toBeHidden();
+    /* Closed, not only hidden. The picker sits inside this sheet in the DOM
+       and is still an open dialog while it slides away, and the overflow
+       check below would measure it mid-exit rather than this sheet at rest. */
+    await expect(page.locator("dialog[open]")).toHaveCount(1);
 
     /* Save, and no Cancel or close button beside it. The footer fits: a
        narrow screen once cut Save changes off and scrolled sideways. */
