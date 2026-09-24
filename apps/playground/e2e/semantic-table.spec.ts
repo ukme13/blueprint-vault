@@ -654,6 +654,11 @@ test.describe("Folder names and spreadsheet editing", () => {
     const list = page.getByRole("listbox", { name: "Border subtle light" });
     await expect(list).toBeVisible();
     await expect(page.getByLabel("Search border subtle light")).toBeFocused();
+    /* It opens on the chosen shade, a neutral well down the list, not at the
+       top of primary. */
+    await expect(list.getByRole("option", { selected: true })).toBeInViewport({
+      ratio: 1,
+    });
     await page.keyboard.type("primary 500");
     await expect(list.getByRole("option")).toHaveCount(1);
     await list.getByRole("option", { name: "primary 500" }).click();

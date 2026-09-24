@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { Icon } from "@astryxdesign/core/Icon";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Check } from "lucide-react";
@@ -56,6 +56,36 @@ export function SelectorOptionList({
   hasAutoFocus,
 }: SelectorOptionListProps) {
   const groups = sheetOptionGroups([...options], query);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  /*
+   * Open on the chosen option, centred, rather than at the top of a long
+   * list. Once, when the list appears: after that the scroll is the
+   * person's. A list that scrolls itself (compact) moves its own scrollTop,
+   * so the page under a popover never jumps; in a sheet the sheet scrolls.
+   */
+  useLayoutEffect(() => {
+    const centre = () => {
+      const list = listRef.current;
+      const selected = list?.querySelector<HTMLElement>(
+        '[aria-selected="true"]',
+      );
+      if (!list || !selected || list.clientHeight === 0) return;
+      if (list.scrollHeight > list.clientHeight) {
+        const listBox = list.getBoundingClientRect();
+        const optionBox = selected.getBoundingClientRect();
+        list.scrollTop +=
+          optionBox.top - listBox.top - (listBox.height - optionBox.height) / 2;
+      } else {
+        selected.scrollIntoView({ block: "center" });
+      }
+    };
+    /* Now, and again on the next frame: a popover can mount its content
+       before it has a size, and then the first pass measures nothing. */
+    centre();
+    const frame = requestAnimationFrame(centre);
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   return (
     <>
@@ -73,6 +103,7 @@ export function SelectorOptionList({
       )}
 
       <div
+        ref={listRef}
         aria-label={label}
         className={styles.list}
         data-density={density}
