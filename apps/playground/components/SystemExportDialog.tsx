@@ -5,7 +5,6 @@ import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Dialog } from "@astryxdesign/core/Dialog";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import { Selector } from "@astryxdesign/core/Selector";
 import { useIsPhone } from "./use-is-phone";
 import { strToU8, zipSync } from "fflate";
 import {
@@ -29,6 +28,7 @@ import {
 import { useColourFormat } from "./palette/ColourFormatContext";
 import styles from "./system-export-dialog.module.css";
 import { STUDIO_VERSION } from "../lib/studio-version";
+import { SheetSelector } from "./SheetSelector";
 
 type ExportFormat =
   | "css"
@@ -291,7 +291,7 @@ export function SystemExportDialog({
             !REPORT_FORMATS.includes(exportFormat) && (
               <label className={styles.exportColourFormat}>
                 <span>Colour format</span>
-                <Selector
+                <SheetSelector
                   isLabelHidden
                   label="Export colour format"
                   options={COLOUR_FORMATS.map((format) => ({

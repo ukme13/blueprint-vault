@@ -375,6 +375,32 @@ test.describe("on a phone", () => {
     );
   });
 
+  test("scrolls the Uses table and picks a step from a sheet", async ({
+    seededPage: page,
+  }) => {
+    /* Three device columns shared out by a phone broke "40" over two lines.
+       Each column now has a width, and the table scrolls sideways instead. */
+    await page.goto("/spacing");
+    await page
+      .getByRole("navigation", { name: "Scale sections" })
+      .getByRole("button", { name: "Uses" })
+      .click();
+    const uses = page.getByRole("region", { name: "Spacing uses" });
+    const scroller = uses.locator("table").locator("xpath=..");
+    const { width, scrollWidth } = await scroller.evaluate((node) => ({
+      width: node.getBoundingClientRect().width,
+      scrollWidth: node.scrollWidth,
+    }));
+    expect(scrollWidth).toBeGreaterThan(width);
+
+    await uses.getByLabel("Container inset on Phone").click();
+    const sheet = page.getByRole("dialog", { name: "Spacing steps" });
+    await expect(sheet).toBeVisible();
+    await expect(
+      sheet.getByRole("listbox", { name: "Spacing steps" }),
+    ).toBeVisible();
+  });
+
   test("lays the token search out as two rows", async ({
     seededPage: page,
   }) => {
@@ -517,10 +543,15 @@ test.describe("on a phone", () => {
     const picker = page.getByRole("dialog", { name: /colour picker$/ });
 
     await open();
-    await expect(picker.locator(".astryx-bottom-sheet")).toBeVisible();
+    /* First: the picker's own panel. Its colour format selector holds a
+       closed sheet of its own, which also matches. */
+    await expect(picker.locator(".astryx-bottom-sheet").first()).toBeVisible();
     /* Above the shade sheet: its panel reaches the bottom edge, and it is the
        one a tap at the middle of the screen lands in. */
-    const panel = await picker.locator(".astryx-bottom-sheet").boundingBox();
+    const panel = await picker
+      .locator(".astryx-bottom-sheet")
+      .first()
+      .boundingBox();
     expect(panel!.y + panel!.height).toBeGreaterThanOrEqual(844);
     expect(panel!.y).toBeGreaterThan(844 / 4);
 
@@ -533,7 +564,10 @@ test.describe("on a phone", () => {
     await expect(picker.getByRole("slider", { name: /hue$/ })).toBeVisible();
 
     /* Sized to what is in it: no band of empty sheet under the value field. */
-    const sheetBox = await picker.locator(".astryx-bottom-sheet").boundingBox();
+    const sheetBox = await picker
+      .locator(".astryx-bottom-sheet")
+      .first()
+      .boundingBox();
     const valueBox = await picker
       .locator("footer[class*=colourPickerFooter]")
       .boundingBox();
@@ -593,7 +627,10 @@ test.describe("on a phone", () => {
 
     await expect(picker).toBeVisible();
     await expect(field).not.toHaveAttribute("aria-label", before!);
-    const after = await picker.locator(".astryx-bottom-sheet").boundingBox();
+    const after = await picker
+      .locator(".astryx-bottom-sheet")
+      .first()
+      .boundingBox();
     expect(after!.y + after!.height).toBeGreaterThanOrEqual(844);
   });
 
@@ -605,13 +642,20 @@ test.describe("on a phone", () => {
        above the picker put the menu outside the sheet's modal dialog, which
        makes everything outside it inert. Tried from each sheet that holds a
        format menu. */
+    /* The format is itself a sheet on a phone, opened over the one it
+       sits in. */
     const choose = async (
       sheet: ReturnType<typeof page.getByRole>,
       format: "HEX" | "RGB" | "OKLCH",
     ) => {
-      await sheet.getByRole("combobox").first().click();
-      await page.getByRole("option", { name: format }).click({ timeout: 3000 });
-      await expect(sheet.getByRole("combobox").first()).toHaveText(format);
+      const trigger = sheet.getByRole("button", { name: /colour format: /i });
+      await trigger.click();
+      const formats = page.getByRole("dialog", { name: /colour format$/i });
+      await formats.getByRole("option", { name: format }).click();
+      await expect(formats).toBeHidden();
+      await expect(trigger).toHaveAccessibleName(
+        new RegExp(`colour format: ${format}$`, "i"),
+      );
     };
 
     /* The shade sheet's own menu, then the picker opened from it. */
@@ -693,7 +737,7 @@ test.describe("on a phone", () => {
     const picker = page.getByRole("dialog", {
       name: /source colour picker$/,
     });
-    await expect(picker.locator(".astryx-bottom-sheet")).toBeVisible();
+    await expect(picker.locator(".astryx-bottom-sheet").first()).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(picker).toBeHidden();
 
@@ -1084,14 +1128,10 @@ test.describe("on a phone", () => {
       ).toBeVisible();
 
       if (section === "Elevation") {
-        /* Its colour selectors are sheets too, stacked on this one; Escape
+        /* Its colour selector is a sheet too, stacked on this one; Escape
            closes only the top one. */
-        await sheet
-          .getByRole("button", { name: /^Shadow colour track: / })
-          .click();
-        const tracks = page.getByRole("dialog", {
-          name: "Shadow colour track",
-        });
+        await sheet.getByRole("button", { name: /^Shadow colour: / }).click();
+        const tracks = page.getByRole("dialog", { name: "Shadow colour" });
         await expect(tracks.locator(".astryx-bottom-sheet")).toBeVisible();
         await page.keyboard.press("Escape");
         await expect(tracks).toBeHidden();
@@ -1186,7 +1226,7 @@ test.describe("on a phone", () => {
     /* The colour format under the chips, the code the dialog's width. */
     const strip = (await formats.boundingBox())!;
     const colour = (await dialog
-      .getByRole("combobox", { name: "Export colour format" })
+      .getByRole("button", { name: /^Export colour format: / })
       .boundingBox())!;
     expect(colour.y).toBeGreaterThanOrEqual(strip.y + strip.height - 1);
 

@@ -9,7 +9,6 @@ import {
   LayoutContent,
   VStack,
 } from "@astryxdesign/core/Layout";
-import { Selector } from "@astryxdesign/core/Selector";
 import { TextArea } from "@astryxdesign/core/TextArea";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import {
@@ -26,6 +25,7 @@ import {
 } from "@blueprint/ui";
 import { PreviewColourSwatch } from "./PreviewColourSwatch";
 import styles from "./PreviewInspector.module.css";
+import { SheetSelector } from "./SheetSelector";
 
 const PAGE_DEFAULT_COLOR = "page-default";
 
@@ -171,7 +171,7 @@ export function PreviewInspector({
                   />
                 )}
               </div>
-              <Selector
+              <SheetSelector
                 label="Type role"
                 options={options}
                 placeholder="Style"
@@ -182,7 +182,7 @@ export function PreviewInspector({
                   onRoleChange(value);
                 }}
               />
-              <Selector
+              <SheetSelector
                 label="Colour"
                 options={colorOptions}
                 placeholder="Token"

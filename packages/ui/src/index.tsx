@@ -15,9 +15,13 @@ export {
   resolveHybridValue,
 } from "./hybrid-tokenized-input";
 export { HybridTokenizedInput } from "./HybridTokenizedInput";
-export type { HybridTokenizedInputProps } from "./HybridTokenizedInput";
+export type {
+  HybridTokenizedInputProps,
+  HybridTokenizedSheetProps,
+} from "./HybridTokenizedInput";
 export * from "./history";
 export * from "./selector-sheet";
+export * from "./shade-options";
 export * from "./use-colour-mode";
 export * from "./color";
 export * from "./scale";

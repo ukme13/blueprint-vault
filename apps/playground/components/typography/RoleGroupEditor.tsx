@@ -12,7 +12,6 @@ import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
-import { Selector } from "@astryxdesign/core/Selector";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import {
   Button,
@@ -31,6 +30,7 @@ import {
 import { ConfirmDialog } from "../ConfirmDialog";
 import { RoleRow } from "./RoleRow";
 import styles from "./typography-workspace.module.css";
+import { SheetSelector } from "../SheetSelector";
 
 export interface RoleGroupEditorProps {
   group: TypeGroup;
@@ -235,7 +235,7 @@ export function RoleGroupEditor({
               />
               {/* How this group's roles are numbered, a property of the name
               next to it. */}
-              <Selector
+              <SheetSelector
                 label={`${group.id} indexing`}
                 isLabelHidden
                 options={(["number", "size"] as TypeIndexing[]).map((mode) => ({

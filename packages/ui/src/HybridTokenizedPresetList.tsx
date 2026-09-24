@@ -53,7 +53,7 @@ export function HybridTokenizedPresetList({
           onKeyDown={onSearchKeyDown}
         />
       </div>
-      <p className="px-[var(--spacing-2)] py-[var(--spacing-1)] text-xs font-semibold tracking-wider text-fg-muted uppercase">
+      <p className="px-[var(--spacing-2)] pt-[var(--spacing-3)] pb-[var(--spacing-1)] text-xs font-semibold tracking-wider text-fg-muted uppercase">
         {popoverTitle}
       </p>
       <div

@@ -134,61 +134,76 @@ export function LayoutUsesTable({
         onDragEnd={sort.onDragEnd}
       >
         <SortableContext items={ids} strategy={verticalListSortingStrategy}>
-          <Table
-            aria-label={label}
-            density="compact"
-            dividers="grid"
-            hasHover
-            verticalAlign="middle"
-          >
-            <TableHeader>
-              <TableRow>
-                <TableHeaderCell>Use</TableHeaderCell>
+          {/* A width per column and a sideways scroll, as on Semantics. Shared
+              out by the screen, three device columns left a step like "40"
+              breaking over two lines on a phone. */}
+          <div className="min-w-0 overflow-x-auto">
+            <Table
+              aria-label={label}
+              className="table-fixed"
+              density="compact"
+              dividers="grid"
+              hasHover
+              verticalAlign="middle"
+            >
+              <colgroup>
+                <col className="w-48" />
                 {columns.map((device) => (
-                  <TableHeaderCell key={device.id}>
-                    {device.name}
-                    <span className={styles.usesWidth}>{device.widthPx}px</span>
-                  </TableHeaderCell>
+                  <col key={device.id} className="w-44" />
                 ))}
-                <TableHeaderCell>
-                  <span className={styles.srOnly}>Actions</span>
-                </TableHeaderCell>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.flatMap((token) =>
-                withDropGap(
-                  <LayoutUsesRow
-                    key={token.id}
-                    autoFocusName={editingId === token.id}
-                    canReorder={rows.length > 1}
-                    columns={columns}
-                    presets={presets}
-                    token={token}
-                    onCommitName={(value) => {
-                      onChange(renameLayoutToken(tokens, token.id, value));
-                      setEditingId(null);
-                    }}
-                    onDuplicate={() =>
-                      onChange(duplicateLayoutToken(tokens, token.id))
-                    }
-                    onReferenceChange={(deviceId, cell) =>
-                      onChange(
-                        setLayoutReference(tokens, token.id, deviceId, cell),
-                      )
-                    }
-                    onRemove={() => {
-                      onChange(removeLayoutToken(tokens, token.id));
-                      if (editingId === token.id) setEditingId(null);
-                    }}
-                  />,
-                  token.id,
-                  colSpan,
-                  sort.gap,
-                ),
-              )}
-            </TableBody>
-          </Table>
+                <col className="w-14" />
+              </colgroup>
+              <TableHeader>
+                <TableRow>
+                  <TableHeaderCell>Use</TableHeaderCell>
+                  {columns.map((device) => (
+                    <TableHeaderCell key={device.id}>
+                      {device.name}
+                      <span className={styles.usesWidth}>
+                        {device.widthPx}px
+                      </span>
+                    </TableHeaderCell>
+                  ))}
+                  <TableHeaderCell>
+                    <span className={styles.srOnly}>Actions</span>
+                  </TableHeaderCell>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.flatMap((token) =>
+                  withDropGap(
+                    <LayoutUsesRow
+                      key={token.id}
+                      autoFocusName={editingId === token.id}
+                      canReorder={rows.length > 1}
+                      columns={columns}
+                      presets={presets}
+                      token={token}
+                      onCommitName={(value) => {
+                        onChange(renameLayoutToken(tokens, token.id, value));
+                        setEditingId(null);
+                      }}
+                      onDuplicate={() =>
+                        onChange(duplicateLayoutToken(tokens, token.id))
+                      }
+                      onReferenceChange={(deviceId, cell) =>
+                        onChange(
+                          setLayoutReference(tokens, token.id, deviceId, cell),
+                        )
+                      }
+                      onRemove={() => {
+                        onChange(removeLayoutToken(tokens, token.id));
+                        if (editingId === token.id) setEditingId(null);
+                      }}
+                    />,
+                    token.id,
+                    colSpan,
+                    sort.gap,
+                  ),
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </SortableContext>
         <DragOverlay dropAnimation={null}>
           {activeToken ? (

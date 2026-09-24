@@ -44,13 +44,37 @@ export interface HybridTokenizedInputProps {
   searchPlaceholder?: string;
   isLabelHidden?: boolean;
   onChange: (next: HybridTokenizedValue) => void;
+  /**
+   * Show the preset list in a bottom sheet instead of the popover.
+   *
+   * The app renders the sheet, so this package keeps no sheet design of its
+   * own: pass the app's phone sheet on a phone and leave it out on a wide
+   * screen. The list inside is the same either way, title and search
+   * included, so the two cannot drift apart.
+   */
+  sheet?: (props: HybridTokenizedSheetProps) => ReactNode;
 }
 
 const FIELD_CLASS =
   "flex h-[var(--size-element-md)] w-full cursor-text items-center gap-[var(--spacing-2)] rounded-[var(--radius-element)] border border-border-default bg-surface-subtle px-[var(--spacing-2)] transition-colors hover:border-border-strong focus-within:border-fg-accent focus-within:ring-1 focus-within:ring-fg-accent";
 
 const CHIP_CLASS =
-  "inline-flex h-6 max-w-full min-w-0 items-center gap-[var(--spacing-1)] rounded-[var(--radius-inner)] border border-border-default bg-surface-raised px-[var(--spacing-2)] font-mono text-xs text-fg-primary hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring";
+  "inline-flex h-6 max-w-full min-w-0 items-center whitespace-nowrap gap-[var(--spacing-1)] rounded-[var(--radius-inner)] border border-border-default bg-surface-raised px-[var(--spacing-2)] font-mono text-xs text-fg-primary hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring";
+
+/** What a `sheet` renderer is handed. */
+export interface HybridTokenizedSheetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  /** The list's title, for the sheet's accessible name. */
+  label: string;
+  children: ReactNode;
+}
+
+/** The parts of a popover trigger the field uses, so a sheet can stand in. */
+type FieldTrigger = Pick<
+  PopoverTriggerRenderProps,
+  "ref" | "onClick" | "aria-controls" | "aria-expanded"
+>;
 
 export function HybridTokenizedInput({
   label,
@@ -66,6 +90,7 @@ export function HybridTokenizedInput({
   searchPlaceholder = "Search presets...",
   isLabelHidden = false,
   onChange,
+  sheet,
 }: HybridTokenizedInputProps) {
   const labelId = useId();
   const controlId = useId();
@@ -203,6 +228,133 @@ export function HybridTokenizedInput({
     />
   );
 
+  const renderField = (trigger: FieldTrigger) => (
+    <div
+      className={FIELD_CLASS}
+      ref={trigger.ref}
+      onClick={(event) => {
+        if (!value.isPreset) return;
+        if ((event.target as HTMLElement).closest("[data-hybrid-chip]")) {
+          return;
+        }
+        caretRef.current?.focus();
+      }}
+    >
+      {icon ? (
+        <span
+          aria-hidden="true"
+          className="flex size-5 shrink-0 items-center justify-center text-fg-muted"
+        >
+          {icon}
+        </span>
+      ) : null}
+      {value.isPreset ? (
+        <>
+          <button
+            aria-controls={trigger["aria-controls"]}
+            aria-expanded={trigger["aria-expanded"]}
+            aria-haspopup="listbox"
+            className={CHIP_CLASS}
+            data-hybrid-chip=""
+            id={controlId}
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              trigger.onClick();
+              // In a sheet the list takes focus. The caret would raise the
+              // phone keyboard behind it.
+              if (!sheet) queueMicrotask(() => caretRef.current?.focus());
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                caretRef.current?.focus();
+              }
+            }}
+          >
+            <span className="shrink-0 font-medium text-fg-accent">
+              {formatBoundValue(value.value, decimals)}
+            </span>
+            {bound ? (
+              <span className="truncate text-xs text-fg-muted">
+                ({bound.name})
+              </span>
+            ) : null}
+            <ChevronDownIcon />
+          </button>
+          {/* Bound stays bound on click and on double-click. Detach by
+              typing here or with Backspace / Delete — a double-click
+              on the chip was too easy to hit by accident. */}
+          <input
+            aria-label="Custom number"
+            className="m-0 w-[1ch] flex-none appearance-none border-0 bg-transparent p-0 font-mono text-xs text-fg-primary outline-none"
+            ref={caretRef}
+            value=""
+            onChange={(event) => beginRaw(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Backspace" || event.key === "Delete") {
+                event.preventDefault();
+                beginRaw(formatRawInput(value.value, decimals));
+              }
+            }}
+          />
+        </>
+      ) : (
+        <>
+          <input
+            className="m-0 min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 font-mono text-xs text-fg-primary outline-none"
+            id={controlId}
+            inputMode="decimal"
+            max={max}
+            min={min}
+            ref={rawRef}
+            step={step}
+            type="text"
+            value={draft ?? formatRawInput(value.value, decimals)}
+            onBlur={() => {
+              if (skipBlurRef.current) {
+                skipBlurRef.current = false;
+                return;
+              }
+              onChange({
+                isPreset: false,
+                value: parseRawNumber(draft ?? "", value.value, {
+                  min,
+                  max,
+                  decimals,
+                }),
+              });
+              setDraft(null);
+            }}
+            onChange={(event) => setDraft(event.target.value)}
+            onFocus={() => {
+              setDraft(
+                (current) => current ?? formatRawInput(value.value, decimals),
+              );
+              requestAnimationFrame(() => {
+                const node = rawRef.current;
+                if (!node) return;
+                const at = node.value.length;
+                node.setSelectionRange(at, at);
+              });
+            }}
+            onKeyDown={onRawKeyDown}
+          />
+          <span data-hybrid-apply="">
+            <IconButton
+              icon={<VariableHexagonIcon />}
+              label="Apply preset"
+              size="sm"
+              tooltip="Apply preset"
+              variant="ghost"
+              onClick={trigger.onClick}
+            />
+          </span>
+        </>
+      )}
+    </div>
+  );
+
   return (
     <div
       className={
@@ -218,143 +370,36 @@ export function HybridTokenizedInput({
       >
         {label}
       </label>
-      <Popover
-        alignment="center"
-        content={panel}
-        hasAutoFocus={false}
-        isOpen={open}
-        label={popoverTitle}
-        placement="below"
-        role="none"
-        style={{ padding: "var(--spacing-2)" }}
-        onOpenChange={handleOpenChange}
-      >
-        {(trigger: PopoverTriggerRenderProps) => (
-          <div
-            className={FIELD_CLASS}
-            ref={trigger.ref}
-            onClick={(event) => {
-              if (!value.isPreset) return;
-              if ((event.target as HTMLElement).closest("[data-hybrid-chip]")) {
-                return;
-              }
-              caretRef.current?.focus();
-            }}
-          >
-            {icon ? (
-              <span
-                aria-hidden="true"
-                className="flex size-5 shrink-0 items-center justify-center text-fg-muted"
-              >
-                {icon}
-              </span>
-            ) : null}
-            {value.isPreset ? (
-              <>
-                <button
-                  aria-controls={trigger["aria-controls"]}
-                  aria-expanded={trigger["aria-expanded"]}
-                  aria-haspopup="listbox"
-                  className={CHIP_CLASS}
-                  data-hybrid-chip=""
-                  id={controlId}
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    trigger.onClick();
-                    queueMicrotask(() => caretRef.current?.focus());
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      caretRef.current?.focus();
-                    }
-                  }}
-                >
-                  <span className="font-medium text-fg-accent">
-                    {formatBoundValue(value.value, decimals)}
-                  </span>
-                  {bound ? (
-                    <span className="truncate text-xs text-fg-muted">
-                      ({bound.name})
-                    </span>
-                  ) : null}
-                  <ChevronDownIcon />
-                </button>
-                {/* Bound stays bound on click and on double-click. Detach by
-                    typing here or with Backspace / Delete — a double-click
-                    on the chip was too easy to hit by accident. */}
-                <input
-                  aria-label="Custom number"
-                  className="m-0 w-[1ch] flex-none appearance-none border-0 bg-transparent p-0 font-mono text-xs text-fg-primary outline-none"
-                  ref={caretRef}
-                  value=""
-                  onChange={(event) => beginRaw(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === "Backspace" || event.key === "Delete") {
-                      event.preventDefault();
-                      beginRaw(formatRawInput(value.value, decimals));
-                    }
-                  }}
-                />
-              </>
-            ) : (
-              <>
-                <input
-                  className="m-0 min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 font-mono text-xs text-fg-primary outline-none"
-                  id={controlId}
-                  inputMode="decimal"
-                  max={max}
-                  min={min}
-                  ref={rawRef}
-                  step={step}
-                  type="text"
-                  value={draft ?? formatRawInput(value.value, decimals)}
-                  onBlur={() => {
-                    if (skipBlurRef.current) {
-                      skipBlurRef.current = false;
-                      return;
-                    }
-                    onChange({
-                      isPreset: false,
-                      value: parseRawNumber(draft ?? "", value.value, {
-                        min,
-                        max,
-                        decimals,
-                      }),
-                    });
-                    setDraft(null);
-                  }}
-                  onChange={(event) => setDraft(event.target.value)}
-                  onFocus={() => {
-                    setDraft(
-                      (current) =>
-                        current ?? formatRawInput(value.value, decimals),
-                    );
-                    requestAnimationFrame(() => {
-                      const node = rawRef.current;
-                      if (!node) return;
-                      const at = node.value.length;
-                      node.setSelectionRange(at, at);
-                    });
-                  }}
-                  onKeyDown={onRawKeyDown}
-                />
-                <span data-hybrid-apply="">
-                  <IconButton
-                    icon={<VariableHexagonIcon />}
-                    label="Apply preset"
-                    size="sm"
-                    tooltip="Apply preset"
-                    variant="ghost"
-                    onClick={trigger.onClick}
-                  />
-                </span>
-              </>
-            )}
-          </div>
-        )}
-      </Popover>
+      {sheet ? (
+        <>
+          {renderField({
+            ref: () => {},
+            onClick: () => handleOpenChange(true),
+            "aria-controls": listId,
+            "aria-expanded": open,
+          } as FieldTrigger)}
+          {sheet({
+            isOpen: open,
+            onClose: () => handleOpenChange(false),
+            label: popoverTitle,
+            children: panel,
+          })}
+        </>
+      ) : (
+        <Popover
+          alignment="center"
+          content={panel}
+          hasAutoFocus={false}
+          isOpen={open}
+          label={popoverTitle}
+          placement="below"
+          role="none"
+          style={{ padding: "var(--spacing-2)" }}
+          onOpenChange={handleOpenChange}
+        >
+          {(trigger: PopoverTriggerRenderProps) => renderField(trigger)}
+        </Popover>
+      )}
     </div>
   );
 }

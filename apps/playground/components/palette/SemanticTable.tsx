@@ -30,6 +30,12 @@ import {
   type SemanticColumnKey,
 } from "./use-semantic-column-widths";
 import styles from "./semantic-table.module.css";
+import { useIsPhone } from "../use-is-phone";
+
+/* A floor for the Light and Dark columns on a phone. At the desktop 200px
+   the chip and the phone's wider alpha field did not fit side by side. The
+   table scrolls sideways, so the extra width costs nothing. */
+const PHONE_MODE_COLUMN_WIDTH = 272;
 
 interface SemanticTableProps {
   rows: SemanticToken[];
@@ -84,6 +90,7 @@ function withDropGap(
 
 export function SemanticTable(props: SemanticTableProps) {
   const columns = useSemanticColumnWidths();
+  const isPhone = useIsPhone();
   const groups =
     props.group === null
       ? groupSemanticTokens(props.rows)
@@ -138,7 +145,15 @@ export function SemanticTable(props: SemanticTableProps) {
         >
           <colgroup>
             {columns.order.map((key) => (
-              <col key={key} style={{ width: columns.widths[key] }} />
+              <col
+                key={key}
+                style={{
+                  width:
+                    isPhone && (key === "light" || key === "dark")
+                      ? Math.max(columns.widths[key], PHONE_MODE_COLUMN_WIDTH)
+                      : columns.widths[key],
+                }}
+              />
             ))}
           </colgroup>
           <TableHeader>

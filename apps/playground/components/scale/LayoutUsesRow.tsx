@@ -14,6 +14,7 @@ import {
   type PreviewDevice,
 } from "@blueprint/ui";
 import { InlineTextCell } from "../InlineTextCell";
+import { usePickerSheet } from "../picker-sheet";
 import { useSemanticRowSort } from "../palette/use-semantic-row-sort";
 import { LayoutUsesRowMenu } from "./LayoutUsesRowMenu";
 import styles from "./scale-workspace.module.css";
@@ -48,6 +49,7 @@ export function LayoutUsesRow({
     canReorder,
     onRowClick,
   });
+  const pickerSheet = usePickerSheet();
   const maxPx = token.kind === "radius" ? MAX_RADIUS_PX : SPACING_MAX_PX;
   const minPx = token.kind === "radius" ? MIN_RADIUS_PX : 0;
 
@@ -83,6 +85,7 @@ export function LayoutUsesRow({
               token.kind === "radius" ? "Radius tokens" : "Spacing steps"
             }
             presets={presets}
+            sheet={pickerSheet}
             searchPlaceholder={
               token.kind === "radius" ? "Search radius..." : "Search steps..."
             }

@@ -16,6 +16,7 @@ import {
   type RadiusScale,
   type ResolvedRadius,
 } from "@blueprint/ui";
+import { usePickerSheet } from "../picker-sheet";
 import styles from "./scale-workspace.module.css";
 
 interface RadiusEditorProps {
@@ -73,6 +74,7 @@ function RadiusTokenCard({
   token: ResolvedRadius;
   onChange: (scale: RadiusScale, editKey?: string) => void;
 }) {
+  const pickerSheet = usePickerSheet();
   const source = scale.tokens.find((each) => each.id === token.id)!;
   const presets = [radiusLinkPreset(scaledRadiusPx(source, scale.multiplier))];
 
@@ -94,6 +96,7 @@ function RadiusTokenCard({
           min={MIN_RADIUS_PX}
           popoverTitle="Roundness"
           presets={presets}
+          sheet={pickerSheet}
           searchPlaceholder="Search presets..."
           step={1}
           value={resolveHybridValue(
