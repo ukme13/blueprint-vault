@@ -17,6 +17,12 @@ async function openSemantics(page: Page): Promise<Locator> {
   return editor;
 }
 
+/** Add tone lives in the menu beside Add. */
+async function openAddTone(page: Page, editor: Locator): Promise<void> {
+  await editor.getByRole("button", { name: "More ways to add" }).click();
+  await page.getByRole("menuitem", { name: "Add tone" }).click();
+}
+
 type StoredToken = {
   id: string;
   light: { trackId: string; weight: number };
@@ -29,9 +35,27 @@ async function storedTokens(page: Page): Promise<StoredToken[]> {
 }
 
 test.describe("Tones", () => {
+  test("Add makes a token, and its menu offers a token or a tone", async ({
+    seededPage: page,
+  }) => {
+    const editor = await openSemantics(page);
+    const count = async () => (await storedTokens(page)).length;
+    const before = await count();
+
+    await editor.getByRole("button", { name: "Add", exact: true }).click();
+    await expect.poll(count).toBe(before + 1);
+
+    await editor.getByRole("button", { name: "More ways to add" }).click();
+    await expect(
+      page.getByRole("menuitem", { name: "Add tone" }),
+    ).toBeVisible();
+    await page.getByRole("menuitem", { name: "Add token" }).click();
+    await expect.poll(count).toBe(before + 2);
+  });
+
   test("adds a whole tone family in one go", async ({ seededPage: page }) => {
     const editor = await openSemantics(page);
-    await editor.getByRole("button", { name: "Add tone" }).click();
+    await openAddTone(page, editor);
 
     const dialog = page.getByRole("dialog", { name: "Add tone" });
     await expect(dialog).toBeVisible();
@@ -66,7 +90,7 @@ test.describe("Tones", () => {
 
   test("refuses a name the layer already has", async ({ seededPage: page }) => {
     const editor = await openSemantics(page);
-    await editor.getByRole("button", { name: "Add tone" }).click();
+    await openAddTone(page, editor);
     const dialog = page.getByRole("dialog", { name: "Add tone" });
 
     await dialog.getByLabel("Tone name").fill("action.primary");
@@ -88,9 +112,7 @@ test.describe("Tones", () => {
       )?.light.weight;
     const before = await border();
 
-    await editor
-      .getByRole("button", { name: "Sync with palette anchors" })
-      .click();
+    await editor.getByRole("button", { name: "Sync", exact: true }).click();
     const dialog = page.getByRole("dialog", {
       name: "Sync with palette anchors",
     });
@@ -115,7 +137,7 @@ test.describe("Tones on a phone", () => {
 
   test("adds a tone from a bottom sheet", async ({ seededPage: page }) => {
     const editor = await openSemantics(page);
-    await editor.getByRole("button", { name: "Add tone" }).click();
+    await openAddTone(page, editor);
 
     const sheet = page.getByRole("dialog", { name: "Add tone" });
     await expect(sheet.locator(".astryx-bottom-sheet").first()).toBeVisible();

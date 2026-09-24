@@ -401,10 +401,10 @@
      the reading order is the same at every width. */
   .toolbar {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
-      "search search add"
-      "count tone sync";
+      "search add"
+      "count sync";
     row-gap: var(--spacing-2);
   }
 
@@ -414,21 +414,13 @@
     max-width: none;
   }
 
-  .addToken {
+  .addGroup {
     grid-area: add;
-  }
-
-  .addTone {
-    grid-area: tone;
   }
 
   .syncAnchors {
     grid-area: sync;
-  }
-
-  /* The lock alone on a phone; the button keeps its name for a reader. */
-  .syncLabel {
-    display: none;
+    justify-self: end;
   }
 
   .toolbarCount {

@@ -425,7 +425,7 @@ test.describe("on a phone", () => {
           has: page.getByRole("textbox", { name: "Search tokens" }),
         })
         .boundingBox(),
-      editor.getByRole("button", { name: "Add token" }).boundingBox(),
+      editor.getByRole("group", { name: "Add" }).boundingBox(),
       editor.locator("[data-selection-count]").boundingBox(),
     ]);
 

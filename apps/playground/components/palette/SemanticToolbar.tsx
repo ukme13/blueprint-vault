@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { Button as AstryxButton } from "@astryxdesign/core/Button";
+import { ButtonGroup } from "@astryxdesign/core/ButtonGroup";
+import { DropdownMenu } from "@astryxdesign/core/DropdownMenu";
 import { TextInput } from "@astryxdesign/core/TextInput";
-import { Lock, Plus } from "lucide-react";
+import { ChevronDown, Plus, RefreshCw } from "lucide-react";
 import {
   addSemanticToken,
-  Button,
   type ColorTrack,
   semanticCountLabel,
   type SemanticToken,
@@ -32,6 +34,13 @@ export function SemanticToolbar(props: SemanticToolbarProps) {
   const [isToneOpen, setIsToneOpen] = useState(false);
   const [isSyncOpen, setIsSyncOpen] = useState(false);
 
+  const addToken = () => {
+    const group = props.group ?? "custom";
+    props.onAdd(
+      addSemanticToken(props.tokens, props.palettes, `${group}.new-token`),
+    );
+  };
+
   return (
     <header className={styles.toolbar}>
       <div className={styles.search}>
@@ -49,49 +58,46 @@ export function SemanticToolbar(props: SemanticToolbarProps) {
       >
         {semanticCountLabel(props.selected, props.visible, props.total)}
       </p>
-      <Button
-        className={styles.addToken}
-        scheme="neutral"
-        size="medium"
-        variant="outlined"
-        onClick={() => {
-          const group = props.group ?? "custom";
-          props.onAdd(
-            addSemanticToken(
-              props.tokens,
-              props.palettes,
-              `${group}.new-token`,
-            ),
-          );
-        }}
-      >
-        Add token
-      </Button>
-      <Button
-        className={styles.addTone}
-        disabled={props.palettes.length === 0}
-        leftIcon={<Plus aria-hidden />}
-        scheme="neutral"
-        size="small"
-        variant="outlined"
-        onClick={() => setIsToneOpen(true)}
-      >
-        Add tone
-      </Button>
-      {/* The label is hidden on a phone, where the lock says it; the name
-          stays for a screen reader either way. */}
-      <Button
-        aria-label="Sync with palette anchors"
+      {/* One control for adding: the button adds a token, which is what
+          Add did before tones existed; the chevron offers the choice. md,
+          32px, the height of the search field beside it. A div rather than a
+          span: Astryx moves a menu out of any span above it. */}
+      <div className={styles.addGroup}>
+        <ButtonGroup label="Add" size="md">
+          <AstryxButton
+            icon={<Plus aria-hidden className="size-4" />}
+            isDisabled={props.palettes.length === 0}
+            label="Add"
+            size="md"
+            onClick={addToken}
+          />
+          <DropdownMenu
+            alignment="end"
+            button={{
+              label: "More ways to add",
+              icon: <ChevronDown aria-hidden className="size-4" />,
+              isIconOnly: true,
+              isDisabled: props.palettes.length === 0,
+              size: "md",
+            }}
+            hasChevron={false}
+            items={[
+              { label: "Add token", onClick: addToken },
+              { label: "Add tone", onClick: () => setIsToneOpen(true) },
+            ]}
+            menuWidth={160}
+          />
+        </ButtonGroup>
+      </div>
+      <AstryxButton
         className={styles.syncAnchors}
-        disabled={props.palettes.length === 0}
-        leftIcon={<Lock aria-hidden />}
-        scheme="neutral"
-        size="small"
-        variant="text"
+        icon={<RefreshCw aria-hidden className="size-4" />}
+        isDisabled={props.palettes.length === 0}
+        label="Sync"
+        size="md"
+        variant="ghost"
         onClick={() => setIsSyncOpen(true)}
-      >
-        <span className={styles.syncLabel}>Sync with palette anchors</span>
-      </Button>
+      />
 
       <ToneFamilyDialog
         isOpen={isToneOpen}
