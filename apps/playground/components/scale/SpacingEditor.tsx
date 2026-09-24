@@ -17,6 +17,8 @@ import {
   type SpacingScale,
   type SpacingToken,
 } from "@blueprint/ui";
+import { renderPickerSheet } from "../picker-sheet";
+import { useIsPhone } from "../use-is-phone";
 import styles from "./scale-workspace.module.css";
 
 const OFFERED_STEPS = generateSpacingSteps(16);
@@ -36,6 +38,7 @@ export function SpacingInspector({
   onDensityChange,
   onToggleStep,
 }: SpacingInspectorProps) {
+  const isPhone = useIsPhone();
   const kept = new Set(scale.steps);
 
   return (
@@ -54,6 +57,7 @@ export function SpacingInspector({
           min={MIN_SPACING_BASE_UNIT_PX}
           popoverTitle="Base unit presets"
           presets={SPACING_BASE_UNIT_PRESETS}
+          sheet={isPhone ? renderPickerSheet : undefined}
           searchPlaceholder="Search presets..."
           step={1}
           value={resolveHybridValue(
