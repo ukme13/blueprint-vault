@@ -39,7 +39,7 @@ test.describe("Workspace shell", () => {
     expect(bbox!.y).toBe(10);
   });
 
-  test("rail monogram is 32px at Home's point in both states, beside a 24px wordmark", async ({
+  test("rail monogram is 32px at Home's point in both states, beside a 32px wordmark", async ({
     page,
   }) => {
     await createWorkspaceFromHome(page);
@@ -47,8 +47,11 @@ test.describe("Workspace shell", () => {
     const logoLink = rail.getByRole("link", { name: "Blueprint" });
     await expect(logoLink).toBeVisible();
 
-    /* The monogram is the 32px mark Home draws, at the same point; the
-       wordmark beside it is set smaller, at 24px. */
+    /* The monogram is the 32px mark Home draws, at the same point, and the
+       wordmark beside it matches it. It once read 24px here: two equal-weight
+       rules set its height, 1.5rem and 2rem, and which won depended on
+       stylesheet order, so a dev server showed 24 while a production build,
+       and CI, showed 32. Both rules now say 2rem. */
     const expandedMarks = logoLink.locator("svg");
     await expect(expandedMarks).toHaveCount(2);
     const monogram = await expandedMarks.nth(0).boundingBox();
@@ -58,7 +61,7 @@ test.describe("Workspace shell", () => {
     expect(monogram!.height).toBe(32);
     expect(monogram!.x).toBe(16);
     expect(monogram!.y).toBe(10);
-    expect(wordmark!.height).toBe(24);
+    expect(wordmark!.height).toBe(32);
 
     await rail.getByRole("button", { name: "Collapse sidebar" }).click();
     const expandBtn = rail.getByRole("button", { name: "Expand sidebar" });

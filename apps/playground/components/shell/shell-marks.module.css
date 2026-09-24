@@ -7,10 +7,14 @@
   aspect-ratio: 541 / 174;
 }
 
+/* 2rem, the same as .brandLetters in rail-brand.module.css, which the rail
+   also puts on this element. The two rules have equal weight, so when they
+   disagreed the winner was whichever stylesheet loaded last: 24px in a dev
+   server and 32px in a production build. Agreeing makes the order moot. */
 .letters {
   display: block;
   flex-shrink: 0;
-  height: 1.5rem;
+  height: 2rem;
   width: auto;
   aspect-ratio: 437 / 174;
 }
