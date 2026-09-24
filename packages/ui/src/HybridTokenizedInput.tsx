@@ -59,7 +59,7 @@ const FIELD_CLASS =
   "flex h-[var(--size-element-md)] w-full cursor-text items-center gap-[var(--spacing-2)] rounded-[var(--radius-element)] border border-border-default bg-surface-subtle px-[var(--spacing-2)] transition-colors hover:border-border-strong focus-within:border-fg-accent focus-within:ring-1 focus-within:ring-fg-accent";
 
 const CHIP_CLASS =
-  "inline-flex h-6 max-w-full min-w-0 items-center gap-[var(--spacing-1)] rounded-[var(--radius-inner)] border border-border-default bg-surface-raised px-[var(--spacing-2)] font-mono text-xs text-fg-primary hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring";
+  "inline-flex h-6 max-w-full min-w-0 items-center whitespace-nowrap gap-[var(--spacing-1)] rounded-[var(--radius-inner)] border border-border-default bg-surface-raised px-[var(--spacing-2)] font-mono text-xs text-fg-primary hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring";
 
 /** What a `sheet` renderer is handed. */
 export interface HybridTokenizedSheetProps {
@@ -272,7 +272,7 @@ export function HybridTokenizedInput({
               }
             }}
           >
-            <span className="font-medium text-fg-accent">
+            <span className="shrink-0 font-medium text-fg-accent">
               {formatBoundValue(value.value, decimals)}
             </span>
             {bound ? (

@@ -149,7 +149,7 @@ export function LayoutUsesTable({
               <colgroup>
                 <col className="w-48" />
                 {columns.map((device) => (
-                  <col key={device.id} className="w-32" />
+                  <col key={device.id} className="w-44" />
                 ))}
                 <col className="w-14" />
               </colgroup>
