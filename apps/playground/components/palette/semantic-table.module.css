@@ -129,6 +129,14 @@
   gap: var(--spacing-3);
 }
 
+/* The count sits at the far right, after Add token, clear of the controls.
+   Moved with order rather than in the markup, so the phone's grid areas
+   below still place it under the search. */
+.toolbarCount {
+  order: 1;
+  margin-left: auto;
+}
+
 .search {
   flex: 1 1 auto;
   max-width: 22rem;
