@@ -926,9 +926,37 @@ test.describe("on a phone", () => {
         .filter((el) => el.clientWidth > 1)
         .filter((el) => el.scrollWidth > el.clientWidth + 1)
         .filter((el) => getComputedStyle(el).overflowX !== "visible")
+        /* The role preset chips are one line that scrolls on purpose. */
+        .filter((el) => !el.hasAttribute("data-scrolls-sideways"))
         .map((el) => `${el.scrollWidth} in ${el.clientWidth}`),
     );
     expect(scrolls, scrolls.join(" | ")).toEqual([]);
+
+    /* The preset chips stay one line, run to the panel's edge, and keep
+       their 16px of room at the start and, scrolled over, at the end. */
+    const chips = panel.getByRole("toolbar", { name: "Role presets" });
+    const strip = await chips.evaluate((node) => {
+      const box = node.getBoundingClientRect();
+      const panelBox = node.closest("[role=tabpanel]")!.getBoundingClientRect();
+      const tops = [...node.querySelectorAll("button, span")].map((chip) =>
+        Math.round(chip.getBoundingClientRect().top),
+      );
+      const first = node.firstElementChild!.getBoundingClientRect();
+      node.scrollLeft = node.scrollWidth;
+      const last = node.lastElementChild!.getBoundingClientRect();
+      return {
+        oneLine: new Set(tops).size === 1,
+        left: box.left - panelBox.left,
+        right: panelBox.right - box.right,
+        start: first.left - box.left,
+        end: box.right - last.right,
+      };
+    });
+    expect(strip.oneLine).toBe(true);
+    expect(Math.abs(strip.left)).toBeLessThanOrEqual(1);
+    expect(Math.abs(strip.right)).toBeLessThanOrEqual(1);
+    expect(strip.start).toBeCloseTo(16, 0);
+    expect(strip.end).toBeGreaterThanOrEqual(15);
 
     /* The lone Add group button takes the row. */
     const add = await panel

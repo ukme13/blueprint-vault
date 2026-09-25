@@ -51,7 +51,11 @@ export function RolePresetBar({
     <>
       <div
         aria-label="Role presets"
-        className="mb-4 flex flex-wrap items-center gap-1.5 px-4 pt-4"
+        /* One line that scrolls sideways, running to the panel's edge so a
+           chip is cut there, with 16px before the first and after the last.
+           No scrollbar: the cut chip says there is more. */
+        className="mb-4 flex items-center gap-1.5 overflow-x-auto px-4 pt-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        data-scrolls-sideways=""
         /* A toolbar, not a group: the group cards below are the Groups tab's
            groups, and a spec lists them by that role. */
         role="toolbar"
