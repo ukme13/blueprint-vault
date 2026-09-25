@@ -21,7 +21,12 @@ const PRESET_IDS = TYPE_ROLE_PRESETS.map((preset) => preset.id);
 
 describe("type role presets", () => {
   it("are App UI, Minimal and Editorial, and a new system is Minimal", () => {
-    expect(PRESET_IDS).toEqual(["app-ui", "minimal", "editorial"]);
+    expect(PRESET_IDS).toEqual([
+      "app-ui",
+      "minimal",
+      "editorial",
+      "enterprise",
+    ]);
     expect(detectTypeRolePreset(system())).toBe("minimal");
   });
 
@@ -87,6 +92,65 @@ describe("type role presets", () => {
     const overline = next.roles.find((role) => role.id === "overline")!;
     expect(overline.textTransform).toBe("uppercase");
     expect(elementForRole(next, overline)).toBe("span");
+  });
+
+  it("build Enterprise's full ramp and component text", () => {
+    const next = applyTypeRolePreset(system(), "enterprise");
+    expect(next.groups.map((group) => group.id)).toEqual([
+      "display",
+      "h",
+      "subtitle",
+      "subtitle-display",
+      "body",
+      "quote",
+      "code",
+      "button",
+      "input-label",
+      "input-value",
+      "input-helper",
+      "table-header",
+      "list-subheader",
+      "label",
+      "caption",
+      "overline",
+      "tag",
+    ]);
+    const inGroup = (id: string) =>
+      next.roles.filter((role) => role.groupId === id);
+    expect(inGroup("display").map((role) => role.id)).toEqual([
+      "display-1",
+      "display-2",
+      "display-3",
+      "display-4",
+      "display-5",
+      "display-6",
+    ]);
+    expect(inGroup("subtitle-display").map((role) => role.id)).toEqual([
+      "subtitle-display-1",
+      "subtitle-display-2",
+      "subtitle-display-3",
+      "subtitle-display-4",
+    ]);
+    /* Numbered, stepping down from base. */
+    expect(inGroup("body").map((role) => [role.id, role.stepOffset])).toEqual([
+      ["body-1", 0],
+      ["body-2", -1],
+      ["body-3", -2],
+    ]);
+    /* A size group of two is sm and xs, by the naming rule. */
+    expect(inGroup("input-label").map((role) => role.id)).toEqual([
+      "input-label-sm",
+      "input-label-xs",
+    ]);
+    expect(inGroup("button").map((role) => role.id)).toEqual([
+      "button-md",
+      "button-sm",
+      "button-xs",
+    ]);
+    expect(inGroup("display").every((role) => role.fontId === "display")).toBe(
+      true,
+    );
+    expect(inGroup("overline")[0]?.textTransform).toBe("uppercase");
   });
 
   it("give every preset valid groups: known, within capacity, named by the rule", () => {

@@ -35,7 +35,8 @@ import {
  * the five groups a load always restores (display, h, body, label, caption).
  */
 
-export type TypeRolePresetId = "app-ui" | "minimal" | "editorial";
+export type TypeRolePresetId =
+  "app-ui" | "minimal" | "editorial" | "enterprise";
 
 interface PresetRole {
   stepOffset: number;
@@ -172,6 +173,75 @@ const EDITORIAL: PresetGroup[] = [
   },
 ];
 
+/** A group of roles on one font and weight, one per step offset. */
+function steps(
+  offsets: number[],
+  fontWeight: number,
+  font: "display" | "main" = "main",
+): PresetRole[] {
+  return offsets.map((stepOffset) => ({ stepOffset, fontWeight, font }));
+}
+
+/**
+ * A full product system: every scale an interface reaches for, and the
+ * component text a form, a table and a list need. Body is numbered, not
+ * sized, and steps down from base: body-1 is base, body-2 and body-3 one
+ * and two steps below.
+ */
+const ENTERPRISE: PresetGroup[] = [
+  {
+    id: DISPLAY_GROUP_ID,
+    label: "Display",
+    roles: steps([6, 5, 4, 3, 2, 1], 700, "display"),
+  },
+  { id: HEADING_GROUP_ID, label: "H", roles: steps([6, 5, 4, 3, 2, 1], 700) },
+  { id: "subtitle", label: "Subtitle", roles: steps([2, 1, 0, -1], 500) },
+  {
+    id: "subtitle-display",
+    label: "Subtitle display",
+    roles: steps([2, 1, 0, -1], 500, "display"),
+  },
+  { id: BODY_GROUP_ID, label: "Body", roles: steps([0, -1, -2], 400) },
+  {
+    id: "quote",
+    label: "Quote",
+    autoLineHeightRatio: 1.4,
+    roles: steps([2], 400, "display"),
+  },
+  { id: "code", label: "Code", roles: steps([-1], 400) },
+  {
+    id: "button",
+    label: "Button",
+    indexing: "size",
+    autoLineHeightRatio: 1.2,
+    roles: steps([0, -1, -2], 600),
+  },
+  {
+    id: "input-label",
+    label: "Input label",
+    indexing: "size",
+    roles: steps([-1, -2], 500),
+  },
+  {
+    id: "input-value",
+    label: "Input value",
+    indexing: "size",
+    roles: steps([0, -1], 400),
+  },
+  { id: "input-helper", label: "Input helper", roles: steps([-2], 400) },
+  { id: "table-header", label: "Table header", roles: steps([-1], 600) },
+  { id: "list-subheader", label: "List subheader", roles: steps([-1], 600) },
+  { id: LABEL_GROUP_ID, label: "Label", roles: steps([-1], 500) },
+  { id: CAPTION_GROUP_ID, label: "Caption", roles: steps([-2], 400) },
+  {
+    id: "overline",
+    label: "Overline",
+    autoLineHeightRatio: 1.3,
+    roles: [{ stepOffset: -2, fontWeight: 600, textTransform: "uppercase" }],
+  },
+  { id: "tag", label: "Tag", roles: steps([-2], 600) },
+];
+
 export const TYPE_ROLE_PRESETS: readonly TypeRolePreset[] = [
   {
     id: "app-ui",
@@ -190,6 +260,12 @@ export const TYPE_ROLE_PRESETS: readonly TypeRolePreset[] = [
     description:
       "Two displays, headings, three body sizes, a label, a quote, caption and overline.",
   },
+  {
+    id: "enterprise",
+    label: "Enterprise",
+    description:
+      "Full design system: displays, headings, subtitles, body ramp, buttons, inputs, tables, lists, quote, code and tags.",
+  },
 ];
 
 const PRESET_GROUPS: Record<
@@ -198,6 +274,7 @@ const PRESET_GROUPS: Record<
 > = {
   "app-ui": APP_UI,
   editorial: EDITORIAL,
+  enterprise: ENTERPRISE,
 };
 
 function blankMetrics(): Pick<
