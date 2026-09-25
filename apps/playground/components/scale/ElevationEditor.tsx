@@ -49,7 +49,7 @@ export function ElevationCanvas({
 
   return (
     <section aria-label="Elevation" className="grid gap-4">
-      <div className="flex justify-end">
+      <div className="flex justify-start">
         <Button
           leftIcon={<Plus aria-hidden />}
           scheme="neutral"
