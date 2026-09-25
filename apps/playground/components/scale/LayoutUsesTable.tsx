@@ -35,7 +35,6 @@ import {
 } from "@blueprint/ui";
 import { useSemanticTableSort } from "../palette/use-semantic-row-sort";
 import { LayoutUsesRow } from "./LayoutUsesRow";
-import { RadiusUseSamples } from "./RadiusUseSamples";
 import styles from "./scale-workspace.module.css";
 
 function DropGap({ colSpan }: { colSpan: number }) {
@@ -221,9 +220,6 @@ export function LayoutUsesTable({
           ) : null}
         </DragOverlay>
       </DndContext>
-      {kind === "radius" && (
-        <RadiusUseSamples columns={columns} radius={radius} tokens={rows} />
-      )}
     </section>
   );
 }

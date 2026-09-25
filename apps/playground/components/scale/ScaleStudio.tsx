@@ -26,13 +26,14 @@ import { useIsPhone } from "../use-is-phone";
 import { ElevationCanvas } from "./ElevationEditor";
 import { ElevationInspector } from "./ElevationInspector";
 import { LayoutUsesTable } from "./LayoutUsesTable";
+import { RadiusPreviewTab } from "./RadiusPreviewTab";
 import { RadiusCanvas, RadiusInspector } from "./RadiusEditor";
 import { SpacingCanvas, SpacingInspector } from "./SpacingEditor";
 import { useScaleHistory } from "./use-scale-history";
 import styles from "./scale-workspace.module.css";
 
 type ScaleSection = "spacing" | "radius" | "elevation";
-type StudioView = "scale" | "uses";
+type StudioView = "scale" | "uses" | "preview";
 
 function sectionFromPath(pathname: string): ScaleSection {
   if (pathname === "/radius" || pathname.startsWith("/radius/")) {
@@ -79,6 +80,10 @@ export function ScaleStudio() {
   const showUses =
     studioView === "uses" &&
     (activeSection === "spacing" || activeSection === "radius");
+  /* Radius only: spacing has no one piece of UI that proves its uses. */
+  const showPreview = studioView === "preview" && activeSection === "radius";
+  /* Either takes the whole width, with no settings panel beside it. */
+  const isFullWidth = showUses || showPreview;
 
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     const target = event.target as HTMLElement;
@@ -180,6 +185,9 @@ export function ScaleStudio() {
             >
               <Tab label="Scale" value="scale" />
               <Tab label="Uses" value="uses" />
+              {activeSection === "radius" && (
+                <Tab label="Preview" value="preview" />
+              )}
             </TabList>
           </nav>
         )}
@@ -218,7 +226,7 @@ export function ScaleStudio() {
         </span>
         {/* A phone's way to the settings; CSS shows it only there. None in
             the Uses view, which has no settings panel. */}
-        {!showUses && (
+        {!isFullWidth && (
           <span className={styles.settingsTrigger}>
             <IconButton
               icon={<SlidersHorizontal aria-hidden className="size-4" />}
@@ -232,16 +240,22 @@ export function ScaleStudio() {
       </section>
 
       <section
-        className={showUses ? styles.usesEditor : styles.editor}
+        className={isFullWidth ? styles.usesEditor : styles.editor}
         style={
-          showUses
+          isFullWidth
             ? undefined
             : ({
                 "--inspector-width": `${settingsPanel.size}px`,
               } as CSSProperties)
         }
       >
-        {showUses ? (
+        {showPreview ? (
+          <RadiusPreviewTab
+            devices={previewDevices}
+            layout={layout}
+            radius={radius}
+          />
+        ) : showUses ? (
           <LayoutUsesTable
             devices={previewDevices}
             kind={activeSection === "radius" ? "radius" : "spacing"}
@@ -313,7 +327,7 @@ export function ScaleStudio() {
         )}
       </section>
 
-      {isPhone && !showUses && (
+      {isPhone && !isFullWidth && (
         <Sheet
           isOpen={isSettingsOpen}
           label={sectionLabel}

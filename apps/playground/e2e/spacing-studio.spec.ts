@@ -594,6 +594,10 @@ test.describe("Layout uses", () => {
     seededPage: page,
   }) => {
     await showScaleView(page, "Radius");
+    /* The Radius page, loaded, before its tabs are clicked. */
+    await expect(
+      page.getByRole("region", { name: "Radius canvas" }),
+    ).toBeVisible();
     await page
       .getByRole("navigation", { name: "Scale sections" })
       .getByRole("button", { name: "Uses" })
@@ -609,22 +613,42 @@ test.describe("Layout uses", () => {
       uses.locator('[data-token="radius-chip"] [data-system-use]'),
     ).toHaveText("Chip radius");
 
-    /* A pill button on Desktop; the input beside it keeps its corner. */
-    const desktop = page.locator('[data-radius-samples="desktop"]');
-    const radiusOf = (id: string) =>
-      desktop
-        .locator(`[data-radius-sample="${id}"]`)
-        .evaluate((node) => getComputedStyle(node).borderRadius);
-    await expect.poll(() => radiusOf("radius-button")).toBe("8px");
-
+    /* A pill button on Desktop. The Preview tab shows it beside an input
+       that keeps its corner and a card on Surface radius. */
     await uses.getByLabel("Button radius on Desktop").click();
     await page
       .getByRole("listbox", { name: "Radius tokens" })
       .getByRole("option", { name: /^Full/ })
       .click();
 
+    await page
+      .getByRole("navigation", { name: "Scale sections" })
+      .getByRole("button", { name: "Preview" })
+      .click();
+    const card = page.getByRole("article", { name: "Verba AI Preview" });
+    await expect(card).toBeVisible();
+    const radiusOf = (id: string) =>
+      page
+        .locator(`[data-radius-sample="${id}"]`)
+        .first()
+        .evaluate((node) => getComputedStyle(node).borderRadius);
+
     await expect.poll(() => radiusOf("radius-button")).toBe("9999px");
     await expect.poll(() => radiusOf("radius-input")).toBe("8px");
+    await expect.poll(() => radiusOf("radius-chip")).toBe("4px");
+    /* Surface is page on Desktop and container on Phone. */
+    await expect.poll(() => radiusOf("radius-surface")).toBe("28px");
+
+    await page
+      .getByRole("navigation", { name: "Preview devices" })
+      .getByRole("button", { name: "Phone" })
+      .click();
+    await expect.poll(() => radiusOf("radius-surface")).toBe("12px");
+    await expect.poll(() => radiusOf("radius-button")).toBe("8px");
+
+    /* A chip fills the field. */
+    await page.getByRole("button", { name: "Translate" }).click();
+    await expect(page.getByLabel("Ask something")).toHaveValue("Translate");
   });
 
   test("adds a use, renames it, and keeps it across a reload", async ({

@@ -1,10 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defaultPreviewDevices } from "../typography/preview-devices";
-import {
-  componentRadiusCss,
-  layoutRadiusPx,
-  radiusUseSamples,
-} from "./component-radius";
+import { componentRadiusCss } from "./component-radius";
 import {
   COMPONENT_RADIUS_USES,
   defaultLayoutTokens,
@@ -13,7 +9,6 @@ import {
   normalizeLayoutTokens,
 } from "./layout-tokens";
 import { setLayoutReference } from "./layout-edit";
-import { defaultRadiusScale } from "./radius";
 
 const devices = defaultPreviewDevices();
 const COMPONENT_IDS = ["radius-button", "radius-input", "radius-chip"];
@@ -124,61 +119,5 @@ describe("component radius as CSS", () => {
       "var(--radius-surface, var(--radius-container))",
     );
     expect(componentRadiusCss("radius-custom")).toBe("var(--radius-custom)");
-  });
-});
-
-describe("component radius in px", () => {
-  const scale = defaultRadiusScale();
-
-  it("resolves a base radius at the current roundness", () => {
-    expect(layoutRadiusPx("element", scale)).toBe(8);
-    expect(layoutRadiusPx("element", { ...scale, multiplier: 2 })).toBe(16);
-    expect(layoutRadiusPx("full", scale)).toBe(9999);
-  });
-
-  it("keeps a typed px as written, and knows nothing of a missing cell", () => {
-    expect(layoutRadiusPx("6px", scale)).toBe(6);
-    expect(layoutRadiusPx(undefined, scale)).toBeUndefined();
-    expect(layoutRadiusPx("gone", scale)).toBeUndefined();
-  });
-
-  it("draws one sample per radius use, shaped for its component", () => {
-    const tokens = setLayoutReference(
-      defaultLayoutTokens(),
-      "radius-chip",
-      "phone",
-      "full",
-    );
-    const phone = radiusUseSamples(tokens, "phone", scale);
-    expect(phone.map((sample) => [sample.shape, sample.px])).toEqual([
-      ["card", 12],
-      ["button", 8],
-      ["input", 8],
-      ["chip", 9999],
-    ]);
-    expect(
-      radiusUseSamples(tokens, "desktop", scale).find(
-        (sample) => sample.shape === "card",
-      )?.px,
-    ).toBe(28);
-  });
-
-  it("draws a custom radius use as a plain box", () => {
-    const tokens = [
-      ...defaultLayoutTokens(),
-      {
-        id: "radius-avatar",
-        name: "Avatar radius",
-        description: "",
-        kind: "radius" as const,
-        byDevice: { phone: "full", tablet: "full", desktop: "full" },
-      },
-    ];
-    expect(radiusUseSamples(tokens, "phone", scale).at(-1)).toEqual({
-      id: "radius-avatar",
-      name: "Avatar radius",
-      shape: "box",
-      px: 9999,
-    });
   });
 });
