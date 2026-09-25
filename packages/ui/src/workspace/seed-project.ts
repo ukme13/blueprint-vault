@@ -104,7 +104,7 @@ export type SeedTypographyInput = {
 
 /** What Home create offers for type before anybody changes it. */
 export const SEED_TYPOGRAPHY: SeedTypographyInput = {
-  fontFamily: "Geist Sans, ui-sans-serif, system-ui",
+  fontFamily: "Inter, ui-sans-serif, system-ui",
   baseFontSizePx: 16,
   /* Major Third. The preset the ratio selector opens on. */
   ratio: 1.25,

@@ -5,6 +5,7 @@ import {
   formatTypeSystemCssExport,
   generatePalettes,
   seedSemanticTokens,
+  seedTypographyProject,
   seedWorkspaceProject,
   resolveSpacing,
   typeRoleRowGroups,
@@ -292,8 +293,14 @@ describe("the typography page is a template over the type system", () => {
        Measured on the built page as well: the specimens come back
        `"Geist Sans", ui-sans-serif, system-ui` and the chrome around them
        comes back Inter. Stage 6 owns the browser check; this is the half that
-       can run without one. */
-    const system = typeSystem();
+       can run without one.
+
+       Set in a face that is not the studio's, on purpose. The seed is Inter
+       now, the studio's own face, so a seeded system cannot tell a specimen
+       in the workspace's font from one that inherited the studio's. */
+    const system = seedTypographyProject("Reference", {
+      fontFamily: "Geist Sans, ui-sans-serif, system-ui",
+    }).system;
     const markup = renderToStaticMarkup(<TypeSpecimens system={system} />);
 
     /* Read out of the style attribute rather than off the raw markup. React
