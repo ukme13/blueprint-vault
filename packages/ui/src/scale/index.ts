@@ -2,6 +2,8 @@ export * from "./elevation";
 export * from "./elevation-edit";
 export * from "./layout-tokens";
 export * from "./layout-edit";
+export * from "./component-radius";
+export * from "./token-names";
 export * from "./radius";
 export * from "./radius-edit";
 export * from "./spacing";

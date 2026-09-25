@@ -39,8 +39,7 @@ const SWATCH_TRACK_IDS = ["primary", "secondary", "neutral"] as const;
 const BLUEPRINT: WorkspacePreset = {
   id: "blueprint",
   name: "Blueprint seed",
-  summary:
-    "The studio's own system. Violet and teal, Geist Sans at a major third.",
+  summary: "The studio's own system. Violet and teal, Inter at a major third.",
 };
 
 /**

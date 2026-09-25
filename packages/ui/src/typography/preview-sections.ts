@@ -15,6 +15,7 @@ export const PREVIEW_SECTION_IDS = [
   "landing-quote",
   "landing-pricing",
   "landing-cta",
+  "landing-newsletter",
   "shell-footer",
 ] as const;
 
@@ -30,6 +31,7 @@ export const PREVIEW_SECTION_LABEL: Record<PreviewSectionId, string> = {
   "landing-quote": "Quote",
   "landing-pricing": "Pricing",
   "landing-cta": "CTA",
+  "landing-newsletter": "Newsletter",
   "shell-footer": "Footer",
 };
 
@@ -44,6 +46,9 @@ export const PREVIEW_SECTION_SEED_TOKEN: Record<PreviewSectionId, string> = {
   "landing-quote": "surface.raised",
   "landing-pricing": "surface.base",
   "landing-cta": "surface.base",
+  /* Raised, like the quote, so the sign-up reads as its own band between the
+     CTA and the footer, which are both base. */
+  "landing-newsletter": "surface.raised",
   "shell-footer": "surface.base",
 };
 

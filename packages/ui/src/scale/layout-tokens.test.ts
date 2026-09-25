@@ -27,12 +27,15 @@ const extra = {
 };
 
 describe("layout tokens", () => {
-  it("seeds three uses against the required frames", () => {
+  it("seeds six uses against the required frames", () => {
     const tokens = defaultLayoutTokens();
     expect(tokens.map((token) => token.id)).toEqual([
       "inset-container",
       "gap-section",
       "radius-surface",
+      "radius-button",
+      "radius-input",
+      "radius-chip",
     ]);
     expect(tokens[0]?.byDevice).toEqual({
       phone: "4",
@@ -42,13 +45,32 @@ describe("layout tokens", () => {
     expect(tokens[2]?.byDevice.desktop).toBe("page");
   });
 
-  it("seeds when the stored value is missing, and keeps an empty author list empty", () => {
+  it("seeds when the stored value is missing, and heals an empty list", () => {
     expect(
       normalizeLayoutTokens(undefined, defaultPreviewDevices()).map(
         (token) => token.id,
       ),
-    ).toEqual(["inset-container", "gap-section", "radius-surface"]);
-    expect(normalizeLayoutTokens([], defaultPreviewDevices())).toEqual([]);
+    ).toEqual([
+      "inset-container",
+      "gap-section",
+      "radius-surface",
+      "radius-button",
+      "radius-input",
+      "radius-chip",
+    ]);
+    /* Every system use is back: the preview paints with them. */
+    expect(
+      normalizeLayoutTokens([], defaultPreviewDevices()).map(
+        (token) => token.id,
+      ),
+    ).toEqual([
+      "inset-container",
+      "gap-section",
+      "radius-surface",
+      "radius-button",
+      "radius-input",
+      "radius-chip",
+    ]);
   });
 
   it("keeps custom rows in stored order", () => {
@@ -77,6 +99,9 @@ describe("layout tokens", () => {
       "inset-container",
       "gap-section",
       "radius-surface",
+      "radius-button",
+      "radius-input",
+      "radius-chip",
       "inset-hero",
       "gap-grid",
     ]);
@@ -92,9 +117,10 @@ describe("layout tokens", () => {
       },
     ];
     const tokens = normalizeLayoutTokens(stored, defaultPreviewDevices());
-    expect(tokens[0]?.byDevice.phone).toBe("8");
-    expect(tokens[0]?.byDevice.tablet).toBe("16px");
-    expect(tokens[0]?.byDevice.desktop).toBe("10");
+    const hero = tokens.find((token) => token.id === "inset-hero");
+    expect(hero?.byDevice.phone).toBe("8");
+    expect(hero?.byDevice.tablet).toBe("16px");
+    expect(hero?.byDevice.desktop).toBe("10");
   });
 
   it("fills a new extra desktop from the previous frame", () => {
@@ -187,8 +213,9 @@ describe("layout tokens", () => {
       },
     ];
     const tokens = normalizeLayoutTokens(stored, defaultPreviewDevices());
-    expect(tokens[0]?.byDevice.phone).toBe("6");
-    expect(tokens[0]?.byDevice.tablet).toBe("8");
+    const gap = tokens.find((token) => token.id === "gap-section");
+    expect(gap?.byDevice.phone).toBe("6");
+    expect(gap?.byDevice.tablet).toBe("8");
   });
 
   it("adds a use of this kind after the others, copying the last pointers", () => {
@@ -202,40 +229,64 @@ describe("layout tokens", () => {
       "inset-container",
       "gap-section",
       "radius-surface",
+      "radius-button",
+      "radius-input",
+      "radius-chip",
       "hero-inset",
     ]);
-    expect(next[3]?.kind).toBe("spacing");
-    expect(next[3]?.byDevice).toEqual(next[1]?.byDevice);
+    expect(next.at(-1)?.kind).toBe("spacing");
+    expect(next.at(-1)?.byDevice).toEqual(next[1]?.byDevice);
   });
 
   it("renames the use and the variable together", () => {
-    const next = renameLayoutToken(
+    const withHero = addLayoutToken(
       defaultLayoutTokens(),
-      "gap-section",
-      "Grid gap",
+      "spacing",
+      defaultPreviewDevices(),
+      "Hero inset",
     );
-    expect(next[1]?.id).toBe("grid-gap");
-    expect(next[1]?.name).toBe("Grid gap");
-    expect(next.map((token) => token.id)).not.toContain("gap-section");
+    const next = renameLayoutToken(withHero, "hero-inset", "Grid gap");
+    expect(next.at(-1)?.id).toBe("grid-gap");
+    expect(next.at(-1)?.name).toBe("Grid gap");
+    expect(next.map((token) => token.id)).not.toContain("hero-inset");
   });
 
   it("duplicates a use directly under its source", () => {
-    const next = duplicateLayoutToken(defaultLayoutTokens(), "inset-container");
-    expect(next.map((token) => token.id)).toEqual([
-      "inset-container",
-      "inset-container-copy",
-      "gap-section",
-      "radius-surface",
+    const withHero = addLayoutToken(
+      defaultLayoutTokens(),
+      "spacing",
+      defaultPreviewDevices(),
+      "Hero inset",
+    );
+    const next = duplicateLayoutToken(withHero, "hero-inset");
+    expect(next.slice(-2).map((token) => token.id)).toEqual([
+      "hero-inset",
+      "hero-inset-copy",
     ]);
-    expect(next[1]?.name).toBe("Container inset copy");
-    expect(next[1]?.byDevice).toEqual(next[0]?.byDevice);
+    expect(next.at(-1)?.name).toBe("Hero inset copy");
+    expect(next.at(-1)?.byDevice).toEqual(next.at(-2)?.byDevice);
+    /* A second copy numbers itself rather than colliding. */
+    expect(duplicateLayoutToken(next, "hero-inset").at(-2)?.name).toBe(
+      "Hero inset copy 2",
+    );
   });
 
-  it("deletes a use, including a seed", () => {
-    const next = removeLayoutToken(defaultLayoutTokens(), "gap-section");
-    expect(next.map((token) => token.id)).toEqual([
+  it("deletes a custom use", () => {
+    const withHero = addLayoutToken(
+      defaultLayoutTokens(),
+      "spacing",
+      defaultPreviewDevices(),
+      "Hero inset",
+    );
+    expect(
+      removeLayoutToken(withHero, "hero-inset").map((token) => token.id),
+    ).toEqual([
       "inset-container",
+      "gap-section",
       "radius-surface",
+      "radius-button",
+      "radius-input",
+      "radius-chip",
     ]);
   });
 
@@ -249,6 +300,9 @@ describe("layout tokens", () => {
       "gap-section",
       "inset-container",
       "radius-surface",
+      "radius-button",
+      "radius-input",
+      "radius-chip",
     ]);
     expect(
       reorderLayoutTokens(
@@ -256,7 +310,14 @@ describe("layout tokens", () => {
         "gap-section",
         "radius-surface",
       ).map((token) => token.id),
-    ).toEqual(["inset-container", "gap-section", "radius-surface"]);
+    ).toEqual([
+      "inset-container",
+      "gap-section",
+      "radius-surface",
+      "radius-button",
+      "radius-input",
+      "radius-chip",
+    ]);
   });
 
   it("writes a typed px and exports it as a length, not an alias", () => {

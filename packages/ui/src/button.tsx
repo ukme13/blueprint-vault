@@ -58,17 +58,26 @@ const buttonVariants = cva(
        * (--size-element-sm/md/lg), so a button beside a TextInput of the same
        * size lines up with it. medium was 36px and large 44px, a step taller
        * than the field they sat next to.
+       *
+       * Every size takes its corner from --radius-button, the Button radius
+       * use, falling back to --radius-element when a scope does not set it.
+       * The fallback is in the var() rather than a :root declaration, so a
+       * preview that sets its own element radius is followed, not the
+       * studio's. Written out, not from componentRadiusCss: Tailwind reads
+       * class names from the source text.
        */
       size: {
-        xs: "h-6 px-2.5 py-0 text-[10px] rounded-element gap-1 [&_svg]:size-3",
-        small: "h-7 px-3 py-0 text-xs rounded-element gap-1.5 [&_svg]:size-3.5",
-        medium: "h-8 px-4 py-0 text-sm rounded-element gap-2 [&_svg]:size-4",
+        xs: "h-6 px-2.5 py-0 text-[10px] rounded-[var(--radius-button,var(--radius-element))] gap-1 [&_svg]:size-3",
+        small:
+          "h-7 px-3 py-0 text-xs rounded-[var(--radius-button,var(--radius-element))] gap-1.5 [&_svg]:size-3.5",
+        medium:
+          "h-8 px-4 py-0 text-sm rounded-[var(--radius-button,var(--radius-element))] gap-2 [&_svg]:size-4",
         large:
-          "h-9 px-6 py-0 text-base rounded-element gap-2.5 [&_svg]:size-4.5",
-        xl: "h-14 px-8 py-0 text-lg rounded-element gap-3 [&_svg]:size-5.5 font-bold",
+          "h-9 px-6 py-0 text-base rounded-[var(--radius-button,var(--radius-element))] gap-2.5 [&_svg]:size-4.5",
+        xl: "h-14 px-8 py-0 text-lg rounded-[var(--radius-button,var(--radius-element))] gap-3 [&_svg]:size-5.5 font-bold",
         /* Square, and the default input's height, so an icon button beside a
            field lines up with it without an override. */
-        icon: "h-8 w-8 p-0 rounded-element [&_svg]:size-4",
+        icon: "h-8 w-8 p-0 rounded-[var(--radius-button,var(--radius-element))] [&_svg]:size-4",
       },
     },
 

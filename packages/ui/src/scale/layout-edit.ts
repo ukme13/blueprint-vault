@@ -4,14 +4,18 @@ import type {
 } from "../hybrid-tokenized-input";
 import type { PreviewDevice } from "../typography/preview-devices";
 import {
+  DEFAULT_LAYOUT_TOKENS,
+  defaultSystemLayoutToken,
   fillLayoutDevices,
   formatLayoutRawPx,
+  isSystemLayoutToken,
   isLayoutCellValue,
   isLayoutPrimitive,
   parseLayoutRawPx,
   type LayoutToken,
   type LayoutTokenKind,
 } from "./layout-tokens";
+import { uniqueTokenName } from "./token-names";
 
 /**
  * Author operations on the layout uses list.
@@ -64,30 +68,27 @@ export function layoutCellFromHybrid(next: HybridTokenizedValue): string {
   return formatLayoutRawPx(next.value);
 }
 
-function layoutIdFromName(name: string): string {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
-function uniqueLayoutId(wanted: string, taken: Iterable<string>): string {
-  const base = wanted || "use";
-  const used = new Set(taken);
-  if (!used.has(base)) return base;
-  let suffix = 2;
-  let id = `${base}-${suffix}`;
-  while (used.has(id)) {
-    suffix += 1;
-    id = `${base}-${suffix}`;
-  }
-  return id;
-}
-
-function copyLayoutId(id: string, taken: Iterable<string>): string {
-  const base = id.replace(/-copy(-\d+)?$/, "");
-  return uniqueLayoutId(`${base}-copy`, taken);
+/**
+ * A name and id no other use has, nor any system use, whether or not it is
+ * in this list: a system use missing from the list is restored on the next
+ * load, so a custom one holding its name now would collide then.
+ */
+function uniqueLayoutName(
+  wanted: string,
+  tokens: readonly LayoutToken[],
+  exceptId?: string,
+): { id: string; name: string } {
+  const others = [...tokens, ...DEFAULT_LAYOUT_TOKENS].filter(
+    (token) => token.id !== exceptId,
+  );
+  return uniqueTokenName(
+    wanted,
+    {
+      ids: others.map((token) => token.id),
+      names: others.map((token) => token.name),
+    },
+    "use",
+  );
 }
 
 /**
@@ -102,17 +103,14 @@ export function addLayoutToken(
   devices: readonly PreviewDevice[],
   label = kind === "radius" ? "New radius" : "New use",
 ): LayoutToken[] {
-  const id = uniqueLayoutId(
-    layoutIdFromName(label),
-    tokens.map((token) => token.id),
-  );
+  const { id, name } = uniqueLayoutName(label, tokens);
   const source = [...tokens].reverse().find((token) => token.kind === kind);
   return [
     ...tokens,
     fillLayoutDevices(
       {
         id,
-        name: label,
+        name,
         description: "",
         kind,
         byDevice: source ? { ...source.byDevice } : {},
@@ -122,55 +120,77 @@ export function addLayoutToken(
   ];
 }
 
-/** Rename the use and the custom property it exports, together. */
+/**
+ * Rename the use and the custom property it exports, together.
+ *
+ * A system use keeps its name: the preview and the export depend on its id.
+ * A name another use already has, in any case or word order, takes the
+ * lowest free number instead.
+ */
 export function renameLayoutToken(
   tokens: readonly LayoutToken[],
   id: string,
   name: string,
 ): LayoutToken[] {
+  if (isSystemLayoutToken(id)) return [...tokens];
   const token = tokens.find((candidate) => candidate.id === id);
   if (!token) return [...tokens];
   const trimmed = name.trim();
   if (!trimmed || trimmed === token.name) return [...tokens];
-  const nextId = uniqueLayoutId(
-    layoutIdFromName(trimmed) || token.id,
-    tokens
-      .filter((candidate) => candidate.id !== id)
-      .map((candidate) => candidate.id),
-  );
+  const next = uniqueLayoutName(trimmed, tokens, id);
   return tokens.map((candidate) =>
-    candidate.id === id
-      ? { ...candidate, id: nextId, name: trimmed }
-      : candidate,
+    candidate.id === id ? { ...candidate, ...next } : candidate,
   );
 }
 
-/** Copy a use directly under its source, with a new exported name. */
+/**
+ * Copy a use directly under its source, with a new exported name.
+ *
+ * Not a system use: a copy of Button radius would be a second button corner
+ * that nothing reads. Point a custom use at the same radius instead.
+ */
 export function duplicateLayoutToken(
   tokens: readonly LayoutToken[],
   id: string,
 ): LayoutToken[] {
+  if (isSystemLayoutToken(id)) return [...tokens];
   const index = tokens.findIndex((token) => token.id === id);
   if (index === -1) return [...tokens];
   const token = tokens[index]!;
-  const nextId = copyLayoutId(
-    token.id,
-    tokens.map((candidate) => candidate.id),
-  );
   const copy: LayoutToken = {
     ...token,
-    id: nextId,
-    name: `${token.name} copy`,
+    ...uniqueLayoutName(
+      `${token.name.replace(/ copy( \d+)?$/, "")} copy`,
+      tokens,
+    ),
     byDevice: { ...token.byDevice },
   };
   return [...tokens.slice(0, index + 1), copy, ...tokens.slice(index + 1)];
 }
 
+/** Delete a custom use. A system use stays; reset it instead. */
 export function removeLayoutToken(
   tokens: readonly LayoutToken[],
   id: string,
 ): LayoutToken[] {
+  if (isSystemLayoutToken(id)) return [...tokens];
   return tokens.filter((token) => token.id !== id);
+}
+
+/**
+ * Put a system use's pointers back to how it ships, on every frame.
+ *
+ * Its name and description are already its own; only where it points has
+ * changed. Nothing for a custom use, which has no default to go back to.
+ */
+export function resetLayoutToken(
+  tokens: readonly LayoutToken[],
+  id: string,
+  devices: readonly PreviewDevice[],
+): LayoutToken[] {
+  const fresh = defaultSystemLayoutToken(id, devices);
+  if (!fresh) return [...tokens];
+  return tokens.map((token) => (token.id === id ? fresh : token));
 }
 
 /**

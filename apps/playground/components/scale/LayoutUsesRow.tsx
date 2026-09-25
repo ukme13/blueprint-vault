@@ -2,8 +2,10 @@
 
 import type { MouseEvent } from "react";
 import { TableCell, TableRow } from "@astryxdesign/core/Table";
+import { Lock } from "lucide-react";
 import {
   HybridTokenizedInput,
+  isSystemLayoutToken,
   MAX_RADIUS_PX,
   MIN_RADIUS_PX,
   hybridValueFromLayoutCell,
@@ -31,6 +33,7 @@ export function LayoutUsesRow({
   onDuplicate,
   onReferenceChange,
   onRemove,
+  onReset,
   onRowClick,
 }: {
   autoFocusName: boolean;
@@ -42,8 +45,10 @@ export function LayoutUsesRow({
   onDuplicate: () => void;
   onReferenceChange: (deviceId: string, cell: string) => void;
   onRemove: () => void;
+  onReset: () => void;
   onRowClick?: (event: MouseEvent<HTMLTableRowElement>) => void;
 }) {
+  const isSystem = isSystemLayoutToken(token.id);
   const { isDragging, setNodeRef, sortableProps } = useSemanticRowSort({
     id: token.id,
     canReorder,
@@ -64,12 +69,31 @@ export function LayoutUsesRow({
     >
       <TableCell>
         <div className={styles.usesNameCell} data-token={token.id}>
-          <InlineTextCell
-            autoFocus={autoFocusName}
-            label={`${token.id} name`}
-            value={token.name}
-            onCommit={onCommitName}
-          />
+          {isSystem ? (
+            /* A label, not a field: the preview and the export rely on this
+               name's variable, so it is not the author's to change. */
+            <span
+              className="flex min-w-0 items-center gap-1.5"
+              data-system-use=""
+            >
+              <span className="truncate">{token.name}</span>
+              <span
+                aria-label="Built in: its name and variable are fixed"
+                className="inline-flex shrink-0 text-fg-muted"
+                role="img"
+                title="Built in: its name and variable are fixed. Point it anywhere, or reset it."
+              >
+                <Lock aria-hidden className="size-3" />
+              </span>
+            </span>
+          ) : (
+            <InlineTextCell
+              autoFocus={autoFocusName}
+              label={`${token.id} name`}
+              value={token.name}
+              onCommit={onCommitName}
+            />
+          )}
           <code className={styles.usesVar}>{layoutVariableName(token.id)}</code>
         </div>
       </TableCell>
@@ -104,9 +128,11 @@ export function LayoutUsesRow({
       ))}
       <TableCell>
         <LayoutUsesRowMenu
+          isSystem={isSystem}
           label={`Actions for ${token.name}`}
           onDuplicate={onDuplicate}
           onRemove={onRemove}
+          onReset={onReset}
         />
       </TableCell>
     </TableRow>

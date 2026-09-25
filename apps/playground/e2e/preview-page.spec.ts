@@ -1139,7 +1139,7 @@ test.describe("The preview follows the radius scale", () => {
 
   const starterPlanRadius = (page: import("@playwright/test").Page) =>
     page.getByRole("heading", { name: "Starter" }).evaluate((node) => {
-      const plan = node.closest("div");
+      const plan = node.closest("[data-plan]");
       return plan ? getComputedStyle(plan).borderRadius : "";
     });
 
@@ -1169,5 +1169,89 @@ test.describe("The preview follows the radius scale", () => {
 
     await expect.poll(() => signUpRadius(page)).toBe("10px");
     await expect.poll(() => starterPlanRadius(page)).toBe("35px");
+  });
+
+  test("paints the field, the tag and the feature cards from their uses", async ({
+    page,
+  }) => {
+    /* One of each on the page: the newsletter field on Input radius
+       (element, 8px), the featured plan's tag on Chip (inner, 4px), and the
+       feature cards on Surface (page on Desktop, 28px). */
+    await openPreview(page);
+    const radiusOf = (selector: string) =>
+      page
+        .locator(selector)
+        .first()
+        .evaluate((node) => getComputedStyle(node).borderRadius);
+    const newsletter = page.locator(
+      '[data-preview-section="landing-newsletter"]',
+    );
+    await expect(newsletter).toBeVisible();
+
+    await expect
+      .poll(() => radiusOf('[data-preview-section="landing-newsletter"] form'))
+      .toBe("8px");
+    await expect(page.getByText("Popular", { exact: true })).toBeVisible();
+    await expect
+      .poll(() =>
+        page
+          .getByText("Popular", { exact: true })
+          .evaluate((node) => getComputedStyle(node).borderRadius),
+      )
+      .toBe("4px");
+    await expect
+      .poll(() => radiusOf('[data-preview-section="landing-features"] article'))
+      .toBe("28px");
+  });
+
+  test("stacks the newsletter sign-up under its heading on the phone", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await page
+      .getByRole("navigation", { name: "Preview devices" })
+      .getByRole("button", { name: "Phone" })
+      .click();
+    await expect(page.locator("[data-preview-ready]")).toHaveAttribute(
+      "data-frame",
+      "phone",
+    );
+    const newsletter = page.locator(
+      '[data-preview-section="landing-newsletter"]',
+    );
+    const title = (await newsletter.locator("h2").boundingBox())!;
+    const form = (await newsletter.locator("form").boundingBox())!;
+    expect(form.y).toBeGreaterThanOrEqual(title.y + title.height);
+    expect(Math.abs(form.x - title.x)).toBeLessThanOrEqual(1);
+  });
+
+  test("paints buttons from Button radius, apart from the rest", async ({
+    page,
+  }) => {
+    /* Full on the Button radius use makes pill buttons while the plan
+       cards keep Surface radius. The preview frame here is Desktop. */
+    await openPreview(page);
+    await showScaleView(page, "Radius");
+    await page
+      .getByRole("navigation", { name: "Scale sections" })
+      .getByRole("button", { name: "Uses" })
+      .click();
+    await page
+      .getByRole("region", { name: "Radius uses" })
+      .getByLabel("Button radius on Desktop")
+      .click();
+    await page
+      .getByRole("listbox", { name: "Radius tokens" })
+      .getByRole("option", { name: /^Full/ })
+      .click();
+
+    await page
+      .getByRole("navigation", { name: "Blueprint workspaces" })
+      .getByRole("link", { name: "Preview", exact: true })
+      .click();
+    await expect(page.locator("[data-preview-ready]")).toBeVisible();
+
+    await expect.poll(() => signUpRadius(page)).toBe("9999px");
+    await expect.poll(() => starterPlanRadius(page)).toBe("28px");
   });
 });

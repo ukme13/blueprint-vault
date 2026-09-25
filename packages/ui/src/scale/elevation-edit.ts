@@ -1,6 +1,13 @@
 import type { ColourMode, SemanticReference } from "../color/semantic";
 import type { ColorTrack } from "../color/types";
-import { resolveElevation, type ElevationScale } from "./elevation";
+import {
+  isSystemElevationLevel,
+  resolveElevation,
+  SYSTEM_ELEVATION_LEVEL_IDS,
+  type ElevationLevel,
+  type ElevationScale,
+} from "./elevation";
+import { uniqueTokenName } from "./token-names";
 
 /**
  * Edits to the elevation scale.
@@ -183,5 +190,109 @@ export function elevationPreviewSurfaces(
       ground: darkGround ?? "var(--color-neutral-900)",
       card: darkCard ?? "var(--color-neutral-800)",
     },
+  };
+}
+
+/**
+ * A name and id no other level has, nor any system level, so no two levels
+ * export one variable and "low" cannot sit beside Low.
+ */
+function uniqueElevationName(
+  wanted: string,
+  levels: readonly ElevationLevel[],
+  exceptId?: string,
+): { id: string; name: string } {
+  const others = levels.filter((level) => level.id !== exceptId);
+  return uniqueTokenName(
+    wanted,
+    {
+      ids: [...others.map((level) => level.id), ...SYSTEM_ELEVATION_LEVEL_IDS],
+      names: others.map((level) => level.name),
+    },
+    "level",
+  );
+}
+
+/**
+ * A new level after the others, exported as `--shadow-{id}`.
+ *
+ * Seeded between Medium and High, a contact and a cast layer like the rest,
+ * so it draws something sensible before it is tuned and the pads apply.
+ */
+export function addElevationLevel(
+  scale: ElevationScale,
+  name = "New level",
+): ElevationScale {
+  const { id, name: unique } = uniqueElevationName(name, scale.levels);
+  const level: ElevationLevel = {
+    id,
+    name: unique,
+    description: "",
+    layers: [
+      {
+        offsetXPx: 0,
+        offsetYPx: 2,
+        blurPx: 4,
+        spreadPx: 0,
+        opacity: { light: 0.1, dark: 0.4 },
+      },
+      {
+        offsetXPx: 0,
+        offsetYPx: 6,
+        blurPx: 18,
+        spreadPx: 0,
+        opacity: { light: 0.1, dark: 0.45 },
+      },
+    ],
+  };
+  return { ...scale, levels: [...scale.levels, level] };
+}
+
+/** Delete a level the author added. A system level stays. */
+export function removeElevationLevel(
+  scale: ElevationScale,
+  levelId: string,
+): ElevationScale {
+  if (isSystemElevationLevel(levelId)) return scale;
+  const levels = scale.levels.filter((level) => level.id !== levelId);
+  return levels.length === scale.levels.length ? scale : { ...scale, levels };
+}
+
+/**
+ * Rename a level and its variable together, and set its description.
+ *
+ * A system level keeps its name and id, and takes only the description. A
+ * custom level's name that another level already has takes a number
+ * instead, so no two levels export one variable. Pass no description to
+ * leave it as it is.
+ */
+export function renameElevationLevel(
+  scale: ElevationScale,
+  levelId: string,
+  name: string,
+  description?: string,
+): ElevationScale {
+  const target = scale.levels.find((level) => level.id === levelId);
+  if (!target) return scale;
+  const nextDescription = description ?? target.description;
+  const trimmed = name.trim();
+  const renamed =
+    isSystemElevationLevel(levelId) || !trimmed || trimmed === target.name
+      ? { id: target.id, name: target.name }
+      : uniqueElevationName(trimmed, scale.levels, levelId);
+  if (
+    renamed.id === target.id &&
+    renamed.name === target.name &&
+    nextDescription === target.description
+  ) {
+    return scale;
+  }
+  return {
+    ...scale,
+    levels: scale.levels.map((level) =>
+      level.id === levelId
+        ? { ...level, ...renamed, description: nextDescription }
+        : level,
+    ),
   };
 }

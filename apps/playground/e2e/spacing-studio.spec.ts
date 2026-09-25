@@ -280,10 +280,72 @@ test.describe("The elevation editor", () => {
     ).toBeVisible();
   });
 
+  test("edits one level at a time, and adds and removes custom ones", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Elevation");
+    const canvas = page.getByRole("region", { name: "Elevation", exact: true });
+    await expect(canvas).toBeVisible();
+
+    /* Low is picked at first, and only its pads are in the inspector. */
+    await expect(
+      page.getByRole("button", { name: "Low light contact and cast" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "High light contact and cast" }),
+    ).toHaveCount(0);
+
+    /* Picking a row moves the inspector to it. */
+    await canvas.locator('[data-elevation-level="med"]').click();
+    await expect(
+      page.getByRole("button", { name: "Medium light contact and cast" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Low light contact and cast" }),
+    ).toHaveCount(0);
+
+    /* The system levels have no delete. */
+    await expect(canvas.getByRole("button", { name: /^Delete / })).toHaveCount(
+      0,
+    );
+
+    /* A new level is added, picked, and exported by its own name. */
+    await canvas.getByRole("button", { name: "Add level" }).click();
+    await expect(canvas.getByText("--shadow-new-level")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "New level light contact and cast" }),
+    ).toBeVisible();
+
+    /* Renamed from the inspector, its variable follows. */
+    const name = page.getByLabel("Level name");
+    await name.fill("Float");
+    await name.press("Enter");
+    await expect(canvas.getByText("--shadow-float")).toBeVisible();
+    await expect
+      .poll(async () =>
+        (await readStoredWorkspace(page))?.elevation?.levels.map(
+          (level: { id: string }) => level.id,
+        ),
+      )
+      .toEqual(["low", "med", "high", "float"]);
+
+    /* And removed from its row. */
+    await canvas.getByRole("button", { name: "Delete Float" }).click();
+    await expect(canvas.getByText("--shadow-float")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Low light contact and cast" }),
+    ).toBeVisible();
+  });
+
   test("edits the cast without moving the contact", async ({
     seededPage: page,
   }) => {
     await showScaleView(page, "Elevation");
+    /* The inspector shows the picked level only; Low is picked at first. */
+    await page
+      .getByRole("region", { name: "Elevation" })
+      .getByRole("button", { name: "High", exact: true })
+      .click();
     const slider = page.getByRole("button", {
       name: "High dark contact and cast",
     });
@@ -556,13 +618,13 @@ test.describe("Layout uses", () => {
       .click();
 
     const uses = page.getByRole("region", { name: "Spacing uses" });
-    await expect(uses.getByLabel("inset-container name")).toHaveValue(
-      "Container inset",
-    );
-    await expect(uses.getByLabel("gap-section name")).toHaveValue(
-      "Section gap",
-    );
-    await expect(uses.getByLabel("radius-surface name")).toHaveCount(0);
+    await expect(
+      uses.locator('[data-token="inset-container"] [data-system-use]'),
+    ).toHaveText("Container inset");
+    await expect(
+      uses.locator('[data-token="gap-section"] [data-system-use]'),
+    ).toHaveText("Section gap");
+    await expect(uses.locator('[data-token="radius-surface"]')).toHaveCount(0);
     await expect(
       page.getByRole("region", { name: "Generated spacing steps" }),
     ).toHaveCount(0);
@@ -584,10 +646,115 @@ test.describe("Layout uses", () => {
     ).toBeVisible();
 
     const uses = page.getByRole("region", { name: "Radius uses" });
-    await expect(uses.getByLabel("radius-surface name")).toHaveValue(
-      "Surface radius",
-    );
-    await expect(uses.getByLabel("inset-container name")).toHaveCount(0);
+    await expect(
+      uses.locator('[data-token="radius-surface"] [data-system-use]'),
+    ).toHaveText("Surface radius");
+    await expect(uses.locator('[data-token="inset-container"]')).toHaveCount(0);
+  });
+
+  test("Radius Uses gives buttons, inputs and chips their own corner", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Radius");
+    /* The Radius page, loaded, before its tabs are clicked. */
+    await expect(
+      page.getByRole("region", { name: "Radius canvas" }),
+    ).toBeVisible();
+    await page
+      .getByRole("navigation", { name: "Scale sections" })
+      .getByRole("button", { name: "Uses" })
+      .click();
+    const uses = page.getByRole("region", { name: "Radius uses" });
+    await expect(
+      uses.locator('[data-token="radius-button"] [data-system-use]'),
+    ).toHaveText("Button radius");
+    await expect(
+      uses.locator('[data-token="radius-input"] [data-system-use]'),
+    ).toHaveText("Input radius");
+    await expect(
+      uses.locator('[data-token="radius-chip"] [data-system-use]'),
+    ).toHaveText("Chip radius");
+
+    /* A pill button on Desktop. The Preview tab shows it beside an input
+       that keeps its corner and a card on Surface radius. */
+    await uses.getByLabel("Button radius on Desktop").click();
+    await page
+      .getByRole("listbox", { name: "Radius tokens" })
+      .getByRole("option", { name: /^Full/ })
+      .click();
+
+    await page
+      .getByRole("navigation", { name: "Scale sections" })
+      .getByRole("button", { name: "Preview" })
+      .click();
+    const card = page.getByRole("article", { name: "Verba AI Preview" });
+    await expect(card).toBeVisible();
+    const radiusOf = (id: string) =>
+      page
+        .locator(`[data-radius-sample="${id}"]`)
+        .first()
+        .evaluate((node) => getComputedStyle(node).borderRadius);
+
+    await expect.poll(() => radiusOf("radius-button")).toBe("9999px");
+    await expect.poll(() => radiusOf("radius-input")).toBe("8px");
+    /* A text button, which Full turns into a pill rather than a circle. */
+    await expect
+      .poll(() =>
+        card
+          .getByRole("button", { name: "Ask", exact: true })
+          .evaluate((node) => getComputedStyle(node).borderRadius),
+      )
+      .toBe("9999px");
+    /* In the project's colours, not the studio's: the card's primary is
+       scoped over the studio's own. */
+    const primaries = await card.evaluate((node) => ({
+      card: getComputedStyle(node)
+        .getPropertyValue("--color-action-primary")
+        .trim(),
+      studio: getComputedStyle(document.documentElement)
+        .getPropertyValue("--color-action-primary")
+        .trim(),
+    }));
+    expect(primaries.card).not.toBe("");
+    expect(primaries.card).not.toBe(primaries.studio);
+    /* And in the project's type, on the text itself: Astryx's theme sets
+       h1-h6 and p by its own font variables, so a card set in the project's
+       font can still show its title and subtitle in the studio's Inter. */
+    const faces = await card.evaluate((node) => {
+      const first = (element: Element, property = "font-family") =>
+        getComputedStyle(element)
+          .getPropertyValue(property)
+          .split(",")[0]!
+          .trim()
+          .replace(/^["']|["']$/g, "");
+      return {
+        main: first(node, "--font-family-main"),
+        title: first(node.querySelector("h2")!),
+        subtitle: first(node.querySelector("p")!),
+        chip: first(node.querySelector('[data-radius-sample="radius-chip"]')!),
+      };
+    });
+    expect(faces.main).not.toBe("");
+    expect(faces).toEqual({
+      main: faces.main,
+      title: faces.main,
+      subtitle: faces.main,
+      chip: faces.main,
+    });
+    await expect.poll(() => radiusOf("radius-chip")).toBe("4px");
+    /* Surface is page on Desktop and container on Phone. */
+    await expect.poll(() => radiusOf("radius-surface")).toBe("28px");
+
+    await page
+      .getByRole("navigation", { name: "Preview devices" })
+      .getByRole("button", { name: "Phone" })
+      .click();
+    await expect.poll(() => radiusOf("radius-surface")).toBe("12px");
+    await expect.poll(() => radiusOf("radius-button")).toBe("8px");
+
+    /* A chip fills the field. */
+    await page.getByRole("button", { name: "Translate" }).click();
+    await expect(page.getByLabel("Ask something")).toHaveValue("Translate");
   });
 
   test("adds a use, renames it, and keeps it across a reload", async ({
@@ -617,25 +784,70 @@ test.describe("Layout uses", () => {
     );
   });
 
-  test("duplicates and deletes a spacing use", async ({ seededPage: page }) => {
+  test("duplicates and deletes a custom spacing use", async ({
+    seededPage: page,
+  }) => {
     const uses = await openSpacingUses(page);
-    await uses
-      .getByRole("button", { name: "Actions for Container inset" })
-      .click();
+    await uses.getByRole("button", { name: "Add use" }).click();
+    const field = uses.getByLabel("new-use name");
+    await field.fill("Hero inset");
+    await field.press("Enter");
+
+    await uses.getByRole("button", { name: "Actions for Hero inset" }).click();
     await page.getByRole("menuitem", { name: "Duplicate" }).click();
     await expect(
-      uses.getByText("--inset-container-copy", { exact: true }),
+      uses.getByText("--hero-inset-copy", { exact: true }),
     ).toBeVisible();
 
     await uses
-      .getByRole("button", { name: "Actions for Container inset copy" })
+      .getByRole("button", { name: "Actions for Hero inset copy" })
       .click();
     await page.getByRole("menuitem", { name: "Delete" }).click();
     await expect(
-      uses.getByText("--inset-container-copy", { exact: true }),
+      uses.getByText("--hero-inset-copy", { exact: true }),
     ).toHaveCount(0);
+    await expect(uses.getByText("--hero-inset", { exact: true })).toBeVisible();
+  });
+
+  test("keeps a built-in use's name, and resets it instead of deleting", async ({
+    seededPage: page,
+  }) => {
+    const uses = await openSpacingUses(page);
+    /* A label, not a field. */
+    await expect(uses.getByLabel("gap-section name")).toHaveCount(0);
     await expect(
-      uses.getByText("--inset-container", { exact: true }),
+      uses.locator('[data-token="gap-section"] [data-system-use]'),
+    ).toHaveText("Section gap");
+
+    /* Retarget it, then put it back from its menu, which offers nothing
+       else. */
+    const phone = uses.getByLabel("Section gap on Phone");
+    await phone.click();
+    await page
+      .getByRole("listbox", { name: "Spacing steps" })
+      .getByRole("option")
+      .first()
+      .click();
+    await uses.getByRole("button", { name: "Actions for Section gap" }).click();
+    await expect(page.getByRole("menuitem")).toHaveText(["Reset to default"]);
+    await page.getByRole("menuitem", { name: "Reset to default" }).click();
+
+    await expect
+      .poll(async () => {
+        const stored = await readStoredWorkspace(page);
+        return stored?.layout.find(
+          (token: { id: string }) => token.id === "gap-section",
+        )?.byDevice.phone;
+      })
+      .toBe("16");
+
+    /* A new use cannot take its name, in any case or order. */
+    await uses.getByRole("button", { name: "Add use" }).click();
+    const field = uses.getByLabel("new-use name");
+    await field.fill("GAP section");
+    await field.press("Enter");
+    await expect(
+      uses.getByText("--gap-section-2", { exact: true }),
     ).toBeVisible();
   });
 

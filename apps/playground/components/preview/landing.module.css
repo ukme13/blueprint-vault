@@ -187,10 +187,16 @@
   grid-template-columns: 1fr 1fr 1fr 1fr;
 }
 
+/* A card is a surface: raised, bordered, on Surface radius, so the radius
+   studio's card corner shows on the features as well as the plans. */
 .card {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-surface);
+  padding: var(--spacing-6);
+  background: var(--color-surface-raised);
 }
 
 .card p {
@@ -301,6 +307,24 @@
   color: var(--color-fg-secondary);
 }
 
+.planHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+}
+
+/* A chip on Chip radius. A tint of the text colour rather than a token, so
+   it reads on the dark featured plan and on a light one alike. */
+.planTag {
+  flex-shrink: 0;
+  margin: 0;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-chip, var(--radius-inner));
+  background: color-mix(in oklch, currentColor 14%, transparent);
+  white-space: nowrap;
+}
+
 .priceRow {
   display: flex;
   flex-wrap: wrap;
@@ -319,6 +343,46 @@
 
 .cta {
   text-align: center;
+}
+
+/* Heading on the left, the sign-up on the right; stacked on a phone. */
+.newsletter {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-12);
+  align-items: center;
+}
+
+/* The field on Input radius, with Subscribe inside it on Button radius. */
+.newsletterForm {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-1);
+  padding-inline-start: var(--spacing-4);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-input, var(--radius-element));
+  background: var(--color-surface-base);
+}
+
+.newsletterForm:focus-within {
+  border-color: var(--color-border-strong);
+}
+
+.newsletterInput {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding-block: var(--spacing-2);
+  border: 0;
+  background: transparent;
+  color: var(--color-fg-primary);
+  font: inherit;
+  outline: none;
+}
+
+.newsletterInput::placeholder {
+  color: var(--color-fg-secondary);
 }
 
 .cta .stack {
@@ -453,8 +517,17 @@
 }
 
 .site[data-frame="phone"] .hero,
-.site[data-frame="phone"] .split {
+.site[data-frame="phone"] .split,
+.site[data-frame="phone"] .newsletter {
   grid-template-columns: 1fr;
+}
+
+.site[data-frame="tablet"] .newsletter {
+  gap: var(--spacing-8);
+}
+
+.site[data-frame="phone"] .newsletter {
+  gap: var(--spacing-6);
 }
 
 .site[data-frame="phone"] .splitRev .media {

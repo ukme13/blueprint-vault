@@ -20,14 +20,26 @@ function Plan({
   return (
     <div
       className={`${styles.plan}${featured ? ` ${styles.planFeatured}` : ""}`}
+      data-plan={n}
     >
-      <InspectableSlot
-        as="h4"
-        document={landing}
-        id={`landing-plan-${n}-name`}
-        system={system}
-        onInspect={onInspect}
-      />
+      <div className={styles.planHead}>
+        <InspectableSlot
+          as="h4"
+          document={landing}
+          id={`landing-plan-${n}-name`}
+          system={system}
+          onInspect={onInspect}
+        />
+        {/* Only the featured plan has one; the slot is absent elsewhere. */}
+        <InspectableSlot
+          as="p"
+          className={styles.planTag}
+          document={landing}
+          id={`landing-plan-${n}-tag`}
+          system={system}
+          onInspect={onInspect}
+        />
+      </div>
       <InspectableSlot
         as="p"
         className={styles.small}

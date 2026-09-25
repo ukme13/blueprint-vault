@@ -85,10 +85,10 @@ test.describe("Workspace settings", () => {
       page.getByRole("columnheader", { name: /Desktop 2/ }),
     ).toBeVisible();
     const uses = page.getByRole("region", { name: "Spacing uses" });
-    await expect(uses.getByLabel("inset-container name")).toHaveValue(
-      "Container inset",
-    );
-    await expect(uses.getByLabel("radius-surface name")).toHaveCount(0);
+    await expect(
+      uses.locator('[data-token="inset-container"] [data-system-use]'),
+    ).toHaveText("Container inset");
+    await expect(uses.locator('[data-token="radius-surface"]')).toHaveCount(0);
   });
 
   test("synchronizes root palette tokens so Settings modal buttons use workspace primary color on /preview", async ({

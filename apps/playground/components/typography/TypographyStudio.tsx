@@ -85,6 +85,7 @@ import { FontStackEditor } from "./FontStackEditor";
 import { RoleGroupEditor } from "./RoleGroupEditor";
 import { TypographyPreview } from "./TypographyPreview";
 import { PreviewDeviceBar } from "./PreviewDeviceBar";
+import { RolePresetBar } from "./RolePresetBar";
 import { PreviewDeviceSettings } from "./PreviewDeviceSettings";
 import { SpecimenTextField } from "./SpecimenTextField";
 import {
@@ -596,6 +597,7 @@ export function TypographyStudio() {
         id="inspector-groups"
         role="tabpanel"
       >
+        <RolePresetBar system={system} onApply={updateSystem} />
         {/* Groups are an order somebody arranges, so they are dragged
                 rather than stepped. The keyboard sensor is not a nicety here:
                 it is the whole of the keyboard story now that the up and down

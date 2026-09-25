@@ -114,6 +114,18 @@ export const DEFAULT_ELEVATION_LEVELS: readonly ElevationLevel[] = [
   },
 ];
 
+/**
+ * The levels the system ships and builds against. They can be retuned and
+ * described, never renamed or removed: their variables are what components
+ * and exports promise. Levels an author adds beside them are theirs.
+ */
+export const SYSTEM_ELEVATION_LEVEL_IDS: readonly string[] =
+  DEFAULT_ELEVATION_LEVELS.map((level) => level.id);
+
+export function isSystemElevationLevel(id: string): boolean {
+  return SYSTEM_ELEVATION_LEVEL_IDS.includes(id);
+}
+
 /** The track a shadow is drawn from when a workspace has not chosen one. */
 export const DEFAULT_SHADOW_TRACK_NAME = "neutral";
 

@@ -27,6 +27,40 @@ export interface LayoutToken {
   byDevice: Record<string, string>;
 }
 
+/**
+ * Component radius: the corner of one kind of control, apart from the rest.
+ *
+ * Buttons, inputs and chips all sat on `--radius-element` (chips on
+ * `--radius-inner`), so a pill button meant pill inputs too. Each is a radius
+ * use, pointing at a base radius per frame or a typed px, so it has the same
+ * picker, export and preview wiring as Surface radius, which is the card's.
+ * The defaults are what each used before, so nothing changes until someone
+ * picks otherwise.
+ */
+export const COMPONENT_RADIUS_USES: readonly LayoutToken[] = [
+  {
+    id: "radius-button",
+    name: "Button radius",
+    description: "Buttons, including icon buttons.",
+    kind: "radius",
+    byDevice: { phone: "element", tablet: "element", desktop: "element" },
+  },
+  {
+    id: "radius-input",
+    name: "Input radius",
+    description: "Text fields, selects and search boxes.",
+    kind: "radius",
+    byDevice: { phone: "element", tablet: "element", desktop: "element" },
+  },
+  {
+    id: "radius-chip",
+    name: "Chip radius",
+    description: "Chips, badges and tags.",
+    kind: "radius",
+    byDevice: { phone: "inner", tablet: "inner", desktop: "inner" },
+  },
+];
+
 export const DEFAULT_LAYOUT_TOKENS: readonly LayoutToken[] = [
   {
     id: "inset-container",
@@ -51,6 +85,7 @@ export const DEFAULT_LAYOUT_TOKENS: readonly LayoutToken[] = [
     kind: "radius",
     byDevice: { phone: "container", tablet: "container", desktop: "page" },
   },
+  ...COMPONENT_RADIUS_USES,
 ];
 
 export function layoutVariableName(id: string): string {
@@ -181,9 +216,67 @@ export function normalizeLayoutTokens(
     });
   }
 
-  return parsed.map((token) =>
+  return withSystemUses(parsed).map((token) =>
     fillDevices(migrateUnshrunkSectionGap(token), devices),
   );
+}
+
+/**
+ * The uses the system itself relies on: the preview paints with them and the
+ * export promises them, so they cannot be renamed, duplicated or deleted, only
+ * pointed elsewhere or reset. Everything else in the list is the author's.
+ */
+export const SYSTEM_LAYOUT_TOKEN_IDS: readonly string[] =
+  DEFAULT_LAYOUT_TOKENS.map((token) => token.id);
+
+export function isSystemLayoutToken(id: string): boolean {
+  return SYSTEM_LAYOUT_TOKEN_IDS.includes(id);
+}
+
+/** A system use as it ships, filled to these frames. */
+export function defaultSystemLayoutToken(
+  id: string,
+  devices: readonly PreviewDevice[],
+): LayoutToken | undefined {
+  const seed = DEFAULT_LAYOUT_TOKENS.find((token) => token.id === id);
+  if (!seed) return undefined;
+  return fillDevices({ ...seed, byDevice: { ...seed.byDevice } }, devices);
+}
+
+/**
+ * Put every system use back, as the system names it.
+ *
+ * A workspace can be missing one: saved before component radius existed, or
+ * from before system uses were protected, when one could be deleted or
+ * renamed away (a rename changed its id, so it left too). A missing one is
+ * restored at its default, in its default place among the others; one that
+ * is present keeps its pointers but takes back its own name and description,
+ * which are no longer the author's to change. An empty list heals like any
+ * other: the preview has no corner or inset to paint with otherwise.
+ */
+function withSystemUses(tokens: LayoutToken[]): LayoutToken[] {
+  const next = tokens.map((token) => {
+    const seed = DEFAULT_LAYOUT_TOKENS.find((item) => item.id === token.id);
+    return seed
+      ? {
+          ...token,
+          name: seed.name,
+          description: seed.description,
+          kind: seed.kind,
+        }
+      : token;
+  });
+  let insertAt = 0;
+  for (const seed of DEFAULT_LAYOUT_TOKENS) {
+    const index = next.findIndex((token) => token.id === seed.id);
+    if (index >= 0) {
+      insertAt = index + 1;
+      continue;
+    }
+    next.splice(insertAt, 0, { ...seed, byDevice: { ...seed.byDevice } });
+    insertAt += 1;
+  }
+  return next;
 }
 
 /**

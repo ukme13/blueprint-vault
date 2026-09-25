@@ -802,6 +802,9 @@ describe("preview devices live on the workspace", () => {
       "inset-container",
       "gap-section",
       "radius-surface",
+      "radius-button",
+      "radius-input",
+      "radius-chip",
       "inset-hero",
     ]);
   });

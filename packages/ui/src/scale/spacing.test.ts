@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  toggleSpacingStep,
   DEFAULT_SPACING_BASE_UNIT_PX,
   DEFAULT_SPACING_DENSITY,
   MAX_SPACING_BASE_UNIT_PX,
@@ -206,5 +207,17 @@ describe("normalizeSpacingScale", () => {
         steps: [1],
       } as never).density,
     ).toBe(DEFAULT_SPACING_DENSITY);
+  });
+});
+
+describe("toggleSpacingStep", () => {
+  it("prunes a kept step and keeps a pruned one, in order", () => {
+    const scale = { ...defaultSpacingScale(), steps: [1, 2, 4] };
+    expect(toggleSpacingStep(scale, 2).steps).toEqual([1, 4]);
+    expect(toggleSpacingStep(scale, 3).steps).toEqual([1, 2, 3, 4]);
+    expect(toggleSpacingStep(scale, 3)).toMatchObject({
+      baseUnitPx: scale.baseUnitPx,
+      density: scale.density,
+    });
   });
 });

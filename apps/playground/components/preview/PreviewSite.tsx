@@ -23,6 +23,7 @@ import {
   LandingSplitB,
 } from "./LandingFeatures";
 import { LandingHero } from "./LandingHero";
+import { LandingNewsletter } from "./LandingNewsletter";
 import { LandingPricing } from "./LandingPricing";
 import { LandingQuote } from "./LandingQuote";
 import styles from "./landing.module.css";
@@ -266,6 +267,16 @@ export function PreviewSite({
           onSectionFill={onSectionFill}
         >
           <LandingCta {...landingProps} />
+        </Band>
+        <Band
+          id="landing-newsletter"
+          sections={sections}
+          workspaceId={workspaceId}
+          onInspectSection={onInspectSection}
+          onSectionError={onSectionError}
+          onSectionFill={onSectionFill}
+        >
+          <LandingNewsletter {...landingProps} />
         </Band>
       </main>
 

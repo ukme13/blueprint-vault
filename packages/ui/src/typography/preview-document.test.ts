@@ -500,6 +500,32 @@ describe("preview landing", () => {
     expect(after.map((block) => block.id)).toEqual(PREVIEW_LANDING_IDS);
   });
 
+  it("gives a save from before the newsletter and plan tag their seed copy", () => {
+    const newIds = [
+      "landing-plan-2-tag",
+      "landing-newsletter-eyebrow",
+      "landing-newsletter-title",
+      "landing-newsletter-lead",
+      "landing-newsletter-cta",
+      "landing-newsletter-note",
+    ];
+    const olderSave = seedPreviewLanding(system()).filter(
+      (block) => !newIds.includes(block.id),
+    );
+    const after = readPreviewLanding(olderSave, system());
+    expect(after.map((block) => block.id)).toEqual(PREVIEW_LANDING_IDS);
+    expect(after.find((block) => block.id === "landing-plan-2-tag")?.text).toBe(
+      "Popular",
+    );
+    expect(
+      after.find((block) => block.id === "landing-newsletter-cta")?.text,
+    ).toBe("Subscribe");
+    /* Only the featured plan carries a tag. */
+    expect(PREVIEW_LANDING_IDS.filter((id) => id.endsWith("-tag"))).toEqual([
+      "landing-plan-2-tag",
+    ]);
+  });
+
   it("renames retired Veltra landing copy to Blueprint", () => {
     const after = readPreviewLanding(
       [

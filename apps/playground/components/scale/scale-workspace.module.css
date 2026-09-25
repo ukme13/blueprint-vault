@@ -310,27 +310,13 @@
   list-style: none;
 }
 
-.elevationHead {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 8px;
-}
-
-.elevationHead strong {
-  font-size: 13px;
-}
-
-.elevationHead code,
-.elevationHead span {
-  color: var(--color-fg-muted);
-  font-size: 12px;
-}
-
+/* The light and dark grounds as one tile split down the middle: no gap
+   between them, and the corner only on the tile's outside. */
 .elevationModes {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+  width: max-content;
+  overflow: hidden;
+  border-radius: var(--radius-element);
 }
 
 .elevationSample {
@@ -339,19 +325,20 @@
   gap: 8px;
 }
 
+/* A square ground with a square card on it: square, so the shadow shows the
+   same distance on every side, which a wide card hid. */
 .elevationGround {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 12rem;
-  height: 6rem;
-  border-radius: var(--radius-element);
+  width: 8rem;
+  height: 8rem;
 }
 
 .elevationCard {
-  width: 8rem;
-  height: 3rem;
-  border-radius: var(--radius-element);
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: var(--radius-container);
 }
 
 /* In dark mode a shadow darkens the ground around the card but cannot

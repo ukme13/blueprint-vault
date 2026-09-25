@@ -22,6 +22,7 @@ import {
   removeLayoutToken,
   renameLayoutToken,
   reorderLayoutTokens,
+  resetLayoutToken,
   resolveRadius,
   resolveSpacing,
   setLayoutReference,
@@ -90,7 +91,7 @@ export function LayoutUsesTable({
   const label = kind === "radius" ? "Radius uses" : "Spacing uses";
   const hint =
     kind === "radius"
-      ? "Each use remaps a radius name per preview frame, or a typed px. Surface is container on phone and page on desktop."
+      ? "Each use remaps a radius name per preview frame, or a typed px. Surface is for cards; Button, Input and Chip are for those controls, so a pill button can sit beside a square input."
       : "Each use points at a spacing step per preview frame, or a typed px. Columns come from Settings.";
   const sort = useSemanticTableSort(
     ids,
@@ -190,6 +191,9 @@ export function LayoutUsesTable({
                         onChange(
                           setLayoutReference(tokens, token.id, deviceId, cell),
                         )
+                      }
+                      onReset={() =>
+                        onChange(resetLayoutToken(tokens, token.id, devices))
                       }
                       onRemove={() => {
                         onChange(removeLayoutToken(tokens, token.id));

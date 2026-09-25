@@ -44,8 +44,24 @@ export const TYPE_INDEXING_LABELS: Record<TypeIndexing, string> = {
   size: "Size",
 };
 
-/** Shirt sizes, smallest first, used by `size` indexing. */
-export const SIZE_INDEX = ["xs", "sm", "md", "lg", "xl"] as const;
+/**
+ * Shirt sizes, smallest first, used by `size` indexing.
+ *
+ * Past `xl` the names count up the way Tailwind's do (`2xl`, `3xl`), so a
+ * display group can hold more than five sizes and still be named by size.
+ * It stopped at `xl` before, and a sixth role fell back to a bare `6`.
+ */
+export const SIZE_INDEX = [
+  "xs",
+  "sm",
+  "md",
+  "lg",
+  "xl",
+  "2xl",
+  "3xl",
+  "4xl",
+  "5xl",
+] as const;
 
 /** Heading is always h1–h6, so it never grows past six. */
 export const MAX_HEADING_LEVEL = 6;
