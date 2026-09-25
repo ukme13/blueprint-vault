@@ -34,6 +34,7 @@ import {
 } from "@blueprint/ui";
 import { useSemanticTableSort } from "../palette/use-semantic-row-sort";
 import { LayoutUsesRow } from "./LayoutUsesRow";
+import { RadiusUseSamples } from "./RadiusUseSamples";
 import styles from "./scale-workspace.module.css";
 
 function DropGap({ colSpan }: { colSpan: number }) {
@@ -90,7 +91,7 @@ export function LayoutUsesTable({
   const label = kind === "radius" ? "Radius uses" : "Spacing uses";
   const hint =
     kind === "radius"
-      ? "Each use remaps a radius name per preview frame, or a typed px. Surface is container on phone and page on desktop."
+      ? "Each use remaps a radius name per preview frame, or a typed px. Surface is for cards; Button, Input and Chip are for those controls, so a pill button can sit beside a square input."
       : "Each use points at a spacing step per preview frame, or a typed px. Columns come from Settings.";
   const sort = useSemanticTableSort(
     ids,
@@ -216,6 +217,9 @@ export function LayoutUsesTable({
           ) : null}
         </DragOverlay>
       </DndContext>
+      {kind === "radius" && (
+        <RadiusUseSamples columns={columns} radius={radius} tokens={rows} />
+      )}
     </section>
   );
 }

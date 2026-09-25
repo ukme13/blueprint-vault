@@ -590,6 +590,43 @@ test.describe("Layout uses", () => {
     await expect(uses.getByLabel("inset-container name")).toHaveCount(0);
   });
 
+  test("Radius Uses gives buttons, inputs and chips their own corner", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Radius");
+    await page
+      .getByRole("navigation", { name: "Scale sections" })
+      .getByRole("button", { name: "Uses" })
+      .click();
+    const uses = page.getByRole("region", { name: "Radius uses" });
+    await expect(uses.getByLabel("radius-button name")).toHaveValue(
+      "Button radius",
+    );
+    await expect(uses.getByLabel("radius-input name")).toHaveValue(
+      "Input radius",
+    );
+    await expect(uses.getByLabel("radius-chip name")).toHaveValue(
+      "Chip radius",
+    );
+
+    /* A pill button on Desktop; the input beside it keeps its corner. */
+    const desktop = page.locator('[data-radius-samples="desktop"]');
+    const radiusOf = (id: string) =>
+      desktop
+        .locator(`[data-radius-sample="${id}"]`)
+        .evaluate((node) => getComputedStyle(node).borderRadius);
+    await expect.poll(() => radiusOf("radius-button")).toBe("8px");
+
+    await uses.getByLabel("Button radius on Desktop").click();
+    await page
+      .getByRole("listbox", { name: "Radius tokens" })
+      .getByRole("option", { name: /^Full/ })
+      .click();
+
+    await expect.poll(() => radiusOf("radius-button")).toBe("9999px");
+    await expect.poll(() => radiusOf("radius-input")).toBe("8px");
+  });
+
   test("adds a use, renames it, and keeps it across a reload", async ({
     seededPage: page,
   }) => {

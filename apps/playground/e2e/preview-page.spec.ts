@@ -1170,4 +1170,34 @@ test.describe("The preview follows the radius scale", () => {
     await expect.poll(() => signUpRadius(page)).toBe("10px");
     await expect.poll(() => starterPlanRadius(page)).toBe("35px");
   });
+
+  test("paints buttons from Button radius, apart from the rest", async ({
+    page,
+  }) => {
+    /* Full on the Button radius use makes pill buttons while the plan
+       cards keep Surface radius. The preview frame here is Desktop. */
+    await openPreview(page);
+    await showScaleView(page, "Radius");
+    await page
+      .getByRole("navigation", { name: "Scale sections" })
+      .getByRole("button", { name: "Uses" })
+      .click();
+    await page
+      .getByRole("region", { name: "Radius uses" })
+      .getByLabel("Button radius on Desktop")
+      .click();
+    await page
+      .getByRole("listbox", { name: "Radius tokens" })
+      .getByRole("option", { name: /^Full/ })
+      .click();
+
+    await page
+      .getByRole("navigation", { name: "Blueprint workspaces" })
+      .getByRole("link", { name: "Preview", exact: true })
+      .click();
+    await expect(page.locator("[data-preview-ready]")).toBeVisible();
+
+    await expect.poll(() => signUpRadius(page)).toBe("9999px");
+    await expect.poll(() => starterPlanRadius(page)).toBe("28px");
+  });
 });
