@@ -144,8 +144,19 @@ describe("roleIdsForGroup", () => {
 
   it("caps each group at what its indexing can name", () => {
     expect(groupCapacity(defaultGroups().find((g) => g.id === "h")!)).toBe(6);
-    expect(groupCapacity(free("s", "size"))).toBe(5);
+    expect(groupCapacity(free("s", "size"))).toBe(9);
     expect(canAddRole(system({ roles: [] }), free("s", "size"))).toBe(true);
+  });
+
+  it("names sizes past xl the way Tailwind does, lowercase", () => {
+    expect(roleIdsForGroup(free("display", "size"), 6)).toEqual([
+      "display-2xl",
+      "display-xl",
+      "display-lg",
+      "display-md",
+      "display-sm",
+      "display-xs",
+    ]);
   });
 });
 
@@ -599,7 +610,9 @@ describe("font entries", () => {
 describe("addRole", () => {
   it("refuses a group that is already full", () => {
     const group = free("s", "size");
-    const roles = ["a", "b", "c", "d", "e"].map((id) => role(id, "s"));
+    const roles = ["a", "b", "c", "d", "e", "f", "g", "h", "i"].map((id) =>
+      role(id, "s"),
+    );
     const before = system({ groups: [group], roles });
     expect(addRole(before, group)).toBe(before);
   });
