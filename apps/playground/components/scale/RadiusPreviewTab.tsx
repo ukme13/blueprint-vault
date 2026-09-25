@@ -142,7 +142,7 @@ export function RadiusPreviewTab({
               {SUGGESTIONS.map((suggestion) => (
                 <li key={suggestion}>
                   <button
-                    className="inline-flex cursor-pointer items-center border-0 bg-surface-base px-3.5 py-1.5 text-xs font-medium text-fg-secondary shadow-xs transition-all select-none hover:bg-surface-base/90"
+                    className="inline-flex cursor-pointer items-center border-0 bg-surface-base/40 px-3.5 py-1.5 text-xs font-medium text-fg-secondary shadow-xs backdrop-blur-sm transition-all select-none hover:bg-surface-base/70"
                     data-radius-sample="radius-chip"
                     style={{ borderRadius: componentRadiusCss("radius-chip") }}
                     type="button"
