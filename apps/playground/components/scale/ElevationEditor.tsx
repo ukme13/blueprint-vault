@@ -67,7 +67,7 @@ export function ElevationCanvas({
           return (
             <li
               key={level.id}
-              className={`grid cursor-pointer gap-2 rounded-container p-3 transition-colors ${
+              className={`grid cursor-pointer grid-cols-1 items-start gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-6 rounded-container p-3 transition-colors ${
                 isSelected
                   ? "bg-action-primary/5 ring-2 ring-focus-ring"
                   : "hover:bg-action-primary/5"
@@ -76,34 +76,7 @@ export function ElevationCanvas({
               data-selected={isSelected || undefined}
               onClick={() => onSelectLevel(level.id)}
             >
-              <div className={styles.elevationHead}>
-                <button
-                  aria-pressed={isSelected}
-                  className="cursor-pointer border-0 bg-transparent p-0 text-left font-semibold text-fg-primary"
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onSelectLevel(level.id);
-                  }}
-                >
-                  {level.name}
-                </button>
-                <code>{elevationVariableName(level.id)}</code>
-                <span>{level.description}</span>
-                {isSystemElevationLevel(level.id) ? null : (
-                  <button
-                    aria-label={`Delete ${level.name}`}
-                    className="ml-auto inline-flex cursor-pointer items-center rounded-inner border-0 bg-transparent p-1 text-fg-muted hover:bg-surface-raised hover:text-fg-primary"
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      onChange(removeElevationLevel(scale, level.id));
-                    }}
-                  >
-                    <Trash2 aria-hidden className="size-4" />
-                  </button>
-                )}
-              </div>
+              {/* Left: the shadow on a light and a dark ground. */}
               <div className={styles.elevationModes}>
                 {COLOUR_MODES.map((mode) => {
                   const resolved = resolveElevation(scale, palettes, mode).find(
@@ -128,6 +101,44 @@ export function ElevationCanvas({
                     </div>
                   );
                 })}
+              </div>
+              {/* Right: who the level is. Above the samples on a phone, where
+                  the two squares take the width. */}
+              <div className="flex min-w-0 items-start justify-between gap-2 max-sm:order-first">
+                <div className="grid min-w-0 gap-1">
+                  <button
+                    aria-pressed={isSelected}
+                    className="cursor-pointer border-0 bg-transparent p-0 text-left text-sm font-semibold text-fg-primary"
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onSelectLevel(level.id);
+                    }}
+                  >
+                    {level.name}
+                  </button>
+                  <code className="font-mono text-xs text-fg-muted">
+                    {elevationVariableName(level.id)}
+                  </code>
+                  {level.description ? (
+                    <p className="m-0 text-xs text-fg-secondary">
+                      {level.description}
+                    </p>
+                  ) : null}
+                </div>
+                {isSystemElevationLevel(level.id) ? null : (
+                  <button
+                    aria-label={`Delete ${level.name}`}
+                    className="inline-flex shrink-0 cursor-pointer items-center rounded-inner border-0 bg-transparent p-1 text-fg-muted hover:bg-surface-raised hover:text-fg-primary"
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onChange(removeElevationLevel(scale, level.id));
+                    }}
+                  >
+                    <Trash2 aria-hidden className="size-4" />
+                  </button>
+                )}
               </div>
             </li>
           );
