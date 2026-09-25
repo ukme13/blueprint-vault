@@ -107,6 +107,19 @@ export function defaultSpacingScale(): SpacingScale {
   };
 }
 
+/** Keep or prune one step, the kept steps staying in ascending order. */
+export function toggleSpacingStep(
+  scale: SpacingScale,
+  step: number,
+): SpacingScale {
+  return {
+    ...scale,
+    steps: scale.steps.includes(step)
+      ? scale.steps.filter((each) => each !== step)
+      : [...scale.steps, step].sort((a, b) => a - b),
+  };
+}
+
 /** Whether density moves this step, or it stays on the grid. */
 export function spacingStepFollowsDensity(step: number): boolean {
   return step >= SPACING_DENSITY_FROM_STEP;

@@ -7,6 +7,7 @@ import {
   type ElevationLevel,
   type ElevationScale,
 } from "./elevation";
+import { uniqueTokenName } from "./token-names";
 
 /**
  * Edits to the elevation scale.
@@ -192,18 +193,9 @@ export function elevationPreviewSurfaces(
   };
 }
 
-function elevationIdFromName(name: string): string {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
 /**
- * A name and id no other level has, nor any system level: the one asked
- * for, or it with the lowest free number ("New level 2", `new-level-2`).
- * Names compare without case, so "low" cannot sit beside Low.
+ * A name and id no other level has, nor any system level, so no two levels
+ * export one variable and "low" cannot sit beside Low.
  */
 function uniqueElevationName(
   wanted: string,
@@ -211,22 +203,14 @@ function uniqueElevationName(
   exceptId?: string,
 ): { id: string; name: string } {
   const others = levels.filter((level) => level.id !== exceptId);
-  const ids = new Set([
-    ...others.map((level) => level.id),
-    ...SYSTEM_ELEVATION_LEVEL_IDS,
-  ]);
-  const names = new Set(others.map((level) => level.name.toLowerCase()));
-  const fits = (name: string) => {
-    const id = elevationIdFromName(name) || "level";
-    return !ids.has(id) && !names.has(name.toLowerCase());
-  };
-  if (fits(wanted)) {
-    return { id: elevationIdFromName(wanted) || "level", name: wanted };
-  }
-  let suffix = 2;
-  while (!fits(`${wanted} ${suffix}`)) suffix += 1;
-  const name = `${wanted} ${suffix}`;
-  return { id: elevationIdFromName(name), name };
+  return uniqueTokenName(
+    wanted,
+    {
+      ids: [...others.map((level) => level.id), ...SYSTEM_ELEVATION_LEVEL_IDS],
+      names: others.map((level) => level.name),
+    },
+    "level",
+  );
 }
 
 /**

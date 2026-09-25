@@ -15,6 +15,7 @@ import {
   type LayoutToken,
   type LayoutTokenKind,
 } from "./layout-tokens";
+import { uniqueTokenName } from "./token-names";
 
 /**
  * Author operations on the layout uses list.
@@ -67,81 +68,27 @@ export function layoutCellFromHybrid(next: HybridTokenizedValue): string {
   return formatLayoutRawPx(next.value);
 }
 
-function layoutIdFromName(name: string): string {
-  return name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-}
-
 /**
- * What a use is called, whatever order or case it was typed in.
- *
- * "Input radius", "radius input", "RADIUS-INPUT" and the id `radius-input`
- * are one name to a reader, so they are one key here: the words, lowercased
- * and sorted. Two uses with one key read as a duplicate in the table even
- * when their variables differ (`--input-radius` beside `--radius-input`).
- */
-export function layoutNameKey(nameOrId: string): string {
-  return nameOrId
-    .toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter(Boolean)
-    .sort()
-    .join(" ");
-}
-
-/**
- * The names a new or renamed use may not take: every other use's name and
- * id, and every system use's, whether or not it is in this list. A system
- * use missing from the list is restored on the next load, so a custom one
- * holding its name now would collide then.
- */
-function takenLayoutKeys(
-  tokens: readonly LayoutToken[],
-  exceptId?: string,
-): Set<string> {
-  const keys = new Set<string>();
-  for (const token of [...tokens, ...DEFAULT_LAYOUT_TOKENS]) {
-    if (token.id === exceptId) continue;
-    keys.add(layoutNameKey(token.id));
-    keys.add(layoutNameKey(token.name));
-  }
-  return keys;
-}
-
-/**
- * A name and id nothing else has: the one asked for, or it with the lowest
- * free number after it ("Input radius 2", `input-radius-2`). A clash is never
- * refused outright, because a refused rename just looks like a field that
- * did not save; the number shows it was taken.
+ * A name and id no other use has, nor any system use, whether or not it is
+ * in this list: a system use missing from the list is restored on the next
+ * load, so a custom one holding its name now would collide then.
  */
 function uniqueLayoutName(
   wanted: string,
   tokens: readonly LayoutToken[],
   exceptId?: string,
 ): { id: string; name: string } {
-  const keys = takenLayoutKeys(tokens, exceptId);
-  const ids = new Set(
-    [...tokens, ...DEFAULT_LAYOUT_TOKENS]
-      .filter((token) => token.id !== exceptId)
-      .map((token) => token.id),
+  const others = [...tokens, ...DEFAULT_LAYOUT_TOKENS].filter(
+    (token) => token.id !== exceptId,
   );
-  const fits = (name: string) => {
-    const id = layoutIdFromName(name) || "use";
-    return (
-      !ids.has(id) &&
-      !keys.has(layoutNameKey(name)) &&
-      !keys.has(layoutNameKey(id))
-    );
-  };
-  if (fits(wanted))
-    return { id: layoutIdFromName(wanted) || "use", name: wanted };
-  let suffix = 2;
-  while (!fits(`${wanted} ${suffix}`)) suffix += 1;
-  const name = `${wanted} ${suffix}`;
-  return { id: layoutIdFromName(name), name };
+  return uniqueTokenName(
+    wanted,
+    {
+      ids: others.map((token) => token.id),
+      names: others.map((token) => token.name),
+    },
+    "use",
+  );
 }
 
 /**

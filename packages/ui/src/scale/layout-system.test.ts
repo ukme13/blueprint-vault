@@ -3,12 +3,12 @@ import { defaultPreviewDevices } from "../typography/preview-devices";
 import {
   addLayoutToken,
   duplicateLayoutToken,
-  layoutNameKey,
   removeLayoutToken,
   renameLayoutToken,
   resetLayoutToken,
   setLayoutReference,
 } from "./layout-edit";
+import { tokenNameKey } from "./token-names";
 import {
   defaultLayoutTokens,
   isSystemLayoutToken,
@@ -85,11 +85,11 @@ describe("system layout uses", () => {
 
 describe("layout use names", () => {
   it("are one name whatever the case, order or separator", () => {
-    const key = layoutNameKey("Input radius");
-    expect(layoutNameKey("radius input")).toBe(key);
-    expect(layoutNameKey("  RADIUS-INPUT ")).toBe(key);
-    expect(layoutNameKey("radius-input")).toBe(key);
-    expect(layoutNameKey("Input radius 2")).not.toBe(key);
+    const key = tokenNameKey("Input radius");
+    expect(tokenNameKey("radius input")).toBe(key);
+    expect(tokenNameKey("  RADIUS-INPUT ")).toBe(key);
+    expect(tokenNameKey("radius-input")).toBe(key);
+    expect(tokenNameKey("Input radius 2")).not.toBe(key);
   });
 
   it("never let a new use take a system use's name", () => {
@@ -109,7 +109,7 @@ describe("layout use names", () => {
       ).at(-1)!;
       expect(added.name).toBe(`${label} 2`);
       expect(SYSTEM).not.toContain(added.id);
-      expect(SYSTEM.map(layoutNameKey).includes(layoutNameKey(added.id))).toBe(
+      expect(SYSTEM.map(tokenNameKey).includes(tokenNameKey(added.id))).toBe(
         false,
       );
     }
