@@ -62,7 +62,7 @@ function CommitField({
       <TextArea
         label={label}
         rows={5}
-        size="sm"
+        size="md"
         value={draft}
         width="100%"
         onBlur={commit}
@@ -73,7 +73,7 @@ function CommitField({
   return (
     <TextInput
       label={label}
-      size="sm"
+      size="md"
       value={draft}
       width="100%"
       onBlur={commit}

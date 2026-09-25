@@ -66,7 +66,7 @@ export function ElevationInspector({
               <TransparencySwatch alpha={1} colour={hex} />
             ))}
             searchPlaceholder="Search shades"
-            size="sm"
+            size="md"
             startIcon={<TransparencySwatch alpha={1} colour={colour.hex} />}
             value={shadeOptionValue({
               trackId: track.id,
