@@ -412,6 +412,9 @@
   --inset-container: var(--spacing-4);
   --gap-section: var(--spacing-16);
   --radius-surface: var(--radius-container);
+  --radius-button: var(--radius-element);
+  --radius-input: var(--radius-element);
+  --radius-chip: var(--radius-inner);
 }
 
 @media (min-width: 768px) {
@@ -419,6 +422,9 @@
     --inset-container: var(--spacing-6);
     --gap-section: var(--spacing-16);
     --radius-surface: var(--radius-container);
+    --radius-button: var(--radius-element);
+    --radius-input: var(--radius-element);
+    --radius-chip: var(--radius-inner);
   }
 }
 
@@ -427,5 +433,8 @@
     --inset-container: var(--spacing-10);
     --gap-section: var(--spacing-16);
     --radius-surface: var(--radius-page);
+    --radius-button: var(--radius-element);
+    --radius-input: var(--radius-element);
+    --radius-chip: var(--radius-inner);
   }
 }

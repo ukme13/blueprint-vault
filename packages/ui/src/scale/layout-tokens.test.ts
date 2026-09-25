@@ -27,12 +27,15 @@ const extra = {
 };
 
 describe("layout tokens", () => {
-  it("seeds three uses against the required frames", () => {
+  it("seeds six uses against the required frames", () => {
     const tokens = defaultLayoutTokens();
     expect(tokens.map((token) => token.id)).toEqual([
       "inset-container",
       "gap-section",
       "radius-surface",
+      "radius-button",
+      "radius-input",
+      "radius-chip",
     ]);
     expect(tokens[0]?.byDevice).toEqual({
       phone: "4",
@@ -47,7 +50,14 @@ describe("layout tokens", () => {
       normalizeLayoutTokens(undefined, defaultPreviewDevices()).map(
         (token) => token.id,
       ),
-    ).toEqual(["inset-container", "gap-section", "radius-surface"]);
+    ).toEqual([
+      "inset-container",
+      "gap-section",
+      "radius-surface",
+      "radius-button",
+      "radius-input",
+      "radius-chip",
+    ]);
     expect(normalizeLayoutTokens([], defaultPreviewDevices())).toEqual([]);
   });
 
@@ -77,6 +87,9 @@ describe("layout tokens", () => {
       "inset-container",
       "gap-section",
       "radius-surface",
+      "radius-button",
+      "radius-input",
+      "radius-chip",
       "inset-hero",
       "gap-grid",
     ]);
@@ -202,10 +215,13 @@ describe("layout tokens", () => {
       "inset-container",
       "gap-section",
       "radius-surface",
+      "radius-button",
+      "radius-input",
+      "radius-chip",
       "hero-inset",
     ]);
-    expect(next[3]?.kind).toBe("spacing");
-    expect(next[3]?.byDevice).toEqual(next[1]?.byDevice);
+    expect(next.at(-1)?.kind).toBe("spacing");
+    expect(next.at(-1)?.byDevice).toEqual(next[1]?.byDevice);
   });
 
   it("renames the use and the variable together", () => {
@@ -226,6 +242,9 @@ describe("layout tokens", () => {
       "inset-container-copy",
       "gap-section",
       "radius-surface",
+      "radius-button",
+      "radius-input",
+      "radius-chip",
     ]);
     expect(next[1]?.name).toBe("Container inset copy");
     expect(next[1]?.byDevice).toEqual(next[0]?.byDevice);
@@ -236,6 +255,9 @@ describe("layout tokens", () => {
     expect(next.map((token) => token.id)).toEqual([
       "inset-container",
       "radius-surface",
+      "radius-button",
+      "radius-input",
+      "radius-chip",
     ]);
   });
 
@@ -249,6 +271,9 @@ describe("layout tokens", () => {
       "gap-section",
       "inset-container",
       "radius-surface",
+      "radius-button",
+      "radius-input",
+      "radius-chip",
     ]);
     expect(
       reorderLayoutTokens(
@@ -256,7 +281,14 @@ describe("layout tokens", () => {
         "gap-section",
         "radius-surface",
       ).map((token) => token.id),
-    ).toEqual(["inset-container", "gap-section", "radius-surface"]);
+    ).toEqual([
+      "inset-container",
+      "gap-section",
+      "radius-surface",
+      "radius-button",
+      "radius-input",
+      "radius-chip",
+    ]);
   });
 
   it("writes a typed px and exports it as a length, not an alias", () => {

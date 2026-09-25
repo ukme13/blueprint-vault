@@ -27,6 +27,40 @@ export interface LayoutToken {
   byDevice: Record<string, string>;
 }
 
+/**
+ * Component radius: the corner of one kind of control, apart from the rest.
+ *
+ * Buttons, inputs and chips all sat on `--radius-element` (chips on
+ * `--radius-inner`), so a pill button meant pill inputs too. Each is a radius
+ * use, pointing at a base radius per frame or a typed px, so it has the same
+ * picker, export and preview wiring as Surface radius, which is the card's.
+ * The defaults are what each used before, so nothing changes until someone
+ * picks otherwise.
+ */
+export const COMPONENT_RADIUS_USES: readonly LayoutToken[] = [
+  {
+    id: "radius-button",
+    name: "Button radius",
+    description: "Buttons, including icon buttons.",
+    kind: "radius",
+    byDevice: { phone: "element", tablet: "element", desktop: "element" },
+  },
+  {
+    id: "radius-input",
+    name: "Input radius",
+    description: "Text fields, selects and search boxes.",
+    kind: "radius",
+    byDevice: { phone: "element", tablet: "element", desktop: "element" },
+  },
+  {
+    id: "radius-chip",
+    name: "Chip radius",
+    description: "Chips, badges and tags.",
+    kind: "radius",
+    byDevice: { phone: "inner", tablet: "inner", desktop: "inner" },
+  },
+];
+
 export const DEFAULT_LAYOUT_TOKENS: readonly LayoutToken[] = [
   {
     id: "inset-container",
@@ -51,6 +85,7 @@ export const DEFAULT_LAYOUT_TOKENS: readonly LayoutToken[] = [
     kind: "radius",
     byDevice: { phone: "container", tablet: "container", desktop: "page" },
   },
+  ...COMPONENT_RADIUS_USES,
 ];
 
 export function layoutVariableName(id: string): string {
@@ -181,9 +216,32 @@ export function normalizeLayoutTokens(
     });
   }
 
-  return parsed.map((token) =>
+  return withComponentRadiusUses(parsed).map((token) =>
     fillDevices(migrateUnshrunkSectionGap(token), devices),
   );
+}
+
+/**
+ * Workspaces saved before component radius existed.
+ *
+ * Their uses are a stored list, so new defaults never reach them on their
+ * own. If none of the three is there, the list predates them and they are
+ * added at their defaults, which match what those controls already used, so
+ * nothing on screen moves. If any one is there, the list is someone's
+ * choice, and a use they removed stays removed. An empty list is someone's
+ * choice too: every use deleted, and it stays that way.
+ */
+function withComponentRadiusUses(tokens: LayoutToken[]): LayoutToken[] {
+  if (tokens.length === 0) return tokens;
+  const ids = new Set(tokens.map((token) => token.id));
+  if (COMPONENT_RADIUS_USES.some((use) => ids.has(use.id))) return tokens;
+  return [
+    ...tokens,
+    ...COMPONENT_RADIUS_USES.map((use) => ({
+      ...use,
+      byDevice: { ...use.byDevice },
+    })),
+  ];
 }
 
 /**

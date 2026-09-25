@@ -539,6 +539,9 @@ describe("a version 5 file still opens, and a version 6 file carries alpha", () 
       "inset-container",
       "gap-section",
       "radius-surface",
+      "radius-button",
+      "radius-input",
+      "radius-chip",
       "inset-hero",
     ]);
     expect(after.layout.at(-1)?.byDevice.desktop).toBe("16");
