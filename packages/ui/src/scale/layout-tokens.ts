@@ -216,32 +216,67 @@ export function normalizeLayoutTokens(
     });
   }
 
-  return withComponentRadiusUses(parsed).map((token) =>
+  return withSystemUses(parsed).map((token) =>
     fillDevices(migrateUnshrunkSectionGap(token), devices),
   );
 }
 
 /**
- * Workspaces saved before component radius existed.
- *
- * Their uses are a stored list, so new defaults never reach them on their
- * own. If none of the three is there, the list predates them and they are
- * added at their defaults, which match what those controls already used, so
- * nothing on screen moves. If any one is there, the list is someone's
- * choice, and a use they removed stays removed. An empty list is someone's
- * choice too: every use deleted, and it stays that way.
+ * The uses the system itself relies on: the preview paints with them and the
+ * export promises them, so they cannot be renamed, duplicated or deleted, only
+ * pointed elsewhere or reset. Everything else in the list is the author's.
  */
-function withComponentRadiusUses(tokens: LayoutToken[]): LayoutToken[] {
-  if (tokens.length === 0) return tokens;
-  const ids = new Set(tokens.map((token) => token.id));
-  if (COMPONENT_RADIUS_USES.some((use) => ids.has(use.id))) return tokens;
-  return [
-    ...tokens,
-    ...COMPONENT_RADIUS_USES.map((use) => ({
-      ...use,
-      byDevice: { ...use.byDevice },
-    })),
-  ];
+export const SYSTEM_LAYOUT_TOKEN_IDS: readonly string[] =
+  DEFAULT_LAYOUT_TOKENS.map((token) => token.id);
+
+export function isSystemLayoutToken(id: string): boolean {
+  return SYSTEM_LAYOUT_TOKEN_IDS.includes(id);
+}
+
+/** A system use as it ships, filled to these frames. */
+export function defaultSystemLayoutToken(
+  id: string,
+  devices: readonly PreviewDevice[],
+): LayoutToken | undefined {
+  const seed = DEFAULT_LAYOUT_TOKENS.find((token) => token.id === id);
+  if (!seed) return undefined;
+  return fillDevices({ ...seed, byDevice: { ...seed.byDevice } }, devices);
+}
+
+/**
+ * Put every system use back, as the system names it.
+ *
+ * A workspace can be missing one: saved before component radius existed, or
+ * from before system uses were protected, when one could be deleted or
+ * renamed away (a rename changed its id, so it left too). A missing one is
+ * restored at its default, in its default place among the others; one that
+ * is present keeps its pointers but takes back its own name and description,
+ * which are no longer the author's to change. An empty list heals like any
+ * other: the preview has no corner or inset to paint with otherwise.
+ */
+function withSystemUses(tokens: LayoutToken[]): LayoutToken[] {
+  const next = tokens.map((token) => {
+    const seed = DEFAULT_LAYOUT_TOKENS.find((item) => item.id === token.id);
+    return seed
+      ? {
+          ...token,
+          name: seed.name,
+          description: seed.description,
+          kind: seed.kind,
+        }
+      : token;
+  });
+  let insertAt = 0;
+  for (const seed of DEFAULT_LAYOUT_TOKENS) {
+    const index = next.findIndex((token) => token.id === seed.id);
+    if (index >= 0) {
+      insertAt = index + 1;
+      continue;
+    }
+    next.splice(insertAt, 0, { ...seed, byDevice: { ...seed.byDevice } });
+    insertAt += 1;
+  }
+  return next;
 }
 
 /**

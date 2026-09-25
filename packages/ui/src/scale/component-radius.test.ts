@@ -54,19 +54,19 @@ describe("component radius uses", () => {
     ]);
   });
 
-  it("stay removed once someone has removed one", () => {
+  it("come back in place when one was removed before they were protected", () => {
     const withoutChip = defaultLayoutTokens().filter(
       (token) => token.id !== "radius-chip",
     );
     const ids = normalizeLayoutTokens(withoutChip, devices).map(
       (token) => token.id,
     );
-    expect(ids).not.toContain("radius-chip");
-    expect(ids).toContain("radius-button");
-  });
-
-  it("do not refill a list that was emptied on purpose", () => {
-    expect(normalizeLayoutTokens([], devices)).toEqual([]);
+    expect(ids).toEqual([
+      "inset-container",
+      "gap-section",
+      "radius-surface",
+      ...COMPONENT_IDS,
+    ]);
   });
 
   it("keep a choice through a round trip", () => {
