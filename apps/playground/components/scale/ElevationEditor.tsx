@@ -70,7 +70,7 @@ export function ElevationCanvas({
               className={`grid cursor-pointer gap-2 rounded-container p-3 transition-colors ${
                 isSelected
                   ? "bg-action-primary/5 ring-2 ring-focus-ring"
-                  : "hover:bg-surface-subtle"
+                  : "hover:bg-action-primary/5"
               }`}
               data-elevation-level={level.id}
               data-selected={isSelected || undefined}
