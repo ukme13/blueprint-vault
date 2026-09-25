@@ -1,0 +1,96 @@
+"use client";
+
+import { useState } from "react";
+import {
+  applyTypeRolePreset,
+  detectTypeRolePreset,
+  TYPE_ROLE_PRESETS,
+  type TypeRolePresetId,
+  type TypeSystem,
+} from "@blueprint/ui";
+import { ConfirmDialog } from "../ConfirmDialog";
+
+/**
+ * Starting sets of groups and roles, as chips above the Groups tab.
+ *
+ * The chip that matches the system exactly is marked; once any group or
+ * role is changed none does, and a Custom chip says so. Picking a preset
+ * replaces every group and role but keeps the fonts and the scale. From a
+ * preset that is instant, since nothing of the author's is lost. From
+ * Custom it asks first: this studio has no undo, and the changes would be
+ * gone.
+ */
+export function RolePresetBar({
+  system,
+  onApply,
+}: {
+  system: TypeSystem;
+  onApply: (next: Pick<TypeSystem, "groups" | "roles">) => void;
+}) {
+  const active = detectTypeRolePreset(system);
+  const [pending, setPending] = useState<TypeRolePresetId | null>(null);
+
+  const apply = (id: TypeRolePresetId) => {
+    const next = applyTypeRolePreset(system, id);
+    onApply({ groups: next.groups, roles: next.roles });
+  };
+
+  const pendingLabel = TYPE_ROLE_PRESETS.find(
+    (preset) => preset.id === pending,
+  )?.label;
+
+  return (
+    <>
+      <div
+        aria-label="Role presets"
+        className="mb-4 flex items-center gap-1.5 overflow-x-auto border-b border-border-subtle pb-3"
+        /* A toolbar, not a group: the group cards below are the Groups tab's
+           groups, and a spec lists them by that role. */
+        role="toolbar"
+      >
+        {TYPE_ROLE_PRESETS.map((preset) => {
+          const isSelected = active === preset.id;
+          return (
+            <button
+              key={preset.id}
+              aria-pressed={isSelected}
+              className={`inline-flex shrink-0 cursor-pointer items-center rounded-full border px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors select-none ${
+                isSelected
+                  ? "border-border-default bg-surface-raised text-fg-primary shadow-xs"
+                  : "border-transparent text-fg-secondary hover:bg-surface-subtle hover:text-fg-primary"
+              }`}
+              title={preset.description}
+              type="button"
+              onClick={() => {
+                if (isSelected) return;
+                if (active === "custom") setPending(preset.id);
+                else apply(preset.id);
+              }}
+            >
+              {preset.label}
+            </button>
+          );
+        })}
+        {active === "custom" ? (
+          <span
+            className="inline-flex shrink-0 items-center rounded-full border border-border-subtle bg-surface-subtle px-3 py-1 text-xs font-medium text-fg-muted select-none"
+            data-role-preset="custom"
+          >
+            Custom
+          </span>
+        ) : null}
+      </div>
+      <ConfirmDialog
+        actionLabel={`Use ${pendingLabel ?? "preset"}`}
+        description="Your groups and roles are replaced, and your changes to them are lost. Fonts and the scale stay."
+        isOpen={pending !== null}
+        title={`Replace your roles with ${pendingLabel ?? "this preset"}?`}
+        onAction={() => {
+          if (pending) apply(pending);
+          setPending(null);
+        }}
+        onCancel={() => setPending(null)}
+      />
+    </>
+  );
+}

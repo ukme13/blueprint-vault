@@ -1318,6 +1318,57 @@ test.describe("Fallbacks", () => {
   });
 });
 
+test.describe("Role presets", () => {
+  test("switches the groups and roles, and marks a change as custom", async ({
+    seededPage: page,
+  }) => {
+    await showInspectorPanel(page, "Groups");
+    const presets = page.getByRole("toolbar", { name: "Role presets" });
+    const chip = (name: string) => presets.getByRole("button", { name });
+    const groups = async () =>
+      (
+        (await readStoredWorkspace(page)).typography.system.groups as {
+          id: string;
+        }[]
+      ).map((group) => group.id);
+
+    /* The seed is an older project, so it may start as Minimal or as
+       Custom; from Custom, a preset asks first. */
+    await chip("App UI").click();
+    const confirm = page.getByRole("button", { name: "Use App UI" });
+    if (await confirm.isVisible().catch(() => false)) await confirm.click();
+
+    await expect(chip("App UI")).toHaveAttribute("aria-pressed", "true");
+    await expect
+      .poll(groups)
+      .toEqual([
+        "display",
+        "h",
+        "body",
+        "button",
+        "chip",
+        "label",
+        "caption",
+        "code",
+      ]);
+
+    /* From a preset, the next one is instant: nothing of the author's is
+       lost. */
+    await chip("Editorial").click();
+    await expect(chip("Editorial")).toHaveAttribute("aria-pressed", "true");
+    await expect.poll(groups).toContain("overline");
+
+    await chip("Minimal").click();
+    await expect(chip("Minimal")).toHaveAttribute("aria-pressed", "true");
+    await expect(presets.getByText("Custom")).toHaveCount(0);
+
+    /* A change to any group makes it custom, and no chip is marked. */
+    await page.getByRole("button", { name: "Add a role to Body" }).click();
+    await expect(presets.getByText("Custom")).toBeVisible();
+    await expect(chip("Minimal")).toHaveAttribute("aria-pressed", "false");
+  });
+});
+
 test.describe("Reordering groups", () => {
   test.beforeEach(async ({ seededPage: page }) => {
     await showInspectorPanel(page, "Groups");
