@@ -333,18 +333,14 @@
 }
 
 .roleSettingLabel {
-  display: inline-block;
   color: var(--color-fg-secondary);
   /* --font-size-base is 0.875rem, 14px at a 16px root. */
   font-size: var(--font-size-base);
 }
 
-/* The first letter only. `capitalize` takes a hyphen as a word break, which
-   turned display-xl into Display-Xl; a size is lowercase. */
-.roleSettingLabel::first-letter,
-.previewRole h3::first-letter {
-  text-transform: uppercase;
-}
+/* A role's name is its token, shown as the token is written: lowercase,
+   display-xl rather than Display-xl, so it reads the same here as in the
+   exported CSS. */
 
 .warningList {
   display: grid;
