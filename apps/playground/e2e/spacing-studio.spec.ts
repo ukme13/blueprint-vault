@@ -481,6 +481,77 @@ test.describe("The elevation editor", () => {
       )
       .not.toEqual(before);
   });
+
+  test("builds a level layer by layer in Advanced", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Elevation");
+    const sample = page
+      .getByRole("region", { name: "Elevation" })
+      .getByLabel("Low on light");
+    const shadow = () =>
+      sample.evaluate((node) => getComputedStyle(node).boxShadow);
+    const layers = page.getByRole("group", { name: "Low layers" });
+    const rows = layers.getByRole("button", { name: /^Layer \d+: / });
+
+    await page.getByRole("radio", { name: "Advanced" }).click();
+    await expect(rows).toHaveCount(2);
+
+    await layers.getByRole("button", { name: "Add layer" }).click();
+    await expect(rows).toHaveCount(3);
+    // The new layer is the one being edited.
+    const third = page.getByRole("group", { name: "Layer 3 settings" });
+    await third.getByRole("radio", { name: "Inner shadow" }).click();
+    await expect.poll(shadow).toContain("inset");
+    await expect(rows.nth(2)).toHaveAccessibleName(/^Layer 3: Inner shadow/);
+
+    await layers.getByRole("button", { name: "Hide Layer 3" }).click();
+    await expect.poll(shadow).not.toContain("inset");
+    await expect
+      .poll(async () => {
+        const stored = await readStoredWorkspace(page);
+        return stored?.elevation?.levels.find(
+          (level: { id: string }) => level.id === "low",
+        )?.layers[2];
+      })
+      .toMatchObject({ type: "inner", hidden: true });
+
+    await layers.getByRole("button", { name: "Delete Layer 3" }).click();
+    await expect(rows).toHaveCount(2);
+  });
+
+  test("applies a preset, and hands a custom stack to Advanced", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Elevation");
+    const sample = page
+      .getByRole("region", { name: "Elevation" })
+      .getByLabel("Low on light");
+    const presets = page.getByRole("group", { name: "Low presets" });
+    const pad = page.getByRole("button", {
+      name: "Low light contact and cast",
+    });
+
+    /* Inset is two inner layers, which the contact and cast pads cannot
+       describe, so they step aside for a way into Advanced. */
+    await presets.getByRole("button", { name: "Inset" }).click();
+    await expect
+      .poll(() => sample.evaluate((node) => getComputedStyle(node).boxShadow))
+      .toContain("inset");
+    await expect(pad).toHaveCount(0);
+
+    /* Standard is a contact and a cast again, so the pads come back. */
+    await presets.getByRole("button", { name: "Standard" }).click();
+    await expect(pad).toBeVisible();
+
+    await presets.getByRole("button", { name: "Glow" }).click();
+    await page.getByRole("button", { name: "Edit layers in Advanced" }).click();
+    await expect(
+      page
+        .getByRole("group", { name: "Low layers" })
+        .getByRole("button", { name: /^Layer \d+: Drop shadow/ }),
+    ).toHaveCount(2);
+  });
 });
 
 test.describe("The scale studio's chrome", () => {

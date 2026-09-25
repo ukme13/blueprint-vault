@@ -355,11 +355,6 @@
   border: 1px solid color-mix(in oklch, white 8%, transparent);
 }
 
-.elevationLayer {
-  display: grid;
-  gap: 8px;
-}
-
 .elevationPads {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -480,10 +475,102 @@
   font-size: 11px;
 }
 
-.elevationLayerName {
+/* Simple mode's presets: a wrapping row of small buttons. */
+.elevationPresets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+/* Advanced mode's layer stack, one row per layer. */
+.elevationLayerList {
+  display: grid;
+  gap: var(--spacing-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.elevationLayerRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding-right: var(--spacing-1);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-element);
+  background: var(--color-surface-base);
+}
+
+.elevationLayerRow[data-selected] {
+  border-color: var(--color-action-primary);
+}
+
+/* A hidden layer stays in the list, dimmed, so it can be shown again. */
+.elevationLayerRow[data-hidden] .elevationLayerSelect {
+  opacity: 0.5;
+}
+
+.elevationLayerSelect {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+  padding: var(--spacing-2);
+  border: 0;
+  background: none;
+  color: var(--color-fg-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.elevationLayerSelect:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+  border-radius: var(--radius-element);
+}
+
+.elevationLayerSelect svg {
+  flex: none;
+  width: 16px;
+  height: 16px;
   color: var(--color-fg-muted);
+}
+
+.elevationLayerText {
+  display: grid;
+  min-width: 0;
   font-size: 12px;
-  font-weight: 650;
+}
+
+.elevationLayerSummary {
+  overflow: hidden;
+  color: var(--color-fg-muted);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The selected layer's settings, under the list. */
+.elevationLayerEditor {
+  display: grid;
+  gap: var(--spacing-3);
+  padding-top: var(--spacing-3);
+  border-top: 1px solid var(--color-border-default);
+}
+
+.elevationLayerGeometry {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-2);
+}
+
+/* Four fields across is too tight for a thumb; two by two. */
+@media (max-width: 640px) {
+  .elevationLayerGeometry {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .elevationOpacity {
@@ -496,62 +583,6 @@
 .elevationMode {
   color: var(--color-fg-muted);
   font-size: 12px;
-}
-
-.elevationSlider {
-  min-width: 0;
-  padding: 8px;
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-element);
-  background: var(--elevation-surface);
-}
-
-.elevationSlider :global(.astryx-field),
-.elevationSlider :global(.astryx-slider) {
-  width: 100%;
-  min-width: 0;
-}
-
-.elevationSlider :global(.astryx-slider-track) {
-  box-sizing: border-box;
-  height: 14px;
-  overflow: hidden;
-  border: 1px solid var(--color-border-strong);
-  background-color: var(--elevation-surface);
-  background-clip: padding-box;
-  background-image: linear-gradient(
-    to right,
-    var(--elevation-surface),
-    color-mix(
-      in oklch,
-      var(--elevation-shadow) calc(var(--elevation-mix) * 1%),
-      var(--elevation-surface)
-    )
-  );
-}
-
-.elevationSlider :global(.astryx-slider-track) + [aria-hidden="true"] {
-  opacity: 0;
-}
-
-.elevationSlider :global(.astryx-slider-thumb),
-.elevationSlider :global(.astryx-slider-thumb):hover,
-.elevationSlider :global(.astryx-slider-thumb):focus {
-  border: 2px solid var(--color-neutral-300);
-  background: color-mix(
-    in oklch,
-    var(--elevation-shadow) calc(var(--elevation-opacity) * 100%),
-    var(--elevation-surface)
-  );
-  box-shadow: 0 0 0 2px var(--elevation-surface);
-}
-
-.elevationOpacity[data-layer="contact"] :global(.astryx-slider-track) {
-  border-radius: var(--radius-inner);
-}
-
-.elevationOpacity[data-layer="cast"] :global(.astryx-slider-track) {
-  border-radius: var(--radius-full);
 }
 
 .previewStage {

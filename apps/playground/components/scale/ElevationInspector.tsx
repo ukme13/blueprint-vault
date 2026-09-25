@@ -1,8 +1,15 @@
 "use client";
 
+import { useState } from "react";
+import {
+  SegmentedControl,
+  SegmentedControlItem,
+} from "@astryxdesign/core/SegmentedControl";
 import { SheetSelector } from "../SheetSelector";
 import {
+  Button,
   elevationPreviewSurfaces,
+  isSimpleElevationLevel,
   parseShadeOptionValue,
   resolveElevationColour,
   setElevationColour,
@@ -16,7 +23,11 @@ import {
   ElevationLevelDetails,
   ElevationLevelStrength,
 } from "./ElevationLevelSettings";
+import { ElevationLayerStack } from "./ElevationLayerStack";
+import { ElevationPresets } from "./ElevationPresets";
 import styles from "./scale-workspace.module.css";
+
+type ElevationView = "simple" | "advanced";
 
 interface ElevationInspectorProps {
   scale: ElevationScale;
@@ -40,6 +51,10 @@ export function ElevationInspector({
   const track =
     palettes.find((item) => item.id === colour.trackId) ?? palettes[0];
   const surfaces = elevationPreviewSurfaces(palettes);
+  /* Simple by default: presets and the two pads cover what most levels
+     need. Advanced is the whole stack. The choice is how the level is
+     edited, not part of it, so it is not saved with the scale. */
+  const [view, setView] = useState<ElevationView>("simple");
 
   return (
     <>
@@ -92,15 +107,66 @@ export function ElevationInspector({
           </p>
         )}
       </div>
+      {selected ? (
+        <div className={styles.settingGroup}>
+          <SegmentedControl
+            label="Elevation editor"
+            layout="fill"
+            size="sm"
+            value={view}
+            onChange={(value) => setView(value as ElevationView)}
+          >
+            <SegmentedControlItem label="Simple" value="simple" />
+            <SegmentedControlItem label="Advanced" value="advanced" />
+          </SegmentedControl>
+        </div>
+      ) : null}
       {/* One level at a time, the one picked on the canvas: every pad for
           every level in one column scrolled forever. */}
-      {selected ? (
-        <ElevationLevelStrength
-          key={`strength-${selected.id}`}
+      {selected && view === "simple" ? (
+        <>
+          <ElevationPresets
+            level={selected}
+            palettes={palettes}
+            scale={scale}
+            onChange={onChange}
+          />
+          {isSimpleElevationLevel(selected) ? (
+            <ElevationLevelStrength
+              key={`strength-${selected.id}`}
+              level={selected}
+              scale={scale}
+              shadowHex={colour.hex}
+              surfaces={surfaces}
+              onChange={onChange}
+            />
+          ) : (
+            /* The pads set a contact and a cast layer. On any other stack
+               they would set half of what is drawn, so they step aside. */
+            <div className={styles.settingGroup}>
+              <p className={styles.settingHint}>
+                {selected.name} has a custom layer stack that the contact and
+                cast pads can’t describe.
+              </p>
+              <Button
+                scheme="neutral"
+                size="small"
+                variant="outlined"
+                onClick={() => setView("advanced")}
+              >
+                Edit layers in Advanced
+              </Button>
+            </div>
+          )}
+        </>
+      ) : null}
+      {selected && view === "advanced" ? (
+        <ElevationLayerStack
+          key={`layers-${selected.id}`}
           level={selected}
+          palettes={palettes}
           scale={scale}
-          shadowHex={colour.hex}
-          surfaces={surfaces}
+          scaleHex={colour.hex}
           onChange={onChange}
         />
       ) : null}
