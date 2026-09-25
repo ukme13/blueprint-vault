@@ -836,6 +836,27 @@
   display: contents;
 }
 
+/* A role Add role just made. A size group takes it at the top, away from the
+   button, so it arrives visibly. The row itself is `display: contents` here and
+   cannot animate, so its cells do; on a phone the card does instead. */
+@keyframes roleAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes roleAppearRing {
+  from {
+    border-color: var(--color-focus-ring);
+    box-shadow: 0 0 0 2px var(--color-focus-ring);
+  }
+}
+
+.roleTableRowAdded > * {
+  animation: roleAppear 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
 .roleTableHead {
   /* --font-size-sm is 0.75rem, 12px at a 16px root. */
   font-size: var(--font-size-sm);
@@ -1190,6 +1211,18 @@
     align-items: end;
   }
 
+  /* The card has a box, so it moves as one and its edge holds the accent
+     for a moment after it lands. */
+  .roleTableRowAdded {
+    animation:
+      roleAppear 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      roleAppearRing 1200ms ease-out;
+  }
+
+  .roleTableRowAdded > * {
+    animation: none;
+  }
+
   .roleTableRow > .roleSettingLabel {
     grid-area: name;
     align-self: center;
@@ -1461,4 +1494,11 @@
   left: calc(-1 * var(--spacing-2));
   height: var(--border-width);
   background: var(--color-border-subtle);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roleTableRowAdded,
+  .roleTableRowAdded > * {
+    animation: none !important;
+  }
 }

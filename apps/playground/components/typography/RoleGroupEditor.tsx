@@ -29,6 +29,7 @@ import {
 } from "@blueprint/ui";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { RoleRow } from "./RoleRow";
+import { useAddedRoleId } from "./use-added-role";
 import styles from "./typography-workspace.module.css";
 import { SheetSelector } from "../SheetSelector";
 
@@ -115,6 +116,7 @@ export function RoleGroupEditor({
     isDragging,
   } = useSortable({ id: group.id });
   const sizePresets = hybridPresetsFromTypeSteps(steps);
+  const addedRoleId = useAddedRoleId(group, roles);
 
   return (
     <div
@@ -295,6 +297,7 @@ export function RoleGroupEditor({
                   key={role.id}
                   deviceId={deviceId}
                   fonts={fonts}
+                  justAdded={role.id === addedRoleId}
                   role={role}
                   sizePresets={sizePresets}
                   steps={steps}

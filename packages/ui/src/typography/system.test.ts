@@ -4,6 +4,7 @@ import {
   addGroup,
   addRole,
   canAddRole,
+  newRoleEnd,
   elementForRole,
   defaultGroups,
   defaultAutoLineHeightRatio,
@@ -604,6 +605,17 @@ describe("font entries", () => {
     const next = renameFont(s, s.fonts[0]!.id, "Primary");
     expect(next.fonts[0]!.name).toBe("Primary");
     expect(next.fonts[0]!.id).toBe(s.fonts[0]!.id);
+  });
+});
+
+describe("newRoleEnd", () => {
+  it("grows a size group at the top and a number group at the bottom", () => {
+    expect(newRoleEnd(free("body", "size"))).toBe("start");
+    expect(newRoleEnd(free("body", "number"))).toBe("end");
+  });
+
+  it("grows headings at the bottom, since h1 to h6 are numbers", () => {
+    expect(newRoleEnd(free("h", "size"))).toBe("end");
   });
 });
 

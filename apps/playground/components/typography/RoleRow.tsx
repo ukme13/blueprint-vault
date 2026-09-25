@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
 import {
   Button,
@@ -32,6 +33,8 @@ export interface RoleRowProps {
   deviceId: string;
   steps: TypeStep[];
   sizePresets: ReturnType<typeof hybridPresetsFromTypeSteps>;
+  /** Just added by Add role: plays an entrance and scrolls into view. */
+  justAdded?: boolean;
   onBindStep: (id: string, stepOffset: number) => void;
   onUnlinkSize: (id: string, fontSizePx: number) => void;
   onLineHeightOverride: (id: string, lineHeight: LineHeightConfig) => void;
@@ -49,6 +52,7 @@ export function RoleRow({
   deviceId,
   steps,
   sizePresets,
+  justAdded = false,
   onBindStep,
   onUnlinkSize,
   onLineHeightOverride,
@@ -59,13 +63,34 @@ export function RoleRow({
   onRoleRemove,
 }: RoleRowProps) {
   const pickerSheet = usePickerSheet();
+  const rowRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!justAdded) return;
+    /* On a wide panel the row is `display: contents` and has no box of its
+       own, so it is the first cell, the role's name, that gets scrolled to. */
+    const target = rowRef.current?.firstElementChild;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+    target?.scrollIntoView({
+      block: "nearest",
+      behavior: reduce.matches ? "auto" : "smooth",
+    });
+  }, [justAdded]);
   const sizeUnlinked = isRoleUnlinkedOnDevice(role, deviceId);
   const lineHeightUnlinked = isLineHeightUnlinkedOnDevice(role, deviceId);
   const letterSpacingUnlinked = isLetterSpacingUnlinkedOnDevice(role, deviceId);
   const fontSizePx = resolveRoleSizePx(system, steps, role, deviceId);
 
   return (
-    <div className={styles.roleTableRow}>
+    <div
+      ref={rowRef}
+      className={
+        justAdded
+          ? `${styles.roleTableRow} ${styles.roleTableRowAdded}`
+          : styles.roleTableRow
+      }
+      data-just-added={justAdded || undefined}
+    >
       <span className={styles.roleSettingLabel}>{role.id}</span>
 
       {/* A bound chip is a step on the ramp; typing a size unlinks it. */}

@@ -1059,6 +1059,19 @@ export function updateRoleValue(
   return updateRole(system, id, patch);
 }
 
+/**
+ * Which end of a group a new role joins, so no role already there is renamed.
+ *
+ * Numbers count from the top, so a number group grows at the bottom; sizes
+ * count up from `xs` at the bottom, so a size group grows at the top, as the
+ * next size up. Put at the bottom, a new role would take `xs` and push every
+ * name above it up one — `body-sm` would become `body-md` and its token would
+ * move. The studio reads this too, to find the row that was just added.
+ */
+export function newRoleEnd(group: TypeGroup): "start" | "end" {
+  return group.indexing === "size" && !isHeadingGroup(group) ? "start" : "end";
+}
+
 /** A group at capacity is returned unchanged, so callers need no guard. */
 export function addRole(system: TypeSystem, group: TypeGroup): TypeSystem {
   if (!canAddRole(system, group)) return system;
@@ -1073,14 +1086,9 @@ export function addRole(system: TypeSystem, group: TypeGroup): TypeSystem {
      which is how a lone `caption` becomes `caption-1` once a second one joins
      it. */
   const placeholder = `${group.id}-new-${system.roles.length}`;
-  /* Where the new role goes is what keeps the other names. Numbers count from
-     the top, so a number group grows at the bottom; sizes count up from `xs`
-     at the bottom, so a size group grows at the top, as the next size up. Put
-     at the bottom, a new role would take `xs` and push every name above it up
-     one — `body-sm` would become `body-md` and its token would move. */
-  const members = system.roles.filter((role) => role.groupId === group.id);
+  const members = rolesInGroup(system, group.id);
   const at =
-    group.indexing === "size" && members[0]
+    newRoleEnd(group) === "start" && members[0]
       ? system.roles.indexOf(members[0])
       : system.roles.length;
   const withRole: TypeSystem = {
