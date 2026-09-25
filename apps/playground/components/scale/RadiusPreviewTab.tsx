@@ -43,8 +43,9 @@ const PANEL: CSSProperties = {
  * they sit well together: the card on Surface radius, the chips on Chip, the
  * field on Input, and the buttons on Button: a text button, which Full turns
  * into a pill, beside a square icon button, which Full turns into a circle.
- * Minimal on purpose, white controls lifted by shadow on a grey stage with
- * almost no borders, so the corners are what the eye reads.
+ * Minimal on purpose, light controls lifted by shadow on a grey stage with
+ * almost no borders, so the corners are what the eye reads. Ask is the one
+ * filled primary, New chat the one outlined button.
  *
  * Everything is scoped to this card the way the site preview scopes it: the
  * project's palette and semantic colours in the studio's current mode, its
@@ -117,7 +118,7 @@ export function RadiusPreviewTab({
               </p>
             </div>
             <button
-              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 border border-border-subtle/50 bg-surface-base px-3 py-1.5 text-xs font-medium text-fg-secondary shadow-xs transition-colors select-none hover:bg-surface-subtle"
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 border border-border-default bg-surface-base px-3 py-1.5 text-xs font-medium text-fg-secondary shadow-xs transition-colors select-none hover:bg-surface-subtle"
               data-radius-sample="radius-button"
               style={{ borderRadius: componentRadiusCss("radius-button") }}
               type="button"
@@ -174,7 +175,7 @@ export function RadiusPreviewTab({
                 <Mic aria-hidden className="size-4" />
               </button>
               <button
-                className="inline-flex h-12 shrink-0 cursor-pointer items-center justify-center border-0 bg-surface-base px-5 text-sm font-semibold text-action-primary shadow-sm transition-all select-none hover:bg-surface-base/90"
+                className="inline-flex h-12 shrink-0 cursor-pointer items-center justify-center border-0 bg-action-primary px-5 text-sm font-semibold text-fg-on-action shadow-sm transition-opacity select-none hover:opacity-90"
                 data-radius-sample="radius-button"
                 style={{ borderRadius: componentRadiusCss("radius-button") }}
                 type="button"
