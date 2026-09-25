@@ -22,6 +22,7 @@ import {
   removeLayoutToken,
   renameLayoutToken,
   reorderLayoutTokens,
+  resetLayoutToken,
   resolveRadius,
   resolveSpacing,
   setLayoutReference,
@@ -191,6 +192,9 @@ export function LayoutUsesTable({
                         onChange(
                           setLayoutReference(tokens, token.id, deviceId, cell),
                         )
+                      }
+                      onReset={() =>
+                        onChange(resetLayoutToken(tokens, token.id, devices))
                       }
                       onRemove={() => {
                         onChange(removeLayoutToken(tokens, token.id));

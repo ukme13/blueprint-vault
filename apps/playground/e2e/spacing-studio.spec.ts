@@ -556,13 +556,13 @@ test.describe("Layout uses", () => {
       .click();
 
     const uses = page.getByRole("region", { name: "Spacing uses" });
-    await expect(uses.getByLabel("inset-container name")).toHaveValue(
-      "Container inset",
-    );
-    await expect(uses.getByLabel("gap-section name")).toHaveValue(
-      "Section gap",
-    );
-    await expect(uses.getByLabel("radius-surface name")).toHaveCount(0);
+    await expect(
+      uses.locator('[data-token="inset-container"] [data-system-use]'),
+    ).toHaveText("Container inset");
+    await expect(
+      uses.locator('[data-token="gap-section"] [data-system-use]'),
+    ).toHaveText("Section gap");
+    await expect(uses.locator('[data-token="radius-surface"]')).toHaveCount(0);
     await expect(
       page.getByRole("region", { name: "Generated spacing steps" }),
     ).toHaveCount(0);
@@ -584,10 +584,10 @@ test.describe("Layout uses", () => {
     ).toBeVisible();
 
     const uses = page.getByRole("region", { name: "Radius uses" });
-    await expect(uses.getByLabel("radius-surface name")).toHaveValue(
-      "Surface radius",
-    );
-    await expect(uses.getByLabel("inset-container name")).toHaveCount(0);
+    await expect(
+      uses.locator('[data-token="radius-surface"] [data-system-use]'),
+    ).toHaveText("Surface radius");
+    await expect(uses.locator('[data-token="inset-container"]')).toHaveCount(0);
   });
 
   test("Radius Uses gives buttons, inputs and chips their own corner", async ({
@@ -599,15 +599,15 @@ test.describe("Layout uses", () => {
       .getByRole("button", { name: "Uses" })
       .click();
     const uses = page.getByRole("region", { name: "Radius uses" });
-    await expect(uses.getByLabel("radius-button name")).toHaveValue(
-      "Button radius",
-    );
-    await expect(uses.getByLabel("radius-input name")).toHaveValue(
-      "Input radius",
-    );
-    await expect(uses.getByLabel("radius-chip name")).toHaveValue(
-      "Chip radius",
-    );
+    await expect(
+      uses.locator('[data-token="radius-button"] [data-system-use]'),
+    ).toHaveText("Button radius");
+    await expect(
+      uses.locator('[data-token="radius-input"] [data-system-use]'),
+    ).toHaveText("Input radius");
+    await expect(
+      uses.locator('[data-token="radius-chip"] [data-system-use]'),
+    ).toHaveText("Chip radius");
 
     /* A pill button on Desktop; the input beside it keeps its corner. */
     const desktop = page.locator('[data-radius-samples="desktop"]');
@@ -654,25 +654,70 @@ test.describe("Layout uses", () => {
     );
   });
 
-  test("duplicates and deletes a spacing use", async ({ seededPage: page }) => {
+  test("duplicates and deletes a custom spacing use", async ({
+    seededPage: page,
+  }) => {
     const uses = await openSpacingUses(page);
-    await uses
-      .getByRole("button", { name: "Actions for Container inset" })
-      .click();
+    await uses.getByRole("button", { name: "Add use" }).click();
+    const field = uses.getByLabel("new-use name");
+    await field.fill("Hero inset");
+    await field.press("Enter");
+
+    await uses.getByRole("button", { name: "Actions for Hero inset" }).click();
     await page.getByRole("menuitem", { name: "Duplicate" }).click();
     await expect(
-      uses.getByText("--inset-container-copy", { exact: true }),
+      uses.getByText("--hero-inset-copy", { exact: true }),
     ).toBeVisible();
 
     await uses
-      .getByRole("button", { name: "Actions for Container inset copy" })
+      .getByRole("button", { name: "Actions for Hero inset copy" })
       .click();
     await page.getByRole("menuitem", { name: "Delete" }).click();
     await expect(
-      uses.getByText("--inset-container-copy", { exact: true }),
+      uses.getByText("--hero-inset-copy", { exact: true }),
     ).toHaveCount(0);
+    await expect(uses.getByText("--hero-inset", { exact: true })).toBeVisible();
+  });
+
+  test("keeps a built-in use's name, and resets it instead of deleting", async ({
+    seededPage: page,
+  }) => {
+    const uses = await openSpacingUses(page);
+    /* A label, not a field. */
+    await expect(uses.getByLabel("gap-section name")).toHaveCount(0);
     await expect(
-      uses.getByText("--inset-container", { exact: true }),
+      uses.locator('[data-token="gap-section"] [data-system-use]'),
+    ).toHaveText("Section gap");
+
+    /* Retarget it, then put it back from its menu, which offers nothing
+       else. */
+    const phone = uses.getByLabel("Section gap on Phone");
+    await phone.click();
+    await page
+      .getByRole("listbox", { name: "Spacing steps" })
+      .getByRole("option")
+      .first()
+      .click();
+    await uses.getByRole("button", { name: "Actions for Section gap" }).click();
+    await expect(page.getByRole("menuitem")).toHaveText(["Reset to default"]);
+    await page.getByRole("menuitem", { name: "Reset to default" }).click();
+
+    await expect
+      .poll(async () => {
+        const stored = await readStoredWorkspace(page);
+        return stored?.layout.find(
+          (token: { id: string }) => token.id === "gap-section",
+        )?.byDevice.phone;
+      })
+      .toBe("16");
+
+    /* A new use cannot take its name, in any case or order. */
+    await uses.getByRole("button", { name: "Add use" }).click();
+    const field = uses.getByLabel("new-use name");
+    await field.fill("GAP section");
+    await field.press("Enter");
+    await expect(
+      uses.getByText("--gap-section-2", { exact: true }),
     ).toBeVisible();
   });
 
