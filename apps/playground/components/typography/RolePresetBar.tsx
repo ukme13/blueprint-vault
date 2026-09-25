@@ -51,7 +51,7 @@ export function RolePresetBar({
     <>
       <div
         aria-label="Role presets"
-        className="mb-4 flex items-center gap-1.5 overflow-x-auto px-4 pt-4"
+        className="mb-4 flex flex-wrap items-center gap-1.5 px-4 pt-4"
         /* A toolbar, not a group: the group cards below are the Groups tab's
            groups, and a spec lists them by that role. */
         role="toolbar"

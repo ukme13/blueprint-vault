@@ -334,6 +334,7 @@
 
 .roleSettingLabel {
   color: var(--color-fg-secondary);
+  white-space: nowrap;
   /* --font-size-base is 0.875rem, 14px at a 16px root. */
   font-size: var(--font-size-base);
 }
@@ -791,8 +792,12 @@
  */
 .roleTable {
   display: grid;
+  /* Role as wide as its longest token, on one line: a name like
+     subtitle-display-1 broke at its hyphens. Size capped at 9rem, which its
+     chip (24 (+2)) and a typed value fit in; it had taken the widest share
+     and left the names squeezed. */
   grid-template-columns:
-    minmax(5rem, 0.8fr) minmax(11rem, 1.8fr) minmax(6rem, 1fr)
+    minmax(max-content, 1.2fr) minmax(8rem, 9rem) minmax(6rem, 1fr)
     minmax(4.5rem, 0.7fr) minmax(4.5rem, 0.7fr) minmax(5rem, 0.8fr) auto;
   column-gap: var(--spacing-2);
   row-gap: var(--spacing-2);
