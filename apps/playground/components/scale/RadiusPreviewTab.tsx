@@ -87,7 +87,7 @@ export function RadiusPreviewTab({
   useGoogleFontsLink(system, undefined, 400);
   useLocalFonts(system);
 
-  const scopedStyle: CSSProperties = {
+  const scopedStyle = {
     ...paletteCssVariables(palettes),
     ...semanticCssVariables(semantics, mode, palettes),
     ...radiusCssVariables(radius),
@@ -104,7 +104,13 @@ export function RadiusPreviewTab({
     /* By role, not by font: the body role is whichever font the project
        sets body text in. */
     fontFamily: "var(--font-body-family, inherit)",
-  };
+    /* Astryx's theme sets every h1-h6 and p by these two, not by
+       inheritance, and the studio points them at its own Inter. Pointed at
+       the project's roles here, the card's headings and paragraphs follow the
+       project too; the title is an h2, so it takes the h2 role. */
+    "--font-family-body": "var(--font-body-family, inherit)",
+    "--font-family-heading": "var(--font-h2-family, var(--font-body-family))",
+  } as CSSProperties;
 
   return (
     <section

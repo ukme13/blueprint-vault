@@ -655,21 +655,30 @@ test.describe("Layout uses", () => {
     }));
     expect(primaries.card).not.toBe("");
     expect(primaries.card).not.toBe(primaries.studio);
-    /* And in the project's type: the card is set in the body role's font. */
+    /* And in the project's type, on the text itself: Astryx's theme sets
+       h1-h6 and p by its own font variables, so a card set in the project's
+       font can still show its title and subtitle in the studio's Inter. */
     const faces = await card.evaluate((node) => {
-      const first = (stack: string) =>
-        stack
+      const first = (element: Element, property = "font-family") =>
+        getComputedStyle(element)
+          .getPropertyValue(property)
           .split(",")[0]!
           .trim()
           .replace(/^["']|["']$/g, "");
-      const style = getComputedStyle(node);
       return {
-        card: first(style.fontFamily),
-        body: first(style.getPropertyValue("--font-family-main")),
+        main: first(node, "--font-family-main"),
+        title: first(node.querySelector("h2")!),
+        subtitle: first(node.querySelector("p")!),
+        chip: first(node.querySelector('[data-radius-sample="radius-chip"]')!),
       };
     });
-    expect(faces.body).not.toBe("");
-    expect(faces.card).toBe(faces.body);
+    expect(faces.main).not.toBe("");
+    expect(faces).toEqual({
+      main: faces.main,
+      title: faces.main,
+      subtitle: faces.main,
+      chip: faces.main,
+    });
     await expect.poll(() => radiusOf("radius-chip")).toBe("4px");
     /* Surface is page on Desktop and container on Phone. */
     await expect.poll(() => radiusOf("radius-surface")).toBe("28px");
