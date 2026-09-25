@@ -133,7 +133,7 @@ export function RadiusPreviewTab({
       <div className="flex w-full justify-center" style={scopedStyle}>
         <article
           aria-label="Verba AI Preview"
-          className="flex w-full max-w-md flex-col gap-6 border border-border-subtle/30 bg-surface-base p-6 shadow-xl"
+          className="flex w-full max-w-md flex-col gap-6 border border-border-subtle/30 bg-surface-base p-6"
           data-radius-sample="radius-surface"
           style={{ borderRadius: componentRadiusCss("radius-surface") }}
         >
@@ -160,7 +160,7 @@ export function RadiusPreviewTab({
 
           <section
             aria-label="Assistant"
-            className="flex flex-col gap-4 rounded-container border border-border-subtle/50 p-5"
+            className="flex flex-col gap-4 rounded-container p-5"
             style={PANEL}
           >
             <h3
