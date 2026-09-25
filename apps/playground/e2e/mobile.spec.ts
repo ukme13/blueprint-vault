@@ -646,10 +646,18 @@ test.describe("on a phone", () => {
     seededPage: page,
   }) => {
     /* Three stacked: a track's sheet, the colour picker over it, and the
-       format sheet over that. Escape pressed while the format sheet is still
-       sliding away, when focus has already left it for the body, used to
-       close all three: the browser sends `cancel` to the closing sheet, and
-       React carries it up through the sheets beneath. */
+       format sheet over that. An Escape pressed while the format sheet was
+       still sliding away, when focus had already left it for the body, used
+       to close all three: the browser sends `cancel` to the closing sheet,
+       and React carries it up through the sheets beneath.
+
+       The browser's `cancel` is fired here directly, on the format sheet.
+       Pressing Escape "while it slides away" raced the animation: with
+       reduced motion the slide-out is near instant, so the key usually
+       landed after the sheet had closed and focus had gone back into the
+       picker, where Escape rightly closes the picker. It failed four runs in
+       five, on main as well. The event is what the bug was about; the
+       timing was only how a person happened to reach it. */
     await page
       .getByRole("button", { name: /^Open .* colour details$/ })
       .first()
@@ -661,12 +669,14 @@ test.describe("on a phone", () => {
     const picker = page.getByRole("dialog", { name: /source colour picker$/ });
     await picker.getByRole("button", { name: /^Colour format: / }).click();
     const formats = page.getByRole("dialog", { name: "Colour format" });
-    await formats.getByRole("option", { name: "OKLCH" }).click();
+    await expect(formats).toBeVisible();
+    await expect(page.locator("dialog[open]")).toHaveCount(3);
+
+    await formats.evaluate((dialog) =>
+      dialog.dispatchEvent(new Event("cancel", { cancelable: true })),
+    );
+
     await expect(formats).toBeHidden();
-
-    /* Straight away, while it is still an open dialog on its way out. */
-    await page.keyboard.press("Escape");
-
     await expect(page.locator("dialog[open]")).toHaveCount(2);
     await expect(picker).toBeVisible();
     await expect(track).toBeVisible();
