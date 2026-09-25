@@ -12,7 +12,10 @@ import {
   type ElevationScale,
 } from "@blueprint/ui";
 import { TransparencySwatch } from "../palette/TransparencySwatch";
-import { ElevationLevelSettings } from "./ElevationLevelSettings";
+import {
+  ElevationLevelDetails,
+  ElevationLevelStrength,
+} from "./ElevationLevelSettings";
 import styles from "./scale-workspace.module.css";
 
 interface ElevationInspectorProps {
@@ -40,12 +43,18 @@ export function ElevationInspector({
 
   return (
     <>
+      {selected ? (
+        <ElevationLevelDetails
+          key={`details-${selected.id}`}
+          level={selected}
+          scale={scale}
+          onChange={onChange}
+          onSelectLevel={onSelectLevel}
+        />
+      ) : null}
+      {/* One shade for every level, in both modes: a shadow is the absence
+          of light, and flipping it pale on dark would draw a halo. */}
       <div className={styles.settingGroup}>
-        <h2>Shadow colour</h2>
-        <p className={styles.settingHint}>
-          One shade in both modes. A shadow is the absence of light — flipping
-          it pale on dark draws a halo. Strength is what changes.
-        </p>
         {track ? (
           /* One list of every shade, grouped by track and found by typing
              ("primary 900"), rather than a track selector and a weight
@@ -86,14 +95,13 @@ export function ElevationInspector({
       {/* One level at a time, the one picked on the canvas: every pad for
           every level in one column scrolled forever. */}
       {selected ? (
-        <ElevationLevelSettings
-          key={selected.id}
+        <ElevationLevelStrength
+          key={`strength-${selected.id}`}
           level={selected}
           scale={scale}
           shadowHex={colour.hex}
           surfaces={surfaces}
           onChange={onChange}
-          onSelectLevel={onSelectLevel}
         />
       ) : null}
     </>

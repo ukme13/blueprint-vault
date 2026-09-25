@@ -2,6 +2,7 @@
 
 import { useState, type CSSProperties } from "react";
 import { Slider } from "@astryxdesign/core/Slider";
+import { TextArea } from "@astryxdesign/core/TextArea";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import {
   COLOUR_MODES,
@@ -31,17 +32,20 @@ interface ElevationLevelSettingsProps {
 }
 
 /**
- * A field that saves when it is left or Enter is pressed, not per key: a
- * level's name is its variable, and renaming on every keystroke would move
- * `--shadow-…` through every partial word typed.
+ * A field that saves when it is left, or on Enter in a single line, not per
+ * key: a level's name is its variable, and renaming on every keystroke would
+ * move `--shadow-…` through every partial word typed. Multi-line takes Enter
+ * as a new line and saves on leaving only.
  */
 function CommitField({
   label,
   value,
+  multiline = false,
   onCommit,
 }: {
   label: string;
   value: string;
+  multiline?: boolean;
   onCommit: (value: string) => void;
 }) {
   const [draft, setDraft] = useState(value);
@@ -53,6 +57,19 @@ function CommitField({
   const commit = () => {
     if (draft !== value) onCommit(draft);
   };
+  if (multiline) {
+    return (
+      <TextArea
+        label={label}
+        rows={5}
+        size="sm"
+        value={draft}
+        width="100%"
+        onBlur={commit}
+        onChange={(next: string) => setDraft(next)}
+      />
+    );
+  }
   return (
     <TextInput
       label={label}
@@ -67,18 +84,18 @@ function CommitField({
 }
 
 /**
- * One level's settings: its name and description, and its strength in each
- * mode. A two-layer level gets the contact/cast pad; any other shape gets a
- * slider per layer and mode.
+ * Who a level is: its name, the variable it exports, and a description. A
+ * system level's name is fixed, so it is a heading rather than a field.
  */
-export function ElevationLevelSettings({
+export function ElevationLevelDetails({
   scale,
   level,
-  shadowHex,
-  surfaces,
   onChange,
   onSelectLevel,
-}: ElevationLevelSettingsProps) {
+}: Pick<
+  ElevationLevelSettingsProps,
+  "scale" | "level" | "onChange" | "onSelectLevel"
+>) {
   const isSystem = isSystemElevationLevel(level.id);
   const index = scale.levels.findIndex((each) => each.id === level.id);
 
@@ -96,25 +113,47 @@ export function ElevationLevelSettings({
       className={styles.settingGroup}
       role="group"
     >
-      <div className="flex items-baseline justify-between gap-2">
-        <h2>{level.name}</h2>
+      <div className="grid gap-1">
+        {isSystem ? (
+          <h2>{level.name}</h2>
+        ) : (
+          <CommitField
+            label="Level name"
+            value={level.name}
+            onCommit={(name) => rename(name)}
+          />
+        )}
         <code className="font-mono text-xs text-fg-muted">
           {elevationVariableName(level.id)}
         </code>
       </div>
-      {isSystem ? null : (
-        <CommitField
-          label="Level name"
-          value={level.name}
-          onCommit={(name) => rename(name)}
-        />
-      )}
       <CommitField
         label="Description"
+        multiline
         value={level.description}
         onCommit={(description) => rename(level.name, description)}
       />
+    </div>
+  );
+}
 
+/**
+ * How strong a level's shadow is in each mode. A two-layer level gets the
+ * contact/cast pad; any other shape gets a slider per layer and mode.
+ */
+export function ElevationLevelStrength({
+  scale,
+  level,
+  shadowHex,
+  surfaces,
+  onChange,
+}: Omit<ElevationLevelSettingsProps, "onSelectLevel">) {
+  return (
+    <div
+      aria-label={`${level.name} strength`}
+      className={styles.settingGroup}
+      role="group"
+    >
       {level.layers.length === 2 ? (
         <div className={styles.elevationPads}>
           {COLOUR_MODES.map((mode) => (
