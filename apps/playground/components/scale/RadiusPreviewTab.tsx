@@ -137,7 +137,7 @@ export function RadiusPreviewTab({
           data-radius-sample="radius-surface"
           style={{ borderRadius: componentRadiusCss("radius-surface") }}
         >
-          <header className="flex items-center justify-between gap-4 px-2 pt-2">
+          <header className="flex items-start justify-between gap-4 px-2 pt-2">
             <div className="flex min-w-0 flex-col gap-1">
               <h2 className="m-0 text-2xl font-semibold text-fg-primary">
                 Verba AI
