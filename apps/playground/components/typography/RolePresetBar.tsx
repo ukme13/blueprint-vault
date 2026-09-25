@@ -10,6 +10,14 @@ import {
 } from "@blueprint/ui";
 import { ConfirmDialog } from "../ConfirmDialog";
 
+/* Every chip is a bordered pill, so the row reads as chips; the active one,
+   a preset or Custom, is filled with primary, so exactly one says "this". */
+const CHIP =
+  "inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors select-none";
+const ACTIVE = "border-action-primary bg-action-primary text-fg-on-action";
+const IDLE =
+  "border-border-default bg-surface-base text-fg-secondary hover:border-border-strong hover:text-fg-primary";
+
 /**
  * Starting sets of groups and roles, as chips above the Groups tab.
  *
@@ -54,11 +62,7 @@ export function RolePresetBar({
             <button
               key={preset.id}
               aria-pressed={isSelected}
-              className={`inline-flex shrink-0 cursor-pointer items-center rounded-full border px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors select-none ${
-                isSelected
-                  ? "border-border-default bg-surface-raised text-fg-primary shadow-xs"
-                  : "border-transparent text-fg-secondary hover:bg-surface-subtle hover:text-fg-primary"
-              }`}
+              className={`${CHIP} cursor-pointer ${isSelected ? ACTIVE : IDLE}`}
               title={preset.description}
               type="button"
               onClick={() => {
@@ -73,7 +77,8 @@ export function RolePresetBar({
         })}
         {active === "custom" ? (
           <span
-            className="inline-flex shrink-0 items-center rounded-full border border-border-subtle bg-surface-subtle px-3 py-1 text-xs font-medium text-fg-muted select-none"
+            aria-current="true"
+            className={`${CHIP} ${ACTIVE}`}
             data-role-preset="custom"
           >
             Custom

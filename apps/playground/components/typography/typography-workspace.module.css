@@ -333,10 +333,17 @@
 }
 
 .roleSettingLabel {
+  display: inline-block;
   color: var(--color-fg-secondary);
   /* --font-size-base is 0.875rem, 14px at a 16px root. */
   font-size: var(--font-size-base);
-  text-transform: capitalize;
+}
+
+/* The first letter only. `capitalize` takes a hyphen as a word break, which
+   turned display-xl into Display-Xl; a size is lowercase. */
+.roleSettingLabel::first-letter,
+.previewRole h3::first-letter {
+  text-transform: uppercase;
 }
 
 .warningList {
@@ -405,7 +412,6 @@
   margin: 0;
   color: var(--color-fg-primary);
   font-size: 13px;
-  text-transform: capitalize;
 }
 
 .previewRole header p {
