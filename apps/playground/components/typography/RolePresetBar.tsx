@@ -10,13 +10,13 @@ import {
 } from "@blueprint/ui";
 import { ConfirmDialog } from "../ConfirmDialog";
 
-/* Every chip is a bordered pill, so the row reads as chips; the active one,
-   a preset or Custom, is filled with primary, so exactly one says "this". */
+/* Every chip is a pill: the idle ones outlined, the active one, a preset or
+   Custom, filled with primary, so exactly one says "this". */
 const CHIP =
   "inline-flex shrink-0 items-center rounded-full border px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors select-none";
 const ACTIVE = "border-action-primary bg-action-primary text-fg-on-action";
 const IDLE =
-  "border-border-default bg-surface-base text-fg-secondary hover:border-border-strong hover:text-fg-primary";
+  "border-border-strong bg-transparent text-fg-primary hover:bg-surface-subtle";
 
 /**
  * Starting sets of groups and roles, as chips above the Groups tab.
