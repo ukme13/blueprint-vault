@@ -24,7 +24,8 @@ export type LandingPart =
   | "blurb"
   | "price"
   | "unit"
-  | "feature";
+  | "feature"
+  | "tag";
 
 export const PREVIEW_LANDING_SLOTS: ReadonlyArray<{
   id: string;
@@ -354,6 +355,14 @@ export const PREVIEW_LANDING_SLOTS: ReadonlyArray<{
     text: "Growth",
   },
   {
+    /* The featured plan's chip: the one place Chip radius shows on the page. */
+    id: "landing-plan-2-tag",
+    slot: "caption",
+    component: "plan",
+    part: "tag",
+    text: "Popular",
+  },
+  {
     id: "landing-plan-2-blurb",
     slot: "caption",
     component: "plan",
@@ -477,6 +486,31 @@ export const PREVIEW_LANDING_SLOTS: ReadonlyArray<{
     id: "landing-cta-note",
     slot: "caption",
     text: "Fourteen days. No card.",
+  },
+
+  /* A sign-up band under the CTA: the one place Input radius shows. */
+  {
+    id: "landing-newsletter-eyebrow",
+    slot: "label",
+    text: "Blueprint · Newsletter",
+  },
+  {
+    id: "landing-newsletter-title",
+    slot: "heading",
+    preferredRoleId: "h2",
+    text: "Better design systems, twice a month.",
+  },
+  {
+    id: "landing-newsletter-lead",
+    slot: "title",
+    preferredRoleId: "h6",
+    text: "One token study, one working method, and useful notes on colour, type and layout.",
+  },
+  { id: "landing-newsletter-cta", slot: "label", text: "Subscribe" },
+  {
+    id: "landing-newsletter-note",
+    slot: "caption",
+    text: "No spam. Unsubscribe at any time.",
   },
 ];
 

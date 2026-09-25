@@ -67,6 +67,26 @@ describe("preview sections", () => {
     expect(after.map((section) => section.id)).not.toContain("landing-extra");
   });
 
+  it("gives a save from before the newsletter band a raised one, above the footer", () => {
+    const olderSave = PREVIEW_SECTION_IDS.filter(
+      (id) => id !== "landing-newsletter",
+    ).map((id) => ({
+      id,
+      fill: { kind: "token" as const, tokenId: "surface.subtle" },
+    }));
+    const ids = readPreviewSections(olderSave).map((section) => section.id);
+    expect(ids.slice(-3)).toEqual([
+      "landing-cta",
+      "landing-newsletter",
+      "shell-footer",
+    ]);
+    expect(
+      readPreviewSections(olderSave).find(
+        (section) => section.id === "landing-newsletter",
+      )?.fill,
+    ).toEqual({ kind: "token", tokenId: "surface.raised" });
+  });
+
   it("fills older saves without landing-quad with the seed default", () => {
     const olderSave = PREVIEW_SECTION_IDS.filter(
       (id) => id !== "landing-quad",
