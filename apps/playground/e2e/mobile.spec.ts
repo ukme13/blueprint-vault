@@ -1209,6 +1209,32 @@ test.describe("on a phone", () => {
     await expect(sheet).toBeVisible();
   });
 
+  test("keeps the heading group's indexing off, sheet and all", async ({
+    page,
+  }) => {
+    /* The phone selector is this app's own, not Astryx's, so being off has to
+       hold here too: tapping it must not open a sheet of choices. */
+    await seedTypographyProject(page);
+    await page.getByRole("button", { name: /^Type settings/ }).click();
+    const sheet = page.getByRole("dialog", { name: "Type scale settings" });
+    await sheet.getByRole("tab", { name: /^Groups/ }).click();
+    // Groups are folded on a phone; only the first starts open.
+    await sheet.getByRole("button", { name: /^H \d+ roles?$/ }).click();
+
+    const indexing = sheet.getByRole("button", { name: "h indexing: Number" });
+    await expect(indexing).toBeDisabled();
+    await indexing.click({ force: true });
+    await expect(page.getByRole("dialog", { name: "h indexing" })).toHaveCount(
+      0,
+    );
+
+    // Another group's still opens.
+    await sheet.getByRole("button", { name: /^display indexing: / }).click();
+    await expect(
+      page.getByRole("dialog", { name: "display indexing" }),
+    ).toBeVisible();
+  });
+
   test("keeps a selector sheet's search at the top while its list scrolls", async ({
     page,
   }) => {

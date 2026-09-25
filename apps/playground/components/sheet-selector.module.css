@@ -177,6 +177,15 @@
   outline-offset: -2px;
 }
 
+.trigger[aria-disabled="true"] {
+  color: var(--color-fg-disabled);
+  cursor: not-allowed;
+}
+
+.trigger[data-variant="input"][aria-disabled="true"]:hover {
+  border-color: var(--color-border-default);
+}
+
 .option:disabled {
   color: var(--color-fg-disabled);
   cursor: default;

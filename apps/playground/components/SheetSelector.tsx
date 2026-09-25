@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ComponentProps, type ReactNode } from "react";
+import { useId, useState, type ComponentProps, type ReactNode } from "react";
 import { Selector } from "@astryxdesign/core/Selector";
 import { ChevronDown } from "lucide-react";
 import { findSheetOption, type SheetOption } from "@blueprint/ui";
@@ -57,21 +57,31 @@ function PhoneSelector({
   size = "md",
   width = "100%",
   hasChevron,
+  isDisabled = false,
+  disabledMessage,
 }: SheetSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const selected = findSheetOption(options, value ?? undefined);
+  const messageId = useId();
 
   return (
     <>
+      {/* aria-disabled rather than disabled, as Astryx's Selector does, so the
+          trigger stays focusable and the reason it is off can still be read. */}
       <button
+        aria-describedby={isDisabled && disabledMessage ? messageId : undefined}
+        aria-disabled={isDisabled || undefined}
         aria-haspopup="dialog"
         aria-label={`${label}: ${selected?.label ?? selected?.value ?? placeholder}`}
         className={styles.trigger}
         data-size={size}
         data-variant={variant}
         style={{ width: variant === "ghost" ? undefined : width }}
+        title={isDisabled ? disabledMessage : undefined}
         type="button"
-        onClick={() => setIsOpen(true)}
+        onClick={() => {
+          if (!isDisabled) setIsOpen(true);
+        }}
       >
         {renderOptionIcon(startIcon)}
         <span className={styles.triggerValue}>
@@ -85,6 +95,11 @@ function PhoneSelector({
           <ChevronDown aria-hidden className={styles.chevron} />
         ) : null}
       </button>
+      {isDisabled && disabledMessage && (
+        <span hidden id={messageId}>
+          {disabledMessage}
+        </span>
+      )}
 
       <SelectorSheet
         hasSearch={hasSearch}

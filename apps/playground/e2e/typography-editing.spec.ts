@@ -621,6 +621,24 @@ test.describe("Typography scale editing", () => {
     await expect(names.first()).toBeInViewport();
   });
 
+  test("keeps the heading group numbered, with its indexing off", async ({
+    seededPage: page,
+  }) => {
+    /* h1 to h6 are names, so Size would change nothing. */
+    await showInspectorPanel(page, "Groups");
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const h = settings.getByRole("group", { name: "H", exact: true });
+    const indexing = h.getByLabel("h indexing", { exact: true });
+
+    await expect(indexing).toBeDisabled();
+    await expect(indexing).toContainText("Number");
+    await expect(
+      settings
+        .getByRole("group", { name: "Body", exact: true })
+        .getByLabel("body indexing", { exact: true }),
+    ).toBeEnabled();
+  });
+
   test("removes a role", async ({ seededPage: page }) => {
     await showInspectorPanel(page, "Groups");
     const settings = page.getByRole("region", { name: "Type scale settings" });
