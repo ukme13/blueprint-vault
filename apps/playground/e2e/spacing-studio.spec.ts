@@ -280,10 +280,72 @@ test.describe("The elevation editor", () => {
     ).toBeVisible();
   });
 
+  test("edits one level at a time, and adds and removes custom ones", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Elevation");
+    const canvas = page.getByRole("region", { name: "Elevation", exact: true });
+    await expect(canvas).toBeVisible();
+
+    /* Low is picked at first, and only its pads are in the inspector. */
+    await expect(
+      page.getByRole("button", { name: "Low light contact and cast" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "High light contact and cast" }),
+    ).toHaveCount(0);
+
+    /* Picking a row moves the inspector to it. */
+    await canvas.locator('[data-elevation-level="med"]').click();
+    await expect(
+      page.getByRole("button", { name: "Medium light contact and cast" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Low light contact and cast" }),
+    ).toHaveCount(0);
+
+    /* The system levels have no delete. */
+    await expect(canvas.getByRole("button", { name: /^Delete / })).toHaveCount(
+      0,
+    );
+
+    /* A new level is added, picked, and exported by its own name. */
+    await canvas.getByRole("button", { name: "Add level" }).click();
+    await expect(canvas.getByText("--shadow-new-level")).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "New level light contact and cast" }),
+    ).toBeVisible();
+
+    /* Renamed from the inspector, its variable follows. */
+    const name = page.getByLabel("Level name");
+    await name.fill("Float");
+    await name.press("Enter");
+    await expect(canvas.getByText("--shadow-float")).toBeVisible();
+    await expect
+      .poll(async () =>
+        (await readStoredWorkspace(page))?.elevation?.levels.map(
+          (level: { id: string }) => level.id,
+        ),
+      )
+      .toEqual(["low", "med", "high", "float"]);
+
+    /* And removed from its row. */
+    await canvas.getByRole("button", { name: "Delete Float" }).click();
+    await expect(canvas.getByText("--shadow-float")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Low light contact and cast" }),
+    ).toBeVisible();
+  });
+
   test("edits the cast without moving the contact", async ({
     seededPage: page,
   }) => {
     await showScaleView(page, "Elevation");
+    /* The inspector shows the picked level only; Low is picked at first. */
+    await page
+      .getByRole("region", { name: "Elevation" })
+      .getByRole("button", { name: "High", exact: true })
+      .click();
     const slider = page.getByRole("button", {
       name: "High dark contact and cast",
     });

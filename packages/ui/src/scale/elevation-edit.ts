@@ -1,6 +1,12 @@
 import type { ColourMode, SemanticReference } from "../color/semantic";
 import type { ColorTrack } from "../color/types";
-import { resolveElevation, type ElevationScale } from "./elevation";
+import {
+  isSystemElevationLevel,
+  resolveElevation,
+  SYSTEM_ELEVATION_LEVEL_IDS,
+  type ElevationLevel,
+  type ElevationScale,
+} from "./elevation";
 
 /**
  * Edits to the elevation scale.
@@ -183,5 +189,126 @@ export function elevationPreviewSurfaces(
       ground: darkGround ?? "var(--color-neutral-900)",
       card: darkCard ?? "var(--color-neutral-800)",
     },
+  };
+}
+
+function elevationIdFromName(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+/**
+ * A name and id no other level has, nor any system level: the one asked
+ * for, or it with the lowest free number ("New level 2", `new-level-2`).
+ * Names compare without case, so "low" cannot sit beside Low.
+ */
+function uniqueElevationName(
+  wanted: string,
+  levels: readonly ElevationLevel[],
+  exceptId?: string,
+): { id: string; name: string } {
+  const others = levels.filter((level) => level.id !== exceptId);
+  const ids = new Set([
+    ...others.map((level) => level.id),
+    ...SYSTEM_ELEVATION_LEVEL_IDS,
+  ]);
+  const names = new Set(others.map((level) => level.name.toLowerCase()));
+  const fits = (name: string) => {
+    const id = elevationIdFromName(name) || "level";
+    return !ids.has(id) && !names.has(name.toLowerCase());
+  };
+  if (fits(wanted)) {
+    return { id: elevationIdFromName(wanted) || "level", name: wanted };
+  }
+  let suffix = 2;
+  while (!fits(`${wanted} ${suffix}`)) suffix += 1;
+  const name = `${wanted} ${suffix}`;
+  return { id: elevationIdFromName(name), name };
+}
+
+/**
+ * A new level after the others, exported as `--shadow-{id}`.
+ *
+ * Seeded between Medium and High, a contact and a cast layer like the rest,
+ * so it draws something sensible before it is tuned and the pads apply.
+ */
+export function addElevationLevel(
+  scale: ElevationScale,
+  name = "New level",
+): ElevationScale {
+  const { id, name: unique } = uniqueElevationName(name, scale.levels);
+  const level: ElevationLevel = {
+    id,
+    name: unique,
+    description: "",
+    layers: [
+      {
+        offsetXPx: 0,
+        offsetYPx: 2,
+        blurPx: 4,
+        spreadPx: 0,
+        opacity: { light: 0.1, dark: 0.4 },
+      },
+      {
+        offsetXPx: 0,
+        offsetYPx: 6,
+        blurPx: 18,
+        spreadPx: 0,
+        opacity: { light: 0.1, dark: 0.45 },
+      },
+    ],
+  };
+  return { ...scale, levels: [...scale.levels, level] };
+}
+
+/** Delete a level the author added. A system level stays. */
+export function removeElevationLevel(
+  scale: ElevationScale,
+  levelId: string,
+): ElevationScale {
+  if (isSystemElevationLevel(levelId)) return scale;
+  const levels = scale.levels.filter((level) => level.id !== levelId);
+  return levels.length === scale.levels.length ? scale : { ...scale, levels };
+}
+
+/**
+ * Rename a level and its variable together, and set its description.
+ *
+ * A system level keeps its name and id, and takes only the description. A
+ * custom level's name that another level already has takes a number
+ * instead, so no two levels export one variable. Pass no description to
+ * leave it as it is.
+ */
+export function renameElevationLevel(
+  scale: ElevationScale,
+  levelId: string,
+  name: string,
+  description?: string,
+): ElevationScale {
+  const target = scale.levels.find((level) => level.id === levelId);
+  if (!target) return scale;
+  const nextDescription = description ?? target.description;
+  const trimmed = name.trim();
+  const renamed =
+    isSystemElevationLevel(levelId) || !trimmed || trimmed === target.name
+      ? { id: target.id, name: target.name }
+      : uniqueElevationName(trimmed, scale.levels, levelId);
+  if (
+    renamed.id === target.id &&
+    renamed.name === target.name &&
+    nextDescription === target.description
+  ) {
+    return scale;
+  }
+  return {
+    ...scale,
+    levels: scale.levels.map((level) =>
+      level.id === levelId
+        ? { ...level, ...renamed, description: nextDescription }
+        : level,
+    ),
   };
 }

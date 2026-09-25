@@ -74,6 +74,14 @@ export function ScaleStudio() {
   const spacing = project?.spacing ?? defaultSpacingScale();
   const radius = project?.radius ?? defaultRadiusScale();
   const elevation = project?.elevation ?? defaultElevationScale();
+  /* The level the Elevation inspector edits. Falls back to the first level
+     when the chosen one is gone: removed, or undone away. */
+  const [chosenElevationId, setSelectedElevationId] = useState("low");
+  const selectedElevationId = elevation.levels.some(
+    (level) => level.id === chosenElevationId,
+  )
+    ? chosenElevationId
+    : (elevation.levels[0]?.id ?? "low");
   const layout = project?.layout ?? defaultLayoutTokens();
   const typography =
     project?.typography ?? seedTypographyProject(project?.name ?? "Workspace");
@@ -155,9 +163,11 @@ export function ScaleStudio() {
         <ElevationInspector
           palettes={palettes}
           scale={elevation}
+          selectedLevelId={selectedElevationId}
           onChange={(next, editKey) =>
             history.write({ elevation: next }, { editKey })
           }
+          onSelectLevel={setSelectedElevationId}
         />
       )}
     </>
@@ -292,7 +302,13 @@ export function ScaleStudio() {
                 />
               )}
               {activeSection === "elevation" && (
-                <ElevationCanvas palettes={palettes} scale={elevation} />
+                <ElevationCanvas
+                  palettes={palettes}
+                  scale={elevation}
+                  selectedLevelId={selectedElevationId}
+                  onChange={(next) => history.write({ elevation: next })}
+                  onSelectLevel={setSelectedElevationId}
+                />
               )}
             </section>
 
