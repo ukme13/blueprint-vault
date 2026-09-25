@@ -10,6 +10,7 @@ export * from "./preview-templates";
 export * from "./role-rows";
 export * from "./scale";
 export * from "./system";
+export * from "./role-presets";
 export * from "./system-export";
 export * from "./types";
 export * from "./validation";
