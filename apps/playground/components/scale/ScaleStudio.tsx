@@ -253,7 +253,9 @@ export function ScaleStudio() {
           <RadiusPreviewTab
             devices={previewDevices}
             layout={layout}
+            palettes={palettes}
             radius={radius}
+            semantics={project?.semantics ?? []}
           />
         ) : showUses ? (
           <LayoutUsesTable

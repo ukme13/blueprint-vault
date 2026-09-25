@@ -635,6 +635,26 @@ test.describe("Layout uses", () => {
 
     await expect.poll(() => radiusOf("radius-button")).toBe("9999px");
     await expect.poll(() => radiusOf("radius-input")).toBe("8px");
+    /* A text button, which Full turns into a pill rather than a circle. */
+    await expect
+      .poll(() =>
+        card
+          .getByRole("button", { name: "Ask", exact: true })
+          .evaluate((node) => getComputedStyle(node).borderRadius),
+      )
+      .toBe("9999px");
+    /* In the project's colours, not the studio's: the card's primary is
+       scoped over the studio's own. */
+    const primaries = await card.evaluate((node) => ({
+      card: getComputedStyle(node)
+        .getPropertyValue("--color-action-primary")
+        .trim(),
+      studio: getComputedStyle(document.documentElement)
+        .getPropertyValue("--color-action-primary")
+        .trim(),
+    }));
+    expect(primaries.card).not.toBe("");
+    expect(primaries.card).not.toBe(primaries.studio);
     await expect.poll(() => radiusOf("radius-chip")).toBe("4px");
     /* Surface is page on Desktop and container on Phone. */
     await expect.poll(() => radiusOf("radius-surface")).toBe("28px");
