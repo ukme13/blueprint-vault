@@ -43,6 +43,8 @@ const PANEL: CSSProperties = {
  * they sit well together: the card on Surface radius, the chips on Chip, the
  * field on Input, and the buttons on Button: a text button, which Full turns
  * into a pill, beside a square icon button, which Full turns into a circle.
+ * Minimal on purpose, white controls lifted by shadow on a grey stage with
+ * almost no borders, so the corners are what the eye reads.
  *
  * Everything is scoped to this card the way the site preview scopes it: the
  * project's palette and semantic colours in the studio's current mode, its
@@ -83,7 +85,7 @@ export function RadiusPreviewTab({
   return (
     <section
       aria-label="Radius preview"
-      className="flex min-h-0 flex-col items-center gap-6 overflow-auto p-6"
+      className="flex min-h-0 flex-col items-center gap-6 overflow-auto bg-surface-subtle p-6"
     >
       <header className="flex items-center gap-3">
         <PreviewDeviceBar
@@ -101,7 +103,7 @@ export function RadiusPreviewTab({
       <div className="flex w-full justify-center" style={scopedStyle}>
         <article
           aria-label="Verba AI Preview"
-          className="flex w-full max-w-md flex-col gap-6 border border-border-subtle/60 bg-surface-base p-6 shadow-lg"
+          className="flex w-full max-w-md flex-col gap-6 border border-border-subtle/30 bg-surface-base p-6 shadow-xl"
           data-radius-sample="radius-surface"
           style={{ borderRadius: componentRadiusCss("radius-surface") }}
         >
@@ -115,7 +117,7 @@ export function RadiusPreviewTab({
               </p>
             </div>
             <button
-              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 border border-border-default bg-surface-base px-3 py-1.5 text-xs font-medium text-fg-secondary shadow-xs transition-colors select-none hover:bg-surface-subtle"
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 border border-border-subtle/50 bg-surface-base px-3 py-1.5 text-xs font-medium text-fg-secondary shadow-xs transition-colors select-none hover:bg-surface-subtle"
               data-radius-sample="radius-button"
               style={{ borderRadius: componentRadiusCss("radius-button") }}
               type="button"
@@ -139,7 +141,7 @@ export function RadiusPreviewTab({
               {SUGGESTIONS.map((suggestion) => (
                 <li key={suggestion}>
                   <button
-                    className="inline-flex cursor-pointer items-center border border-border-subtle/60 bg-surface-subtle px-3 py-1.5 text-xs text-fg-secondary transition-colors select-none hover:bg-surface-base"
+                    className="inline-flex cursor-pointer items-center border-0 bg-surface-base px-3.5 py-1.5 text-xs font-medium text-fg-secondary shadow-xs transition-all select-none hover:bg-surface-base/90"
                     data-radius-sample="radius-chip"
                     style={{ borderRadius: componentRadiusCss("radius-chip") }}
                     type="button"
@@ -154,7 +156,7 @@ export function RadiusPreviewTab({
             <div className="flex items-center gap-2">
               <input
                 aria-label="Ask something"
-                className="h-12 min-w-0 flex-1 border border-border-default bg-surface-base px-4 text-sm text-fg-primary shadow-sm placeholder:text-fg-muted focus:border-fg-accent focus:outline-none"
+                className="h-12 min-w-0 flex-1 border-0 bg-surface-base px-4 text-sm text-fg-primary shadow-sm placeholder:text-fg-muted focus:ring-1 focus:ring-fg-accent/20 focus:outline-none"
                 data-radius-sample="radius-input"
                 placeholder="Ask something..."
                 style={{ borderRadius: componentRadiusCss("radius-input") }}
@@ -164,7 +166,7 @@ export function RadiusPreviewTab({
               />
               <button
                 aria-label="Voice input"
-                className="inline-flex size-12 shrink-0 items-center justify-center border border-border-default bg-surface-base text-fg-secondary shadow-sm transition-colors hover:bg-surface-subtle"
+                className="inline-flex size-12 shrink-0 cursor-pointer items-center justify-center border-0 bg-surface-base text-action-primary shadow-sm transition-all select-none hover:bg-surface-base/90"
                 data-radius-sample="radius-button"
                 style={{ borderRadius: componentRadiusCss("radius-button") }}
                 type="button"
@@ -172,7 +174,7 @@ export function RadiusPreviewTab({
                 <Mic aria-hidden className="size-4" />
               </button>
               <button
-                className="inline-flex h-12 shrink-0 cursor-pointer items-center justify-center bg-action-primary px-5 text-sm font-medium text-fg-on-action shadow-sm transition-opacity select-none hover:opacity-90"
+                className="inline-flex h-12 shrink-0 cursor-pointer items-center justify-center border-0 bg-surface-base px-5 text-sm font-semibold text-action-primary shadow-sm transition-all select-none hover:bg-surface-base/90"
                 data-radius-sample="radius-button"
                 style={{ borderRadius: componentRadiusCss("radius-button") }}
                 type="button"
