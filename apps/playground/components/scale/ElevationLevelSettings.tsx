@@ -113,7 +113,7 @@ export function ElevationLevelDetails({
       className={styles.settingGroup}
       role="group"
     >
-      <div className="grid gap-1">
+      <div className="grid gap-2">
         {isSystem ? (
           <h2>{level.name}</h2>
         ) : (
@@ -123,9 +123,16 @@ export function ElevationLevelDetails({
             onCommit={(name) => rename(name)}
           />
         )}
-        <code className="font-mono text-xs text-fg-muted">
-          {elevationVariableName(level.id)}
-        </code>
+        {/* The variable, as a field that cannot be typed in: it follows the
+            name, so it is shown where the name is edited. */}
+        <TextInput
+          isDisabled
+          isLabelHidden
+          label="CSS variable"
+          size="md"
+          value={elevationVariableName(level.id)}
+          width="100%"
+        />
       </div>
       <CommitField
         label="Description"
