@@ -17,6 +17,7 @@ import {
   emptyWorkspace,
   generatePalettes,
   resolveSpacing,
+  seedTypographyProject,
   useWorkspaceStore,
   type HybridTokenizedValue,
 } from "@blueprint/ui";
@@ -74,6 +75,8 @@ export function ScaleStudio() {
   const radius = project?.radius ?? defaultRadiusScale();
   const elevation = project?.elevation ?? defaultElevationScale();
   const layout = project?.layout ?? defaultLayoutTokens();
+  const typography =
+    project?.typography ?? seedTypographyProject(project?.name ?? "Workspace");
   const previewDevices = project?.previewDevices ?? defaultPreviewDevices();
   const palettes = project?.palette ? generatePalettes(project.palette) : [];
   const tokens = resolveSpacing(spacing);
@@ -256,6 +259,7 @@ export function ScaleStudio() {
             palettes={palettes}
             radius={radius}
             semantics={project?.semantics ?? []}
+            typography={typography}
           />
         ) : showUses ? (
           <LayoutUsesTable

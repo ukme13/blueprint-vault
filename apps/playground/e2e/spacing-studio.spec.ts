@@ -655,6 +655,21 @@ test.describe("Layout uses", () => {
     }));
     expect(primaries.card).not.toBe("");
     expect(primaries.card).not.toBe(primaries.studio);
+    /* And in the project's type: the card is set in the body role's font. */
+    const faces = await card.evaluate((node) => {
+      const first = (stack: string) =>
+        stack
+          .split(",")[0]!
+          .trim()
+          .replace(/^["']|["']$/g, "");
+      const style = getComputedStyle(node);
+      return {
+        card: first(style.fontFamily),
+        body: first(style.getPropertyValue("--font-family-main")),
+      };
+    });
+    expect(faces.body).not.toBe("");
+    expect(faces.card).toBe(faces.body);
     await expect.poll(() => radiusOf("radius-chip")).toBe("4px");
     /* Surface is page on Desktop and container on Phone. */
     await expect.poll(() => radiusOf("radius-surface")).toBe("28px");

@@ -3,6 +3,8 @@
 import { useState, type CSSProperties } from "react";
 import { Mic, Plus } from "lucide-react";
 import { useThemeMode } from "../../app/theme-provider";
+import { useGoogleFontsLink } from "../typography/use-google-fonts";
+import { useLocalFonts } from "../typography/use-local-fonts";
 import {
   componentRadiusCss,
   layoutCssVariablesForDevice,
@@ -10,11 +12,13 @@ import {
   radiusCssVariables,
   semanticCssVariables,
   sortPreviewDevicesLargestFirst,
+  typeCssVariablesForDevice,
   type ColorTrack,
   type LayoutToken,
   type PreviewDevice,
   type RadiusScale,
   type SemanticToken,
+  type TypographyProjectData,
 } from "@blueprint/ui";
 import { PreviewDeviceBar } from "../typography/PreviewDeviceBar";
 
@@ -49,7 +53,8 @@ const PANEL: CSSProperties = {
  *
  * Everything is scoped to this card the way the site preview scopes it: the
  * project's palette and semantic colours in the studio's current mode, its
- * radius scale, and its uses for the chosen frame. So the primary button is
+ * radius scale, its uses for the chosen frame, and its type, with the body
+ * role's font on the card and the display role's on the greeting. So the primary button is
  * the project's primary, not the studio's, and the studio around the card is
  * untouched.
  */
@@ -59,12 +64,14 @@ export function RadiusPreviewTab({
   palettes,
   radius,
   semantics,
+  typography,
 }: {
   devices: readonly PreviewDevice[];
   layout: readonly LayoutToken[];
   palettes: ColorTrack[];
   radius: RadiusScale;
   semantics: SemanticToken[];
+  typography: TypographyProjectData;
 }) {
   const { resolved: mode } = useThemeMode();
   const ordered = sortPreviewDevicesLargestFirst(devices);
@@ -75,12 +82,28 @@ export function RadiusPreviewTab({
   );
   const device = ordered.find((each) => each.id === deviceId) ?? ordered[0];
   const [prompt, setPrompt] = useState("");
+  const system = typography.system;
+  /* The project's faces, Google or uploaded, so the card is set in them. */
+  useGoogleFontsLink(system, undefined, 400);
+  useLocalFonts(system);
 
   const scopedStyle: CSSProperties = {
     ...paletteCssVariables(palettes),
     ...semanticCssVariables(semantics, mode, palettes),
     ...radiusCssVariables(radius),
     ...layoutCssVariablesForDevice(layout, device?.id ?? deviceId),
+    ...(device
+      ? typeCssVariablesForDevice(
+          system,
+          device,
+          typography.unit,
+          typography.remRootPx,
+          devices,
+        )
+      : {}),
+    /* By role, not by font: the body role is whichever font the project
+       sets body text in. */
+    fontFamily: "var(--font-body-family, inherit)",
   };
 
   return (
@@ -134,7 +157,13 @@ export function RadiusPreviewTab({
             className="flex flex-col gap-4 rounded-container border border-border-subtle/50 p-5"
             style={PANEL}
           >
-            <h3 className="m-0 mt-16 font-serif text-2xl font-medium text-fg-secondary">
+            <h3
+              className="m-0 mt-16 text-2xl font-medium text-fg-secondary"
+              style={{
+                fontFamily:
+                  "var(--font-display-1-family, var(--font-body-family, serif))",
+              }}
+            >
               How can I help you?
             </h3>
 
