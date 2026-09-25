@@ -1073,10 +1073,20 @@ export function addRole(system: TypeSystem, group: TypeGroup): TypeSystem {
      which is how a lone `caption` becomes `caption-1` once a second one joins
      it. */
   const placeholder = `${group.id}-new-${system.roles.length}`;
+  /* Where the new role goes is what keeps the other names. Numbers count from
+     the top, so a number group grows at the bottom; sizes count up from `xs`
+     at the bottom, so a size group grows at the top, as the next size up. Put
+     at the bottom, a new role would take `xs` and push every name above it up
+     one — `body-sm` would become `body-md` and its token would move. */
+  const members = system.roles.filter((role) => role.groupId === group.id);
+  const at =
+    group.indexing === "size" && members[0]
+      ? system.roles.indexOf(members[0])
+      : system.roles.length;
   const withRole: TypeSystem = {
     ...system,
     roles: [
-      ...system.roles,
+      ...system.roles.slice(0, at),
       {
         ...template,
         id: placeholder,
@@ -1091,6 +1101,7 @@ export function addRole(system: TypeSystem, group: TypeGroup): TypeSystem {
         unlinkedLineHeights: {},
         unlinkedLetterSpacings: {},
       },
+      ...system.roles.slice(at),
     ],
   };
 

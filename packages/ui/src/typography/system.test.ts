@@ -676,6 +676,107 @@ describe("addRole", () => {
     // link someone set on it deliberately.
     expect(after.roles.map((r) => r.sameAsRoleId)).toEqual(["body", null]);
   });
+
+  describe("in a size group", () => {
+    /* Ids are handed out by position, so a list of ids alone passes whichever
+       end the new role went in. A display name someone set survives a
+       reindex, and is how these tests tell which role got which id. */
+    const sized = () => {
+      const group = free("body", "size");
+      const before = system({
+        groups: [group, free("lead", "number")],
+        roles: [
+          role("lead", "lead", { sameAsRoleId: "body-sm" }),
+          role("body-sm", "body", { name: "Small", fontWeight: 600 }),
+          role("body-xs", "body", { name: "Tiny", fontWeight: 300 }),
+        ],
+      });
+      return { group, before };
+    };
+
+    it("adds the next size up at the top", () => {
+      const { group, before } = sized();
+      const after = addRole(before, group);
+      expect(after.roles.map((r) => [r.id, r.name])).toEqual([
+        ["lead", "lead"],
+        ["body-md", "body-md"],
+        ["body-sm", "Small"],
+        ["body-xs", "Tiny"],
+      ]);
+    });
+
+    it("keeps every existing role's name", () => {
+      const { group, before } = sized();
+      const after = addRole(before, group);
+      expect(after.roles.slice(2).map((r) => [r.id, r.fontWeight])).toEqual([
+        ["body-sm", 600],
+        ["body-xs", 300],
+      ]);
+    });
+
+    it("leaves a role that follows one of them pointing at the same role", () => {
+      const { group, before } = sized();
+      const after = addRole(before, group);
+      expect(after.roles.find((r) => r.id === "lead")!.sameAsRoleId).toBe(
+        "body-sm",
+      );
+    });
+
+    it("copies the largest role, the one it sits above", () => {
+      const { group, before } = sized();
+      const added = addRole(before, group).roles.find(
+        (r) => r.id === "body-md",
+      )!;
+      expect(added.fontWeight).toBe(600);
+    });
+
+    it("renames no one on the way to a full group", () => {
+      const group = free("body", "size");
+      let current = system({
+        groups: [group],
+        roles: [role("body-sm", "body"), role("body-xs", "body")],
+      });
+      while (canAddRole(current, group)) {
+        // Label every role with the id it has now, then check it still has it.
+        current = {
+          ...current,
+          roles: current.roles.map((r) => ({ ...r, name: `was ${r.id}` })),
+        };
+        current = addRole(current, group);
+        for (const r of current.roles.slice(1)) {
+          expect(r.name).toBe(`was ${r.id}`);
+        }
+      }
+      expect(current.roles.map((r) => r.id)).toEqual([
+        "body-5xl",
+        "body-4xl",
+        "body-3xl",
+        "body-2xl",
+        "body-xl",
+        "body-lg",
+        "body-md",
+        "body-sm",
+        "body-xs",
+      ]);
+    });
+  });
+
+  it("adds at the bottom of a number group, where the next number is", () => {
+    const group = free("body", "number");
+    const before = system({
+      groups: [group],
+      roles: [
+        role("body-1", "body", { fontWeight: 600 }),
+        role("body-2", "body", { fontWeight: 300 }),
+      ],
+    });
+    const after = addRole(before, group);
+    expect(after.roles.map((r) => [r.id, r.fontWeight])).toEqual([
+      ["body-1", 600],
+      ["body-2", 300],
+      ["body-3", 600],
+    ]);
+  });
 });
 
 describe("removeRole", () => {
