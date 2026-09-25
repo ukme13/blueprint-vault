@@ -310,10 +310,13 @@
   list-style: none;
 }
 
+/* The light and dark grounds as one tile split down the middle: no gap
+   between them, and the corner only on the tile's outside. */
 .elevationModes {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+  width: max-content;
+  overflow: hidden;
+  border-radius: var(--radius-element);
 }
 
 .elevationSample {
@@ -330,7 +333,6 @@
   justify-content: center;
   width: 8rem;
   height: 8rem;
-  border-radius: var(--radius-element);
 }
 
 .elevationCard {
