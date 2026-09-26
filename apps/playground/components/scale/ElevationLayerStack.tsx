@@ -7,10 +7,8 @@ import { Popover } from "@astryxdesign/core/Popover";
 import {
   Button,
   addShadowLayer,
-  isInnerShadow,
   removeShadowLayer,
   ShadowLayerIcon,
-  shadowLayerEdges,
   shadowLayerSummary,
   shadowLayerTypeLabel,
   toggleShadowLayerVisibility,
@@ -99,8 +97,8 @@ export function ElevationLayerStack({
               >
                 {/* Marked on the side its shadow falls, as in Figma. */}
                 <ShadowLayerIcon
-                  edges={shadowLayerEdges(each)}
-                  inner={isInnerShadow(each)}
+                  className={styles.elevationLayerIcon}
+                  layer={each}
                 />
                 <span className={styles.elevationLayerText}>
                   <span>{shadowLayerTypeLabel(each)}</span>

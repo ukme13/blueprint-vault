@@ -15,7 +15,7 @@ import {
   isSimpleElevationLevel,
   removeShadowLayer,
   resolveElevationColour,
-  shadowLayerEdges,
+  shadowLayerIconShadow,
   shadowLayerSummary,
   shadowLayerTypeLabel,
   toggleShadowLayerVisibility,
@@ -458,43 +458,40 @@ describe("elevation presets", () => {
   });
 });
 
-describe("shadowLayerEdges", () => {
-  const edges = (
-    type: "drop" | "inner",
-    offsetXPx: number,
-    offsetYPx: number,
-  ) => shadowLayerEdges({ type, offsetXPx, offsetYPx });
-  const sides = (value: ReturnType<typeof shadowLayerEdges>) =>
-    (Object.keys(value) as (keyof typeof value)[]).filter(
-      (side) => value[side],
+describe("shadowLayerIconShadow", () => {
+  const icon = (type: "drop" | "inner", offsetXPx: number, offsetYPx: number) =>
+    shadowLayerIconShadow({ type, offsetXPx, offsetYPx });
+
+  it("casts a hard copy in the layer's direction, in the text colour", () => {
+    expect(icon("drop", 0, 4)).toBe("0px 2px 0 0 currentColor");
+    expect(icon("drop", 3, 4)).toBe("2px 2px 0 0 currentColor");
+    expect(icon("drop", -6, -6)).toBe("-2px -2px 0 0 currentColor");
+  });
+
+  it("keeps the direction only, so a long offset is no heavier", () => {
+    expect(icon("drop", 0, 40)).toBe(icon("drop", 0, 1));
+  });
+
+  it("makes an inner layer's shadow inset, which CSS draws on the far side", () => {
+    /* inset 0 2px: the shadow shows along the top inside edge. The sign is
+       the layer's own; CSS puts it where it goes. */
+    expect(icon("inner", 0, 4)).toBe("inset 0px 2px 0 0 currentColor");
+  });
+
+  it("spreads evenly at half strength when there is no offset", () => {
+    expect(icon("drop", 0, 0)).toBe(
+      "0 0 0 1px color-mix(in srgb, currentColor 50%, transparent)",
     );
-
-  it("puts a drop shadow on the sides its offset points to", () => {
-    expect(sides(edges("drop", 0, 4))).toEqual(["bottom"]);
-    expect(sides(edges("drop", 3, 4))).toEqual(["right", "bottom"]);
-    expect(sides(edges("drop", -6, -6))).toEqual(["top", "left"]);
+    expect(icon("inner", 0, 0)).toMatch(/^inset 0 0 0 1px/);
   });
 
-  it("puts an inner shadow on the opposite sides, as `inset` draws it", () => {
-    /* inset 0 4px: the box moves down inside its frame, so the shadow shows
-       along the top inside edge. */
-    expect(sides(edges("inner", 0, 4))).toEqual(["top"]);
-    expect(sides(edges("inner", 3, 4))).toEqual(["top", "left"]);
-  });
-
-  it("shows on every side when there is no offset, as a glow does", () => {
-    expect(sides(edges("drop", 0, 0))).toEqual([
-      "top",
-      "right",
-      "bottom",
-      "left",
-    ]);
-    expect(sides(edges("inner", 0, 0))).toHaveLength(4);
+  it("writes a straight shadow's zero as 0px, never -0px", () => {
+    expect(icon("drop", -0, 4)).toBe("0px 2px 0 0 currentColor");
   });
 
   it("reads a layer saved without a type as a drop shadow", () => {
-    expect(sides(shadowLayerEdges({ offsetXPx: 0, offsetYPx: 2 }))).toEqual([
-      "bottom",
-    ]);
+    expect(shadowLayerIconShadow({ offsetXPx: 0, offsetYPx: 2 })).not.toMatch(
+      /inset/,
+    );
   });
 });

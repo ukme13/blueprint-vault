@@ -7,10 +7,8 @@ import { InputGroup, InputGroupText } from "@astryxdesign/core/InputGroup";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
 import {
   COLOUR_MODES,
-  isInnerShadow,
   ShadowLayerIcon,
   parseShadeOptionValue,
-  shadowLayerEdges,
   shadeOptionSections,
   shadeOptionValue,
   updateShadowLayer,
@@ -93,11 +91,7 @@ export function ElevationLayerEditor({
   return (
     <div className={styles.layerPopover}>
       <div className={styles.layerPopoverHeader}>
-        <ShadowLayerIcon
-          className={styles.layerPopoverIcon}
-          edges={shadowLayerEdges(layer)}
-          inner={isInnerShadow(layer)}
-        />
+        <ShadowLayerIcon className={styles.layerPopoverIcon} layer={layer} />
         <SheetSelector
           isLabelHidden
           label={`${layerName} type`}

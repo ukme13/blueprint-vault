@@ -499,7 +499,9 @@ test.describe("The elevation editor", () => {
 
     /* The type icon is square and as tall as the two lines beside it. */
     const icon = await rows.first().evaluate((row) => {
-      const svg = row.querySelector("svg")!.getBoundingClientRect();
+      const svg = row
+        .querySelector("[class*=elevationLayerIcon]")!
+        .getBoundingClientRect();
       const text = row
         .querySelector("[class*=elevationLayerText]")!
         .getBoundingClientRect();
@@ -604,19 +606,21 @@ test.describe("The elevation editor", () => {
     expect(modeTags).toHaveLength(2);
     expect(new Set(modeTags).size).toBe(1);
 
-    /* The row's icon has a heavier edge where the shadow falls, as Figma's
-       does: a new layer is pushed down, so its bottom edge thickens outward. */
-    const edges = rows.nth(2).locator("[data-shadow-edge]");
-    await expect(edges).toHaveCount(1);
-    await expect(edges).toHaveAttribute("data-shadow-edge", "bottom");
-    await expect(edges).toHaveAttribute("data-shadow-side", "outside");
+    /* The row's icon casts a real shadow the way the layer does, as Figma's
+       does: a new layer is pushed down, so its square casts below itself. */
+    const iconShadow = () =>
+      rows
+        .nth(2)
+        .locator("[data-shadow-icon]")
+        .evaluate((node) => getComputedStyle(node).boxShadow);
+    await expect.poll(iconShadow).toMatch(/ 0px 2px 0px 0px$/);
+    await expect.poll(iconShadow).not.toContain("inset");
 
     await third.getByLabel("Layer 3 type", { exact: true }).click();
     await page.getByRole("option", { name: "Inner shadow" }).click();
     await expect.poll(shadow).toContain("inset");
-    // An inner shadow pushed down thickens the top edge, inward.
-    await expect(edges).toHaveAttribute("data-shadow-edge", "top");
-    await expect(edges).toHaveAttribute("data-shadow-side", "inside");
+    // An inner layer's icon casts inset, which shows along the top inside.
+    await expect.poll(iconShadow).toMatch(/ 0px 2px 0px 0px inset$/);
     await third.getByRole("spinbutton", { name: "Layer 3 Blur" }).fill("12");
     await third
       .getByRole("spinbutton", { name: "Layer 3 Blur" })

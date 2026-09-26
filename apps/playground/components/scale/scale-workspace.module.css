@@ -545,12 +545,9 @@
 
 /* As tall as the two lines beside it, the type and the geometry, and square:
    stretched to the row's height, with the width following it. */
-.elevationLayerSelect svg {
+.elevationLayerIcon {
   flex: none;
   align-self: stretch;
-  width: auto;
-  height: auto;
-  aspect-ratio: 1;
   color: var(--color-fg-muted);
 }
 

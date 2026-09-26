@@ -326,40 +326,33 @@ export function shadowLayerSummary(layer: ShadowLayer): string {
   return `X ${layer.offsetXPx} · Y ${layer.offsetYPx} · B ${layer.blurPx} · S ${layer.spreadPx}`;
 }
 
-/** Which sides of a box a layer's shadow shows on. */
-export interface ShadowLayerEdges {
-  top: boolean;
-  right: boolean;
-  bottom: boolean;
-  left: boolean;
-}
-
 /**
- * The sides a layer's shadow shows on, for its icon — the way Figma marks an
- * effect with a heavier line on the side its shadow falls.
+ * The shadow a layer's icon casts: a small, hard copy of the layer's own
+ * shadow, in the icon's text colour.
  *
- * A drop shadow shows on the sides its offset points to: pushed down and
- * right, it falls below and to the right. An inner shadow shows on the
- * opposite sides, inside: pushed down, it darkens the top inside edge, since
- * that is where the inset box has moved away from. With no offset at all, a
- * shadow of either kind shows evenly on every side.
+ * The icon is a square outline that casts this, so the outline reads heavier
+ * on the side the layer's shadow falls — the way Figma marks an effect. It
+ * is a real shadow rather than a drawn edge, so it goes where CSS puts one:
+ * a drop shadow pushed down falls below the square; an inner one pushed down
+ * shows along the top inside edge, since that is where `inset` draws it.
+ *
+ * Only the direction is kept, not the size: every offset becomes `weightPx`
+ * in its direction, and the blur is 0, so the icon stays crisp at any value.
+ * With no offset, the shadow spreads evenly at half strength, as a glow
+ * shows on every side.
  */
-export function shadowLayerEdges(
+export function shadowLayerIconShadow(
   layer: Pick<ShadowLayer, "type" | "offsetXPx" | "offsetYPx">,
-): ShadowLayerEdges {
-  const { offsetXPx: x, offsetYPx: y } = layer;
+  weightPx = 2,
+): string {
+  const inset = isInnerShadow(layer) ? "inset " : "";
+  const x = Math.sign(layer.offsetXPx) * weightPx;
+  const y = Math.sign(layer.offsetYPx) * weightPx;
   if (x === 0 && y === 0) {
-    return { top: true, right: true, bottom: true, left: true };
+    return `${inset}0 0 0 ${weightPx / 2}px color-mix(in srgb, currentColor 50%, transparent)`;
   }
-  const toward = { top: y < 0, right: x > 0, bottom: y > 0, left: x < 0 };
-  return isInnerShadow(layer)
-    ? {
-        top: toward.bottom,
-        right: toward.left,
-        bottom: toward.top,
-        left: toward.right,
-      }
-    : toward;
+  /* `+ 0` turns a -0 into 0, so a straight shadow reads `0px`, not `-0px`. */
+  return `${inset}${x + 0}px ${y + 0}px 0 0 currentColor`;
 }
 
 /** The shade the shadows are drawn from, named and resolved. */
