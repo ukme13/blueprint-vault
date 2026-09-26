@@ -146,6 +146,7 @@ export function ElevationLayerEditor({
           ]}
           searchPlaceholder="Search shades"
           size="sm"
+          width="100%"
           value={layer.colour ? shadeOptionValue(layer.colour) : SCALE_COLOUR}
           onChange={(next) => {
             if (next === SCALE_COLOUR) {

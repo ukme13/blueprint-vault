@@ -511,6 +511,26 @@ test.describe("The elevation editor", () => {
     ];
     expect(popover.x + popover.width).toBeLessThanOrEqual(row.x + 1);
 
+    /* Every field inside it, all ending on one right edge. X, Y and the
+       opacities once ran past the popover into the panel while Blur and
+       Spread stopped short. */
+    const groups = await third
+      .locator(".astryx-input-group")
+      .evaluateAll((nodes) =>
+        nodes.map((node) => Math.round(node.getBoundingClientRect().right)),
+      );
+    // The selector's visible box, not the label's text button inside it.
+    const colour = (await third
+      .getByLabel("Layer 3 colour", { exact: true })
+      .locator("xpath=ancestor::*[contains(@class, 'astryx-selector')][1]")
+      .boundingBox())!;
+    const rights = [...groups, Math.round(colour.x + colour.width)];
+    expect(rights).toHaveLength(7);
+    for (const right of rights) {
+      expect(right).toBeLessThanOrEqual(popover.x + popover.width);
+      expect(right).toBe(rights[0]);
+    }
+
     await third.getByLabel("Layer 3 type", { exact: true }).click();
     await page.getByRole("option", { name: "Inner shadow" }).click();
     await expect.poll(shadow).toContain("inset");

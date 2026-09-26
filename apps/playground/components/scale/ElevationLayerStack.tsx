@@ -125,7 +125,7 @@ export function ElevationLayerStack({
                     isOpen={open === index}
                     label={`${name} settings`}
                     placement="start"
-                    width={240}
+                    width={264}
                     onOpenChange={(isOpen) => setOpen(isOpen ? index : null)}
                   >
                     {row}

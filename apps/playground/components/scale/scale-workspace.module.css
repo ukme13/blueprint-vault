@@ -595,6 +595,19 @@
   gap: var(--spacing-1);
 }
 
+/* Every field fills its column and may shrink into it. Grid items default to
+   `min-width: auto`, so a number field kept its own natural width and ran
+   past the popover into the panel, while a field alone in its row stopped
+   short: no two rows ended on the same edge. */
+.layerPopoverRows > *,
+.layerPopoverFields > *,
+.layerPopoverRows :global(.astryx-input-group),
+.layerPopoverRows :global(.astryx-number-input),
+.layerPopoverRows :global(.astryx-input-group) input {
+  width: 100%;
+  min-width: 0;
+}
+
 .layerPopoverRows :global(.astryx-input-group-text) svg {
   width: 14px;
   height: 14px;
