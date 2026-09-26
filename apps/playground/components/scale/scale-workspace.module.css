@@ -531,10 +531,14 @@
   border-radius: var(--radius-element);
 }
 
+/* As tall as the two lines beside it, the type and the geometry, and square:
+   stretched to the row's height, with the width following it. */
 .elevationLayerSelect svg {
   flex: none;
-  width: 16px;
-  height: 16px;
+  align-self: stretch;
+  width: auto;
+  height: auto;
+  aspect-ratio: 1;
   color: var(--color-fg-muted);
 }
 

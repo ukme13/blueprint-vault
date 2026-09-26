@@ -96,7 +96,8 @@ export function ElevationLayerStack({
                    straight back shut. */
                 onClick={isPhone ? () => setOpen(index) : undefined}
               >
-                <TypeIcon aria-hidden="true" />
+                {/* The stroke stays 2px as the icon grows. */}
+                <TypeIcon absoluteStrokeWidth aria-hidden="true" />
                 <span className={styles.elevationLayerText}>
                   <span>{shadowLayerTypeLabel(each)}</span>
                   <span className={styles.elevationLayerSummary}>

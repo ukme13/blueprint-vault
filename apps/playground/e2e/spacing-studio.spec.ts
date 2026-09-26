@@ -497,6 +497,17 @@ test.describe("The elevation editor", () => {
     await page.getByRole("radio", { name: "Advanced" }).click();
     await expect(rows).toHaveCount(2);
 
+    /* The type icon is square and as tall as the two lines beside it. */
+    const icon = await rows.first().evaluate((row) => {
+      const svg = row.querySelector("svg")!.getBoundingClientRect();
+      const text = row
+        .querySelector("[class*=elevationLayerText]")!
+        .getBoundingClientRect();
+      return { width: svg.width, height: svg.height, text: text.height };
+    });
+    expect(Math.abs(icon.height - icon.text)).toBeLessThanOrEqual(1);
+    expect(Math.abs(icon.width - icon.height)).toBeLessThanOrEqual(1);
+
     await layers.getByRole("button", { name: "Add layer" }).click();
     await expect(rows).toHaveCount(3);
 
