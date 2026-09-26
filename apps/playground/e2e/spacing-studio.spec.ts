@@ -608,7 +608,7 @@ test.describe("The elevation editor", () => {
        new layer is pushed down, so below the box, outside it. */
     await expect(rows.nth(2).locator("[data-shadow-edges]")).toHaveAttribute(
       "d",
-      "M7 21H17",
+      "M8 21H16",
     );
 
     await third.getByLabel("Layer 3 type", { exact: true }).click();
@@ -617,7 +617,7 @@ test.describe("The elevation editor", () => {
     // An inner shadow pushed down shows along the top, inside the box.
     await expect(rows.nth(2).locator("[data-shadow-edges]")).toHaveAttribute(
       "d",
-      "M9 8.5H15",
+      "M9 9H15",
     );
     await third.getByRole("spinbutton", { name: "Layer 3 Blur" }).fill("12");
     await third

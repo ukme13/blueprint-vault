@@ -8,10 +8,12 @@ export interface ShadowLayerIconProps extends SVGProps<SVGSVGElement> {
   inner?: boolean;
 }
 
-/* The box is 14 units square, from 5 to 19. A drop shadow's mark runs 2
-   outside an edge, an inner one's 3.5 inside it. */
-const OUTER = { near: 3, far: 21, from: 7, to: 17 };
-const INNER = { near: 8.5, far: 15.5, from: 9, to: 15 };
+/* The box is 12 units square, from 6 to 18. A drop shadow's mark runs 3
+   outside an edge and an inner one's 3 inside it, so each is clearly apart
+   from the box: at 2 units out, less the strokes, the drop mark sat about a
+   pixel off the edge and read as a thick border on the box itself. */
+const OUTER = { near: 3, far: 21, from: 8, to: 16 };
+const INNER = { near: 9, far: 15, from: 9, to: 15 };
 
 /**
  * A shadow layer: a box with a heavier line on the side its shadow falls, the
@@ -60,13 +62,13 @@ export function ShadowLayerIcon({
       {...props}
     >
       <rect
-        height="14"
+        height="12"
         rx="2"
         strokeWidth="1.5"
         vectorEffect="non-scaling-stroke"
-        width="14"
-        x="5"
-        y="5"
+        width="12"
+        x="6"
+        y="6"
       />
       <path
         d={marks.join("")}
