@@ -552,6 +552,22 @@ test.describe("The elevation editor", () => {
       expect(right).toBe(rights[0]);
     }
 
+    /* X, Y, Blur and Spread's tags are one width, so their values line up. */
+    const tags = await third
+      .locator(".astryx-input-group")
+      .evaluateAll((groups) =>
+        groups
+          .slice(0, 4)
+          .map((group) =>
+            Math.round(
+              group
+                .querySelector(".astryx-input-group-text")!
+                .getBoundingClientRect().width,
+            ),
+          ),
+      );
+    expect(new Set(tags).size).toBe(1);
+
     await third.getByLabel("Layer 3 type", { exact: true }).click();
     await page.getByRole("option", { name: "Inner shadow" }).click();
     await expect.poll(shadow).toContain("inset");

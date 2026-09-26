@@ -613,6 +613,15 @@
   min-width: 0;
 }
 
+/* X, Y and the blur and spread icons each sit in a box of one width, so
+   every tag slot is the same width and the values line up. */
+.layerPopoverTag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+}
+
 .layerPopoverRows :global(.astryx-input-group-text) svg {
   width: 14px;
   height: 14px;

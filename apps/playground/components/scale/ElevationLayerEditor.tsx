@@ -75,7 +75,9 @@ export function ElevationLayerEditor({
     tag: ReactNode,
   ) => (
     <InputGroup isLabelHidden label={layerName} size="sm">
-      <InputGroupText>{tag}</InputGroupText>
+      <InputGroupText>
+        <span className={styles.layerPopoverTag}>{tag}</span>
+      </InputGroupText>
       <NumberInput
         isLabelHidden
         label={name}
