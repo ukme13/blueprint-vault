@@ -604,21 +604,19 @@ test.describe("The elevation editor", () => {
     expect(modeTags).toHaveLength(2);
     expect(new Set(modeTags).size).toBe(1);
 
-    /* The row's icon marks the side the shadow falls, as Figma's does: a
-       new layer is pushed down, so below the box, outside it. */
-    await expect(rows.nth(2).locator("[data-shadow-edges]")).toHaveAttribute(
-      "d",
-      "M8 21H16",
-    );
+    /* The row's icon has a heavier edge where the shadow falls, as Figma's
+       does: a new layer is pushed down, so its bottom edge thickens outward. */
+    const edges = rows.nth(2).locator("[data-shadow-edge]");
+    await expect(edges).toHaveCount(1);
+    await expect(edges).toHaveAttribute("data-shadow-edge", "bottom");
+    await expect(edges).toHaveAttribute("data-shadow-side", "outside");
 
     await third.getByLabel("Layer 3 type", { exact: true }).click();
     await page.getByRole("option", { name: "Inner shadow" }).click();
     await expect.poll(shadow).toContain("inset");
-    // An inner shadow pushed down shows along the top, inside the box.
-    await expect(rows.nth(2).locator("[data-shadow-edges]")).toHaveAttribute(
-      "d",
-      "M9 9H15",
-    );
+    // An inner shadow pushed down thickens the top edge, inward.
+    await expect(edges).toHaveAttribute("data-shadow-edge", "top");
+    await expect(edges).toHaveAttribute("data-shadow-side", "inside");
     await third.getByRole("spinbutton", { name: "Layer 3 Blur" }).fill("12");
     await third
       .getByRole("spinbutton", { name: "Layer 3 Blur" })

@@ -4,49 +4,52 @@ import type { ShadowLayerEdges } from "../../../scale/elevation-edit";
 export interface ShadowLayerIconProps extends SVGProps<SVGSVGElement> {
   /** The sides the shadow shows on, from `shadowLayerEdges`. */
   edges: ShadowLayerEdges;
-  /** An inner shadow is marked inside the box; a drop shadow, outside it. */
+  /** An inner shadow thickens its edges inward; a drop shadow, outward. */
   inner?: boolean;
 }
 
-/* The box is 12 units square, from 6 to 18. A drop shadow's mark runs 3
-   outside an edge and an inner one's 3 inside it, so each is clearly apart
-   from the box: at 2 units out, less the strokes, the drop mark sat about a
-   pixel off the edge and read as a thick border on the box itself. */
-const OUTER = { near: 3, far: 21, from: 8, to: 16 };
-const INNER = { near: 9, far: 15, from: 9, to: 15 };
+/* The box runs from 5 to 19. A shadowed edge gains a bar this thick against
+   the stroke, so the edge itself reads heavier rather than a second line
+   appearing beside it. */
+const BOX = { from: 5, to: 19 };
+const BAR = 1.75;
+
+type Side = keyof ShadowLayerEdges;
+const SIDES: Side[] = ["top", "right", "bottom", "left"];
+
+/** Where one side's bar sits: against the edge, outside it or inside it. */
+function bar(side: Side, inner: boolean) {
+  const { from, to } = BOX;
+  const length = to - from;
+  const near = inner ? from : from - BAR;
+  const far = inner ? to - BAR : to;
+  switch (side) {
+    case "top":
+      return { x: from, y: near, width: length, height: BAR };
+    case "bottom":
+      return { x: from, y: far, width: length, height: BAR };
+    case "left":
+      return { x: near, y: from, width: BAR, height: length };
+    case "right":
+      return { x: far, y: from, width: BAR, height: length };
+  }
+}
 
 /**
- * A shadow layer: a box with a heavier line on the side its shadow falls, the
- * way Figma marks an effect in its layer list. A drop shadow's line is
- * outside the box, an inner shadow's inside it.
+ * A shadow layer: a box whose outline is heavier on the side its shadow
+ * falls, the way Figma marks an effect in its layer list. The edge thickens
+ * outward for a drop shadow and inward for an inner one, so the two read
+ * differently even on the same side.
  *
- * Two marked sides that meet run to the shared corner, so a shadow down and
- * to the right reads as one L rather than two dashes. With every side marked,
- * as for a shadow with no offset, the line is drawn at half strength: the
- * shadow is even, not heavy.
- *
- * Every stroke keeps its width as the icon is sized, so it stays one weight
- * whether it is 16px or stretched to a row's height.
+ * With every side shadowed, as for a shadow with no offset, every edge is
+ * heavier at half strength: the shadow is even, not heavy.
  */
 export function ShadowLayerIcon({
   edges,
   inner = false,
   ...props
 }: ShadowLayerIconProps) {
-  const at = inner ? INNER : OUTER;
-  const even = edges.top && edges.right && edges.bottom && edges.left;
-  const span = (start: boolean, end: boolean): [number, number] => [
-    start ? at.near : at.from,
-    end ? at.far : at.to,
-  ];
-  const [leftX, rightX] = span(edges.left, edges.right);
-  const [topY, bottomY] = span(edges.top, edges.bottom);
-  const marks = [
-    edges.top && `M${leftX} ${at.near}H${rightX}`,
-    edges.bottom && `M${leftX} ${at.far}H${rightX}`,
-    edges.left && `M${at.near} ${topY}V${bottomY}`,
-    edges.right && `M${at.far} ${topY}V${bottomY}`,
-  ].filter(Boolean);
+  const even = SIDES.every((side) => edges[side]);
 
   return (
     <svg
@@ -62,21 +65,25 @@ export function ShadowLayerIcon({
       {...props}
     >
       <rect
-        height="12"
-        rx="2"
+        height={BOX.to - BOX.from}
+        rx="1.5"
         strokeWidth="1.5"
         vectorEffect="non-scaling-stroke"
-        width="12"
-        x="6"
-        y="6"
+        width={BOX.to - BOX.from}
+        x={BOX.from}
+        y={BOX.from}
       />
-      <path
-        d={marks.join("")}
-        data-shadow-edges=""
-        strokeOpacity={even ? 0.5 : 1}
-        strokeWidth="2.5"
-        vectorEffect="non-scaling-stroke"
-      />
+      {SIDES.filter((side) => edges[side]).map((side) => (
+        <rect
+          key={side}
+          {...bar(side, inner)}
+          data-shadow-edge={side}
+          data-shadow-side={inner ? "inside" : "outside"}
+          fill="currentColor"
+          fillOpacity={even ? 0.5 : 1}
+          stroke="none"
+        />
+      ))}
     </svg>
   );
 }

@@ -3,54 +3,73 @@ import { describe, expect, it } from "vitest";
 import { shadowLayerEdges } from "../../../scale/elevation-edit";
 import { ShadowLayerIcon } from "./ShadowLayerIcon";
 
-/** The mark's path, as drawn for a layer with these offsets. */
-function mark(type: "drop" | "inner", offsetXPx: number, offsetYPx: number) {
+interface Bar {
+  edge: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  opacity: number;
+}
+
+/** The heavier edges drawn for a layer with these offsets. */
+function bars(type: "drop" | "inner", offsetXPx: number, offsetYPx: number) {
   const html = renderToStaticMarkup(
     <ShadowLayerIcon
       edges={shadowLayerEdges({ type, offsetXPx, offsetYPx })}
       inner={type === "inner"}
     />,
   );
-  const path =
-    /<path d="([^"]*)" data-shadow-edges=""[^>]*stroke-opacity="([\d.]+)"/.exec(
-      html,
-    );
-  return { d: path?.[1] ?? "", opacity: Number(path?.[2]) };
+  // React writes an SVG rect with a closing tag, not self-closed.
+  return [...html.matchAll(/<rect ([^>]*data-shadow-edge[^>]*?)\/?>/g)].map(
+    ([, attributes]): Bar => {
+      const read = (name: string) =>
+        new RegExp(`${name}="([^"]*)"`).exec(attributes!)?.[1] ?? "";
+      return {
+        edge: read("data-shadow-edge"),
+        x: Number(read("x")),
+        y: Number(read("y")),
+        width: Number(read("width")),
+        height: Number(read("height")),
+        opacity: Number(read("fill-opacity")),
+      };
+    },
+  );
 }
 
+/* The box runs from 5 to 19. */
+const BOX_FROM = 5;
+const BOX_TO = 19;
+
 describe("ShadowLayerIcon", () => {
-  it("marks a drop shadow below the box, outside it", () => {
-    // The box's bottom edge is at 18; the mark runs at 21, apart from it.
-    expect(mark("drop", 0, 4).d).toBe("M8 21H16");
+  it("thickens a drop shadow's edge outward, against the box", () => {
+    const [bottom] = bars("drop", 0, 4);
+    expect(bottom!.edge).toBe("bottom");
+    // It starts on the box's bottom edge, so the edge reads heavier; it is
+    // not a second line with a gap.
+    expect(bottom!.y).toBe(BOX_TO);
+    expect(bottom!.x).toBe(BOX_FROM);
+    expect(bottom!.width).toBe(BOX_TO - BOX_FROM);
   });
 
-  it("keeps a drop mark 3 units clear of the box, not on its edge", () => {
-    /* At 2 units, less the strokes, the mark sat about a pixel off the box
-       and read as a thick border on it, like a stroke drawn inside. */
-    const html = renderToStaticMarkup(
-      <ShadowLayerIcon
-        edges={shadowLayerEdges({ offsetXPx: 0, offsetYPx: 4 })}
-      />,
-    );
-    const box = /<rect height="(\d+)"[^>]*y="(\d+)"/.exec(html)!;
-    const bottom = Number(box[2]) + Number(box[1]);
-    expect(21 - bottom).toBeGreaterThanOrEqual(3);
+  it("thickens an inner shadow's edge inward, along the top", () => {
+    const [top] = bars("inner", 0, 4);
+    expect(top!.edge).toBe("top");
+    expect(top!.y).toBe(BOX_FROM);
   });
 
-  it("marks an inner shadow along the top, inside the box", () => {
-    expect(mark("inner", 0, 4).d).toBe("M9 9H15");
+  it("thickens both edges a diagonal shadow falls on", () => {
+    expect(bars("drop", 3, 4).map((each) => each.edge)).toEqual([
+      "right",
+      "bottom",
+    ]);
   });
 
-  it("joins two marked sides at their corner, as one L", () => {
-    // Down and right: the bottom runs to x 21, the right side down to y 21.
-    expect(mark("drop", 3, 4).d).toBe("M8 21H21M21 8V21");
-  });
-
-  it("marks every side at half strength when there is no offset", () => {
-    const even = mark("drop", 0, 0);
-    expect(even.d.match(/M/g)).toHaveLength(4);
-    expect(even.opacity).toBe(0.5);
-    expect(mark("drop", 0, 4).opacity).toBe(1);
+  it("thickens every edge at half strength when there is no offset", () => {
+    const even = bars("drop", 0, 0);
+    expect(even).toHaveLength(4);
+    expect(even.every((each) => each.opacity === 0.5)).toBe(true);
+    expect(bars("drop", 0, 4)[0]!.opacity).toBe(1);
   });
 
   it("draws in currentColor, so it follows its parent's text colour", () => {
@@ -60,6 +79,7 @@ describe("ShadowLayerIcon", () => {
       />,
     );
     expect(html).toContain('stroke="currentColor"');
+    expect(html).toContain('fill="currentColor"');
     expect(html).not.toMatch(/#[0-9a-f]{3,8}/i);
   });
 });
