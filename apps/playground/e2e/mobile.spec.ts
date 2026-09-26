@@ -1247,6 +1247,36 @@ test.describe("on a phone", () => {
     }
   });
 
+  test("opens a shadow layer's settings as a sheet, not beside the panel", async ({
+    seededPage: page,
+  }) => {
+    /* On a wider screen a layer's settings open to the left of the panel, as
+       in Figma. A phone has no left of the panel, so they stack as a sheet
+       on the settings sheet, and closing them leaves that one open. */
+    await page.goto("/elevation");
+    await page
+      .getByRole("button", { name: "Elevation settings", exact: true })
+      .click();
+    const settings = page.getByRole("dialog", { name: "Elevation settings" });
+    await settings.getByRole("radio", { name: "Advanced" }).click();
+    await settings.getByRole("button", { name: /^Layer 1: / }).click();
+
+    const layer = page.getByRole("dialog", { name: "Layer 1 settings" });
+    await expect(layer.locator(".astryx-bottom-sheet").first()).toBeVisible();
+    await layer.getByRole("spinbutton", { name: "Layer 1 Blur" }).fill("6");
+    await layer
+      .getByRole("spinbutton", { name: "Layer 1 Blur" })
+      .press("Enter");
+    await expect(
+      settings.getByRole("button", { name: /^Layer 1: .*B 6/ }),
+    ).toHaveCount(1);
+
+    await layer.getByRole("button", { name: "Close Layer 1 settings" }).click();
+    await expect(layer).toBeHidden();
+    await expect(page.locator("dialog[open]")).toHaveCount(1);
+    await expect(settings).toBeVisible();
+  });
+
   for (const [route, section] of [
     ["/spacing", "Spacing"],
     ["/radius", "Radius"],

@@ -1,13 +1,13 @@
 "use client";
 
+import type { ReactNode } from "react";
+import { Grip, Square, SquareSquare, SunDim, X } from "lucide-react";
+import { IconButton } from "@astryxdesign/core/IconButton";
+import { InputGroup, InputGroupText } from "@astryxdesign/core/InputGroup";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
 import {
-  SegmentedControl,
-  SegmentedControlItem,
-} from "@astryxdesign/core/SegmentedControl";
-import { Slider } from "@astryxdesign/core/Slider";
-import {
   COLOUR_MODES,
+  isInnerShadow,
   parseShadeOptionValue,
   shadeOptionSections,
   shadeOptionValue,
@@ -36,14 +36,18 @@ interface ElevationLayerEditorProps {
   /** The scale's shadow colour, for the "scale colour" choice's swatch. */
   scaleHex: string;
   onChange: (scale: ElevationScale, editKey?: string) => void;
+  onClose: () => void;
 }
 
 /**
- * One layer's settings: its type, its geometry, its colour, and how strong it
- * is in each mode.
+ * One layer's settings, laid out the way Figma's shadow popover is: the type
+ * as the title, then Position, Blur, Spread and Color as labelled rows, each
+ * value with a small tag in front of it.
  *
- * Opacity here runs to 100%, past the 60% the pads stop at: a neumorphic
- * highlight or a glow is meant to be stronger than a shadow.
+ * Opacity is two fields rather than Figma's one, because a shadow here is
+ * held per mode: the same black needs more of itself on a dark page. It runs
+ * to 100%, past the pads' 60%, since a highlight or a glow is meant to be
+ * stronger than a shadow.
  */
 export function ElevationLayerEditor({
   scale,
@@ -54,101 +58,131 @@ export function ElevationLayerEditor({
   palettes,
   scaleHex,
   onChange,
+  onClose,
 }: ElevationLayerEditorProps) {
-  /* One history step per field being dragged or typed in, not per value it
-     passes through. */
+  /* One history step per field being typed in, not per value it passes. */
   const update = (patch: ShadowLayerPatch, field: string) =>
     onChange(
       updateShadowLayer(scale, levelId, layerIndex, patch),
       `elevation:layer:${levelId}:${layerIndex}:${field}`,
     );
+  const TypeIcon = isInnerShadow(layer) ? SquareSquare : Square;
 
-  const geometry = [
-    ["offsetXPx", "X"],
-    ["offsetYPx", "Y"],
-    ["blurPx", "Blur"],
-    ["spreadPx", "Spread"],
-  ] as const;
+  /** A number with a tag in front, the way Figma marks X, Y, blur, spread. */
+  const tagged = (
+    field: "offsetXPx" | "offsetYPx" | "blurPx" | "spreadPx",
+    name: string,
+    tag: ReactNode,
+  ) => (
+    <InputGroup isLabelHidden label={layerName} size="sm">
+      <InputGroupText>{tag}</InputGroupText>
+      <NumberInput
+        isLabelHidden
+        label={name}
+        min={field === "blurPx" ? 0 : null}
+        size="sm"
+        value={layer[field]}
+        onChange={(value) => update({ [field]: value }, field)}
+      />
+    </InputGroup>
+  );
 
   return (
-    <div
-      aria-label={`${layerName} settings`}
-      className={styles.elevationLayerEditor}
-      role="group"
-    >
-      <SegmentedControl
-        label={`${layerName} type`}
-        layout="fill"
-        size="sm"
-        value={layer.type ?? "drop"}
-        onChange={(value) => update({ type: value as ShadowLayerType }, "type")}
-      >
-        <SegmentedControlItem label="Drop shadow" value="drop" />
-        <SegmentedControlItem label="Inner shadow" value="inner" />
-      </SegmentedControl>
-
-      <div className={styles.elevationLayerGeometry}>
-        {geometry.map(([field, label]) => (
-          <NumberInput
-            key={field}
-            formatValue={(value) => `${value}px`}
-            label={label}
-            min={field === "blurPx" ? 0 : null}
-            size="sm"
-            value={layer[field]}
-            onChange={(value) => update({ [field]: value }, field)}
-          />
-        ))}
+    <div className={styles.layerPopover}>
+      <div className={styles.layerPopoverHeader}>
+        <TypeIcon aria-hidden="true" className={styles.layerPopoverIcon} />
+        <SheetSelector
+          isLabelHidden
+          label={`${layerName} type`}
+          options={[
+            { value: "drop", label: "Drop shadow" },
+            { value: "inner", label: "Inner shadow" },
+          ]}
+          size="sm"
+          value={layer.type ?? "drop"}
+          variant="ghost"
+          onChange={(value) =>
+            update({ type: value as ShadowLayerType }, "type")
+          }
+        />
+        <IconButton
+          icon={<X aria-hidden="true" />}
+          label={`Close ${layerName} settings`}
+          size="sm"
+          variant="ghost"
+          onClick={onClose}
+        />
       </div>
 
-      {/* The scale's colour first, since it is what almost every layer
-          wants; then every shade, found by typing ("primary 300"). */}
-      <SheetSelector
-        hasSearch
-        label={`${layerName} colour`}
-        options={[
-          {
-            value: SCALE_COLOUR,
-            label: "Shadow colour",
-            icon: <TransparencySwatch alpha={1} colour={scaleHex} />,
-          },
-          ...shadeOptionSections(palettes, (hex) => (
-            <TransparencySwatch alpha={1} colour={hex} />
-          )),
-        ]}
-        searchPlaceholder="Search shades"
-        size="md"
-        value={layer.colour ? shadeOptionValue(layer.colour) : SCALE_COLOUR}
-        onChange={(next) => {
-          if (next === SCALE_COLOUR) {
-            update({ colour: null }, "colour");
-            return;
-          }
-          const picked = parseShadeOptionValue(next);
-          if (picked) update({ colour: picked }, "colour");
-        }}
-      />
-
-      {COLOUR_MODES.map((mode) => (
-        <div key={mode} className={styles.elevationOpacity}>
-          <span className={styles.elevationMode} aria-hidden="true">
-            {mode === "light" ? "Light" : "Dark"}
-          </span>
-          <Slider
-            formatValue={(value) => `${Math.round(value * 100)}%`}
-            isLabelHidden
-            label={`${layerName} ${mode} opacity`}
-            max={1}
-            min={0}
-            step={0.01}
-            value={layer.opacity[mode]}
-            width="100%"
-            onChange={(value: number) =>
-              update({ opacity: { [mode]: value } }, `opacity:${mode}`)
-            }
-          />
+      <div className={styles.layerPopoverRows}>
+        <span className={styles.layerPopoverLabel}>Position</span>
+        <div className={styles.layerPopoverFields}>
+          {tagged("offsetXPx", "X", "X")}
+          {tagged("offsetYPx", "Y", "Y")}
         </div>
-      ))}
+
+        <span className={styles.layerPopoverLabel}>Blur</span>
+        {tagged("blurPx", "Blur", <Grip aria-hidden="true" />)}
+
+        <span className={styles.layerPopoverLabel}>Spread</span>
+        {tagged("spreadPx", "Spread", <SunDim aria-hidden="true" />)}
+
+        <span className={styles.layerPopoverLabel}>Color</span>
+        {/* The scale's colour first, since it is what almost every layer
+            wants; then every shade, found by typing ("primary 300"). */}
+        <SheetSelector
+          hasSearch
+          isLabelHidden
+          label={`${layerName} colour`}
+          options={[
+            {
+              value: SCALE_COLOUR,
+              label: "Shadow colour",
+              icon: <TransparencySwatch alpha={1} colour={scaleHex} />,
+            },
+            ...shadeOptionSections(palettes, (hex) => (
+              <TransparencySwatch alpha={1} colour={hex} />
+            )),
+          ]}
+          searchPlaceholder="Search shades"
+          size="sm"
+          value={layer.colour ? shadeOptionValue(layer.colour) : SCALE_COLOUR}
+          onChange={(next) => {
+            if (next === SCALE_COLOUR) {
+              update({ colour: null }, "colour");
+              return;
+            }
+            const picked = parseShadeOptionValue(next);
+            if (picked) update({ colour: picked }, "colour");
+          }}
+        />
+
+        <span className={styles.layerPopoverLabel}>Opacity</span>
+        <div className={styles.layerPopoverFields}>
+          {COLOUR_MODES.map((mode) => (
+            <InputGroup key={mode} isLabelHidden label={layerName} size="sm">
+              <InputGroupText>
+                {mode === "light" ? "Light" : "Dark"}
+              </InputGroupText>
+              <NumberInput
+                isLabelHidden
+                label={`${mode} opacity`}
+                max={100}
+                min={0}
+                size="sm"
+                value={Math.round(layer.opacity[mode] * 100)}
+                onChange={(value) =>
+                  update(
+                    { opacity: { [mode]: value / 100 } },
+                    `opacity:${mode}`,
+                  )
+                }
+              />
+              <InputGroupText>%</InputGroupText>
+            </InputGroup>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

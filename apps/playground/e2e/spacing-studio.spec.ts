@@ -499,11 +499,31 @@ test.describe("The elevation editor", () => {
 
     await layers.getByRole("button", { name: "Add layer" }).click();
     await expect(rows).toHaveCount(3);
-    // The new layer is the one being edited.
-    const third = page.getByRole("group", { name: "Layer 3 settings" });
-    await third.getByRole("radio", { name: "Inner shadow" }).click();
+
+    /* A row opens its settings in a popover to the left of the panel, over
+       the canvas, the way Figma does. */
+    await rows.nth(2).click();
+    const third = page.getByRole("dialog", { name: "Layer 3 settings" });
+    await expect(third).toBeVisible();
+    const [popover, row] = [
+      (await third.boundingBox())!,
+      (await rows.nth(2).boundingBox())!,
+    ];
+    expect(popover.x + popover.width).toBeLessThanOrEqual(row.x + 1);
+
+    await third.getByLabel("Layer 3 type", { exact: true }).click();
+    await page.getByRole("option", { name: "Inner shadow" }).click();
     await expect.poll(shadow).toContain("inset");
-    await expect(rows.nth(2)).toHaveAccessibleName(/^Layer 3: Inner shadow/);
+    await third.getByRole("spinbutton", { name: "Layer 3 Blur" }).fill("12");
+    await third
+      .getByRole("spinbutton", { name: "Layer 3 Blur" })
+      .press("Enter");
+    await expect(rows.nth(2)).toHaveAccessibleName(
+      /^Layer 3: Inner shadow, X 0 · Y 4 · B 12/,
+    );
+
+    await third.getByRole("button", { name: "Close Layer 3 settings" }).click();
+    await expect(third).toBeHidden();
 
     await layers.getByRole("button", { name: "Hide Layer 3" }).click();
     await expect.poll(shadow).not.toContain("inset");

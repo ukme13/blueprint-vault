@@ -552,25 +552,52 @@
   white-space: nowrap;
 }
 
-/* The selected layer's settings, under the list. */
-.elevationLayerEditor {
+/* One layer's settings, in a popover to the left of the panel (a sheet
+   on a phone), laid out like Figma's: the type as a title, then a label and
+   its fields per row. */
+.layerPopover {
   display: grid;
   gap: var(--spacing-3);
-  padding-top: var(--spacing-3);
-  border-top: 1px solid var(--color-border-default);
+  padding: var(--spacing-3);
 }
 
-.elevationLayerGeometry {
+.layerPopoverHeader {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.layerPopoverIcon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-fg-muted);
+}
+
+.layerPopoverRows {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  align-items: start;
   gap: var(--spacing-2);
 }
 
-/* Four fields across is too tight for a thumb; two by two. */
-@media (max-width: 640px) {
-  .elevationLayerGeometry {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+/* Level with the first field of its row, which is 28px tall at size sm. */
+.layerPopoverLabel {
+  display: flex;
+  align-items: center;
+  min-height: var(--size-element-sm, 28px);
+  color: var(--color-fg-muted);
+  font-size: 12px;
+}
+
+.layerPopoverFields {
+  display: grid;
+  gap: var(--spacing-1);
+}
+
+.layerPopoverRows :global(.astryx-input-group-text) svg {
+  width: 14px;
+  height: 14px;
 }
 
 .elevationOpacity {
