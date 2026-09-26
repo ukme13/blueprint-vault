@@ -326,6 +326,42 @@ export function shadowLayerSummary(layer: ShadowLayer): string {
   return `X ${layer.offsetXPx} · Y ${layer.offsetYPx} · B ${layer.blurPx} · S ${layer.spreadPx}`;
 }
 
+/** Which sides of a box a layer's shadow shows on. */
+export interface ShadowLayerEdges {
+  top: boolean;
+  right: boolean;
+  bottom: boolean;
+  left: boolean;
+}
+
+/**
+ * The sides a layer's shadow shows on, for its icon — the way Figma marks an
+ * effect with a heavier line on the side its shadow falls.
+ *
+ * A drop shadow shows on the sides its offset points to: pushed down and
+ * right, it falls below and to the right. An inner shadow shows on the
+ * opposite sides, inside: pushed down, it darkens the top inside edge, since
+ * that is where the inset box has moved away from. With no offset at all, a
+ * shadow of either kind shows evenly on every side.
+ */
+export function shadowLayerEdges(
+  layer: Pick<ShadowLayer, "type" | "offsetXPx" | "offsetYPx">,
+): ShadowLayerEdges {
+  const { offsetXPx: x, offsetYPx: y } = layer;
+  if (x === 0 && y === 0) {
+    return { top: true, right: true, bottom: true, left: true };
+  }
+  const toward = { top: y < 0, right: x > 0, bottom: y > 0, left: x < 0 };
+  return isInnerShadow(layer)
+    ? {
+        top: toward.bottom,
+        right: toward.left,
+        bottom: toward.top,
+        left: toward.right,
+      }
+    : toward;
+}
+
 /** The shade the shadows are drawn from, named and resolved. */
 export function resolveElevationColour(
   scale: ElevationScale,

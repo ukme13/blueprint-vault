@@ -15,6 +15,7 @@ import {
   isSimpleElevationLevel,
   removeShadowLayer,
   resolveElevationColour,
+  shadowLayerEdges,
   shadowLayerSummary,
   shadowLayerTypeLabel,
   toggleShadowLayerVisibility,
@@ -454,5 +455,46 @@ describe("elevation presets", () => {
     expect(applyElevationPreset(scale, "missing", "glow", palette())).toBe(
       scale,
     );
+  });
+});
+
+describe("shadowLayerEdges", () => {
+  const edges = (
+    type: "drop" | "inner",
+    offsetXPx: number,
+    offsetYPx: number,
+  ) => shadowLayerEdges({ type, offsetXPx, offsetYPx });
+  const sides = (value: ReturnType<typeof shadowLayerEdges>) =>
+    (Object.keys(value) as (keyof typeof value)[]).filter(
+      (side) => value[side],
+    );
+
+  it("puts a drop shadow on the sides its offset points to", () => {
+    expect(sides(edges("drop", 0, 4))).toEqual(["bottom"]);
+    expect(sides(edges("drop", 3, 4))).toEqual(["right", "bottom"]);
+    expect(sides(edges("drop", -6, -6))).toEqual(["top", "left"]);
+  });
+
+  it("puts an inner shadow on the opposite sides, as `inset` draws it", () => {
+    /* inset 0 4px: the box moves down inside its frame, so the shadow shows
+       along the top inside edge. */
+    expect(sides(edges("inner", 0, 4))).toEqual(["top"]);
+    expect(sides(edges("inner", 3, 4))).toEqual(["top", "left"]);
+  });
+
+  it("shows on every side when there is no offset, as a glow does", () => {
+    expect(sides(edges("drop", 0, 0))).toEqual([
+      "top",
+      "right",
+      "bottom",
+      "left",
+    ]);
+    expect(sides(edges("inner", 0, 0))).toHaveLength(4);
+  });
+
+  it("reads a layer saved without a type as a drop shadow", () => {
+    expect(sides(shadowLayerEdges({ offsetXPx: 0, offsetYPx: 2 }))).toEqual([
+      "bottom",
+    ]);
   });
 });

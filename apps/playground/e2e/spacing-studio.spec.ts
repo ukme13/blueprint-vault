@@ -604,9 +604,21 @@ test.describe("The elevation editor", () => {
     expect(modeTags).toHaveLength(2);
     expect(new Set(modeTags).size).toBe(1);
 
+    /* The row's icon marks the side the shadow falls, as Figma's does: a
+       new layer is pushed down, so below the box, outside it. */
+    await expect(rows.nth(2).locator("[data-shadow-edges]")).toHaveAttribute(
+      "d",
+      "M7 21H17",
+    );
+
     await third.getByLabel("Layer 3 type", { exact: true }).click();
     await page.getByRole("option", { name: "Inner shadow" }).click();
     await expect.poll(shadow).toContain("inset");
+    // An inner shadow pushed down shows along the top, inside the box.
+    await expect(rows.nth(2).locator("[data-shadow-edges]")).toHaveAttribute(
+      "d",
+      "M9 8.5H15",
+    );
     await third.getByRole("spinbutton", { name: "Layer 3 Blur" }).fill("12");
     await third
       .getByRole("spinbutton", { name: "Layer 3 Blur" })

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Eye, EyeOff, Plus, Square, SquareSquare, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Plus, Trash2 } from "lucide-react";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Popover } from "@astryxdesign/core/Popover";
 import {
@@ -9,6 +9,8 @@ import {
   addShadowLayer,
   isInnerShadow,
   removeShadowLayer,
+  ShadowLayerIcon,
+  shadowLayerEdges,
   shadowLayerSummary,
   shadowLayerTypeLabel,
   toggleShadowLayerVisibility,
@@ -84,7 +86,6 @@ export function ElevationLayerStack({
         <ul className={styles.elevationLayerList}>
           {level.layers.map((each, index) => {
             const name = `Layer ${index + 1}`;
-            const TypeIcon = isInnerShadow(each) ? SquareSquare : Square;
             const row = (
               <button
                 aria-expanded={open === index}
@@ -96,8 +97,11 @@ export function ElevationLayerStack({
                    straight back shut. */
                 onClick={isPhone ? () => setOpen(index) : undefined}
               >
-                {/* The stroke stays 2px as the icon grows. */}
-                <TypeIcon absoluteStrokeWidth aria-hidden="true" />
+                {/* Marked on the side its shadow falls, as in Figma. */}
+                <ShadowLayerIcon
+                  edges={shadowLayerEdges(each)}
+                  inner={isInnerShadow(each)}
+                />
                 <span className={styles.elevationLayerText}>
                   <span>{shadowLayerTypeLabel(each)}</span>
                   <span className={styles.elevationLayerSummary}>

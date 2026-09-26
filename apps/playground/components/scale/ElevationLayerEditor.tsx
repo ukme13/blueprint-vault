@@ -1,14 +1,16 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Grip, Square, SquareSquare, SunDim, X } from "lucide-react";
+import { Grip, SunDim, X } from "lucide-react";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { InputGroup, InputGroupText } from "@astryxdesign/core/InputGroup";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
 import {
   COLOUR_MODES,
   isInnerShadow,
+  ShadowLayerIcon,
   parseShadeOptionValue,
+  shadowLayerEdges,
   shadeOptionSections,
   shadeOptionValue,
   updateShadowLayer,
@@ -66,7 +68,6 @@ export function ElevationLayerEditor({
       updateShadowLayer(scale, levelId, layerIndex, patch),
       `elevation:layer:${levelId}:${layerIndex}:${field}`,
     );
-  const TypeIcon = isInnerShadow(layer) ? SquareSquare : Square;
 
   /** A number with a tag in front, the way Figma marks X, Y, blur, spread. */
   const tagged = (
@@ -92,7 +93,11 @@ export function ElevationLayerEditor({
   return (
     <div className={styles.layerPopover}>
       <div className={styles.layerPopoverHeader}>
-        <TypeIcon aria-hidden="true" className={styles.layerPopoverIcon} />
+        <ShadowLayerIcon
+          className={styles.layerPopoverIcon}
+          edges={shadowLayerEdges(layer)}
+          inner={isInnerShadow(layer)}
+        />
         <SheetSelector
           isLabelHidden
           label={`${layerName} type`}
