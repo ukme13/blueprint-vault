@@ -568,6 +568,23 @@ test.describe("The elevation editor", () => {
       );
     expect(new Set(tags).size).toBe(1);
 
+    // And Light and Dark's, so the two opacities line up too.
+    const modeTags = await third
+      .locator(".astryx-input-group")
+      .evaluateAll((groups) =>
+        groups
+          .slice(4)
+          .map((group) =>
+            Math.round(
+              group
+                .querySelector(".astryx-input-group-text")!
+                .getBoundingClientRect().width,
+            ),
+          ),
+      );
+    expect(modeTags).toHaveLength(2);
+    expect(new Set(modeTags).size).toBe(1);
+
     await third.getByLabel("Layer 3 type", { exact: true }).click();
     await page.getByRole("option", { name: "Inner shadow" }).click();
     await expect.poll(shadow).toContain("inset");

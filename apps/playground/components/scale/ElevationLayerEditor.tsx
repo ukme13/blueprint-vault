@@ -165,7 +165,9 @@ export function ElevationLayerEditor({
           {COLOUR_MODES.map((mode) => (
             <InputGroup key={mode} isLabelHidden label={layerName} size="sm">
               <InputGroupText>
-                {mode === "light" ? "Light" : "Dark"}
+                <span className={styles.layerPopoverModeTag}>
+                  {mode === "light" ? "Light" : "Dark"}
+                </span>
               </InputGroupText>
               <NumberInput
                 isLabelHidden

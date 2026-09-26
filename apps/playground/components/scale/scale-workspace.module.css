@@ -622,6 +622,13 @@
   width: 14px;
 }
 
+/* Light and Dark likewise share one width, wide enough for "Light". */
+.layerPopoverModeTag {
+  display: inline-block;
+  min-width: 5ch;
+  text-align: center;
+}
+
 .layerPopoverRows :global(.astryx-input-group-text) svg {
   width: 14px;
   height: 14px;
