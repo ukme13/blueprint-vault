@@ -508,6 +508,25 @@ test.describe("The elevation editor", () => {
     expect(Math.abs(icon.height - icon.text)).toBeLessThanOrEqual(1);
     expect(Math.abs(icon.width - icon.height)).toBeLessThanOrEqual(1);
 
+    /* The row's button fills the room up to the eye and delete buttons, so
+       a short summary like this one is never cut off. It once stopped at its
+       popover's wrapper and truncated with space to spare. */
+    const summary = await rows.first().evaluate((row) => {
+      const line = row.querySelector<HTMLElement>(
+        "[class*=elevationLayerSummary]",
+      )!;
+      const eye = row
+        .closest("li")!
+        .querySelector("button[aria-label^='Hide']")!
+        .getBoundingClientRect();
+      return {
+        cut: line.scrollWidth > line.clientWidth,
+        gap: Math.round(eye.left - row.getBoundingClientRect().right),
+      };
+    });
+    expect(summary.cut).toBe(false);
+    expect(summary.gap).toBeLessThanOrEqual(8);
+
     await layers.getByRole("button", { name: "Add layer" }).click();
     await expect(rows).toHaveCount(3);
 
