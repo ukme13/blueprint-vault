@@ -555,10 +555,11 @@
 /* One layer's settings, in a popover to the left of the panel (a sheet
    on a phone), laid out like Figma's: the type as a title, then a label and
    its fields per row. */
+/* No padding of its own: the popover's surface (and the sheet, on a phone)
+   already pads its content, and a second inset doubled it. */
 .layerPopover {
   display: grid;
   gap: var(--spacing-3);
-  padding: var(--spacing-3);
 }
 
 .layerPopoverHeader {

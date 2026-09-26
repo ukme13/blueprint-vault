@@ -511,6 +511,16 @@ test.describe("The elevation editor", () => {
     ];
     expect(popover.x + popover.width).toBeLessThanOrEqual(row.x + 1);
 
+    /* One 12px inset from the popover's edge to its content, not the
+       surface's padding and a second one of the content's own. */
+    const inset = await third.evaluate((dialog) => {
+      const content = dialog.querySelector("[class*=layerPopoverHeader]")!;
+      const outer = dialog.getBoundingClientRect();
+      const inner = content.getBoundingClientRect();
+      return Math.round(inner.left - outer.left);
+    });
+    expect(inset).toBeLessThanOrEqual(13);
+
     /* Every field inside it, all ending on one right edge. X, Y and the
        opacities once ran past the popover into the panel while Blur and
        Spread stopped short. */
