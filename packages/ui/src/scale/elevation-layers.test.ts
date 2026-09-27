@@ -517,7 +517,7 @@ describe("matchingElevationPreset", () => {
     }
   });
 
-  it("is null once any value moves, so the selector says Custom", () => {
+  it("stays the preset last applied when a value moves, as Simple tunes it", () => {
     const scale = applyElevationPreset(
       defaultElevationScale(),
       "low",
@@ -527,9 +527,14 @@ describe("matchingElevationPreset", () => {
     const edited = updateShadowLayer(scale, "low", 1, {
       opacity: { light: 0.15 },
     });
-    expect(
-      matchingElevationPreset(edited.levels[0]!, edited, tracks),
-    ).toBeNull();
+    expect(matchingElevationPreset(edited.levels[0]!, edited, tracks)).toBe(
+      "standard",
+    );
+  });
+
+  it("is null for a seeded level no preset was applied to", () => {
+    const scale = defaultElevationScale();
+    expect(matchingElevationPreset(scale.levels[0]!, scale, tracks)).toBeNull();
   });
 
   it("is null for a hidden layer, which draws a different shadow", () => {

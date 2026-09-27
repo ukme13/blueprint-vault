@@ -1353,31 +1353,32 @@ test.describe("on a phone", () => {
         await expect(page.locator("dialog[open]")).toHaveCount(1);
         await expect(sheet).toBeVisible();
 
-        /* A drag down on a shadow pad sets the shadow; it does not swipe the
-           sheet shut. A real touch, as the sheet listens for touches. */
-        const pad = sheet.getByRole("button", {
-          name: "Low light contact and cast",
-        });
-        const readout = pad.locator("xpath=following-sibling::*[1]");
+        /* A drag along an adjustment slider sets it; the thumb drifting
+           down as it goes, as a real one does, does not swipe the sheet
+           shut. A real touch, as the sheet listens for touches. */
+        const row = sheet
+          .getByRole("group", { name: "Low adjustments" })
+          .locator("[data-adjustment-row]")
+          .first();
+        const readout = row.locator("output");
         const before = await readout.textContent();
-        const padBox = (await pad.boundingBox())!;
+        const track = (await row.getByRole("slider").boundingBox())!;
         const cdp = await page.context().newCDPSession(page);
         await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true });
-        const x = padBox.x + padBox.width / 2;
-        const y = padBox.y + 8;
+        const x = track.x + track.width / 2;
+        const y = track.y + track.height / 2;
         const touch = (
           type: "touchStart" | "touchMove" | "touchEnd",
-          dy: number,
+          dx: number,
         ) =>
           cdp.send("Input.dispatchTouchEvent", {
             type,
-            touchPoints: type === "touchEnd" ? [] : [{ x, y: y + dy }],
+            touchPoints:
+              type === "touchEnd" ? [] : [{ x: x + dx, y: y + dx / 2 }],
           });
         await touch("touchStart", 0);
-        for (let dy = 10; dy <= padBox.height - 16; dy += 10) {
-          await touch("touchMove", dy);
-        }
-        await touch("touchEnd", padBox.height - 16);
+        for (let dx = 10; dx <= 80; dx += 10) await touch("touchMove", dx);
+        await touch("touchEnd", 80);
         await expect(sheet).toBeVisible();
         await expect(readout).not.toHaveText(before!);
       }

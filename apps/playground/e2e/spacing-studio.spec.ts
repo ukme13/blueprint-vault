@@ -256,20 +256,23 @@ test.describe("The elevation editor", () => {
     seededPage: page,
   }) => {
     await showScaleView(page, "Elevation");
-    const slider = page.getByRole("button", {
-      name: "Low light contact and cast",
-    });
-    await slider.focus();
-    await slider.press("ArrowRight");
+    const adjustments = page.getByRole("group", { name: "Low adjustments" });
+    await adjustments.getByRole("radio", { name: "Light" }).click();
+    const opacity = adjustments.getByRole("slider", { name: "Opacity" });
+    await opacity.focus();
+    await opacity.press("ArrowRight");
 
+    /* Low's light seed is 0.1 on both layers; one step is 0.01, on both. */
     await expect
       .poll(async () => {
         const stored = await readStoredWorkspace(page);
-        return stored?.elevation?.levels.find(
-          (level: { id: string }) => level.id === "low",
-        )?.layers[0]?.opacity.light;
+        return stored?.elevation?.levels
+          .find((level: { id: string }) => level.id === "low")
+          ?.layers.map((layer: { opacity: { light: number } }) =>
+            Number(layer.opacity.light.toFixed(2)),
+          );
       })
-      .toBeCloseTo(0.15, 5);
+      .toEqual([0.11, 0.11]);
 
     await page.reload();
     await showScaleView(page, "Elevation");
@@ -287,21 +290,21 @@ test.describe("The elevation editor", () => {
     const canvas = page.getByRole("region", { name: "Elevation", exact: true });
     await expect(canvas).toBeVisible();
 
-    /* Low is picked at first, and only its pads are in the inspector. */
+    /* Low is picked at first, and only its adjustments are in the inspector. */
     await expect(
-      page.getByRole("button", { name: "Low light contact and cast" }),
+      page.getByRole("group", { name: "Low adjustments" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "High light contact and cast" }),
+      page.getByRole("group", { name: "High adjustments" }),
     ).toHaveCount(0);
 
     /* Picking a row moves the inspector to it. */
     await canvas.locator('[data-elevation-level="med"]').click();
     await expect(
-      page.getByRole("button", { name: "Medium light contact and cast" }),
+      page.getByRole("group", { name: "Medium adjustments" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Low light contact and cast" }),
+      page.getByRole("group", { name: "Low adjustments" }),
     ).toHaveCount(0);
 
     /* The system levels have no delete. */
@@ -313,7 +316,7 @@ test.describe("The elevation editor", () => {
     await canvas.getByRole("button", { name: "Add level" }).click();
     await expect(canvas.getByText("--shadow-new-level")).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "New level light contact and cast" }),
+      page.getByRole("group", { name: "New level adjustments" }),
     ).toBeVisible();
 
     /* Renamed from the inspector, its variable follows. */
@@ -333,11 +336,11 @@ test.describe("The elevation editor", () => {
     await canvas.getByRole("button", { name: "Delete Float" }).click();
     await expect(canvas.getByText("--shadow-float")).toHaveCount(0);
     await expect(
-      page.getByRole("button", { name: "Low light contact and cast" }),
+      page.getByRole("group", { name: "Low adjustments" }),
     ).toBeVisible();
   });
 
-  test("edits the cast without moving the contact", async ({
+  test("moves the cast with Distance, and the contact follows", async ({
     seededPage: page,
   }) => {
     await showScaleView(page, "Elevation");
@@ -346,11 +349,11 @@ test.describe("The elevation editor", () => {
       .getByRole("region", { name: "Elevation" })
       .getByRole("button", { name: "High", exact: true })
       .click();
-    const slider = page.getByRole("button", {
-      name: "High dark contact and cast",
-    });
-    await slider.focus();
-    await slider.press("ArrowUp");
+    const distance = page
+      .getByRole("group", { name: "High adjustments" })
+      .getByRole("slider", { name: "Distance" });
+    await distance.focus();
+    await distance.press("End");
 
     await expect
       .poll(async () => {
@@ -358,63 +361,13 @@ test.describe("The elevation editor", () => {
         const high = stored?.elevation?.levels.find(
           (level: { id: string }) => level.id === "high",
         );
-        return {
-          contact: Number(high?.layers[0]?.opacity.dark.toFixed(2)),
-          cast: Number(high?.layers[1]?.opacity.dark.toFixed(2)),
-        };
+        return high?.layers.map(
+          (layer: { offsetYPx: number }) => layer.offsetYPx,
+        );
       })
-      /* High's dark seed is contact 0.4, cast 0.55, and one ArrowUp is one
-         0.05 step on the cast alone. */
-      .toEqual({ contact: 0.4, cast: 0.6 });
-  });
-
-  test("keeps thumb visible inside pad at maximum contact and cast", async ({
-    seededPage: page,
-  }) => {
-    await showScaleView(page, "Elevation");
-    const pad = page.getByRole("button", {
-      name: "Low light contact and cast",
-    });
-    await pad.focus();
-    await pad.press("End");
-    await pad.press("PageUp");
-
-    const block = page
-      .locator('[data-elevation-pad][data-mode="light"]')
-      .first();
-    await expect(block.getByText("Contact 60% · Cast 60%")).toBeVisible();
-
-    const padBox = await pad.boundingBox();
-    expect(padBox).not.toBeNull();
-
-    const thumb = pad.locator('span[class*="elevationPadThumb"]');
-    const thumbBox = await thumb.boundingBox();
-    expect(thumbBox).not.toBeNull();
-
-    expect(thumbBox!.x).toBeGreaterThanOrEqual(padBox!.x);
-    expect(thumbBox!.x + thumbBox!.width).toBeLessThanOrEqual(
-      padBox!.x + padBox!.width,
-    );
-    expect(thumbBox!.y).toBeGreaterThanOrEqual(padBox!.y);
-    expect(thumbBox!.y + thumbBox!.height).toBeLessThanOrEqual(
-      padBox!.y + padBox!.height,
-    );
-
-    // Clicking on the top-right active dot selects 60% 60% and keeps the thumb inside
-    await pad.click({
-      position: { x: padBox!.width * 0.88, y: padBox!.height * 0.12 },
-    });
-    await expect(block.getByText("Contact 60% · Cast 60%")).toBeVisible();
-    const clickedThumbBox = await thumb.boundingBox();
-    expect(clickedThumbBox).not.toBeNull();
-    expect(clickedThumbBox!.x).toBeGreaterThanOrEqual(padBox!.x);
-    expect(clickedThumbBox!.x + clickedThumbBox!.width).toBeLessThanOrEqual(
-      padBox!.x + padBox!.width,
-    );
-    expect(clickedThumbBox!.y).toBeGreaterThanOrEqual(padBox!.y);
-    expect(clickedThumbBox!.y + clickedThumbBox!.height).toBeLessThanOrEqual(
-      padBox!.y + padBox!.height,
-    );
+      /* The cast goes to Distance's 32px; the contact to a quarter of it,
+         so it stays the tight edge. */
+      .toEqual([8, 32]);
   });
 
   test("paints the dark sample with a dark card", async ({
@@ -428,31 +381,6 @@ test.describe("The elevation editor", () => {
         .evaluate((node) => getComputedStyle(node).backgroundColor);
 
     expect(await fillOf("Low on dark")).not.toBe(await fillOf("Low on light"));
-  });
-
-  test("paints light and dark pads on their own surfaces", async ({
-    seededPage: page,
-  }) => {
-    /* Contact is X, cast is Y, so one pad holds both layers. Each mode still
-       paints on its own card colour, or the two pads would look like copies. */
-
-    await showScaleView(page, "Elevation");
-    const paint = (name: string) =>
-      page.getByRole("button", { name }).evaluate((node) => {
-        const style = getComputedStyle(node);
-        return {
-          image: style.backgroundImage,
-          color: style.backgroundColor,
-          radius: style.borderRadius,
-        };
-      });
-
-    const light = await paint("Low light contact and cast");
-    const dark = await paint("Low dark contact and cast");
-
-    expect(light.image).toMatch(/gradient/i);
-    expect(dark.color).not.toBe(light.color);
-    expect(Number.parseFloat(light.radius)).toBeGreaterThan(12);
   });
 
   test("picks the shadow colour from the palette", async ({
@@ -693,7 +621,7 @@ test.describe("The elevation editor", () => {
       simple.getByRole("group", { name: "Low presets" }),
     ).toBeVisible();
     await expect(
-      simple.getByRole("group", { name: "Low strength" }),
+      simple.getByRole("group", { name: "Low adjustments" }),
     ).toBeVisible();
     const dividers = await simple.evaluate((group) =>
       [...group.querySelectorAll<HTMLElement>(":scope > *")].map(
@@ -701,9 +629,19 @@ test.describe("The elevation editor", () => {
       ),
     );
     expect(dividers.every((width) => width === "0px")).toBe(true);
-    const pad = page.getByRole("button", {
-      name: "Low light contact and cast",
-    });
+    /* Simple's adjustments: one Lightroom-style slider row each. */
+    const adjustments = page.getByRole("group", { name: "Low adjustments" });
+    const slider = (name: string) =>
+      adjustments.getByRole("slider", { name, exact: true });
+    const rowNames = () =>
+      adjustments.locator("[data-adjustment-row] [class*=sliderRowLabel]");
+    const drawn = () =>
+      sample.evaluate((node) => getComputedStyle(node).boxShadow);
+    const slideTo = async (name: string, key: "End" | "Home") => {
+      await slider(name).focus();
+      await slider(name).press(key);
+    };
+    await adjustments.getByRole("radio", { name: "Light" }).click();
 
     /* The preset comes first in Simple, above the colour. */
     const order = await simple.evaluate((group) =>
@@ -803,8 +741,6 @@ test.describe("The elevation editor", () => {
     await page.keyboard.press("Escape");
     await expect(dialog).toBeHidden();
 
-    /* Inset is two inner layers, which the contact and cast pads cannot
-       describe, so they step aside for a way into Advanced. */
     await pick("Inset");
     await expect(trigger).toHaveAccessibleName("Style preset: Inset");
     // A preset's second line is what it is for.
@@ -813,50 +749,46 @@ test.describe("The elevation editor", () => {
       .poll(() => sample.evaluate((node) => getComputedStyle(node).boxShadow))
       .toContain("inset");
 
-    /* Inset is a contact and a cast too, only inner, so the pads set it in
-       Simple; moved, it stays inset and stays Inset. */
-    await expect(pad).toBeVisible();
-    const insetShadow = await sample.evaluate(
-      (node) => getComputedStyle(node).boxShadow,
-    );
-    await pad.focus();
-    await pad.press("ArrowRight");
-    await expect
-      .poll(() => sample.evaluate((node) => getComputedStyle(node).boxShadow))
-      .not.toBe(insetShadow);
-    await expect
-      .poll(() => sample.evaluate((node) => getComputedStyle(node).boxShadow))
-      .toContain("inset");
+    /* Inset's sliders: Depth, Softness, Opacity. Pressed to its deepest,
+       it stays inset and stays Inset. */
+    await expect(rowNames()).toHaveText(["Depth", "Softness", "Opacity"]);
+    await slideTo("Depth", "End");
+    await expect.poll(drawn).toMatch(/0px 24px/);
+    await expect.poll(drawn).toContain("inset");
     await expect(trigger).toHaveAccessibleName("Style preset: Inset");
 
-    /* Standard is a contact and a cast again, so the pads come back; and
-       its card is the active one next time. */
+    /* Standard's sliders: Distance, Softness, Spread, Opacity. Its card is
+       the active one next time. */
     await pick("Standard");
-    await expect(pad).toBeVisible();
+    await expect(rowNames()).toHaveText([
+      "Distance",
+      "Softness",
+      "Spread",
+      "Opacity",
+    ]);
     await open();
     await expect(
       dialog.getByRole("button", { name: /^Standard:/ }),
     ).toHaveAttribute("aria-pressed", "true");
     await page.keyboard.press("Escape");
 
-    /* Neumorphic gets its own controls rather than the pads: how far it
-       stands off the page, and its shadow and highlight per mode. */
+    /* Neumorphic's: Distance moves shadow and highlight apart together;
+       Highlight and Shadow set each one's strength for the mode. */
     await pick("Neumorphic");
-    await expect(pad).toHaveCount(0);
-    const neumorphic = page.getByRole("group", { name: "Low neumorphic" });
-    const distance = neumorphic.getByRole("slider", { name: "Distance" });
-    await distance.focus();
-    await distance.press("End");
-    await expect
-      .poll(() => sample.evaluate((node) => getComputedStyle(node).boxShadow))
-      .toContain("16px 16px 32px");
-    const highlight = neumorphic.getByRole("slider", {
-      name: "Light highlight",
-    });
-    const highlightBefore = await highlight.getAttribute("aria-valuenow");
-    await highlight.focus();
-    await highlight.press("ArrowLeft");
-    await expect(highlight).not.toHaveAttribute(
+    await expect(rowNames()).toHaveText([
+      "Distance",
+      "Softness",
+      "Highlight",
+      "Shadow",
+    ]);
+    await slideTo("Distance", "End");
+    await expect.poll(drawn).toContain("20px 20px");
+    await expect.poll(drawn).toContain("-20px -20px");
+    const highlightBefore =
+      await slider("Highlight").getAttribute("aria-valuenow");
+    await slider("Highlight").focus();
+    await slider("Highlight").press("ArrowLeft");
+    await expect(slider("Highlight")).not.toHaveAttribute(
       "aria-valuenow",
       highlightBefore!,
     );
@@ -896,18 +828,14 @@ test.describe("The elevation editor", () => {
     // Still a Glow, in its new colour.
     await expect(trigger).toHaveAccessibleName("Style preset: Glow");
 
-    /* Glow's own controls: its size, and its intensity per mode. */
-    const glow = page.getByRole("group", { name: "Low glow" });
-    const size = glow.getByRole("slider", { name: "Size" });
-    await size.focus();
-    await size.press("End");
-    await expect
-      .poll(() => sample.evaluate((node) => getComputedStyle(node).boxShadow))
-      .toContain("0px 0px 32px 4px");
-    const intensity = glow.getByRole("slider", { name: "Light intensity" });
-    await intensity.focus();
-    await intensity.press("Home");
-    await expect(intensity).toHaveAttribute("aria-valuenow", "0");
+    /* Glow's: Radius, Spread, Intensity. */
+    await expect(rowNames()).toHaveText(["Radius", "Spread", "Intensity"]);
+    await slideTo("Radius", "End");
+    await expect.poll(drawn).toMatch(/0px 0px 48px/);
+    await slideTo("Spread", "End");
+    await expect.poll(drawn).toMatch(/0px 0px 48px 24px/);
+    await slideTo("Intensity", "Home");
+    await expect(slider("Intensity")).toHaveAttribute("aria-valuenow", "0");
     await expect(trigger).toHaveAccessibleName("Style preset: Glow");
 
     // The Simple / Advanced switch is md, 32px, like every control here.
@@ -918,11 +846,17 @@ test.describe("The elevation editor", () => {
           .boundingBox())!.height,
       ),
     ).toBe(32);
-    // No note or button stands in for the pads; the switch goes to Advanced.
+    // And every slider row is one 32px line.
+    const rowHeights = await adjustments
+      .locator("[data-adjustment-row]")
+      .evaluateAll((rows) =>
+        rows.map((row) => Math.round(row.getBoundingClientRect().height)),
+      );
+    expect(new Set(rowHeights)).toEqual(new Set([32]));
+    // No note or button stands in for the sliders; the switch goes to Advanced.
     await expect(
       page.getByRole("button", { name: "Edit layers in Advanced" }),
     ).toHaveCount(0);
-    await expect(pad).toHaveCount(0);
     await page.getByRole("radio", { name: "Advanced" }).click();
     await expect(
       page

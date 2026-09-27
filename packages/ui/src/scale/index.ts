@@ -1,5 +1,6 @@
 export * from "./elevation";
 export * from "./elevation-edit";
+export * from "./elevation-adjust";
 export * from "./elevation-presets";
 export * from "./elevation-styles";
 export * from "./layout-tokens";

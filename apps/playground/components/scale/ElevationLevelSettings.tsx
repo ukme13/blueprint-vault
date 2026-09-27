@@ -4,23 +4,17 @@ import { useState } from "react";
 import { TextArea } from "@astryxdesign/core/TextArea";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import {
-  COLOUR_MODES,
   elevationVariableName,
   isSystemElevationLevel,
   renameElevationLevel,
-  setLevelModeOpacities,
-  type ColourMode,
   type ElevationLevel,
   type ElevationScale,
 } from "@blueprint/ui";
-import { ElevationPad } from "./ElevationPad";
 import styles from "./scale-workspace.module.css";
 
 interface ElevationLevelSettingsProps {
   scale: ElevationScale;
   level: ElevationLevel;
-  shadowHex: string;
-  surfaces: Record<ColourMode, { card: string }>;
   onChange: (scale: ElevationScale, editKey?: string) => void;
   /** A rename moves the id; the selection follows it. */
   onSelectLevel: (id: string) => void;
@@ -135,67 +129,6 @@ export function ElevationLevelDetails({
         value={level.description}
         onCommit={(description) => rename(level.name, description)}
       />
-    </div>
-  );
-}
-
-/**
- * How strong a level's shadow is in each mode: the contact/cast pad, one per
- * mode. Simple mode shows it only for a level of that shape; any other stack
- * is edited layer by layer in Advanced.
- */
-export function ElevationLevelStrength({
-  scale,
-  level,
-  shadowHex,
-  surfaces,
-  onChange,
-}: Omit<ElevationLevelSettingsProps, "onSelectLevel">) {
-  const [contact, cast] = level.layers;
-  if (!contact || !cast) return null;
-  return (
-    <div
-      aria-label={`${level.name} strength`}
-      className={styles.settingSubgroup}
-      role="group"
-    >
-      <div className={styles.elevationPads}>
-        {COLOUR_MODES.map((mode) => (
-          <div
-            key={mode}
-            className={styles.elevationPadBlock}
-            data-elevation-pad=""
-            data-mode={mode}
-          >
-            <span className={styles.elevationPadLabel}>
-              {mode === "light" ? "Light" : "Dark"}
-            </span>
-            <ElevationPad
-              cast={cast.opacity[mode]}
-              contact={contact.opacity[mode]}
-              label={`${level.name} ${mode} contact and cast`}
-              shadow={shadowHex}
-              surface={surfaces[mode].card}
-              onChange={(nextContact, nextCast) =>
-                onChange(
-                  setLevelModeOpacities(
-                    scale,
-                    level.id,
-                    mode,
-                    nextContact,
-                    nextCast,
-                  ),
-                  `elevation:opacity:${level.id}:${mode}`,
-                )
-              }
-            />
-            <span className={styles.elevationPadReadout}>
-              Contact {Math.round(contact.opacity[mode] * 100)}%{" · "}
-              Cast {Math.round(cast.opacity[mode] * 100)}%
-            </span>
-          </div>
-        ))}
-      </div>
     </div>
   );
 }

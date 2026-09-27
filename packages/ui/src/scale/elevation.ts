@@ -75,6 +75,13 @@ export interface ElevationLevel {
   name: string;
   description: string;
   layers: ShadowLayer[];
+  /**
+   * The preset last applied, if any. Standard and Subtle card are both two
+   * plain drop shadows, so once tuned in Simple their shape no longer says
+   * which one a level is; this does, for as long as the shape still fits.
+   * Absent on a level no preset has touched.
+   */
+  preset?: string;
 }
 
 export interface ElevationScale {
@@ -360,6 +367,9 @@ function readLevel(value: unknown): ElevationLevel | null {
     id: raw.id,
     name: typeof raw.name === "string" && raw.name ? raw.name : raw.id,
     description: typeof raw.description === "string" ? raw.description : "",
+    ...(typeof raw.preset === "string" && raw.preset
+      ? { preset: raw.preset }
+      : {}),
     /* A level with no layers is `box-shadow: none`, which is a legitimate
        thing to want at the bottom of a scale. */
     layers: (Array.isArray(raw.layers) ? raw.layers : [])

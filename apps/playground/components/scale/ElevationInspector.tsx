@@ -6,20 +6,15 @@ import {
   SegmentedControlItem,
 } from "@astryxdesign/core/SegmentedControl";
 import {
-  elevationPreviewSurfaces,
-  isSimpleElevationLevel,
   resolveElevationColour,
   type ColorTrack,
   type ElevationScale,
 } from "@blueprint/ui";
-import {
-  ElevationLevelDetails,
-  ElevationLevelStrength,
-} from "./ElevationLevelSettings";
+import { ElevationAdjustments } from "./ElevationAdjustments";
+import { ElevationLevelDetails } from "./ElevationLevelSettings";
 import { ElevationColourSetting } from "./ElevationColourSetting";
 import { ElevationLayerStack } from "./ElevationLayerStack";
 import { ElevationPresets } from "./ElevationPresets";
-import { ElevationStyleControls } from "./ElevationStyleControls";
 import styles from "./scale-workspace.module.css";
 
 type ElevationView = "simple" | "advanced";
@@ -45,7 +40,6 @@ export function ElevationInspector({
   const colour = resolveElevationColour(scale, palettes);
   const track =
     palettes.find((item) => item.id === colour.trackId) ?? palettes[0];
-  const surfaces = elevationPreviewSurfaces(palettes);
   /* Simple by default: presets and the two pads cover what most levels
      need. Advanced is the whole stack. The choice is how the level is
      edited, not part of it, so it is not saved with the scale. */
@@ -109,26 +103,14 @@ export function ElevationInspector({
             onChange={onChange}
           />
           {colourSetting}
-          {/* The pads set a contact and a cast layer, drop or inner. On any
-              other shape they would set half of what is drawn. */}
-          {isSimpleElevationLevel(selected) ? (
-            <ElevationLevelStrength
-              key={`strength-${selected.id}`}
-              level={selected}
-              scale={scale}
-              shadowHex={colour.hex}
-              surfaces={surfaces}
-              onChange={onChange}
-            />
-          ) : (
-            /* Neumorphic and Glow get controls of their own; a stack of any
-               other shape is edited in Advanced. */
-            <ElevationStyleControls
-              level={selected}
-              scale={scale}
-              onChange={onChange}
-            />
-          )}
+          {/* One slider stack per kind of shadow, keyed by level so its
+              Light / Dark switch starts afresh on another level. */}
+          <ElevationAdjustments
+            key={`adjust-${selected.id}`}
+            level={selected}
+            scale={scale}
+            onChange={onChange}
+          />
         </div>
       ) : null}
       {/* No palette: say why every layer falls back to black. */}

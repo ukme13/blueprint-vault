@@ -7,6 +7,7 @@ import {
   type ElevationScale,
   type ShadowLayer,
 } from "./elevation";
+import { elevationAdjustmentStyle } from "./elevation-adjust";
 import {
   isGlowLevel,
   isInsetLevel,
@@ -178,7 +179,7 @@ export function applyElevationPreset(
   return {
     ...scale,
     levels: scale.levels.map((level) =>
-      level.id === levelId ? { ...level, layers } : level,
+      level.id === levelId ? { ...level, layers, preset: presetId } : level,
     ),
   };
 }
@@ -231,6 +232,14 @@ export function matchingElevationPreset(
   if (isInsetLevel(level)) return "inset";
   if (isNeumorphicLevel(level)) return "neumorphic";
   if (isGlowLevel(level)) return "glow";
+  /* Standard and Subtle card share a shape, two plain drop shadows; a tuned
+     one is whichever was last applied, while it keeps that shape. */
+  if (
+    (level.preset === "standard" || level.preset === "subtle-card") &&
+    elevationAdjustmentStyle(level) === "standard"
+  ) {
+    return level.preset;
+  }
   return null;
 }
 
