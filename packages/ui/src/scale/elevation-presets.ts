@@ -1,6 +1,12 @@
-import type { SemanticReference } from "../color/semantic";
+import type { ColourMode, SemanticReference } from "../color/semantic";
 import type { ColorTrack } from "../color/types";
-import type { ElevationScale, ShadowLayer } from "./elevation";
+import {
+  isInnerShadow,
+  resolveElevation,
+  type ElevationLevel,
+  type ElevationScale,
+  type ShadowLayer,
+} from "./elevation";
 
 /**
  * Starting points for one level's stack, offered in Simple mode.
@@ -170,4 +176,66 @@ export function applyElevationPreset(
       level.id === levelId ? { ...level, layers } : level,
     ),
   };
+}
+
+/** Two layers draw the same shadow: every value equal, absent read as default. */
+function sameLayer(a: ShadowLayer, b: ShadowLayer): boolean {
+  return (
+    isInnerShadow(a) === isInnerShadow(b) &&
+    a.offsetXPx === b.offsetXPx &&
+    a.offsetYPx === b.offsetYPx &&
+    a.blurPx === b.blurPx &&
+    a.spreadPx === b.spreadPx &&
+    a.opacity.light === b.opacity.light &&
+    a.opacity.dark === b.opacity.dark &&
+    Boolean(a.hidden) === Boolean(b.hidden) &&
+    a.colour?.trackId === b.colour?.trackId &&
+    a.colour?.weight === b.colour?.weight
+  );
+}
+
+/**
+ * The preset a level is exactly, or null for one that has been changed from
+ * any preset — which the studio names "Custom".
+ *
+ * Exact, not near: one opacity moved a step is no longer that preset, and
+ * the selector saying otherwise would hide the edit.
+ */
+export function matchingElevationPreset(
+  level: ElevationLevel,
+  scale: ElevationScale,
+  tracks: readonly ColorTrack[],
+): ElevationPresetId | null {
+  const match = ELEVATION_PRESETS.find((preset) => {
+    const layers = elevationPresetLayers(preset.id, scale, tracks);
+    return (
+      layers.length === level.layers.length &&
+      layers.every((layer, index) => sameLayer(layer, level.layers[index]!))
+    );
+  });
+  return match?.id ?? null;
+}
+
+/**
+ * A preset as a `box-shadow` value, for one mode: what applying it would
+ * draw, so a preview of it is the real shadow rather than a picture of one.
+ */
+export function elevationPresetCss(
+  presetId: ElevationPresetId,
+  scale: ElevationScale,
+  tracks: ColorTrack[],
+  mode: ColourMode,
+): string {
+  const preview: ElevationScale = {
+    colour: scale.colour,
+    levels: [
+      {
+        id: "preview",
+        name: "Preview",
+        description: "",
+        layers: elevationPresetLayers(presetId, scale, tracks),
+      },
+    ],
+  };
+  return resolveElevation(preview, tracks, mode)[0]!.css;
 }

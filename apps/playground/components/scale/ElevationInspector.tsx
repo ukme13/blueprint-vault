@@ -132,13 +132,15 @@ export function ElevationInspector({
           className={`${styles.settingGroup} ${styles.elevationSimple}`}
           role="group"
         >
-          {colourSetting}
+          {/* The preset first: it is the quickest way to a whole shadow, and
+              the colour and pads tune whatever it sets. */}
           <ElevationPresets
             level={selected}
             palettes={palettes}
             scale={scale}
             onChange={onChange}
           />
+          {colourSetting}
           {isSimpleElevationLevel(selected) ? (
             <ElevationLevelStrength
               key={`strength-${selected.id}`}

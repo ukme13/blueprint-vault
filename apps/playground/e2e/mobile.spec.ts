@@ -1247,6 +1247,41 @@ test.describe("on a phone", () => {
     }
   });
 
+  test("opens the style presets as a sheet, and a tap applies one", async ({
+    seededPage: page,
+  }) => {
+    /* On a wider screen the presets open to the left of the panel. A phone
+       has no left of the panel, so they come up as a sheet over the settings
+       sheet, with no close button of their own: the backdrop, a swipe or
+       Escape dismiss it, and picking a card applies it and closes. */
+    await page.goto("/elevation");
+    await page
+      .getByRole("button", { name: "Elevation settings", exact: true })
+      .click();
+    const settings = page.getByRole("dialog", { name: "Elevation settings" });
+    const trigger = settings.getByRole("button", { name: /^Style preset: / });
+    await trigger.click();
+
+    const presets = page.getByRole("dialog", { name: "Style presets" });
+    await expect(presets.locator(".astryx-bottom-sheet").first()).toBeVisible();
+    await expect(presets.getByRole("button", { name: /close/i })).toHaveCount(
+      0,
+    );
+    const cards = presets.getByRole("button", { name: /:/ });
+    await expect(cards).toHaveCount(5);
+    for (const box of await cards.evaluateAll((nodes) =>
+      nodes.map((node) => node.getBoundingClientRect().height),
+    )) {
+      expect(box).toBeGreaterThanOrEqual(44);
+    }
+
+    await presets.getByRole("button", { name: /^Inset:/ }).click();
+    await expect(presets).toBeHidden();
+    await expect(trigger).toHaveAccessibleName("Style preset: Inset");
+    await expect(page.locator("dialog[open]")).toHaveCount(1);
+    await expect(settings).toBeVisible();
+  });
+
   test("opens a shadow layer's settings as a sheet, not beside the panel", async ({
     seededPage: page,
   }) => {

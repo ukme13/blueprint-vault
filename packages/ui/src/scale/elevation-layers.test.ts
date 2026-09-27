@@ -24,7 +24,9 @@ import {
 import {
   ELEVATION_PRESETS,
   applyElevationPreset,
+  elevationPresetCss,
   elevationPresetLayers,
+  matchingElevationPreset,
 } from "./elevation-presets";
 import { defaultRadiusScale } from "./radius";
 import { elevationRows } from "./scale-rows";
@@ -493,5 +495,72 @@ describe("shadowLayerIconShadow", () => {
     expect(shadowLayerIconShadow({ offsetXPx: 0, offsetYPx: 2 })).not.toMatch(
       /inset/,
     );
+  });
+});
+
+describe("matchingElevationPreset", () => {
+  const tracks = palette();
+
+  it("names the preset a level was just set to", () => {
+    for (const preset of ELEVATION_PRESETS) {
+      const scale = applyElevationPreset(
+        defaultElevationScale(),
+        "low",
+        preset.id,
+        tracks,
+      );
+      expect(matchingElevationPreset(scale.levels[0]!, scale, tracks)).toBe(
+        preset.id,
+      );
+    }
+  });
+
+  it("is null once any value moves, so the selector says Custom", () => {
+    const scale = applyElevationPreset(
+      defaultElevationScale(),
+      "low",
+      "standard",
+      tracks,
+    );
+    const edited = updateShadowLayer(scale, "low", 1, {
+      opacity: { light: 0.15 },
+    });
+    expect(
+      matchingElevationPreset(edited.levels[0]!, edited, tracks),
+    ).toBeNull();
+  });
+
+  it("is null for a hidden layer, which draws a different shadow", () => {
+    const scale = applyElevationPreset(
+      defaultElevationScale(),
+      "low",
+      "standard",
+      tracks,
+    );
+    const hidden = toggleShadowLayerVisibility(scale, "low", 0);
+    expect(
+      matchingElevationPreset(hidden.levels[0]!, hidden, tracks),
+    ).toBeNull();
+  });
+});
+
+describe("elevationPresetCss", () => {
+  const tracks = palette();
+
+  it("is what applying the preset draws, per mode", () => {
+    const scale = defaultElevationScale();
+    for (const mode of ["light", "dark"] as const) {
+      const applied = applyElevationPreset(scale, "med", "inset", tracks);
+      const drawn = resolveElevation(applied, tracks, mode).find(
+        (level) => level.id === "med",
+      )!.css;
+      expect(elevationPresetCss("inset", scale, tracks, mode)).toBe(drawn);
+    }
+  });
+
+  it("draws Inset as inner shadows", () => {
+    expect(
+      elevationPresetCss("inset", defaultElevationScale(), tracks, "light"),
+    ).toMatch(/^inset /);
   });
 });

@@ -687,19 +687,83 @@ test.describe("The elevation editor", () => {
       name: "Low light contact and cast",
     });
 
+    /* The preset comes first in Simple, above the colour. */
+    const order = await simple.evaluate((group) =>
+      [...group.querySelectorAll(":scope > [role=group], :scope > div")].map(
+        (part) => part.getAttribute("aria-label") ?? "colour",
+      ),
+    );
+    expect(order.slice(0, 2)).toEqual(["Low presets", "colour"]);
+
+    /* A compact trigger: the seeded level is no preset, so Custom, with a
+       live thumbnail of its own shadow. */
+    const trigger = presets.getByRole("button", { name: /^Style preset: / });
+    await expect(trigger).toHaveAccessibleName("Style preset: Custom");
+    await expect
+      .poll(() =>
+        trigger
+          .locator("[data-preset-thumbnail]")
+          .evaluate((node) => getComputedStyle(node).boxShadow),
+      )
+      .not.toBe("none");
+
+    /* It opens the presets as cards to the left of the panel, as a layer's
+       settings do, each previewing its real shadow. */
+    const dialog = page.getByRole("dialog", { name: "Style presets" });
+    /* Reopened with a retry, as elsewhere in these tests: a click in the
+       moment the last one is still closing is ignored, and no hand is that
+       fast. A selector that never opens still fails here. */
+    const open = async () => {
+      await expect(async () => {
+        await trigger.click();
+        await expect(dialog).toBeVisible({ timeout: 1000 });
+      }).toPass({ timeout: 5000 });
+    };
+    const pick = async (name: string) => {
+      await open();
+      await dialog
+        .getByRole("button", { name: new RegExp(`^${name}:`) })
+        .click();
+      // Picking one closes it.
+      await expect(dialog).toBeHidden();
+    };
+    await open();
+    const [panel, button] = [
+      (await dialog.boundingBox())!,
+      (await trigger.boundingBox())!,
+    ];
+    expect(panel.x + panel.width).toBeLessThanOrEqual(button.x + 1);
+    await expect(dialog.getByRole("button", { name: /:/ })).toHaveCount(5);
+    await expect
+      .poll(() =>
+        dialog
+          .locator("[data-preset-preview=inset]")
+          .evaluate((node) => getComputedStyle(node).boxShadow),
+      )
+      .toContain("inset");
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+
     /* Inset is two inner layers, which the contact and cast pads cannot
        describe, so they step aside for a way into Advanced. */
-    await presets.getByRole("button", { name: "Inset" }).click();
+    await pick("Inset");
+    await expect(trigger).toHaveAccessibleName("Style preset: Inset");
     await expect
       .poll(() => sample.evaluate((node) => getComputedStyle(node).boxShadow))
       .toContain("inset");
     await expect(pad).toHaveCount(0);
 
-    /* Standard is a contact and a cast again, so the pads come back. */
-    await presets.getByRole("button", { name: "Standard" }).click();
+    /* Standard is a contact and a cast again, so the pads come back; and
+       its card is the active one next time. */
+    await pick("Standard");
     await expect(pad).toBeVisible();
+    await open();
+    await expect(
+      dialog.getByRole("button", { name: /^Standard:/ }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await page.keyboard.press("Escape");
 
-    await presets.getByRole("button", { name: "Glow" }).click();
+    await pick("Glow");
     await page.getByRole("button", { name: "Edit layers in Advanced" }).click();
     await expect(
       page

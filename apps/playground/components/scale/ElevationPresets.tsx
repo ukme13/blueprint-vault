@@ -1,13 +1,23 @@
 "use client";
 
+import { useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { Popover } from "@astryxdesign/core/Popover";
 import {
-  Button,
   ELEVATION_PRESETS,
   applyElevationPreset,
+  elevationPreviewSurfaces,
+  matchingElevationPreset,
+  resolveElevation,
   type ColorTrack,
   type ElevationLevel,
+  type ElevationPresetId,
   type ElevationScale,
 } from "@blueprint/ui";
+import { useThemeMode } from "../../app/theme-provider";
+import { Sheet } from "../Sheet";
+import { useIsPhone } from "../use-is-phone";
+import { ElevationPresetGrid } from "./ElevationPresetGrid";
 import styles from "./scale-workspace.module.css";
 
 interface ElevationPresetsProps {
@@ -18,9 +28,13 @@ interface ElevationPresetsProps {
 }
 
 /**
- * Quick starting points for the selected level. A preset replaces the level's
- * layers only; its name and variable stay. Each press is its own step in
- * history, so one undo puts the old stack back.
+ * The selected level's style preset, as one compact row: a live thumbnail
+ * of the level's shadow, the preset it is ("Custom" once edited away from
+ * every preset), and a chevron.
+ *
+ * It opens the presets as cards to the left of the panel, over the canvas —
+ * where a layer's settings open too — or, on a phone, as a sheet. Picking
+ * one replaces the level's layers, as one step in history, and closes.
  */
 export function ElevationPresets({
   scale,
@@ -28,31 +42,101 @@ export function ElevationPresets({
   palettes,
   onChange,
 }: ElevationPresetsProps) {
+  const isPhone = useIsPhone();
+  const { resolved: mode } = useThemeMode();
+  const [isOpen, setIsOpen] = useState(false);
+  const surface = elevationPreviewSurfaces(palettes)[mode];
+  const active = matchingElevationPreset(level, scale, palettes);
+  const name =
+    ELEVATION_PRESETS.find((preset) => preset.id === active)?.name ?? "Custom";
+  const shadow =
+    resolveElevation(scale, palettes, mode).find((each) => each.id === level.id)
+      ?.css ?? "none";
+
+  const pick = (id: ElevationPresetId) => {
+    onChange(applyElevationPreset(scale, level.id, id, palettes));
+    setIsOpen(false);
+  };
+  const grid = (
+    <ElevationPresetGrid
+      active={active}
+      mode={mode}
+      palettes={palettes}
+      scale={scale}
+      surface={surface}
+      onPick={pick}
+    />
+  );
+
+  const trigger = (
+    <button
+      aria-expanded={isOpen}
+      aria-label={`Style preset: ${name}`}
+      className={styles.presetTrigger}
+      type="button"
+      /* On a wider screen the Popover owns the click; a handler here as
+         well would toggle it straight back shut. */
+      onClick={isPhone ? () => setIsOpen(true) : undefined}
+    >
+      <span
+        className={styles.presetThumb}
+        style={{ background: surface.ground }}
+      >
+        <span
+          className={styles.presetThumbTile}
+          data-preset-thumbnail=""
+          style={{ background: surface.card, boxShadow: shadow }}
+        />
+      </span>
+      <span className={styles.presetTriggerName}>{name}</span>
+      <ChevronDown aria-hidden="true" className={styles.presetChevron} />
+    </button>
+  );
+
   return (
     <div
       aria-label={`${level.name} presets`}
       className={styles.settingSubgroup}
       role="group"
     >
-      <h2>Presets</h2>
-      <div className={styles.elevationPresets}>
-        {ELEVATION_PRESETS.map((preset) => (
-          <Button
-            key={preset.id}
-            scheme="neutral"
-            size="small"
-            title={preset.description}
-            variant="outlined"
-            onClick={() =>
-              onChange(
-                applyElevationPreset(scale, level.id, preset.id, palettes),
-              )
-            }
+      <h2>Style preset</h2>
+      {isPhone ? (
+        <>
+          {trigger}
+          <Sheet
+            isOpen={isOpen}
+            label="Style presets"
+            onClose={() => setIsOpen(false)}
           >
-            {preset.name}
-          </Button>
-        ))}
-      </div>
+            <div className={styles.presetPanel}>
+              <h2 className={styles.presetPanelTitle}>Style presets</h2>
+              {isOpen ? grid : null}
+            </div>
+          </Sheet>
+        </>
+      ) : (
+        <Popover
+          alignment="start"
+          /* Built only while open: Astryx's Popover keeps its content
+             mounted when closed, and each card resolves a shadow. */
+          content={
+            isOpen ? (
+              <div className={styles.presetPanel}>
+                <h2 className={styles.presetPanelTitle}>Style presets</h2>
+                {grid}
+              </div>
+            ) : null
+          }
+          hasCloseButton={false}
+          isOpen={isOpen}
+          label="Style presets"
+          placement="start"
+          width={320}
+          onOpenChange={setIsOpen}
+        >
+          {trigger}
+        </Popover>
+      )}
     </div>
   );
 }
