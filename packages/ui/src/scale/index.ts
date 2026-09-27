@@ -10,6 +10,7 @@ export * from "./token-names";
 export * from "./radius";
 export * from "./radius-edit";
 export * from "./spacing";
+export * from "./spacing-presets";
 export * from "./scale-export";
 export * from "./scale-preview";
 export * from "./scale-rows";

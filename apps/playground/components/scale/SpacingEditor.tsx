@@ -19,11 +19,13 @@ import {
   resolveHybridValue,
   spacingStepName,
   type HybridTokenizedValue,
+  type SpacingPresetId,
   type SpacingScale,
   type SpacingToken,
 } from "@blueprint/ui";
 import { usePickerSheet } from "../picker-sheet";
 import { SpacingCopyButton } from "./SpacingCopyButton";
+import { SpacingPresetSelector } from "./SpacingPresetSelector";
 import {
   SPACING_PREVIEW_MODES,
   SpacingPreviewTile,
@@ -39,6 +41,7 @@ interface SpacingInspectorProps {
   onBaseUnitChange: (next: HybridTokenizedValue) => void;
   onDensityChange: (density: number) => void;
   onToggleStep: (step: number) => void;
+  onApplyPreset: (id: SpacingPresetId) => void;
 }
 
 export function SpacingInspector({
@@ -47,12 +50,19 @@ export function SpacingInspector({
   onBaseUnitChange,
   onDensityChange,
   onToggleStep,
+  onApplyPreset,
 }: SpacingInspectorProps) {
   const pickerSheet = usePickerSheet();
   const kept = new Set(scale.steps);
+  /* The chips offered, plus any step the scale holds beyond them — a
+     preset's 2.5 — so every kept step can be turned off. */
+  const chips = [...new Set([...OFFERED_STEPS, ...scale.steps])].sort(
+    (a, b) => a - b,
+  );
 
   return (
     <>
+      <SpacingPresetSelector scale={scale} onApply={onApplyPreset} />
       <div className={styles.settingGroup}>
         <h2>Base unit</h2>
         <p className={styles.settingHint}>
@@ -101,7 +111,7 @@ export function SpacingInspector({
           The ramp, pruned. Turn off the steps this system does not need.
         </p>
         <div className={styles.stepChips} role="region" aria-label="Steps">
-          {OFFERED_STEPS.map((step) => (
+          {chips.map((step) => (
             <Button
               key={step}
               aria-pressed={kept.has(step)}

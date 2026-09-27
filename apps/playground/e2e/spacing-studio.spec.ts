@@ -101,6 +101,50 @@ test.describe("The spacing studio", () => {
     );
   });
 
+  test("applies a scale preset, calls an edited one Custom, and undoes", async ({
+    seededPage: page,
+  }) => {
+    const preset = page.getByLabel("Scale preset", { exact: true });
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    const chip = (step: string) =>
+      page
+        .getByRole("region", { name: "Steps" })
+        .getByRole("button", { name: step, exact: true });
+    const stored = async () =>
+      (await readStoredWorkspace(page))?.spacing as
+        { baseUnitPx: number; steps: number[] } | undefined;
+
+    /* The seeded scale is no preset. */
+    await expect(preset).toContainText("Custom");
+    const seededCount = await steps.getByRole("listitem").count();
+
+    /* One pick sets the base unit and the kept steps together. */
+    await preset.click();
+    await page.getByRole("option", { name: /8pt Standard Grid/ }).click();
+    await expect(preset).toContainText("8pt Standard Grid");
+    await expect.poll(async () => (await stored())?.baseUnitPx).toBe(8);
+    await expect
+      .poll(async () => (await stored())?.steps)
+      .toEqual([0, 0.5, 1, 2, 3, 4, 6, 8, 12]);
+    await expect(steps.getByRole("listitem")).toHaveCount(9);
+    await expect(chip("12")).toHaveAttribute("aria-pressed", "true");
+    await expect(chip("5")).toHaveAttribute("aria-pressed", "false");
+    // 8px on an 8px grid: step 4 is 32px.
+    await expect(steps.getByText("32px", { exact: true })).toBeVisible();
+
+    /* A chip turned off is a scale of its own: Custom. */
+    await chip("6").click();
+    await expect(preset).toContainText("Custom");
+
+    /* Undo takes back the chip, then the preset, as one step each. */
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(preset).toContainText("8pt Standard Grid");
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(preset).toContainText("Custom");
+    await expect(steps.getByRole("listitem")).toHaveCount(seededCount);
+    await expect.poll(async () => (await stored())?.baseUnitPx).toBe(4);
+  });
+
   test("prunes a step, and keeps it pruned", async ({ seededPage: page }) => {
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     const before = await steps.getByRole("listitem").count();

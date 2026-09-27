@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  applySpacingPreset,
   toggleSpacingStep,
   type ColorTrack,
   type ElevationScale,
@@ -55,6 +56,12 @@ export function ScaleInspector({
         <SpacingInspector
           detachedBaseUnit={detachedBaseUnit}
           scale={spacing}
+          onApplyPreset={(id) => {
+            /* The preset's base unit is a named one; show it as such. A
+               write with no edit key is its own step in history. */
+            onDetachedBaseUnitChange(null);
+            write({ spacing: applySpacingPreset(spacing, id) });
+          }}
           onBaseUnitChange={(next: HybridTokenizedValue) => {
             onDetachedBaseUnitChange(next.isPreset ? null : next.value);
             write(
