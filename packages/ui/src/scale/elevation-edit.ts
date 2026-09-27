@@ -347,18 +347,21 @@ export function setElevationLevelColour(
 /**
  * Whether Simple's contact and cast pads describe a level completely.
  *
- * They do for the shape every seeded level has: two drop shadows, both shown,
- * both in the scale's colour. Anything else — an inner layer, a highlight in
- * its own colour, a hidden layer, one layer or five — would have the pads
+ * They do for the shape every seeded level has, two drop shadows, and for
+ * Inset's two inner ones: both shown, both in the scale's colour. Anything
+ * else — a drop beside an inner layer, a highlight in its own colour, a
+ * hidden layer, one layer or five — would have the pads
  * setting half of what is drawn, so Simple says so and sends the author to
  * Advanced instead.
  */
 export function isSimpleElevationLevel(level: ElevationLevel): boolean {
+  const [contact, cast] = level.layers;
   return (
     level.layers.length === 2 &&
-    level.layers.every(
-      (layer) => !isInnerShadow(layer) && !layer.hidden && !layer.colour,
-    )
+    level.layers.every((layer) => !layer.hidden && !layer.colour) &&
+    /* Both drop, or both inner as Inset is: a pressed contact and cast are
+       still a contact and a cast. A drop beside an inner layer is not. */
+    isInnerShadow(contact!) === isInnerShadow(cast!)
   );
 }
 

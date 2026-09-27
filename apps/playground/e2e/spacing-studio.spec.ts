@@ -812,7 +812,22 @@ test.describe("The elevation editor", () => {
     await expect
       .poll(() => sample.evaluate((node) => getComputedStyle(node).boxShadow))
       .toContain("inset");
-    await expect(pad).toHaveCount(0);
+
+    /* Inset is a contact and a cast too, only inner, so the pads set it in
+       Simple; moved, it stays inset and stays Inset. */
+    await expect(pad).toBeVisible();
+    const insetShadow = await sample.evaluate(
+      (node) => getComputedStyle(node).boxShadow,
+    );
+    await pad.focus();
+    await pad.press("ArrowRight");
+    await expect
+      .poll(() => sample.evaluate((node) => getComputedStyle(node).boxShadow))
+      .not.toBe(insetShadow);
+    await expect
+      .poll(() => sample.evaluate((node) => getComputedStyle(node).boxShadow))
+      .toContain("inset");
+    await expect(trigger).toHaveAccessibleName("Style preset: Inset");
 
     /* Standard is a contact and a cast again, so the pads come back; and
        its card is the active one next time. */
@@ -823,6 +838,29 @@ test.describe("The elevation editor", () => {
       dialog.getByRole("button", { name: /^Standard:/ }),
     ).toHaveAttribute("aria-pressed", "true");
     await page.keyboard.press("Escape");
+
+    /* Neumorphic gets its own controls rather than the pads: how far it
+       stands off the page, and its shadow and highlight per mode. */
+    await pick("Neumorphic");
+    await expect(pad).toHaveCount(0);
+    const neumorphic = page.getByRole("group", { name: "Low neumorphic" });
+    const distance = neumorphic.getByRole("slider", { name: "Distance" });
+    await distance.focus();
+    await distance.press("End");
+    await expect
+      .poll(() => sample.evaluate((node) => getComputedStyle(node).boxShadow))
+      .toContain("16px 16px 32px");
+    const highlight = neumorphic.getByRole("slider", {
+      name: "Light highlight",
+    });
+    const highlightBefore = await highlight.getAttribute("aria-valuenow");
+    await highlight.focus();
+    await highlight.press("ArrowLeft");
+    await expect(highlight).not.toHaveAttribute(
+      "aria-valuenow",
+      highlightBefore!,
+    );
+    await expect(trigger).toHaveAccessibleName("Style preset: Neumorphic");
 
     await pick("Glow");
 
@@ -857,6 +895,29 @@ test.describe("The elevation editor", () => {
     );
     // Still a Glow, in its new colour.
     await expect(trigger).toHaveAccessibleName("Style preset: Glow");
+
+    /* Glow's own controls: its size, and its intensity per mode. */
+    const glow = page.getByRole("group", { name: "Low glow" });
+    const size = glow.getByRole("slider", { name: "Size" });
+    await size.focus();
+    await size.press("End");
+    await expect
+      .poll(() => sample.evaluate((node) => getComputedStyle(node).boxShadow))
+      .toContain("0px 0px 32px 4px");
+    const intensity = glow.getByRole("slider", { name: "Light intensity" });
+    await intensity.focus();
+    await intensity.press("Home");
+    await expect(intensity).toHaveAttribute("aria-valuenow", "0");
+    await expect(trigger).toHaveAccessibleName("Style preset: Glow");
+
+    // The Simple / Advanced switch is md, 32px, like every control here.
+    expect(
+      Math.round(
+        (await page
+          .getByRole("radiogroup", { name: "Elevation editor" })
+          .boundingBox())!.height,
+      ),
+    ).toBe(32);
     // No note or button stands in for the pads; the switch goes to Advanced.
     await expect(
       page.getByRole("button", { name: "Edit layers in Advanced" }),

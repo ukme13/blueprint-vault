@@ -19,6 +19,7 @@ import {
 import { ElevationColourSetting } from "./ElevationColourSetting";
 import { ElevationLayerStack } from "./ElevationLayerStack";
 import { ElevationPresets } from "./ElevationPresets";
+import { ElevationStyleControls } from "./ElevationStyleControls";
 import styles from "./scale-workspace.module.css";
 
 type ElevationView = "simple" | "advanced";
@@ -108,9 +109,8 @@ export function ElevationInspector({
             onChange={onChange}
           />
           {colourSetting}
-          {/* The pads set a contact and a cast layer. On any other stack they
-              would set half of what is drawn, so they are left out; that
-              level is edited in Advanced. */}
+          {/* The pads set a contact and a cast layer, drop or inner. On any
+              other shape they would set half of what is drawn. */}
           {isSimpleElevationLevel(selected) ? (
             <ElevationLevelStrength
               key={`strength-${selected.id}`}
@@ -120,7 +120,15 @@ export function ElevationInspector({
               surfaces={surfaces}
               onChange={onChange}
             />
-          ) : null}
+          ) : (
+            /* Neumorphic and Glow get controls of their own; a stack of any
+               other shape is edited in Advanced. */
+            <ElevationStyleControls
+              level={selected}
+              scale={scale}
+              onChange={onChange}
+            />
+          )}
         </div>
       ) : null}
       {/* No palette: say why every layer falls back to black. */}

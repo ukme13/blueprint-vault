@@ -809,6 +809,14 @@
   height: 14px;
 }
 
+/* Two sliders side by side: a mode's shadow and highlight, or light and
+   dark intensity. */
+.styleControlPair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-3);
+}
+
 .elevationOpacity {
   display: grid;
   grid-template-columns: 3rem minmax(0, 1fr);

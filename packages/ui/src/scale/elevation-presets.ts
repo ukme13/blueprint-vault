@@ -7,6 +7,11 @@ import {
   type ElevationScale,
   type ShadowLayer,
 } from "./elevation";
+import {
+  isGlowLevel,
+  isInsetLevel,
+  isNeumorphicLevel,
+} from "./elevation-styles";
 
 /**
  * Starting points for one level's stack, offered in Simple mode.
@@ -204,8 +209,9 @@ function sameLayer(preset: ShadowLayer, layer: ShadowLayer): boolean {
  * The preset a level is exactly, or null for one that has been changed from
  * any preset — which the studio names "Custom".
  *
- * Exact, not near: one opacity moved a step is no longer that preset, and
- * the selector saying otherwise would hide the edit.
+ * Exact for Standard and Subtle card: one opacity moved a step is no longer
+ * that preset, and the selector saying otherwise would hide the edit. Inset,
+ * Neumorphic and Glow go by their shape instead, since Simple tunes them.
  */
 export function matchingElevationPreset(
   level: ElevationLevel,
@@ -219,7 +225,13 @@ export function matchingElevationPreset(
       layers.every((layer, index) => sameLayer(layer, level.layers[index]!))
     );
   });
-  return match?.id ?? null;
+  if (match) return match.id;
+  /* Not exactly a preset, but still one's shape once tuned in Simple: an
+     Inset pressed deeper, a Neumorphic lifted higher, a Glow made wider. */
+  if (isInsetLevel(level)) return "inset";
+  if (isNeumorphicLevel(level)) return "neumorphic";
+  if (isGlowLevel(level)) return "glow";
+  return null;
 }
 
 /**
