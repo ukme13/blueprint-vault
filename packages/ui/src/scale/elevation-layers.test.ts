@@ -14,7 +14,6 @@ import {
   elevationLevelColour,
   setElevationLevelColour,
   addShadowLayer,
-  isSimpleElevationLevel,
   removeShadowLayer,
   resolveElevationColour,
   shadowLayerIconShadow,
@@ -23,6 +22,7 @@ import {
   toggleShadowLayerVisibility,
   updateShadowLayer,
 } from "./elevation-edit";
+import { elevationAdjustmentStyle } from "./elevation-adjust";
 import {
   ELEVATION_PRESETS,
   applyElevationPreset,
@@ -347,33 +347,6 @@ describe("updateShadowLayer", () => {
   });
 });
 
-describe("isSimpleElevationLevel", () => {
-  const level = (...layers: ShadowLayer[]) => lowLayers(scaleWith(...layers));
-  const simple = (...layers: ShadowLayer[]) =>
-    isSimpleElevationLevel({
-      id: "low",
-      name: "Low",
-      description: "",
-      layers: level(...layers),
-    });
-
-  it("is true for every seeded level", () => {
-    for (const each of defaultElevationScale().levels) {
-      expect(isSimpleElevationLevel(each)).toBe(true);
-    }
-  });
-
-  it("is false for any shape the pads cannot describe", () => {
-    expect(simple(shadow)).toBe(false);
-    expect(simple(shadow, shadow, shadow)).toBe(false);
-    expect(simple(shadow, { ...shadow, type: "inner" })).toBe(false);
-    expect(simple(shadow, { ...shadow, hidden: true })).toBe(false);
-    expect(
-      simple(shadow, { ...shadow, colour: { trackId: "neutral", weight: 50 } }),
-    ).toBe(false);
-  });
-});
-
 describe("how the layer list names a layer", () => {
   it("names its type and sums up its geometry", () => {
     expect(shadowLayerTypeLabel(shadow)).toBe("Drop shadow");
@@ -402,11 +375,11 @@ describe("elevation presets", () => {
     );
   });
 
-  it("keeps Standard and Subtle card to the shape the pads edit", () => {
+  it("keeps Standard and Subtle card to Standard's sliders", () => {
     const scale = defaultElevationScale();
     for (const id of ["standard", "subtle-card"] as const) {
       const next = applyElevationPreset(scale, "low", id, palette());
-      expect(isSimpleElevationLevel(next.levels[0]!)).toBe(true);
+      expect(elevationAdjustmentStyle(next.levels[0]!)).toBe("standard");
     }
   });
 

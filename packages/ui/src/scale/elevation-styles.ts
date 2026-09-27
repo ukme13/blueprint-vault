@@ -10,7 +10,10 @@ import {
  * still a Glow rather than Custom. Their sliders are in elevation-adjust.
  */
 
-function pair(level: ElevationLevel): [ShadowLayer, ShadowLayer] | null {
+/** A level's two layers, both shown, or null for any other count. */
+export function layerPair(
+  level: ElevationLevel,
+): [ShadowLayer, ShadowLayer] | null {
   const [first, second] = level.layers;
   if (level.layers.length !== 2 || !first || !second) return null;
   if (first.hidden || second.hidden) return null;
@@ -19,7 +22,7 @@ function pair(level: ElevationLevel): [ShadowLayer, ShadowLayer] | null {
 
 /** Two inner layers in the scale's colour, as Inset is. */
 export function isInsetLevel(level: ElevationLevel): boolean {
-  const layers = pair(level);
+  const layers = layerPair(level);
   return Boolean(
     layers?.every((layer) => isInnerShadow(layer) && !layer.colour),
   );
@@ -31,7 +34,7 @@ export function isInsetLevel(level: ElevationLevel): boolean {
  * own, both with the same blur.
  */
 export function isNeumorphicLevel(level: ElevationLevel): boolean {
-  const layers = pair(level);
+  const layers = layerPair(level);
   if (!layers) return false;
   const [shadow, highlight] = layers;
   const distance = shadow.offsetXPx;
@@ -50,7 +53,7 @@ export function isNeumorphicLevel(level: ElevationLevel): boolean {
 
 /** Glow's shape: two drop layers with no offset, in one colour of their own. */
 export function isGlowLevel(level: ElevationLevel): boolean {
-  const layers = pair(level);
+  const layers = layerPair(level);
   if (!layers) return false;
   const [inner, outer] = layers;
   return (

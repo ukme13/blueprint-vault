@@ -4,6 +4,7 @@ import {
   isInnerShadow,
   isSystemElevationLevel,
   elevationColourHex,
+  findElevationTrack,
   SYSTEM_ELEVATION_LEVEL_IDS,
   type ElevationLevel,
   type ElevationScale,
@@ -55,85 +56,6 @@ export function elevationColourOnTrack(
   };
 }
 
-/** Hard ceiling in the editor. A shadow at 1 is a black slab. */
-export const ELEVATION_OPACITY_MAX = 0.6;
-export const ELEVATION_OPACITY_STEP = 0.05;
-
-/** Snap onto the editor's step, inside the editor's ceiling. */
-export function snapElevationOpacity(value: number): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) return 0;
-  const clamped = Math.min(Math.max(value, 0), ELEVATION_OPACITY_MAX);
-  return Number(
-    (
-      Math.round(clamped / ELEVATION_OPACITY_STEP) * ELEVATION_OPACITY_STEP
-    ).toFixed(2),
-  );
-}
-
-export function setLayerOpacity(
-  scale: ElevationScale,
-  levelId: string,
-  layerIndex: number,
-  mode: ColourMode,
-  opacity: number,
-): ElevationScale {
-  const clamped =
-    typeof opacity === "number" && Number.isFinite(opacity)
-      ? Math.min(Math.max(opacity, 0), 1)
-      : 0;
-  return {
-    ...scale,
-    levels: scale.levels.map((level) =>
-      level.id !== levelId
-        ? level
-        : {
-            ...level,
-            layers: level.layers.map((layer, index) =>
-              index !== layerIndex
-                ? layer
-                : {
-                    ...layer,
-                    opacity: { ...layer.opacity, [mode]: clamped },
-                  },
-            ),
-          },
-    ),
-  };
-}
-
-/**
- * Contact and cast together, for one mode of one level.
- *
- * The pad writes both axes in one gesture. Two `setLayerOpacity` calls keep
- * the per-layer clamp; this is only the pairing.
- */
-export function setLevelModeOpacities(
-  scale: ElevationScale,
-  levelId: string,
-  mode: ColourMode,
-  contact: number,
-  cast: number,
-): ElevationScale {
-  const level = scale.levels.find((item) => item.id === levelId);
-  if (!level) return scale;
-  let next = setLayerOpacity(scale, levelId, 0, mode, contact);
-  if (level.layers.length > 1) {
-    next = setLayerOpacity(next, levelId, 1, mode, cast);
-  }
-  return next;
-}
-
-/**
- * How a layer is named in the editor.
- *
- * Two layers is the usual shape: a tight contact edge and a wide cast. A
- * numbered fallback is for a stored scale that has some other count.
- */
-export function elevationLayerName(index: number, count: number): string {
-  if (count === 2) return index === 0 ? "Contact" : "Cast";
-  return `Layer ${index + 1}`;
-}
-
 /*
  * Layer edits, for the Advanced builder: a stack of any length, each layer a
  * drop or an inner shadow, in the scale's colour or its own, shown or hidden.
@@ -153,7 +75,8 @@ export const DEFAULT_SHADOW_LAYER: Readonly<ShadowLayer> = {
   opacity: { light: 0.1, dark: 0.4 },
 };
 
-function withLayers(
+/** Replace one level's layers; an unknown level, or an edit returning null, is a no-op. */
+export function withLevelLayers(
   scale: ElevationScale,
   levelId: string,
   edit: (layers: ShadowLayer[]) => ShadowLayer[] | null,
@@ -176,7 +99,7 @@ function editLayer(
   layerIndex: number,
   edit: (layer: ShadowLayer) => ShadowLayer,
 ): ElevationScale {
-  return withLayers(scale, levelId, (layers) =>
+  return withLevelLayers(scale, levelId, (layers) =>
     layerIndex >= 0 && layerIndex < layers.length
       ? layers.map((layer, index) =>
           index === layerIndex ? edit(layer) : layer,
@@ -191,7 +114,7 @@ export function addShadowLayer(
   levelId: string,
   layer: ShadowLayer = DEFAULT_SHADOW_LAYER,
 ): ElevationScale {
-  return withLayers(scale, levelId, (layers) => [
+  return withLevelLayers(scale, levelId, (layers) => [
     ...layers,
     { ...layer, opacity: { ...layer.opacity } },
   ]);
@@ -206,7 +129,7 @@ export function removeShadowLayer(
   levelId: string,
   layerIndex: number,
 ): ElevationScale {
-  return withLayers(scale, levelId, (layers) =>
+  return withLevelLayers(scale, levelId, (layers) =>
     layerIndex >= 0 && layerIndex < layers.length
       ? layers.filter((_, index) => index !== layerIndex)
       : null,
@@ -332,7 +255,7 @@ export function setElevationLevelColour(
   levelId: string,
   colour: SemanticReference | null,
 ): ElevationScale {
-  return withLayers(scale, levelId, (layers) =>
+  return withLevelLayers(scale, levelId, (layers) =>
     layers.map((layer) =>
       tidyLayer({
         ...layer,
@@ -341,27 +264,6 @@ export function setElevationLevelColour(
           : undefined,
       }),
     ),
-  );
-}
-
-/**
- * Whether Simple's contact and cast pads describe a level completely.
- *
- * They do for the shape every seeded level has, two drop shadows, and for
- * Inset's two inner ones: both shown, both in the scale's colour. Anything
- * else — a drop beside an inner layer, a highlight in its own colour, a
- * hidden layer, one layer or five — would have the pads
- * setting half of what is drawn, so Simple says so and sends the author to
- * Advanced instead.
- */
-export function isSimpleElevationLevel(level: ElevationLevel): boolean {
-  const [contact, cast] = level.layers;
-  return (
-    level.layers.length === 2 &&
-    level.layers.every((layer) => !layer.hidden && !layer.colour) &&
-    /* Both drop, or both inner as Inset is: a pressed contact and cast are
-       still a contact and a cast. A drop beside an inner layer is not. */
-    isInnerShadow(contact!) === isInnerShadow(cast!)
   );
 }
 
@@ -414,9 +316,7 @@ export function resolveElevationColour(
   weight: number;
   hex: string;
 } {
-  const track =
-    tracks.find((candidate) => candidate.id === scale.colour.trackId) ??
-    tracks.find((candidate) => candidate.name === scale.colour.trackId);
+  const track = findElevationTrack(tracks, scale.colour.trackId);
   return {
     trackId: scale.colour.trackId,
     trackName: track?.name ?? scale.colour.trackId,

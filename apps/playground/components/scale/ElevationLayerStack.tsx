@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Eye, EyeOff, Plus, Trash2 } from "lucide-react";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import { Popover } from "@astryxdesign/core/Popover";
 import {
   Button,
   addShadowLayer,
@@ -16,8 +15,7 @@ import {
   type ElevationLevel,
   type ElevationScale,
 } from "@blueprint/ui";
-import { Sheet } from "../Sheet";
-import { useIsPhone } from "../use-is-phone";
+import { PopoverOrSheet } from "../PopoverOrSheet";
 import { ElevationLayerEditor } from "./ElevationLayerEditor";
 import styles from "./scale-workspace.module.css";
 
@@ -50,10 +48,7 @@ export function ElevationLayerStack({
   scaleColourName,
   onChange,
 }: ElevationLayerStackProps) {
-  const isPhone = useIsPhone();
   const [open, setOpen] = useState<number | null>(null);
-  /* A layer deleted while its settings are open closes them. */
-  const openLayer = open === null ? undefined : level.layers[open];
 
   const editor = (index: number) => {
     const layer = level.layers[index];
@@ -94,10 +89,6 @@ export function ElevationLayerStack({
                 aria-label={`${name}: ${shadowLayerTypeLabel(each)}, ${shadowLayerSummary(each)}${each.hidden ? ", hidden" : ""}`}
                 className={styles.elevationLayerSelect}
                 type="button"
-                /* On a wider screen the Popover owns the click and reports it
-                   through onOpenChange; a handler here as well toggled it
-                   straight back shut. */
-                onClick={isPhone ? () => setOpen(index) : undefined}
               >
                 {/* Marked on the side its shadow falls, as in Figma. */}
                 <ShadowLayerIcon
@@ -119,25 +110,15 @@ export function ElevationLayerStack({
                 data-hidden={each.hidden || undefined}
                 data-selected={open === index || undefined}
               >
-                {isPhone ? (
-                  row
-                ) : (
-                  <Popover
-                    alignment="start"
-                    /* Built only while open: Astryx's Popover keeps its
-                       content mounted when closed, and each editor holds a
-                       list of every shade. */
-                    content={open === index ? editor(index) : null}
-                    hasCloseButton={false}
-                    isOpen={open === index}
-                    label={`${name} settings`}
-                    placement="start"
-                    width={264}
-                    onOpenChange={(isOpen) => setOpen(isOpen ? index : null)}
-                  >
-                    {row}
-                  </Popover>
-                )}
+                <PopoverOrSheet
+                  isOpen={open === index}
+                  label={`${name} settings`}
+                  trigger={row}
+                  width={264}
+                  onOpenChange={(isOpen) => setOpen(isOpen ? index : null)}
+                >
+                  {editor(index)}
+                </PopoverOrSheet>
                 <IconButton
                   icon={
                     each.hidden ? (
@@ -180,17 +161,6 @@ export function ElevationLayerStack({
       >
         Add layer
       </Button>
-      {isPhone ? (
-        <Sheet
-          isOpen={openLayer !== undefined}
-          label={
-            open === null ? "Layer settings" : `Layer ${open + 1} settings`
-          }
-          onClose={() => setOpen(null)}
-        >
-          {open === null ? null : editor(open)}
-        </Sheet>
-      ) : null}
     </div>
   );
 }

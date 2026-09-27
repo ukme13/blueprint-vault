@@ -2,7 +2,9 @@ import type { ColourMode, SemanticReference } from "../color/semantic";
 import type { ColorTrack } from "../color/types";
 import {
   isInnerShadow,
-  resolveElevation,
+  extremeShade,
+  findElevationTrack,
+  resolveElevationLevel,
   type ElevationLevel,
   type ElevationScale,
   type ShadowLayer,
@@ -79,13 +81,6 @@ function drop(
   };
 }
 
-function trackFor(
-  tracks: readonly ColorTrack[],
-  trackId: string,
-): ColorTrack | undefined {
-  return tracks.find((track) => track.id === trackId || track.name === trackId);
-}
-
 /**
  * The lightest shade of the scale's own track, for a neumorphic highlight.
  *
@@ -97,12 +92,8 @@ function highlight(
   scale: ElevationScale,
   tracks: readonly ColorTrack[],
 ): SemanticReference | undefined {
-  const track = trackFor(tracks, scale.colour.trackId) ?? tracks[0];
-  const lightest = track?.shades.reduce<ColorTrack["shades"][number] | null>(
-    (current, shade) =>
-      !current || shade.weight < current.weight ? shade : current,
-    null,
-  );
+  const track = findElevationTrack(tracks, scale.colour.trackId) ?? tracks[0];
+  const lightest = track && extremeShade(track, "lightest");
   return track && lightest
     ? { trackId: track.id, weight: lightest.weight }
     : undefined;
@@ -114,7 +105,7 @@ function highlight(
  */
 function brand(tracks: readonly ColorTrack[]): SemanticReference | undefined {
   const track =
-    trackFor(tracks, "primary") ??
+    findElevationTrack(tracks, "primary") ??
     tracks.find((each) => each.id !== "neutral" && each.name !== "neutral") ??
     tracks[0];
   if (!track || track.shades.length === 0) return undefined;
@@ -185,14 +176,10 @@ export function applyElevationPreset(
 }
 
 /**
- * A level's layer is still the preset's: every value equal, absent read as
- * default. A preset layer with a colour of its own — Glow's, Neumorphic's
- * highlight — matches any colour of its own, so recolouring a Glow leaves it
- * a Glow rather than Custom. A layer in the scale's colour must stay in it.
+ * A level's layer is exactly the preset's: every value equal, absent read
+ * as default. A recoloured Glow is not exact, but its shape still names it.
  */
-function sameLayer(preset: ShadowLayer, layer: ShadowLayer): boolean {
-  const a = preset;
-  const b = layer;
+function sameLayer(a: ShadowLayer, b: ShadowLayer): boolean {
   return (
     isInnerShadow(a) === isInnerShadow(b) &&
     a.offsetXPx === b.offsetXPx &&
@@ -202,7 +189,8 @@ function sameLayer(preset: ShadowLayer, layer: ShadowLayer): boolean {
     a.opacity.light === b.opacity.light &&
     a.opacity.dark === b.opacity.dark &&
     Boolean(a.hidden) === Boolean(b.hidden) &&
-    (a.colour ? Boolean(b.colour) : !b.colour)
+    a.colour?.trackId === b.colour?.trackId &&
+    a.colour?.weight === b.colour?.weight
   );
 }
 
@@ -253,16 +241,11 @@ export function elevationPresetCss(
   tracks: ColorTrack[],
   mode: ColourMode,
 ): string {
-  const preview: ElevationScale = {
-    colour: scale.colour,
-    levels: [
-      {
-        id: "preview",
-        name: "Preview",
-        description: "",
-        layers: elevationPresetLayers(presetId, scale, tracks),
-      },
-    ],
-  };
-  return resolveElevation(preview, tracks, mode)[0]!.css;
+  const layers = elevationPresetLayers(presetId, scale, tracks);
+  return resolveElevationLevel(
+    { id: "preview", name: "Preview", description: "", layers },
+    scale,
+    tracks,
+    mode,
+  ).css;
 }

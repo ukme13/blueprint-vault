@@ -1,0 +1,14 @@
+/* The trigger fills the space it is given. A grid stretches its items, so
+   the trigger does on a phone, where the sheet beside it takes no room. */
+.fill {
+  display: grid;
+  min-width: 0;
+}
+
+/* On a wider screen the Popover wraps the trigger in an element of its own,
+   which would otherwise size to its content; this is the one place that
+   reaches past it. */
+.popover > * > :first-child {
+  width: 100%;
+  min-width: 0;
+}

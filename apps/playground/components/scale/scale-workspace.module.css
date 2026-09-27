@@ -557,16 +557,6 @@
   opacity: 0.5;
 }
 
-/* The first column holds the row's button, wrapped in its Popover's own
-   element on a wider screen. Both fill the column, up to the eye and delete
-   buttons: sized to its content, the wrapper cut the summary short with room
-   to spare. */
-.elevationLayerRow > :first-child {
-  display: flex;
-  width: 100%;
-  min-width: 0;
-}
-
 .elevationLayerSelect {
   flex: 1 1 auto;
   width: 100%;
