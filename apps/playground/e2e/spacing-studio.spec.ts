@@ -664,6 +664,25 @@ test.describe("The elevation editor", () => {
       .getByRole("region", { name: "Elevation" })
       .getByLabel("Low on light");
     const presets = page.getByRole("group", { name: "Low presets" });
+
+    /* Colour, presets and pads are one group, with no divider between them:
+       all three set how this level's shadow looks. */
+    const simple = page.getByRole("group", { name: "Low simple" });
+    await expect(
+      simple.getByLabel("Shadow colour", { exact: true }),
+    ).toHaveCount(1);
+    await expect(
+      simple.getByRole("group", { name: "Low presets" }),
+    ).toBeVisible();
+    await expect(
+      simple.getByRole("group", { name: "Low strength" }),
+    ).toBeVisible();
+    const dividers = await simple.evaluate((group) =>
+      [...group.querySelectorAll<HTMLElement>(":scope > *")].map(
+        (part) => getComputedStyle(part).borderBottomWidth,
+      ),
+    );
+    expect(dividers.every((width) => width === "0px")).toBe(true);
     const pad = page.getByRole("button", {
       name: "Low light contact and cast",
     });

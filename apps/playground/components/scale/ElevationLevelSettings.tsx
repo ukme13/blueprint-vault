@@ -156,7 +156,7 @@ export function ElevationLevelStrength({
   return (
     <div
       aria-label={`${level.name} strength`}
-      className={styles.settingGroup}
+      className={styles.settingSubgroup}
       role="group"
     >
       <div className={styles.elevationPads}>

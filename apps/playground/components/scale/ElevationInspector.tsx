@@ -62,7 +62,7 @@ export function ElevationInspector({
      the only colour; in Advanced each layer's Color list starts with it as
      "Default", so a second control for it there only duplicated that. */
   const colourSetting = (
-    <div className={styles.settingGroup}>
+    <div className={styles.settingSubgroup}>
       {track ? (
         /* One list of every shade, grouped by track and found by typing
            ("primary 900"), rather than a track selector and a weight
@@ -124,8 +124,14 @@ export function ElevationInspector({
       ) : null}
       {/* One level at a time, the one picked on the canvas: every pad for
           every level in one column scrolled forever. */}
+      {/* Colour, presets and pads are one group: all three set how this
+          level's shadow looks in Simple, so no divider runs between them. */}
       {selected && view === "simple" ? (
-        <>
+        <div
+          aria-label={`${selected.name} simple`}
+          className={`${styles.settingGroup} ${styles.elevationSimple}`}
+          role="group"
+        >
           {colourSetting}
           <ElevationPresets
             level={selected}
@@ -145,7 +151,7 @@ export function ElevationInspector({
           ) : (
             /* The pads set a contact and a cast layer. On any other stack
                they would set half of what is drawn, so they step aside. */
-            <div className={styles.settingGroup}>
+            <div className={styles.settingSubgroup}>
               <p className={styles.settingHint}>
                 {selected.name} has a custom layer stack that the contact and
                 cast pads can’t describe.
@@ -160,10 +166,12 @@ export function ElevationInspector({
               </Button>
             </div>
           )}
-        </>
+        </div>
       ) : null}
       {/* No palette: say why every layer falls back to black. */}
-      {selected && view === "advanced" && !track ? colourSetting : null}
+      {selected && view === "advanced" && !track ? (
+        <div className={styles.settingGroup}>{colourSetting}</div>
+      ) : null}
       {selected && view === "advanced" ? (
         <ElevationLayerStack
           key={`layers-${selected.id}`}

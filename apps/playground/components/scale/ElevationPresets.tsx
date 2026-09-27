@@ -31,7 +31,7 @@ export function ElevationPresets({
   return (
     <div
       aria-label={`${level.name} presets`}
-      className={styles.settingGroup}
+      className={styles.settingSubgroup}
       role="group"
     >
       <h2>Presets</h2>
