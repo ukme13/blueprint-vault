@@ -14,6 +14,7 @@ import {
   normalizeSpacingScale,
   resolveSpacing,
   resolveSpacingSlots,
+  resolveSpacingRamp,
   SPACING_SLOT_STEPS,
   spacingDensityBehavior,
   spacingChipSteps,
@@ -339,5 +340,23 @@ describe("resolveSpacingSlots", () => {
 
   it("is null for no tokens", () => {
     expect(resolveSpacingSlots([], SPACING_SLOT_STEPS)).toBeNull();
+  });
+});
+
+describe("resolveSpacingRamp", () => {
+  it("lists every offered step, kept or pruned, at its own size", () => {
+    const scale = { ...defaultSpacingScale(), steps: [0, 2, 4] };
+    const ramp = resolveSpacingRamp(scale);
+    expect(ramp.map((token) => token.step)).toEqual(spacingChipSteps(scale));
+    const four = ramp.find((token) => token.step === 4)!;
+    const three = ramp.find((token) => token.step === 3)!;
+    expect([four.kept, four.px]).toEqual([true, 16]);
+    // Pruned, but still the size it would be.
+    expect([three.kept, three.px]).toEqual([false, 12]);
+  });
+
+  it("keeps a step beyond the offered chips, like a preset's 2.5", () => {
+    const ramp = resolveSpacingRamp({ ...defaultSpacingScale(), steps: [2.5] });
+    expect(ramp.find((token) => token.step === 2.5)?.kept).toBe(true);
   });
 });

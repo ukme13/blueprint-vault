@@ -254,12 +254,6 @@
   line-height: 1.4;
 }
 
-.stepChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 .tokenList {
   display: grid;
   gap: var(--spacing-2);
@@ -623,6 +617,49 @@
   align-items: center;
   gap: var(--spacing-1);
   min-width: 0;
+}
+
+/* A pruned step: dimmed, and picks nothing. Its box turns it back on. */
+.tokenRow[data-pruned] {
+  cursor: default;
+}
+
+.tokenRow[data-pruned] > :not(.tokenName),
+.tokenRow[data-pruned] .tokenPick {
+  opacity: 0.4;
+}
+
+.tokenRow[data-pruned]:hover {
+  background: none;
+}
+
+/* Keep or prune: a checkbox, filled while the step is kept. */
+.tokenKeep {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--spacing-4);
+  height: var(--spacing-4);
+  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-inner);
+  background: none;
+  color: var(--color-fg-on-action);
+  cursor: pointer;
+}
+
+.tokenKeep[aria-pressed="true"] {
+  border-color: var(--color-bg-action, var(--color-fg-primary));
+  background: var(--color-bg-action, var(--color-fg-primary));
+}
+
+.tokenKeep svg {
+  width: var(--spacing-3);
+  height: var(--spacing-3);
+}
+
+.tokenPick:disabled {
+  cursor: default;
 }
 
 .tokenPick {

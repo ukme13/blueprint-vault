@@ -254,16 +254,15 @@ test.describe("The spacing studio", () => {
     const preset = page.getByLabel("Scale preset", { exact: true });
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     const chip = (step: string) =>
-      page
-        .getByRole("region", { name: "Steps" })
-        .getByRole("button", { name: step, exact: true });
+      page.getByRole("button", { name: `Keep step ${step}`, exact: true });
+    const kept = steps.locator("li:not([data-pruned])");
     const stored = async () =>
       (await readStoredWorkspace(page))?.spacing as
         { baseUnitPx: number; steps: number[] } | undefined;
 
     /* The seeded scale is no preset. */
     await expect(preset).toContainText("Custom");
-    const seededCount = await steps.getByRole("listitem").count();
+    const seededCount = await kept.count();
 
     /* One pick sets the base unit and the kept steps together. */
     await preset.click();
@@ -273,13 +272,13 @@ test.describe("The spacing studio", () => {
     await expect
       .poll(async () => (await stored())?.steps)
       .toEqual([0, 0.5, 1, 2, 3, 4, 6, 8, 12]);
-    await expect(steps.getByRole("listitem")).toHaveCount(9);
+    await expect(kept).toHaveCount(9);
     await expect(chip("12")).toHaveAttribute("aria-pressed", "true");
     await expect(chip("5")).toHaveAttribute("aria-pressed", "false");
     // 8px on an 8px grid: step 4 is 32px.
     await expect(steps.getByText("32px", { exact: true })).toBeVisible();
 
-    /* A chip turned off is a scale of its own: Custom. */
+    /* A step pruned from its row is a scale of its own: Custom. */
     await chip("6").click();
     await expect(preset).toContainText("Custom");
 
@@ -288,7 +287,7 @@ test.describe("The spacing studio", () => {
     await expect(preset).toContainText("8pt Standard Grid");
     await page.getByRole("button", { name: "Undo" }).click();
     await expect(preset).toContainText("Custom");
-    await expect(steps.getByRole("listitem")).toHaveCount(seededCount);
+    await expect(kept).toHaveCount(seededCount);
     await expect.poll(async () => (await stored())?.baseUnitPx).toBe(4);
   });
 
@@ -345,16 +344,37 @@ test.describe("The spacing studio", () => {
     await expect(use).toHaveAttribute("data-focused", "true");
   });
 
-  test("prunes a step, and keeps it pruned", async ({ seededPage: page }) => {
+  test("prunes a step from its row, and keeps it pruned", async ({
+    seededPage: page,
+  }) => {
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
-    const before = await steps.getByRole("listitem").count();
+    const rows = await steps.getByRole("listitem").count();
+    const row = steps.locator('[data-spacing-step="10"]');
+    const toggle = page.getByRole("button", {
+      name: "Keep step 10",
+      exact: true,
+    });
 
-    await page
-      .getByRole("region", { name: "Steps" })
-      .getByRole("button", { name: "10", exact: true })
-      .click();
+    /* The inspector has no step chips: the rows are where steps are kept. */
+    await expect(
+      page.getByRole("region", { name: "Steps", exact: true }),
+    ).toHaveCount(0);
 
-    await expect(steps.getByRole("listitem")).toHaveCount(before - 1);
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await toggle.click();
+
+    /* Still listed, dimmed, so it can come back. */
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await expect(row).toHaveAttribute("data-pruned", "true");
+    await expect(steps.getByRole("listitem")).toHaveCount(rows);
+    // A pruned step cannot be picked for the preview.
+    await expect(
+      row.getByRole("button", { name: "--spacing-10" }),
+    ).toBeDisabled();
+    await expect(row.getByRole("button", { name: "--spacing-10" })).toHaveCSS(
+      "opacity",
+      "0.4",
+    );
 
     await expect
       .poll(async () => (await readStoredWorkspace(page))?.spacing?.steps)
@@ -362,10 +382,39 @@ test.describe("The spacing studio", () => {
 
     await page.reload();
     await expect(
-      page
-        .getByRole("region", { name: "Generated spacing steps" })
-        .getByRole("listitem"),
-    ).toHaveCount(before - 1);
+      page.getByRole("button", { name: "Keep step 10", exact: true }),
+    ).toHaveAttribute("aria-pressed", "false");
+  });
+
+  test("a pruned step moves the preview to the nearest kept one", async ({
+    seededPage: page,
+  }) => {
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    const inset = page
+      .getByRole("figure", { name: "Spacing preview" })
+      .locator('[data-spacing-zone="inset"]')
+      .first();
+    // The inset slot starts on step 6, 24px.
+    await expect(inset).toHaveCSS("padding-top", "24px");
+    await expect(steps.locator('[data-spacing-step="6"]')).toHaveAttribute(
+      "data-selected",
+      "true",
+    );
+
+    await page
+      .getByRole("button", { name: "Keep step 6", exact: true })
+      .click();
+    await expect(inset).not.toHaveCSS("padding-top", "24px");
+    await expect(steps.locator('[data-spacing-step="6"]')).not.toHaveAttribute(
+      "data-selected",
+    );
+
+    /* Undo keeps the step again, and the preview goes back to it. */
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(
+      page.getByRole("button", { name: "Keep step 6", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(inset).toHaveCSS("padding-top", "24px");
   });
 
   test("moves every step when the base unit changes", async ({
@@ -1341,20 +1390,19 @@ test.describe("The scale studio's chrome", () => {
   test("undoes a prune, and redo puts it back", async ({
     seededPage: page,
   }) => {
-    const steps = page.getByRole("region", { name: "Generated spacing steps" });
-    const before = await steps.getByRole("listitem").count();
+    const toggle = page.getByRole("button", {
+      name: "Keep step 10",
+      exact: true,
+    });
 
-    await page
-      .getByRole("region", { name: "Steps" })
-      .getByRole("button", { name: "10", exact: true })
-      .click();
-    await expect(steps.getByRole("listitem")).toHaveCount(before - 1);
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
 
     await page.getByRole("button", { name: "Undo" }).click();
-    await expect(steps.getByRole("listitem")).toHaveCount(before);
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
 
     await page.getByRole("button", { name: "Redo" }).click();
-    await expect(steps.getByRole("listitem")).toHaveCount(before - 1);
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
   });
 
   test("undoes the last action on the page, not only this view", async ({
@@ -1363,12 +1411,11 @@ test.describe("The scale studio's chrome", () => {
     /* Spacing, radius and elevation share one history: an undo is the last
        thing done in this studio, even after switching views. */
 
-    const steps = page.getByRole("region", { name: "Generated spacing steps" });
-    const before = await steps.getByRole("listitem").count();
-    await page
-      .getByRole("region", { name: "Steps" })
-      .getByRole("button", { name: "10", exact: true })
-      .click();
+    const toggle = page.getByRole("button", {
+      name: "Keep step 10",
+      exact: true,
+    });
+    await toggle.click();
 
     await showScaleView(page, "Radius");
     const slider = page.getByRole("slider", { name: /Roundness/ });
@@ -1385,7 +1432,7 @@ test.describe("The scale studio's chrome", () => {
 
     await showScaleView(page, "Spacing");
     await page.getByRole("button", { name: "Undo" }).click();
-    await expect(steps.getByRole("listitem")).toHaveCount(before);
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
   });
 
   test("exports the whole system, not only the scales", async ({

@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  resolveSpacing,
+  toggleSpacingStep,
   type ColorTrack,
   type ElevationScale,
   type LayoutToken,
@@ -50,10 +50,13 @@ export function ScaleCanvas({
     >
       {section === "spacing" && (
         <SpacingCanvas
-          density={spacing.density ?? 1}
           layout={layout}
-          tokens={resolveSpacing(spacing)}
+          scale={spacing}
           onOpenUse={onOpenUse}
+          onToggleStep={(step) =>
+            /* No edit key: each keep or prune is its own step in history. */
+            write({ spacing: toggleSpacingStep(spacing, step) })
+          }
         />
       )}
       {section === "radius" && (

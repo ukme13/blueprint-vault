@@ -2,7 +2,6 @@
 
 import {
   applySpacingPreset,
-  toggleSpacingStep,
   type ColorTrack,
   type ElevationScale,
   type HybridTokenizedValue,
@@ -77,9 +76,6 @@ export function ScaleInspector({
           }
           onDensityPreset={(density) =>
             write({ spacing: { ...spacing, density } })
-          }
-          onToggleStep={(step) =>
-            write({ spacing: toggleSpacingStep(spacing, step) })
           }
         />
       )}

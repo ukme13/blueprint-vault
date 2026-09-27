@@ -344,3 +344,18 @@ export function resolveSpacingSlots(
   const columns = nearestSpacingToken(tokens, steps.columns);
   return inset && stack && columns ? { inset, stack, columns } : null;
 }
+
+/**
+ * Every step the studio offers, as a token, each marked kept or pruned: the
+ * ramp the step list shows, where a step is turned on and off in place. A
+ * pruned step still has the size it would have, so the row can say what
+ * turning it back on would give.
+ */
+export function resolveSpacingRamp(
+  scale: SpacingScale,
+): (SpacingToken & { kept: boolean })[] {
+  const kept = new Set(scale.steps);
+  return resolveSpacing({ ...scale, steps: spacingChipSteps(scale) }).map(
+    (token) => ({ ...token, kept: kept.has(token.step) }),
+  );
+}

@@ -4,23 +4,21 @@ import { useState } from "react";
 import { Switch } from "@astryxdesign/core/Switch";
 import { Ruler } from "lucide-react";
 import {
-  Button,
   HybridTokenizedInput,
   MAX_SPACING_BASE_UNIT_PX,
   MIN_SPACING_BASE_UNIT_PX,
   SPACING_BASE_UNIT_PRESETS,
+  resolveSpacing,
+  resolveSpacingRamp,
   resolveSpacingSlots,
   SPACING_SLOT_STEPS,
   type SpacingSlot,
-  spacingChipSteps,
   resolveHybridValue,
-  spacingStepName,
   type HybridTokenizedValue,
   type SpacingPresetId,
   type SpacingScale,
   tokensUsingSpacingStep,
   type LayoutToken,
-  type SpacingToken,
 } from "@blueprint/ui";
 import { usePickerSheet } from "../picker-sheet";
 import { SpacingDensitySetting } from "./SpacingDensitySetting";
@@ -37,7 +35,6 @@ interface SpacingInspectorProps {
   onDensityChange: (density: number) => void;
   /** A density preset: its own step in history, not part of a drag. */
   onDensityPreset: (density: number) => void;
-  onToggleStep: (step: number) => void;
   onApplyPreset: (id: SpacingPresetId) => void;
 }
 
@@ -47,14 +44,9 @@ export function SpacingInspector({
   onBaseUnitChange,
   onDensityChange,
   onDensityPreset,
-  onToggleStep,
   onApplyPreset,
 }: SpacingInspectorProps) {
   const pickerSheet = usePickerSheet();
-  const kept = new Set(scale.steps);
-  /* The chips offered, plus any step the scale holds beyond them — a
-     preset's 2.5 — so every kept step can be turned off. */
-  const chips = spacingChipSteps(scale);
 
   return (
     <>
@@ -91,33 +83,14 @@ export function SpacingInspector({
         onChange={onDensityChange}
         onPreset={onDensityPreset}
       />
-      <div className={styles.settingGroup}>
-        <h2>Steps</h2>
-        <p className={styles.settingHint}>
-          The ramp, pruned. Turn off the steps this system does not need.
-        </p>
-        <div className={styles.stepChips} role="region" aria-label="Steps">
-          {chips.map((step) => (
-            <Button
-              key={step}
-              aria-pressed={kept.has(step)}
-              scheme="neutral"
-              size="xs"
-              variant={kept.has(step) ? "contained" : "outlined"}
-              onClick={() => onToggleStep(step)}
-            >
-              {spacingStepName(step)}
-            </Button>
-          ))}
-        </div>
-      </div>
     </>
   );
 }
 
 interface SpacingCanvasProps {
-  tokens: SpacingToken[];
-  density: number;
+  scale: SpacingScale;
+  /** Keep a step, or prune it: one step in history. */
+  onToggleStep: (step: number) => void;
   /** The workspace's layout uses, to say which step each one reaches for. */
   layout: readonly LayoutToken[];
   /** Open the Uses tab at one layout use. */
@@ -125,17 +98,21 @@ interface SpacingCanvasProps {
 }
 
 export function SpacingCanvas({
-  tokens,
-  density,
+  scale,
+  onToggleStep,
   layout,
   onOpenUse,
 }: SpacingCanvasProps) {
+  /* The preview draws from the kept steps; the list shows the whole ramp,
+     pruned steps dimmed, each turned on and off in place. */
+  const tokens = resolveSpacing(scale);
+  const ramp = resolveSpacingRamp(scale);
   const [steps, setSteps] = useState({ ...SPACING_SLOT_STEPS });
   /* The slot a click on the step list sets: the one last touched. */
   const [active, setActive] = useState<SpacingSlot>("inset");
   /* Whether the preview marks its spaces, or shows the cards plain. */
   const [showSpacing, setShowSpacing] = useState(true);
-  /* A step turned off in the inspector falls back to the nearest one, per
+  /* A pruned step falls back to the nearest one, per
      slot, so the preview never points at a step the scale no longer has. */
   const resolved = resolveSpacingSlots(tokens, steps);
   const setStep = (slot: SpacingSlot, step: number) => {
@@ -168,15 +145,17 @@ export function SpacingCanvas({
       ) : null}
       <section aria-label="Generated spacing steps">
         <ol className={styles.tokenList}>
-          {tokens.map((token) => (
+          {ramp.map((token) => (
             <SpacingTokenRow
               key={token.step}
-              density={density}
-              isSelected={token.step === selected?.step}
+              density={scale.density ?? 1}
+              isKept={token.kept}
+              isSelected={token.kept && token.step === selected?.step}
               token={token}
               uses={tokensUsingSpacingStep(layout, token.step)}
               onOpenUse={onOpenUse}
               onSelect={() => setStep(active, token.step)}
+              onToggleKept={() => onToggleStep(token.step)}
             />
           ))}
         </ol>

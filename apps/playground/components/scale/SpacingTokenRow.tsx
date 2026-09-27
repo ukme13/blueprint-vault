@@ -1,7 +1,9 @@
 "use client";
 
+import { Check } from "lucide-react";
 import {
   spacingDensityBehavior,
+  spacingStepName,
   type LayoutToken,
   type SpacingToken,
 } from "@blueprint/ui";
@@ -13,9 +15,12 @@ interface SpacingTokenRowProps {
   /** The scale's density, shown on the steps it moves. */
   density: number;
   isSelected: boolean;
+  /** Whether the scale keeps this step; a pruned one is dimmed. */
+  isKept: boolean;
   /** The layout uses that point at this step on some frame. */
   uses: readonly LayoutToken[];
   onSelect: () => void;
+  onToggleKept: () => void;
   /** Open the Uses tab at one of them. */
   onOpenUse: (id: string) => void;
 }
@@ -29,15 +34,19 @@ interface SpacingTokenRowProps {
  * opens that use in the Uses tab, so a step's size and what it sizes are
  * one click apart.
  *
- * A click anywhere on the row picks the step; the name is a button too, so
- * a keyboard and a screen reader reach it.
+ * A click anywhere on a kept row picks the step; the name is a button too,
+ * so a keyboard and a screen reader reach it. The box at the start keeps or
+ * prunes the step. A pruned row is dimmed and picks nothing: the preview
+ * cannot show a step the scale does not have.
  */
 export function SpacingTokenRow({
   token,
   density,
   isSelected,
+  isKept,
   uses,
   onSelect,
+  onToggleKept,
   onOpenUse,
 }: SpacingTokenRowProps) {
   /* What density does to this step, said beside it. */
@@ -53,14 +62,28 @@ export function SpacingTokenRow({
   return (
     <li
       className={styles.tokenRow}
+      data-pruned={isKept ? undefined : true}
       data-selected={isSelected || undefined}
       data-spacing-step={token.step}
-      onClick={onSelect}
+      onClick={isKept ? onSelect : undefined}
     >
       <span className={styles.tokenName}>
         <button
+          aria-label={`Keep step ${spacingStepName(token.step)}`}
+          aria-pressed={isKept}
+          className={styles.tokenKeep}
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleKept();
+          }}
+        >
+          {isKept ? <Check aria-hidden /> : null}
+        </button>
+        <button
           aria-pressed={isSelected}
           className={styles.tokenPick}
+          disabled={!isKept}
           type="button"
           onClick={(event) => {
             event.stopPropagation();
@@ -69,7 +92,7 @@ export function SpacingTokenRow({
         >
           <code>{token.variable}</code>
         </button>
-        <SpacingCopyButton token={token} />
+        {isKept ? <SpacingCopyButton token={token} /> : null}
       </span>
       <span>{token.px}px</span>
       <span className={styles.tokenMeta}>{token.rem}rem</span>
