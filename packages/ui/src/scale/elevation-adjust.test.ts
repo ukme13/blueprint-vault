@@ -19,6 +19,7 @@ import {
 import { updateShadowLayer } from "./elevation-edit";
 import {
   applyElevationPreset,
+  defaultAdjustmentValue,
   matchingElevationPreset,
   type ElevationPresetId,
 } from "./elevation-presets";
@@ -255,6 +256,54 @@ describe("tuneElevationLevel", () => {
       expect(Object.keys(read!.values).sort()).toEqual(
         ranges.map((range) => range.key).sort(),
       );
+    }
+  });
+});
+
+describe("defaultAdjustmentValue", () => {
+  it("is the value the preset starts with, per mode", () => {
+    expect(defaultAdjustmentValue("standard", "distance", "light")).toBe(4);
+    expect(defaultAdjustmentValue("standard", "opacity", "dark")).toBe(0.45);
+    expect(defaultAdjustmentValue("inset", "depth", "light")).toBe(2);
+    expect(defaultAdjustmentValue("neumorphic", "highlight", "light")).toBe(
+      0.9,
+    );
+    expect(defaultAdjustmentValue("glow", "radius", "dark")).toBe(16);
+  });
+
+  it("resets a Subtle card to Subtle card's values, not Standard's", () => {
+    expect(
+      defaultAdjustmentValue("standard", "softness", "light", "subtle-card"),
+    ).toBe(4);
+    expect(defaultAdjustmentValue("standard", "softness", "light")).toBe(12);
+  });
+
+  it("puts a tuned preset back where applying it put it", () => {
+    for (const id of ["standard", "inset", "neumorphic", "glow"] as const) {
+      const applied = preset(id);
+      const style = elevationAdjustmentStyle(low(applied))!;
+      for (const range of ELEVATION_ADJUSTMENTS[style]) {
+        const moved = tuneElevationLevel(
+          applied,
+          "low",
+          range.key,
+          range.max,
+          "light",
+        );
+        const reset = tuneElevationLevel(
+          moved,
+          "low",
+          range.key,
+          defaultAdjustmentValue(style, range.key, "light", id)!,
+          "light",
+        );
+        expect(
+          readLevelAdjustmentValues(low(reset), "light")!.values[range.key],
+          `${id} ${range.key}`,
+        ).toBe(
+          readLevelAdjustmentValues(low(applied), "light")!.values[range.key],
+        );
+      }
     }
   });
 });

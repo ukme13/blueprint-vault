@@ -1,6 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
+import {
+  SegmentedControl,
+  SegmentedControlItem,
+} from "@astryxdesign/core/SegmentedControl";
 import {
   addElevationLevel,
   Button,
@@ -9,10 +14,17 @@ import {
   elevationVariableName,
   isSystemElevationLevel,
   removeElevationLevel,
-  resolveElevation,
+  resolveElevationLevel,
   type ColorTrack,
   type ElevationScale,
 } from "@blueprint/ui";
+import { useThemeMode } from "../../app/theme-provider";
+import { ElevationCopyButton } from "./ElevationCopyButton";
+import {
+  ELEVATION_PREVIEW_CONTEXTS,
+  ElevationPreviewTile,
+  type ElevationPreviewContext,
+} from "./ElevationPreviewTile";
 import styles from "./scale-workspace.module.css";
 
 interface ElevationCanvasProps {
@@ -39,6 +51,9 @@ export function ElevationCanvas({
   onSelectLevel,
 }: ElevationCanvasProps) {
   const surfaces = elevationPreviewSurfaces(palettes);
+  const { resolved: studioMode } = useThemeMode();
+  /* What the shadows are shown on. A view setting, not part of the scale. */
+  const [context, setContext] = useState<ElevationPreviewContext>("card");
 
   const addLevel = () => {
     const next = addElevationLevel(scale);
@@ -49,11 +64,25 @@ export function ElevationCanvas({
 
   return (
     <section aria-label="Elevation" className="grid gap-4">
-      <div className="flex justify-start">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SegmentedControl
+          label="Preview on"
+          size="md"
+          value={context}
+          onChange={(value) => setContext(value as ElevationPreviewContext)}
+        >
+          {ELEVATION_PREVIEW_CONTEXTS.map((each) => (
+            <SegmentedControlItem
+              key={each.value}
+              label={each.label}
+              value={each.value}
+            />
+          ))}
+        </SegmentedControl>
         <Button
           leftIcon={<Plus aria-hidden />}
           scheme="neutral"
-          size="small"
+          size="medium"
           type="button"
           variant="outlined"
           onClick={addLevel}
@@ -78,29 +107,25 @@ export function ElevationCanvas({
             >
               {/* Left: the shadow on a light and a dark ground. */}
               <div className={styles.elevationModes}>
-                {COLOUR_MODES.map((mode) => {
-                  const resolved = resolveElevation(scale, palettes, mode).find(
-                    (each) => each.id === level.id,
-                  );
-                  return (
-                    <div key={mode} className={styles.elevationSample}>
-                      <div
-                        className={styles.elevationGround}
-                        style={{ background: surfaces[mode].ground }}
-                      >
-                        <span
-                          aria-label={`${level.name} on ${mode}`}
-                          className={styles.elevationCard}
-                          data-mode={mode}
-                          style={{
-                            background: surfaces[mode].card,
-                            boxShadow: resolved?.css,
-                          }}
-                        />
-                      </div>
+                {COLOUR_MODES.map((mode) => (
+                  <div key={mode} className={styles.elevationSample}>
+                    <div
+                      className={styles.elevationGround}
+                      style={{ background: surfaces[mode].ground }}
+                    >
+                      <ElevationPreviewTile
+                        context={context}
+                        label={`${level.name} on ${mode}`}
+                        mode={mode}
+                        shadow={
+                          resolveElevationLevel(level, scale, palettes, mode)
+                            .css
+                        }
+                        surface={surfaces[mode].card}
+                      />
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
               {/* Right: who the level is. Above the samples on a phone, where
                   the two squares take the width. */}
@@ -117,9 +142,23 @@ export function ElevationCanvas({
                   >
                     {level.name}
                   </button>
-                  <code className="font-mono text-xs text-fg-muted">
-                    {elevationVariableName(level.id)}
-                  </code>
+                  <span className="flex items-center gap-1">
+                    <code className="font-mono text-xs text-fg-muted">
+                      {elevationVariableName(level.id)}
+                    </code>
+                    <ElevationCopyButton
+                      css={
+                        resolveElevationLevel(
+                          level,
+                          scale,
+                          palettes,
+                          studioMode,
+                        ).css
+                      }
+                      levelName={level.name}
+                      mode={studioMode}
+                    />
+                  </span>
                   {level.description ? (
                     <p className="m-0 text-xs text-fg-secondary">
                       {level.description}

@@ -383,6 +383,98 @@ test.describe("The elevation editor", () => {
     expect(await fillOf("Low on dark")).not.toBe(await fillOf("Low on light"));
   });
 
+  test("previews each level on a card, a button or a dialog", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Elevation");
+    const canvas = page.getByRole("region", { name: "Elevation" });
+    const sample = canvas.getByLabel("Low on light");
+    const shape = () => sample.getAttribute("data-preview");
+    const shadow = () =>
+      sample.evaluate((node) => getComputedStyle(node).boxShadow);
+
+    await expect.poll(shape).toBe("card");
+    const before = await shadow();
+
+    /* Each context is a real shape carrying the same shadow: a button
+       element for Button, a framed box for Dialog. */
+    await canvas.getByRole("radio", { name: "Button" }).click();
+    await expect.poll(shape).toBe("button");
+    expect(await sample.evaluate((node) => node.tagName)).toBe("BUTTON");
+    await expect.poll(shadow).toBe(before);
+
+    await canvas.getByRole("radio", { name: "Dialog" }).click();
+    await expect.poll(shape).toBe("dialog");
+    await expect.poll(shadow).toBe(before);
+    // Every level switches together, on both grounds.
+    await expect(canvas.locator("[data-preview=dialog]")).toHaveCount(6);
+  });
+
+  test("copies a level's box-shadow and shows it did", async ({
+    seededPage: page,
+    context,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await showScaleView(page, "Elevation");
+    const canvas = page.getByRole("region", { name: "Elevation" });
+    await canvas.locator("[data-elevation-level=high]").click();
+
+    const copy = canvas.getByRole("button", { name: "Copy CSS for Low" });
+    await copy.click();
+    await expect(copy).toHaveAttribute("data-copy-result", "copied");
+
+    /* The value is the resolved box-shadow the studio's mode draws. */
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toMatch(/^0px \d+px \d+px 0px rgba\(/);
+    expect(copied.split("), ")).toHaveLength(2);
+
+    // Copying does not pick the row it sits in.
+    await expect(canvas.locator("[data-elevation-level=high]")).toHaveAttribute(
+      "data-selected",
+      "true",
+    );
+
+    // The tick goes back to a copy icon after a moment.
+    await expect(copy).not.toHaveAttribute("data-copy-result", "copied", {
+      timeout: 3000,
+    });
+  });
+
+  test("resets a slider to its preset's value on a double-click", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Elevation");
+    const adjustments = page.getByRole("group", { name: "Low adjustments" });
+    await adjustments.getByRole("radio", { name: "Light" }).click();
+    const softness = adjustments.getByRole("slider", {
+      name: "Softness",
+      exact: true,
+    });
+    const reset = adjustments
+      .locator("[data-adjustment-row]")
+      .filter({ hasText: "Softness" })
+      .locator("[data-reset]");
+
+    /* Seeded Low is two plain drop shadows, so Standard's sliders and
+       Standard's starting values: Softness 12. */
+    await softness.focus();
+    await softness.press("End");
+    await expect(softness).toHaveAttribute("aria-valuenow", "48");
+    await reset.dblclick();
+    await expect(softness).toHaveAttribute("aria-valuenow", "12");
+
+    /* A level set to Subtle card resets to Subtle card's own, 4. */
+    await page.getByRole("button", { name: /^Style preset: / }).click();
+    await page
+      .getByRole("dialog", { name: "Style presets" })
+      .getByRole("button", { name: /^Subtle card:/ })
+      .click();
+    await softness.focus();
+    await softness.press("End");
+    await reset.dblclick();
+    await expect(softness).toHaveAttribute("aria-valuenow", "4");
+  });
+
   test("picks the shadow colour from the palette", async ({
     seededPage: page,
   }) => {

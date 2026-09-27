@@ -20,6 +20,7 @@ import {
 } from "@astryxdesign/core/SegmentedControl";
 import {
   ELEVATION_ADJUSTMENTS,
+  defaultAdjustmentValue,
   readLevelAdjustmentValues,
   tuneElevationLevel,
   type ColourMode,
@@ -125,6 +126,20 @@ export function ElevationAdjustments({
                   `elevation:adjust:${level.id}:${range.key}:${mode}`,
                 )
               }
+              onReset={() => {
+                const reset = defaultAdjustmentValue(
+                  read.style,
+                  range.key,
+                  mode,
+                  level.preset,
+                );
+                /* A reset is its own step in history, not part of a drag. */
+                if (reset !== undefined) {
+                  onChange(
+                    tuneElevationLevel(scale, level.id, range.key, reset, mode),
+                  );
+                }
+              }}
             />
           );
         })}

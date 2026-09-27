@@ -371,8 +371,110 @@
    wireframe round a dark card. A little white over whatever is beneath reads
    as the same faint edge in both. `color-mix` rather than `rgba(`, which the
    primitive-usage scanner rejects in studio components. */
-.elevationCard[data-mode="dark"] {
+.elevationCard[data-mode="dark"],
+.previewButton[data-mode="dark"],
+.previewDialog[data-mode="dark"] {
   border: 1px solid color-mix(in oklch, white 8%, transparent);
+}
+
+/* The previews' ink: the details inside a tile are drawn in its own text
+   colour, dark on the light sample and light on the dark one, for the same
+   reason the keyline above is fixed. */
+.elevationCard,
+.previewButton,
+.previewDialog {
+  box-sizing: border-box;
+  color: color-mix(in oklch, black 70%, transparent);
+}
+
+.elevationCard[data-mode="dark"],
+.previewButton[data-mode="dark"],
+.previewDialog[data-mode="dark"] {
+  color: color-mix(in oklch, white 80%, transparent);
+}
+
+/* Card: a header bar with a title dot, and two lines of text. */
+.elevationCard {
+  display: grid;
+  align-content: start;
+  gap: var(--spacing-1);
+  padding: var(--spacing-2);
+}
+
+.previewCardHeader {
+  display: flex;
+  align-items: center;
+  height: var(--spacing-3);
+  margin-bottom: var(--spacing-1);
+  border-radius: var(--radius-inner);
+  background: color-mix(in oklch, currentColor 10%, transparent);
+  padding-inline: var(--spacing-1);
+}
+
+.previewDot {
+  width: var(--spacing-1);
+  height: var(--spacing-1);
+  border-radius: var(--radius-full);
+  background: currentColor;
+}
+
+.previewLine {
+  display: block;
+  height: var(--spacing-1);
+  border-radius: var(--radius-full);
+  background: color-mix(in oklch, currentColor 25%, transparent);
+}
+
+.previewLineShort {
+  width: 60%;
+}
+
+/* Button: a real one, pressed a pixel when clicked. */
+.previewButton {
+  padding: var(--spacing-2) var(--spacing-4);
+  border: 0;
+  border-radius: var(--radius-element);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.previewButton:active {
+  transform: translateY(1px);
+}
+
+/* Dialog: a header with a close mark, then a content frame. */
+.previewDialog {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--spacing-2);
+  width: calc(var(--spacing-12) + var(--spacing-12) + var(--spacing-5));
+  height: calc(var(--spacing-12) + var(--spacing-10));
+  padding: var(--spacing-2);
+  border-radius: var(--radius-container);
+}
+
+.previewDialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+}
+
+.previewDialogHeader .previewLine {
+  flex: 1 1 auto;
+}
+
+.previewClose {
+  flex: none;
+  width: var(--spacing-3);
+  height: var(--spacing-3);
+}
+
+.previewFrame {
+  border: 1px dashed color-mix(in oklch, currentColor 25%, transparent);
+  border-radius: var(--radius-inner);
 }
 
 /* Simple's style preset: the first and largest control there, a card-like
@@ -690,11 +792,23 @@
 .sliderRow {
   display: grid;
   grid-template-columns:
-    var(--spacing-4) calc(var(--spacing-12) + var(--spacing-6))
+    calc(
+      var(--spacing-4) + var(--spacing-2) + var(--spacing-12) + var(--spacing-6)
+    )
     minmax(0, 1fr) calc(var(--spacing-10) + var(--spacing-2));
   align-items: center;
   gap: var(--spacing-2);
   min-height: var(--size-element-md);
+}
+
+/* The icon and name, one target: double-click resets the slider. */
+.sliderRowName {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+  cursor: default;
+  user-select: none;
 }
 
 .sliderRowIcon {

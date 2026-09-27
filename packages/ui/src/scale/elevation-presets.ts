@@ -1,6 +1,7 @@
 import type { ColourMode, SemanticReference } from "../color/semantic";
 import type { ColorTrack } from "../color/types";
 import {
+  defaultElevationScale,
   isInnerShadow,
   extremeShade,
   findElevationTrack,
@@ -9,7 +10,12 @@ import {
   type ElevationScale,
   type ShadowLayer,
 } from "./elevation";
-import { elevationAdjustmentStyle } from "./elevation-adjust";
+import {
+  elevationAdjustmentStyle,
+  readAdjustmentValues,
+  type ElevationAdjustment,
+  type ElevationAdjustmentStyle,
+} from "./elevation-adjust";
 import {
   isGlowLevel,
   isInsetLevel,
@@ -248,4 +254,39 @@ export function elevationPresetCss(
     tracks,
     mode,
   ).css;
+}
+
+/** The preset each kind of shadow resets toward, unless the level says. */
+const STYLE_PRESET: Record<ElevationAdjustmentStyle, ElevationPresetId> = {
+  standard: "standard",
+  inset: "inset",
+  neumorphic: "neumorphic",
+  glow: "glow",
+};
+
+/**
+ * Where a slider goes back to: the value its preset starts with, for the
+ * mode. Standard and Subtle card share a kind of shadow, so a level last set
+ * to Subtle card resets to Subtle card's values; pass its `preset`.
+ *
+ * Read off the preset's own layers, so a preset retuned in the table above
+ * moves its reset with it rather than a second list of numbers.
+ */
+export function defaultAdjustmentValue(
+  style: ElevationAdjustmentStyle,
+  key: ElevationAdjustment,
+  mode: ColourMode,
+  preset?: string,
+): number | undefined {
+  const id =
+    style === "standard" && preset === "subtle-card"
+      ? "subtle-card"
+      : STYLE_PRESET[style];
+  const [first, second] = elevationPresetLayers(
+    id,
+    defaultElevationScale(),
+    [],
+  );
+  if (!first || !second) return undefined;
+  return readAdjustmentValues(style, [first, second], mode)[key];
 }

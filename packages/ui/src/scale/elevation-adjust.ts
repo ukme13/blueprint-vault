@@ -98,46 +98,48 @@ export function readLevelAdjustmentValues(
   mode: ColourMode,
 ): { style: ElevationAdjustmentStyle; values: Values } | null {
   const style = elevationAdjustmentStyle(level);
-  const [first, second] = level.layers;
-  if (!style || !first || !second) return null;
+  const pair = layerPair(level);
+  return style && pair
+    ? { style, values: readAdjustmentValues(style, pair, mode) }
+    : null;
+}
+
+/**
+ * The slider values two layers stand at, read as the given kind of shadow —
+ * whether or not they are a level yet, so a preset's own layers can be read
+ * for its defaults.
+ */
+export function readAdjustmentValues(
+  style: ElevationAdjustmentStyle,
+  [first, second]: readonly [ShadowLayer, ShadowLayer],
+  mode: ColourMode,
+): Values {
   switch (style) {
     case "standard":
       return {
-        style,
-        values: {
-          distance: second.offsetYPx,
-          softness: second.blurPx,
-          spread: second.spreadPx,
-          opacity: second.opacity[mode],
-        },
+        distance: second.offsetYPx,
+        softness: second.blurPx,
+        spread: second.spreadPx,
+        opacity: second.opacity[mode],
       };
     case "inset":
       return {
-        style,
-        values: {
-          depth: first.offsetYPx,
-          softness: first.blurPx,
-          opacity: first.opacity[mode],
-        },
+        depth: first.offsetYPx,
+        softness: first.blurPx,
+        opacity: first.opacity[mode],
       };
     case "neumorphic":
       return {
-        style,
-        values: {
-          distance: first.offsetXPx,
-          softness: first.blurPx,
-          highlight: second.opacity[mode],
-          shadow: first.opacity[mode],
-        },
+        distance: first.offsetXPx,
+        softness: first.blurPx,
+        highlight: second.opacity[mode],
+        shadow: first.opacity[mode],
       };
     case "glow":
       return {
-        style,
-        values: {
-          radius: second.blurPx,
-          spread: second.spreadPx,
-          intensity: first.opacity[mode],
-        },
+        radius: second.blurPx,
+        spread: second.spreadPx,
+        intensity: first.opacity[mode],
       };
   }
 }
