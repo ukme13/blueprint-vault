@@ -328,29 +328,29 @@
   flex: none;
 }
 
-/* The hatching Figma's inspector draws: padding in blue, gaps in pink, each
-   striped on the diagonal with a dashed edge in its colour. */
+/* Each space's colour, as Figma's inspector colours them: padding blue,
+   gaps pink. Its hatching, edge and tag all take it. */
 .spacingZone[data-spacing-zone="inset"] {
   --hatch: var(--color-icon-blue);
-}
-
-/* A stack gap runs the card body's full width. The body lines its blocks
-   up at the start, and a band with no content of its own would otherwise
-   shrink to nothing, its tag landing on the text beside it. */
-.spacingZone[data-spacing-zone="stack"] {
-  align-self: stretch;
 }
 
 .spacingZone[data-spacing-zone="stack"],
 .spacingZone[data-spacing-zone="columns"] {
   --hatch: var(--color-icon-pink);
-  outline: 1px dashed var(--hatch);
-  outline-offset: -1px;
 }
 
-/* An image, not the background shorthand: the card keeps its own fill
-   underneath, and hiding the marks takes away only the stripes. */
-.spacingZone[data-spacing-zone] {
+/* A stack gap runs the card body's full width. The body lines its blocks
+   up at the start, and a band with no content of its own would otherwise
+   shrink to nothing. Its tag sits past the card's inset and border. */
+.spacingZone[data-spacing-zone="stack"] {
+  align-self: stretch;
+  --tag-offset: calc(var(--inset) + 1px);
+}
+
+/* The marks, drawn only while spacing is shown: hidden, the spaces keep
+   their sizes and there is nothing to undo. An image, not the background
+   shorthand, so the card keeps its own fill underneath. */
+.spacingPreview[data-show-spacing] .spacingZone[data-spacing-zone] {
   background-image: repeating-linear-gradient(
     -45deg,
     color-mix(in srgb, var(--hatch) 22%, transparent) 0 4px,
@@ -358,43 +358,47 @@
   );
 }
 
-/* Centred on the space it names, over whatever is beside it, so a 2px gap
-   still has a readable size. */
+.spacingPreview[data-show-spacing] .spacingZone[data-spacing-zone="stack"],
+.spacingPreview[data-show-spacing] .spacingZone[data-spacing-zone="columns"] {
+  outline: 1px dashed var(--hatch);
+  outline-offset: -1px;
+}
+
+.spacingPreview[data-show-spacing] .spacingCardBody {
+  outline: 1px dashed var(--color-icon-blue);
+}
+
+/* A size tag: a pill in its space's colour. It is placed off the space it
+   names, never on it — a gap is often thinner than its tag — in the room
+   the preview keeps above and to the left of the cards, where nothing is
+   written at any step. */
 .spacingTag {
   position: absolute;
-  top: 50%;
-  left: 50%;
   z-index: 1;
   padding: 0 var(--spacing-1);
   border-radius: var(--radius-inner);
-  background: var(--color-icon-pink);
+  background: var(--hatch);
   color: white;
   font-size: var(--font-size-sm);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.5;
   white-space: nowrap;
-  transform: translate(-50%, -50%);
 }
 
-/* A stack gap is often thinner than its tag, so the tag sits outside the
-   card's left edge, level with its gap, in the margin the preview keeps
-   for tags: past the band, the card's inset and its border. Nothing is
-   written there at any step. */
-.spacingTagSide {
-  right: calc(100% + var(--inset) + 1px + var(--spacing-1));
-  left: auto;
-  transform: translateY(-50%);
-}
-
-/* The inset's tag sits just above the card's top-left corner, in blue, so
-   it never meets the stack tags beside the card. */
-.spacingTagInset {
-  top: auto;
+/* Above its space: the inset's at the card's corner, a column gap's
+   centred over the gap. */
+.spacingTagAbove {
   bottom: calc(100% + var(--spacing-1));
-  left: 0;
-  background: var(--color-icon-blue);
-  transform: none;
+  left: var(--tag-left, 0);
+  transform: var(--tag-shift, none);
+}
+
+/* Level with its space, outside the card's left edge. */
+.spacingTagLeft {
+  top: 50%;
+  right: calc(100% + var(--tag-offset, 0px) + var(--spacing-1));
+  transform: translateY(-50%);
 }
 
 /* The slots on the left, the Show spacing switch on the right. */
@@ -404,17 +408,6 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-3);
-}
-
-/* Spacing hidden: the spaces keep their sizes and lose their marks, so the
-   cards read as the plain UI they are. */
-.spacingPreview:not([data-show-spacing]) .spacingZone[data-spacing-zone] {
-  outline: none;
-  background-image: none;
-}
-
-.spacingPreview:not([data-show-spacing]) .spacingCardBody {
-  outline: none;
 }
 
 /* Three slots, each a selector; the one a click on the list sets is
@@ -456,12 +449,10 @@
   width: var(--column-gap);
 }
 
-/* The column gap is often narrower than its tag, so the tag sits above
-   the gap, in the room the preview keeps over the cards. */
-.spacingColumnGap > .spacingTag {
-  top: auto;
-  bottom: calc(100% + var(--spacing-1));
-  transform: translateX(-50%);
+/* Its tag centred over the gap. */
+.spacingColumnGap {
+  --tag-left: 50%;
+  --tag-shift: translateX(-50%);
 }
 
 .spacingCardBody {
@@ -469,7 +460,6 @@
   flex-direction: column;
   align-items: flex-start;
   height: 100%;
-  outline: 1px dashed var(--color-icon-blue);
   background: var(--color-surface-base);
 }
 
@@ -577,8 +567,8 @@
   }
 
   /* Stacked, the gap runs across; its tag sits outside the left edge,
-     level with it, as the stack tags do. */
-  .spacingColumnGap > .spacingTag {
+     level with it, as a stack tag does. */
+  .spacingColumnGap > .spacingTagAbove {
     top: 50%;
     bottom: auto;
     right: calc(100% + var(--spacing-1));
@@ -587,7 +577,6 @@
   }
 }
 
-/* Inset: the tag sits in the padding's top band, the content inside. */
 /* The card: a real one, bordered and lifted, its padding hatched. */
 .spacingInset {
   border: 1px solid var(--color-border-default);

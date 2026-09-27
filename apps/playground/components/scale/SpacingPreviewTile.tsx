@@ -24,6 +24,14 @@ export const SPACING_SLOTS: readonly {
 
 const CARDS = [WELCOME_CARD, PROFILE_CARD];
 
+/* Where each tag sits, clear of any content: the inset's and a column
+   gap's above their space, a stack gap's to the left of the card. */
+const TAG_PLACE: Record<SpacingSlot, string | undefined> = {
+  inset: styles.spacingTagAbove,
+  stack: styles.spacingTagLeft,
+  columns: styles.spacingTagAbove,
+};
+
 interface SpacingPreviewTileProps {
   /** The step each slot is set to. */
   tokens: Record<SpacingSlot, SpacingToken>;
@@ -53,20 +61,12 @@ export function SpacingPreviewTile({
   showSpacing,
 }: SpacingPreviewTileProps) {
   const px = (slot: SpacingSlot) => `${tokens[slot].px}px`;
-  /* Where each tag sits, clear of any content. */
-  const TAG_PLACE: Record<SpacingSlot, string | undefined> = {
-    inset: styles.spacingTagInset,
-    stack: styles.spacingTagSide,
-    columns: undefined,
-  };
   /* Hidden, the spaces keep their sizes and lose their marks: the cards
      read as the plain UI they are. */
   const tag = (slot: SpacingSlot) =>
     showSpacing ? (
       <span
-        className={[styles.spacingTag, TAG_PLACE[slot]]
-          .filter(Boolean)
-          .join(" ")}
+        className={`${styles.spacingTag} ${TAG_PLACE[slot]}`}
         data-spacing-tag={slot}
       >
         {px(slot)}
@@ -102,7 +102,7 @@ export function SpacingPreviewTile({
         {CARDS.map((card, index) => {
           const tagged = index === 0;
           return (
-            <Fragment key={card.title}>
+            <Fragment key={index}>
               {index > 0 ? (
                 <span
                   className={`${styles.spacingZone} ${styles.spacingColumnGap}`}
@@ -119,7 +119,7 @@ export function SpacingPreviewTile({
               >
                 {tagged ? tag("inset") : null}
                 <div className={styles.spacingCardBody}>
-                  {stacked(card.blocks, tagged)}
+                  {stacked(card, tagged)}
                 </div>
               </div>
             </Fragment>

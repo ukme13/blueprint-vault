@@ -1,7 +1,12 @@
 import { readFileSync } from "node:fs";
 import type { Locator, Page } from "@playwright/test";
 import { defaultProject, readStoredWorkspace } from "./fixtures";
-import { expect, showScaleView, test } from "./scale-fixtures";
+import {
+  expect,
+  showScaleView,
+  spacingTagReport,
+  test,
+} from "./scale-fixtures";
 import { fillHybridNumber } from "./typography-fixtures";
 
 /**
@@ -132,33 +137,7 @@ test.describe("The spacing studio", () => {
     const preview = page.getByRole("figure", { name: "Spacing preview" });
     /* A tag never sits on text or a control: a stack gap thinner than its
        tag once put the tag over the paragraph and the button beside it. */
-    const collisions = () =>
-      preview.evaluate((figure) => {
-        const tags = [...figure.querySelectorAll("[data-spacing-tag]")];
-        const content = [
-          ...figure.querySelectorAll(
-            "h3, p, button, li, [class*=sampleField], [class*=sampleLogo], [class*=sampleNote]",
-          ),
-        ];
-        const hits: string[] = [];
-        for (const tag of tags) {
-          const a = tag.getBoundingClientRect();
-          for (const node of content) {
-            const b = node.getBoundingClientRect();
-            const overlaps =
-              a.left < b.right - 0.5 &&
-              b.left < a.right - 0.5 &&
-              a.top < b.bottom - 0.5 &&
-              b.top < a.bottom - 0.5;
-            if (overlaps) {
-              hits.push(
-                `${tag.textContent} on ${node.textContent?.slice(0, 20)}`,
-              );
-            }
-          }
-        }
-        return { tags: tags.length, hits };
-      });
+    const collisions = () => spacingTagReport(preview);
 
     await expect.poll(async () => (await collisions()).tags).toBeGreaterThan(3);
     expect((await collisions()).hits).toEqual([]);
