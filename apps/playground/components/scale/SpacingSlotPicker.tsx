@@ -58,7 +58,9 @@ export function SpacingSlotPicker({
             options={options}
             renderValue={(option) => `${label}: ${option.label}`}
             size="md"
-            startIcon={<Icon aria-hidden="true" />}
+            startIcon={
+              <Icon aria-hidden="true" className={styles.spacingSlotIcon} />
+            }
             value={String(steps[slot].step)}
             onChange={(next) => {
               if (next) onChange(slot, Number(next));

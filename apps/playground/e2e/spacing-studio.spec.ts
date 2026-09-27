@@ -50,6 +50,21 @@ test.describe("The spacing studio", () => {
       .poll(measure)
       .toEqual({ inset: "24px", stack: 8, columns: 16 });
 
+    // Each slot's icon is 20px.
+    const iconSizes = await page
+      .locator("[data-spacing-slot] svg[class*=spacingSlotIcon]")
+      .evaluateAll((icons) =>
+        icons.map((icon) => {
+          const box = icon.getBoundingClientRect();
+          return [Math.round(box.width), Math.round(box.height)];
+        }),
+      );
+    expect(iconSizes).toEqual([
+      [20, 20],
+      [20, 20],
+      [20, 20],
+    ]);
+
     /* Each selector moves its own space and nothing else. */
     await page.getByLabel("Stack spacing", { exact: true }).click();
     await page.getByRole("option", { name: /^12px/ }).click();
