@@ -348,8 +348,10 @@
   outline-offset: -1px;
 }
 
+/* An image, not the background shorthand: the card keeps its own fill
+   underneath, and hiding the marks takes away only the stripes. */
 .spacingZone[data-spacing-zone] {
-  background: repeating-linear-gradient(
+  background-image: repeating-linear-gradient(
     -45deg,
     color-mix(in srgb, var(--hatch) 22%, transparent) 0 4px,
     transparent 4px 8px
@@ -408,7 +410,7 @@
    cards read as the plain UI they are. */
 .spacingPreview:not([data-show-spacing]) .spacingZone[data-spacing-zone] {
   outline: none;
-  background: none;
+  background-image: none;
 }
 
 .spacingPreview:not([data-show-spacing]) .spacingCardBody {
@@ -589,6 +591,8 @@
 /* The card: a real one, bordered and lifted, its padding hatched. */
 .spacingInset {
   border: 1px solid var(--color-border-default);
+  /* The card is white edge to edge; its padding hatched over that. */
+  background-color: var(--color-surface-base);
   border-radius: var(--radius-container);
   box-shadow: 0 1px 3px color-mix(in oklch, black 8%, transparent);
 }

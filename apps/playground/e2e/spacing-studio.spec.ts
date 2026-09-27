@@ -198,6 +198,16 @@ test.describe("The spacing studio", () => {
     await expect
       .poll(marks)
       .toEqual({ tags: 0, hatched: false, insetPadding: "24px" });
+    // The card is one fill, padding and all, not a white box on grey.
+    const fills = await preview.evaluate((figure) => {
+      const card = figure.querySelector('[data-spacing-zone="inset"]')!;
+      return [
+        getComputedStyle(card).backgroundColor,
+        getComputedStyle(card.querySelector("[class*=spacingCardBody]")!)
+          .backgroundColor,
+      ];
+    });
+    expect(fills[0]).toBe(fills[1]);
 
     await toggle.click();
     await expect.poll(async () => (await marks()).tags).toBeGreaterThan(3);
