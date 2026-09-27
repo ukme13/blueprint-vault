@@ -449,10 +449,9 @@
   display: grid;
   grid-template-rows: auto 1fr;
   gap: var(--spacing-2);
-  /* Upright, taller than wide, as a dialog stands: 96 by 112px on the
-     128px ground. */
+  /* 96 by 72px on the 128px ground. */
   width: calc(var(--spacing-12) + var(--spacing-12));
-  height: calc(var(--spacing-12) + var(--spacing-12) + var(--spacing-4));
+  height: calc(var(--spacing-12) + var(--spacing-6));
   padding: var(--spacing-2);
   border-radius: var(--radius-container);
 }

@@ -408,9 +408,11 @@ test.describe("The elevation editor", () => {
     await expect.poll(shadow).toBe(before);
     // Every level switches together, on both grounds.
     await expect(canvas.locator("[data-preview=dialog]")).toHaveCount(6);
-    // Upright, as a dialog stands: taller than it is wide.
+    // 96 by 72px.
     const dialogBox = (await sample.boundingBox())!;
-    expect(dialogBox.height).toBeGreaterThan(dialogBox.width);
+    expect([Math.round(dialogBox.width), Math.round(dialogBox.height)]).toEqual(
+      [96, 72],
+    );
   });
 
   test("copies a level's box-shadow and shows it did", async ({
