@@ -9,6 +9,7 @@ import {
   MAX_SPACING_DENSITY,
   MIN_SPACING_DENSITY,
   SPACING_DENSITY_PRESETS,
+  matchingSpacingDensityPreset,
 } from "@blueprint/ui";
 import styles from "./scale-workspace.module.css";
 
@@ -30,9 +31,7 @@ export function SpacingDensitySetting({
   onPreset,
   onChange,
 }: SpacingDensitySettingProps) {
-  const current = SPACING_DENSITY_PRESETS.find(
-    (preset) => preset.value === density,
-  );
+  const current = matchingSpacingDensityPreset(density);
 
   return (
     <div className={styles.settingGroup}>

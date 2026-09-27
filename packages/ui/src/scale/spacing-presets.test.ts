@@ -61,9 +61,9 @@ describe("matchingSpacingPreset", () => {
 
   it("is custom once a step is pruned or added, or the base unit moves", () => {
     const grid = applySpacingPreset(defaultSpacingScale(), "8pt");
-    expect(matchingSpacingPreset(toggleSpacingStep(grid, 6))).toBe("custom");
-    expect(matchingSpacingPreset(toggleSpacingStep(grid, 5))).toBe("custom");
-    expect(matchingSpacingPreset({ ...grid, baseUnitPx: 6 })).toBe("custom");
+    expect(matchingSpacingPreset(toggleSpacingStep(grid, 6))).toBeNull();
+    expect(matchingSpacingPreset(toggleSpacingStep(grid, 5))).toBeNull();
+    expect(matchingSpacingPreset({ ...grid, baseUnitPx: 6 })).toBeNull();
   });
 
   it("keeps the preset when only density moves", () => {
@@ -72,6 +72,6 @@ describe("matchingSpacingPreset", () => {
   });
 
   it("calls the seeded scale custom: it is no preset", () => {
-    expect(matchingSpacingPreset(defaultSpacingScale())).toBe("custom");
+    expect(matchingSpacingPreset(defaultSpacingScale())).toBeNull();
   });
 });

@@ -1,6 +1,10 @@
 "use client";
 
-import type { LayoutToken, SpacingToken } from "@blueprint/ui";
+import {
+  spacingDensityBehavior,
+  type LayoutToken,
+  type SpacingToken,
+} from "@blueprint/ui";
 import { SpacingCopyButton } from "./SpacingCopyButton";
 import styles from "./scale-workspace.module.css";
 
@@ -36,8 +40,15 @@ export function SpacingTokenRow({
   onSelect,
   onOpenUse,
 }: SpacingTokenRowProps) {
-  const stays = !token.followsDensity && token.step > 0;
-  const scaled = token.followsDensity && density !== 1;
+  /* What density does to this step, said beside it. */
+  const behaviour = {
+    grid: {
+      text: "grid",
+      title: "On the fine grid: density does not move it.",
+    },
+    scaled: { text: `${density}×`, title: `Moved by density, ${density}×.` },
+    unchanged: null,
+  }[spacingDensityBehavior(token, density)];
 
   return (
     <li
@@ -62,17 +73,8 @@ export function SpacingTokenRow({
       </span>
       <span>{token.px}px</span>
       <span className={styles.tokenMeta}>{token.rem}rem</span>
-      <span
-        className={styles.tokenMeta}
-        title={
-          stays
-            ? "On the fine grid: density does not move it."
-            : scaled
-              ? `Moved by density, ${density}×.`
-              : undefined
-        }
-      >
-        {stays ? "grid" : scaled ? `${density}×` : null}
+      <span className={styles.tokenMeta} title={behaviour?.title}>
+        {behaviour?.text}
       </span>
       <span
         aria-hidden="true"

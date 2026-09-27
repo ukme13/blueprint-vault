@@ -12,7 +12,8 @@ import {
   MAX_SPACING_BASE_UNIT_PX,
   MIN_SPACING_BASE_UNIT_PX,
   SPACING_BASE_UNIT_PRESETS,
-  generateSpacingSteps,
+  nearestSpacingToken,
+  spacingChipSteps,
   resolveHybridValue,
   spacingStepName,
   type HybridTokenizedValue,
@@ -32,8 +33,6 @@ import {
   type SpacingPreviewMode,
 } from "./SpacingPreviewTile";
 import styles from "./scale-workspace.module.css";
-
-const OFFERED_STEPS = generateSpacingSteps(16);
 
 interface SpacingInspectorProps {
   scale: SpacingScale;
@@ -59,9 +58,7 @@ export function SpacingInspector({
   const kept = new Set(scale.steps);
   /* The chips offered, plus any step the scale holds beyond them — a
      preset's 2.5 — so every kept step can be turned off. */
-  const chips = [...new Set([...OFFERED_STEPS, ...scale.steps])].sort(
-    (a, b) => a - b,
-  );
+  const chips = spacingChipSteps(scale);
 
   return (
     <>
@@ -144,12 +141,7 @@ export function SpacingCanvas({
   const [selectedStep, setSelectedStep] = useState(FIRST_LAYOUT_STEP);
   /* A step turned off in the inspector falls back to the nearest one, so
      the preview never points at a step the scale no longer has. */
-  const selected =
-    tokens.find((token) => token.step === selectedStep) ??
-    [...tokens].sort(
-      (a, b) =>
-        Math.abs(a.step - selectedStep) - Math.abs(b.step - selectedStep),
-    )[0];
+  const selected = nearestSpacingToken(tokens, selectedStep);
 
   return (
     /* The region is the list of steps; the preview above it shows one. */

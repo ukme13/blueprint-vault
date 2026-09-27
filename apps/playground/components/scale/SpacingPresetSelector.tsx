@@ -53,11 +53,10 @@ export function SpacingPresetSelector({
           },
         ]}
         size="md"
-        value={current}
+        value={current ?? CUSTOM}
         onChange={(next) => {
-          if (next && next !== CUSTOM && next !== current) {
-            onApply(next as SpacingPresetId);
-          }
+          /* Custom is disabled, so a pick is always a preset. */
+          if (next && next !== current) onApply(next as SpacingPresetId);
         }}
       />
     </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment } from "react";
+import { Fragment, type ReactNode } from "react";
 import { Box, Columns3, Rows3, type LucideIcon } from "lucide-react";
 import type { SpacingToken } from "@blueprint/ui";
 import styles from "./scale-workspace.module.css";
@@ -16,6 +16,13 @@ export const SPACING_PREVIEW_MODES: readonly {
   { value: "stack", label: "Stack", icon: Rows3 },
   { value: "columns", label: "Columns", icon: Columns3 },
 ];
+
+/** How each mode uses the step, for the figure's name. */
+const USE_OF: Record<SpacingPreviewMode, string> = {
+  inset: "padding",
+  stack: "a stack gap",
+  columns: "a column gap",
+};
 
 interface SpacingPreviewTileProps {
   mode: SpacingPreviewMode;
@@ -41,83 +48,85 @@ export function SpacingPreviewTile({
 }: SpacingPreviewTileProps) {
   const size = `${token.px}px`;
   const tag = <span className={styles.spacingTag}>{size}</span>;
-  /* Which kind of step this is: one density moves, or one on the fine
-     grid that stays put at any density. */
-  const caption = (
-    <figcaption className={styles.spacingCaption} data-density-caption="">
-      {token.followsDensity
-        ? `${token.variable} · layout step, ${density}× density`
-        : `${token.variable} · fine grid, fixed at any density`}
-    </figcaption>
-  );
+  /* The gap drawn as an element of its own, so it can be seen: a flex gap
+     is empty space, and empty space has no tint. */
+  const gapped = (items: ReactNode[], isStack: boolean) =>
+    items.map((item, index) => (
+      <Fragment key={index}>
+        {index > 0 ? (
+          <span
+            className={styles.spacingZone}
+            data-spacing-zone=""
+            style={isStack ? { height: size } : { width: size }}
+          >
+            {tag}
+          </span>
+        ) : null}
+        {item}
+      </Fragment>
+    ));
 
-  if (mode === "inset") {
-    return (
-      <figure
-        aria-label={`${token.variable} as padding`}
-        className={styles.spacingPreview}
-        data-preview-mode="inset"
+  const body =
+    mode === "inset" ? (
+      <div
+        className={`${styles.spacingZone} ${styles.spacingInset}`}
+        data-spacing-zone=""
+        style={{ padding: size }}
       >
-        <div
-          className={`${styles.spacingZone} ${styles.spacingInset}`}
-          data-spacing-zone=""
-          style={{ padding: size }}
-        >
-          {tag}
-          <div className={styles.spacingContent}>
-            <span className={styles.spacingLine} />
-            <span className={`${styles.spacingLine} ${styles.spacingShort}`} />
-          </div>
+        {tag}
+        <div className={styles.spacingContent}>
+          <span className={styles.spacingLine} />
+          <span className={`${styles.spacingLine} ${styles.spacingShort}`} />
         </div>
-        {caption}
-      </figure>
+      </div>
+    ) : mode === "stack" ? (
+      <div className={styles.spacingStack}>
+        {gapped(
+          [
+            <span key="title" className={styles.spacingTitle} />,
+            <span key="text" className={styles.spacingParagraph}>
+              <span className={styles.spacingLine} />
+              <span className={styles.spacingLine} />
+              <span
+                className={`${styles.spacingLine} ${styles.spacingShort}`}
+              />
+            </span>,
+            <span key="action" className={styles.spacingAction} />,
+          ],
+          true,
+        )}
+      </div>
+    ) : (
+      <div className={styles.spacingColumns}>
+        {gapped(
+          [0, 1, 2].map((index) => (
+            <span key={index} className={styles.spacingColumn}>
+              <span className={styles.spacingTitle} />
+              <span className={styles.spacingLine} />
+              <span
+                className={`${styles.spacingLine} ${styles.spacingShort}`}
+              />
+            </span>
+          )),
+          false,
+        )}
+      </div>
     );
-  }
-
-  const isStack = mode === "stack";
-  const items = isStack
-    ? [
-        <span key="title" className={styles.spacingTitle} />,
-        <span key="text" className={styles.spacingParagraph}>
-          <span className={styles.spacingLine} />
-          <span className={styles.spacingLine} />
-          <span className={`${styles.spacingLine} ${styles.spacingShort}`} />
-        </span>,
-        <span key="action" className={styles.spacingAction} />,
-      ]
-    : [0, 1, 2].map((index) => (
-        <span key={index} className={styles.spacingColumn}>
-          <span className={styles.spacingTitle} />
-          <span className={styles.spacingLine} />
-          <span className={`${styles.spacingLine} ${styles.spacingShort}`} />
-        </span>
-      ));
 
   return (
     <figure
-      aria-label={`${token.variable} as ${isStack ? "a stack gap" : "a column gap"}`}
+      aria-label={`${token.variable} as ${USE_OF[mode]}`}
       className={styles.spacingPreview}
       data-preview-mode={mode}
     >
-      <div className={isStack ? styles.spacingStack : styles.spacingColumns}>
-        {items.map((item, index) => (
-          <Fragment key={index}>
-            {index > 0 ? (
-              /* The gap drawn as an element of its own, so it can be seen:
-                 a flex gap is empty space, and empty space has no tint. */
-              <span
-                className={styles.spacingZone}
-                data-spacing-zone=""
-                style={isStack ? { height: size } : { width: size }}
-              >
-                {tag}
-              </span>
-            ) : null}
-            {item}
-          </Fragment>
-        ))}
-      </div>
-      {caption}
+      {body}
+      {/* Which kind of step this is: one density moves, or one on the fine
+          grid that stays put at any density. */}
+      <figcaption className={styles.spacingCaption} data-density-caption="">
+        {token.followsDensity
+          ? `${token.variable} · layout step, ${density}× density`
+          : `${token.variable} · fine grid, fixed at any density`}
+      </figcaption>
     </figure>
   );
 }

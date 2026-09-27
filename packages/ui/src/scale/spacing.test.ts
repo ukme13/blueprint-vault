@@ -13,6 +13,10 @@ import {
   generateSpacingSteps,
   normalizeSpacingScale,
   resolveSpacing,
+  spacingDensityBehavior,
+  spacingChipSteps,
+  nearestSpacingToken,
+  matchingSpacingDensityPreset,
   spacingStepName,
   spacingVariableName,
 } from "./spacing";
@@ -251,5 +255,60 @@ describe("density presets", () => {
     expect(compact[2]).toBe(6);
     expect(spacious[2]).toBe(10);
     expect(spacious[16]).toBe(80);
+  });
+});
+
+describe("spacingChipSteps", () => {
+  it("offers the standard chips plus any step the scale holds", () => {
+    const chips = spacingChipSteps({ steps: [0, 2.5, 4] });
+    expect(chips).toContain(2.5);
+    expect(chips).toEqual([...chips].sort((a, b) => a - b));
+    expect(chips).toEqual(
+      [...new Set([...generateSpacingSteps(16), 2.5])].sort((a, b) => a - b),
+    );
+  });
+});
+
+describe("nearestSpacingToken", () => {
+  const tokens = resolveSpacing({ ...defaultSpacingScale(), steps: [0, 2, 6] });
+
+  it("is the step itself when the scale has it", () => {
+    expect(nearestSpacingToken(tokens, 2)?.step).toBe(2);
+  });
+
+  it("is the nearest step once it is pruned, the lower on a tie", () => {
+    expect(nearestSpacingToken(tokens, 5)?.step).toBe(6);
+    expect(nearestSpacingToken(tokens, 4)?.step).toBe(2);
+  });
+
+  it("is undefined for no tokens", () => {
+    expect(nearestSpacingToken([], 4)).toBeUndefined();
+  });
+});
+
+describe("spacingDensityBehavior", () => {
+  const token = (step: number) =>
+    resolveSpacing({ ...defaultSpacingScale(), steps: [step] })[0]!;
+
+  it("calls a fine step grid, at any density", () => {
+    expect(spacingDensityBehavior(token(1), 1)).toBe("grid");
+    expect(spacingDensityBehavior(token(0.5), 1.25)).toBe("grid");
+  });
+
+  it("calls a layout step scaled only when density is not 1", () => {
+    expect(spacingDensityBehavior(token(4), 1.25)).toBe("scaled");
+    expect(spacingDensityBehavior(token(4), 1)).toBe("unchanged");
+  });
+
+  it("says nothing of step 0", () => {
+    expect(spacingDensityBehavior(token(0), 0.75)).toBe("unchanged");
+  });
+});
+
+describe("matchingSpacingDensityPreset", () => {
+  it("names the preset a density is, and none between", () => {
+    expect(matchingSpacingDensityPreset(0.75)?.id).toBe("compact");
+    expect(matchingSpacingDensityPreset(1)?.id).toBe("default");
+    expect(matchingSpacingDensityPreset(1.1)).toBeNull();
   });
 });

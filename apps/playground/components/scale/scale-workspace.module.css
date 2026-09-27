@@ -280,6 +280,15 @@
   cursor: pointer;
 }
 
+/* A token row can be picked; the picked one says so. */
+.tokenRow:hover {
+  background: var(--color-surface-subtle);
+}
+
+.tokenRow[data-selected] {
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
 .tokenRow code,
 .tokenMeta {
   color: var(--color-fg-muted);
@@ -349,7 +358,6 @@
 
 .spacingInset > .spacingTag {
   top: 0;
-  transform: translate(-50%, -50%);
 }
 
 .spacingContent,
@@ -406,15 +414,6 @@
   height: var(--size-element-md);
   border-radius: var(--radius-element);
   background: var(--color-action-primary);
-}
-
-/* A token row can be picked; the picked one says so. */
-.tokenRow:hover {
-  background: var(--color-surface-subtle);
-}
-
-.tokenRow[data-selected] {
-  box-shadow: 0 0 0 2px var(--color-focus-ring);
 }
 
 /* The layout uses a step sizes, each a way to that use in the Uses tab. */

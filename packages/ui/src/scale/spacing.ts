@@ -266,3 +266,53 @@ export function spacingCssVariables(
     resolveSpacing(scale).map((token) => [token.variable, `${token.rem}rem`]),
   );
 }
+
+/**
+ * The step chips the studio shows: every step it offers, plus any the scale
+ * holds beyond them — a preset's 2.5 — so every kept step can be turned off.
+ */
+export function spacingChipSteps(
+  scale: Pick<SpacingScale, "steps">,
+  offered: readonly number[] = generateSpacingSteps(16),
+): number[] {
+  return [...new Set([...offered, ...scale.steps])].sort((a, b) => a - b);
+}
+
+/**
+ * The token for a step, or the nearest one the scale has: a selection whose
+ * step was pruned lands on its neighbour rather than on nothing.
+ */
+export function nearestSpacingToken(
+  tokens: readonly SpacingToken[],
+  step: number,
+): SpacingToken | undefined {
+  return tokens.reduce<SpacingToken | undefined>(
+    (best, token) =>
+      !best || Math.abs(token.step - step) < Math.abs(best.step - step)
+        ? token
+        : best,
+    undefined,
+  );
+}
+
+/**
+ * What density does to a step, for saying so beside it: "grid" for a fine
+ * step, which stays put at any density; "scaled" for a layout step when
+ * density is not 1; "unchanged" otherwise — step 0, or density at 1.
+ */
+export function spacingDensityBehavior(
+  token: Pick<SpacingToken, "step" | "followsDensity">,
+  density: number,
+): "grid" | "scaled" | "unchanged" {
+  if (!token.followsDensity) return token.step > 0 ? "grid" : "unchanged";
+  return density !== DEFAULT_SPACING_DENSITY ? "scaled" : "unchanged";
+}
+
+/** The density preset a density is exactly, or null between them. */
+export function matchingSpacingDensityPreset(
+  density: number,
+): (typeof SPACING_DENSITY_PRESETS)[number] | null {
+  return (
+    SPACING_DENSITY_PRESETS.find((preset) => preset.value === density) ?? null
+  );
+}

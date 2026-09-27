@@ -70,13 +70,13 @@ export function applySpacingPreset(
 }
 
 /**
- * The preset a scale is, or "custom" once its base unit or its kept steps
- * differ from every preset. Density is not compared: it is the scale's
+ * The preset a scale is, or null — Custom — once its base unit or its kept
+ * steps differ from every preset, as matchingElevationPreset answers. Density is not compared: it is the scale's
  * dial for how roomy the layout steps feel, and moving it keeps the grid.
  */
 export function matchingSpacingPreset(
   scale: SpacingScale,
-): SpacingPresetId | "custom" {
+): SpacingPresetId | null {
   const kept = [...new Set(scale.steps)].sort((a, b) => a - b);
   const match = SPACING_PRESETS.find(
     (preset) =>
@@ -84,5 +84,5 @@ export function matchingSpacingPreset(
       preset.steps.length === kept.length &&
       preset.steps.every((step, index) => step === kept[index]),
   );
-  return match?.id ?? "custom";
+  return match?.id ?? null;
 }
