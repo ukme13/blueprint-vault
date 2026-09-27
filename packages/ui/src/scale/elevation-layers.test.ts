@@ -11,6 +11,8 @@ import {
 } from "./elevation";
 import {
   DEFAULT_SHADOW_LAYER,
+  elevationLevelColour,
+  setElevationLevelColour,
   addShadowLayer,
   isSimpleElevationLevel,
   removeShadowLayer,
@@ -562,5 +564,74 @@ describe("elevationPresetCss", () => {
     expect(
       elevationPresetCss("inset", defaultElevationScale(), tracks, "light"),
     ).toMatch(/^inset /);
+  });
+});
+
+describe("a level's own colour", () => {
+  const tracks = palette();
+  const glow = () =>
+    applyElevationPreset(defaultElevationScale(), "low", "glow", tracks);
+  const primary = tracks.find((track) => track.id === "t-primary")!;
+
+  it("is the shade Glow's layers share", () => {
+    const scale = glow();
+    const colour = elevationLevelColour(scale.levels[0]!);
+    expect(colour?.trackId).toBe("t-primary");
+    // The same shade the glow is drawn in, not the scale's black.
+    expect(colour).toEqual(scale.levels[0]!.layers[0]!.colour);
+  });
+
+  it("is null for a level on the scale's colour, or one of mixed shades", () => {
+    const scale = defaultElevationScale();
+    expect(elevationLevelColour(scale.levels[0]!)).toBeNull();
+    // Neumorphic: a shadow in the scale's colour and a highlight of its own.
+    const neumorphic = applyElevationPreset(scale, "low", "neumorphic", tracks);
+    expect(elevationLevelColour(neumorphic.levels[0]!)).toBeNull();
+  });
+
+  it("recolours that level only, and the glow draws in the new shade", () => {
+    const shade = primary.shades[1]!;
+    const next = setElevationLevelColour(glow(), "low", {
+      trackId: primary.id,
+      weight: shade.weight,
+    });
+    expect(elevationLevelColour(next.levels[0]!)?.weight).toBe(shade.weight);
+    const drawn = resolveElevation(next, tracks, "light")[0]!.layers[0]!;
+    const hex = `#${drawn.rgb.map((c) => c.toString(16).padStart(2, "0")).join("")}`;
+    expect(hex).toBe(shade.hex.toLowerCase());
+    // Medium and High keep the scale's colour.
+    expect(next.levels.slice(1)).toEqual(glow().levels.slice(1));
+  });
+
+  it("goes back to the scale's colour when cleared", () => {
+    const cleared = setElevationLevelColour(glow(), "low", null);
+    expect(elevationLevelColour(cleared.levels[0]!)).toBeNull();
+    expect(
+      cleared.levels[0]!.layers.every((layer) => !("colour" in layer)),
+    ).toBe(true);
+  });
+
+  it("leaves a recoloured Glow a Glow, not Custom", () => {
+    const next = setElevationLevelColour(glow(), "low", {
+      trackId: "neutral",
+      weight: 500,
+    });
+    expect(matchingElevationPreset(next.levels[0]!, next, tracks)).toBe("glow");
+  });
+
+  it("still makes Standard Custom once a layer takes a colour of its own", () => {
+    const standard = applyElevationPreset(
+      defaultElevationScale(),
+      "low",
+      "standard",
+      tracks,
+    );
+    const tinted = setElevationLevelColour(standard, "low", {
+      trackId: "t-primary",
+      weight: 500,
+    });
+    expect(
+      matchingElevationPreset(tinted.levels[0]!, tinted, tracks),
+    ).toBeNull();
   });
 });

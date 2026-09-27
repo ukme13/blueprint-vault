@@ -807,6 +807,38 @@ test.describe("The elevation editor", () => {
     await page.keyboard.press("Escape");
 
     await pick("Glow");
+
+    /* Glow has a colour of its own, so the colour control shows that one,
+       named for the level, rather than the shared shadow colour: no black
+       swatch beside a pink glow. */
+    const levelColour = page.getByLabel("Low colour", { exact: true });
+    await expect(levelColour).toContainText("primary");
+    await expect(levelColour).not.toContainText("950");
+    await expect(page.getByLabel("Shadow colour", { exact: true })).toHaveCount(
+      0,
+    );
+
+    /* Changing it recolours this glow, and only this level. */
+    const channels = (node: Element) =>
+      [...getComputedStyle(node).boxShadow.matchAll(/rgba?\((\d+, \d+, \d+)/g)]
+        .map((m) => m[1])
+        .join(" ");
+    const canvas = page.getByRole("region", { name: "Elevation" });
+    const medium = await canvas
+      .getByLabel("Medium on light")
+      .evaluate(channels);
+    const before = await sample.evaluate(channels);
+    await levelColour.click();
+    await page
+      .getByRole("option", { name: "primary 300", exact: true })
+      .click();
+    await expect.poll(() => sample.evaluate(channels)).not.toBe(before);
+    await expect(levelColour).toContainText("primary 300");
+    expect(await canvas.getByLabel("Medium on light").evaluate(channels)).toBe(
+      medium,
+    );
+    // Still a Glow, in its new colour.
+    await expect(trigger).toHaveAccessibleName("Style preset: Glow");
     await page.getByRole("button", { name: "Edit layers in Advanced" }).click();
     await expect(
       page

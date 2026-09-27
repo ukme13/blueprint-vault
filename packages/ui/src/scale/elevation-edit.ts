@@ -299,6 +299,52 @@ function tidyLayer(layer: ShadowLayer): ShadowLayer {
 }
 
 /**
+ * The colour a level is drawn in when it is not the scale's: the one shade
+ * every shown layer of it picks, as Glow's do. Null when any shown layer
+ * uses the scale's colour, or when they pick different shades — then there
+ * is no one colour of its own to show.
+ *
+ * Simple's colour control reads this. A level with a colour of its own gets
+ * a control for that colour, which recolours this level only; any other
+ * level gets the scale's shared colour, which recolours every level.
+ */
+export function elevationLevelColour(
+  level: ElevationLevel,
+): SemanticReference | null {
+  const shown = level.layers.filter((layer) => !layer.hidden);
+  const first = shown[0]?.colour;
+  if (!first) return null;
+  return shown.every(
+    (layer) =>
+      layer.colour?.trackId === first.trackId &&
+      layer.colour.weight === first.weight,
+  )
+    ? { trackId: first.trackId, weight: first.weight }
+    : null;
+}
+
+/**
+ * Draw every layer of one level in one shade, or pass null to put them all
+ * back on the scale's colour. Other levels are untouched.
+ */
+export function setElevationLevelColour(
+  scale: ElevationScale,
+  levelId: string,
+  colour: SemanticReference | null,
+): ElevationScale {
+  return withLayers(scale, levelId, (layers) =>
+    layers.map((layer) =>
+      tidyLayer({
+        ...layer,
+        colour: colour
+          ? { trackId: colour.trackId, weight: colour.weight }
+          : undefined,
+      }),
+    ),
+  );
+}
+
+/**
  * Whether Simple's contact and cast pads describe a level completely.
  *
  * They do for the shape every seeded level has: two drop shadows, both shown,

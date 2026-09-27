@@ -5,24 +5,19 @@ import {
   SegmentedControl,
   SegmentedControlItem,
 } from "@astryxdesign/core/SegmentedControl";
-import { SheetSelector } from "../SheetSelector";
 import {
   Button,
   elevationPreviewSurfaces,
   isSimpleElevationLevel,
-  parseShadeOptionValue,
   resolveElevationColour,
-  setElevationColour,
-  shadeOptionSections,
-  shadeOptionValue,
   type ColorTrack,
   type ElevationScale,
 } from "@blueprint/ui";
-import { TransparencySwatch } from "../palette/TransparencySwatch";
 import {
   ElevationLevelDetails,
   ElevationLevelStrength,
 } from "./ElevationLevelSettings";
+import { ElevationColourSetting } from "./ElevationColourSetting";
 import { ElevationLayerStack } from "./ElevationLayerStack";
 import { ElevationPresets } from "./ElevationPresets";
 import styles from "./scale-workspace.module.css";
@@ -56,45 +51,18 @@ export function ElevationInspector({
      edited, not part of it, so it is not saved with the scale. */
   const [view, setView] = useState<ElevationView>("simple");
 
-  /* The default every layer is drawn in, unless it picks its own. One shade
-     for every level, in both modes: a shadow is the absence of light, and
-     flipping it pale on dark would draw a halo. Shown in Simple, where it is
-     the only colour; in Advanced each layer's Color list starts with it as
-     "Default", so a second control for it there only duplicated that. */
+  /* Simple's colour: the shadow colour every level shares, or the level's
+     own for one like Glow. In Advanced each layer's Color list starts with
+     the shared colour as "Default", so a second control there only
+     duplicated it; it shows there only to say why, with no palette, every
+     layer falls back to black. */
   const colourSetting = (
-    <div className={styles.settingSubgroup}>
-      {track ? (
-        /* One list of every shade, grouped by track and found by typing
-           ("primary 900"), rather than a track selector and a weight
-           selector. The swatch rides in the trigger. */
-        <SheetSelector
-          hasSearch
-          label="Shadow colour"
-          options={shadeOptionSections(palettes, (hex) => (
-            <TransparencySwatch alpha={1} colour={hex} />
-          ))}
-          searchPlaceholder="Search shades"
-          size="md"
-          startIcon={<TransparencySwatch alpha={1} colour={colour.hex} />}
-          value={shadeOptionValue({
-            trackId: track.id,
-            weight: track.shades.some((shade) => shade.weight === colour.weight)
-              ? colour.weight
-              : (track.shades.at(-1)?.weight ?? colour.weight),
-          })}
-          onChange={(next) => {
-            const picked = parseShadeOptionValue(next);
-            if (picked && palettes.some((item) => item.id === picked.trackId)) {
-              onChange(setElevationColour(scale, picked));
-            }
-          }}
-        />
-      ) : (
-        <p className={styles.settingHint}>
-          Build a palette first. Until then the shadows fall back to black.
-        </p>
-      )}
-    </div>
+    <ElevationColourSetting
+      level={selected}
+      palettes={palettes}
+      scale={scale}
+      onChange={onChange}
+    />
   );
 
   return (

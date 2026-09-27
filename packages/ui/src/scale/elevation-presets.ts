@@ -178,8 +178,15 @@ export function applyElevationPreset(
   };
 }
 
-/** Two layers draw the same shadow: every value equal, absent read as default. */
-function sameLayer(a: ShadowLayer, b: ShadowLayer): boolean {
+/**
+ * A level's layer is still the preset's: every value equal, absent read as
+ * default. A preset layer with a colour of its own — Glow's, Neumorphic's
+ * highlight — matches any colour of its own, so recolouring a Glow leaves it
+ * a Glow rather than Custom. A layer in the scale's colour must stay in it.
+ */
+function sameLayer(preset: ShadowLayer, layer: ShadowLayer): boolean {
+  const a = preset;
+  const b = layer;
   return (
     isInnerShadow(a) === isInnerShadow(b) &&
     a.offsetXPx === b.offsetXPx &&
@@ -189,8 +196,7 @@ function sameLayer(a: ShadowLayer, b: ShadowLayer): boolean {
     a.opacity.light === b.opacity.light &&
     a.opacity.dark === b.opacity.dark &&
     Boolean(a.hidden) === Boolean(b.hidden) &&
-    a.colour?.trackId === b.colour?.trackId &&
-    a.colour?.weight === b.colour?.weight
+    (a.colour ? Boolean(b.colour) : !b.colour)
   );
 }
 
