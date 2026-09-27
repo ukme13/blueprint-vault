@@ -4,6 +4,7 @@ import {
   resolveSpacing,
   type ColorTrack,
   type ElevationScale,
+  type LayoutToken,
   type RadiusScale,
   type SpacingScale,
 } from "@blueprint/ui";
@@ -23,6 +24,10 @@ interface ScaleCanvasProps {
   write: ScaleHistoryBinding["write"];
   selectedElevationId: string;
   onSelectElevation: (id: string) => void;
+  /** The workspace's layout uses, for the spacing steps they reach for. */
+  layout: readonly LayoutToken[];
+  /** Open the Uses tab at one layout use. */
+  onOpenUse: (id: string) => void;
 }
 
 /** The current section's scale, drawn: steps, corners or shadows. */
@@ -35,6 +40,8 @@ export function ScaleCanvas({
   write,
   selectedElevationId,
   onSelectElevation,
+  layout,
+  onOpenUse,
 }: ScaleCanvasProps) {
   return (
     <section
@@ -42,7 +49,12 @@ export function ScaleCanvas({
       className={styles.canvas}
     >
       {section === "spacing" && (
-        <SpacingCanvas tokens={resolveSpacing(spacing)} />
+        <SpacingCanvas
+          density={spacing.density ?? 1}
+          layout={layout}
+          tokens={resolveSpacing(spacing)}
+          onOpenUse={onOpenUse}
+        />
       )}
       {section === "radius" && (
         <RadiusCanvas

@@ -35,6 +35,7 @@ export function LayoutUsesRow({
   onRemove,
   onReset,
   onRowClick,
+  isFocused,
 }: {
   autoFocusName: boolean;
   canReorder: boolean;
@@ -47,6 +48,8 @@ export function LayoutUsesRow({
   onRemove: () => void;
   onReset: () => void;
   onRowClick?: (event: MouseEvent<HTMLTableRowElement>) => void;
+  /** Opened from a spacing step's badge: marked until the tab is left. */
+  isFocused?: boolean;
 }) {
   const isSystem = isSystemLayoutToken(token.id);
   const { isDragging, setNodeRef, sortableProps } = useSemanticRowSort({
@@ -64,6 +67,7 @@ export function LayoutUsesRow({
       className={styles.usesRow}
       data-can-reorder={canReorder || undefined}
       data-dragging={isDragging || undefined}
+      data-focused={isFocused || undefined}
       data-layout-token={token.id}
       {...sortableProps}
     >

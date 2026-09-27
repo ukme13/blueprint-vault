@@ -75,6 +75,9 @@ export function ScaleInspector({
               { editKey: "spacing:density" },
             )
           }
+          onDensityPreset={(density) =>
+            write({ spacing: { ...spacing, density } })
+          }
           onToggleStep={(step) =>
             write({ spacing: toggleSpacingStep(spacing, step) })
           }

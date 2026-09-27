@@ -145,6 +145,63 @@ test.describe("The spacing studio", () => {
     await expect.poll(async () => (await stored())?.baseUnitPx).toBe(4);
   });
 
+  test("sets density from a preset, moving layout steps and not the grid", async ({
+    seededPage: page,
+  }) => {
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    const row = (step: string) =>
+      steps.locator(`[data-spacing-step="${step}"]`);
+    const density = async () =>
+      ((await readStoredWorkspace(page))?.spacing as { density: number })
+        ?.density;
+
+    await page.getByRole("radio", { name: "Compact 0.75×" }).click();
+    await expect.poll(density).toBe(0.75);
+    /* Step 2 is the first layout step: 8px at 1x, 6px compact, and it says
+       why. Step 1 is on the fine grid: 4px, and marked as fixed. */
+    await expect(row("2").getByText("6px", { exact: true })).toBeVisible();
+    await expect(row("2").getByText("0.75×", { exact: true })).toBeVisible();
+    await expect(row("1").getByText("4px", { exact: true })).toBeVisible();
+    await expect(row("1").getByText("grid", { exact: true })).toBeVisible();
+    // The preview says which kind of step it shows, and at what density.
+    await expect(page.locator("[data-density-caption]")).toContainText(
+      "0.75× density",
+    );
+
+    await page.getByRole("radio", { name: "Spacious 1.25×" }).click();
+    await expect.poll(density).toBe(1.25);
+    await expect(row("16").getByText("80px", { exact: true })).toBeVisible();
+    // The slider shows where the preset put it.
+    await expect(page.getByRole("slider", { name: /Density/ })).toHaveAttribute(
+      "aria-valuenow",
+      "1.25",
+    );
+  });
+
+  test("marks the steps layout uses reach for, and opens them in Uses", async ({
+    seededPage: page,
+  }) => {
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    const row = (step: string) =>
+      steps.locator(`[data-spacing-step="${step}"]`);
+    /* Container inset is step 4 on a phone; Section gap is 16 everywhere.
+       Step 3 sizes nothing. */
+    const inset = row("4").getByRole("button", {
+      name: "Container inset, in Uses",
+    });
+    await expect(inset).toBeVisible();
+    await expect(
+      row("16").getByRole("button", { name: "Section gap, in Uses" }),
+    ).toBeVisible();
+    await expect(row("3").locator("[data-layout-use]")).toHaveCount(0);
+
+    /* The badge opens that use in the Uses tab, marked. */
+    await inset.click();
+    const use = page.locator('[data-layout-token="inset-container"]');
+    await expect(use).toBeInViewport();
+    await expect(use).toHaveAttribute("data-focused", "true");
+  });
+
   test("prunes a step, and keeps it pruned", async ({ seededPage: page }) => {
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     const before = await steps.getByRole("listitem").count();

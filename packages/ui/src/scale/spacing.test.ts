@@ -7,6 +7,7 @@ import {
   MAX_SPACING_DENSITY,
   MIN_SPACING_BASE_UNIT_PX,
   MIN_SPACING_DENSITY,
+  SPACING_DENSITY_PRESETS,
   SPACING_BASE_UNIT_PRESETS,
   defaultSpacingScale,
   generateSpacingSteps,
@@ -219,5 +220,36 @@ describe("toggleSpacingStep", () => {
       baseUnitPx: scale.baseUnitPx,
       density: scale.density,
     });
+  });
+});
+
+describe("density presets", () => {
+  it("sit inside the density bounds", () => {
+    for (const preset of SPACING_DENSITY_PRESETS) {
+      expect(preset.value).toBeGreaterThanOrEqual(MIN_SPACING_DENSITY);
+      expect(preset.value).toBeLessThanOrEqual(MAX_SPACING_DENSITY);
+    }
+  });
+
+  it("move the layout steps and leave the fine grid where it is", () => {
+    const at = (density: number) =>
+      Object.fromEntries(
+        resolveSpacing({ ...defaultSpacingScale(), density }).map((token) => [
+          token.step,
+          token.px,
+        ]),
+      );
+    const compact = at(0.75);
+    const spacious = at(1.25);
+    // The fine grid — 0.5, 1, 1.5 on a 4px base — is 2, 4 and 6px at any
+    // density: the last step below where density starts.
+    for (const step of [0.5, 1, 1.5]) {
+      expect(compact[step]).toBe(step * 4);
+      expect(spacious[step]).toBe(step * 4);
+    }
+    // Step 2, the first layout step, moves: 8px at 1x.
+    expect(compact[2]).toBe(6);
+    expect(spacious[2]).toBe(10);
+    expect(spacious[16]).toBe(80);
   });
 });

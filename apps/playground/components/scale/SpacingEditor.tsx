@@ -5,15 +5,12 @@ import {
   SegmentedControl,
   SegmentedControlItem,
 } from "@astryxdesign/core/SegmentedControl";
-import { Slider } from "@astryxdesign/core/Slider";
 import { Ruler } from "lucide-react";
 import {
   Button,
   HybridTokenizedInput,
   MAX_SPACING_BASE_UNIT_PX,
-  MAX_SPACING_DENSITY,
   MIN_SPACING_BASE_UNIT_PX,
-  MIN_SPACING_DENSITY,
   SPACING_BASE_UNIT_PRESETS,
   generateSpacingSteps,
   resolveHybridValue,
@@ -21,11 +18,14 @@ import {
   type HybridTokenizedValue,
   type SpacingPresetId,
   type SpacingScale,
+  tokensUsingSpacingStep,
+  type LayoutToken,
   type SpacingToken,
 } from "@blueprint/ui";
 import { usePickerSheet } from "../picker-sheet";
-import { SpacingCopyButton } from "./SpacingCopyButton";
+import { SpacingDensitySetting } from "./SpacingDensitySetting";
 import { SpacingPresetSelector } from "./SpacingPresetSelector";
+import { SpacingTokenRow } from "./SpacingTokenRow";
 import {
   SPACING_PREVIEW_MODES,
   SpacingPreviewTile,
@@ -40,6 +40,8 @@ interface SpacingInspectorProps {
   detachedBaseUnit: number | null;
   onBaseUnitChange: (next: HybridTokenizedValue) => void;
   onDensityChange: (density: number) => void;
+  /** A density preset: its own step in history, not part of a drag. */
+  onDensityPreset: (density: number) => void;
   onToggleStep: (step: number) => void;
   onApplyPreset: (id: SpacingPresetId) => void;
 }
@@ -49,6 +51,7 @@ export function SpacingInspector({
   detachedBaseUnit,
   onBaseUnitChange,
   onDensityChange,
+  onDensityPreset,
   onToggleStep,
   onApplyPreset,
 }: SpacingInspectorProps) {
@@ -90,21 +93,11 @@ export function SpacingInspector({
           onChange={onBaseUnitChange}
         />
       </div>
-      <div className={styles.settingGroup}>
-        <h2>Density</h2>
-        <p className={styles.settingHint}>
-          One multiplier on layout gaps (step 2 and up). The fine grid does not
-          follow it, so a 2px hairline stays 2px.
-        </p>
-        <Slider
-          label={`Density: ${scale.density ?? 1}×`}
-          max={MAX_SPACING_DENSITY}
-          min={MIN_SPACING_DENSITY}
-          step={0.25}
-          value={scale.density ?? 1}
-          onChange={onDensityChange}
-        />
-      </div>
+      <SpacingDensitySetting
+        density={scale.density ?? 1}
+        onChange={onDensityChange}
+        onPreset={onDensityPreset}
+      />
       <div className={styles.settingGroup}>
         <h2>Steps</h2>
         <p className={styles.settingHint}>
@@ -132,7 +125,21 @@ export function SpacingInspector({
 /** The step a layout reaches for first: 16px, step 4, where it exists. */
 const FIRST_LAYOUT_STEP = 4;
 
-export function SpacingCanvas({ tokens }: { tokens: SpacingToken[] }) {
+interface SpacingCanvasProps {
+  tokens: SpacingToken[];
+  density: number;
+  /** The workspace's layout uses, to say which step each one reaches for. */
+  layout: readonly LayoutToken[];
+  /** Open the Uses tab at one layout use. */
+  onOpenUse: (id: string) => void;
+}
+
+export function SpacingCanvas({
+  tokens,
+  density,
+  layout,
+  onOpenUse,
+}: SpacingCanvasProps) {
   const [mode, setMode] = useState<SpacingPreviewMode>("inset");
   const [selectedStep, setSelectedStep] = useState(FIRST_LAYOUT_STEP);
   /* A step turned off in the inspector falls back to the nearest one, so
@@ -162,48 +169,22 @@ export function SpacingCanvas({ tokens }: { tokens: SpacingToken[] }) {
           />
         ))}
       </SegmentedControl>
-      {selected ? <SpacingPreviewTile mode={mode} token={selected} /> : null}
+      {selected ? (
+        <SpacingPreviewTile density={density} mode={mode} token={selected} />
+      ) : null}
       <section aria-label="Generated spacing steps">
         <ol className={styles.tokenList}>
-          {tokens.map((token) => {
-            const isSelected = token.step === selected?.step;
-            return (
-              /* A click anywhere on the row picks the step; the name is a
-               button too, so a keyboard and a screen reader reach it. */
-              <li
-                key={token.step}
-                className={styles.tokenRow}
-                data-selected={isSelected || undefined}
-                data-spacing-step={token.step}
-                onClick={() => setSelectedStep(token.step)}
-              >
-                <span className={styles.tokenName}>
-                  <button
-                    aria-pressed={isSelected}
-                    className={styles.tokenPick}
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setSelectedStep(token.step);
-                    }}
-                  >
-                    <code>{token.variable}</code>
-                  </button>
-                  <SpacingCopyButton token={token} />
-                </span>
-                <span>{token.px}px</span>
-                <span className={styles.tokenMeta}>{token.rem}rem</span>
-                <span className={styles.tokenMeta}>
-                  {!token.followsDensity && token.step > 0 ? "grid" : null}
-                </span>
-                <span
-                  aria-hidden="true"
-                  className={styles.tokenBar}
-                  style={{ width: `${token.px}px` }}
-                />
-              </li>
-            );
-          })}
+          {tokens.map((token) => (
+            <SpacingTokenRow
+              key={token.step}
+              density={density}
+              isSelected={token.step === selected?.step}
+              token={token}
+              uses={tokensUsingSpacingStep(layout, token.step)}
+              onOpenUse={onOpenUse}
+              onSelect={() => setSelectedStep(token.step)}
+            />
+          ))}
         </ol>
       </section>
     </div>

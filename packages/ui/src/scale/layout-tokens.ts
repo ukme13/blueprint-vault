@@ -88,6 +88,24 @@ export const DEFAULT_LAYOUT_TOKENS: readonly LayoutToken[] = [
   ...COMPONENT_RADIUS_USES,
 ];
 
+/**
+ * The spacing layout uses that point at a step on any frame: what a step is
+ * for, beyond its size. A use that types its own px on every frame points
+ * at no step. Returned as the uses, so a caller has both the name to show
+ * and the id to find the use by.
+ */
+export function tokensUsingSpacingStep(
+  layoutTokens: readonly LayoutToken[],
+  step: number,
+): LayoutToken[] {
+  const name = spacingStepName(step);
+  return layoutTokens.filter(
+    (token) =>
+      token.kind === "spacing" &&
+      Object.values(token.byDevice).some((value) => value === name),
+  );
+}
+
 export function layoutVariableName(id: string): string {
   return `--${id}`;
 }

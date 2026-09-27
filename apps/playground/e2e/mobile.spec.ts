@@ -1230,7 +1230,8 @@ test.describe("on a phone", () => {
     const bars = await rows.evaluateAll((items) =>
       items.map((item) => {
         const px = parseFloat(item.children[1]!.textContent ?? "0");
-        const bar = item.lastElementChild as HTMLElement;
+        // The bar by its class: the layout-use badges come after it now.
+        const bar = item.querySelector("[class*=tokenBar]") as HTMLElement;
         return {
           px,
           width: bar.getBoundingClientRect().width,

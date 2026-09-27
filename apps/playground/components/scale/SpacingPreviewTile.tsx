@@ -20,6 +20,8 @@ export const SPACING_PREVIEW_MODES: readonly {
 interface SpacingPreviewTileProps {
   mode: SpacingPreviewMode;
   token: SpacingToken;
+  /** The scale's density, named on a step it moves. */
+  density: number;
 }
 
 /**
@@ -32,9 +34,22 @@ interface SpacingPreviewTileProps {
  * The step is drawn at its real size in pixels, not scaled, so what reads as
  * roomy here is roomy in a page.
  */
-export function SpacingPreviewTile({ mode, token }: SpacingPreviewTileProps) {
+export function SpacingPreviewTile({
+  mode,
+  token,
+  density,
+}: SpacingPreviewTileProps) {
   const size = `${token.px}px`;
   const tag = <span className={styles.spacingTag}>{size}</span>;
+  /* Which kind of step this is: one density moves, or one on the fine
+     grid that stays put at any density. */
+  const caption = (
+    <figcaption className={styles.spacingCaption} data-density-caption="">
+      {token.followsDensity
+        ? `${token.variable} · layout step, ${density}× density`
+        : `${token.variable} · fine grid, fixed at any density`}
+    </figcaption>
+  );
 
   if (mode === "inset") {
     return (
@@ -54,6 +69,7 @@ export function SpacingPreviewTile({ mode, token }: SpacingPreviewTileProps) {
             <span className={`${styles.spacingLine} ${styles.spacingShort}`} />
           </div>
         </div>
+        {caption}
       </figure>
     );
   }
@@ -101,6 +117,7 @@ export function SpacingPreviewTile({ mode, token }: SpacingPreviewTileProps) {
           </Fragment>
         ))}
       </div>
+      {caption}
     </figure>
   );
 }

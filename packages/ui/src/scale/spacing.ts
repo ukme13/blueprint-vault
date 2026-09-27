@@ -78,6 +78,20 @@ export const MIN_SPACING_DENSITY = 0.5;
 export const MAX_SPACING_DENSITY = 2;
 
 /**
+ * One-click densities for the slider beside them. Each moves only the layout
+ * steps (2 and up); the fine grid stays where it is at any of them.
+ */
+export const SPACING_DENSITY_PRESETS: readonly {
+  id: "compact" | "default" | "spacious";
+  name: string;
+  value: number;
+}[] = [
+  { id: "compact", name: "Compact", value: 0.75 },
+  { id: "default", name: "Default", value: DEFAULT_SPACING_DENSITY },
+  { id: "spacious", name: "Spacious", value: 1.25 },
+];
+
+/**
  * Layout steps are this multiple and up.
  *
  * Halves below 2 exist because 2px is visible on a border or an icon gap.

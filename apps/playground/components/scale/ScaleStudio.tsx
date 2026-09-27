@@ -47,10 +47,13 @@ export function ScaleStudio() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const isPhone = useIsPhone();
   const [studioView, setStudioView] = useState<StudioView>("scale");
+  /* The layout use a spacing step's badge opened the Uses tab at. */
+  const [focusedUseId, setFocusedUseId] = useState<string | null>(null);
   const [viewSection, setViewSection] = useState(activeSection);
   if (viewSection !== activeSection) {
     setViewSection(activeSection);
     setStudioView("scale");
+    setFocusedUseId(null);
   }
   const settingsPanel = useScaleSettingsPanel();
 
@@ -125,7 +128,10 @@ export function ScaleStudio() {
             <TabList
               size="sm"
               value={studioView}
-              onChange={(value) => setStudioView(value as StudioView)}
+              onChange={(value) => {
+                setFocusedUseId(null);
+                setStudioView(value as StudioView);
+              }}
             >
               <Tab label="Scale" value="scale" />
               <Tab label="Uses" value="uses" />
@@ -175,6 +181,7 @@ export function ScaleStudio() {
         ) : showUses ? (
           <LayoutUsesTable
             devices={previewDevices}
+            focusedId={focusedUseId}
             kind={activeSection === "radius" ? "radius" : "spacing"}
             radius={radius}
             spacing={spacing}
@@ -185,12 +192,17 @@ export function ScaleStudio() {
           <>
             <ScaleCanvas
               elevation={elevation}
+              layout={layout}
               palettes={palettes}
               radius={radius}
               section={activeSection}
               selectedElevationId={selectedElevationId}
               spacing={spacing}
               write={history.write}
+              onOpenUse={(id) => {
+                setFocusedUseId(id);
+                setStudioView("uses");
+              }}
               onSelectElevation={setSelectedElevationId}
             />
 
