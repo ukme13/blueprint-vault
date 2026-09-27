@@ -857,7 +857,12 @@ test.describe("The elevation editor", () => {
     );
     // Still a Glow, in its new colour.
     await expect(trigger).toHaveAccessibleName("Style preset: Glow");
-    await page.getByRole("button", { name: "Edit layers in Advanced" }).click();
+    // No note or button stands in for the pads; the switch goes to Advanced.
+    await expect(
+      page.getByRole("button", { name: "Edit layers in Advanced" }),
+    ).toHaveCount(0);
+    await expect(pad).toHaveCount(0);
+    await page.getByRole("radio", { name: "Advanced" }).click();
     await expect(
       page
         .getByRole("group", { name: "Low layers" })

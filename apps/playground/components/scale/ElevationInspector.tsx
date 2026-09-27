@@ -6,7 +6,6 @@ import {
   SegmentedControlItem,
 } from "@astryxdesign/core/SegmentedControl";
 import {
-  Button,
   elevationPreviewSurfaces,
   isSimpleElevationLevel,
   resolveElevationColour,
@@ -109,6 +108,9 @@ export function ElevationInspector({
             onChange={onChange}
           />
           {colourSetting}
+          {/* The pads set a contact and a cast layer. On any other stack they
+              would set half of what is drawn, so they are left out; that
+              level is edited in Advanced. */}
           {isSimpleElevationLevel(selected) ? (
             <ElevationLevelStrength
               key={`strength-${selected.id}`}
@@ -118,24 +120,7 @@ export function ElevationInspector({
               surfaces={surfaces}
               onChange={onChange}
             />
-          ) : (
-            /* The pads set a contact and a cast layer. On any other stack
-               they would set half of what is drawn, so they step aside. */
-            <div className={styles.settingSubgroup}>
-              <p className={styles.settingHint}>
-                {selected.name} has a custom layer stack that the contact and
-                cast pads can’t describe.
-              </p>
-              <Button
-                scheme="neutral"
-                size="medium"
-                variant="outlined"
-                onClick={() => setView("advanced")}
-              >
-                Edit layers in Advanced
-              </Button>
-            </div>
-          )}
+          ) : null}
         </div>
       ) : null}
       {/* No palette: say why every layer falls back to black. */}
