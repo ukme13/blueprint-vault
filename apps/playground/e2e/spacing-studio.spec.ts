@@ -582,6 +582,24 @@ test.describe("The elevation editor", () => {
       expect(right).toBe(rights[0]);
     }
 
+    /* Every control in the popover is md, 32px, and each row's label sits
+       level with the first field beside it. */
+    const sizes = await third.evaluate((dialog) => {
+      const height = (el: Element) =>
+        Math.round(el.getBoundingClientRect().height);
+      const top = (el: Element) => Math.round(el.getBoundingClientRect().top);
+      const groups = [...dialog.querySelectorAll(".astryx-input-group")];
+      const labels = [...dialog.querySelectorAll("[class*=layerPopoverLabel]")];
+      return {
+        groups: groups.map(height),
+        labels: labels.map(height),
+        firstRow: [top(labels[0]!), top(groups[0]!)],
+      };
+    });
+    expect(new Set(sizes.groups)).toEqual(new Set([32]));
+    expect(new Set(sizes.labels)).toEqual(new Set([32]));
+    expect(sizes.firstRow[0]).toBe(sizes.firstRow[1]);
+
     /* X, Y, Blur and Spread's tags are one width, so their values line up. */
     const tags = await third
       .locator(".astryx-input-group")

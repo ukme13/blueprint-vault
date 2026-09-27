@@ -76,7 +76,7 @@ export function ElevationLayerEditor({
     name: string,
     tag: ReactNode,
   ) => (
-    <InputGroup isLabelHidden label={layerName} size="sm">
+    <InputGroup isLabelHidden label={layerName} size="md">
       <InputGroupText>
         <span className={styles.layerPopoverTag}>{tag}</span>
       </InputGroupText>
@@ -84,7 +84,7 @@ export function ElevationLayerEditor({
         isLabelHidden
         label={name}
         min={field === "blurPx" ? 0 : null}
-        size="sm"
+        size="md"
         value={layer[field]}
         onChange={(value) => update({ [field]: value }, field)}
       />
@@ -102,7 +102,7 @@ export function ElevationLayerEditor({
             { value: "drop", label: "Drop shadow" },
             { value: "inner", label: "Inner shadow" },
           ]}
-          size="sm"
+          size="md"
           value={layer.type ?? "drop"}
           variant="ghost"
           onChange={(value) =>
@@ -151,7 +151,7 @@ export function ElevationLayerEditor({
             )),
           ]}
           searchPlaceholder="Search shades"
-          size="sm"
+          size="md"
           width="100%"
           value={layer.colour ? shadeOptionValue(layer.colour) : SCALE_COLOUR}
           onChange={(next) => {
@@ -167,7 +167,7 @@ export function ElevationLayerEditor({
         <span className={styles.layerPopoverLabel}>Opacity</span>
         <div className={styles.layerPopoverFields}>
           {COLOUR_MODES.map((mode) => (
-            <InputGroup key={mode} isLabelHidden label={layerName} size="sm">
+            <InputGroup key={mode} isLabelHidden label={layerName} size="md">
               <InputGroupText>
                 <span className={styles.layerPopoverModeTag}>
                   {mode === "light" ? "Light" : "Dark"}
@@ -178,7 +178,7 @@ export function ElevationLayerEditor({
                 label={`${mode} opacity`}
                 max={100}
                 min={0}
-                size="sm"
+                size="md"
                 value={Math.round(layer.opacity[mode] * 100)}
                 onChange={(value) =>
                   update(

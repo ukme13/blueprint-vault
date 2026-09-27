@@ -174,7 +174,7 @@ export function ElevationLayerStack({
         className="w-full"
         leftIcon={<Plus aria-hidden="true" />}
         scheme="neutral"
-        size="small"
+        size="medium"
         variant="outlined"
         onClick={() => onChange(addShadowLayer(scale, level.id))}
       >

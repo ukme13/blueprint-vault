@@ -761,11 +761,11 @@
   gap: var(--spacing-2);
 }
 
-/* Level with the first field of its row, which is 28px tall at size sm. */
+/* Level with the first field of its row, which is 32px tall at size md. */
 .layerPopoverLabel {
   display: flex;
   align-items: center;
-  min-height: var(--size-element-sm, 28px);
+  min-height: var(--size-element-md, 32px);
   color: var(--color-fg-muted);
   font-size: 12px;
 }

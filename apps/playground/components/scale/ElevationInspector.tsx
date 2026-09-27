@@ -81,7 +81,7 @@ export function ElevationInspector({
           <SegmentedControl
             label="Elevation editor"
             layout="fill"
-            size="sm"
+            size="md"
             value={view}
             onChange={(value) => setView(value as ElevationView)}
           >
@@ -128,7 +128,7 @@ export function ElevationInspector({
               </p>
               <Button
                 scheme="neutral"
-                size="small"
+                size="medium"
                 variant="outlined"
                 onClick={() => setView("advanced")}
               >
