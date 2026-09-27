@@ -1,5 +1,10 @@
 "use client";
 
+import { useState } from "react";
+import {
+  SegmentedControl,
+  SegmentedControlItem,
+} from "@astryxdesign/core/SegmentedControl";
 import { Slider } from "@astryxdesign/core/Slider";
 import { Ruler } from "lucide-react";
 import {
@@ -18,6 +23,12 @@ import {
   type SpacingToken,
 } from "@blueprint/ui";
 import { usePickerSheet } from "../picker-sheet";
+import { SpacingCopyButton } from "./SpacingCopyButton";
+import {
+  SPACING_PREVIEW_MODES,
+  SpacingPreviewTile,
+  type SpacingPreviewMode,
+} from "./SpacingPreviewTile";
 import styles from "./scale-workspace.module.css";
 
 const OFFERED_STEPS = generateSpacingSteps(16);
@@ -108,26 +119,83 @@ export function SpacingInspector({
   );
 }
 
+/** The step a layout reaches for first: 16px, step 4, where it exists. */
+const FIRST_LAYOUT_STEP = 4;
+
 export function SpacingCanvas({ tokens }: { tokens: SpacingToken[] }) {
+  const [mode, setMode] = useState<SpacingPreviewMode>("inset");
+  const [selectedStep, setSelectedStep] = useState(FIRST_LAYOUT_STEP);
+  /* A step turned off in the inspector falls back to the nearest one, so
+     the preview never points at a step the scale no longer has. */
+  const selected =
+    tokens.find((token) => token.step === selectedStep) ??
+    [...tokens].sort(
+      (a, b) =>
+        Math.abs(a.step - selectedStep) - Math.abs(b.step - selectedStep),
+    )[0];
+
   return (
-    <section aria-label="Generated spacing steps">
-      <ol className={styles.tokenList}>
-        {tokens.map((token) => (
-          <li key={token.step} className={styles.tokenRow}>
-            <code>{token.variable}</code>
-            <span>{token.px}px</span>
-            <span className={styles.tokenMeta}>{token.rem}rem</span>
-            <span className={styles.tokenMeta}>
-              {!token.followsDensity && token.step > 0 ? "grid" : null}
-            </span>
-            <span
-              aria-hidden="true"
-              className={styles.tokenBar}
-              style={{ width: `${token.px}px` }}
-            />
-          </li>
+    /* The region is the list of steps; the preview above it shows one. */
+    <div className={styles.spacingCanvas}>
+      <SegmentedControl
+        label="Preview as"
+        size="md"
+        value={mode}
+        onChange={(value) => setMode(value as SpacingPreviewMode)}
+      >
+        {SPACING_PREVIEW_MODES.map(({ value, label, icon: Icon }) => (
+          <SegmentedControlItem
+            key={value}
+            icon={<Icon aria-hidden="true" />}
+            label={label}
+            value={value}
+          />
         ))}
-      </ol>
-    </section>
+      </SegmentedControl>
+      {selected ? <SpacingPreviewTile mode={mode} token={selected} /> : null}
+      <section aria-label="Generated spacing steps">
+        <ol className={styles.tokenList}>
+          {tokens.map((token) => {
+            const isSelected = token.step === selected?.step;
+            return (
+              /* A click anywhere on the row picks the step; the name is a
+               button too, so a keyboard and a screen reader reach it. */
+              <li
+                key={token.step}
+                className={styles.tokenRow}
+                data-selected={isSelected || undefined}
+                data-spacing-step={token.step}
+                onClick={() => setSelectedStep(token.step)}
+              >
+                <span className={styles.tokenName}>
+                  <button
+                    aria-pressed={isSelected}
+                    className={styles.tokenPick}
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setSelectedStep(token.step);
+                    }}
+                  >
+                    <code>{token.variable}</code>
+                  </button>
+                  <SpacingCopyButton token={token} />
+                </span>
+                <span>{token.px}px</span>
+                <span className={styles.tokenMeta}>{token.rem}rem</span>
+                <span className={styles.tokenMeta}>
+                  {!token.followsDensity && token.step > 0 ? "grid" : null}
+                </span>
+                <span
+                  aria-hidden="true"
+                  className={styles.tokenBar}
+                  style={{ width: `${token.px}px` }}
+                />
+              </li>
+            );
+          })}
+        </ol>
+      </section>
+    </div>
   );
 }

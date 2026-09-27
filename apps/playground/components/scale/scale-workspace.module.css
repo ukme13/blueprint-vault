@@ -270,11 +270,14 @@
 
 .tokenRow {
   display: grid;
-  grid-template-columns: 8rem 4rem 4.5rem 2.75rem minmax(0, 1fr);
+  grid-template-columns: 10rem 4rem 4.5rem 2.75rem minmax(0, 1fr);
   align-items: center;
   gap: 12px;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-element);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
+  cursor: pointer;
 }
 
 .tokenRow code,
@@ -287,6 +290,147 @@
   height: 12px;
   border-radius: var(--radius-sm);
   background: var(--color-action-primary);
+}
+
+/* The spacing canvas: the selected step used in a layout, above the list. */
+.spacingCanvas {
+  display: grid;
+  gap: var(--spacing-5);
+}
+
+.spacingPreview {
+  display: grid;
+  margin: 0;
+  padding: var(--spacing-6);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-container);
+  background: var(--color-surface-subtle);
+}
+
+/* The space itself, marked as a box model inspector marks it: tinted, with
+   a dashed edge, and its size in a tag. */
+.spacingZone {
+  position: relative;
+  box-sizing: border-box;
+  flex: none;
+  outline: 1px dashed var(--color-action-primary);
+  outline-offset: -1px;
+  background: color-mix(in oklch, var(--color-action-primary) 16%, transparent);
+}
+
+/* Centred on the space it names, over whatever is beside it, so a 2px gap
+   still has a readable size. */
+.spacingTag {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  padding: 0 var(--spacing-1);
+  border-radius: var(--radius-inner);
+  background: var(--color-action-primary);
+  color: var(--color-fg-on-action);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+  white-space: nowrap;
+  transform: translate(-50%, -50%);
+}
+
+/* Inset: the tag sits in the padding's top band, the content inside. */
+.spacingInset {
+  border-radius: var(--radius-container);
+}
+
+.spacingInset > .spacingTag {
+  top: 0;
+  transform: translate(-50%, -50%);
+}
+
+.spacingContent,
+.spacingColumn {
+  display: grid;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-element);
+  background: var(--color-surface-base);
+}
+
+.spacingStack {
+  display: flex;
+  flex-direction: column;
+}
+
+.spacingColumns {
+  display: flex;
+}
+
+.spacingColumn {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.spacingTitle {
+  display: block;
+  width: 50%;
+  height: var(--spacing-3);
+  border-radius: var(--radius-full);
+  background: var(--color-fg-muted);
+}
+
+.spacingParagraph {
+  display: grid;
+  gap: var(--spacing-2);
+}
+
+.spacingLine {
+  display: block;
+  height: var(--spacing-2);
+  border-radius: var(--radius-full);
+  background: var(--color-border-strong);
+}
+
+.spacingShort {
+  width: 60%;
+}
+
+.spacingAction {
+  display: block;
+  width: calc(var(--spacing-12) + var(--spacing-10));
+  height: var(--size-element-md);
+  border-radius: var(--radius-element);
+  background: var(--color-action-primary);
+}
+
+/* A token row can be picked; the picked one says so. */
+.tokenRow:hover {
+  background: var(--color-surface-subtle);
+}
+
+.tokenRow[data-selected] {
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
+.tokenName {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  min-width: 0;
+}
+
+.tokenPick {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-fg-muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tokenPick[aria-pressed="true"] code {
+  color: var(--color-fg-primary);
+  font-weight: 650;
 }
 
 .radiusList {

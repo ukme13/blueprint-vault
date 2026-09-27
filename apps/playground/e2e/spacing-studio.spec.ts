@@ -24,6 +24,83 @@ test.describe("The spacing studio", () => {
     await expect(steps.getByText("1rem", { exact: true })).toBeVisible();
   });
 
+  test("previews the selected step as padding, a stack gap or a column gap", async ({
+    seededPage: page,
+  }) => {
+    const preview = page.locator("figure[data-preview-mode]");
+    const zones = preview.locator("[data-spacing-zone]");
+    const box = (index: number) =>
+      zones.nth(index).evaluate((node) => {
+        const style = getComputedStyle(node);
+        return {
+          padding: style.paddingTop,
+          width: Math.round(node.getBoundingClientRect().width),
+          height: Math.round(node.getBoundingClientRect().height),
+        };
+      });
+
+    /* Inset by default, on step 4: a card padded by 16px. */
+    await expect(preview).toHaveAttribute("data-preview-mode", "inset");
+    await expect.poll(async () => (await box(0)).padding).toBe("16px");
+    await expect(preview.getByText("16px", { exact: true })).toBeVisible();
+
+    /* Stack: the gaps between the three blocks are the step, 16px tall. */
+    await page.getByRole("radio", { name: "Stack" }).click();
+    await expect(preview).toHaveAttribute("data-preview-mode", "stack");
+    await expect(zones).toHaveCount(2);
+    await expect.poll(async () => (await box(0)).height).toBe(16);
+
+    /* Columns: the gaps between three columns, 16px wide. */
+    await page.getByRole("radio", { name: "Columns" }).click();
+    await expect(preview).toHaveAttribute("data-preview-mode", "columns");
+    await expect(zones).toHaveCount(2);
+    await expect.poll(async () => (await box(1)).width).toBe(16);
+  });
+
+  test("picks a step from the list, and the preview follows", async ({
+    seededPage: page,
+  }) => {
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    const row = (step: number) =>
+      steps.locator(`[data-spacing-step="${step}"]`);
+    await expect(row(4)).toHaveAttribute("data-selected", "true");
+
+    /* A click anywhere on the row picks it; step 8 is 32px. */
+    await row(8).getByText("32px", { exact: true }).click();
+    await expect(row(8)).toHaveAttribute("data-selected", "true");
+    await expect(row(4)).not.toHaveAttribute("data-selected");
+    await expect(
+      row(8).getByRole("button", { name: "--spacing-8", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect
+      .poll(() =>
+        page
+          .locator("figure[data-preview-mode] [data-spacing-zone]")
+          .first()
+          .evaluate((node) => getComputedStyle(node).paddingTop),
+      )
+      .toBe("32px");
+  });
+
+  test("copies a step as its variable", async ({
+    seededPage: page,
+    context,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    const copy = steps.getByRole("button", { name: "Copy --spacing-8" });
+    await copy.click();
+    await expect(copy).toHaveAttribute("data-copy-result", "copied");
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+      "var(--spacing-8)",
+    );
+    // Copying does not pick the row it sits in.
+    await expect(steps.locator('[data-spacing-step="4"]')).toHaveAttribute(
+      "data-selected",
+      "true",
+    );
+  });
+
   test("prunes a step, and keeps it pruned", async ({ seededPage: page }) => {
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     const before = await steps.getByRole("listitem").count();
@@ -105,7 +182,8 @@ test.describe("The spacing studio", () => {
       .getByRole("region", { name: "Generated spacing steps" })
       .locator("li", { has: page.getByText("--spacing-0-5", { exact: true }) });
     const label = hairline.getByText("grid", { exact: true });
-    const bar = hairline.locator("[aria-hidden='true']");
+    // The bar, not the copy button's icon, which is hidden from readers too.
+    const bar = hairline.locator("[class*=tokenBar]");
 
     const labelBox = await label.boundingBox();
     const barBox = await bar.boundingBox();
