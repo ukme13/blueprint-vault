@@ -1,6 +1,7 @@
 import type { ColourMode, SemanticReference } from "../color/semantic";
 import type { ColorTrack } from "../color/types";
 import {
+  DEFAULT_ELEVATION_LEVELS,
   defaultElevationScale,
   isInnerShadow,
   extremeShade,
@@ -289,4 +290,28 @@ export function defaultAdjustmentValue(
   );
   if (!first || !second) return undefined;
   return readAdjustmentValues(style, [first, second], mode)[key];
+}
+
+/**
+ * Where one of a level's sliders goes back to: where that level started.
+ *
+ * A level a preset was applied to starts at the preset's values. A seeded
+ * level no preset has touched — Low, Medium, High — starts at its own seed,
+ * so resetting one of its sliders never turns it into Standard, and an
+ * untouched level has nothing to reset. Any other level starts at its
+ * kind's preset.
+ */
+export function levelAdjustmentDefault(
+  level: ElevationLevel,
+  key: ElevationAdjustment,
+  mode: ColourMode,
+): number | undefined {
+  const style = elevationAdjustmentStyle(level);
+  if (!style) return undefined;
+  const seed = DEFAULT_ELEVATION_LEVELS.find((each) => each.id === level.id);
+  const [first, second] = seed?.layers ?? [];
+  if (!level.preset && style === "standard" && first && second) {
+    return readAdjustmentValues(style, [first, second], mode)[key];
+  }
+  return defaultAdjustmentValue(style, key, mode, level.preset);
 }

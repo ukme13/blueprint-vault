@@ -16,10 +16,11 @@ import {
   tuneNeumorphicElevation,
   tuneStandardElevation,
 } from "./elevation-adjust";
-import { updateShadowLayer } from "./elevation-edit";
+import { addElevationLevel, updateShadowLayer } from "./elevation-edit";
 import {
   applyElevationPreset,
   defaultAdjustmentValue,
+  levelAdjustmentDefault,
   matchingElevationPreset,
   type ElevationPresetId,
 } from "./elevation-presets";
@@ -305,5 +306,41 @@ describe("defaultAdjustmentValue", () => {
         );
       }
     }
+  });
+});
+
+describe("levelAdjustmentDefault", () => {
+  it("is a seeded level's own seed, so an untouched one has nothing to reset", () => {
+    const scale = defaultElevationScale();
+    for (const level of scale.levels) {
+      const read = readLevelAdjustmentValues(level, "dark")!;
+      for (const range of ELEVATION_ADJUSTMENTS[read.style]) {
+        expect(
+          levelAdjustmentDefault(level, range.key, "dark"),
+          `${level.id} ${range.key}`,
+        ).toBe(read.values[range.key]);
+      }
+    }
+  });
+
+  it("is the preset's value once a preset is applied", () => {
+    const subtle = low(preset("subtle-card"));
+    expect(levelAdjustmentDefault(subtle, "softness", "light")).toBe(4);
+    const glow = low(preset("glow"));
+    expect(levelAdjustmentDefault(glow, "radius", "light")).toBe(16);
+  });
+
+  it("is Standard's for an added level no preset has touched", () => {
+    const added = addElevationLevel(defaultElevationScale()).levels.at(-1)!;
+    expect(levelAdjustmentDefault(added, "softness", "light")).toBe(12);
+  });
+
+  it("is undefined for a custom stack", () => {
+    const mixed = updateShadowLayer(preset("standard"), "low", 0, {
+      type: "inner",
+    });
+    expect(levelAdjustmentDefault(low(mixed), "distance", "light")).toBe(
+      undefined,
+    );
   });
 });

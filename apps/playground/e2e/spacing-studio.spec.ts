@@ -473,13 +473,29 @@ test.describe("The elevation editor", () => {
       .filter({ hasText: "Softness" })
       .locator("[data-reset]");
 
-    /* Seeded Low is two plain drop shadows, so Standard's sliders and
-       Standard's starting values: Softness 12. */
+    const resetButton = adjustments.getByRole("button", {
+      name: "Reset Softness",
+    });
+
+    /* An untouched level has nothing to reset, so no button. Seeded Low
+       resets to its own seed, Softness 8, not to Standard's. */
+    await expect(softness).toHaveAttribute("aria-valuenow", "8");
+    await expect(resetButton).toHaveCount(0);
+
+    /* Moved, the reset button appears at the end of the row: the way to
+       reset that anyone can find. */
     await softness.focus();
     await softness.press("End");
     await expect(softness).toHaveAttribute("aria-valuenow", "48");
+    await resetButton.click();
+    await expect(softness).toHaveAttribute("aria-valuenow", "8");
+    await expect(resetButton).toHaveCount(0);
+
+    // Double-clicking the name does the same, as in Lightroom.
+    await softness.focus();
+    await softness.press("End");
     await reset.dblclick();
-    await expect(softness).toHaveAttribute("aria-valuenow", "12");
+    await expect(softness).toHaveAttribute("aria-valuenow", "8");
 
     /* A level set to Subtle card resets to Subtle card's own, 4. */
     await page.getByRole("button", { name: /^Style preset: / }).click();

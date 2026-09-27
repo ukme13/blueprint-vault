@@ -20,7 +20,7 @@ import {
 } from "@astryxdesign/core/SegmentedControl";
 import {
   ELEVATION_ADJUSTMENTS,
-  defaultAdjustmentValue,
+  levelAdjustmentDefault,
   readLevelAdjustmentValues,
   tuneElevationLevel,
   type ColourMode,
@@ -105,6 +105,9 @@ export function ElevationAdjustments({
       <div className={styles.sliderStack}>
         {ELEVATION_ADJUSTMENTS[read.style].map((range) => {
           const { icon, label } = rowFor(read.style, range.key);
+          /* Where this level started: its preset's value, or a seeded
+             level's own seed. */
+          const initial = levelAdjustmentDefault(level, range.key, mode);
           return (
             <ElevationSliderRow
               key={range.key}
@@ -126,17 +129,18 @@ export function ElevationAdjustments({
                   `elevation:adjust:${level.id}:${range.key}:${mode}`,
                 )
               }
+              defaultValue={initial}
               onReset={() => {
-                const reset = defaultAdjustmentValue(
-                  read.style,
-                  range.key,
-                  mode,
-                  level.preset,
-                );
                 /* A reset is its own step in history, not part of a drag. */
-                if (reset !== undefined) {
+                if (initial !== undefined) {
                   onChange(
-                    tuneElevationLevel(scale, level.id, range.key, reset, mode),
+                    tuneElevationLevel(
+                      scale,
+                      level.id,
+                      range.key,
+                      initial,
+                      mode,
+                    ),
                   );
                 }
               }}
