@@ -465,6 +465,51 @@ test.describe("The slot inspector", () => {
       .not.toBe(before);
   });
 
+  test("applies one button's type role to every button on the page", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const size = (name: string) =>
+      page
+        .getByRole("button", { name, exact: true })
+        .first()
+        .evaluate((node) => getComputedStyle(node).fontSize);
+    /* The nav bar's button is in the site shell, the others in the landing
+       sections: two documents, one action. */
+    const others = ["Sign up", "Choose Starter", "Subscribe"];
+    const before = await Promise.all(others.map(size));
+
+    await page.getByRole("button", { name: "See the preview" }).click();
+    const dialog = page.getByRole("dialog", { name: "Inspect" });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole("combobox", { name: "Type role" }).click();
+    await page.getByRole("option", { name: "h1", exact: true }).click();
+
+    // Only the hero's button changed.
+    await expect.poll(() => size("Sign up")).toBe(before[0]);
+
+    await dialog.getByRole("button", { name: "Apply to all buttons" }).click();
+    for (const [index, name] of others.entries()) {
+      await expect.poll(() => size(name), name).not.toBe(before[index]);
+    }
+    await expect
+      .poll(() => size("Sign up"))
+      .toBe(await size("See the preview"));
+  });
+
+  test("offers Apply to all buttons on buttons only", async ({ page }) => {
+    await openPreview(page);
+    await page
+      .getByRole("navigation", { name: "Site" })
+      .getByText("Home", { exact: true })
+      .click();
+    const dialog = page.getByRole("dialog", { name: "Nav links" });
+    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Apply to all buttons" }),
+    ).toHaveCount(0);
+  });
+
   test("uses a single-line field for a button label", async ({ page }) => {
     await openPreview(page);
     await page.getByRole("button", { name: "Book a walkthrough" }).click();

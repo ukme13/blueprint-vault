@@ -10,6 +10,7 @@ import {
 import {
   applyColorToBlocks,
   applyRoleToBlocks,
+  applyRoleToButtons,
   applyStyleToGroup,
   defaultElevationScale,
   defaultLayoutTokens,
@@ -404,6 +405,18 @@ export function SystemPreview() {
           }
           patchDocument(slotSource, (document) =>
             applyStyleToGroup(document, inspecting.id),
+          );
+        }}
+        onApplyToAllButtons={() => {
+          const roleId = inspectedBlock?.roleId;
+          if (!roleId) return;
+          /* The shell's sign-up and the landing buttons live in two
+             documents; both take the role. */
+          patchDocument("landing", (document) =>
+            applyRoleToButtons(document, roleId),
+          );
+          patchDocument("shell", (document) =>
+            applyRoleToButtons(document, roleId),
           );
         }}
         onColorChange={(colorTokenId) => {
