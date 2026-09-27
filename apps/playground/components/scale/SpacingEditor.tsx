@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Switch } from "@astryxdesign/core/Switch";
 import { Ruler } from "lucide-react";
 import {
   Button,
@@ -132,6 +133,8 @@ export function SpacingCanvas({
   const [steps, setSteps] = useState({ ...SPACING_SLOT_STEPS });
   /* The slot a click on the step list sets: the one last touched. */
   const [active, setActive] = useState<SpacingSlot>("inset");
+  /* Whether the preview marks its spaces, or shows the cards plain. */
+  const [showSpacing, setShowSpacing] = useState(true);
   /* A step turned off in the inspector falls back to the nearest one, per
      slot, so the preview never points at a step the scale no longer has. */
   const resolved = resolveSpacingSlots(tokens, steps);
@@ -146,18 +149,21 @@ export function SpacingCanvas({
     <div className={styles.spacingCanvas}>
       {resolved ? (
         <>
-          <SpacingSlotPicker
-            active={active}
-            steps={resolved}
-            tokens={tokens}
-            onActivate={setActive}
-            onChange={setStep}
-          />
-          <SpacingPreviewTile
-            active={active}
-            density={density}
-            tokens={resolved}
-          />
+          <div className={styles.spacingToolbar}>
+            <SpacingSlotPicker
+              active={active}
+              steps={resolved}
+              tokens={tokens}
+              onActivate={setActive}
+              onChange={setStep}
+            />
+            <Switch
+              label="Show spacing"
+              value={showSpacing}
+              onChange={setShowSpacing}
+            />
+          </div>
+          <SpacingPreviewTile showSpacing={showSpacing} tokens={resolved} />
         </>
       ) : null}
       <section aria-label="Generated spacing steps">

@@ -320,11 +320,6 @@
   background: var(--color-surface-subtle);
 }
 
-.spacingCaption {
-  color: var(--color-fg-muted);
-  font-size: var(--font-size-sm);
-}
-
 /* The space itself, marked as a box model inspector marks it: tinted, with
    a dashed edge, and its size in a tag. */
 .spacingZone {
@@ -400,6 +395,26 @@
   transform: none;
 }
 
+/* The slots on the left, the Show spacing switch on the right. */
+.spacingToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+/* Spacing hidden: the spaces keep their sizes and lose their marks, so the
+   cards read as the plain UI they are. */
+.spacingPreview:not([data-show-spacing]) .spacingZone[data-spacing-zone] {
+  outline: none;
+  background: none;
+}
+
+.spacingPreview:not([data-show-spacing]) .spacingCardBody {
+  outline: none;
+}
+
 /* Three slots, each a selector; the one a click on the list sets is
    marked. */
 .spacingSlots {
@@ -457,7 +472,12 @@
 }
 
 /* What the cards say: an onboarding welcome and a profile form. */
-.sampleEyebrow,
+.sampleLogo {
+  width: auto;
+  height: var(--spacing-5);
+  color: var(--color-fg-primary);
+}
+
 .sampleNote {
   display: flex;
   align-items: center;
@@ -465,16 +485,10 @@
   font-size: var(--font-size-sm);
 }
 
-.sampleEyebrow {
-  color: var(--color-action-primary);
-  font-weight: 700;
-}
-
 .sampleNote {
   color: var(--color-fg-muted);
 }
 
-.sampleEyebrow svg,
 .sampleNote svg,
 .sampleChecklist svg {
   flex: none;

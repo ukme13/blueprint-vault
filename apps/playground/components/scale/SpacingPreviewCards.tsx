@@ -1,8 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Check, ShieldCheck, Sparkles } from "lucide-react";
-import { Button } from "@blueprint/ui";
+import { Check, ShieldCheck } from "lucide-react";
+import { BlueprintWordmark, Button } from "@blueprint/ui";
 import styles from "./scale-workspace.module.css";
 
 /**
@@ -26,10 +26,13 @@ function Field({ label, value }: { label: string; value: string }) {
 export const WELCOME_CARD: { title: string; blocks: ReactNode[] } = {
   title: "Welcome",
   blocks: [
-    <span key="brand" className={styles.sampleEyebrow}>
-      <Sparkles aria-hidden="true" />
-      Blueprint
-    </span>,
+    <BlueprintWordmark
+      key="brand"
+      aria-hidden={false}
+      aria-label="Blueprint"
+      className={styles.sampleLogo}
+      role="img"
+    />,
     <p key="greeting" className={styles.sampleGreeting}>
       Hi there,
     </p>,

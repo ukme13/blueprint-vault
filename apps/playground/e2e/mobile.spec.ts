@@ -1244,7 +1244,7 @@ test.describe("on a phone", () => {
     const tags = await preview.evaluate((figure) => {
       const content = [
         ...figure.querySelectorAll(
-          "h3, p, button, li, [class*=sampleField], [class*=sampleEyebrow], [class*=sampleNote]",
+          "h3, p, button, li, [class*=sampleField], [class*=sampleLogo], [class*=sampleNote]",
         ),
       ].map((node) => node.getBoundingClientRect());
       return [...figure.querySelectorAll("[data-spacing-tag]")].map((tag) => {

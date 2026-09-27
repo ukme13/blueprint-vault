@@ -48,6 +48,8 @@ test.describe("The spacing studio", () => {
     await expect(
       preview.getByRole("button", { name: "Save profile" }),
     ).toBeVisible();
+    // The welcome card carries the real wordmark.
+    await expect(preview.getByRole("img", { name: "Blueprint" })).toBeVisible();
     await expect
       .poll(measure)
       .toEqual({ inset: "24px", stack: 8, columns: 16 });
@@ -135,7 +137,7 @@ test.describe("The spacing studio", () => {
         const tags = [...figure.querySelectorAll("[data-spacing-tag]")];
         const content = [
           ...figure.querySelectorAll(
-            "h3, p, button, li, [class*=sampleField], [class*=sampleEyebrow], [class*=sampleNote]",
+            "h3, p, button, li, [class*=sampleField], [class*=sampleLogo], [class*=sampleNote]",
           ),
         ];
         const hits: string[] = [];
@@ -167,6 +169,38 @@ test.describe("The spacing studio", () => {
     await page.getByLabel("Inset spacing", { exact: true }).click();
     await page.getByRole("option", { name: /^4px/ }).click();
     await expect.poll(async () => (await collisions()).hits).toEqual([]);
+  });
+
+  test("hides and shows the spacing marks", async ({ seededPage: page }) => {
+    const preview = page.getByRole("figure", { name: "Spacing preview" });
+    const marks = () =>
+      preview.evaluate((figure) => ({
+        tags: figure.querySelectorAll("[data-spacing-tag]").length,
+        hatched: [...figure.querySelectorAll("[data-spacing-zone]")].some(
+          (zone) => getComputedStyle(zone).backgroundImage !== "none",
+        ),
+        insetPadding: getComputedStyle(
+          figure.querySelector('[data-spacing-zone="inset"]')!,
+        ).paddingTop,
+      }));
+    const toggle = page.getByRole("switch", { name: "Show spacing" });
+
+    await expect(toggle).toBeChecked();
+    expect(await marks()).toMatchObject({
+      hatched: true,
+      insetPadding: "24px",
+    });
+
+    /* Off: no tags, no hatching — and the spaces keep their sizes, so the
+       cards are the same UI, plain. */
+    await toggle.click();
+    await expect(toggle).not.toBeChecked();
+    await expect
+      .poll(marks)
+      .toEqual({ tags: 0, hatched: false, insetPadding: "24px" });
+
+    await toggle.click();
+    await expect.poll(async () => (await marks()).tags).toBeGreaterThan(3);
   });
 
   test("sets the active slot from the step list", async ({
@@ -287,10 +321,6 @@ test.describe("The spacing studio", () => {
     await expect(row("2").getByText("0.75×", { exact: true })).toBeVisible();
     await expect(row("1").getByText("4px", { exact: true })).toBeVisible();
     await expect(row("1").getByText("grid", { exact: true })).toBeVisible();
-    // The preview says which kind of step it shows, and at what density.
-    await expect(page.locator("[data-density-caption]")).toContainText(
-      "0.75× density",
-    );
 
     await page.getByRole("radio", { name: "Spacious 1.25×" }).click();
     await expect.poll(density).toBe(1.25);

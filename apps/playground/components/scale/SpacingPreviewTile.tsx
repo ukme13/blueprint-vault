@@ -27,9 +27,8 @@ const CARDS = [WELCOME_CARD, PROFILE_CARD];
 interface SpacingPreviewTileProps {
   /** The step each slot is set to. */
   tokens: Record<SpacingSlot, SpacingToken>;
-  /** The slot being set, named in the caption. */
-  active: SpacingSlot;
-  density: number;
+  /** Whether the spaces are marked: hatched, dashed and tagged. */
+  showSpacing: boolean;
 }
 
 /**
@@ -51,8 +50,7 @@ interface SpacingPreviewTileProps {
  */
 export function SpacingPreviewTile({
   tokens,
-  active,
-  density,
+  showSpacing,
 }: SpacingPreviewTileProps) {
   const px = (slot: SpacingSlot) => `${tokens[slot].px}px`;
   /* Where each tag sits, clear of any content. */
@@ -61,14 +59,19 @@ export function SpacingPreviewTile({
     stack: styles.spacingTagSide,
     columns: undefined,
   };
-  const tag = (slot: SpacingSlot) => (
-    <span
-      className={[styles.spacingTag, TAG_PLACE[slot]].filter(Boolean).join(" ")}
-      data-spacing-tag={slot}
-    >
-      {px(slot)}
-    </span>
-  );
+  /* Hidden, the spaces keep their sizes and lose their marks: the cards
+     read as the plain UI they are. */
+  const tag = (slot: SpacingSlot) =>
+    showSpacing ? (
+      <span
+        className={[styles.spacingTag, TAG_PLACE[slot]]
+          .filter(Boolean)
+          .join(" ")}
+        data-spacing-tag={slot}
+      >
+        {px(slot)}
+      </span>
+    ) : null;
   /* A gap drawn as an element of its own, so it can be seen: a flex gap is
      empty space, and empty space has no tint. */
   const stacked = (items: ReactNode[], tagged: boolean) =>
@@ -86,12 +89,12 @@ export function SpacingPreviewTile({
         {item}
       </Fragment>
     ));
-  const activeToken = tokens[active];
 
   return (
     <figure
       aria-label="Spacing preview"
       className={styles.spacingPreview}
+      data-show-spacing={showSpacing || undefined}
       /* The inset, for placing the stack tags just outside the card. */
       style={{ "--inset": px("inset") } as CSSProperties}
     >
@@ -123,13 +126,6 @@ export function SpacingPreviewTile({
           );
         })}
       </div>
-      {/* The step being set, and what density does to it. */}
-      <figcaption className={styles.spacingCaption} data-density-caption="">
-        {`${SPACING_SLOTS.find((each) => each.slot === active)?.label}: `}
-        {activeToken.followsDensity
-          ? `${activeToken.variable} · layout step, ${density}× density`
-          : `${activeToken.variable} · fine grid, fixed at any density`}
-      </figcaption>
     </figure>
   );
 }
