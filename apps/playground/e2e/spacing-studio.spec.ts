@@ -79,6 +79,24 @@ test.describe("The spacing studio", () => {
     for (const image of hatching) {
       expect(image).toContain("repeating-linear-gradient");
     }
+    /* Both cards sit inside the preview, side by side, sharing its width:
+       long text wraps rather than widening a card and pushing the other
+       out. */
+    const fit = await preview.evaluate((figure) => {
+      const box = figure.getBoundingClientRect();
+      const cards = [
+        ...figure.querySelectorAll('[data-spacing-zone="inset"]'),
+      ].map((card) => card.getBoundingClientRect());
+      return {
+        inside: cards.every(
+          (card) => card.left >= box.left && card.right <= box.right + 0.5,
+        ),
+        sideBySide: cards[1]!.left >= cards[0]!.right,
+        overflow: figure.scrollWidth - figure.clientWidth,
+      };
+    });
+    expect(fit).toEqual({ inside: true, sideBySide: true, overflow: 0 });
+
     // A stack gap runs the card body's full width, so its stripes show.
     const stackBand = await preview.evaluate((figure) => {
       const band = figure.querySelector('[data-spacing-zone="stack"]')!;
