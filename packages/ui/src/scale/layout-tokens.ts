@@ -1,4 +1,8 @@
-import { spacingStepName } from "./spacing";
+import {
+  spacingStepName,
+  toggleSpacingStep,
+  type SpacingScale,
+} from "./spacing";
 import {
   sortPreviewDevicesByWidth,
   type PreviewDevice,
@@ -104,6 +108,66 @@ export function tokensUsingSpacingStep(
       token.kind === "spacing" &&
       Object.values(token.byDevice).some((value) => value === name),
   );
+}
+
+/**
+ * Points every spacing layout use off a pruned step, onto the nearest step
+ * still kept, on every frame: the export never names a `--spacing-*` it no
+ * longer writes. A tie goes to the smaller step, the tighter layout. Radius
+ * uses, typed lengths and uses on other steps are left as they are; with no
+ * step remaining, so is everything.
+ */
+export function rebindPrunedSpacingTokens(
+  layoutTokens: readonly LayoutToken[],
+  prunedStep: number,
+  remainingSteps: readonly number[],
+): LayoutToken[] {
+  const pruned = spacingStepName(prunedStep);
+  const nearest = [...remainingSteps]
+    .filter((step) => step !== prunedStep)
+    .sort((a, b) => a - b)
+    .reduce<number | undefined>(
+      (best, step) =>
+        best === undefined ||
+        Math.abs(step - prunedStep) < Math.abs(best - prunedStep)
+          ? step
+          : best,
+      undefined,
+    );
+  if (nearest === undefined) return [...layoutTokens];
+  const next = spacingStepName(nearest);
+  return layoutTokens.map((token) =>
+    token.kind === "spacing" && Object.values(token.byDevice).includes(pruned)
+      ? {
+          ...token,
+          byDevice: Object.fromEntries(
+            Object.entries(token.byDevice).map(([device, value]) => [
+              device,
+              value === pruned ? next : value,
+            ]),
+          ),
+        }
+      : token,
+  );
+}
+
+/**
+ * Keeps or prunes a spacing step, and when it prunes one, moves the layout
+ * uses that pointed at it onto the nearest kept step. One edit, so one undo
+ * puts back both.
+ */
+export function toggleSpacingStepWithLayout(
+  spacing: SpacingScale,
+  layout: readonly LayoutToken[],
+  step: number,
+): { spacing: SpacingScale; layout: LayoutToken[] } {
+  const next = toggleSpacingStep(spacing, step);
+  return {
+    spacing: next,
+    layout: next.steps.includes(step)
+      ? [...layout]
+      : rebindPrunedSpacingTokens(layout, step, next.steps),
+  };
 }
 
 export function layoutVariableName(id: string): string {

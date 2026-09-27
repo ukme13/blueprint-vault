@@ -51,7 +51,8 @@ interface SpacingPreviewTileProps {
  * column gap's is centred in its band, which holds nothing, but a stack gap
  * is often thinner than its tag, so its tag sits past the band's right end,
  * and the inset's sits outside the card's left edge. The first card carries
- * the Inset and Stack tags; the second shows the same spaces untagged.
+ * the Inset tag and two Stack tags; the second shows the same spaces
+ * untagged.
  *
  * On a phone the cards stack and the column gap runs between them
  * vertically, the way a responsive grid folds.
@@ -73,7 +74,9 @@ export function SpacingPreviewTile({
       </span>
     ) : null;
   /* A gap drawn as an element of its own, so it can be seen: a flex gap is
-     empty space, and empty space has no tint. */
+     empty space, and empty space has no tint. Only the first gap and the
+     last carry a tag — under the title, above the action — enough to read
+     the rhythm; a tag on every gap stacked a column of the same size. */
   const stacked = (items: ReactNode[], tagged: boolean) =>
     items.map((item, index) => (
       <Fragment key={index}>
@@ -83,7 +86,9 @@ export function SpacingPreviewTile({
             data-spacing-zone="stack"
             style={{ height: px("stack") }}
           >
-            {tagged ? tag("stack") : null}
+            {tagged && (index === 1 || index === items.length - 1)
+              ? tag("stack")
+              : null}
           </span>
         ) : null}
         {item}

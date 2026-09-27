@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { DndContext, DragOverlay } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -63,7 +63,6 @@ export function LayoutUsesTable({
   spacing,
   tokens,
   onChange,
-  focusedId = null,
 }: {
   devices: readonly PreviewDevice[];
   kind: LayoutTokenKind;
@@ -71,16 +70,8 @@ export function LayoutUsesTable({
   spacing: SpacingScale;
   tokens: readonly LayoutToken[];
   onChange: (next: LayoutToken[]) => void;
-  /** A use opened from a spacing step's badge: scrolled to and marked. */
-  focusedId?: string | null;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  useEffect(() => {
-    if (!focusedId) return;
-    document
-      .querySelector(`[data-layout-token="${CSS.escape(focusedId)}"]`)
-      ?.scrollIntoView({ block: "center" });
-  }, [focusedId]);
   const columns = sortPreviewDevicesLargestFirst(devices);
   const rows = tokens.filter((token) => token.kind === kind);
   const ids = rows.map((token) => token.id);
@@ -187,7 +178,6 @@ export function LayoutUsesTable({
                       autoFocusName={editingId === token.id}
                       canReorder={rows.length > 1}
                       columns={columns}
-                      isFocused={token.id === focusedId}
                       presets={presets}
                       token={token}
                       onCommitName={(value) => {

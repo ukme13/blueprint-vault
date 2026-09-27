@@ -18,15 +18,25 @@ import { fillHybridNumber } from "./typography-fixtures";
  */
 
 test.describe("The spacing studio", () => {
-  test("shows the seeded scale as pixels and rems", async ({
+  test("shows the seeded scale in px, or in rem from the unit switch", async ({
     seededPage: page,
   }) => {
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
-    await expect(steps).toBeVisible();
+    const value = steps
+      .locator('[data-spacing-step="4"]')
+      .locator("[data-spacing-value]");
+    const unit = steps.getByRole("radiogroup", { name: "Value unit" });
     /* 4px base: step 4 is 16px, which is 1rem against the browser root rather
-       than against the type scale's own base. */
-    await expect(steps.getByText("16px", { exact: true })).toBeVisible();
-    await expect(steps.getByText("1rem", { exact: true })).toBeVisible();
+       than against the type scale's own base. One column, in one unit. */
+    await expect(value).toHaveText("16px");
+    await expect(steps.getByText("1rem", { exact: true })).toHaveCount(0);
+
+    await unit.getByRole("radio", { name: "rem" }).click();
+    await expect(value).toHaveText("1rem");
+    await expect(steps.getByText("16px", { exact: true })).toHaveCount(0);
+
+    await unit.getByRole("radio", { name: "px" }).click();
+    await expect(value).toHaveText("16px");
   });
 
   test("sets inset, stack and columns on steps of their own", async ({
@@ -140,6 +150,9 @@ test.describe("The spacing studio", () => {
     const collisions = () => spacingTagReport(preview);
 
     await expect.poll(async () => (await collisions()).tags).toBeGreaterThan(3);
+    /* Two stack tags, under the title and above the action: the rhythm,
+       without a column of the same size down the card. */
+    await expect(preview.locator('[data-spacing-tag="stack"]')).toHaveCount(2);
     expect((await collisions()).hits).toEqual([]);
 
     /* And with the thinnest stack gap and the tightest inset. */
@@ -320,28 +333,66 @@ test.describe("The spacing studio", () => {
     );
   });
 
-  test("marks the steps layout uses reach for, and opens them in Uses", async ({
+  test("pruning a step moves the layout uses on it to the nearest kept", async ({
     seededPage: page,
   }) => {
+    const insetOnPhone = async () =>
+      (
+        (await readStoredWorkspace(page))?.layout as {
+          id: string;
+          byDevice: Record<string, string>;
+        }[]
+      )?.find((token) => token.id === "inset-container")?.byDevice.phone;
+    const reachesFor = async (step: string) =>
+      (
+        (await readStoredWorkspace(page))?.layout as {
+          kind: string;
+          byDevice: Record<string, string>;
+        }[]
+      ).some(
+        (token) =>
+          token.kind === "spacing" &&
+          Object.values(token.byDevice).includes(step),
+      );
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
-    const row = (step: string) =>
-      steps.locator(`[data-spacing-step="${step}"]`);
-    /* Container inset is step 4 on a phone; Section gap is 16 everywhere.
-       Step 3 sizes nothing. */
-    const inset = row("4").getByRole("button", {
-      name: "Container inset, in Uses",
-    });
-    await expect(inset).toBeVisible();
-    await expect(
-      row("16").getByRole("button", { name: "Section gap, in Uses" }),
-    ).toBeVisible();
-    await expect(row("3").locator("[data-layout-use]")).toHaveCount(0);
+    // The rows carry no layout-use badges.
+    await expect(steps.locator("[data-layout-use]")).toHaveCount(0);
 
-    /* The badge opens that use in the Uses tab, marked. */
-    await inset.click();
-    const use = page.locator('[data-layout-token="inset-container"]');
-    await expect(use).toBeInViewport();
-    await expect(use).toHaveAttribute("data-focused", "true");
+    /* Container inset is step 4 on a phone. Pruning 4 leaves 3 and 5 as
+       near; the tie goes to the tighter 3, and nothing names 4 any more. */
+    await page
+      .getByRole("button", { name: "Keep step 4", exact: true })
+      .click();
+    await expect.poll(insetOnPhone).toBe("3");
+    expect(await reachesFor("4")).toBe(false);
+
+    /* The Uses table shows the new step: 12px, step 3. */
+    const uses = await openSpacingUses(page);
+    await expect(
+      uses.getByRole("button", { name: "Container inset on Phone" }),
+    ).toHaveText("12(3)");
+
+    /* One undo puts back the step and the use on it. */
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect.poll(insetOnPhone).toBe("4");
+  });
+
+  test("keeps the keep box at the right end of each row", async ({
+    seededPage: page,
+  }) => {
+    const row = page
+      .getByRole("region", { name: "Generated spacing steps" })
+      .locator('[data-spacing-step="4"]');
+    const box = await row
+      .getByRole("button", { name: "Keep step 4", exact: true })
+      .boundingBox();
+    const name = await row.locator("code").boundingBox();
+    const bar = await row.locator("[class*=tokenBar]").boundingBox();
+    const rowBox = await row.boundingBox();
+    // The variable leads the row; the box comes after the bar, at its end.
+    expect(name!.x - rowBox!.x).toBeLessThan(16);
+    expect(box!.x).toBeGreaterThanOrEqual(bar!.x + bar!.width);
+    expect(rowBox!.x + rowBox!.width - (box!.x + box!.width)).toBeLessThan(16);
   });
 
   test("prunes a step from its row, and keeps it pruned", async ({

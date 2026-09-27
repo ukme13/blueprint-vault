@@ -1,6 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import {
+  SegmentedControl,
+  SegmentedControlItem,
+} from "@astryxdesign/core/SegmentedControl";
 import { Switch } from "@astryxdesign/core/Switch";
 import { Ruler } from "lucide-react";
 import {
@@ -17,13 +21,11 @@ import {
   type HybridTokenizedValue,
   type SpacingPresetId,
   type SpacingScale,
-  tokensUsingSpacingStep,
-  type LayoutToken,
 } from "@blueprint/ui";
 import { usePickerSheet } from "../picker-sheet";
 import { SpacingDensitySetting } from "./SpacingDensitySetting";
 import { SpacingPresetSelector } from "./SpacingPresetSelector";
-import { SpacingTokenRow } from "./SpacingTokenRow";
+import { SpacingTokenRow, type SpacingUnit } from "./SpacingTokenRow";
 import { SpacingPreviewTile } from "./SpacingPreviewTile";
 import { SpacingSlotPicker } from "./SpacingSlotPicker";
 import styles from "./scale-workspace.module.css";
@@ -91,18 +93,9 @@ interface SpacingCanvasProps {
   scale: SpacingScale;
   /** Keep a step, or prune it: one step in history. */
   onToggleStep: (step: number) => void;
-  /** The workspace's layout uses, to say which step each one reaches for. */
-  layout: readonly LayoutToken[];
-  /** Open the Uses tab at one layout use. */
-  onOpenUse: (id: string) => void;
 }
 
-export function SpacingCanvas({
-  scale,
-  onToggleStep,
-  layout,
-  onOpenUse,
-}: SpacingCanvasProps) {
+export function SpacingCanvas({ scale, onToggleStep }: SpacingCanvasProps) {
   /* The preview draws from the kept steps; the list shows the whole ramp,
      pruned steps dimmed, each turned on and off in place. */
   const tokens = resolveSpacing(scale);
@@ -112,8 +105,9 @@ export function SpacingCanvas({
   const [active, setActive] = useState<SpacingSlot>("inset");
   /* Whether the preview marks its spaces, or shows the cards plain. */
   const [showSpacing, setShowSpacing] = useState(true);
-  /* A pruned step falls back to the nearest one, per
-     slot, so the preview never points at a step the scale no longer has. */
+  /* The unit the value column is written in. */
+  const [unit, setUnit] = useState<SpacingUnit>("px");
+  /* A pruned step falls back to the nearest kept one, per slot, so the preview never points at a step the scale no longer has. */
   const resolved = resolveSpacingSlots(tokens, steps);
   const setStep = (slot: SpacingSlot, step: number) => {
     setActive(slot);
@@ -144,6 +138,17 @@ export function SpacingCanvas({
         </>
       ) : null}
       <section aria-label="Generated spacing steps">
+        <div className={styles.tokenListHeader}>
+          <SegmentedControl
+            label="Value unit"
+            size="sm"
+            value={unit}
+            onChange={(value) => setUnit(value as SpacingUnit)}
+          >
+            <SegmentedControlItem label="px" value="px" />
+            <SegmentedControlItem label="rem" value="rem" />
+          </SegmentedControl>
+        </div>
         <ol className={styles.tokenList}>
           {ramp.map((token) => (
             <SpacingTokenRow
@@ -152,8 +157,7 @@ export function SpacingCanvas({
               isKept={token.kept}
               isSelected={token.kept && token.step === selected?.step}
               token={token}
-              uses={tokensUsingSpacingStep(layout, token.step)}
-              onOpenUse={onOpenUse}
+              unit={unit}
               onSelect={() => setStep(active, token.step)}
               onToggleKept={() => onToggleStep(token.step)}
             />

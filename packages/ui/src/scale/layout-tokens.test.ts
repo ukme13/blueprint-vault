@@ -6,8 +6,12 @@ import {
   layoutCssVariablesForDevice,
   normalizeLayoutTokens,
   pruneLayoutDevices,
+  rebindPrunedSpacingTokens,
+  toggleSpacingStepWithLayout,
   tokensUsingSpacingStep,
+  type LayoutToken,
 } from "./layout-tokens";
+import { defaultSpacingScale } from "./spacing";
 import {
   addLayoutToken,
   duplicateLayoutToken,
@@ -392,5 +396,73 @@ describe("tokensUsingSpacingStep", () => {
       byDevice: { phone: "16" },
     };
     expect(tokensUsingSpacingStep([typed, radius], 16)).toEqual([]);
+  });
+});
+
+describe("rebindPrunedSpacingTokens", () => {
+  const use = (id: string, byDevice: Record<string, string>): LayoutToken => ({
+    id,
+    name: id,
+    description: "",
+    kind: "spacing",
+    byDevice,
+  });
+
+  it("moves a use off the pruned step, on every frame, to the nearest kept", () => {
+    const layout = [
+      use("inset-container", { desktop: "4", tablet: "4", mobile: "2" }),
+    ];
+    const next = rebindPrunedSpacingTokens(layout, 4, [0, 1, 2, 5, 8]);
+    expect(next[0]!.byDevice).toEqual({
+      desktop: "5",
+      tablet: "5",
+      mobile: "2",
+    });
+  });
+
+  it("takes the smaller step on a tie", () => {
+    const next = rebindPrunedSpacingTokens(
+      [use("gap", { desktop: "4" })],
+      4,
+      [3, 5],
+    );
+    expect(next[0]!.byDevice.desktop).toBe("3");
+  });
+
+  it("finds a half step by its name", () => {
+    const next = rebindPrunedSpacingTokens(
+      [use("gap", { desktop: "2-5" })],
+      2.5,
+      [2, 4],
+    );
+    expect(next[0]!.byDevice.desktop).toBe("2");
+  });
+
+  it("leaves radius uses, typed lengths and other steps alone", () => {
+    const radius: LayoutToken = {
+      ...use("surface", { desktop: "4" }),
+      kind: "radius",
+    };
+    const typed = use("typed", { desktop: "20px" });
+    const other = use("other", { desktop: "6" });
+    const next = rebindPrunedSpacingTokens([radius, typed, other], 4, [3, 6]);
+    expect(next).toEqual([radius, typed, other]);
+    expect(next[2]).toBe(other);
+  });
+
+  it("changes nothing when no step remains", () => {
+    const layout = [use("gap", { desktop: "4" })];
+    expect(rebindPrunedSpacingTokens(layout, 4, [])).toEqual(layout);
+  });
+
+  it("toggles and rebinds as one edit, and keeping a step moves nothing", () => {
+    const layout = [use("gap", { desktop: "4" })];
+    const scale = { ...defaultSpacingScale(), steps: [2, 4, 8] };
+    const pruned = toggleSpacingStepWithLayout(scale, layout, 4);
+    expect(pruned.spacing.steps).toEqual([2, 8]);
+    expect(pruned.layout[0]!.byDevice.desktop).toBe("2");
+    const kept = toggleSpacingStepWithLayout(pruned.spacing, layout, 4);
+    expect(kept.spacing.steps).toEqual([2, 4, 8]);
+    expect(kept.layout).toEqual(layout);
   });
 });

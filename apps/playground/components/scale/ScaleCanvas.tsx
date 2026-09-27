@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  toggleSpacingStep,
+  toggleSpacingStepWithLayout,
   type ColorTrack,
   type ElevationScale,
   type LayoutToken,
@@ -24,10 +24,8 @@ interface ScaleCanvasProps {
   write: ScaleHistoryBinding["write"];
   selectedElevationId: string;
   onSelectElevation: (id: string) => void;
-  /** The workspace's layout uses, for the spacing steps they reach for. */
+  /** The workspace's layout uses, moved off a step when it is pruned. */
   layout: readonly LayoutToken[];
-  /** Open the Uses tab at one layout use. */
-  onOpenUse: (id: string) => void;
 }
 
 /** The current section's scale, drawn: steps, corners or shadows. */
@@ -41,7 +39,6 @@ export function ScaleCanvas({
   selectedElevationId,
   onSelectElevation,
   layout,
-  onOpenUse,
 }: ScaleCanvasProps) {
   return (
     <section
@@ -50,12 +47,11 @@ export function ScaleCanvas({
     >
       {section === "spacing" && (
         <SpacingCanvas
-          layout={layout}
           scale={spacing}
-          onOpenUse={onOpenUse}
           onToggleStep={(step) =>
-            /* No edit key: each keep or prune is its own step in history. */
-            write({ spacing: toggleSpacingStep(spacing, step) })
+            /* No edit key: each keep or prune is its own step in history,
+               the layout uses it moves included. */
+            write(toggleSpacingStepWithLayout(spacing, layout, step))
           }
         />
       )}
