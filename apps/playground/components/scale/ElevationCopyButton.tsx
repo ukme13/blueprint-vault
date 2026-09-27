@@ -1,13 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Check, Copy, X } from "lucide-react";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import type { ColourMode } from "@blueprint/ui";
+import { useCopyFeedback } from "../useCopyFeedback";
 import styles from "./scale-workspace.module.css";
-
-/** How long the tick stays after a copy. */
-const FEEDBACK_MS = 1500;
 
 interface ElevationCopyButtonProps {
   levelName: string;
@@ -16,6 +13,8 @@ interface ElevationCopyButtonProps {
   /** The mode the studio is showing: the value copied is that mode's. */
   mode: ColourMode;
 }
+
+const ICON = { idle: Copy, copied: Check, error: X } as const;
 
 /**
  * Copies one level's `box-shadow` value, for the mode the studio is
@@ -31,41 +30,27 @@ export function ElevationCopyButton({
   css,
   mode,
 }: ElevationCopyButtonProps) {
-  const [result, setResult] = useState<"copied" | "failed" | null>(null);
-
-  useEffect(() => {
-    if (!result) return;
-    const timer = window.setTimeout(() => setResult(null), FEEDBACK_MS);
-    return () => window.clearTimeout(timer);
-  }, [result]);
-
-  const Icon = result === "copied" ? Check : result === "failed" ? X : Copy;
+  const { copyText, status } = useCopyFeedback(1500);
+  const Icon = ICON[status];
 
   return (
     <IconButton
       className={styles.copyButton}
-      data-copy-result={result ?? undefined}
+      data-copy-result={status === "idle" ? undefined : status}
       icon={<Icon aria-hidden="true" />}
       label={`Copy CSS for ${levelName}`}
       size="sm"
       tooltip={
-        result === "copied"
+        status === "copied"
           ? "Copied"
-          : result === "failed"
+          : status === "error"
             ? "Could not copy"
             : `Copy ${mode} box-shadow`
       }
       variant="ghost"
       onClick={(event) => {
         event.stopPropagation();
-        if (!navigator.clipboard) {
-          setResult("failed");
-          return;
-        }
-        navigator.clipboard
-          .writeText(css)
-          .then(() => setResult("copied"))
-          .catch(() => setResult("failed"));
+        void copyText(css);
       }}
     />
   );

@@ -15,12 +15,12 @@ import {
   elevationAdjustmentStyle,
   readAdjustmentValues,
   type ElevationAdjustment,
-  type ElevationAdjustmentStyle,
 } from "./elevation-adjust";
 import {
   isGlowLevel,
   isInsetLevel,
   isNeumorphicLevel,
+  layerPair,
 } from "./elevation-styles";
 
 /**
@@ -257,49 +257,39 @@ export function elevationPresetCss(
   ).css;
 }
 
-/** The preset each kind of shadow resets toward, unless the level says. */
-const STYLE_PRESET: Record<ElevationAdjustmentStyle, ElevationPresetId> = {
-  standard: "standard",
-  inset: "inset",
-  neumorphic: "neumorphic",
-  glow: "glow",
-};
-
 /**
- * Where a slider goes back to: the value its preset starts with, for the
- * mode. Standard and Subtle card share a kind of shadow, so a level last set
- * to Subtle card resets to Subtle card's values; pass its `preset`.
- *
- * Read off the preset's own layers, so a preset retuned in the table above
- * moves its reset with it rather than a second list of numbers.
+ * Each preset's two starting layers, read once: they are the same every
+ * time, and a slider row asks for them on every drag tick. Colour plays no
+ * part in a slider's value, so they are built against no palette.
  */
-export function defaultAdjustmentValue(
-  style: ElevationAdjustmentStyle,
-  key: ElevationAdjustment,
-  mode: ColourMode,
-  preset?: string,
-): number | undefined {
-  const id =
-    style === "standard" && preset === "subtle-card"
-      ? "subtle-card"
-      : STYLE_PRESET[style];
-  const [first, second] = elevationPresetLayers(
-    id,
-    defaultElevationScale(),
-    [],
-  );
-  if (!first || !second) return undefined;
-  return readAdjustmentValues(style, [first, second], mode)[key];
+const presetBaselines = new Map<
+  ElevationPresetId,
+  readonly [ShadowLayer, ShadowLayer] | null
+>();
+
+function presetBaseline(
+  id: ElevationPresetId,
+): readonly [ShadowLayer, ShadowLayer] | null {
+  if (!presetBaselines.has(id)) {
+    const [first, second] = elevationPresetLayers(
+      id,
+      defaultElevationScale(),
+      [],
+    );
+    presetBaselines.set(id, first && second ? [first, second] : null);
+  }
+  return presetBaselines.get(id)!;
 }
 
 /**
  * Where one of a level's sliders goes back to: where that level started.
  *
- * A level a preset was applied to starts at the preset's values. A seeded
+ * A level a preset was applied to starts at the preset's values — Subtle
+ * card's for Subtle card, though it shares Standard's sliders. A seeded
  * level no preset has touched — Low, Medium, High — starts at its own seed,
- * so resetting one of its sliders never turns it into Standard, and an
- * untouched level has nothing to reset. Any other level starts at its
- * kind's preset.
+ * so resetting one never turns it into Standard, and an untouched one has
+ * nothing to reset. (Seeded ids are reserved, so no added level can pass
+ * for one.) Any other level starts at its kind's preset.
  */
 export function levelAdjustmentDefault(
   level: ElevationLevel,
@@ -309,9 +299,16 @@ export function levelAdjustmentDefault(
   const style = elevationAdjustmentStyle(level);
   if (!style) return undefined;
   const seed = DEFAULT_ELEVATION_LEVELS.find((each) => each.id === level.id);
-  const [first, second] = seed?.layers ?? [];
-  if (!level.preset && style === "standard" && first && second) {
-    return readAdjustmentValues(style, [first, second], mode)[key];
-  }
-  return defaultAdjustmentValue(style, key, mode, level.preset);
+  const baseline =
+    !level.preset && style === "standard" && seed
+      ? layerPair(seed)
+      : presetBaseline(
+          /* Every kind of shadow is named for the preset it starts as. */
+          style === "standard" && level.preset === "subtle-card"
+            ? "subtle-card"
+            : style,
+        );
+  return baseline
+    ? readAdjustmentValues(style, baseline, mode)[key]
+    : undefined;
 }

@@ -93,6 +93,12 @@ export function ElevationCanvas({
       <ol className={styles.elevationList}>
         {scale.levels.map((level) => {
           const isSelected = level.id === selectedLevelId;
+          /* Each mode resolved once: the samples draw both, the copy button
+             copies the studio's. */
+          const css = {
+            light: resolveElevationLevel(level, scale, palettes, "light").css,
+            dark: resolveElevationLevel(level, scale, palettes, "dark").css,
+          };
           return (
             <li
               key={level.id}
@@ -117,10 +123,7 @@ export function ElevationCanvas({
                         context={context}
                         label={`${level.name} on ${mode}`}
                         mode={mode}
-                        shadow={
-                          resolveElevationLevel(level, scale, palettes, mode)
-                            .css
-                        }
+                        shadow={css[mode]}
                         surface={surfaces[mode].card}
                       />
                     </div>
@@ -147,14 +150,7 @@ export function ElevationCanvas({
                       {elevationVariableName(level.id)}
                     </code>
                     <ElevationCopyButton
-                      css={
-                        resolveElevationLevel(
-                          level,
-                          scale,
-                          palettes,
-                          studioMode,
-                        ).css
-                      }
+                      css={css[studioMode]}
                       levelName={level.name}
                       mode={studioMode}
                     />

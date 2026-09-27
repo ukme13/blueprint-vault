@@ -8,6 +8,7 @@ import {
 } from "./elevation";
 import {
   ELEVATION_ADJUSTMENTS,
+  type ElevationAdjustment,
   elevationAdjustmentStyle,
   readLevelAdjustmentValues,
   tuneElevationLevel,
@@ -19,7 +20,6 @@ import {
 import { addElevationLevel, updateShadowLayer } from "./elevation-edit";
 import {
   applyElevationPreset,
-  defaultAdjustmentValue,
   levelAdjustmentDefault,
   matchingElevationPreset,
   type ElevationPresetId,
@@ -261,26 +261,34 @@ describe("tuneElevationLevel", () => {
   });
 });
 
-describe("defaultAdjustmentValue", () => {
-  it("is the value the preset starts with, per mode", () => {
-    expect(defaultAdjustmentValue("standard", "distance", "light")).toBe(4);
-    expect(defaultAdjustmentValue("standard", "opacity", "dark")).toBe(0.45);
-    expect(defaultAdjustmentValue("inset", "depth", "light")).toBe(2);
-    expect(defaultAdjustmentValue("neumorphic", "highlight", "light")).toBe(
-      0.9,
-    );
-    expect(defaultAdjustmentValue("glow", "radius", "dark")).toBe(16);
+describe("a preset's reset values", () => {
+  const reset = (
+    id: ElevationPresetId,
+    key: ElevationAdjustment,
+    mode: "light" | "dark",
+  ) => levelAdjustmentDefault(low(preset(id)), key, mode);
+
+  it("are the values the preset starts with, per mode", () => {
+    expect(reset("standard", "distance", "light")).toBe(4);
+    expect(reset("standard", "opacity", "dark")).toBe(0.45);
+    expect(reset("inset", "depth", "light")).toBe(2);
+    expect(reset("neumorphic", "highlight", "light")).toBe(0.9);
+    expect(reset("glow", "radius", "dark")).toBe(16);
   });
 
-  it("resets a Subtle card to Subtle card's values, not Standard's", () => {
-    expect(
-      defaultAdjustmentValue("standard", "softness", "light", "subtle-card"),
-    ).toBe(4);
-    expect(defaultAdjustmentValue("standard", "softness", "light")).toBe(12);
+  it("are Subtle card's own for Subtle card, not Standard's", () => {
+    expect(reset("subtle-card", "softness", "light")).toBe(4);
+    expect(reset("standard", "softness", "light")).toBe(12);
   });
 
-  it("puts a tuned preset back where applying it put it", () => {
-    for (const id of ["standard", "inset", "neumorphic", "glow"] as const) {
+  it("put a tuned preset back where applying it put it", () => {
+    for (const id of [
+      "standard",
+      "subtle-card",
+      "inset",
+      "neumorphic",
+      "glow",
+    ] as const) {
       const applied = preset(id);
       const style = elevationAdjustmentStyle(low(applied))!;
       for (const range of ELEVATION_ADJUSTMENTS[style]) {
@@ -291,15 +299,15 @@ describe("defaultAdjustmentValue", () => {
           range.max,
           "light",
         );
-        const reset = tuneElevationLevel(
+        const back = tuneElevationLevel(
           moved,
           "low",
           range.key,
-          defaultAdjustmentValue(style, range.key, "light", id)!,
+          levelAdjustmentDefault(low(moved), range.key, "light")!,
           "light",
         );
         expect(
-          readLevelAdjustmentValues(low(reset), "light")!.values[range.key],
+          readLevelAdjustmentValues(low(back), "light")!.values[range.key],
           `${id} ${range.key}`,
         ).toBe(
           readLevelAdjustmentValues(low(applied), "light")!.values[range.key],

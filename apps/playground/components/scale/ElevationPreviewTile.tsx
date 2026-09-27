@@ -44,18 +44,24 @@ export function ElevationPreviewTile({
   surface,
   shadow,
 }: ElevationPreviewTileProps) {
-  const style = { background: surface, boxShadow: shadow };
+  /* What every shape carries: its name, its mode, which shape it is, and
+     the shadow and fill on that same element. */
+  const tile = {
+    "aria-label": label,
+    "data-mode": mode,
+    "data-preview": context,
+    style: { background: surface, boxShadow: shadow },
+  };
+  const className = (shape: string | undefined) =>
+    `${styles.previewTile} ${shape}`;
 
   if (context === "button") {
     return (
       /* A real button, so it presses as one; out of the tab order, as the
          row it sits in is already the way to pick the level. */
       <button
-        aria-label={label}
-        className={styles.previewButton}
-        data-mode={mode}
-        data-preview="button"
-        style={style}
+        {...tile}
+        className={className(styles.elevationPreviewButton)}
         tabIndex={-1}
         type="button"
       >
@@ -66,14 +72,7 @@ export function ElevationPreviewTile({
 
   if (context === "dialog") {
     return (
-      <span
-        aria-label={label}
-        className={styles.previewDialog}
-        data-mode={mode}
-        data-preview="dialog"
-        role="img"
-        style={style}
-      >
+      <span {...tile} className={className(styles.previewDialog)} role="img">
         <span className={styles.previewDialogHeader}>
           <span className={styles.previewLine} />
           <X aria-hidden="true" className={styles.previewClose} />
@@ -84,14 +83,7 @@ export function ElevationPreviewTile({
   }
 
   return (
-    <span
-      aria-label={label}
-      className={styles.elevationCard}
-      data-mode={mode}
-      data-preview="card"
-      role="img"
-      style={style}
-    >
+    <span {...tile} className={className(styles.elevationCard)} role="img">
       <span className={styles.previewCardHeader}>
         <span className={styles.previewDot} />
       </span>
