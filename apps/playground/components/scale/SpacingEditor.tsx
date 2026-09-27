@@ -1,10 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import {
-  SegmentedControl,
-  SegmentedControlItem,
-} from "@astryxdesign/core/SegmentedControl";
 import { Ruler } from "lucide-react";
 import {
   Button,
@@ -28,10 +24,11 @@ import { SpacingDensitySetting } from "./SpacingDensitySetting";
 import { SpacingPresetSelector } from "./SpacingPresetSelector";
 import { SpacingTokenRow } from "./SpacingTokenRow";
 import {
-  SPACING_PREVIEW_MODES,
+  SPACING_SLOTS,
   SpacingPreviewTile,
-  type SpacingPreviewMode,
+  type SpacingSlot,
 } from "./SpacingPreviewTile";
+import { SpacingSlotPicker } from "./SpacingSlotPicker";
 import styles from "./scale-workspace.module.css";
 
 interface SpacingInspectorProps {
@@ -119,8 +116,10 @@ export function SpacingInspector({
   );
 }
 
-/** The step a layout reaches for first: 16px, step 4, where it exists. */
-const FIRST_LAYOUT_STEP = 4;
+/** Each slot starts on its own step: 24px inset, 8px stack, 16px columns. */
+const FIRST_STEPS = Object.fromEntries(
+  SPACING_SLOTS.map(({ slot, step }) => [slot, step]),
+) as Record<SpacingSlot, number>;
 
 interface SpacingCanvasProps {
   tokens: SpacingToken[];
@@ -137,32 +136,49 @@ export function SpacingCanvas({
   layout,
   onOpenUse,
 }: SpacingCanvasProps) {
-  const [mode, setMode] = useState<SpacingPreviewMode>("inset");
-  const [selectedStep, setSelectedStep] = useState(FIRST_LAYOUT_STEP);
-  /* A step turned off in the inspector falls back to the nearest one, so
-     the preview never points at a step the scale no longer has. */
-  const selected = nearestSpacingToken(tokens, selectedStep);
+  const [steps, setSteps] = useState(FIRST_STEPS);
+  /* The slot a click on the step list sets: the one last touched. */
+  const [active, setActive] = useState<SpacingSlot>("inset");
+  /* A step turned off in the inspector falls back to the nearest one, per
+     slot, so the preview never points at a step the scale no longer has. */
+  const resolved = Object.fromEntries(
+    SPACING_SLOTS.map(({ slot }) => [
+      slot,
+      nearestSpacingToken(tokens, steps[slot]),
+    ]),
+  ) as Record<SpacingSlot, SpacingToken | undefined>;
+  const setStep = (slot: SpacingSlot, step: number) => {
+    setActive(slot);
+    setSteps((current) => ({ ...current, [slot]: step }));
+  };
+  const selected = resolved[active];
 
   return (
-    /* The region is the list of steps; the preview above it shows one. */
+    /* The region is the list of steps; the preview above it uses three. */
     <div className={styles.spacingCanvas}>
-      <SegmentedControl
-        label="Preview as"
-        size="md"
-        value={mode}
-        onChange={(value) => setMode(value as SpacingPreviewMode)}
-      >
-        {SPACING_PREVIEW_MODES.map(({ value, label, icon: Icon }) => (
-          <SegmentedControlItem
-            key={value}
-            icon={<Icon aria-hidden="true" />}
-            label={label}
-            value={value}
+      {resolved.inset && resolved.stack && resolved.columns ? (
+        <>
+          <SpacingSlotPicker
+            active={active}
+            steps={{
+              inset: resolved.inset,
+              stack: resolved.stack,
+              columns: resolved.columns,
+            }}
+            tokens={tokens}
+            onActivate={setActive}
+            onChange={setStep}
           />
-        ))}
-      </SegmentedControl>
-      {selected ? (
-        <SpacingPreviewTile density={density} mode={mode} token={selected} />
+          <SpacingPreviewTile
+            active={active}
+            density={density}
+            tokens={{
+              inset: resolved.inset,
+              stack: resolved.stack,
+              columns: resolved.columns,
+            }}
+          />
+        </>
       ) : null}
       <section aria-label="Generated spacing steps">
         <ol className={styles.tokenList}>
@@ -174,7 +190,7 @@ export function SpacingCanvas({
               token={token}
               uses={tokensUsingSpacingStep(layout, token.step)}
               onOpenUse={onOpenUse}
-              onSelect={() => setSelectedStep(token.step)}
+              onSelect={() => setStep(active, token.step)}
             />
           ))}
         </ol>

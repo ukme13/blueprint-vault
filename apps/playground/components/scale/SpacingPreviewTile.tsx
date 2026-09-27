@@ -1,131 +1,158 @@
 "use client";
 
-import { Fragment, type ReactNode } from "react";
-import { Box, Columns3, Rows3, type LucideIcon } from "lucide-react";
-import type { SpacingToken } from "@blueprint/ui";
+import { Fragment, type CSSProperties, type ReactNode } from "react";
+import {
+  ArrowLeftRight,
+  ArrowUpDown,
+  Box,
+  Palette,
+  type LucideIcon,
+} from "lucide-react";
+import { Button, type SpacingToken } from "@blueprint/ui";
 import styles from "./scale-workspace.module.css";
 
-export type SpacingPreviewMode = "inset" | "stack" | "columns";
+/** The three ways a layout spends spacing, each set on its own step. */
+export type SpacingSlot = "inset" | "stack" | "columns";
 
-export const SPACING_PREVIEW_MODES: readonly {
-  value: SpacingPreviewMode;
+export const SPACING_SLOTS: readonly {
+  slot: SpacingSlot;
   label: string;
   icon: LucideIcon;
+  /** Where each starts: 24px inset, 8px stack, 16px columns on a 4px grid. */
+  step: number;
 }[] = [
-  { value: "inset", label: "Inset", icon: Box },
-  { value: "stack", label: "Stack", icon: Rows3 },
-  { value: "columns", label: "Columns", icon: Columns3 },
+  { slot: "inset", label: "Inset", icon: Box, step: 6 },
+  { slot: "stack", label: "Stack", icon: ArrowUpDown, step: 2 },
+  { slot: "columns", label: "Columns", icon: ArrowLeftRight, step: 4 },
 ];
 
-/** How each mode uses the step, for the figure's name. */
-const USE_OF: Record<SpacingPreviewMode, string> = {
-  inset: "padding",
-  stack: "a stack gap",
-  columns: "a column gap",
-};
+const CARDS = [
+  {
+    icon: Box,
+    title: "Design Tokens",
+    body: "Consistent spacing creates harmonious visual rhythm across all components.",
+    action: "Explore Tokens",
+  },
+  {
+    icon: Palette,
+    title: "Theme Engine",
+    body: "Dynamic OKLCH color palettes with stable 25-grid intervals.",
+    action: "View Palettes",
+  },
+];
 
 interface SpacingPreviewTileProps {
-  mode: SpacingPreviewMode;
-  token: SpacingToken;
-  /** The scale's density, named on a step it moves. */
+  /** The step each slot is set to. */
+  tokens: Record<SpacingSlot, SpacingToken>;
+  /** The slot being set, named in the caption. */
+  active: SpacingSlot;
   density: number;
 }
 
 /**
- * One spacing step, used the way a layout uses it: as a card's padding
- * (Inset), as the gap between stacked blocks (Stack), or as the gap between
- * columns (Columns). The space itself is marked the way a browser's box
- * model inspector marks it — tinted, edged with a dashed line, and labelled
- * with its size — so it is the step being shown, not the blocks around it.
+ * Two real cards, spending spacing the three ways a layout does at once:
+ * each card padded by Inset, its title, text and button apart by Stack, and
+ * the cards apart by Columns — each on a step of its own, since a card is
+ * rarely padded by the gap it stacks with.
  *
- * The step is drawn at its real size in pixels, not scaled, so what reads as
- * roomy here is roomy in a page.
+ * Every space is drawn at its real size and marked as a box model
+ * inspector marks it: tinted, edged with a dashed line, and tagged with its
+ * size. The first card carries the Inset and Stack tags; the second shows
+ * the same spaces untagged, so the tags do not crowd the content.
+ *
+ * On a phone the cards stack and the column gap runs between them
+ * vertically, the way a responsive grid folds.
  */
 export function SpacingPreviewTile({
-  mode,
-  token,
+  tokens,
+  active,
   density,
 }: SpacingPreviewTileProps) {
-  const size = `${token.px}px`;
-  const tag = <span className={styles.spacingTag}>{size}</span>;
-  /* The gap drawn as an element of its own, so it can be seen: a flex gap
-     is empty space, and empty space has no tint. */
-  const gapped = (items: ReactNode[], isStack: boolean) =>
+  const px = (slot: SpacingSlot) => `${tokens[slot].px}px`;
+  const tag = (slot: SpacingSlot) => (
+    <span className={styles.spacingTag}>{px(slot)}</span>
+  );
+  /* A gap drawn as an element of its own, so it can be seen: a flex gap is
+     empty space, and empty space has no tint. */
+  const stacked = (items: ReactNode[], tagged: boolean) =>
     items.map((item, index) => (
       <Fragment key={index}>
         {index > 0 ? (
           <span
             className={styles.spacingZone}
-            data-spacing-zone=""
-            style={isStack ? { height: size } : { width: size }}
+            data-spacing-zone="stack"
+            style={{ height: px("stack") }}
           >
-            {tag}
+            {tagged ? tag("stack") : null}
           </span>
         ) : null}
         {item}
       </Fragment>
     ));
-
-  const body =
-    mode === "inset" ? (
-      <div
-        className={`${styles.spacingZone} ${styles.spacingInset}`}
-        data-spacing-zone=""
-        style={{ padding: size }}
-      >
-        {tag}
-        <div className={styles.spacingContent}>
-          <span className={styles.spacingLine} />
-          <span className={`${styles.spacingLine} ${styles.spacingShort}`} />
-        </div>
-      </div>
-    ) : mode === "stack" ? (
-      <div className={styles.spacingStack}>
-        {gapped(
-          [
-            <span key="title" className={styles.spacingTitle} />,
-            <span key="text" className={styles.spacingParagraph}>
-              <span className={styles.spacingLine} />
-              <span className={styles.spacingLine} />
-              <span
-                className={`${styles.spacingLine} ${styles.spacingShort}`}
-              />
-            </span>,
-            <span key="action" className={styles.spacingAction} />,
-          ],
-          true,
-        )}
-      </div>
-    ) : (
-      <div className={styles.spacingColumns}>
-        {gapped(
-          [0, 1, 2].map((index) => (
-            <span key={index} className={styles.spacingColumn}>
-              <span className={styles.spacingTitle} />
-              <span className={styles.spacingLine} />
-              <span
-                className={`${styles.spacingLine} ${styles.spacingShort}`}
-              />
-            </span>
-          )),
-          false,
-        )}
-      </div>
-    );
+  const activeToken = tokens[active];
 
   return (
     <figure
-      aria-label={`${token.variable} as ${USE_OF[mode]}`}
+      aria-label="Spacing preview"
       className={styles.spacingPreview}
-      data-preview-mode={mode}
+      data-active-slot={active}
     >
-      {body}
-      {/* Which kind of step this is: one density moves, or one on the fine
-          grid that stays put at any density. */}
+      <div className={styles.spacingCards}>
+        {CARDS.map((card, index) => {
+          const Icon = card.icon;
+          const tagged = index === 0;
+          return (
+            <Fragment key={card.title}>
+              {index > 0 ? (
+                <span
+                  className={`${styles.spacingZone} ${styles.spacingColumnGap}`}
+                  data-spacing-zone="columns"
+                  style={{ "--column-gap": px("columns") } as CSSProperties}
+                >
+                  {tag("columns")}
+                </span>
+              ) : null}
+              <div
+                className={`${styles.spacingZone} ${styles.spacingInset}`}
+                data-spacing-zone="inset"
+                style={{ padding: px("inset") }}
+              >
+                {tagged ? tag("inset") : null}
+                <div className={styles.spacingCardBody}>
+                  {stacked(
+                    [
+                      <h3 key="title" className={styles.spacingCardTitle}>
+                        <Icon aria-hidden="true" />
+                        {card.title}
+                      </h3>,
+                      <p key="body" className={styles.spacingCardText}>
+                        {card.body}
+                      </p>,
+                      <span key="action">
+                        <Button
+                          scheme="neutral"
+                          size="medium"
+                          type="button"
+                          variant="outlined"
+                        >
+                          {card.action}
+                        </Button>
+                      </span>,
+                    ],
+                    tagged,
+                  )}
+                </div>
+              </div>
+            </Fragment>
+          );
+        })}
+      </div>
+      {/* The step being set, and what density does to it. */}
       <figcaption className={styles.spacingCaption} data-density-caption="">
-        {token.followsDensity
-          ? `${token.variable} · layout step, ${density}× density`
-          : `${token.variable} · fine grid, fixed at any density`}
+        {`${SPACING_SLOTS.find((each) => each.slot === active)?.label}: `}
+        {activeToken.followsDensity
+          ? `${activeToken.variable} · layout step, ${density}× density`
+          : `${activeToken.variable} · fine grid, fixed at any density`}
       </figcaption>
     </figure>
   );

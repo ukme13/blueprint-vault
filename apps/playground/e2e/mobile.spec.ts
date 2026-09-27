@@ -1216,6 +1216,36 @@ test.describe("on a phone", () => {
     );
   });
 
+  test("stacks the spacing preview's cards, and picks slots from a sheet", async ({
+    seededPage: page,
+  }) => {
+    await page.goto("/spacing");
+    const preview = page.getByRole("figure", { name: "Spacing preview" });
+    await expect(preview).toBeVisible();
+
+    /* The cards stack, the column gap running between them, and nothing
+       runs past the screen. */
+    const layout = await preview.evaluate((figure) => {
+      const cards = [
+        ...figure.querySelectorAll<HTMLElement>('[data-spacing-zone="inset"]'),
+      ].map((card) => card.getBoundingClientRect());
+      const gap = figure
+        .querySelector<HTMLElement>('[data-spacing-zone="columns"]')!
+        .getBoundingClientRect();
+      return {
+        stacked: cards[1]!.top >= cards[0]!.bottom,
+        gapHeight: Math.round(gap.height),
+        overflow: figure.scrollWidth - figure.clientWidth,
+      };
+    });
+    expect(layout).toEqual({ stacked: true, gapHeight: 16, overflow: 0 });
+
+    /* A slot is picked from a sheet, as every selector on a phone is. */
+    await page.getByRole("button", { name: /^Stack spacing:/ }).click();
+    const sheet = page.getByRole("dialog", { name: "Stack spacing" });
+    await expect(sheet.locator(".astryx-bottom-sheet").first()).toBeVisible();
+  });
+
   test("draws each spacing bar at its own length", async ({
     seededPage: page,
   }) => {

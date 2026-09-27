@@ -24,60 +24,88 @@ test.describe("The spacing studio", () => {
     await expect(steps.getByText("1rem", { exact: true })).toBeVisible();
   });
 
-  test("previews the selected step as padding, a stack gap or a column gap", async ({
+  test("sets inset, stack and columns on steps of their own", async ({
     seededPage: page,
   }) => {
-    const preview = page.locator("figure[data-preview-mode]");
-    const zones = preview.locator("[data-spacing-zone]");
-    const box = (index: number) =>
-      zones.nth(index).evaluate((node) => {
-        const style = getComputedStyle(node);
+    const preview = page.getByRole("figure", { name: "Spacing preview" });
+    /* The first of each kind of space: its padding, height or width. */
+    const measure = () =>
+      preview.evaluate((figure) => {
+        const zone = (slot: string) =>
+          figure.querySelector<HTMLElement>(`[data-spacing-zone="${slot}"]`)!;
         return {
-          padding: style.paddingTop,
-          width: Math.round(node.getBoundingClientRect().width),
-          height: Math.round(node.getBoundingClientRect().height),
+          inset: getComputedStyle(zone("inset")).paddingTop,
+          stack: Math.round(zone("stack").getBoundingClientRect().height),
+          columns: Math.round(zone("columns").getBoundingClientRect().width),
         };
       });
 
-    /* Inset by default, on step 4: a card padded by 16px. */
-    await expect(preview).toHaveAttribute("data-preview-mode", "inset");
-    await expect.poll(async () => (await box(0)).padding).toBe("16px");
-    await expect(preview.getByText("16px", { exact: true })).toBeVisible();
+    /* Two real cards, each padded, stacked and set apart on its own step:
+       24px, 8px and 16px to start. */
+    await expect(preview.getByText("Design Tokens")).toBeVisible();
+    await expect(
+      preview.getByRole("button", { name: "View Palettes" }),
+    ).toBeVisible();
+    await expect
+      .poll(measure)
+      .toEqual({ inset: "24px", stack: 8, columns: 16 });
 
-    /* Stack: the gaps between the three blocks are the step, 16px tall. */
-    await page.getByRole("radio", { name: "Stack" }).click();
-    await expect(preview).toHaveAttribute("data-preview-mode", "stack");
-    await expect(zones).toHaveCount(2);
-    await expect.poll(async () => (await box(0)).height).toBe(16);
+    /* Each selector moves its own space and nothing else. */
+    await page.getByLabel("Stack spacing", { exact: true }).click();
+    await page.getByRole("option", { name: /^12px/ }).click();
+    await expect
+      .poll(measure)
+      .toEqual({ inset: "24px", stack: 12, columns: 16 });
+    await expect(
+      page.getByLabel("Stack spacing", { exact: true }),
+    ).toContainText("Stack: 12px");
 
-    /* Columns: the gaps between three columns, 16px wide. */
-    await page.getByRole("radio", { name: "Columns" }).click();
-    await expect(preview).toHaveAttribute("data-preview-mode", "columns");
-    await expect(zones).toHaveCount(2);
-    await expect.poll(async () => (await box(1)).width).toBe(16);
+    await page.getByLabel("Columns spacing", { exact: true }).click();
+    await page.getByRole("option", { name: /^32px/ }).click();
+    await expect
+      .poll(measure)
+      .toEqual({ inset: "24px", stack: 12, columns: 32 });
   });
 
-  test("picks a step from the list, and the preview follows", async ({
+  test("sets the active slot from the step list", async ({
     seededPage: page,
   }) => {
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     const row = (step: number) =>
       steps.locator(`[data-spacing-step="${step}"]`);
-    await expect(row(4)).toHaveAttribute("data-selected", "true");
+    const zone = (slot: string) =>
+      page.locator(`figure [data-spacing-zone="${slot}"]`).first();
 
-    /* A click anywhere on the row picks it; step 8 is 32px. */
+    /* Inset is active to start, so its step is the one marked: 6, 24px. */
+    await expect(row(6)).toHaveAttribute("data-selected", "true");
+
+    /* A click anywhere on a row sets the active slot. */
     await row(8).getByText("32px", { exact: true }).click();
     await expect(row(8)).toHaveAttribute("data-selected", "true");
-    await expect(row(4)).not.toHaveAttribute("data-selected");
-    await expect(
-      row(8).getByRole("button", { name: "--spacing-8", exact: true }),
-    ).toHaveAttribute("aria-pressed", "true");
     await expect
       .poll(() =>
-        page
-          .locator("figure[data-preview-mode] [data-spacing-zone]")
-          .first()
-          .evaluate((node) => getComputedStyle(node).paddingTop),
+        zone("inset").evaluate((node) => getComputedStyle(node).paddingTop),
+      )
+      .toBe("32px");
+
+    /* Touching Stack makes it the active slot; the list then sets it, and
+       leaves Inset where it was. */
+    await page.getByLabel("Stack spacing", { exact: true }).focus();
+    await expect(page.locator('[data-spacing-slot="stack"]')).toHaveAttribute(
+      "data-active",
+      "true",
+    );
+    await row(1).getByText("4px", { exact: true }).click();
+    await expect
+      .poll(() =>
+        zone("stack").evaluate((node) =>
+          Math.round(node.getBoundingClientRect().height),
+        ),
+      )
+      .toBe(4);
+    await expect
+      .poll(() =>
+        zone("inset").evaluate((node) => getComputedStyle(node).paddingTop),
       )
       .toBe("32px");
   });
@@ -94,8 +122,8 @@ test.describe("The spacing studio", () => {
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
       "var(--spacing-8)",
     );
-    // Copying does not pick the row it sits in.
-    await expect(steps.locator('[data-spacing-step="4"]')).toHaveAttribute(
+    // Copying does not pick the row it sits in: Inset's 6 stays picked.
+    await expect(steps.locator('[data-spacing-step="6"]')).toHaveAttribute(
       "data-selected",
       "true",
     );
