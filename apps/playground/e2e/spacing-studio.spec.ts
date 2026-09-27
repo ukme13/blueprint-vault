@@ -699,6 +699,22 @@ test.describe("The elevation editor", () => {
        live thumbnail of its own shadow. */
     const trigger = presets.getByRole("button", { name: /^Style preset: / });
     await expect(trigger).toHaveAccessibleName("Style preset: Custom");
+
+    /* A hero row, not a one-line field: 52 to 56px tall, a square tile in
+       its thumbnail, and a second line that says what it does. */
+    const hero = await trigger.evaluate((button) => {
+      const tile = button
+        .querySelector("[data-preset-thumbnail]")!
+        .getBoundingClientRect();
+      return {
+        height: button.getBoundingClientRect().height,
+        tile: { width: tile.width, height: tile.height },
+      };
+    });
+    expect(hero.height).toBeGreaterThanOrEqual(52);
+    expect(hero.height).toBeLessThanOrEqual(56);
+    expect(hero.tile.width).toBe(hero.tile.height);
+    await expect(trigger).toContainText("Click to change preset");
     await expect
       .poll(() =>
         trigger
@@ -734,6 +750,31 @@ test.describe("The elevation editor", () => {
     ];
     expect(panel.x + panel.width).toBeLessThanOrEqual(button.x + 1);
     await expect(dialog.getByRole("button", { name: /:/ })).toHaveCount(5);
+
+    /* Every card's tile is square, with room on all four sides, so a
+       shadow casts evenly rather than being squashed or clipped. */
+    const tiles = await dialog
+      .locator("[data-preset-preview]")
+      .evaluateAll((nodes) =>
+        nodes.map((node) => {
+          const tile = node.getBoundingClientRect();
+          const area = node.parentElement!.getBoundingClientRect();
+          return {
+            width: tile.width,
+            height: tile.height,
+            room: Math.min(
+              tile.top - area.top,
+              area.bottom - tile.bottom,
+              tile.left - area.left,
+              area.right - tile.right,
+            ),
+          };
+        }),
+      );
+    for (const tile of tiles) {
+      expect(tile.width).toBe(tile.height);
+      expect(tile.room).toBeGreaterThanOrEqual(16);
+    }
     await expect
       .poll(() =>
         dialog
@@ -748,6 +789,8 @@ test.describe("The elevation editor", () => {
        describe, so they step aside for a way into Advanced. */
     await pick("Inset");
     await expect(trigger).toHaveAccessibleName("Style preset: Inset");
+    // A preset's second line is what it is for.
+    await expect(trigger).toContainText("Pressed into the page.");
     await expect
       .poll(() => sample.evaluate((node) => getComputedStyle(node).boxShadow))
       .toContain("inset");

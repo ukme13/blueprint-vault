@@ -495,14 +495,18 @@
   font-size: 11px;
 }
 
-/* Simple's style preset: one compact row that opens the presets as cards. */
+/* Simple's style preset: the first and largest control there, a card-like
+   row that opens the presets. 56px tall, border included — a 40px thumbnail
+   with 8px above and below — so it stands apart from the single-line fields
+   beneath it. */
 .presetTrigger {
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: var(--spacing-3);
   width: 100%;
-  min-height: var(--size-element-md);
-  padding: var(--spacing-1) var(--spacing-2);
+  height: calc(var(--spacing-10) + var(--spacing-4));
+  padding: 0 var(--spacing-2);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-element);
   background: var(--color-surface-base);
@@ -518,28 +522,44 @@
   outline-offset: 2px;
 }
 
-/* A live thumbnail: the level's real shadow on the mode's card. */
+/* A live thumbnail: the level's real shadow on the mode's card. The tile
+   is square, with room on every side for the shadow to fall. */
 .presetThumb {
   display: grid;
   flex: none;
   place-items: center;
-  width: var(--spacing-6);
-  height: var(--spacing-6);
+  width: var(--spacing-10);
+  height: var(--spacing-10);
   border-radius: var(--radius-inner);
 }
 
 .presetThumbTile {
-  width: var(--spacing-4);
-  height: var(--spacing-4);
+  width: var(--spacing-7);
+  height: var(--spacing-7);
   border-radius: var(--radius-inner);
 }
 
-.presetTriggerName {
+.presetTriggerText {
+  display: grid;
   flex: 1 1 auto;
   min-width: 0;
+}
+
+.presetTriggerName,
+.presetTriggerHint {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.presetTriggerName {
+  font-size: var(--font-size-base);
+  font-weight: 650;
+}
+
+.presetTriggerHint {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
 }
 
 .presetChevron {
@@ -587,17 +607,18 @@
   border-color: var(--color-action-primary);
 }
 
-/* Room around the tile for its shadow to fall into, glow included. */
+/* Room around the tile for its shadow to fall into, glow included: 76px
+   tall around a 40px square, so a shadow casts evenly on all four sides. */
 .presetPreview {
   display: grid;
   place-items: center;
-  height: var(--spacing-12);
+  height: calc(var(--spacing-12) + var(--spacing-7));
   border-radius: var(--radius-inner);
 }
 
 .presetTile {
-  width: 55%;
-  height: 50%;
+  width: var(--spacing-10);
+  height: var(--spacing-10);
   border-radius: var(--radius-inner);
 }
 

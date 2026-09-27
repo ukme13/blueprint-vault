@@ -47,8 +47,11 @@ export function ElevationPresets({
   const [isOpen, setIsOpen] = useState(false);
   const surface = elevationPreviewSurfaces(palettes)[mode];
   const active = matchingElevationPreset(level, scale, palettes);
-  const name =
-    ELEVATION_PRESETS.find((preset) => preset.id === active)?.name ?? "Custom";
+  const preset = ELEVATION_PRESETS.find((each) => each.id === active);
+  const name = preset?.name ?? "Custom";
+  /* A preset says what it is for; Custom has nothing to describe, so it says
+     what the row does instead. */
+  const hint = preset?.description ?? "Click to change preset";
   const shadow =
     resolveElevation(scale, palettes, mode).find((each) => each.id === level.id)
       ?.css ?? "none";
@@ -88,7 +91,10 @@ export function ElevationPresets({
           style={{ background: surface.card, boxShadow: shadow }}
         />
       </span>
-      <span className={styles.presetTriggerName}>{name}</span>
+      <span className={styles.presetTriggerText}>
+        <span className={styles.presetTriggerName}>{name}</span>
+        <span className={styles.presetTriggerHint}>{hint}</span>
+      </span>
       <ChevronDown aria-hidden="true" className={styles.presetChevron} />
     </button>
   );
