@@ -1240,6 +1240,30 @@ test.describe("on a phone", () => {
     });
     expect(layout).toEqual({ stacked: true, gapHeight: 16, overflow: 0 });
 
+    /* Every size tag clear of the cards' content, and on the screen. */
+    const tags = await preview.evaluate((figure) => {
+      const content = [
+        ...figure.querySelectorAll(
+          "h3, p, button, li, [class*=sampleField], [class*=sampleEyebrow], [class*=sampleNote]",
+        ),
+      ].map((node) => node.getBoundingClientRect());
+      return [...figure.querySelectorAll("[data-spacing-tag]")].map((tag) => {
+        const a = tag.getBoundingClientRect();
+        return {
+          onScreen: a.left >= 0 && a.right <= window.innerWidth,
+          clear: content.every(
+            (b) =>
+              a.right <= b.left + 0.5 ||
+              b.right <= a.left + 0.5 ||
+              a.bottom <= b.top + 0.5 ||
+              b.bottom <= a.top + 0.5,
+          ),
+        };
+      });
+    });
+    expect(tags.length).toBeGreaterThan(3);
+    expect(tags.every((tag) => tag.onScreen && tag.clear)).toBe(true);
+
     /* A slot is picked from a sheet, as every selector on a phone is. */
     await page.getByRole("button", { name: /^Stack spacing:/ }).click();
     const sheet = page.getByRole("dialog", { name: "Stack spacing" });

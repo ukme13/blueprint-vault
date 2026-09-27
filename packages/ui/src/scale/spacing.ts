@@ -316,3 +316,31 @@ export function matchingSpacingDensityPreset(
     SPACING_DENSITY_PRESETS.find((preset) => preset.value === density) ?? null
   );
 }
+
+/**
+ * The three ways a layout spends spacing, each on a step of its own: a
+ * card's padding (inset), the gap between stacked blocks (stack), and the
+ * gap between columns (columns).
+ */
+export type SpacingSlot = "inset" | "stack" | "columns";
+
+/** Where each slot starts: 24px inset, 8px stack, 16px columns on 4px. */
+export const SPACING_SLOT_STEPS: Readonly<Record<SpacingSlot, number>> = {
+  inset: 6,
+  stack: 2,
+  columns: 4,
+};
+
+/**
+ * Each slot's token: its step, or the nearest one the scale has once that
+ * step is pruned. Null only for a scale with no steps at all.
+ */
+export function resolveSpacingSlots(
+  tokens: readonly SpacingToken[],
+  steps: Readonly<Record<SpacingSlot, number>>,
+): Record<SpacingSlot, SpacingToken> | null {
+  const inset = nearestSpacingToken(tokens, steps.inset);
+  const stack = nearestSpacingToken(tokens, steps.stack);
+  const columns = nearestSpacingToken(tokens, steps.columns);
+  return inset && stack && columns ? { inset, stack, columns } : null;
+}

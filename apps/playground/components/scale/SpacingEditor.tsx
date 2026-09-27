@@ -8,7 +8,9 @@ import {
   MAX_SPACING_BASE_UNIT_PX,
   MIN_SPACING_BASE_UNIT_PX,
   SPACING_BASE_UNIT_PRESETS,
-  nearestSpacingToken,
+  resolveSpacingSlots,
+  SPACING_SLOT_STEPS,
+  type SpacingSlot,
   spacingChipSteps,
   resolveHybridValue,
   spacingStepName,
@@ -23,11 +25,7 @@ import { usePickerSheet } from "../picker-sheet";
 import { SpacingDensitySetting } from "./SpacingDensitySetting";
 import { SpacingPresetSelector } from "./SpacingPresetSelector";
 import { SpacingTokenRow } from "./SpacingTokenRow";
-import {
-  SPACING_SLOTS,
-  SpacingPreviewTile,
-  type SpacingSlot,
-} from "./SpacingPreviewTile";
+import { SpacingPreviewTile } from "./SpacingPreviewTile";
 import { SpacingSlotPicker } from "./SpacingSlotPicker";
 import styles from "./scale-workspace.module.css";
 
@@ -116,11 +114,6 @@ export function SpacingInspector({
   );
 }
 
-/** Each slot starts on its own step: 24px inset, 8px stack, 16px columns. */
-const FIRST_STEPS = Object.fromEntries(
-  SPACING_SLOTS.map(({ slot, step }) => [slot, step]),
-) as Record<SpacingSlot, number>;
-
 interface SpacingCanvasProps {
   tokens: SpacingToken[];
   density: number;
@@ -136,35 +129,26 @@ export function SpacingCanvas({
   layout,
   onOpenUse,
 }: SpacingCanvasProps) {
-  const [steps, setSteps] = useState(FIRST_STEPS);
+  const [steps, setSteps] = useState({ ...SPACING_SLOT_STEPS });
   /* The slot a click on the step list sets: the one last touched. */
   const [active, setActive] = useState<SpacingSlot>("inset");
   /* A step turned off in the inspector falls back to the nearest one, per
      slot, so the preview never points at a step the scale no longer has. */
-  const resolved = Object.fromEntries(
-    SPACING_SLOTS.map(({ slot }) => [
-      slot,
-      nearestSpacingToken(tokens, steps[slot]),
-    ]),
-  ) as Record<SpacingSlot, SpacingToken | undefined>;
+  const resolved = resolveSpacingSlots(tokens, steps);
   const setStep = (slot: SpacingSlot, step: number) => {
     setActive(slot);
     setSteps((current) => ({ ...current, [slot]: step }));
   };
-  const selected = resolved[active];
+  const selected = resolved?.[active];
 
   return (
     /* The region is the list of steps; the preview above it uses three. */
     <div className={styles.spacingCanvas}>
-      {resolved.inset && resolved.stack && resolved.columns ? (
+      {resolved ? (
         <>
           <SpacingSlotPicker
             active={active}
-            steps={{
-              inset: resolved.inset,
-              stack: resolved.stack,
-              columns: resolved.columns,
-            }}
+            steps={resolved}
             tokens={tokens}
             onActivate={setActive}
             onChange={setStep}
@@ -172,11 +156,7 @@ export function SpacingCanvas({
           <SpacingPreviewTile
             active={active}
             density={density}
-            tokens={{
-              inset: resolved.inset,
-              stack: resolved.stack,
-              columns: resolved.columns,
-            }}
+            tokens={resolved}
           />
         </>
       ) : null}

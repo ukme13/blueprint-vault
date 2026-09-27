@@ -42,9 +42,11 @@ test.describe("The spacing studio", () => {
 
     /* Two real cards, each padded, stacked and set apart on its own step:
        24px, 8px and 16px to start. */
-    await expect(preview.getByText("Design Tokens")).toBeVisible();
     await expect(
-      preview.getByRole("button", { name: "View Palettes" }),
+      preview.getByRole("heading", { name: "Let’s get you settled in." }),
+    ).toBeVisible();
+    await expect(
+      preview.getByRole("button", { name: "Save profile" }),
     ).toBeVisible();
     await expect
       .poll(measure)
@@ -65,6 +67,28 @@ test.describe("The spacing studio", () => {
       [20, 20],
     ]);
 
+    // Padding and gaps are hatched on the diagonal, as Figma marks them.
+    const hatching = await preview.evaluate((figure) =>
+      ["inset", "stack", "columns"].map(
+        (slot) =>
+          getComputedStyle(
+            figure.querySelector(`[data-spacing-zone="${slot}"]`)!,
+          ).backgroundImage,
+      ),
+    );
+    for (const image of hatching) {
+      expect(image).toContain("repeating-linear-gradient");
+    }
+    // A stack gap runs the card body's full width, so its stripes show.
+    const stackBand = await preview.evaluate((figure) => {
+      const band = figure.querySelector('[data-spacing-zone="stack"]')!;
+      return [
+        Math.round(band.getBoundingClientRect().width),
+        Math.round(band.parentElement!.getBoundingClientRect().width),
+      ];
+    });
+    expect(stackBand[0]).toBe(stackBand[1]);
+
     /* Each selector moves its own space and nothing else. */
     await page.getByLabel("Stack spacing", { exact: true }).click();
     await page.getByRole("option", { name: /^12px/ }).click();
@@ -82,6 +106,51 @@ test.describe("The spacing studio", () => {
       .toEqual({ inset: "24px", stack: 12, columns: 32 });
   });
 
+  test("keeps every size tag clear of the cards’ content", async ({
+    seededPage: page,
+  }) => {
+    const preview = page.getByRole("figure", { name: "Spacing preview" });
+    /* A tag never sits on text or a control: a stack gap thinner than its
+       tag once put the tag over the paragraph and the button beside it. */
+    const collisions = () =>
+      preview.evaluate((figure) => {
+        const tags = [...figure.querySelectorAll("[data-spacing-tag]")];
+        const content = [
+          ...figure.querySelectorAll(
+            "h3, p, button, li, [class*=sampleField], [class*=sampleEyebrow], [class*=sampleNote]",
+          ),
+        ];
+        const hits: string[] = [];
+        for (const tag of tags) {
+          const a = tag.getBoundingClientRect();
+          for (const node of content) {
+            const b = node.getBoundingClientRect();
+            const overlaps =
+              a.left < b.right - 0.5 &&
+              b.left < a.right - 0.5 &&
+              a.top < b.bottom - 0.5 &&
+              b.top < a.bottom - 0.5;
+            if (overlaps) {
+              hits.push(
+                `${tag.textContent} on ${node.textContent?.slice(0, 20)}`,
+              );
+            }
+          }
+        }
+        return { tags: tags.length, hits };
+      });
+
+    await expect.poll(async () => (await collisions()).tags).toBeGreaterThan(3);
+    expect((await collisions()).hits).toEqual([]);
+
+    /* And with the thinnest stack gap and the tightest inset. */
+    await page.getByLabel("Stack spacing", { exact: true }).click();
+    await page.getByRole("option", { name: /^2px/ }).click();
+    await page.getByLabel("Inset spacing", { exact: true }).click();
+    await page.getByRole("option", { name: /^4px/ }).click();
+    await expect.poll(async () => (await collisions()).hits).toEqual([]);
+  });
+
   test("sets the active slot from the step list", async ({
     seededPage: page,
   }) => {
@@ -90,6 +159,8 @@ test.describe("The spacing studio", () => {
       steps.locator(`[data-spacing-step="${step}"]`);
     const zone = (slot: string) =>
       page.locator(`figure [data-spacing-zone="${slot}"]`).first();
+    const insetPadding = () =>
+      zone("inset").evaluate((node) => getComputedStyle(node).paddingTop);
 
     /* Inset is active to start, so its step is the one marked: 6, 24px. */
     await expect(row(6)).toHaveAttribute("data-selected", "true");
@@ -97,11 +168,7 @@ test.describe("The spacing studio", () => {
     /* A click anywhere on a row sets the active slot. */
     await row(8).getByText("32px", { exact: true }).click();
     await expect(row(8)).toHaveAttribute("data-selected", "true");
-    await expect
-      .poll(() =>
-        zone("inset").evaluate((node) => getComputedStyle(node).paddingTop),
-      )
-      .toBe("32px");
+    await expect.poll(insetPadding).toBe("32px");
 
     /* Touching Stack makes it the active slot; the list then sets it, and
        leaves Inset where it was. */
@@ -118,11 +185,7 @@ test.describe("The spacing studio", () => {
         ),
       )
       .toBe(4);
-    await expect
-      .poll(() =>
-        zone("inset").evaluate((node) => getComputedStyle(node).paddingTop),
-      )
-      .toBe("32px");
+    await expect.poll(insetPadding).toBe("32px");
   });
 
   test("copies a step as its variable", async ({

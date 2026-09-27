@@ -1,8 +1,8 @@
 "use client";
 
-import type { SpacingToken } from "@blueprint/ui";
+import type { SpacingSlot, SpacingToken } from "@blueprint/ui";
 import { SheetSelector } from "../SheetSelector";
-import { SPACING_SLOTS, type SpacingSlot } from "./SpacingPreviewTile";
+import { SPACING_SLOTS } from "./SpacingPreviewTile";
 import styles from "./scale-workspace.module.css";
 
 interface SpacingSlotPickerProps {

@@ -312,6 +312,9 @@
   gap: var(--spacing-4);
   margin: 0;
   padding: var(--spacing-6);
+  /* Room on the left and above for the size tags, clear of the cards. */
+  padding-left: var(--spacing-10);
+  padding-top: var(--spacing-8);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-container);
   background: var(--color-surface-subtle);
@@ -328,9 +331,34 @@
   position: relative;
   box-sizing: border-box;
   flex: none;
-  outline: 1px dashed var(--color-action-primary);
+}
+
+/* The hatching Figma's inspector draws: padding in blue, gaps in pink, each
+   striped on the diagonal with a dashed edge in its colour. */
+.spacingZone[data-spacing-zone="inset"] {
+  --hatch: var(--color-icon-blue);
+}
+
+/* A stack gap runs the card body's full width. The body lines its blocks
+   up at the start, and a band with no content of its own would otherwise
+   shrink to nothing, its tag landing on the text beside it. */
+.spacingZone[data-spacing-zone="stack"] {
+  align-self: stretch;
+}
+
+.spacingZone[data-spacing-zone="stack"],
+.spacingZone[data-spacing-zone="columns"] {
+  --hatch: var(--color-icon-pink);
+  outline: 1px dashed var(--hatch);
   outline-offset: -1px;
-  background: color-mix(in oklch, var(--color-action-primary) 16%, transparent);
+}
+
+.spacingZone[data-spacing-zone] {
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--hatch) 22%, transparent) 0 4px,
+    transparent 4px 8px
+  );
 }
 
 /* Centred on the space it names, over whatever is beside it, so a 2px gap
@@ -342,13 +370,34 @@
   z-index: 1;
   padding: 0 var(--spacing-1);
   border-radius: var(--radius-inner);
-  background: var(--color-action-primary);
-  color: var(--color-fg-on-action);
+  background: var(--color-icon-pink);
+  color: white;
   font-size: var(--font-size-sm);
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.5;
   white-space: nowrap;
   transform: translate(-50%, -50%);
+}
+
+/* A stack gap is often thinner than its tag, so the tag sits outside the
+   card's left edge, level with its gap, in the margin the preview keeps
+   for tags: past the band, the card's inset and its border. Nothing is
+   written there at any step. */
+.spacingTagSide {
+  right: calc(100% + var(--inset) + 1px + var(--spacing-1));
+  left: auto;
+  transform: translateY(-50%);
+}
+
+/* The inset's tag sits just above the card's top-left corner, in blue, so
+   it never meets the stack tags beside the card. */
+.spacingTagInset {
+  top: auto;
+  bottom: calc(100% + var(--spacing-1));
+  left: 0;
+  background: var(--color-icon-blue);
+  transform: none;
 }
 
 /* Three slots, each a selector; the one a click on the list sets is
@@ -380,12 +429,21 @@
 }
 
 .spacingCards > .spacingInset {
-  flex: 1 1 0;
-  min-width: 0;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-container);
+  box-shadow: 0 1px 3px color-mix(in oklch, black 8%, transparent);
 }
 
 .spacingColumnGap {
   width: var(--column-gap);
+}
+
+/* The column gap is often narrower than its tag, so the tag sits above
+   the gap, in the room the preview keeps over the cards. */
+.spacingColumnGap > .spacingTag {
+  top: auto;
+  bottom: calc(100% + var(--spacing-1));
+  transform: translateX(-50%);
 }
 
 .spacingCardBody {
@@ -393,31 +451,100 @@
   flex-direction: column;
   align-items: flex-start;
   height: 100%;
-  border-radius: var(--radius-element);
+  outline: 1px dashed var(--color-icon-blue);
   background: var(--color-surface-base);
 }
 
-.spacingCardTitle {
+/* What the cards say: an onboarding welcome and a profile form. */
+.sampleEyebrow,
+.sampleNote {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: var(--spacing-1);
+  font-size: var(--font-size-sm);
+}
+
+.sampleEyebrow {
+  color: var(--color-action-primary);
+  font-weight: 700;
+}
+
+.sampleNote {
+  color: var(--color-fg-muted);
+}
+
+.sampleEyebrow svg,
+.sampleNote svg,
+.sampleChecklist svg {
+  flex: none;
+  width: var(--spacing-4);
+  height: var(--spacing-4);
+}
+
+.sampleGreeting,
+.sampleBody {
+  margin: 0;
+  color: var(--color-fg-secondary);
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+}
+
+.sampleHeadline {
   margin: 0;
   color: var(--color-fg-primary);
-  font-size: var(--font-size-base);
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.sampleCardTitle {
+  margin: 0;
+  color: var(--color-fg-primary);
+  font-size: var(--font-size-lg);
   font-weight: 650;
 }
 
-.spacingCardTitle svg {
-  width: var(--spacing-4);
-  height: var(--spacing-4);
-  color: var(--color-action-primary);
+.sampleField {
+  display: grid;
+  gap: var(--spacing-1);
+  width: 100%;
 }
 
-.spacingCardText {
-  margin: 0;
+.sampleFieldLabel {
   color: var(--color-fg-secondary);
   font-size: var(--font-size-sm);
-  line-height: 1.5;
+  font-weight: 600;
+}
+
+.sampleFieldInput {
+  display: flex;
+  align-items: center;
+  min-height: var(--size-element-md);
+  padding: 0 var(--spacing-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-element);
+  color: var(--color-fg-primary);
+  font-size: var(--font-size-sm);
+}
+
+.sampleChecklist {
+  display: grid;
+  gap: var(--spacing-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-fg-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.sampleChecklist li {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.sampleChecklist svg {
+  color: var(--color-icon-blue);
 }
 
 /* On a phone the cards stack, and the column gap runs between them the
@@ -431,15 +558,21 @@
     width: auto;
     height: var(--column-gap);
   }
+
+  /* Stacked, the gap runs across; its tag sits outside the left edge,
+     level with it, as the stack tags do. */
+  .spacingColumnGap > .spacingTag {
+    top: 50%;
+    bottom: auto;
+    right: calc(100% + var(--spacing-1));
+    left: auto;
+    transform: translateY(-50%);
+  }
 }
 
 /* Inset: the tag sits in the padding's top band, the content inside. */
 .spacingInset {
   border-radius: var(--radius-container);
-}
-
-.spacingInset > .spacingTag {
-  top: 0;
 }
 
 /* The layout uses a step sizes, each a way to that use in the Uses tab. */

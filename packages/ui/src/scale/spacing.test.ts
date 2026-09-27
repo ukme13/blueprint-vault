@@ -13,6 +13,8 @@ import {
   generateSpacingSteps,
   normalizeSpacingScale,
   resolveSpacing,
+  resolveSpacingSlots,
+  SPACING_SLOT_STEPS,
   spacingDensityBehavior,
   spacingChipSteps,
   nearestSpacingToken,
@@ -310,5 +312,32 @@ describe("matchingSpacingDensityPreset", () => {
     expect(matchingSpacingDensityPreset(0.75)?.id).toBe("compact");
     expect(matchingSpacingDensityPreset(1)?.id).toBe("default");
     expect(matchingSpacingDensityPreset(1.1)).toBeNull();
+  });
+});
+
+describe("resolveSpacingSlots", () => {
+  const tokens = resolveSpacing(defaultSpacingScale());
+
+  it("gives each slot its own step, 24, 8 and 16px to start", () => {
+    const slots = resolveSpacingSlots(tokens, SPACING_SLOT_STEPS)!;
+    expect([slots.inset.px, slots.stack.px, slots.columns.px]).toEqual([
+      24, 8, 16,
+    ]);
+  });
+
+  it("moves only a slot whose step was pruned, to the nearest", () => {
+    const pruned = resolveSpacing({
+      ...defaultSpacingScale(),
+      steps: [0, 1, 2, 4, 8],
+    });
+    const slots = resolveSpacingSlots(pruned, SPACING_SLOT_STEPS)!;
+    // Inset's 6 is gone: 4 and 8 are as near, and the lower wins.
+    expect(slots.inset.step).toBe(4);
+    expect(slots.stack.step).toBe(2);
+    expect(slots.columns.step).toBe(4);
+  });
+
+  it("is null for no tokens", () => {
+    expect(resolveSpacingSlots([], SPACING_SLOT_STEPS)).toBeNull();
   });
 });

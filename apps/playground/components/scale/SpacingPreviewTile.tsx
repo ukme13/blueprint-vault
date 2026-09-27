@@ -5,41 +5,24 @@ import {
   ArrowLeftRight,
   ArrowUpDown,
   Box,
-  Palette,
   type LucideIcon,
 } from "lucide-react";
-import { Button, type SpacingToken } from "@blueprint/ui";
+import type { SpacingSlot, SpacingToken } from "@blueprint/ui";
+import { PROFILE_CARD, WELCOME_CARD } from "./SpacingPreviewCards";
 import styles from "./scale-workspace.module.css";
 
-/** The three ways a layout spends spacing, each set on its own step. */
-export type SpacingSlot = "inset" | "stack" | "columns";
-
+/** How each spacing slot is named and drawn; its steps are packages/ui's. */
 export const SPACING_SLOTS: readonly {
   slot: SpacingSlot;
   label: string;
   icon: LucideIcon;
-  /** Where each starts: 24px inset, 8px stack, 16px columns on a 4px grid. */
-  step: number;
 }[] = [
-  { slot: "inset", label: "Inset", icon: Box, step: 6 },
-  { slot: "stack", label: "Stack", icon: ArrowUpDown, step: 2 },
-  { slot: "columns", label: "Columns", icon: ArrowLeftRight, step: 4 },
+  { slot: "inset", label: "Inset", icon: Box },
+  { slot: "stack", label: "Stack", icon: ArrowUpDown },
+  { slot: "columns", label: "Columns", icon: ArrowLeftRight },
 ];
 
-const CARDS = [
-  {
-    icon: Box,
-    title: "Design Tokens",
-    body: "Consistent spacing creates harmonious visual rhythm across all components.",
-    action: "Explore Tokens",
-  },
-  {
-    icon: Palette,
-    title: "Theme Engine",
-    body: "Dynamic OKLCH color palettes with stable 25-grid intervals.",
-    action: "View Palettes",
-  },
-];
+const CARDS = [WELCOME_CARD, PROFILE_CARD];
 
 interface SpacingPreviewTileProps {
   /** The step each slot is set to. */
@@ -55,10 +38,13 @@ interface SpacingPreviewTileProps {
  * the cards apart by Columns — each on a step of its own, since a card is
  * rarely padded by the gap it stacks with.
  *
- * Every space is drawn at its real size and marked as a box model
- * inspector marks it: tinted, edged with a dashed line, and tagged with its
- * size. The first card carries the Inset and Stack tags; the second shows
- * the same spaces untagged, so the tags do not crowd the content.
+ * Every space is drawn at its real size and marked the way Figma's
+ * inspector marks it: padding hatched in blue, gaps hatched in pink, each
+ * with a dashed edge and a tag of its size. A tag never sits on content: a
+ * column gap's is centred in its band, which holds nothing, but a stack gap
+ * is often thinner than its tag, so its tag sits past the band's right end,
+ * and the inset's sits outside the card's left edge. The first card carries
+ * the Inset and Stack tags; the second shows the same spaces untagged.
  *
  * On a phone the cards stack and the column gap runs between them
  * vertically, the way a responsive grid folds.
@@ -69,8 +55,19 @@ export function SpacingPreviewTile({
   density,
 }: SpacingPreviewTileProps) {
   const px = (slot: SpacingSlot) => `${tokens[slot].px}px`;
+  /* Where each tag sits, clear of any content. */
+  const TAG_PLACE: Record<SpacingSlot, string | undefined> = {
+    inset: styles.spacingTagInset,
+    stack: styles.spacingTagSide,
+    columns: undefined,
+  };
   const tag = (slot: SpacingSlot) => (
-    <span className={styles.spacingTag}>{px(slot)}</span>
+    <span
+      className={[styles.spacingTag, TAG_PLACE[slot]].filter(Boolean).join(" ")}
+      data-spacing-tag={slot}
+    >
+      {px(slot)}
+    </span>
   );
   /* A gap drawn as an element of its own, so it can be seen: a flex gap is
      empty space, and empty space has no tint. */
@@ -95,11 +92,11 @@ export function SpacingPreviewTile({
     <figure
       aria-label="Spacing preview"
       className={styles.spacingPreview}
-      data-active-slot={active}
+      /* The inset, for placing the stack tags just outside the card. */
+      style={{ "--inset": px("inset") } as CSSProperties}
     >
       <div className={styles.spacingCards}>
         {CARDS.map((card, index) => {
-          const Icon = card.icon;
           const tagged = index === 0;
           return (
             <Fragment key={card.title}>
@@ -119,28 +116,7 @@ export function SpacingPreviewTile({
               >
                 {tagged ? tag("inset") : null}
                 <div className={styles.spacingCardBody}>
-                  {stacked(
-                    [
-                      <h3 key="title" className={styles.spacingCardTitle}>
-                        <Icon aria-hidden="true" />
-                        {card.title}
-                      </h3>,
-                      <p key="body" className={styles.spacingCardText}>
-                        {card.body}
-                      </p>,
-                      <span key="action">
-                        <Button
-                          scheme="neutral"
-                          size="medium"
-                          type="button"
-                          variant="outlined"
-                        >
-                          {card.action}
-                        </Button>
-                      </span>,
-                    ],
-                    tagged,
-                  )}
+                  {stacked(card.blocks, tagged)}
                 </div>
               </div>
             </Fragment>
