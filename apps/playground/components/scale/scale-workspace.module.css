@@ -449,8 +449,10 @@
   display: grid;
   grid-template-rows: auto 1fr;
   gap: var(--spacing-2);
-  width: calc(var(--spacing-12) + var(--spacing-12) + var(--spacing-5));
-  height: calc(var(--spacing-12) + var(--spacing-10));
+  /* Upright, taller than wide, as a dialog stands: 96 by 112px on the
+     128px ground. */
+  width: calc(var(--spacing-12) + var(--spacing-12));
+  height: calc(var(--spacing-12) + var(--spacing-12) + var(--spacing-4));
   padding: var(--spacing-2);
   border-radius: var(--radius-container);
 }
@@ -470,6 +472,21 @@
   flex: none;
   width: var(--spacing-3);
   height: var(--spacing-3);
+}
+
+/* The copy button beside a level's variable: quieter than the level's
+   name, in the muted ink and a thinner stroke, until it is pointed at. */
+.copyButton {
+  color: var(--color-fg-muted);
+}
+
+.copyButton svg {
+  stroke-width: 1.5;
+}
+
+.copyButton:hover,
+.copyButton:focus-visible {
+  color: var(--color-fg-primary);
 }
 
 .previewFrame {

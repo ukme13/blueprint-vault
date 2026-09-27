@@ -408,6 +408,9 @@ test.describe("The elevation editor", () => {
     await expect.poll(shadow).toBe(before);
     // Every level switches together, on both grounds.
     await expect(canvas.locator("[data-preview=dialog]")).toHaveCount(6);
+    // Upright, as a dialog stands: taller than it is wide.
+    const dialogBox = (await sample.boundingBox())!;
+    expect(dialogBox.height).toBeGreaterThan(dialogBox.width);
   });
 
   test("copies a level's box-shadow and shows it did", async ({
@@ -420,6 +423,19 @@ test.describe("The elevation editor", () => {
     await canvas.locator("[data-elevation-level=high]").click();
 
     const copy = canvas.getByRole("button", { name: "Copy CSS for Low" });
+    /* Quieter than the level's name beside it: muted ink, thinner stroke. */
+    const look = await copy.evaluate((button) => {
+      const name = button
+        .closest("[data-elevation-level]")!
+        .querySelector("button[aria-pressed]")!;
+      return {
+        ink: getComputedStyle(button).color,
+        nameInk: getComputedStyle(name).color,
+        stroke: getComputedStyle(button.querySelector("svg")!).strokeWidth,
+      };
+    });
+    expect(look.ink).not.toBe(look.nameInk);
+    expect(look.stroke).toBe("1.5px");
     await copy.click();
     await expect(copy).toHaveAttribute("data-copy-result", "copied");
 

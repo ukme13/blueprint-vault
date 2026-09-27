@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Check, Copy, X } from "lucide-react";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import type { ColourMode } from "@blueprint/ui";
+import styles from "./scale-workspace.module.css";
 
 /** How long the tick stays after a copy. */
 const FEEDBACK_MS = 1500;
@@ -42,6 +43,7 @@ export function ElevationCopyButton({
 
   return (
     <IconButton
+      className={styles.copyButton}
       data-copy-result={result ?? undefined}
       icon={<Icon aria-hidden="true" />}
       label={`Copy CSS for ${levelName}`}
