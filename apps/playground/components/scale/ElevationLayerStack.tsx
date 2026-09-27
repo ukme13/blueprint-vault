@@ -26,6 +26,8 @@ interface ElevationLayerStackProps {
   level: ElevationLevel;
   palettes: ColorTrack[];
   scaleHex: string;
+  /** The default shade's name, "primary 200", for the layers' Color lists. */
+  scaleColourName: string;
   onChange: (scale: ElevationScale, editKey?: string) => void;
 }
 
@@ -45,6 +47,7 @@ export function ElevationLayerStack({
   level,
   palettes,
   scaleHex,
+  scaleColourName,
   onChange,
 }: ElevationLayerStackProps) {
   const isPhone = useIsPhone();
@@ -62,6 +65,7 @@ export function ElevationLayerStack({
         levelId={level.id}
         palettes={palettes}
         scale={scale}
+        scaleColourName={scaleColourName}
         scaleHex={scaleHex}
         onChange={onChange}
         onClose={() => setOpen(null)}

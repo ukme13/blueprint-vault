@@ -497,6 +497,12 @@ test.describe("The elevation editor", () => {
     await page.getByRole("radio", { name: "Advanced" }).click();
     await expect(rows).toHaveCount(2);
 
+    /* One colour control, not two: in Advanced the default is the first
+       choice in each layer's Color list, so the Simple setting is not here. */
+    await expect(page.getByLabel("Shadow colour", { exact: true })).toHaveCount(
+      0,
+    );
+
     /* The type icon is square and as tall as the two lines beside it. */
     const icon = await rows.first().evaluate((row) => {
       const svg = row
@@ -537,6 +543,9 @@ test.describe("The elevation editor", () => {
     await rows.nth(2).click();
     const third = page.getByRole("dialog", { name: "Layer 3 settings" });
     await expect(third).toBeVisible();
+    await expect(
+      third.getByLabel("Layer 3 colour", { exact: true }),
+    ).toContainText("Default");
     const [popover, row] = [
       (await third.boundingBox())!,
       (await rows.nth(2).boundingBox())!,

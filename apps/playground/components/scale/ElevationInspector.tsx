@@ -56,6 +56,47 @@ export function ElevationInspector({
      edited, not part of it, so it is not saved with the scale. */
   const [view, setView] = useState<ElevationView>("simple");
 
+  /* The default every layer is drawn in, unless it picks its own. One shade
+     for every level, in both modes: a shadow is the absence of light, and
+     flipping it pale on dark would draw a halo. Shown in Simple, where it is
+     the only colour; in Advanced each layer's Color list starts with it as
+     "Default", so a second control for it there only duplicated that. */
+  const colourSetting = (
+    <div className={styles.settingGroup}>
+      {track ? (
+        /* One list of every shade, grouped by track and found by typing
+           ("primary 900"), rather than a track selector and a weight
+           selector. The swatch rides in the trigger. */
+        <SheetSelector
+          hasSearch
+          label="Shadow colour"
+          options={shadeOptionSections(palettes, (hex) => (
+            <TransparencySwatch alpha={1} colour={hex} />
+          ))}
+          searchPlaceholder="Search shades"
+          size="md"
+          startIcon={<TransparencySwatch alpha={1} colour={colour.hex} />}
+          value={shadeOptionValue({
+            trackId: track.id,
+            weight: track.shades.some((shade) => shade.weight === colour.weight)
+              ? colour.weight
+              : (track.shades.at(-1)?.weight ?? colour.weight),
+          })}
+          onChange={(next) => {
+            const picked = parseShadeOptionValue(next);
+            if (picked && palettes.some((item) => item.id === picked.trackId)) {
+              onChange(setElevationColour(scale, picked));
+            }
+          }}
+        />
+      ) : (
+        <p className={styles.settingHint}>
+          Build a palette first. Until then the shadows fall back to black.
+        </p>
+      )}
+    </div>
+  );
+
   return (
     <>
       {selected ? (
@@ -67,46 +108,6 @@ export function ElevationInspector({
           onSelectLevel={onSelectLevel}
         />
       ) : null}
-      {/* One shade for every level, in both modes: a shadow is the absence
-          of light, and flipping it pale on dark would draw a halo. */}
-      <div className={styles.settingGroup}>
-        {track ? (
-          /* One list of every shade, grouped by track and found by typing
-             ("primary 900"), rather than a track selector and a weight
-             selector. The swatch rides in the trigger. */
-          <SheetSelector
-            hasSearch
-            label="Shadow colour"
-            options={shadeOptionSections(palettes, (hex) => (
-              <TransparencySwatch alpha={1} colour={hex} />
-            ))}
-            searchPlaceholder="Search shades"
-            size="md"
-            startIcon={<TransparencySwatch alpha={1} colour={colour.hex} />}
-            value={shadeOptionValue({
-              trackId: track.id,
-              weight: track.shades.some(
-                (shade) => shade.weight === colour.weight,
-              )
-                ? colour.weight
-                : (track.shades.at(-1)?.weight ?? colour.weight),
-            })}
-            onChange={(next) => {
-              const picked = parseShadeOptionValue(next);
-              if (
-                picked &&
-                palettes.some((item) => item.id === picked.trackId)
-              ) {
-                onChange(setElevationColour(scale, picked));
-              }
-            }}
-          />
-        ) : (
-          <p className={styles.settingHint}>
-            Build a palette first. Until then the shadows fall back to black.
-          </p>
-        )}
-      </div>
       {selected ? (
         <div className={styles.settingGroup}>
           <SegmentedControl
@@ -125,6 +126,7 @@ export function ElevationInspector({
           every level in one column scrolled forever. */}
       {selected && view === "simple" ? (
         <>
+          {colourSetting}
           <ElevationPresets
             level={selected}
             palettes={palettes}
@@ -160,12 +162,15 @@ export function ElevationInspector({
           )}
         </>
       ) : null}
+      {/* No palette: say why every layer falls back to black. */}
+      {selected && view === "advanced" && !track ? colourSetting : null}
       {selected && view === "advanced" ? (
         <ElevationLayerStack
           key={`layers-${selected.id}`}
           level={selected}
           palettes={palettes}
           scale={scale}
+          scaleColourName={`${colour.trackName} ${colour.weight}`}
           scaleHex={colour.hex}
           onChange={onChange}
         />

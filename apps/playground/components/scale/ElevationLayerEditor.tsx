@@ -35,6 +35,8 @@ interface ElevationLayerEditorProps {
   palettes: ColorTrack[];
   /** The scale's shadow colour, for the "scale colour" choice's swatch. */
   scaleHex: string;
+  /** The default shade's name, shown beside "Default". */
+  scaleColourName: string;
   onChange: (scale: ElevationScale, editKey?: string) => void;
   onClose: () => void;
 }
@@ -57,6 +59,7 @@ export function ElevationLayerEditor({
   layerName,
   palettes,
   scaleHex,
+  scaleColourName,
   onChange,
   onClose,
 }: ElevationLayerEditorProps) {
@@ -129,8 +132,9 @@ export function ElevationLayerEditor({
         {tagged("spreadPx", "Spread", <SunDim aria-hidden="true" />)}
 
         <span className={styles.layerPopoverLabel}>Color</span>
-        {/* The scale's colour first, since it is what almost every layer
-            wants; then every shade, found by typing ("primary 300"). */}
+        {/* Default first: the scale's shadow colour, set in Simple, which is
+            what almost every layer wants. Then every shade, found by typing
+            ("primary 300"). */}
         <SheetSelector
           hasSearch
           isLabelHidden
@@ -138,7 +142,8 @@ export function ElevationLayerEditor({
           options={[
             {
               value: SCALE_COLOUR,
-              label: "Shadow colour",
+              label: "Default",
+              description: scaleColourName,
               icon: <TransparencySwatch alpha={1} colour={scaleHex} />,
             },
             ...shadeOptionSections(palettes, (hex) => (
