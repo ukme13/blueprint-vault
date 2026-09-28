@@ -3,6 +3,7 @@ import type { Locator, Page } from "@playwright/test";
 import { defaultProject, readStoredWorkspace } from "./fixtures";
 import {
   expect,
+  clippedValues,
   showScaleView,
   spacingTagReport,
   test,
@@ -33,6 +34,8 @@ test.describe("The spacing studio", () => {
 
     await unit.getByRole("radio", { name: "rem" }).click();
     await expect(value).toHaveText("1rem");
+    // The longest, 0.125rem, fits whole in the inspector.
+    expect(await clippedValues(steps)).toEqual([]);
     await expect(steps.getByText("16px", { exact: true })).toHaveCount(0);
 
     await unit.getByRole("radio", { name: "px" }).click();
@@ -461,12 +464,14 @@ test.describe("The spacing studio", () => {
       .getByRole("button", { name: "Keep step 4", exact: true })
       .boundingBox();
     const name = await row.locator("code").boundingBox();
-    const bar = await row.locator("[class*=tokenBar]").boundingBox();
+    const value = await row.locator("[data-spacing-value]").boundingBox();
     const rowBox = await row.boundingBox();
-    // The box leads the row; the variable follows it, the bar comes last.
+    // The box leads the row, the variable follows it, the value ends it.
     expect(box!.x - rowBox!.x).toBeLessThan(16);
     expect(name!.x).toBeGreaterThanOrEqual(box!.x + box!.width);
-    expect(bar!.x).toBeGreaterThan(name!.x);
+    expect(value!.x).toBeGreaterThan(name!.x);
+    // No bar any more: the value says the size.
+    await expect(row.locator("[class*=tokenBar]")).toHaveCount(0);
   });
 
   test("prunes a step from its row, and keeps it pruned", async ({

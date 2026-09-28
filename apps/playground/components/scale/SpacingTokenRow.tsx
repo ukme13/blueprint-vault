@@ -22,7 +22,7 @@ const FIXED_HINT = "Fixed on base grid: does not scale with density";
 
 /**
  * One step of the spacing scale: its variable, its size in the list's unit,
- * and a bar of its length. A fine step, which density never moves, has a
+ * A fine step, which density never moves, has a
  * lock after its name; a layout step says nothing, since its size already
  * shows what density did.
  *
@@ -83,14 +83,9 @@ export function SpacingTokenRow({
           </span>
         )}
       </span>
-      <span data-spacing-value>
+      <span className={styles.tokenValue} data-spacing-value>
         {unit === "px" ? `${token.px}px` : `${token.rem}rem`}
       </span>
-      <span
-        aria-hidden="true"
-        className={styles.tokenBar}
-        style={{ width: `${token.px}px` }}
-      />
     </li>
   );
 }

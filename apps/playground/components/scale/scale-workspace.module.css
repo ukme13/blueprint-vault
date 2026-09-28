@@ -273,9 +273,9 @@
 
 .tokenRow {
   display: grid;
-  /* Sized for the inspector: the name takes what the rest leave, and the
-     bar has a column of its own, a long step clipped at its end. */
-  grid-template-columns: auto minmax(0, 1fr) 3rem 4rem;
+  /* Sized for the inspector: the name takes what the box and the value
+     leave, and the value is as wide as its text. */
+  grid-template-columns: auto minmax(0, 1fr) auto;
   /* One height, kept or pruned, locked or not: toggling moves nothing. */
   block-size: var(--spacing-7);
   align-items: center;
@@ -301,6 +301,12 @@
   font-size: 12px;
 }
 
+/* The value at the row's end, whole: `0.125rem` is as wide as it gets. */
+.tokenValue {
+  text-align: right;
+  white-space: nowrap;
+}
+
 /* A fine step's lock, after its name: small and quiet. */
 .tokenLock {
   display: inline-flex;
@@ -311,13 +317,6 @@
 .tokenLock svg {
   width: var(--spacing-3);
   height: var(--spacing-3);
-}
-
-.tokenBar {
-  max-width: 100%;
-  height: 12px;
-  border-radius: var(--radius-sm);
-  background: var(--color-action-primary);
 }
 
 /* The spacing canvas: the selected step used in a layout, above the list. */
@@ -1382,31 +1381,6 @@
     /* None below: the tabs are the last row, and their underline is set to
        land on this bar's bottom border. Padding here lifted it off. */
     padding-block-end: 0;
-  }
-
-  /* A token row is five fixed columns — 8rem, 4rem, 4.5rem, 2.75rem and the
-     bar — which comes to 356px of reservations before the bar is drawn.
-     Measured on a 390px screen: the bar had about six pixels to live in and
-     the largest steps ran off the edge and were clipped.
-
-     The labels on one line and the bar on a line of its own under them,
-     drawn at its own length from the left. It was flex-wrapped once, with
-     `flex-basis: 100%` to force the new line, and that overrode the bar's
-     width: every step drew the full width of the screen, and 0px looked the
-     same as 20px. */
-  .tokenRow {
-    grid-template-columns: auto auto minmax(0, 1fr);
-    block-size: auto;
-    align-items: baseline;
-    column-gap: var(--spacing-2);
-    row-gap: var(--spacing-1);
-  }
-
-  /* The bar starts under the name, not under the keep box. */
-  .tokenBar {
-    grid-column: 2 / -1;
-    justify-self: start;
-    max-width: 100%;
   }
 }
 

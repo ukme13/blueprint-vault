@@ -86,3 +86,19 @@ export function spacingTagReport(
     return { tags: tags.length, hits, offScreen };
   });
 }
+
+/** Step values cut off, or running past their row: none should be. */
+export function clippedValues(steps: Locator): Promise<string[]> {
+  return steps.evaluate((section) =>
+    [...section.querySelectorAll("li")]
+      .filter((row) => {
+        const value = row.querySelector("[data-spacing-value]") as HTMLElement;
+        return (
+          value.scrollWidth > value.clientWidth + 0.5 ||
+          value.getBoundingClientRect().right >
+            row.getBoundingClientRect().right + 0.5
+        );
+      })
+      .map((row) => row.textContent ?? ""),
+  );
+}
