@@ -964,7 +964,7 @@
   gap: 8px;
   overflow: hidden;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--color-border-strong);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .shadeEditModeControl {
@@ -1003,7 +1003,7 @@
 .popoverContrast small {
   color: var(--color-fg-muted);
   font-family: var(--font-mono);
-  font-size: 8px;
+  font-size: 11px;
   text-transform: capitalize;
 }
 
@@ -1020,7 +1020,7 @@
   display: grid;
   place-items: center;
   box-sizing: border-box;
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 6px;
   font-size: 16px;
   font-weight: 800;
@@ -1050,8 +1050,10 @@
   gap: 5px;
   margin: 0;
   color: var(--color-status-error);
-  font-family: var(--font-mono);
-  font-weight: 700;
+  /* The popover's own sans: a grade is a word, not a value to align. */
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .popoverContrastGrades dd[data-pass="true"] {

@@ -1,6 +1,71 @@
 import { defaultProject, expect, test } from "./fixtures";
 
 test.describe("Shade details", () => {
+  test("swaps the contrast sample, and sets the grades in the text face", async ({
+    seededPage: page,
+  }) => {
+    await page
+      .getByRole("button", { name: /Select primary 500,/ })
+      .first()
+      .click();
+    const contrast = page
+      .getByRole("dialog", { name: "primary 500 shade details" })
+      .getByRole("region", { name: "WCAG 2 contrast result" });
+    await expect(contrast).toBeVisible();
+
+    /* The shade as text on the comparison colour; swapped, the comparison
+       colour as text on the shade. The ratio is the same either way. */
+    const sample = contrast.locator("span[aria-hidden]").first();
+    const swap = contrast.getByRole("button", {
+      name: "Swap text and background",
+    });
+    const paint = () =>
+      sample.evaluate((node) => {
+        const css = getComputedStyle(node);
+        return { ground: css.backgroundColor, ink: css.color };
+      });
+    const ratio = await contrast.locator("strong").textContent();
+    const before = await paint();
+    await expect(swap).toHaveAttribute("aria-pressed", "false");
+
+    await swap.click();
+    await expect(swap).toHaveAttribute("aria-pressed", "true");
+    await expect
+      .poll(paint)
+      .toEqual({ ground: before.ink, ink: before.ground });
+    await expect(contrast.locator("strong")).toHaveText(ratio!);
+
+    await swap.click();
+    await expect.poll(paint).toEqual(before);
+
+    /* The grades in the popover's own sans, not mono; the caption legible;
+       the sample's edge the subtle border, not the strong one. */
+    const type = await contrast.evaluate((section) => {
+      const grade = getComputedStyle(section.querySelector("dd")!);
+      const probe = document.createElement("i");
+      probe.style.borderTop = "1px solid var(--color-border-subtle)";
+      section.append(probe);
+      const subtle = getComputedStyle(probe).borderTopColor;
+      probe.remove();
+      return {
+        gradeFace: grade.fontFamily === getComputedStyle(section).fontFamily,
+        gradeSize: grade.fontSize,
+        gradeWeight: grade.fontWeight,
+        caption: getComputedStyle(section.querySelector("small")!).fontSize,
+        edgeIsSubtle:
+          getComputedStyle(section.querySelector("span[aria-hidden]")!)
+            .borderTopColor === subtle,
+      };
+    });
+    expect(type).toEqual({
+      gradeFace: true,
+      gradeSize: "12px",
+      gradeWeight: "600",
+      caption: "11px",
+      edgeIsSubtle: true,
+    });
+  });
+
   test("opens, copies the OKLCH value, and returns focus when closed", async ({
     seededPage: page,
   }) => {
