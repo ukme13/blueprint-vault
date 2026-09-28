@@ -35,6 +35,25 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    date: "2026-09-28",
+    version: "0.3.0",
+    schema: 8,
+    title: "Milestone v1.0: the foundation is complete",
+    changes: [
+      "Colour, semantic roles, typography, spacing, radius and elevation are all built, all exported and all documented. This is the milestone the studio was working towards; the version number stays below 1 until a client has built a product from a handover alone.",
+      "Spacing has a preview made of real interface: a welcome card and a profile form, spending spacing three ways at once. Inset pads each card, Stack separates its blocks and Columns separates the cards, and each is set to a step of its own.",
+      "The preview marks its spaces the way Figma's inspector does: padding hatched in blue, gaps in pink, each with a tag of its size. A switch hides the marks and leaves the spaces as they are.",
+      "Density has presets, Compact 0.75×, Default 1× and Spacious 1.25×, beside the slider. Density moves the layout steps and leaves the fine grid alone; a fine step carries a lock to say so.",
+      "The step list lives in the settings, one row per step, each with a box to keep or prune it. Pruning a step that a layout use points at moves that use to the nearest step still kept, so the export never names a variable it no longer writes. Values read in px or rem.",
+      "Scale presets set the base unit and the kept steps in one pick: 8pt Standard Grid, 4pt Compact Grid, Tailwind v4 Harmonized, and Spacious / Editorial.",
+      "Elevation works two ways. Simple tunes a style with a few sliders, the way Lightroom does: Distance, Softness, Spread and Opacity for a drop shadow, with their own sets for Inset, Neumorphic and Glow. Advanced edits the layers one by one, as Figma's effect stack does; a layer can be inner, hidden, or in a colour of its own.",
+      "Each level is previewed on a card, a button and a dialog, over light and dark grounds, and copies as CSS. A moved slider offers to reset, and a double-click does the same.",
+      "Preset pickers read like Figma's variable list: a borderless search that has focus as it opens, a hairline divider that runs edge to edge, and a quiet tint on the picked value.",
+      "The spacing preview remembers its slots, its marks and its unit across pages and reloads. They are view settings, so none of them is an undo step.",
+      "On a phone every studio ends with room under its last row, the selector sheets keep their search opaque over the shades, and elevation's light and dark grounds share the screen's width.",
+    ],
+  },
+  {
     date: "2026-09-23",
     version: "0.2.0",
     schema: 8,

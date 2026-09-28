@@ -194,6 +194,12 @@ needs the same component.
 
 ## Current status
 
+**Milestone v1.0 — Foundation Complete** (studio 0.3.0, 28 September 2026).
+Every foundation a design system needs is built, exported, and documented:
+colour, semantic roles, typography, spacing, radius, and elevation. The studio
+version stays below 1.0 until a client has built a product from a handover
+alone; see the roadmap below.
+
 The palette workspace currently supports project creation, semantic colour
 tracks, direct colour and name editing, drag reordering, colour detail dialogs,
 editable lightness values, 10–37 stable shade tokens, live previews, and local
@@ -261,15 +267,42 @@ draws itself from semantic tokens only, in either mode, and a test proves it
 reaches for no primitive.
 
 The [scale studio](docs/roadmap/scale-studio.md) is complete and lives at
-`/scale`. Spacing is a base unit, 4px by default and editable, counted out over
-an editable step list and exported in rem. Radius tokens are named by use
-rather than by size and scale together from one multiplier. Elevation levels
-are composite shadows drawn from one palette shade, with opacity held per mode
-because a dark surface swallows a shadow, so a level renders correctly in
-either mode without changing colour. All three families export beside the
-colour and type
-tokens, and a workspace saved before they existed opens and gains sensible
-defaults.
+`/spacing`, `/radius`, and `/elevation`. All three families export beside the
+colour and type tokens, and a workspace saved before they existed opens and
+gains sensible defaults.
+
+- **Spacing Studio.** A base unit, 4px by default, counted out over a step
+  list exported in rem.
+  - **A preview made of real interface:** a welcome card and a profile form
+    spend spacing three ways at once, each on a slot of its own. Inset pads
+    each card, Stack separates its blocks, and Columns separates the cards.
+  - **Marks:** the spaces are hatched in two tones, as Figma's inspector
+    draws them (blue for padding, pink for gaps), with a size tag on each; a
+    switch hides them.
+  - **Density:** presets for Compact `0.75×`, Default `1.0×` and Spacious
+    `1.25×`, plus a slider. Density moves the layout steps; the fine steps
+    below step 2 stay on the grid and carry a lock icon.
+  - **The step list** keeps or prunes each step in place. Pruning a step a
+    layout use points at moves that use to the nearest kept step, so the
+    export never names a missing variable.
+  - **Presets:** scale presets set the base unit and the kept steps together.
+- **Radius.** Tokens are named by use rather than by size, and scale together
+  from one multiplier.
+- **Elevation Studio.** Levels are composite shadows drawn from one palette
+  shade, with opacity held per mode, because a dark surface swallows a
+  shadow. The editor works two ways.
+  - **Simple:** Lightroom-style sliders tune a style (drop shadow, Inset,
+    Neumorphic, Glow).
+  - **Advanced:** a Figma-style stack of shadow layers, each able to be
+    inner, hidden, or in a colour of its own.
+  - **Previews:** each level shows on a card, a button, and a dialog over
+    light and dark grounds, and copies as CSS.
+- **Number variable popovers.** Preset pickers work like Figma's variable
+  list: a borderless search that has focus as soon as the picker opens, an
+  edge-to-edge divider, and a neutral highlight on the picked value.
+- **View persistence.** The spacing preview's slots, marks, and value unit are
+  saved with the workspace, so they survive leaving the page and a reload.
+  They are view settings, outside undo history.
 
 CI runs lint, type checking, unit tests, and build on every push and pull
 request to `main`, with Playwright suites for the studio and for the
@@ -279,7 +312,8 @@ unnoticed (see `.github/workflows/ci.yml`).
 
 ## Current roadmap
 
-The next priorities are:
+Milestone v1.0 (Foundation Complete) is done: every foundation studio is
+built, and the handover documents all six. The next priorities are:
 
 1. Component documentation beyond Button, driven by a real product rather
    than by the component library.
