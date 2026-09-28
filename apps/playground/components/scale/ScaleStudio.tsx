@@ -10,7 +10,9 @@ import {
   defaultLayoutTokens,
   defaultPreviewDevices,
   defaultRadiusScale,
+  defaultSpacingPreviewSettings,
   defaultSpacingScale,
+  withSpacingPreview,
   emptyWorkspace,
   generatePalettes,
   seedTypographyProject,
@@ -191,7 +193,13 @@ export function ScaleStudio() {
               section={activeSection}
               selectedElevationId={selectedElevationId}
               spacing={spacing}
+              spacingPreview={
+                project?.spacingPreview ?? defaultSpacingPreviewSettings()
+              }
               write={history.write}
+              onSpacingPreviewChange={(patch) =>
+                store.update((current) => withSpacingPreview(current, patch))
+              }
               onSelectElevation={setSelectedElevationId}
             />
 

@@ -6,6 +6,7 @@ import {
   type ElevationScale,
   type LayoutToken,
   type RadiusScale,
+  type SpacingPreviewSettings,
   type SpacingScale,
 } from "@blueprint/ui";
 import { ElevationCanvas } from "./ElevationEditor";
@@ -26,6 +27,9 @@ interface ScaleCanvasProps {
   onSelectElevation: (id: string) => void;
   /** The workspace's layout uses, moved off a step when it is pruned. */
   layout: readonly LayoutToken[];
+  spacingPreview: SpacingPreviewSettings;
+  /** Saved straight to the workspace: a view setting, not an edit. */
+  onSpacingPreviewChange: (patch: Partial<SpacingPreviewSettings>) => void;
 }
 
 /** The current section's scale, drawn: steps, corners or shadows. */
@@ -39,6 +43,8 @@ export function ScaleCanvas({
   selectedElevationId,
   onSelectElevation,
   layout,
+  spacingPreview,
+  onSpacingPreviewChange,
 }: ScaleCanvasProps) {
   return (
     <section
@@ -47,7 +53,9 @@ export function ScaleCanvas({
     >
       {section === "spacing" && (
         <SpacingCanvas
+          preview={spacingPreview}
           scale={spacing}
+          onPreviewChange={onSpacingPreviewChange}
           onToggleStep={(step) =>
             /* No edit key: each keep or prune is its own step in history,
                the layout uses it moves included. */

@@ -15,17 +15,18 @@ import {
   resolveSpacing,
   resolveSpacingRamp,
   resolveSpacingSlots,
-  SPACING_SLOT_STEPS,
   type SpacingSlot,
   resolveHybridValue,
   type HybridTokenizedValue,
   type SpacingPresetId,
+  type SpacingPreviewSettings,
   type SpacingScale,
+  type SpacingUnit,
 } from "@blueprint/ui";
 import { usePickerSheet } from "../picker-sheet";
 import { SpacingDensitySetting } from "./SpacingDensitySetting";
 import { SpacingPresetSelector } from "./SpacingPresetSelector";
-import { SpacingTokenRow, type SpacingUnit } from "./SpacingTokenRow";
+import { SpacingTokenRow } from "./SpacingTokenRow";
 import { SpacingPreviewTile } from "./SpacingPreviewTile";
 import { SpacingSlotPicker } from "./SpacingSlotPicker";
 import styles from "./scale-workspace.module.css";
@@ -93,25 +94,32 @@ interface SpacingCanvasProps {
   scale: SpacingScale;
   /** Keep a step, or prune it: one step in history. */
   onToggleStep: (step: number) => void;
+  /** The preview's slots, marks and unit, kept with the workspace. */
+  preview: SpacingPreviewSettings;
+  /** Change them: saved, but never a step in history. */
+  onPreviewChange: (patch: Partial<SpacingPreviewSettings>) => void;
 }
 
-export function SpacingCanvas({ scale, onToggleStep }: SpacingCanvasProps) {
+export function SpacingCanvas({
+  scale,
+  onToggleStep,
+  preview,
+  onPreviewChange,
+}: SpacingCanvasProps) {
   /* The preview draws from the kept steps; the list shows the whole ramp,
      pruned steps dimmed, each turned on and off in place. */
   const tokens = resolveSpacing(scale);
   const ramp = resolveSpacingRamp(scale);
-  const [steps, setSteps] = useState({ ...SPACING_SLOT_STEPS });
   /* The slot a click on the step list sets: the one last touched. */
   const [active, setActive] = useState<SpacingSlot>("inset");
-  /* Whether the preview marks its spaces, or shows the cards plain. */
-  const [showSpacing, setShowSpacing] = useState(true);
-  /* The unit the value column is written in. */
-  const [unit, setUnit] = useState<SpacingUnit>("px");
+  /* The slots' steps, whether the preview marks its spaces, and the list's
+     unit live in the workspace, so leaving the page does not reset them. */
+  const { slots, showSpacing, unit } = preview;
   /* A pruned step falls back to the nearest kept one, per slot, so the preview never points at a step the scale no longer has. */
-  const resolved = resolveSpacingSlots(tokens, steps);
+  const resolved = resolveSpacingSlots(tokens, slots);
   const setStep = (slot: SpacingSlot, step: number) => {
     setActive(slot);
-    setSteps((current) => ({ ...current, [slot]: step }));
+    onPreviewChange({ slots: { ...slots, [slot]: step } });
   };
   const selected = resolved?.[active];
 
@@ -131,7 +139,7 @@ export function SpacingCanvas({ scale, onToggleStep }: SpacingCanvasProps) {
             <Switch
               label="Show spacing"
               value={showSpacing}
-              onChange={setShowSpacing}
+              onChange={(next) => onPreviewChange({ showSpacing: next })}
             />
           </div>
           <SpacingPreviewTile showSpacing={showSpacing} tokens={resolved} />
@@ -143,7 +151,9 @@ export function SpacingCanvas({ scale, onToggleStep }: SpacingCanvasProps) {
             label="Value unit"
             size="sm"
             value={unit}
-            onChange={(value) => setUnit(value as SpacingUnit)}
+            onChange={(value) =>
+              onPreviewChange({ unit: value as SpacingUnit })
+            }
           >
             <SegmentedControlItem label="px" value="px" />
             <SegmentedControlItem label="rem" value="rem" />

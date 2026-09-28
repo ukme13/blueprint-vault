@@ -331,6 +331,62 @@ export const SPACING_SLOT_STEPS: Readonly<Record<SpacingSlot, number>> = {
   columns: 4,
 };
 
+/** The unit the step list writes its values in. */
+export type SpacingUnit = "px" | "rem";
+
+/**
+ * How the spacing canvas is set to look: the step each preview slot is on,
+ * whether the preview marks its spaces, and the unit the list is written in.
+ * A view setting, kept with the workspace so it survives leaving the page,
+ * and never an edit: it has no place in undo.
+ */
+export interface SpacingPreviewSettings {
+  slots: Record<SpacingSlot, number>;
+  showSpacing: boolean;
+  unit: SpacingUnit;
+}
+
+export function defaultSpacingPreviewSettings(): SpacingPreviewSettings {
+  return { slots: { ...SPACING_SLOT_STEPS }, showSpacing: true, unit: "px" };
+}
+
+/**
+ * Reads stored preview settings back, field by field: a save from before
+ * they existed, or with one field missing or malformed, keeps the rest and
+ * takes the default for the gap.
+ */
+export function normalizeSpacingPreviewSettings(
+  value: unknown,
+): SpacingPreviewSettings {
+  const fallback = defaultSpacingPreviewSettings();
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return fallback;
+  }
+  const raw = value as Record<string, unknown>;
+  const slots =
+    raw.slots && typeof raw.slots === "object" && !Array.isArray(raw.slots)
+      ? (raw.slots as Record<string, unknown>)
+      : {};
+  const step = (slot: SpacingSlot) => {
+    const stored = slots[slot];
+    return typeof stored === "number" && Number.isFinite(stored) && stored >= 0
+      ? stored
+      : fallback.slots[slot];
+  };
+  return {
+    slots: {
+      inset: step("inset"),
+      stack: step("stack"),
+      columns: step("columns"),
+    },
+    showSpacing:
+      typeof raw.showSpacing === "boolean"
+        ? raw.showSpacing
+        : fallback.showSpacing,
+    unit: raw.unit === "px" || raw.unit === "rem" ? raw.unit : fallback.unit,
+  };
+}
+
 /**
  * Each slot's token: its step, or the nearest one the scale has once that
  * step is pruned. Null only for a scale with no steps at all.

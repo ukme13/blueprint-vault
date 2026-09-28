@@ -10,7 +10,9 @@ import {
 } from "../scale/radius";
 import {
   defaultSpacingScale,
+  normalizeSpacingPreviewSettings,
   normalizeSpacingScale,
+  type SpacingPreviewSettings,
   type SpacingScale,
 } from "../scale/spacing";
 
@@ -40,6 +42,13 @@ export function readSpacingScale(value: unknown): SpacingScale | null {
 /** The scale a workspace gets when it has none. */
 export function spacingOrDefault(value: unknown): SpacingScale {
   return readSpacingScale(value) ?? defaultSpacingScale();
+}
+
+/** The spacing canvas's view settings, or the defaults for any gap. */
+export function spacingPreviewOrDefault(
+  value: unknown,
+): SpacingPreviewSettings {
+  return normalizeSpacingPreviewSettings(value);
 }
 
 /**

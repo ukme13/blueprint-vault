@@ -5,12 +5,10 @@ import {
   spacingDensityBehavior,
   spacingStepName,
   type SpacingToken,
+  type SpacingUnit,
 } from "@blueprint/ui";
 import { SpacingCopyButton } from "./SpacingCopyButton";
 import styles from "./scale-workspace.module.css";
-
-/** The unit the list's value column is written in. */
-export type SpacingUnit = "px" | "rem";
 
 interface SpacingTokenRowProps {
   token: SpacingToken;

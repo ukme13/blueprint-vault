@@ -163,6 +163,53 @@ test.describe("The spacing studio", () => {
     await expect.poll(async () => (await collisions()).hits).toEqual([]);
   });
 
+  test("keeps the preview slots, marks and unit across a page switch", async ({
+    seededPage: page,
+  }) => {
+    const workspaces = page.getByRole("navigation", {
+      name: "Blueprint workspaces",
+    });
+    const inset = page.getByLabel("Inset spacing", { exact: true });
+    const stack = page.getByLabel("Stack spacing", { exact: true });
+    const marks = page.getByRole("switch", { name: "Show spacing" });
+    const rem = page
+      .getByRole("radiogroup", { name: "Value unit" })
+      .getByRole("radio", { name: "rem" });
+    const undo = page.getByRole("button", { name: "Undo" });
+
+    await expect(undo).toBeDisabled();
+    await inset.click();
+    await page.getByRole("option", { name: /^32px/ }).click();
+    await stack.click();
+    await page.getByRole("option", { name: /^12px/ }).click();
+    await marks.click();
+    await rem.click();
+    // A view setting, not an edit: nothing to undo.
+    await expect(undo).toBeDisabled();
+
+    /* To the colour studio and back, the way somebody would. */
+    await workspaces.getByRole("link", { name: "Colour" }).click();
+    await expect(page).toHaveURL(/colour$/);
+    await workspaces
+      .getByRole("link", { name: "Spacing", exact: true })
+      .click();
+
+    await expect(inset).toContainText("Inset: 32px");
+    await expect(stack).toContainText("Stack: 12px");
+    await expect(marks).not.toBeChecked();
+    await expect(rem).toBeChecked();
+    await expect(
+      page
+        .getByRole("region", { name: "Generated spacing steps" })
+        .locator('[data-spacing-step="4"] [data-spacing-value]'),
+    ).toHaveText("1rem");
+
+    /* And across a reload. */
+    await page.reload();
+    await expect(inset).toContainText("Inset: 32px");
+    await expect(rem).toBeChecked();
+  });
+
   test("hides and shows the spacing marks", async ({ seededPage: page }) => {
     const preview = page.getByRole("figure", { name: "Spacing preview" });
     const marks = () =>

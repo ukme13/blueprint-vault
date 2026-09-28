@@ -17,7 +17,10 @@ import {
 import { defaultElevationScale } from "../scale/elevation";
 import { defaultLayoutTokens } from "../scale/layout-tokens";
 import { defaultRadiusScale } from "../scale/radius";
-import { defaultSpacingScale } from "../scale/spacing";
+import {
+  defaultSpacingPreviewSettings,
+  defaultSpacingScale,
+} from "../scale/spacing";
 import { normalizeButtonSchemes } from "../button-tones";
 import { defaultPreviewDevices } from "../typography/preview-devices";
 import type { ColorTrack } from "../color/types";
@@ -58,6 +61,7 @@ function workspace(over: Partial<WorkspaceProject> = {}): WorkspaceProject {
     removedSeedRoles: [],
     buttonSchemes: normalizeButtonSchemes(undefined),
     spacing: defaultSpacingScale(),
+    spacingPreview: defaultSpacingPreviewSettings(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
     previewDevices: defaultPreviewDevices(),

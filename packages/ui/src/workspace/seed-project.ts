@@ -2,7 +2,10 @@ import type { ColorTrackInput } from "../color/types";
 import { defaultElevationScale } from "../scale/elevation";
 import { defaultLayoutTokens } from "../scale/layout-tokens";
 import { defaultRadiusScale } from "../scale/radius";
-import { defaultSpacingScale } from "../scale/spacing";
+import {
+  defaultSpacingPreviewSettings,
+  defaultSpacingScale,
+} from "../scale/spacing";
 import { defaultPreviewDevices } from "../typography/preview-devices";
 import {
   seedPreviewDocument,
@@ -179,6 +182,7 @@ export function seedWorkspaceProject(
     removedSeedRoles: [],
     buttonSchemes: normalizeButtonSchemes(undefined),
     spacing: defaultSpacingScale(),
+    spacingPreview: defaultSpacingPreviewSettings(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
     previewDevices: defaultPreviewDevices(typography.ratio),
