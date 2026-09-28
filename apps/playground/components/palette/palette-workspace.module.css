@@ -1598,6 +1598,18 @@
 }
 
 @media (max-width: 640px) {
+  /* The layout scrolls, so the workspace is as tall as its content: held
+     to the screen, the content ran past it with nothing under the last
+     row. Then 64px of room, or the safe area where it is taller, under
+     whatever comes last: the canvas, or the settings stacked below it. */
+  .workspace {
+    height: auto;
+    padding-bottom: max(
+      calc(var(--spacing-8) * 2),
+      env(safe-area-inset-bottom, 0px)
+    );
+  }
+
   .topbar,
   .creationHeader {
     padding: 0 14px;

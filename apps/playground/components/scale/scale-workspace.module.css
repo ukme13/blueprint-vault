@@ -330,12 +330,16 @@
   gap: var(--spacing-4);
   margin: 0;
   padding: var(--spacing-6);
-  /* Room on the left and above for the size tags, clear of the cards. */
-  padding-left: var(--spacing-10);
   padding-top: var(--spacing-8);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-container);
   background: var(--color-surface-subtle);
+}
+
+/* Room for the size tags, above and at the left of the cards, only while
+   they are shown; the same at the right, so the cards stay centred. */
+.spacingPreview[data-show-spacing] {
+  padding-inline: var(--spacing-10);
 }
 
 /* The space itself, marked as a box model inspector marks it: tinted, with
@@ -1364,7 +1368,11 @@
     overflow-y: auto;
   }
 
+  /* The editor scrolls, so the canvas is as tall as its content: held to
+     the screen's height, the content ran past it and the canvas's bottom
+     padding sat behind the last card instead of under it. */
   .canvas {
+    min-height: auto;
     overflow-y: visible;
   }
 

@@ -616,6 +616,15 @@
 }
 
 @media (max-width: 640px) {
+  /* Room under the last step, clear of the screen's edge: 64px, or the
+     safe area where it is taller. The same on every studio. */
+  .canvas {
+    padding-bottom: max(
+      calc(var(--spacing-8) * 2),
+      env(safe-area-inset-bottom, 0px)
+    );
+  }
+
   .topbar,
   .creationHeader {
     padding: 0 14px;
