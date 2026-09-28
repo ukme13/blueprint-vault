@@ -325,25 +325,6 @@ test.describe("The spacing studio", () => {
     await expect.poll(insetPadding).toBe("32px");
   });
 
-  test("copies a step as its variable", async ({
-    seededPage: page,
-    context,
-  }) => {
-    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-    const steps = page.getByRole("region", { name: "Generated spacing steps" });
-    const copy = steps.getByRole("button", { name: "Copy --spacing-8" });
-    await copy.click();
-    await expect(copy).toHaveAttribute("data-copy-result", "copied");
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
-      "var(--spacing-8)",
-    );
-    // Copying does not pick the row it sits in: Inset's 6 stays picked.
-    await expect(steps.locator('[data-spacing-step="6"]')).toHaveAttribute(
-      "data-selected",
-      "true",
-    );
-  });
-
   test("applies a scale preset, calls an edited one Custom, and undoes", async ({
     seededPage: page,
   }) => {
@@ -404,7 +385,16 @@ test.describe("The spacing studio", () => {
     await expect(row("2").getByText("6px", { exact: true })).toBeVisible();
     await expect(row("2").getByText("0.75×", { exact: true })).toBeVisible();
     await expect(row("1").getByText("4px", { exact: true })).toBeVisible();
-    await expect(row("1").getByText("grid", { exact: true })).toBeVisible();
+    await expect(
+      row("1").getByRole("img", { name: /^Fixed on base grid/ }),
+    ).toBeVisible();
+    // The hover says why.
+    await expect(
+      row("1").getByRole("img", { name: /^Fixed on base grid/ }),
+    ).toHaveAttribute(
+      "title",
+      "Fixed on base grid: does not scale with density",
+    );
 
     await page.getByRole("radio", { name: "Spacious 1.25×" }).click();
     await expect.poll(density).toBe(1.25);
@@ -592,24 +582,27 @@ test.describe("The spacing studio", () => {
 
     await expect(hairline).toContainText("2px");
     await expect(padding).toContainText("20px");
-    await expect(hairline).toContainText("grid");
+    await expect(
+      hairline.getByRole("img", { name: /^Fixed on base grid/ }),
+    ).toBeVisible();
+    // Only a fine step is locked; a layout step says what density did.
+    await expect(padding.getByRole("img")).toHaveCount(0);
 
     await expect
       .poll(async () => (await readStoredWorkspace(page))?.spacing?.density)
       .toBe(1.25);
   });
 
-  test("keeps the grid label and the bar on one row", async ({
+  test("keeps the lock and the bar on one row", async ({
     seededPage: page,
   }) => {
-    /* The word "grid" is a fifth child if it is its own cell in a four-column
-       row, and the bar wraps under the token name as a 2px tick. */
+    /* The lock is a cell of its own: out of place, the bar wraps under the
+       token name as a 2px tick. */
 
     const hairline = page
       .getByRole("region", { name: "Generated spacing steps" })
       .locator("li", { has: page.getByText("--spacing-0-5", { exact: true }) });
-    const label = hairline.getByText("grid", { exact: true });
-    // The bar, not the copy button's icon, which is hidden from readers too.
+    const label = hairline.getByRole("img", { name: /^Fixed on base grid/ });
     const bar = hairline.locator("[class*=tokenBar]");
 
     const labelBox = await label.boundingBox();
