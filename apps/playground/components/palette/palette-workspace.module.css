@@ -1598,6 +1598,23 @@
 }
 
 @media (max-width: 640px) {
+  /* The layout scrolls, so the workspace is as tall as its content: held
+     to the screen, the content ran past it with nothing under the last
+     row. */
+  .workspace {
+    height: auto;
+  }
+
+  /* Then 64px of room, or the safe area where it is taller, inside the
+     panel that comes last (the settings, stacked under the palette), so the
+     room is that panel's own ground rather than a band of page below it. */
+  .editor > :last-child {
+    padding-bottom: max(
+      calc(var(--spacing-8) * 2),
+      env(safe-area-inset-bottom, 0px)
+    );
+  }
+
   .topbar,
   .creationHeader {
     padding: 0 14px;

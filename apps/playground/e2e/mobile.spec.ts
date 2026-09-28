@@ -29,6 +29,41 @@ import {
 
 const PHONE = { width: 390, height: 844 };
 
+/**
+ * The space between the last thing on a page and the bottom of the view,
+ * scrolled all the way down: the innermost elements only, so a wrapper
+ * stretched to the bottom does not count as content.
+ */
+async function roomAtTheBottom(page: Page): Promise<number> {
+  await page.waitForLoadState("networkidle");
+  return page.evaluate(() => {
+    const doc = document.scrollingElement as HTMLElement;
+    const scrollers = [doc, ...document.querySelectorAll("*")].filter(
+      (node): node is HTMLElement =>
+        node.scrollHeight > node.clientHeight + 1 &&
+        (node === doc || /auto|scroll/.test(getComputedStyle(node).overflowY)),
+    );
+    const main = scrollers.sort(
+      (a, b) =>
+        b.scrollHeight - b.clientHeight - (a.scrollHeight - a.clientHeight),
+    )[0]!;
+    main.scrollTop = main.scrollHeight;
+    const bottom =
+      main === doc ? innerHeight : main.getBoundingClientRect().bottom;
+    let last = 0;
+    for (const node of (main === doc ? document.body : main).querySelectorAll(
+      "*",
+    )) {
+      const box = node.getBoundingClientRect();
+      const css = getComputedStyle(node);
+      if (!box.height || node.children.length > 0) continue;
+      if (node.closest(".sr-only") || css.position === "fixed") continue;
+      last = Math.max(last, box.bottom);
+    }
+    return Math.round(bottom - last);
+  });
+}
+
 test.describe("on a phone", () => {
   test.use({ viewport: PHONE });
 
@@ -1639,6 +1674,148 @@ test.describe("on a phone", () => {
       "data-collapsed",
       "true",
     );
+  });
+
+  test("keeps the semantic sheet's search opaque over the shades", async ({
+    seededPage: page,
+  }) => {
+    /* The sticky head named a colour token that does not exist, so it was
+       transparent and the swatches scrolled through it. */
+    await page.getByRole("button", { name: "Semantics" }).click();
+    await page
+      .getByRole("button", { name: / light reference$/ })
+      .first()
+      .click();
+    const head = page.getByRole("dialog").locator("[class*=stickyHead]");
+    await expect(head).toBeVisible();
+    const style = await head.evaluate((node) => {
+      const css = getComputedStyle(node);
+      return { background: css.backgroundColor, zIndex: css.zIndex };
+    });
+    expect(style.zIndex).toBe("10");
+    // Opaque: no alpha channel, or an alpha of 1.
+    expect(style.background).toMatch(
+      /^rgb\(|^oklch\([^/]*\)$|^color\([^/]*\)$/,
+    );
+  });
+
+  for (const route of ["/colour", "/spacing", "/radius", "/elevation"]) {
+    test(`leaves room under the last content on ${route}`, async ({
+      seededPage: page,
+    }) => {
+      /* Measured, not read off a stylesheet: a canvas held to the screen's
+         height once had 64px of padding sitting behind its last card. */
+      await page.goto(route);
+      expect(await roomAtTheBottom(page)).toBeGreaterThanOrEqual(64);
+    });
+  }
+
+  test("keeps the colour page's room inside its settings panel", async ({
+    seededPage: page,
+  }) => {
+    /* The room once sat under the settings as a band of the page's white;
+       it belongs to the panel, on the panel's own ground. */
+    await page.goto("/colour");
+    await expect(
+      page.getByText("Lightness", { exact: false }).first(),
+    ).toBeVisible();
+    const tail = await page.evaluate(() => {
+      const editor = document.querySelector(
+        "[class*=palette-workspace_editor]",
+      )!;
+      const last = editor.lastElementChild!;
+      const page = editor.parentElement!;
+      return {
+        below: Math.round(
+          page.getBoundingClientRect().bottom -
+            last.getBoundingClientRect().bottom,
+        ),
+        inside: parseFloat(getComputedStyle(last).paddingBottom),
+      };
+    });
+    expect(tail.below).toBe(0);
+    expect(tail.inside).toBeGreaterThanOrEqual(64);
+  });
+
+  test("leaves room under the last type step", async ({ page }) => {
+    await seedTypographyProject(page);
+    expect(await roomAtTheBottom(page)).toBeGreaterThanOrEqual(64);
+  });
+
+  test("centres the spacing cards, marks shown or hidden", async ({
+    seededPage: page,
+  }) => {
+    await page.goto("/spacing");
+    const preview = page.getByRole("figure", { name: "Spacing preview" });
+    await expect(preview).toBeVisible();
+    const offCentre = () =>
+      preview.evaluate((figure) => {
+        const box = figure.getBoundingClientRect();
+        const card = figure
+          .querySelector('[data-spacing-zone="inset"]')!
+          .getBoundingClientRect();
+        return Math.abs(card.left - box.left - (box.right - card.right));
+      });
+    expect(await offCentre()).toBeLessThanOrEqual(1);
+    await page.getByRole("switch", { name: "Show spacing" }).click();
+    await expect.poll(offCentre).toBeLessThanOrEqual(1);
+  });
+
+  test("runs the step sheet's search divider edge to edge", async ({
+    seededPage: page,
+  }) => {
+    await page.goto("/spacing");
+    await page
+      .getByRole("button", { name: "Spacing settings", exact: true })
+      .click();
+    await page
+      .getByRole("dialog", { name: "Spacing settings" })
+      .locator("[data-hybrid-chip]")
+      .first()
+      .click();
+    const search = page
+      .getByRole("dialog", { name: "Base unit presets" })
+      .getByRole("textbox", { name: "Search presets" });
+    await expect(search).toBeVisible();
+    /* Against the screen, less the sheet's own 1px border: the row meets
+       the sheet's inside edges, with no side padding before it. */
+    const edges = await search.evaluate((node) => {
+      const row = node.closest("label")!.getBoundingClientRect();
+      return [row.left, innerWidth - row.right];
+    });
+    for (const edge of edges) expect(edge).toBeLessThanOrEqual(1);
+  });
+
+  test("shares the screen's width between the light and dark grounds", async ({
+    seededPage: page,
+  }) => {
+    await page.goto("/elevation");
+    const grounds = page.locator("[class*=elevationGround]");
+    await expect(grounds.first()).toBeVisible();
+    const layout = await page
+      .locator("[class*=elevationModes]")
+      .first()
+      .evaluate((modes) => {
+        const box = modes.getBoundingClientRect();
+        /* The width the level's card gives it, less its padding. */
+        const parent = modes.parentElement!;
+        const css = getComputedStyle(parent);
+        const room =
+          parent.getBoundingClientRect().width -
+          parseFloat(css.paddingLeft) -
+          parseFloat(css.paddingRight);
+        const halves = [
+          ...modes.querySelectorAll("[class*=elevationGround]"),
+        ].map((ground) => Math.round(ground.getBoundingClientRect().width));
+        return { fills: Math.abs(box.width - room) <= 1, halves };
+      });
+    expect(layout.fills).toBe(true);
+    expect(layout.halves).toHaveLength(2);
+    expect(Math.abs(layout.halves[0]! - layout.halves[1]!)).toBeLessThanOrEqual(
+      1,
+    );
+    // Wider than the old 8rem squares on any phone.
+    expect(layout.halves[0]!).toBeGreaterThan(128);
   });
 
   test("swipes the shade grid instead of breaking the page", async ({

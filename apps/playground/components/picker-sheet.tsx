@@ -8,8 +8,8 @@ import { useIsPhone } from "./use-is-phone";
  * The phone sheet for a `HybridTokenizedInput`'s step list.
  *
  * Pass it as the field's `sheet` on a phone and leave it out on a wide
- * screen. The list brings its own title and search; the sheet gives it the
- * side padding the popover used to.
+ * screen. The list brings its own title, search and inset; the sheet is
+ * flush, so the search row's hairline runs the screen's full width.
  */
 export function renderPickerSheet({
   isOpen,
@@ -18,7 +18,7 @@ export function renderPickerSheet({
   children,
 }: HybridTokenizedSheetProps) {
   return (
-    <Sheet isOpen={isOpen} label={label} onClose={onClose}>
+    <Sheet isOpen={isOpen} label={label} padding="flush" onClose={onClose}>
       {children}
     </Sheet>
   );
