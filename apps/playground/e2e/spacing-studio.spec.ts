@@ -241,9 +241,20 @@ test.describe("The spacing studio", () => {
     await expect(chip).toContainText("Default");
 
     await chip.click();
-    // Focus opens on the caret, for typing a custom number; search is a click.
-    await search.click();
+    // The search takes focus as the popover opens: typing filters at once.
     await expect(search).toBeFocused();
+    /* Its divider runs edge to edge: the popover has no padding of its own. */
+    const edges = await search.evaluate((node) => {
+      const row = node.closest("label")!.getBoundingClientRect();
+      const popover = node.closest(".astryx-popover") as HTMLElement;
+      const box = popover.getBoundingClientRect();
+      const border = parseFloat(getComputedStyle(popover).borderLeftWidth);
+      return [
+        Math.round(row.left - box.left - border),
+        Math.round(box.right - row.right - border),
+      ];
+    });
+    expect(edges).toEqual([0, 0]);
     /* A borderless search row, a sentence-case heading. */
     expect(
       await search.evaluate((node) => getComputedStyle(node).borderTopWidth),
@@ -271,8 +282,6 @@ test.describe("The spacing studio", () => {
 
     /* Escape closes and changes nothing. */
     await chip.click();
-    // Focus opens on the caret, for typing a custom number; search is a click.
-    await search.click();
     await expect(search).toBeFocused();
     await search.press("ArrowDown");
     await search.press("Escape");

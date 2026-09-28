@@ -1,6 +1,6 @@
 "use client";
 
-import type { KeyboardEvent } from "react";
+import { useEffect, useRef, type KeyboardEvent } from "react";
 import { Search } from "lucide-react";
 import {
   formatListValue,
@@ -9,6 +9,12 @@ import {
 } from "./hybrid-tokenized-input";
 
 export interface HybridTokenizedPresetListProps {
+  /**
+   * Focus the search as the list opens, so typing filters at once. The
+   * popover sets it; a phone sheet does not, or the keyboard would rise
+   * over the list.
+   */
+  autoFocusSearch?: boolean;
   decimals: number;
   filtered: readonly HybridTokenPreset[];
   highlight: number;
@@ -25,6 +31,7 @@ export interface HybridTokenizedPresetListProps {
 }
 
 export function HybridTokenizedPresetList({
+  autoFocusSearch = false,
   decimals,
   filtered,
   highlight,
@@ -39,14 +46,20 @@ export function HybridTokenizedPresetList({
   onSearchKeyDown,
   onSelect,
 }: HybridTokenizedPresetListProps) {
+  const searchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (autoFocusSearch) searchRef.current?.focus({ preventScroll: true });
+  }, [autoFocusSearch]);
+
   return (
     <div className="flex w-full flex-col overflow-hidden">
       {/* Figma's variable search: a borderless row over a hairline. */}
-      <label className="flex items-center gap-[var(--spacing-2)] border-b border-border-default px-[var(--spacing-2)] pb-[var(--spacing-2)]">
+      <label className="flex w-full items-center gap-[var(--spacing-2)] border-b border-border-default px-[var(--spacing-3)] py-[var(--spacing-2)]">
         <Search aria-hidden className="size-4 shrink-0 text-fg-muted" />
         <input
           aria-label="Search presets"
           autoComplete="off"
+          ref={searchRef}
           className="min-w-0 flex-1 border-0 bg-transparent text-sm text-fg-primary outline-none placeholder:text-fg-muted"
           placeholder={searchPlaceholder}
           type="text"
@@ -55,7 +68,7 @@ export function HybridTokenizedPresetList({
           onKeyDown={onSearchKeyDown}
         />
       </label>
-      <p className="px-[var(--spacing-2)] pt-[var(--spacing-3)] pb-[var(--spacing-1)] text-xs font-medium text-fg-muted">
+      <p className="px-[var(--spacing-3)] pt-[var(--spacing-3)] pb-[var(--spacing-1)] text-xs font-medium text-fg-muted">
         {popoverTitle}
       </p>
       <div
@@ -63,7 +76,7 @@ export function HybridTokenizedPresetList({
           highlight >= 0 ? `${listId}-${highlight}` : undefined
         }
         aria-label={popoverTitle}
-        className="max-h-56 overflow-y-auto py-[var(--spacing-1)]"
+        className="max-h-56 overflow-y-auto px-[var(--spacing-1)] pb-[var(--spacing-1)]"
         id={listId}
         role="listbox"
       >
