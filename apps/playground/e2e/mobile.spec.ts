@@ -1710,6 +1710,33 @@ test.describe("on a phone", () => {
     });
   }
 
+  test("keeps the colour page's room inside its settings panel", async ({
+    seededPage: page,
+  }) => {
+    /* The room once sat under the settings as a band of the page's white;
+       it belongs to the panel, on the panel's own ground. */
+    await page.goto("/colour");
+    await expect(
+      page.getByText("Lightness", { exact: false }).first(),
+    ).toBeVisible();
+    const tail = await page.evaluate(() => {
+      const editor = document.querySelector(
+        "[class*=palette-workspace_editor]",
+      )!;
+      const last = editor.lastElementChild!;
+      const page = editor.parentElement!;
+      return {
+        below: Math.round(
+          page.getBoundingClientRect().bottom -
+            last.getBoundingClientRect().bottom,
+        ),
+        inside: parseFloat(getComputedStyle(last).paddingBottom),
+      };
+    });
+    expect(tail.below).toBe(0);
+    expect(tail.inside).toBeGreaterThanOrEqual(64);
+  });
+
   test("leaves room under the last type step", async ({ page }) => {
     await seedTypographyProject(page);
     expect(await roomAtTheBottom(page)).toBeGreaterThanOrEqual(64);
