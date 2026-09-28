@@ -31,6 +31,49 @@ test.describe("the on-page nav", () => {
     expect(targets).toEqual(ids);
   });
 
+  test("marks the last section once the page reaches its bottom", async ({
+    page,
+  }) => {
+    /* The band sits in the upper third, and the page stops scrolling before
+       the last headings climb that far, so the last link was never marked. */
+    await page.goto("/studio");
+    const links = page.locator('nav[aria-label="On this page"] a');
+    const last = await links.last().getAttribute("href");
+    await page.evaluate(() =>
+      window.scrollTo(0, document.documentElement.scrollHeight),
+    );
+    await expect(links.last()).toHaveAttribute("aria-current", "true");
+    expect(last).toBe(
+      await page
+        .locator('nav[aria-label="On this page"] a[aria-current]')
+        .getAttribute("href"),
+    );
+  });
+
+  test("marks a clicked link at once, the last one included", async ({
+    page,
+  }) => {
+    await page.goto("/studio");
+    const links = page.locator('nav[aria-label="On this page"] a');
+    await expect(links.first()).toHaveAttribute("aria-current", "true");
+    /* Read in the same task as the click, after the microtask React commits
+       a click's update in. A scroll event waits for the next frame, so none
+       can have arrived: this is the click marking it, not the page reaching
+       its bottom. */
+    const marked = await links
+      .last()
+      .evaluate(async (link: HTMLAnchorElement) => {
+        link.click();
+        await new Promise<void>((resolve) => queueMicrotask(resolve));
+        return link.getAttribute("aria-current");
+      });
+    expect(marked).toBe("true");
+    await expect(links.last()).toHaveAttribute("aria-current", "true");
+    await expect(
+      page.locator('nav[aria-label="On this page"] a[aria-current]'),
+    ).toHaveCount(1);
+  });
+
   test("marks the section in view, and follows the reader down", async ({
     page,
   }) => {
