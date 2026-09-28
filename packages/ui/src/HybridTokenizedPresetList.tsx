@@ -1,7 +1,7 @@
 "use client";
 
 import type { KeyboardEvent } from "react";
-import { TextInput } from "@astryxdesign/core/TextInput";
+import { Search } from "lucide-react";
 import {
   formatListValue,
   type HybridTokenPreset,
@@ -41,19 +41,21 @@ export function HybridTokenizedPresetList({
 }: HybridTokenizedPresetListProps) {
   return (
     <div className="flex w-full flex-col overflow-hidden">
-      <div className="border-b border-border-default pb-[var(--spacing-2)]">
-        <TextInput
-          hasClear
-          isLabelHidden
-          label="Search presets"
+      {/* Figma's variable search: a borderless row over a hairline. */}
+      <label className="flex items-center gap-[var(--spacing-2)] border-b border-border-default px-[var(--spacing-2)] pb-[var(--spacing-2)]">
+        <Search aria-hidden className="size-4 shrink-0 text-fg-muted" />
+        <input
+          aria-label="Search presets"
+          autoComplete="off"
+          className="min-w-0 flex-1 border-0 bg-transparent text-sm text-fg-primary outline-none placeholder:text-fg-muted"
           placeholder={searchPlaceholder}
-          size="sm"
+          type="text"
           value={query}
-          onChange={onQueryChange}
+          onChange={(event) => onQueryChange(event.target.value)}
           onKeyDown={onSearchKeyDown}
         />
-      </div>
-      <p className="px-[var(--spacing-2)] pt-[var(--spacing-3)] pb-[var(--spacing-1)] text-xs font-semibold tracking-wider text-fg-muted uppercase">
+      </label>
+      <p className="px-[var(--spacing-2)] pt-[var(--spacing-3)] pb-[var(--spacing-1)] text-xs font-medium text-fg-muted">
         {popoverTitle}
       </p>
       <div
@@ -73,15 +75,17 @@ export function HybridTokenizedPresetList({
           filtered.map((preset, index) => {
             const selected = value.isPreset && value.presetId === preset.id;
             const active = index === highlight;
-            const rowTone = selected
-              ? "bg-action-primary-surface text-fg-accent"
-              : active
-                ? "bg-[color-mix(in_srgb,var(--color-fg-primary)_10%,transparent)] text-fg-primary"
-                : "text-fg-primary hover:bg-[color-mix(in_srgb,var(--color-fg-primary)_10%,transparent)]";
+            /* Neutral, as Figma's variable list: the picked preset a quiet
+               tint and a heavier weight, the highlighted one a touch more. */
+            const rowTone = active
+              ? "bg-[color-mix(in_srgb,var(--color-fg-primary)_10%,transparent)]"
+              : selected
+                ? "bg-[color-mix(in_srgb,var(--color-fg-primary)_6%,transparent)]"
+                : "hover:bg-[color-mix(in_srgb,var(--color-fg-primary)_10%,transparent)]";
             return (
               <button
                 aria-selected={selected}
-                className={`flex w-full cursor-pointer items-center justify-between rounded-[var(--radius-inner)] px-[var(--spacing-2)] py-[var(--spacing-2)] text-left text-xs ${rowTone}`}
+                className={`flex w-full cursor-pointer items-center justify-between rounded-[var(--radius-inner)] px-[var(--spacing-2)] py-[var(--spacing-2)] text-left text-xs text-fg-primary ${rowTone}`}
                 id={`${listId}-${index}`}
                 key={preset.id}
                 role="option"
@@ -99,7 +103,9 @@ export function HybridTokenizedPresetList({
                   >
                     #
                   </span>
-                  <span className="truncate">{preset.name}</span>
+                  <span className={`truncate ${selected ? "font-medium" : ""}`}>
+                    {preset.name}
+                  </span>
                 </span>
                 <span className="font-mono text-xs text-fg-muted">
                   {formatListValue(preset.value, decimals, valueSuffix)}

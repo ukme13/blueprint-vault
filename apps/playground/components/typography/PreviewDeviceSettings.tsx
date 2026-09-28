@@ -49,7 +49,7 @@ export function PreviewDeviceSettings({
                 label={`${device.name} ratio`}
                 max={MAX_RATIO}
                 min={MIN_RATIO}
-                popoverTitle="Modular Scale Presets"
+                popoverTitle="Modular scale presets"
                 presets={presets}
                 sheet={pickerSheet}
                 searchPlaceholder="Search scale presets..."

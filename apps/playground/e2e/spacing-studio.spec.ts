@@ -232,6 +232,54 @@ test.describe("The spacing studio", () => {
     await expect(rem).toBeChecked();
   });
 
+  test("picks a base unit from Figma-style presets, by search and keys", async ({
+    seededPage: page,
+  }) => {
+    const chip = page.locator("[data-hybrid-chip]").first();
+    const search = page.getByRole("textbox", { name: "Search presets" });
+    const list = page.getByRole("listbox", { name: "Base unit presets" });
+    await expect(chip).toContainText("Default");
+
+    await chip.click();
+    // Focus opens on the caret, for typing a custom number; search is a click.
+    await search.click();
+    await expect(search).toBeFocused();
+    /* A borderless search row, a sentence-case heading. */
+    expect(
+      await search.evaluate((node) => getComputedStyle(node).borderTopWidth),
+    ).toBe("0px");
+    await expect(
+      page.getByText("Base unit presets", { exact: true }),
+    ).toHaveCSS("text-transform", "none");
+    /* The picked preset is marked in a neutral tone, not the accent: its
+       text is the same colour as the others'. */
+    const picked = list.getByRole("option", { selected: true });
+    await expect(picked).toContainText("Default");
+    const colour = (option: typeof picked) =>
+      option.evaluate((node) => getComputedStyle(node).color);
+    expect(await colour(picked)).toBe(
+      await colour(list.getByRole("option", { name: /Dense/ })),
+    );
+
+    /* Search narrows the list; arrows and Enter pick. */
+    await search.fill("comf");
+    await expect(list.getByRole("option")).toHaveCount(1);
+    await search.press("ArrowDown");
+    await search.press("Enter");
+    await expect(list).toBeHidden();
+    await expect(chip).toContainText("Comfortable");
+
+    /* Escape closes and changes nothing. */
+    await chip.click();
+    // Focus opens on the caret, for typing a custom number; search is a click.
+    await search.click();
+    await expect(search).toBeFocused();
+    await search.press("ArrowDown");
+    await search.press("Escape");
+    await expect(list).toBeHidden();
+    await expect(chip).toContainText("Comfortable");
+  });
+
   test("hides and shows the spacing marks", async ({ seededPage: page }) => {
     const preview = page.getByRole("figure", { name: "Spacing preview" });
     const marks = () =>
