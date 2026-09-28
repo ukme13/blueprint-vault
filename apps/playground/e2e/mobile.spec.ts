@@ -1259,7 +1259,12 @@ test.describe("on a phone", () => {
     /* From a device: every bar ran the width of the screen, so 0px and 20px
        looked the same. A bar is the step, drawn to scale. */
     await page.goto("/spacing");
+    /* The steps are in the settings, a sheet on a phone. */
+    await page
+      .getByRole("button", { name: "Spacing settings", exact: true })
+      .click();
     const rows = page
+      .getByRole("dialog", { name: "Spacing settings" })
       .getByRole("region", { name: "Generated spacing steps" })
       .locator("li");
     await expect(rows.first()).toBeVisible();
@@ -1267,7 +1272,7 @@ test.describe("on a phone", () => {
     const bars = await rows.evaluateAll((items) =>
       items.map((item) => {
         const px = parseFloat(item.children[1]!.textContent ?? "0");
-        // The bar by its class: the layout-use badges come after it now.
+        // The bar by its class: the keep box comes after it.
         const bar = item.querySelector("[class*=tokenBar]") as HTMLElement;
         return {
           px,

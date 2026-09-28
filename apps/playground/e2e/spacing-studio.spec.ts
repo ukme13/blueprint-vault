@@ -252,6 +252,42 @@ test.describe("The spacing studio", () => {
     await expect.poll(async () => (await marks()).tags).toBeGreaterThan(3);
   });
 
+  test("lists the steps in the inspector, beside the preview", async ({
+    seededPage: page,
+  }) => {
+    const canvas = page.getByRole("region", { name: "Spacing canvas" });
+    const inspector = page.getByRole("complementary");
+    const steps = inspector.getByRole("region", {
+      name: "Generated spacing steps",
+    });
+    const preview = canvas.getByRole("figure", { name: "Spacing preview" });
+
+    /* The canvas is the preview; the list sits under Density. */
+    await expect(steps).toBeVisible();
+    await expect(
+      canvas.getByRole("region", { name: "Generated spacing steps" }),
+    ).toHaveCount(0);
+    const density = await inspector
+      .getByRole("heading", { name: "Density" })
+      .boundingBox();
+    expect((await steps.boundingBox())!.y).toBeGreaterThan(density!.y);
+
+    /* Every row fits the inspector's width: nothing runs past its edge. */
+    const outside = await steps.evaluate((section) => {
+      const edge = section.getBoundingClientRect().right;
+      return [...section.querySelectorAll("[aria-label^='Keep step']")].filter(
+        (box) => box.getBoundingClientRect().right > edge + 0.5,
+      ).length;
+    });
+    expect(outside).toBe(0);
+
+    /* The inspector scrolls on its own; the preview stays where it is. */
+    const last = steps.locator("li").last();
+    await last.scrollIntoViewIfNeeded();
+    await expect(last).toBeInViewport();
+    await expect(preview).toBeInViewport();
+  });
+
   test("sets the active slot from the step list", async ({
     seededPage: page,
   }) => {

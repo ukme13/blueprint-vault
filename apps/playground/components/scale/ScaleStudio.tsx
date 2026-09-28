@@ -10,9 +10,7 @@ import {
   defaultLayoutTokens,
   defaultPreviewDevices,
   defaultRadiusScale,
-  defaultSpacingPreviewSettings,
   defaultSpacingScale,
-  withSpacingPreview,
   emptyWorkspace,
   generatePalettes,
   seedTypographyProject,
@@ -33,6 +31,7 @@ import { RadiusPreviewTab } from "./RadiusPreviewTab";
 import { SCALE_SECTION_LABEL, scaleSectionFromPath } from "./scale-section";
 import { useScaleHistory } from "./use-scale-history";
 import { useSelectedLevel } from "./use-selected-level";
+import { useSpacingView } from "./use-spacing-view";
 import styles from "./scale-workspace.module.css";
 
 type StudioView = "scale" | "uses" | "preview";
@@ -70,6 +69,8 @@ export function ScaleStudio() {
     project?.typography ?? seedTypographyProject(project?.name ?? "Workspace");
   const previewDevices = project?.previewDevices ?? defaultPreviewDevices();
   const palettes = project?.palette ? generatePalettes(project.palette) : [];
+  /* The preview's settings and active slot, shared by canvas and list. */
+  const spacingView = useSpacingView(store);
   const showUses =
     studioView === "uses" &&
     (activeSection === "spacing" || activeSection === "radius");
@@ -95,11 +96,13 @@ export function ScaleStudio() {
     <ScaleInspector
       detachedBaseUnit={detachedBaseUnit}
       elevation={elevation}
+      layout={layout}
       palettes={palettes}
       radius={radius}
       section={activeSection}
       selectedElevationId={selectedElevationId}
       spacing={spacing}
+      spacingView={spacingView}
       write={history.write}
       onDetachedBaseUnitChange={setDetachedBaseUnit}
       onSelectElevation={setSelectedElevationId}
@@ -187,19 +190,13 @@ export function ScaleStudio() {
           <>
             <ScaleCanvas
               elevation={elevation}
-              layout={layout}
               palettes={palettes}
               radius={radius}
               section={activeSection}
               selectedElevationId={selectedElevationId}
               spacing={spacing}
-              spacingPreview={
-                project?.spacingPreview ?? defaultSpacingPreviewSettings()
-              }
+              spacingView={spacingView}
               write={history.write}
-              onSpacingPreviewChange={(patch) =>
-                store.update((current) => withSpacingPreview(current, patch))
-              }
               onSelectElevation={setSelectedElevationId}
             />
 
