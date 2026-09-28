@@ -209,6 +209,7 @@ export function HybridTokenizedInput({
 
   const panel = (
     <HybridTokenizedPresetList
+      autoFocusSearch={open && !sheet}
       decimals={decimals}
       filtered={filtered}
       highlight={highlight}
@@ -261,9 +262,8 @@ export function HybridTokenizedInput({
             onClick={(event) => {
               event.stopPropagation();
               trigger.onClick();
-              // In a sheet the list takes focus. The caret would raise the
-              // phone keyboard behind it.
-              if (!sheet) queueMicrotask(() => caretRef.current?.focus());
+              // The popover focuses its search as it opens. In a sheet the
+              // list takes focus: a field would raise the phone keyboard.
             }}
             onKeyDown={(event) => {
               if (event.key === "Enter") {
@@ -394,7 +394,8 @@ export function HybridTokenizedInput({
           label={popoverTitle}
           placement="below"
           role="none"
-          style={{ padding: "var(--spacing-2)" }}
+          /* Edge to edge: the search row's hairline meets both sides. */
+          style={{ padding: 0 }}
           onOpenChange={handleOpenChange}
         >
           {(trigger: PopoverTriggerRenderProps) => renderField(trigger)}

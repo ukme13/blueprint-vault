@@ -1,14 +1,25 @@
 "use client";
 
-import type { KeyboardEvent } from "react";
-import { TextInput } from "@astryxdesign/core/TextInput";
+import { useEffect, useRef, type KeyboardEvent } from "react";
+import { Search } from "lucide-react";
 import {
   formatListValue,
   type HybridTokenPreset,
   type HybridTokenizedValue,
 } from "./hybrid-tokenized-input";
 
+const HIGHLIGHT_TINT =
+  "bg-[color-mix(in_srgb,var(--color-fg-primary)_10%,transparent)]";
+const SELECTED_TINT =
+  "bg-[color-mix(in_srgb,var(--color-fg-primary)_6%,transparent)]";
+
 export interface HybridTokenizedPresetListProps {
+  /**
+   * Focus the search as the list opens, so typing filters at once. The
+   * popover sets it; a phone sheet does not, or the keyboard would rise
+   * over the list.
+   */
+  autoFocusSearch?: boolean;
   decimals: number;
   filtered: readonly HybridTokenPreset[];
   highlight: number;
@@ -25,6 +36,7 @@ export interface HybridTokenizedPresetListProps {
 }
 
 export function HybridTokenizedPresetList({
+  autoFocusSearch = false,
   decimals,
   filtered,
   highlight,
@@ -39,21 +51,31 @@ export function HybridTokenizedPresetList({
   onSearchKeyDown,
   onSelect,
 }: HybridTokenizedPresetListProps) {
+  const searchRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (autoFocusSearch) searchRef.current?.focus({ preventScroll: true });
+  }, [autoFocusSearch]);
+
   return (
     <div className="flex w-full flex-col overflow-hidden">
-      <div className="border-b border-border-default pb-[var(--spacing-2)]">
-        <TextInput
-          hasClear
-          isLabelHidden
-          label="Search presets"
+      {/* Figma's variable search: a borderless row over a hairline. */}
+      <label className="flex w-full items-center gap-[var(--spacing-2)] border-b border-border-default px-[var(--spacing-3)] py-[var(--spacing-2)]">
+        <Search aria-hidden className="size-4 shrink-0 text-fg-muted" />
+        <input
+          aria-label="Search presets"
+          autoComplete="off"
+          ref={searchRef}
+          className="min-w-0 flex-1 border-0 bg-transparent text-sm text-fg-primary outline-none placeholder:text-fg-muted"
           placeholder={searchPlaceholder}
-          size="sm"
+          /* Not "search": Chrome clears a search field on Escape, and
+             Escape here closes the list. */
+          type="text"
           value={query}
-          onChange={onQueryChange}
+          onChange={(event) => onQueryChange(event.target.value)}
           onKeyDown={onSearchKeyDown}
         />
-      </div>
-      <p className="px-[var(--spacing-2)] pt-[var(--spacing-3)] pb-[var(--spacing-1)] text-xs font-semibold tracking-wider text-fg-muted uppercase">
+      </label>
+      <p className="px-[var(--spacing-3)] pt-[var(--spacing-3)] pb-[var(--spacing-1)] text-xs font-medium text-fg-muted">
         {popoverTitle}
       </p>
       <div
@@ -61,7 +83,7 @@ export function HybridTokenizedPresetList({
           highlight >= 0 ? `${listId}-${highlight}` : undefined
         }
         aria-label={popoverTitle}
-        className="max-h-56 overflow-y-auto py-[var(--spacing-1)]"
+        className="max-h-56 overflow-y-auto px-[var(--spacing-1)] pb-[var(--spacing-1)]"
         id={listId}
         role="listbox"
       >
@@ -73,15 +95,18 @@ export function HybridTokenizedPresetList({
           filtered.map((preset, index) => {
             const selected = value.isPreset && value.presetId === preset.id;
             const active = index === highlight;
-            const rowTone = selected
-              ? "bg-action-primary-surface text-fg-accent"
-              : active
-                ? "bg-[color-mix(in_srgb,var(--color-fg-primary)_10%,transparent)] text-fg-primary"
-                : "text-fg-primary hover:bg-[color-mix(in_srgb,var(--color-fg-primary)_10%,transparent)]";
+            /* Neutral, as Figma's variable list: the picked preset a quiet
+               tint, the highlighted one a touch more. The pointer highlights
+               the row it is over, so hover needs no style of its own. */
+            const rowTone = active
+              ? HIGHLIGHT_TINT
+              : selected
+                ? SELECTED_TINT
+                : "";
             return (
               <button
                 aria-selected={selected}
-                className={`flex w-full cursor-pointer items-center justify-between rounded-[var(--radius-inner)] px-[var(--spacing-2)] py-[var(--spacing-2)] text-left text-xs ${rowTone}`}
+                className={`flex w-full cursor-pointer items-center justify-between rounded-[var(--radius-inner)] px-[var(--spacing-2)] py-[var(--spacing-2)] text-left text-xs text-fg-primary ${rowTone}`}
                 id={`${listId}-${index}`}
                 key={preset.id}
                 role="option"
@@ -92,14 +117,16 @@ export function HybridTokenizedPresetList({
                 }}
                 onMouseEnter={() => onHighlight(index)}
               >
-                <span className="flex min-w-0 items-center gap-2">
+                <span className="flex min-w-0 items-center gap-[var(--spacing-2)]">
                   <span
                     aria-hidden="true"
                     className="flex size-4 items-center justify-center rounded border border-border-default bg-surface-subtle font-mono text-xs text-fg-muted"
                   >
                     #
                   </span>
-                  <span className="truncate">{preset.name}</span>
+                  <span className={`truncate ${selected ? "font-medium" : ""}`}>
+                    {preset.name}
+                  </span>
                 </span>
                 <span className="font-mono text-xs text-fg-muted">
                   {formatListValue(preset.value, decimals, valueSuffix)}
