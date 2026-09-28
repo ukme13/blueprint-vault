@@ -27,9 +27,13 @@ test.describe("Shade details", () => {
     const ratio = await contrast.locator("strong").textContent();
     const before = await paint();
     await expect(swap).toHaveAttribute("aria-pressed", "false");
+    // The caption says which way round the sample is.
+    const caption = contrast.locator("header small");
+    await expect(caption).toHaveText(/^Shade text on white #FFFFFF$/);
 
     await swap.click();
     await expect(swap).toHaveAttribute("aria-pressed", "true");
+    await expect(caption).toHaveText(/^White text on #[0-9A-F]{6}$/);
     await expect
       .poll(paint)
       .toEqual({ ground: before.ink, ink: before.ground });
@@ -37,6 +41,20 @@ test.describe("Shade details", () => {
 
     await swap.click();
     await expect.poll(paint).toEqual(before);
+    await expect(caption).toHaveText(/^Shade text on white/);
+
+    /* The popover has no padding of its own: its dividers meet both edges. */
+    const edges = await contrast.evaluate((section) => {
+      const popover = section.closest(".astryx-popover")!;
+      const box = popover.getBoundingClientRect();
+      const border = parseFloat(getComputedStyle(popover).borderLeftWidth);
+      const row = popover.querySelector("header")!.getBoundingClientRect();
+      return [
+        Math.round(row.left - box.left - border),
+        Math.round(box.right - border - row.right),
+      ];
+    });
+    expect(edges).toEqual([0, 0]);
 
     /* The grades in the popover's own sans, not mono; the caption legible;
        the sample's edge the subtle border, not the strong one. */
@@ -148,7 +166,7 @@ test.describe("Shade details", () => {
     ).toContainText("oklch(");
     await expect(
       details.getByRole("region", { name: "WCAG 2 contrast result" }),
-    ).toContainText("Against custom #7646AB");
+    ).toContainText("Shade text on custom #7646AB");
     await expect(
       details.getByText("Large text", { exact: true }),
     ).toBeVisible();

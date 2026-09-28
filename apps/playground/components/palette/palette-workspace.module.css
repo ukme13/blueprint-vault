@@ -867,7 +867,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 12px;
-  border-bottom: 1px solid var(--color-border-strong);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .shadePopoverContent > header p {
@@ -894,7 +894,7 @@
   gap: 8px;
   margin: 0;
   padding: 10px 12px;
-  border-bottom: 1px solid var(--color-border-strong);
+  border-bottom: 1px solid var(--color-border-subtle);
   color: var(--color-fg-muted);
   font-size: 11px;
 }
@@ -979,7 +979,8 @@
 }
 
 .popoverContrast {
-  padding: 10px;
+  /* The same inset as the rows above it, now the popover has none. */
+  padding: 10px 12px;
 }
 
 .popoverContrast > header {
@@ -1004,7 +1005,6 @@
   color: var(--color-fg-muted);
   font-family: var(--font-mono);
   font-size: 11px;
-  text-transform: capitalize;
 }
 
 .popoverContrastScore {

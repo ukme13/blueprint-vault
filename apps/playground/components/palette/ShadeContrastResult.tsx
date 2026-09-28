@@ -48,6 +48,10 @@ function ContrastStatusIcon({ passes }: { passes: boolean }) {
   );
 }
 
+function capitalise(word: string): string {
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
 /**
  * A shade's WCAG 2 contrast against the comparison colour: an `Aa` sample,
  * the ratio, what it measures under a simulated colour vision, and the
@@ -65,6 +69,10 @@ export function ShadeContrastResult({
 }: ShadeContrastResultProps) {
   const { seen, view } = usePaletteView();
   const [isSwapped, setIsSwapped] = useState(false);
+  /* What the sample shows, said in words, so the swap is not a mystery. */
+  const caption = isSwapped
+    ? `${capitalise(comparisonLabel)} text on ${shade.hex.toUpperCase()}`
+    : `Shade text on ${comparisonLabel} ${comparisonHex.toUpperCase()}`;
   const textContrast = assessTextContrast(shade.hex, comparisonHex);
   const graphicContrast = assessNonTextContrast(shade.hex, comparisonHex);
   const largeTextGrade = contrastGrade(
@@ -92,9 +100,7 @@ export function ShadeContrastResult({
     >
       <header>
         <h3>WCAG 2 contrast</h3>
-        <small>
-          Against {comparisonLabel} {comparisonHex.toUpperCase()}
-        </small>
+        <small>{caption}</small>
       </header>
       <p className={styles.popoverContrastScore}>
         <span

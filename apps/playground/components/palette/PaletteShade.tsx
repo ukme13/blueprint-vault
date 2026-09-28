@@ -155,6 +155,9 @@ export function PaletteShade({
       isOpen={isSelected}
       label={`${paletteName} ${shade.weight} shade details`}
       placement="below"
+      /* Edge to edge: each row brings its own inset, so the dividers
+         between them meet both sides. */
+      style={{ padding: 0 }}
       width="max-content"
       content={
         <ShadeDetailPopover
