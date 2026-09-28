@@ -473,6 +473,28 @@ html {
   -webkit-overflow-scrolling: touch;
 }
 
+/* A table inside a card, as on the Button page: the card's padding is the
+   table's inset, the same on all four sides. Three things reached in and
+   pulled it about. Astryx's wrapper bleeds out by the container padding
+   variables the layout sets, meant for running to a page's edges, which
+   knocked it 16px left; the rule above spaced it off the text around it;
+   and on a phone the rule below bleeds it to the screen's edges, which in a
+   card runs it out of the card. Two classes, so these outrank both. */
+.table-card {
+  --container-padding-inline-start: 0;
+  --container-padding-inline-end: 0;
+  --container-padding-block-start: 0;
+  --container-padding-block-end: 0;
+}
+
+.table-card .astryx-table-scroll-wrapper {
+  margin: 0;
+  width: auto;
+  max-width: 100%;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-container);
+}
+
 /* Astryx applies max-width: 0 to all table cells via StyleX's overflowStyles,
    which carries four IDs of specificity (:not(#\#)...). Even with w-20, CSS
    max-width overrides width, compressing the cell to zero and causing
