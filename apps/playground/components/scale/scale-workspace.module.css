@@ -451,9 +451,12 @@
 }
 
 /* Two cards side by side, the column gap between them. */
+/* Centred, however wide the canvas: a card past 420px reads as a page,
+   not a card. */
 .spacingCards {
   display: flex;
   align-items: stretch;
+  justify-content: center;
 }
 
 /* The two cards share the width, however long their text: without this a
@@ -461,6 +464,7 @@
 .spacingCards > .spacingInset {
   flex: 1 1 0;
   min-width: 0;
+  max-width: 26.25rem;
 }
 
 .spacingColumnGap {
@@ -577,6 +581,12 @@
 @media (max-width: 640px) {
   .spacingCards {
     flex-direction: column;
+  }
+
+  /* Stacked, each card is the full width up to its limit, centred. */
+  .spacingCards > .spacingInset {
+    align-self: center;
+    width: 100%;
   }
 
   .spacingColumnGap {

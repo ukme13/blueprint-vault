@@ -117,6 +117,25 @@ test.describe("The spacing studio", () => {
     });
     expect(fit).toEqual({ inside: true, sideBySide: true, overflow: 0 });
 
+    /* On a wide canvas the cards stop at 420px and sit centred. */
+    await page.setViewportSize({ width: 2400, height: 900 });
+    const wide = () =>
+      preview.evaluate((figure) => {
+        const box = figure
+          .querySelector("[class*=spacingCards]")!
+          .getBoundingClientRect();
+        const cards = [
+          ...figure.querySelectorAll('[data-spacing-zone="inset"]'),
+        ].map((card) => card.getBoundingClientRect());
+        const left = cards[0]!.left - box.left;
+        const right = box.right - cards[cards.length - 1]!.right;
+        return {
+          widths: cards.map((card) => Math.round(card.width)),
+          centred: Math.abs(left - right) <= 1 && left > 0,
+        };
+      });
+    await expect.poll(wide).toEqual({ widths: [420, 420], centred: true });
+
     // A stack gap runs the card body's full width, so its stripes show.
     const stackBand = await preview.evaluate((figure) => {
       const band = figure.querySelector('[data-spacing-zone="stack"]')!;
