@@ -185,6 +185,7 @@ export function ScaleStudio() {
           <>
             <ScaleCanvas
               elevation={elevation}
+              layout={layout}
               palettes={palettes}
               radius={radius}
               section={activeSection}

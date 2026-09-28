@@ -1,4 +1,9 @@
-import { expect, test as base, type Page } from "@playwright/test";
+import {
+  expect,
+  test as base,
+  type Locator,
+  type Page,
+} from "@playwright/test";
 import { defaultProject, seedProject } from "./fixtures";
 
 /**
@@ -42,3 +47,42 @@ export const test = base.extend<{ seededPage: Page }>({
 });
 
 export { expect };
+
+/**
+ * The spacing preview's size tags, checked against its content: how many
+ * there are, which ones touch a heading, paragraph, button, field, list
+ * item, the logo or the note, and which run off the screen. A tag belongs
+ * off the space it names, where nothing is written.
+ */
+export function spacingTagReport(
+  preview: Locator,
+): Promise<{ tags: number; hits: string[]; offScreen: string[] }> {
+  return preview.evaluate((figure) => {
+    const tags = [...figure.querySelectorAll("[data-spacing-tag]")];
+    const content = [
+      ...figure.querySelectorAll(
+        "h3, p, button, li, [class*=sampleField], [class*=sampleLogo], [class*=sampleNote]",
+      ),
+    ];
+    const hits: string[] = [];
+    const offScreen: string[] = [];
+    for (const tag of tags) {
+      const a = tag.getBoundingClientRect();
+      if (a.left < 0 || a.right > window.innerWidth) {
+        offScreen.push(tag.textContent ?? "");
+      }
+      for (const node of content) {
+        const b = node.getBoundingClientRect();
+        const overlaps =
+          a.left < b.right - 0.5 &&
+          b.left < a.right - 0.5 &&
+          a.top < b.bottom - 0.5 &&
+          b.top < a.bottom - 0.5;
+        if (overlaps) {
+          hits.push(`${tag.textContent} on ${node.textContent?.slice(0, 20)}`);
+        }
+      }
+    }
+    return { tags: tags.length, hits, offScreen };
+  });
+}

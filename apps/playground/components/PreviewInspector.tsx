@@ -14,6 +14,7 @@ import { TextInput } from "@astryxdesign/core/TextInput";
 import {
   PREVIEW_TEXT_COLOR_GROUPS,
   idsSharingStyle,
+  isPreviewButton,
   previewDocumentRoleOptions,
   previewInspectorChrome,
   previewInspectorCopyField,
@@ -52,6 +53,7 @@ export function PreviewInspector({
   onRoleChange,
   onColorChange,
   onApplyToGroup,
+  onApplyToAllButtons,
   onResetToDefault,
 }: {
   isOpen: boolean;
@@ -66,11 +68,18 @@ export function PreviewInspector({
   onRoleChange: (roleId: string) => void;
   onColorChange: (colorTokenId: string | undefined) => void;
   onApplyToGroup: () => void;
+  /** Give every button on the page this button's type role. */
+  onApplyToAllButtons?: () => void;
   onResetToDefault?: () => void;
 }) {
   const chrome = previewInspectorChrome(slotId ?? "");
   const copyField = previewInspectorCopyField(slotId ?? "");
   const grouped = slotId ? idsSharingStyle(slotId).length > 1 : false;
+  /* Wider than its group, if it has one: every button on the page. */
+  const allButtons =
+    slotId && onApplyToAllButtons && isPreviewButton(slotId)
+      ? onApplyToAllButtons
+      : null;
   const isOverridden = defaultBlock
     ? block?.text !== defaultBlock.text ||
       block?.roleId !== defaultBlock.roleId ||
@@ -196,7 +205,7 @@ export function PreviewInspector({
                   onColorChange(value);
                 }}
               />
-              {grouped || (isOverridden && onResetToDefault) ? (
+              {grouped || allButtons || (isOverridden && onResetToDefault) ? (
                 <HStack gap={2}>
                   {grouped ? (
                     <Button
@@ -204,6 +213,14 @@ export function PreviewInspector({
                       size="sm"
                       variant="secondary"
                       onClick={onApplyToGroup}
+                    />
+                  ) : null}
+                  {allButtons ? (
+                    <Button
+                      label="Apply to all buttons"
+                      size="sm"
+                      variant="secondary"
+                      onClick={allButtons}
                     />
                   ) : null}
                   {isOverridden && onResetToDefault ? (

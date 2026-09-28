@@ -1,4 +1,8 @@
-import { LANDING_STYLE_GROUPS, PREVIEW_LANDING_SLOTS } from "./landing-copy";
+import {
+  LANDING_BUTTON_IDS,
+  LANDING_STYLE_GROUPS,
+  PREVIEW_LANDING_SLOTS,
+} from "./landing-copy";
 import type { SemanticRole } from "./types";
 
 /**
@@ -231,6 +235,20 @@ export const PREVIEW_STYLE_GROUPS: readonly PreviewStyleGroup[] = [
 
 export function previewStyleGroupFor(id: string): PreviewStyleGroup | null {
   return PREVIEW_STYLE_GROUPS.find((group) => group.ids.includes(id)) ?? null;
+}
+
+/**
+ * Every slot on the preview page drawn as a button: the site shell's
+ * sign-up and the landing sections' buttons. Wider than any style group,
+ * which a slot can belong to only one of, so it is a list of its own.
+ */
+export const PREVIEW_BUTTON_IDS: readonly string[] = [
+  "shell-action",
+  ...LANDING_BUTTON_IDS,
+];
+
+export function isPreviewButton(id: string): boolean {
+  return PREVIEW_BUTTON_IDS.includes(id);
 }
 
 /** The ids that take a type-role patch together. Solo slots return themselves. */

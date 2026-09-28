@@ -78,6 +78,20 @@ export const MIN_SPACING_DENSITY = 0.5;
 export const MAX_SPACING_DENSITY = 2;
 
 /**
+ * One-click densities for the slider beside them. Each moves only the layout
+ * steps (2 and up); the fine grid stays where it is at any of them.
+ */
+export const SPACING_DENSITY_PRESETS: readonly {
+  id: "compact" | "default" | "spacious";
+  name: string;
+  value: number;
+}[] = [
+  { id: "compact", name: "Compact", value: 0.75 },
+  { id: "default", name: "Default", value: DEFAULT_SPACING_DENSITY },
+  { id: "spacious", name: "Spacious", value: 1.25 },
+];
+
+/**
  * Layout steps are this multiple and up.
  *
  * Halves below 2 exist because 2px is visible on a border or an icon gap.
@@ -250,5 +264,98 @@ export function spacingCssVariables(
 ): Record<string, string> {
   return Object.fromEntries(
     resolveSpacing(scale).map((token) => [token.variable, `${token.rem}rem`]),
+  );
+}
+
+/**
+ * The step chips the studio shows: every step it offers, plus any the scale
+ * holds beyond them — a preset's 2.5 — so every kept step can be turned off.
+ */
+export function spacingChipSteps(
+  scale: Pick<SpacingScale, "steps">,
+  offered: readonly number[] = generateSpacingSteps(16),
+): number[] {
+  return [...new Set([...offered, ...scale.steps])].sort((a, b) => a - b);
+}
+
+/**
+ * The token for a step, or the nearest one the scale has: a selection whose
+ * step was pruned lands on its neighbour rather than on nothing.
+ */
+export function nearestSpacingToken(
+  tokens: readonly SpacingToken[],
+  step: number,
+): SpacingToken | undefined {
+  return tokens.reduce<SpacingToken | undefined>(
+    (best, token) =>
+      !best || Math.abs(token.step - step) < Math.abs(best.step - step)
+        ? token
+        : best,
+    undefined,
+  );
+}
+
+/**
+ * What density does to a step, for saying so beside it: "grid" for a fine
+ * step, which stays put at any density; "scaled" for a layout step when
+ * density is not 1; "unchanged" otherwise — step 0, or density at 1.
+ */
+export function spacingDensityBehavior(
+  token: Pick<SpacingToken, "step" | "followsDensity">,
+  density: number,
+): "grid" | "scaled" | "unchanged" {
+  if (!token.followsDensity) return token.step > 0 ? "grid" : "unchanged";
+  return density !== DEFAULT_SPACING_DENSITY ? "scaled" : "unchanged";
+}
+
+/** The density preset a density is exactly, or null between them. */
+export function matchingSpacingDensityPreset(
+  density: number,
+): (typeof SPACING_DENSITY_PRESETS)[number] | null {
+  return (
+    SPACING_DENSITY_PRESETS.find((preset) => preset.value === density) ?? null
+  );
+}
+
+/**
+ * The three ways a layout spends spacing, each on a step of its own: a
+ * card's padding (inset), the gap between stacked blocks (stack), and the
+ * gap between columns (columns).
+ */
+export type SpacingSlot = "inset" | "stack" | "columns";
+
+/** Where each slot starts: 24px inset, 8px stack, 16px columns on 4px. */
+export const SPACING_SLOT_STEPS: Readonly<Record<SpacingSlot, number>> = {
+  inset: 6,
+  stack: 2,
+  columns: 4,
+};
+
+/**
+ * Each slot's token: its step, or the nearest one the scale has once that
+ * step is pruned. Null only for a scale with no steps at all.
+ */
+export function resolveSpacingSlots(
+  tokens: readonly SpacingToken[],
+  steps: Readonly<Record<SpacingSlot, number>>,
+): Record<SpacingSlot, SpacingToken> | null {
+  const inset = nearestSpacingToken(tokens, steps.inset);
+  const stack = nearestSpacingToken(tokens, steps.stack);
+  const columns = nearestSpacingToken(tokens, steps.columns);
+  return inset && stack && columns ? { inset, stack, columns } : null;
+}
+
+/**
+ * Every step the studio offers, as a token, each marked kept or pruned: the
+ * ramp the step list shows, where a step is turned on and off in place. A
+ * pruned step still has the size it would have, so the row can say what
+ * turning it back on would give.
+ */
+export function resolveSpacingRamp(
+  scale: SpacingScale,
+): (SpacingToken & { kept: boolean })[] {
+  const kept = new Set(scale.steps);
+  return resolveSpacing({ ...scale, steps: spacingChipSteps(scale) }).map(
+    (token) => ({ ...token, kept: kept.has(token.step) }),
   );
 }

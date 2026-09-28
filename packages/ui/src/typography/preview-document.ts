@@ -9,6 +9,7 @@ import {
   PREVIEW_STYLE_GROUPS,
   SHELL_SLOTS,
   idsSharingStyle,
+  isPreviewButton,
   refreshRetiredShellCopy,
 } from "./preview-shell";
 import {
@@ -405,6 +406,26 @@ export function applyStyleToGroup(
     delete next.colorDetached;
     return next;
   });
+}
+
+/**
+ * Give every button on the page one type role. Only the role: a button's
+ * fill and outline are its own, so its colour token is left as it was, and
+ * so is its text. Other slots are untouched. The site shell and the landing
+ * sections are separate documents, so a caller applies this to each; one
+ * with no button that changes comes back as it was.
+ */
+export function applyRoleToButtons(
+  document: PreviewDocument,
+  roleId: string,
+): PreviewDocument {
+  let changed = false;
+  const next = document.map((block) => {
+    if (!isPreviewButton(block.id) || block.roleId === roleId) return block;
+    changed = true;
+    return { ...block, roleId };
+  });
+  return changed ? next : document;
 }
 
 /**

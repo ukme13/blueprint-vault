@@ -1,5 +1,6 @@
 import type { ColorTrack } from "../color/types";
 import {
+  elevationColourHex,
   resolveElevation,
   type ElevationScale,
   type ResolvedElevation,
@@ -123,13 +124,11 @@ export function elevationRows(
     };
   });
 
-  /* Read off a resolved layer rather than re-resolved here, so the hex on the
-     page is the hex in the shadow beside it even if the reference no longer
-     points at a shade the palette has. */
-  const first = light[0]?.layers[0];
-  const hex = first
-    ? `#${first.rgb.map((channel) => channel.toString(16).padStart(2, "0")).join("")}`
-    : "#000000";
+  /* Through the resolver's own fallback, so the hex on the page is the hex the
+     shadows use even if the reference no longer points at a shade the palette
+     has. Not read off the first layer: that one may be hidden, or drawn in a
+     colour of its own. */
+  const hex = elevationColourHex(scale, palettes);
 
   return {
     rows,

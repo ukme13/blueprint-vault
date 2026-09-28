@@ -220,6 +220,26 @@
   border-bottom: 1px solid var(--color-border-default);
 }
 
+/* A part of a settings group that has its own heading or role but no
+   divider of its own, so it reads as one with its neighbours. */
+.settingSubgroup {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+}
+
+.settingSubgroup h2 {
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+/* Simple's colour, presets and pads: one group, spaced apart. */
+.elevationSimple {
+  gap: 20px;
+}
+
 .settingGroup h2 {
   margin: 0;
   color: var(--color-fg-muted);
@@ -234,12 +254,6 @@
   line-height: 1.4;
 }
 
-.stepChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
 .tokenList {
   display: grid;
   gap: var(--spacing-2);
@@ -248,13 +262,32 @@
   list-style: none;
 }
 
+/* Above the rows, at their right: the unit their values are written in. */
+.tokenListHeader {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--spacing-2);
+}
+
 .tokenRow {
   display: grid;
-  grid-template-columns: 8rem 4rem 4.5rem 2.75rem minmax(0, 1fr);
+  grid-template-columns: 10rem 4.5rem 3.25rem minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--radius-element);
   font-size: 13px;
   font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+/* A token row can be picked; the picked one says so. */
+.tokenRow:hover {
+  background: var(--color-surface-subtle);
+}
+
+.tokenRow[data-selected] {
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
 }
 
 .tokenRow code,
@@ -267,6 +300,356 @@
   height: 12px;
   border-radius: var(--radius-sm);
   background: var(--color-action-primary);
+}
+
+/* The spacing canvas: the selected step used in a layout, above the list. */
+.spacingCanvas {
+  display: grid;
+  gap: var(--spacing-5);
+}
+
+.spacingPreview {
+  display: grid;
+  gap: var(--spacing-4);
+  margin: 0;
+  padding: var(--spacing-6);
+  /* Room on the left and above for the size tags, clear of the cards. */
+  padding-left: var(--spacing-10);
+  padding-top: var(--spacing-8);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-container);
+  background: var(--color-surface-subtle);
+}
+
+/* The space itself, marked as a box model inspector marks it: tinted, with
+   a dashed edge, and its size in a tag. */
+.spacingZone {
+  position: relative;
+  box-sizing: border-box;
+  flex: none;
+}
+
+/* Each space's colour, as Figma's inspector colours them: padding blue,
+   gaps pink. Its hatching, edge and tag all take it. */
+.spacingZone[data-spacing-zone="inset"] {
+  --hatch: var(--color-icon-blue);
+}
+
+.spacingZone[data-spacing-zone="stack"],
+.spacingZone[data-spacing-zone="columns"] {
+  --hatch: var(--color-icon-pink);
+}
+
+/* A stack gap runs the card body's full width. The body lines its blocks
+   up at the start, and a band with no content of its own would otherwise
+   shrink to nothing. Its tag sits past the card's inset and border. */
+.spacingZone[data-spacing-zone="stack"] {
+  align-self: stretch;
+  --tag-offset: calc(var(--inset) + 1px);
+}
+
+/* The marks, drawn only while spacing is shown: hidden, the spaces keep
+   their sizes and there is nothing to undo. An image, not the background
+   shorthand, so the card keeps its own fill underneath. */
+.spacingPreview[data-show-spacing] .spacingZone[data-spacing-zone] {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--hatch) 22%, transparent) 0 4px,
+    transparent 4px 8px
+  );
+}
+
+.spacingPreview[data-show-spacing] .spacingZone[data-spacing-zone="stack"],
+.spacingPreview[data-show-spacing] .spacingZone[data-spacing-zone="columns"] {
+  outline: 1px dashed var(--hatch);
+  outline-offset: -1px;
+}
+
+.spacingPreview[data-show-spacing] .spacingCardBody {
+  outline: 1px dashed var(--color-icon-blue);
+}
+
+/* A size tag: a pill in its space's colour. It is placed off the space it
+   names, never on it — a gap is often thinner than its tag — in the room
+   the preview keeps above and to the left of the cards, where nothing is
+   written at any step. */
+.spacingTag {
+  position: absolute;
+  z-index: 1;
+  padding: 0 var(--spacing-1);
+  border-radius: var(--radius-inner);
+  background: var(--hatch);
+  color: white;
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/* Above its space: the inset's at the card's corner, a column gap's
+   centred over the gap. */
+.spacingTagAbove {
+  bottom: calc(100% + var(--spacing-1));
+  left: var(--tag-left, 0);
+  transform: var(--tag-shift, none);
+}
+
+/* Level with its space, outside the card's left edge. */
+.spacingTagLeft {
+  top: 50%;
+  right: calc(100% + var(--tag-offset, 0px) + var(--spacing-1));
+  transform: translateY(-50%);
+}
+
+/* The slots on the left, the Show spacing switch on the right. */
+.spacingToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+}
+
+/* Three slots, each a selector; the one a click on the list sets is
+   marked. */
+.spacingSlots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+
+.spacingSlot {
+  min-width: calc(var(--spacing-12) * 3);
+  border-radius: var(--radius-element);
+}
+
+.spacingSlotIcon {
+  width: var(--spacing-5);
+  height: var(--spacing-5);
+}
+
+.spacingSlot[data-active] {
+  box-shadow: 0 0 0 2px var(--color-focus-ring);
+}
+
+/* Two cards side by side, the column gap between them. */
+.spacingCards {
+  display: flex;
+  align-items: stretch;
+}
+
+/* The two cards share the width, however long their text: without this a
+   card grows to fit its paragraphs on one line and pushes the other out. */
+.spacingCards > .spacingInset {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.spacingColumnGap {
+  width: var(--column-gap);
+}
+
+/* Its tag centred over the gap. */
+.spacingColumnGap {
+  --tag-left: 50%;
+  --tag-shift: translateX(-50%);
+}
+
+.spacingCardBody {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  height: 100%;
+  background: var(--color-surface-base);
+}
+
+/* What the cards say: an onboarding welcome and a profile form. */
+.sampleLogo {
+  width: auto;
+  height: var(--spacing-5);
+  color: var(--color-fg-primary);
+}
+
+.sampleNote {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  font-size: var(--font-size-sm);
+}
+
+.sampleNote {
+  color: var(--color-fg-muted);
+}
+
+.sampleNote svg,
+.sampleChecklist svg {
+  flex: none;
+  width: var(--spacing-4);
+  height: var(--spacing-4);
+}
+
+.sampleGreeting,
+.sampleBody {
+  margin: 0;
+  color: var(--color-fg-secondary);
+  font-size: var(--font-size-base);
+  line-height: 1.6;
+}
+
+.sampleHeadline {
+  margin: 0;
+  color: var(--color-fg-primary);
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.sampleCardTitle {
+  margin: 0;
+  color: var(--color-fg-primary);
+  font-size: var(--font-size-lg);
+  font-weight: 650;
+}
+
+.sampleField {
+  display: grid;
+  gap: var(--spacing-1);
+  width: 100%;
+}
+
+.sampleFieldLabel {
+  color: var(--color-fg-secondary);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+
+.sampleFieldInput {
+  display: flex;
+  align-items: center;
+  min-height: var(--size-element-md);
+  padding: 0 var(--spacing-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-element);
+  color: var(--color-fg-primary);
+  font-size: var(--font-size-sm);
+}
+
+.sampleChecklist {
+  display: grid;
+  gap: var(--spacing-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-fg-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.sampleChecklist li {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+.sampleChecklist svg {
+  color: var(--color-icon-blue);
+}
+
+/* On a phone the cards stack, and the column gap runs between them the
+   other way, as a responsive grid folds. */
+@media (max-width: 640px) {
+  .spacingCards {
+    flex-direction: column;
+  }
+
+  .spacingColumnGap {
+    width: auto;
+    height: var(--column-gap);
+  }
+
+  /* Stacked, the gap runs across; its tag sits outside the left edge,
+     level with it, as a stack tag does. */
+  .spacingColumnGap > .spacingTagAbove {
+    top: 50%;
+    bottom: auto;
+    right: calc(100% + var(--spacing-1));
+    left: auto;
+    transform: translateY(-50%);
+  }
+}
+
+/* The card: a real one, bordered and lifted, its padding hatched. */
+.spacingInset {
+  border: 1px solid var(--color-border-default);
+  /* The card is white edge to edge; its padding hatched over that. */
+  background-color: var(--color-surface-base);
+  border-radius: var(--radius-container);
+  box-shadow: 0 1px 3px color-mix(in oklch, black 8%, transparent);
+}
+
+.tokenName {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  min-width: 0;
+}
+
+/* A pruned step: dimmed, and picks nothing. Its box turns it back on. */
+.tokenRow[data-pruned] {
+  cursor: default;
+}
+
+.tokenRow[data-pruned] > :not(.tokenName, .tokenKeep),
+.tokenRow[data-pruned] .tokenPick {
+  opacity: 0.4;
+}
+
+.tokenRow[data-pruned]:hover {
+  background: none;
+}
+
+/* Keep or prune: a checkbox, filled while the step is kept. */
+.tokenKeep {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: var(--spacing-4);
+  height: var(--spacing-4);
+  padding: 0;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-inner);
+  background: none;
+  color: var(--color-fg-on-action);
+  cursor: pointer;
+}
+
+.tokenKeep[aria-pressed="true"] {
+  border-color: var(--color-bg-action, var(--color-fg-primary));
+  background: var(--color-bg-action, var(--color-fg-primary));
+}
+
+.tokenKeep svg {
+  width: var(--spacing-3);
+  height: var(--spacing-3);
+}
+
+.tokenPick:disabled {
+  cursor: default;
+}
+
+.tokenPick {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-fg-muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tokenPick[aria-pressed="true"] code {
+  color: var(--color-fg-primary);
+  font-weight: 650;
 }
 
 .radiusList {
@@ -335,9 +718,22 @@
   height: 8rem;
 }
 
+/* Every preview tile — card, button, dialog — draws its details in its own
+   ink: dark on the light sample, light on the dark one, for the same reason
+   the keyline below is fixed. */
+.previewTile {
+  box-sizing: border-box;
+  color: color-mix(in oklch, black 70%, transparent);
+}
+
+/* Card: a header bar with a title dot, and two lines of text. */
 .elevationCard {
+  display: grid;
+  align-content: start;
+  gap: var(--spacing-1);
   width: 4.5rem;
   height: 4.5rem;
+  padding: var(--spacing-2);
   border-radius: var(--radius-container);
 }
 
@@ -351,207 +747,471 @@
    wireframe round a dark card. A little white over whatever is beneath reads
    as the same faint edge in both. `color-mix` rather than `rgba(`, which the
    primitive-usage scanner rejects in studio components. */
-.elevationCard[data-mode="dark"] {
+.previewTile[data-mode="dark"] {
   border: 1px solid color-mix(in oklch, white 8%, transparent);
+  color: color-mix(in oklch, white 80%, transparent);
 }
 
-.elevationLayer {
-  display: grid;
-  gap: 8px;
-}
-
-.elevationPads {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.elevationPadBlock {
-  display: grid;
-  gap: 8px;
-  min-width: 0;
-}
-
-.elevationPadLabel {
-  color: var(--color-fg-muted);
-  font-size: 12px;
-  font-weight: 650;
-}
-
-.elevationPad {
-  position: relative;
-  aspect-ratio: 1;
-  width: 100%;
-  display: block;
-  padding: 0;
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-page);
-  background-color: var(--elevation-surface);
-  background-image:
-    linear-gradient(
-      to top,
-      transparent,
-      color-mix(
-        in oklch,
-        var(--elevation-shadow) calc(var(--elevation-cast) * 1%),
-        transparent
-      )
-    ),
-    linear-gradient(
-      to right,
-      var(--elevation-surface),
-      color-mix(
-        in oklch,
-        var(--elevation-shadow) calc(var(--elevation-contact) * 1%),
-        var(--elevation-surface)
-      )
-    );
-  cursor: crosshair;
-  touch-action: none;
-}
-
-.elevationPad:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 3px;
-}
-
-/* The pad's own mode decides its ink, not the studio's. Each pad shows one
-   mode of the workspace whatever mode the studio is in, and fg-primary
-   follows the studio: in a light studio it drew black dots on the dark pad,
-   and in a dark studio white dots on the light one, invisible either way.
-   The block around each pad already carries data-mode. Keywords through
-   color-mix rather than rgba(, which the primitive-usage scanner rejects. */
-.elevationPadBlock[data-mode="light"] {
-  --elevation-pad-ink: black;
-}
-
-.elevationPadBlock[data-mode="dark"] {
-  --elevation-pad-ink: white;
-}
-
-.elevationPadDots {
-  position: absolute;
-  inset: 12%;
-  background-image: radial-gradient(
-    circle,
-    color-mix(in oklch, var(--elevation-pad-ink, black) 45%, transparent) 1.1px,
-    transparent 1.3px
-  );
-  background-position: center;
-  background-size: 10% 10%;
-  pointer-events: none;
-}
-
-.elevationPadOrigin {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 6px;
-  height: 6px;
-  border: 1px solid
-    color-mix(in oklch, var(--elevation-pad-ink, black) 55%, transparent);
-  border-radius: 50%;
-  pointer-events: none;
-  translate: -50% -50%;
-}
-
-.elevationPadThumb {
-  position: absolute;
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--color-neutral-50);
-  border-radius: 50%;
-  background: color-mix(
-    in oklch,
-    var(--elevation-shadow)
-      calc((var(--elevation-contact) + var(--elevation-cast)) * 0.5%),
-    var(--elevation-surface)
-  );
-  box-shadow:
-    0 0 0 1px color-mix(in oklch, var(--color-neutral-950) 35%, transparent),
-    0 2px 4px color-mix(in oklch, var(--color-neutral-950) 25%, transparent);
-  pointer-events: none;
-  translate: -50% -50%;
-  z-index: 2;
-}
-
-.elevationPadReadout {
-  color: var(--color-fg-muted);
-  font-size: 11px;
-}
-
-.elevationLayerName {
-  color: var(--color-fg-muted);
-  font-size: 12px;
-  font-weight: 650;
-}
-
-.elevationOpacity {
-  display: grid;
-  grid-template-columns: 3rem minmax(0, 1fr);
+.previewCardHeader {
+  display: flex;
   align-items: center;
-  gap: 10px;
+  height: var(--spacing-3);
+  margin-bottom: var(--spacing-1);
+  border-radius: var(--radius-inner);
+  background: color-mix(in oklch, currentColor 10%, transparent);
+  padding-inline: var(--spacing-1);
 }
 
-.elevationMode {
-  color: var(--color-fg-muted);
-  font-size: 12px;
+.previewDot {
+  width: var(--spacing-1);
+  height: var(--spacing-1);
+  border-radius: var(--radius-full);
+  background: currentColor;
 }
 
-.elevationSlider {
-  min-width: 0;
-  padding: 8px;
-  border: 1px solid var(--color-border-default);
+.previewLine {
+  display: block;
+  height: var(--spacing-1);
+  border-radius: var(--radius-full);
+  background: color-mix(in oklch, currentColor 25%, transparent);
+}
+
+.previewLineShort {
+  width: 60%;
+}
+
+/* Button: a real one, pressed a pixel when clicked. Not .previewButton:
+   that is the scale preview's, further down this module. */
+.elevationPreviewButton {
+  padding: var(--spacing-2) var(--spacing-4);
+  border: 0;
   border-radius: var(--radius-element);
-  background: var(--elevation-surface);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: 650;
+  cursor: pointer;
 }
 
-.elevationSlider :global(.astryx-field),
-.elevationSlider :global(.astryx-slider) {
-  width: 100%;
-  min-width: 0;
+.elevationPreviewButton:active {
+  transform: translateY(1px);
 }
 
-.elevationSlider :global(.astryx-slider-track) {
-  box-sizing: border-box;
-  height: 14px;
-  overflow: hidden;
-  border: 1px solid var(--color-border-strong);
-  background-color: var(--elevation-surface);
-  background-clip: padding-box;
-  background-image: linear-gradient(
-    to right,
-    var(--elevation-surface),
-    color-mix(
-      in oklch,
-      var(--elevation-shadow) calc(var(--elevation-mix) * 1%),
-      var(--elevation-surface)
-    )
-  );
+/* Dialog: a header with a close mark, then a content frame. */
+.previewDialog {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--spacing-2);
+  /* 96 by 72px on the 128px ground. */
+  width: calc(var(--spacing-12) + var(--spacing-12));
+  height: calc(var(--spacing-12) + var(--spacing-6));
+  padding: var(--spacing-2);
+  border-radius: var(--radius-container);
 }
 
-.elevationSlider :global(.astryx-slider-track) + [aria-hidden="true"] {
-  opacity: 0;
+.previewDialogHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
 }
 
-.elevationSlider :global(.astryx-slider-thumb),
-.elevationSlider :global(.astryx-slider-thumb):hover,
-.elevationSlider :global(.astryx-slider-thumb):focus {
-  border: 2px solid var(--color-neutral-300);
-  background: color-mix(
-    in oklch,
-    var(--elevation-shadow) calc(var(--elevation-opacity) * 100%),
-    var(--elevation-surface)
-  );
-  box-shadow: 0 0 0 2px var(--elevation-surface);
+.previewDialogHeader .previewLine {
+  flex: 1 1 auto;
 }
 
-.elevationOpacity[data-layer="contact"] :global(.astryx-slider-track) {
+.previewClose {
+  flex: none;
+  width: var(--spacing-3);
+  height: var(--spacing-3);
+}
+
+/* The copy button beside a level's variable: quieter than the level's
+   name, in the muted ink and a thinner stroke, until it is pointed at. */
+.copyButton {
+  color: var(--color-fg-muted);
+}
+
+.copyButton svg {
+  stroke-width: 1.5;
+}
+
+.copyButton:hover,
+.copyButton:focus-visible {
+  color: var(--color-fg-primary);
+}
+
+.previewFrame {
+  border: 1px dashed color-mix(in oklch, currentColor 25%, transparent);
   border-radius: var(--radius-inner);
 }
 
-.elevationOpacity[data-layer="cast"] :global(.astryx-slider-track) {
-  border-radius: var(--radius-full);
+/* Simple's style preset: the first and largest control there, a card-like
+   row that opens the presets. 56px tall, border included — a 40px thumbnail
+   with 8px above and below — so it stands apart from the single-line fields
+   beneath it. */
+.presetTrigger {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  width: 100%;
+  height: calc(var(--spacing-10) + var(--spacing-4));
+  padding: 0 var(--spacing-2);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-element);
+  background: var(--color-surface-base);
+  color: var(--color-fg-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.presetTrigger:focus-visible,
+.presetCard:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* A live thumbnail: the level's real shadow on the mode's card. The tile
+   is square, with room on every side for the shadow to fall. */
+.presetThumb {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--spacing-10);
+  height: var(--spacing-10);
+  border-radius: var(--radius-inner);
+}
+
+.presetThumbTile {
+  width: var(--spacing-7);
+  height: var(--spacing-7);
+  border-radius: var(--radius-inner);
+}
+
+.presetTriggerText {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.presetTriggerName,
+.presetTriggerHint {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.presetTriggerName {
+  font-size: var(--font-size-base);
+  font-weight: 650;
+}
+
+.presetTriggerHint {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+.presetChevron {
+  flex: none;
+  width: var(--spacing-4);
+  height: var(--spacing-4);
+  color: var(--color-fg-muted);
+}
+
+/* The open panel: a title, then the cards two across. */
+.presetPanel {
+  display: grid;
+  gap: var(--spacing-3);
+}
+
+.presetPanelTitle {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: 650;
+}
+
+.presetGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-2);
+}
+
+/* At least 44px tall, for a thumb. */
+.presetCard {
+  display: grid;
+  align-content: start;
+  gap: var(--spacing-2);
+  min-height: var(--spacing-11);
+  padding: var(--spacing-2);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-element);
+  background: var(--color-surface-base);
+  color: var(--color-fg-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.presetCard[data-active] {
+  border-color: var(--color-action-primary);
+}
+
+/* Room around the tile for its shadow to fall into, glow included: 76px
+   tall around a 40px square, so a shadow casts evenly on all four sides. */
+.presetPreview {
+  display: grid;
+  place-items: center;
+  height: calc(var(--spacing-12) + var(--spacing-7));
+  border-radius: var(--radius-inner);
+}
+
+.presetTile {
+  width: var(--spacing-10);
+  height: var(--spacing-10);
+  border-radius: var(--radius-inner);
+}
+
+.presetText {
+  display: grid;
+  gap: var(--spacing-0);
+  min-width: 0;
+}
+
+.presetName {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  font-size: var(--font-size-sm);
+  font-weight: 650;
+}
+
+.presetCheck {
+  width: var(--spacing-3);
+  height: var(--spacing-3);
+  color: var(--color-action-primary);
+}
+
+.presetDescription {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+  line-height: 1.3;
+}
+
+/* Advanced mode's layer stack, one row per layer. */
+.elevationLayerList {
+  display: grid;
+  gap: var(--spacing-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.elevationLayerRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding-right: var(--spacing-1);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-element);
+  background: var(--color-surface-base);
+}
+
+.elevationLayerRow[data-selected] {
+  border-color: var(--color-action-primary);
+}
+
+/* A hidden layer stays in the list, dimmed, so it can be shown again. */
+.elevationLayerRow[data-hidden] .elevationLayerSelect {
+  opacity: 0.5;
+}
+
+.elevationLayerSelect {
+  flex: 1 1 auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+  padding: var(--spacing-2);
+  border: 0;
+  background: none;
+  color: var(--color-fg-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.elevationLayerSelect:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+  border-radius: var(--radius-element);
+}
+
+/* As tall as the two lines beside it, the type and the geometry, and square:
+   stretched to the row's height, with the width following it. */
+.elevationLayerIcon {
+  flex: none;
+  align-self: stretch;
+  color: var(--color-fg-muted);
+}
+
+.elevationLayerText {
+  display: grid;
+  min-width: 0;
+  font-size: 12px;
+}
+
+.elevationLayerSummary {
+  overflow: hidden;
+  color: var(--color-fg-muted);
+  font-variant-numeric: tabular-nums;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* One layer's settings, in a popover to the left of the panel (a sheet
+   on a phone), laid out like Figma's: the type as a title, then a label and
+   its fields per row. */
+/* No padding of its own: the popover's surface (and the sheet, on a phone)
+   already pads its content, and a second inset doubled it. */
+.layerPopover {
+  display: grid;
+  gap: var(--spacing-3);
+}
+
+.layerPopoverHeader {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.layerPopoverIcon {
+  width: 16px;
+  height: 16px;
+  color: var(--color-fg-muted);
+}
+
+.layerPopoverRows {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  align-items: start;
+  gap: var(--spacing-2);
+}
+
+/* Level with the first field of its row, which is 32px tall at size md. */
+.layerPopoverLabel {
+  display: flex;
+  align-items: center;
+  min-height: var(--size-element-md, 32px);
+  color: var(--color-fg-muted);
+  font-size: 12px;
+}
+
+.layerPopoverFields {
+  display: grid;
+  gap: var(--spacing-1);
+}
+
+/* Every field fills its column and may shrink into it. Grid items default to
+   `min-width: auto`, so a number field kept its own natural width and ran
+   past the popover into the panel, while a field alone in its row stopped
+   short: no two rows ended on the same edge. */
+.layerPopoverRows > *,
+.layerPopoverFields > *,
+.layerPopoverRows :global(.astryx-input-group),
+.layerPopoverRows :global(.astryx-number-input),
+.layerPopoverRows :global(.astryx-input-group) input {
+  width: 100%;
+  min-width: 0;
+}
+
+/* X, Y and the blur and spread icons each sit in a box of one width, so
+   every tag slot is the same width and the values line up. */
+.layerPopoverTag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+}
+
+/* Light and Dark likewise share one width, wide enough for "Light". */
+.layerPopoverModeTag {
+  display: inline-block;
+  min-width: 5ch;
+  text-align: center;
+}
+
+.layerPopoverRows :global(.astryx-input-group-text) svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Simple's adjustments, one slider per row as in Lightroom's Develop
+   panel: icon, name, track, value, on one 32px line. The value column is
+   fixed and its figures tabular, so a stack of rows reads as a column. */
+.sliderStack {
+  display: grid;
+  gap: var(--spacing-1);
+}
+
+.sliderRow {
+  display: grid;
+  grid-template-columns:
+    calc(
+      var(--spacing-4) + var(--spacing-2) + var(--spacing-12) + var(--spacing-6)
+    )
+    minmax(0, 1fr) calc(var(--spacing-10) + var(--spacing-2))
+    var(--size-element-sm);
+  align-items: center;
+  gap: var(--spacing-2);
+  min-height: var(--size-element-md);
+}
+
+/* The icon and name, one target: double-click resets the slider. */
+.sliderRowName {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+  cursor: default;
+  user-select: none;
+}
+
+/* The reset button's column, kept when the button is not there. */
+.sliderRowReset {
+  display: flex;
+  justify-content: center;
+  width: var(--size-element-sm);
+}
+
+.sliderRowIcon {
+  width: var(--spacing-4);
+  height: var(--spacing-4);
+  color: var(--color-fg-muted);
+}
+
+.sliderRowLabel {
+  overflow: hidden;
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sliderRowValue {
+  color: var(--color-fg-primary);
+  font-size: var(--font-size-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.sliderRow :global(.astryx-field),
+.sliderRow :global(.astryx-slider) {
+  width: 100%;
+  min-width: 0;
 }
 
 .previewStage {
@@ -726,6 +1386,13 @@
     grid-column: 1 / -1;
     justify-self: start;
     max-width: 100%;
+  }
+
+  /* The keep box stays on the first line, at its end. */
+  .tokenKeep {
+    grid-row: 1;
+    grid-column: -2;
+    justify-self: end;
   }
 }
 

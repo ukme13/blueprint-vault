@@ -1,5 +1,8 @@
 export * from "./elevation";
 export * from "./elevation-edit";
+export * from "./elevation-adjust";
+export * from "./elevation-presets";
+export * from "./elevation-styles";
 export * from "./layout-tokens";
 export * from "./layout-edit";
 export * from "./component-radius";
@@ -7,6 +10,7 @@ export * from "./token-names";
 export * from "./radius";
 export * from "./radius-edit";
 export * from "./spacing";
+export * from "./spacing-presets";
 export * from "./scale-export";
 export * from "./scale-preview";
 export * from "./scale-rows";

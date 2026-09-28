@@ -34,6 +34,8 @@ import {
   splitBlock,
   updateBlockText,
 } from "./preview-document";
+import { applyRoleToButtons, type PreviewDocument } from "./preview-document";
+import { PREVIEW_BUTTON_IDS, isPreviewButton } from "./preview-shell";
 import { defaultSystem } from "./system";
 
 const system = () => defaultSystem("Scale", ["Inter"], 16, 1.25, 9);
@@ -694,5 +696,66 @@ describe("preview text colour", () => {
     expect(
       after.find((b) => b.id === "landing-split-a-title")?.roleId,
     ).not.toBe("h1");
+  });
+});
+
+describe("applyRoleToButtons", () => {
+  const shell = () => seedPreviewShell(system());
+  const landing = () => seedPreviewLanding(system());
+  const role = (document: PreviewDocument, id: string) =>
+    document.find((block) => block.id === id)?.roleId;
+  /* A role no button starts with, so every button has to change. */
+  const buttonRoles = new Set(
+    [...shell(), ...landing()]
+      .filter((block) => isPreviewButton(block.id))
+      .map((block) => block.roleId),
+  );
+  const target = system().roles.find((each) => !buttonRoles.has(each.id))!.id;
+
+  it("names only slots the seeded pages really have", () => {
+    const seeded = new Set([...shell(), ...landing()].map((block) => block.id));
+    for (const id of PREVIEW_BUTTON_IDS) {
+      expect(seeded.has(id), id).toBe(true);
+    }
+    expect(PREVIEW_BUTTON_IDS).toHaveLength(11);
+  });
+
+  it("knows a button from a nav link", () => {
+    expect(isPreviewButton("shell-action")).toBe(true);
+    expect(isPreviewButton("landing-plan-2-cta")).toBe(true);
+    expect(isPreviewButton(PREVIEW_NAV_LINK_IDS[0]!)).toBe(false);
+  });
+
+  it("gives every button the role and nothing else", () => {
+    for (const before of [shell(), landing()]) {
+      const after = applyRoleToButtons(before, target);
+      after.forEach((block, index) => {
+        const was = before[index]!;
+        if (isPreviewButton(block.id)) {
+          expect(block.roleId, block.id).toBe(target);
+        } else {
+          expect(block, block.id).toBe(was);
+        }
+      });
+    }
+  });
+
+  it("keeps each button's text and colour", () => {
+    const before = landing().map((block) =>
+      block.id === "landing-hero-cta"
+        ? { ...block, colorTokenId: "fg.brand", colorDetached: true }
+        : block,
+    );
+    const hero = applyRoleToButtons(before, target).find(
+      (block) => block.id === "landing-hero-cta",
+    )!;
+    const was = before.find((block) => block.id === "landing-hero-cta")!;
+    expect(hero).toEqual({ ...was, roleId: target });
+  });
+
+  it("returns the document as it was when no button changes", () => {
+    const once = applyRoleToButtons(landing(), target);
+    expect(applyRoleToButtons(once, target)).toBe(once);
+    expect(role(once, "landing-newsletter-cta")).toBe(target);
   });
 });

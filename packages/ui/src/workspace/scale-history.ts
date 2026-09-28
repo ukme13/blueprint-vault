@@ -53,6 +53,7 @@ function cloneElevation(scale: ElevationScale): ElevationScale {
       layers: level.layers.map((layer) => ({
         ...layer,
         opacity: { ...layer.opacity },
+        ...(layer.colour ? { colour: { ...layer.colour } } : {}),
       })),
     })),
   };

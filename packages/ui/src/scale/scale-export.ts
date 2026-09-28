@@ -129,12 +129,16 @@ function hex8(layer: ResolvedShadowLayer): string {
 function shadowValue(layers: ResolvedShadowLayer[]): unknown {
   /* An array, because a level is a stack. The format takes either a single
      shadow or a list of them, and a list of one is still a stack. */
+  /* `inset` only on an inner layer, so a drop shadow's entry is exactly what
+     it was before layers had a type. Style Dictionary and Tokens Studio both
+     read `inset: true`. */
   return layers.map((layer) => ({
     color: hex8(layer),
     offsetX: `${layer.offsetXPx}px`,
     offsetY: `${layer.offsetYPx}px`,
     blur: `${layer.blurPx}px`,
     spread: `${layer.spreadPx}px`,
+    ...(layer.inset ? { inset: true } : {}),
   }));
 }
 

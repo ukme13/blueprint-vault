@@ -688,6 +688,24 @@ export function landingCardSlots(component: LandingCardComponent): Array<{
   });
 }
 
+/**
+ * Every landing slot drawn as a button. Their labels are "label" slots like
+ * any other, so nothing else says which ones are buttons; the inspector's
+ * Apply to all buttons reads this. A test holds it to the seeded slots.
+ */
+export const LANDING_BUTTON_IDS: readonly string[] = [
+  "landing-hero-cta",
+  "landing-hero-ghost",
+  "landing-split-a-cta",
+  "landing-split-b-cta",
+  "landing-plan-1-cta",
+  "landing-plan-2-cta",
+  "landing-plan-3-cta",
+  "landing-cta-primary",
+  "landing-cta-ghost",
+  "landing-newsletter-cta",
+];
+
 const LANDING_GROUP_DEFS = [
   {
     id: "feature-card-titles",

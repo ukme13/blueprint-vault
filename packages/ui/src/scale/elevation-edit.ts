@@ -1,11 +1,15 @@
 import type { ColourMode, SemanticReference } from "../color/semantic";
 import type { ColorTrack } from "../color/types";
 import {
+  isInnerShadow,
   isSystemElevationLevel,
-  resolveElevation,
+  elevationColourHex,
+  findElevationTrack,
   SYSTEM_ELEVATION_LEVEL_IDS,
   type ElevationLevel,
   type ElevationScale,
+  type ShadowLayer,
+  type ShadowLayerType,
 } from "./elevation";
 import { uniqueTokenName } from "./token-names";
 
@@ -52,83 +56,254 @@ export function elevationColourOnTrack(
   };
 }
 
-/** Hard ceiling in the editor. A shadow at 1 is a black slab. */
-export const ELEVATION_OPACITY_MAX = 0.6;
-export const ELEVATION_OPACITY_STEP = 0.05;
+/*
+ * Layer edits, for the Advanced builder: a stack of any length, each layer a
+ * drop or an inner shadow, in the scale's colour or its own, shown or hidden.
+ *
+ * Levels are found by id, as every other edit here finds them, rather than by
+ * position: a level's id survives levels being added and removed around it.
+ * Each returns the scale it was given when there is nothing to change — an
+ * unknown level, a layer index past the end — so a caller needs no guard.
+ */
 
-/** Snap onto the editor's step, inside the editor's ceiling. */
-export function snapElevationOpacity(value: number): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) return 0;
-  const clamped = Math.min(Math.max(value, 0), ELEVATION_OPACITY_MAX);
-  return Number(
-    (
-      Math.round(clamped / ELEVATION_OPACITY_STEP) * ELEVATION_OPACITY_STEP
-    ).toFixed(2),
-  );
-}
+/** The layer Add layer appends: a plain drop shadow, visible, mid-strength. */
+export const DEFAULT_SHADOW_LAYER: Readonly<ShadowLayer> = {
+  offsetXPx: 0,
+  offsetYPx: 4,
+  blurPx: 8,
+  spreadPx: 0,
+  opacity: { light: 0.1, dark: 0.4 },
+};
 
-export function setLayerOpacity(
+/** Replace one level's layers; an unknown level, or an edit returning null, is a no-op. */
+export function withLevelLayers(
   scale: ElevationScale,
   levelId: string,
-  layerIndex: number,
-  mode: ColourMode,
-  opacity: number,
+  edit: (layers: ShadowLayer[]) => ShadowLayer[] | null,
 ): ElevationScale {
-  const clamped =
-    typeof opacity === "number" && Number.isFinite(opacity)
-      ? Math.min(Math.max(opacity, 0), 1)
-      : 0;
+  const level = scale.levels.find((each) => each.id === levelId);
+  if (!level) return scale;
+  const layers = edit(level.layers);
+  if (!layers) return scale;
   return {
     ...scale,
-    levels: scale.levels.map((level) =>
-      level.id !== levelId
-        ? level
-        : {
-            ...level,
-            layers: level.layers.map((layer, index) =>
-              index !== layerIndex
-                ? layer
-                : {
-                    ...layer,
-                    opacity: { ...layer.opacity, [mode]: clamped },
-                  },
-            ),
-          },
+    levels: scale.levels.map((each) =>
+      each.id === levelId ? { ...each, layers } : each,
     ),
   };
 }
 
-/**
- * Contact and cast together, for one mode of one level.
- *
- * The pad writes both axes in one gesture. Two `setLayerOpacity` calls keep
- * the per-layer clamp; this is only the pairing.
- */
-export function setLevelModeOpacities(
+function editLayer(
   scale: ElevationScale,
   levelId: string,
-  mode: ColourMode,
-  contact: number,
-  cast: number,
+  layerIndex: number,
+  edit: (layer: ShadowLayer) => ShadowLayer,
 ): ElevationScale {
-  const level = scale.levels.find((item) => item.id === levelId);
-  if (!level) return scale;
-  let next = setLayerOpacity(scale, levelId, 0, mode, contact);
-  if (level.layers.length > 1) {
-    next = setLayerOpacity(next, levelId, 1, mode, cast);
-  }
-  return next;
+  return withLevelLayers(scale, levelId, (layers) =>
+    layerIndex >= 0 && layerIndex < layers.length
+      ? layers.map((layer, index) =>
+          index === layerIndex ? edit(layer) : layer,
+        )
+      : null,
+  );
+}
+
+/** Append a layer, on top of the stack. */
+export function addShadowLayer(
+  scale: ElevationScale,
+  levelId: string,
+  layer: ShadowLayer = DEFAULT_SHADOW_LAYER,
+): ElevationScale {
+  return withLevelLayers(scale, levelId, (layers) => [
+    ...layers,
+    { ...layer, opacity: { ...layer.opacity } },
+  ]);
 }
 
 /**
- * How a layer is named in the editor.
- *
- * Two layers is the usual shape: a tight contact edge and a wide cast. A
- * numbered fallback is for a stored scale that has some other count.
+ * Delete a layer. The last one may go too: a level with no layers is
+ * `box-shadow: none`, which is a real thing to want.
  */
-export function elevationLayerName(index: number, count: number): string {
-  if (count === 2) return index === 0 ? "Contact" : "Cast";
-  return `Layer ${index + 1}`;
+export function removeShadowLayer(
+  scale: ElevationScale,
+  levelId: string,
+  layerIndex: number,
+): ElevationScale {
+  return withLevelLayers(scale, levelId, (layers) =>
+    layerIndex >= 0 && layerIndex < layers.length
+      ? layers.filter((_, index) => index !== layerIndex)
+      : null,
+  );
+}
+
+/** Hide a shown layer or show a hidden one, keeping every value it holds. */
+export function toggleShadowLayerVisibility(
+  scale: ElevationScale,
+  levelId: string,
+  layerIndex: number,
+): ElevationScale {
+  return editLayer(scale, levelId, layerIndex, (layer) =>
+    tidyLayer({ ...layer, hidden: !layer.hidden }),
+  );
+}
+
+/**
+ * A change to one layer. `colour: null` goes back to the scale's colour;
+ * `opacity` may name one mode and leave the other alone.
+ */
+export interface ShadowLayerPatch {
+  type?: ShadowLayerType;
+  offsetXPx?: number;
+  offsetYPx?: number;
+  blurPx?: number;
+  spreadPx?: number;
+  opacity?: Partial<Record<ColourMode, number>>;
+  colour?: SemanticReference | null;
+  hidden?: boolean;
+}
+
+/**
+ * Change one layer.
+ *
+ * Offsets and spread keep any finite number, negative included — a highlight
+ * sits up and to the left, and a negative spread tucks a shadow in. Blur
+ * cannot be negative in CSS, so it stops at 0. Opacity is held to 0–1; not to
+ * the pads' ceiling, because a neumorphic highlight or a glow is meant to be
+ * stronger than a shadow. A value that is not a finite number is ignored
+ * rather than written.
+ */
+export function updateShadowLayer(
+  scale: ElevationScale,
+  levelId: string,
+  layerIndex: number,
+  patch: ShadowLayerPatch,
+): ElevationScale {
+  return editLayer(scale, levelId, layerIndex, (layer) => {
+    const finite = (value: number | undefined, fallback: number) =>
+      typeof value === "number" && Number.isFinite(value) ? value : fallback;
+    const opacity = (mode: ColourMode) => {
+      const value = patch.opacity?.[mode];
+      return typeof value === "number" && Number.isFinite(value)
+        ? Math.min(Math.max(value, 0), 1)
+        : layer.opacity[mode];
+    };
+    const next: ShadowLayer = {
+      ...layer,
+      type: patch.type ?? layer.type,
+      offsetXPx: finite(patch.offsetXPx, layer.offsetXPx),
+      offsetYPx: finite(patch.offsetYPx, layer.offsetYPx),
+      blurPx: Math.max(finite(patch.blurPx, layer.blurPx), 0),
+      spreadPx: finite(patch.spreadPx, layer.spreadPx),
+      opacity: { light: opacity("light"), dark: opacity("dark") },
+      hidden: patch.hidden ?? layer.hidden,
+    };
+    if (patch.colour === null) delete next.colour;
+    else if (patch.colour) {
+      next.colour = {
+        trackId: patch.colour.trackId,
+        weight: patch.colour.weight,
+      };
+    }
+    return tidyLayer(next);
+  });
+}
+
+/**
+ * Drop the optional fields that say nothing — `type: "drop"`, `hidden:
+ * false` — so an edited layer has the shape a saved one does, and a layer
+ * turned back into a plain drop shadow compares equal to one that always was.
+ */
+function tidyLayer(layer: ShadowLayer): ShadowLayer {
+  const tidy: ShadowLayer = { ...layer };
+  if (tidy.type !== "inner") delete tidy.type;
+  if (!tidy.hidden) delete tidy.hidden;
+  if (!tidy.colour) delete tidy.colour;
+  return tidy;
+}
+
+/**
+ * The colour a level is drawn in when it is not the scale's: the one shade
+ * every shown layer of it picks, as Glow's do. Null when any shown layer
+ * uses the scale's colour, or when they pick different shades — then there
+ * is no one colour of its own to show.
+ *
+ * Simple's colour control reads this. A level with a colour of its own gets
+ * a control for that colour, which recolours this level only; any other
+ * level gets the scale's shared colour, which recolours every level.
+ */
+export function elevationLevelColour(
+  level: ElevationLevel,
+): SemanticReference | null {
+  const shown = level.layers.filter((layer) => !layer.hidden);
+  const first = shown[0]?.colour;
+  if (!first) return null;
+  return shown.every(
+    (layer) =>
+      layer.colour?.trackId === first.trackId &&
+      layer.colour.weight === first.weight,
+  )
+    ? { trackId: first.trackId, weight: first.weight }
+    : null;
+}
+
+/**
+ * Draw every layer of one level in one shade, or pass null to put them all
+ * back on the scale's colour. Other levels are untouched.
+ */
+export function setElevationLevelColour(
+  scale: ElevationScale,
+  levelId: string,
+  colour: SemanticReference | null,
+): ElevationScale {
+  return withLevelLayers(scale, levelId, (layers) =>
+    layers.map((layer) =>
+      tidyLayer({
+        ...layer,
+        colour: colour
+          ? { trackId: colour.trackId, weight: colour.weight }
+          : undefined,
+      }),
+    ),
+  );
+}
+
+/** "Drop shadow" or "Inner shadow", as the layer list names a layer's type. */
+export function shadowLayerTypeLabel(layer: Pick<ShadowLayer, "type">): string {
+  return isInnerShadow(layer) ? "Inner shadow" : "Drop shadow";
+}
+
+/** A layer's geometry in one line: `X 0 · Y 4 · B 8 · S 0`. */
+export function shadowLayerSummary(layer: ShadowLayer): string {
+  return `X ${layer.offsetXPx} · Y ${layer.offsetYPx} · B ${layer.blurPx} · S ${layer.spreadPx}`;
+}
+
+/**
+ * The shadow a layer's icon casts: a small, hard copy of the layer's own
+ * shadow, in the icon's text colour.
+ *
+ * The icon is a square outline that casts this, so the outline reads heavier
+ * on the side the layer's shadow falls — the way Figma marks an effect. It
+ * is a real shadow rather than a drawn edge, so it goes where CSS puts one:
+ * a drop shadow pushed down falls below the square; an inner one pushed down
+ * shows along the top inside edge, since that is where `inset` draws it.
+ *
+ * Only the direction is kept, not the size: every offset becomes `weightPx`
+ * in its direction, and the blur is 0, so the icon stays crisp at any value.
+ * With no offset, the shadow spreads evenly at half strength, as a glow
+ * shows on every side.
+ */
+export function shadowLayerIconShadow(
+  layer: Pick<ShadowLayer, "type" | "offsetXPx" | "offsetYPx">,
+  weightPx = 2,
+): string {
+  const inset = isInnerShadow(layer) ? "inset " : "";
+  const x = Math.sign(layer.offsetXPx) * weightPx;
+  const y = Math.sign(layer.offsetYPx) * weightPx;
+  if (x === 0 && y === 0) {
+    return `${inset}0 0 0 ${weightPx / 2}px color-mix(in srgb, currentColor 50%, transparent)`;
+  }
+  /* `+ 0` turns a -0 into 0, so a straight shadow reads `0px`, not `-0px`. */
+  return `${inset}${x + 0}px ${y + 0}px 0 0 currentColor`;
 }
 
 /** The shade the shadows are drawn from, named and resolved. */
@@ -141,20 +316,12 @@ export function resolveElevationColour(
   weight: number;
   hex: string;
 } {
-  const track =
-    tracks.find((candidate) => candidate.id === scale.colour.trackId) ??
-    tracks.find((candidate) => candidate.name === scale.colour.trackId);
-  const resolved = resolveElevation(scale, tracks, "light")[0]?.layers[0];
-  const hex = resolved
-    ? `#${resolved.rgb
-        .map((channel) => channel.toString(16).padStart(2, "0"))
-        .join("")}`
-    : "#000000";
+  const track = findElevationTrack(tracks, scale.colour.trackId);
   return {
     trackId: scale.colour.trackId,
     trackName: track?.name ?? scale.colour.trackId,
     weight: scale.colour.weight,
-    hex,
+    hex: elevationColourHex(scale, tracks),
   };
 }
 

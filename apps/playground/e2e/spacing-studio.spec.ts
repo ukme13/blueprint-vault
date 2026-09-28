@@ -1,7 +1,12 @@
 import { readFileSync } from "node:fs";
 import type { Locator, Page } from "@playwright/test";
 import { defaultProject, readStoredWorkspace } from "./fixtures";
-import { expect, showScaleView, test } from "./scale-fixtures";
+import {
+  expect,
+  showScaleView,
+  spacingTagReport,
+  test,
+} from "./scale-fixtures";
 import { fillHybridNumber } from "./typography-fixtures";
 
 /**
@@ -13,27 +18,414 @@ import { fillHybridNumber } from "./typography-fixtures";
  */
 
 test.describe("The spacing studio", () => {
-  test("shows the seeded scale as pixels and rems", async ({
+  test("shows the seeded scale in px, or in rem from the unit switch", async ({
     seededPage: page,
   }) => {
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
-    await expect(steps).toBeVisible();
+    const value = steps
+      .locator('[data-spacing-step="4"]')
+      .locator("[data-spacing-value]");
+    const unit = steps.getByRole("radiogroup", { name: "Value unit" });
     /* 4px base: step 4 is 16px, which is 1rem against the browser root rather
-       than against the type scale's own base. */
-    await expect(steps.getByText("16px", { exact: true })).toBeVisible();
-    await expect(steps.getByText("1rem", { exact: true })).toBeVisible();
+       than against the type scale's own base. One column, in one unit. */
+    await expect(value).toHaveText("16px");
+    await expect(steps.getByText("1rem", { exact: true })).toHaveCount(0);
+
+    await unit.getByRole("radio", { name: "rem" }).click();
+    await expect(value).toHaveText("1rem");
+    await expect(steps.getByText("16px", { exact: true })).toHaveCount(0);
+
+    await unit.getByRole("radio", { name: "px" }).click();
+    await expect(value).toHaveText("16px");
   });
 
-  test("prunes a step, and keeps it pruned", async ({ seededPage: page }) => {
+  test("sets inset, stack and columns on steps of their own", async ({
+    seededPage: page,
+  }) => {
+    const preview = page.getByRole("figure", { name: "Spacing preview" });
+    /* The first of each kind of space: its padding, height or width. */
+    const measure = () =>
+      preview.evaluate((figure) => {
+        const zone = (slot: string) =>
+          figure.querySelector<HTMLElement>(`[data-spacing-zone="${slot}"]`)!;
+        return {
+          inset: getComputedStyle(zone("inset")).paddingTop,
+          stack: Math.round(zone("stack").getBoundingClientRect().height),
+          columns: Math.round(zone("columns").getBoundingClientRect().width),
+        };
+      });
+
+    /* Two real cards, each padded, stacked and set apart on its own step:
+       24px, 8px and 16px to start. */
+    await expect(
+      preview.getByRole("heading", { name: "Let’s get you settled in." }),
+    ).toBeVisible();
+    await expect(
+      preview.getByRole("button", { name: "Save profile" }),
+    ).toBeVisible();
+    // The welcome card carries the real wordmark.
+    await expect(preview.getByRole("img", { name: "Blueprint" })).toBeVisible();
+    await expect
+      .poll(measure)
+      .toEqual({ inset: "24px", stack: 8, columns: 16 });
+
+    // Each slot's icon is 20px.
+    const iconSizes = await page
+      .locator("[data-spacing-slot] svg[class*=spacingSlotIcon]")
+      .evaluateAll((icons) =>
+        icons.map((icon) => {
+          const box = icon.getBoundingClientRect();
+          return [Math.round(box.width), Math.round(box.height)];
+        }),
+      );
+    expect(iconSizes).toEqual([
+      [20, 20],
+      [20, 20],
+      [20, 20],
+    ]);
+
+    // Padding and gaps are hatched on the diagonal, as Figma marks them.
+    const hatching = await preview.evaluate((figure) =>
+      ["inset", "stack", "columns"].map(
+        (slot) =>
+          getComputedStyle(
+            figure.querySelector(`[data-spacing-zone="${slot}"]`)!,
+          ).backgroundImage,
+      ),
+    );
+    for (const image of hatching) {
+      expect(image).toContain("repeating-linear-gradient");
+    }
+    /* Both cards sit inside the preview, side by side, sharing its width:
+       long text wraps rather than widening a card and pushing the other
+       out. */
+    const fit = await preview.evaluate((figure) => {
+      const box = figure.getBoundingClientRect();
+      const cards = [
+        ...figure.querySelectorAll('[data-spacing-zone="inset"]'),
+      ].map((card) => card.getBoundingClientRect());
+      return {
+        inside: cards.every(
+          (card) => card.left >= box.left && card.right <= box.right + 0.5,
+        ),
+        sideBySide: cards[1]!.left >= cards[0]!.right,
+        overflow: figure.scrollWidth - figure.clientWidth,
+      };
+    });
+    expect(fit).toEqual({ inside: true, sideBySide: true, overflow: 0 });
+
+    // A stack gap runs the card body's full width, so its stripes show.
+    const stackBand = await preview.evaluate((figure) => {
+      const band = figure.querySelector('[data-spacing-zone="stack"]')!;
+      return [
+        Math.round(band.getBoundingClientRect().width),
+        Math.round(band.parentElement!.getBoundingClientRect().width),
+      ];
+    });
+    expect(stackBand[0]).toBe(stackBand[1]);
+
+    /* Each selector moves its own space and nothing else. */
+    await page.getByLabel("Stack spacing", { exact: true }).click();
+    await page.getByRole("option", { name: /^12px/ }).click();
+    await expect
+      .poll(measure)
+      .toEqual({ inset: "24px", stack: 12, columns: 16 });
+    await expect(
+      page.getByLabel("Stack spacing", { exact: true }),
+    ).toContainText("Stack: 12px");
+
+    await page.getByLabel("Columns spacing", { exact: true }).click();
+    await page.getByRole("option", { name: /^32px/ }).click();
+    await expect
+      .poll(measure)
+      .toEqual({ inset: "24px", stack: 12, columns: 32 });
+  });
+
+  test("keeps every size tag clear of the cards’ content", async ({
+    seededPage: page,
+  }) => {
+    const preview = page.getByRole("figure", { name: "Spacing preview" });
+    /* A tag never sits on text or a control: a stack gap thinner than its
+       tag once put the tag over the paragraph and the button beside it. */
+    const collisions = () => spacingTagReport(preview);
+
+    await expect.poll(async () => (await collisions()).tags).toBeGreaterThan(3);
+    /* Two stack tags, under the title and above the action: the rhythm,
+       without a column of the same size down the card. */
+    await expect(preview.locator('[data-spacing-tag="stack"]')).toHaveCount(2);
+    expect((await collisions()).hits).toEqual([]);
+
+    /* And with the thinnest stack gap and the tightest inset. */
+    await page.getByLabel("Stack spacing", { exact: true }).click();
+    await page.getByRole("option", { name: /^2px/ }).click();
+    await page.getByLabel("Inset spacing", { exact: true }).click();
+    await page.getByRole("option", { name: /^4px/ }).click();
+    await expect.poll(async () => (await collisions()).hits).toEqual([]);
+  });
+
+  test("hides and shows the spacing marks", async ({ seededPage: page }) => {
+    const preview = page.getByRole("figure", { name: "Spacing preview" });
+    const marks = () =>
+      preview.evaluate((figure) => ({
+        tags: figure.querySelectorAll("[data-spacing-tag]").length,
+        hatched: [...figure.querySelectorAll("[data-spacing-zone]")].some(
+          (zone) => getComputedStyle(zone).backgroundImage !== "none",
+        ),
+        insetPadding: getComputedStyle(
+          figure.querySelector('[data-spacing-zone="inset"]')!,
+        ).paddingTop,
+      }));
+    const toggle = page.getByRole("switch", { name: "Show spacing" });
+
+    await expect(toggle).toBeChecked();
+    expect(await marks()).toMatchObject({
+      hatched: true,
+      insetPadding: "24px",
+    });
+
+    /* Off: no tags, no hatching — and the spaces keep their sizes, so the
+       cards are the same UI, plain. */
+    await toggle.click();
+    await expect(toggle).not.toBeChecked();
+    await expect
+      .poll(marks)
+      .toEqual({ tags: 0, hatched: false, insetPadding: "24px" });
+    // The card is one fill, padding and all, not a white box on grey.
+    const fills = await preview.evaluate((figure) => {
+      const card = figure.querySelector('[data-spacing-zone="inset"]')!;
+      return [
+        getComputedStyle(card).backgroundColor,
+        getComputedStyle(card.querySelector("[class*=spacingCardBody]")!)
+          .backgroundColor,
+      ];
+    });
+    expect(fills[0]).toBe(fills[1]);
+
+    await toggle.click();
+    await expect.poll(async () => (await marks()).tags).toBeGreaterThan(3);
+  });
+
+  test("sets the active slot from the step list", async ({
+    seededPage: page,
+  }) => {
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
-    const before = await steps.getByRole("listitem").count();
+    const row = (step: number) =>
+      steps.locator(`[data-spacing-step="${step}"]`);
+    const zone = (slot: string) =>
+      page.locator(`figure [data-spacing-zone="${slot}"]`).first();
+    const insetPadding = () =>
+      zone("inset").evaluate((node) => getComputedStyle(node).paddingTop);
 
+    /* Inset is active to start, so its step is the one marked: 6, 24px. */
+    await expect(row(6)).toHaveAttribute("data-selected", "true");
+
+    /* A click anywhere on a row sets the active slot. */
+    await row(8).getByText("32px", { exact: true }).click();
+    await expect(row(8)).toHaveAttribute("data-selected", "true");
+    await expect.poll(insetPadding).toBe("32px");
+
+    /* Touching Stack makes it the active slot; the list then sets it, and
+       leaves Inset where it was. */
+    await page.getByLabel("Stack spacing", { exact: true }).focus();
+    await expect(page.locator('[data-spacing-slot="stack"]')).toHaveAttribute(
+      "data-active",
+      "true",
+    );
+    await row(1).getByText("4px", { exact: true }).click();
+    await expect
+      .poll(() =>
+        zone("stack").evaluate((node) =>
+          Math.round(node.getBoundingClientRect().height),
+        ),
+      )
+      .toBe(4);
+    await expect.poll(insetPadding).toBe("32px");
+  });
+
+  test("copies a step as its variable", async ({
+    seededPage: page,
+    context,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    const copy = steps.getByRole("button", { name: "Copy --spacing-8" });
+    await copy.click();
+    await expect(copy).toHaveAttribute("data-copy-result", "copied");
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+      "var(--spacing-8)",
+    );
+    // Copying does not pick the row it sits in: Inset's 6 stays picked.
+    await expect(steps.locator('[data-spacing-step="6"]')).toHaveAttribute(
+      "data-selected",
+      "true",
+    );
+  });
+
+  test("applies a scale preset, calls an edited one Custom, and undoes", async ({
+    seededPage: page,
+  }) => {
+    const preset = page.getByLabel("Scale preset", { exact: true });
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    const chip = (step: string) =>
+      page.getByRole("button", { name: `Keep step ${step}`, exact: true });
+    const kept = steps.locator("li:not([data-pruned])");
+    const stored = async () =>
+      (await readStoredWorkspace(page))?.spacing as
+        { baseUnitPx: number; steps: number[] } | undefined;
+
+    /* The seeded scale is no preset. */
+    await expect(preset).toContainText("Custom");
+    const seededCount = await kept.count();
+
+    /* One pick sets the base unit and the kept steps together. */
+    await preset.click();
+    await page.getByRole("option", { name: /8pt Standard Grid/ }).click();
+    await expect(preset).toContainText("8pt Standard Grid");
+    await expect.poll(async () => (await stored())?.baseUnitPx).toBe(8);
+    await expect
+      .poll(async () => (await stored())?.steps)
+      .toEqual([0, 0.5, 1, 2, 3, 4, 6, 8, 12]);
+    await expect(kept).toHaveCount(9);
+    await expect(chip("12")).toHaveAttribute("aria-pressed", "true");
+    await expect(chip("5")).toHaveAttribute("aria-pressed", "false");
+    // 8px on an 8px grid: step 4 is 32px.
+    await expect(steps.getByText("32px", { exact: true })).toBeVisible();
+
+    /* A step pruned from its row is a scale of its own: Custom. */
+    await chip("6").click();
+    await expect(preset).toContainText("Custom");
+
+    /* Undo takes back the chip, then the preset, as one step each. */
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(preset).toContainText("8pt Standard Grid");
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(preset).toContainText("Custom");
+    await expect(kept).toHaveCount(seededCount);
+    await expect.poll(async () => (await stored())?.baseUnitPx).toBe(4);
+  });
+
+  test("sets density from a preset, moving layout steps and not the grid", async ({
+    seededPage: page,
+  }) => {
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    const row = (step: string) =>
+      steps.locator(`[data-spacing-step="${step}"]`);
+    const density = async () =>
+      ((await readStoredWorkspace(page))?.spacing as { density: number })
+        ?.density;
+
+    await page.getByRole("radio", { name: "Compact 0.75×" }).click();
+    await expect.poll(density).toBe(0.75);
+    /* Step 2 is the first layout step: 8px at 1x, 6px compact, and it says
+       why. Step 1 is on the fine grid: 4px, and marked as fixed. */
+    await expect(row("2").getByText("6px", { exact: true })).toBeVisible();
+    await expect(row("2").getByText("0.75×", { exact: true })).toBeVisible();
+    await expect(row("1").getByText("4px", { exact: true })).toBeVisible();
+    await expect(row("1").getByText("grid", { exact: true })).toBeVisible();
+
+    await page.getByRole("radio", { name: "Spacious 1.25×" }).click();
+    await expect.poll(density).toBe(1.25);
+    await expect(row("16").getByText("80px", { exact: true })).toBeVisible();
+    // The slider shows where the preset put it.
+    await expect(page.getByRole("slider", { name: /Density/ })).toHaveAttribute(
+      "aria-valuenow",
+      "1.25",
+    );
+  });
+
+  test("pruning a step moves the layout uses on it to the nearest kept", async ({
+    seededPage: page,
+  }) => {
+    const insetOnPhone = async () =>
+      (
+        (await readStoredWorkspace(page))?.layout as {
+          id: string;
+          byDevice: Record<string, string>;
+        }[]
+      )?.find((token) => token.id === "inset-container")?.byDevice.phone;
+    const reachesFor = async (step: string) =>
+      (
+        (await readStoredWorkspace(page))?.layout as {
+          kind: string;
+          byDevice: Record<string, string>;
+        }[]
+      ).some(
+        (token) =>
+          token.kind === "spacing" &&
+          Object.values(token.byDevice).includes(step),
+      );
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    // The rows carry no layout-use badges.
+    await expect(steps.locator("[data-layout-use]")).toHaveCount(0);
+
+    /* Container inset is step 4 on a phone. Pruning 4 leaves 3 and 5 as
+       near; the tie goes to the tighter 3, and nothing names 4 any more. */
     await page
-      .getByRole("region", { name: "Steps" })
-      .getByRole("button", { name: "10", exact: true })
+      .getByRole("button", { name: "Keep step 4", exact: true })
       .click();
+    await expect.poll(insetOnPhone).toBe("3");
+    expect(await reachesFor("4")).toBe(false);
 
-    await expect(steps.getByRole("listitem")).toHaveCount(before - 1);
+    /* The Uses table shows the new step: 12px, step 3. */
+    const uses = await openSpacingUses(page);
+    await expect(
+      uses.getByRole("button", { name: "Container inset on Phone" }),
+    ).toHaveText("12(3)");
+
+    /* One undo puts back the step and the use on it. */
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect.poll(insetOnPhone).toBe("4");
+  });
+
+  test("keeps the keep box at the right end of each row", async ({
+    seededPage: page,
+  }) => {
+    const row = page
+      .getByRole("region", { name: "Generated spacing steps" })
+      .locator('[data-spacing-step="4"]');
+    const box = await row
+      .getByRole("button", { name: "Keep step 4", exact: true })
+      .boundingBox();
+    const name = await row.locator("code").boundingBox();
+    const bar = await row.locator("[class*=tokenBar]").boundingBox();
+    const rowBox = await row.boundingBox();
+    // The variable leads the row; the box comes after the bar, at its end.
+    expect(name!.x - rowBox!.x).toBeLessThan(16);
+    expect(box!.x).toBeGreaterThanOrEqual(bar!.x + bar!.width);
+    expect(rowBox!.x + rowBox!.width - (box!.x + box!.width)).toBeLessThan(16);
+  });
+
+  test("prunes a step from its row, and keeps it pruned", async ({
+    seededPage: page,
+  }) => {
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    const rows = await steps.getByRole("listitem").count();
+    const row = steps.locator('[data-spacing-step="10"]');
+    const toggle = page.getByRole("button", {
+      name: "Keep step 10",
+      exact: true,
+    });
+
+    /* The inspector has no step chips: the rows are where steps are kept. */
+    await expect(
+      page.getByRole("region", { name: "Steps", exact: true }),
+    ).toHaveCount(0);
+
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    await toggle.click();
+
+    /* Still listed, dimmed, so it can come back. */
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await expect(row).toHaveAttribute("data-pruned", "true");
+    await expect(steps.getByRole("listitem")).toHaveCount(rows);
+    // A pruned step cannot be picked for the preview.
+    await expect(
+      row.getByRole("button", { name: "--spacing-10" }),
+    ).toBeDisabled();
+    await expect(row.getByRole("button", { name: "--spacing-10" })).toHaveCSS(
+      "opacity",
+      "0.4",
+    );
 
     await expect
       .poll(async () => (await readStoredWorkspace(page))?.spacing?.steps)
@@ -41,10 +433,39 @@ test.describe("The spacing studio", () => {
 
     await page.reload();
     await expect(
-      page
-        .getByRole("region", { name: "Generated spacing steps" })
-        .getByRole("listitem"),
-    ).toHaveCount(before - 1);
+      page.getByRole("button", { name: "Keep step 10", exact: true }),
+    ).toHaveAttribute("aria-pressed", "false");
+  });
+
+  test("a pruned step moves the preview to the nearest kept one", async ({
+    seededPage: page,
+  }) => {
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    const inset = page
+      .getByRole("figure", { name: "Spacing preview" })
+      .locator('[data-spacing-zone="inset"]')
+      .first();
+    // The inset slot starts on step 6, 24px.
+    await expect(inset).toHaveCSS("padding-top", "24px");
+    await expect(steps.locator('[data-spacing-step="6"]')).toHaveAttribute(
+      "data-selected",
+      "true",
+    );
+
+    await page
+      .getByRole("button", { name: "Keep step 6", exact: true })
+      .click();
+    await expect(inset).not.toHaveCSS("padding-top", "24px");
+    await expect(steps.locator('[data-spacing-step="6"]')).not.toHaveAttribute(
+      "data-selected",
+    );
+
+    /* Undo keeps the step again, and the preview goes back to it. */
+    await page.getByRole("button", { name: "Undo" }).click();
+    await expect(
+      page.getByRole("button", { name: "Keep step 6", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(inset).toHaveCSS("padding-top", "24px");
   });
 
   test("moves every step when the base unit changes", async ({
@@ -105,7 +526,8 @@ test.describe("The spacing studio", () => {
       .getByRole("region", { name: "Generated spacing steps" })
       .locator("li", { has: page.getByText("--spacing-0-5", { exact: true }) });
     const label = hairline.getByText("grid", { exact: true });
-    const bar = hairline.locator("[aria-hidden='true']");
+    // The bar, not the copy button's icon, which is hidden from readers too.
+    const bar = hairline.locator("[class*=tokenBar]");
 
     const labelBox = await label.boundingBox();
     const barBox = await bar.boundingBox();
@@ -256,20 +678,23 @@ test.describe("The elevation editor", () => {
     seededPage: page,
   }) => {
     await showScaleView(page, "Elevation");
-    const slider = page.getByRole("button", {
-      name: "Low light contact and cast",
-    });
-    await slider.focus();
-    await slider.press("ArrowRight");
+    const adjustments = page.getByRole("group", { name: "Low adjustments" });
+    await adjustments.getByRole("radio", { name: "Light" }).click();
+    const opacity = adjustments.getByRole("slider", { name: "Opacity" });
+    await opacity.focus();
+    await opacity.press("ArrowRight");
 
+    /* Low's light seed is 0.1 on both layers; one step is 0.01, on both. */
     await expect
       .poll(async () => {
         const stored = await readStoredWorkspace(page);
-        return stored?.elevation?.levels.find(
-          (level: { id: string }) => level.id === "low",
-        )?.layers[0]?.opacity.light;
+        return stored?.elevation?.levels
+          .find((level: { id: string }) => level.id === "low")
+          ?.layers.map((layer: { opacity: { light: number } }) =>
+            Number(layer.opacity.light.toFixed(2)),
+          );
       })
-      .toBeCloseTo(0.15, 5);
+      .toEqual([0.11, 0.11]);
 
     await page.reload();
     await showScaleView(page, "Elevation");
@@ -287,21 +712,21 @@ test.describe("The elevation editor", () => {
     const canvas = page.getByRole("region", { name: "Elevation", exact: true });
     await expect(canvas).toBeVisible();
 
-    /* Low is picked at first, and only its pads are in the inspector. */
+    /* Low is picked at first, and only its adjustments are in the inspector. */
     await expect(
-      page.getByRole("button", { name: "Low light contact and cast" }),
+      page.getByRole("group", { name: "Low adjustments" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "High light contact and cast" }),
+      page.getByRole("group", { name: "High adjustments" }),
     ).toHaveCount(0);
 
     /* Picking a row moves the inspector to it. */
     await canvas.locator('[data-elevation-level="med"]').click();
     await expect(
-      page.getByRole("button", { name: "Medium light contact and cast" }),
+      page.getByRole("group", { name: "Medium adjustments" }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Low light contact and cast" }),
+      page.getByRole("group", { name: "Low adjustments" }),
     ).toHaveCount(0);
 
     /* The system levels have no delete. */
@@ -313,7 +738,7 @@ test.describe("The elevation editor", () => {
     await canvas.getByRole("button", { name: "Add level" }).click();
     await expect(canvas.getByText("--shadow-new-level")).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "New level light contact and cast" }),
+      page.getByRole("group", { name: "New level adjustments" }),
     ).toBeVisible();
 
     /* Renamed from the inspector, its variable follows. */
@@ -333,11 +758,11 @@ test.describe("The elevation editor", () => {
     await canvas.getByRole("button", { name: "Delete Float" }).click();
     await expect(canvas.getByText("--shadow-float")).toHaveCount(0);
     await expect(
-      page.getByRole("button", { name: "Low light contact and cast" }),
+      page.getByRole("group", { name: "Low adjustments" }),
     ).toBeVisible();
   });
 
-  test("edits the cast without moving the contact", async ({
+  test("moves the cast with Distance, and the contact follows", async ({
     seededPage: page,
   }) => {
     await showScaleView(page, "Elevation");
@@ -346,11 +771,11 @@ test.describe("The elevation editor", () => {
       .getByRole("region", { name: "Elevation" })
       .getByRole("button", { name: "High", exact: true })
       .click();
-    const slider = page.getByRole("button", {
-      name: "High dark contact and cast",
-    });
-    await slider.focus();
-    await slider.press("ArrowUp");
+    const distance = page
+      .getByRole("group", { name: "High adjustments" })
+      .getByRole("slider", { name: "Distance" });
+    await distance.focus();
+    await distance.press("End");
 
     await expect
       .poll(async () => {
@@ -358,63 +783,13 @@ test.describe("The elevation editor", () => {
         const high = stored?.elevation?.levels.find(
           (level: { id: string }) => level.id === "high",
         );
-        return {
-          contact: Number(high?.layers[0]?.opacity.dark.toFixed(2)),
-          cast: Number(high?.layers[1]?.opacity.dark.toFixed(2)),
-        };
+        return high?.layers.map(
+          (layer: { offsetYPx: number }) => layer.offsetYPx,
+        );
       })
-      /* High's dark seed is contact 0.4, cast 0.55, and one ArrowUp is one
-         0.05 step on the cast alone. */
-      .toEqual({ contact: 0.4, cast: 0.6 });
-  });
-
-  test("keeps thumb visible inside pad at maximum contact and cast", async ({
-    seededPage: page,
-  }) => {
-    await showScaleView(page, "Elevation");
-    const pad = page.getByRole("button", {
-      name: "Low light contact and cast",
-    });
-    await pad.focus();
-    await pad.press("End");
-    await pad.press("PageUp");
-
-    const block = page
-      .locator('[data-elevation-pad][data-mode="light"]')
-      .first();
-    await expect(block.getByText("Contact 60% · Cast 60%")).toBeVisible();
-
-    const padBox = await pad.boundingBox();
-    expect(padBox).not.toBeNull();
-
-    const thumb = pad.locator('span[class*="elevationPadThumb"]');
-    const thumbBox = await thumb.boundingBox();
-    expect(thumbBox).not.toBeNull();
-
-    expect(thumbBox!.x).toBeGreaterThanOrEqual(padBox!.x);
-    expect(thumbBox!.x + thumbBox!.width).toBeLessThanOrEqual(
-      padBox!.x + padBox!.width,
-    );
-    expect(thumbBox!.y).toBeGreaterThanOrEqual(padBox!.y);
-    expect(thumbBox!.y + thumbBox!.height).toBeLessThanOrEqual(
-      padBox!.y + padBox!.height,
-    );
-
-    // Clicking on the top-right active dot selects 60% 60% and keeps the thumb inside
-    await pad.click({
-      position: { x: padBox!.width * 0.88, y: padBox!.height * 0.12 },
-    });
-    await expect(block.getByText("Contact 60% · Cast 60%")).toBeVisible();
-    const clickedThumbBox = await thumb.boundingBox();
-    expect(clickedThumbBox).not.toBeNull();
-    expect(clickedThumbBox!.x).toBeGreaterThanOrEqual(padBox!.x);
-    expect(clickedThumbBox!.x + clickedThumbBox!.width).toBeLessThanOrEqual(
-      padBox!.x + padBox!.width,
-    );
-    expect(clickedThumbBox!.y).toBeGreaterThanOrEqual(padBox!.y);
-    expect(clickedThumbBox!.y + clickedThumbBox!.height).toBeLessThanOrEqual(
-      padBox!.y + padBox!.height,
-    );
+      /* The cast goes to Distance's 32px; the contact to a quarter of it,
+         so it stays the tight edge. */
+      .toEqual([8, 32]);
   });
 
   test("paints the dark sample with a dark card", async ({
@@ -430,29 +805,130 @@ test.describe("The elevation editor", () => {
     expect(await fillOf("Low on dark")).not.toBe(await fillOf("Low on light"));
   });
 
-  test("paints light and dark pads on their own surfaces", async ({
+  test("previews each level on a card, a button or a dialog", async ({
     seededPage: page,
   }) => {
-    /* Contact is X, cast is Y, so one pad holds both layers. Each mode still
-       paints on its own card colour, or the two pads would look like copies. */
-
     await showScaleView(page, "Elevation");
-    const paint = (name: string) =>
-      page.getByRole("button", { name }).evaluate((node) => {
-        const style = getComputedStyle(node);
-        return {
-          image: style.backgroundImage,
-          color: style.backgroundColor,
-          radius: style.borderRadius,
-        };
-      });
+    const canvas = page.getByRole("region", { name: "Elevation" });
+    const sample = canvas.getByLabel("Low on light");
+    const shape = () => sample.getAttribute("data-preview");
+    const shadow = () =>
+      sample.evaluate((node) => getComputedStyle(node).boxShadow);
 
-    const light = await paint("Low light contact and cast");
-    const dark = await paint("Low dark contact and cast");
+    await expect.poll(shape).toBe("card");
+    const before = await shadow();
 
-    expect(light.image).toMatch(/gradient/i);
-    expect(dark.color).not.toBe(light.color);
-    expect(Number.parseFloat(light.radius)).toBeGreaterThan(12);
+    /* Each context is a real shape carrying the same shadow: a button
+       element for Button, a framed box for Dialog. */
+    await canvas.getByRole("radio", { name: "Button" }).click();
+    await expect.poll(shape).toBe("button");
+    expect(await sample.evaluate((node) => node.tagName)).toBe("BUTTON");
+    await expect.poll(shadow).toBe(before);
+
+    await canvas.getByRole("radio", { name: "Dialog" }).click();
+    await expect.poll(shape).toBe("dialog");
+    await expect.poll(shadow).toBe(before);
+    // Every level switches together, on both grounds.
+    await expect(canvas.locator("[data-preview=dialog]")).toHaveCount(6);
+    // 96 by 72px.
+    const dialogBox = (await sample.boundingBox())!;
+    expect([Math.round(dialogBox.width), Math.round(dialogBox.height)]).toEqual(
+      [96, 72],
+    );
+  });
+
+  test("copies a level's box-shadow and shows it did", async ({
+    seededPage: page,
+    context,
+  }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await showScaleView(page, "Elevation");
+    const canvas = page.getByRole("region", { name: "Elevation" });
+    await canvas.locator("[data-elevation-level=high]").click();
+
+    const copy = canvas.getByRole("button", { name: "Copy CSS for Low" });
+    /* Quieter than the level's name beside it: muted ink, thinner stroke. */
+    const look = await copy.evaluate((button) => {
+      const name = button
+        .closest("[data-elevation-level]")!
+        .querySelector("button[aria-pressed]")!;
+      return {
+        ink: getComputedStyle(button).color,
+        nameInk: getComputedStyle(name).color,
+        stroke: getComputedStyle(button.querySelector("svg")!).strokeWidth,
+      };
+    });
+    expect(look.ink).not.toBe(look.nameInk);
+    expect(look.stroke).toBe("1.5px");
+    await copy.click();
+    await expect(copy).toHaveAttribute("data-copy-result", "copied");
+
+    /* The value is the resolved box-shadow the studio's mode draws. */
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toMatch(/^0px \d+px \d+px 0px rgba\(/);
+    expect(copied.split("), ")).toHaveLength(2);
+
+    // Copying does not pick the row it sits in.
+    await expect(canvas.locator("[data-elevation-level=high]")).toHaveAttribute(
+      "data-selected",
+      "true",
+    );
+
+    // The tick goes back to a copy icon after a moment.
+    await expect(copy).not.toHaveAttribute("data-copy-result", "copied", {
+      timeout: 3000,
+    });
+  });
+
+  test("resets a slider to its preset's value on a double-click", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Elevation");
+    const adjustments = page.getByRole("group", { name: "Low adjustments" });
+    await adjustments.getByRole("radio", { name: "Light" }).click();
+    const softness = adjustments.getByRole("slider", {
+      name: "Softness",
+      exact: true,
+    });
+    const reset = adjustments
+      .locator("[data-adjustment-row]")
+      .filter({ hasText: "Softness" })
+      .locator("[data-reset]");
+
+    const resetButton = adjustments.getByRole("button", {
+      name: "Reset Softness",
+    });
+
+    /* An untouched level has nothing to reset, so no button. Seeded Low
+       resets to its own seed, Softness 8, not to Standard's. */
+    await expect(softness).toHaveAttribute("aria-valuenow", "8");
+    await expect(resetButton).toHaveCount(0);
+
+    /* Moved, the reset button appears at the end of the row: the way to
+       reset that anyone can find. */
+    await softness.focus();
+    await softness.press("End");
+    await expect(softness).toHaveAttribute("aria-valuenow", "48");
+    await resetButton.click();
+    await expect(softness).toHaveAttribute("aria-valuenow", "8");
+    await expect(resetButton).toHaveCount(0);
+
+    // Double-clicking the name does the same, as in Lightroom.
+    await softness.focus();
+    await softness.press("End");
+    await reset.dblclick();
+    await expect(softness).toHaveAttribute("aria-valuenow", "8");
+
+    /* A level set to Subtle card resets to Subtle card's own, 4. */
+    await page.getByRole("button", { name: /^Style preset: / }).click();
+    await page
+      .getByRole("dialog", { name: "Style presets" })
+      .getByRole("button", { name: /^Subtle card:/ })
+      .click();
+    await softness.focus();
+    await softness.press("End");
+    await reset.dblclick();
+    await expect(softness).toHaveAttribute("aria-valuenow", "4");
   });
 
   test("picks the shadow colour from the palette", async ({
@@ -480,6 +956,461 @@ test.describe("The elevation editor", () => {
         ),
       )
       .not.toEqual(before);
+  });
+
+  test("builds a level layer by layer in Advanced", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Elevation");
+    const sample = page
+      .getByRole("region", { name: "Elevation" })
+      .getByLabel("Low on light");
+    const shadow = () =>
+      sample.evaluate((node) => getComputedStyle(node).boxShadow);
+    const layers = page.getByRole("group", { name: "Low layers" });
+    const rows = layers.getByRole("button", { name: /^Layer \d+: / });
+
+    await page.getByRole("radio", { name: "Advanced" }).click();
+    await expect(rows).toHaveCount(2);
+
+    /* One colour control, not two: in Advanced the default is the first
+       choice in each layer's Color list, so the Simple setting is not here. */
+    await expect(page.getByLabel("Shadow colour", { exact: true })).toHaveCount(
+      0,
+    );
+
+    /* The type icon is square and as tall as the two lines beside it. */
+    const icon = await rows.first().evaluate((row) => {
+      const svg = row
+        .querySelector("[class*=elevationLayerIcon]")!
+        .getBoundingClientRect();
+      const text = row
+        .querySelector("[class*=elevationLayerText]")!
+        .getBoundingClientRect();
+      return { width: svg.width, height: svg.height, text: text.height };
+    });
+    expect(Math.abs(icon.height - icon.text)).toBeLessThanOrEqual(1);
+    expect(Math.abs(icon.width - icon.height)).toBeLessThanOrEqual(1);
+
+    /* The row's button fills the room up to the eye and delete buttons, so
+       a short summary like this one is never cut off. It once stopped at its
+       popover's wrapper and truncated with space to spare. */
+    const summary = await rows.first().evaluate((row) => {
+      const line = row.querySelector<HTMLElement>(
+        "[class*=elevationLayerSummary]",
+      )!;
+      const eye = row
+        .closest("li")!
+        .querySelector("button[aria-label^='Hide']")!
+        .getBoundingClientRect();
+      return {
+        cut: line.scrollWidth > line.clientWidth,
+        gap: Math.round(eye.left - row.getBoundingClientRect().right),
+      };
+    });
+    expect(summary.cut).toBe(false);
+    expect(summary.gap).toBeLessThanOrEqual(8);
+
+    await layers.getByRole("button", { name: "Add layer" }).click();
+    await expect(rows).toHaveCount(3);
+
+    /* A row opens its settings in a popover to the left of the panel, over
+       the canvas, the way Figma does. */
+    await rows.nth(2).click();
+    const third = page.getByRole("dialog", { name: "Layer 3 settings" });
+    await expect(third).toBeVisible();
+    await expect(
+      third.getByLabel("Layer 3 colour", { exact: true }),
+    ).toContainText("Default");
+    const [popover, row] = [
+      (await third.boundingBox())!,
+      (await rows.nth(2).boundingBox())!,
+    ];
+    expect(popover.x + popover.width).toBeLessThanOrEqual(row.x + 1);
+
+    /* One 12px inset from the popover's edge to its content, not the
+       surface's padding and a second one of the content's own. */
+    const inset = await third.evaluate((dialog) => {
+      const content = dialog.querySelector("[class*=layerPopoverHeader]")!;
+      const outer = dialog.getBoundingClientRect();
+      const inner = content.getBoundingClientRect();
+      return Math.round(inner.left - outer.left);
+    });
+    expect(inset).toBeLessThanOrEqual(13);
+
+    /* Every field inside it, all ending on one right edge. X, Y and the
+       opacities once ran past the popover into the panel while Blur and
+       Spread stopped short. */
+    const groups = await third
+      .locator(".astryx-input-group")
+      .evaluateAll((nodes) =>
+        nodes.map((node) => Math.round(node.getBoundingClientRect().right)),
+      );
+    // The selector's visible box, not the label's text button inside it.
+    const colour = (await third
+      .getByLabel("Layer 3 colour", { exact: true })
+      .locator("xpath=ancestor::*[contains(@class, 'astryx-selector')][1]")
+      .boundingBox())!;
+    const rights = [...groups, Math.round(colour.x + colour.width)];
+    expect(rights).toHaveLength(7);
+    for (const right of rights) {
+      expect(right).toBeLessThanOrEqual(popover.x + popover.width);
+      expect(right).toBe(rights[0]);
+    }
+
+    /* Every control in the popover is md, 32px, and each row's label sits
+       level with the first field beside it. */
+    const sizes = await third.evaluate((dialog) => {
+      const height = (el: Element) =>
+        Math.round(el.getBoundingClientRect().height);
+      const top = (el: Element) => Math.round(el.getBoundingClientRect().top);
+      const groups = [...dialog.querySelectorAll(".astryx-input-group")];
+      const labels = [...dialog.querySelectorAll("[class*=layerPopoverLabel]")];
+      return {
+        groups: groups.map(height),
+        labels: labels.map(height),
+        firstRow: [top(labels[0]!), top(groups[0]!)],
+      };
+    });
+    expect(new Set(sizes.groups)).toEqual(new Set([32]));
+    expect(new Set(sizes.labels)).toEqual(new Set([32]));
+    expect(sizes.firstRow[0]).toBe(sizes.firstRow[1]);
+
+    /* X, Y, Blur and Spread's tags are one width, so their values line up. */
+    const tags = await third
+      .locator(".astryx-input-group")
+      .evaluateAll((groups) =>
+        groups
+          .slice(0, 4)
+          .map((group) =>
+            Math.round(
+              group
+                .querySelector(".astryx-input-group-text")!
+                .getBoundingClientRect().width,
+            ),
+          ),
+      );
+    expect(new Set(tags).size).toBe(1);
+
+    // And Light and Dark's, so the two opacities line up too.
+    const modeTags = await third
+      .locator(".astryx-input-group")
+      .evaluateAll((groups) =>
+        groups
+          .slice(4)
+          .map((group) =>
+            Math.round(
+              group
+                .querySelector(".astryx-input-group-text")!
+                .getBoundingClientRect().width,
+            ),
+          ),
+      );
+    expect(modeTags).toHaveLength(2);
+    expect(new Set(modeTags).size).toBe(1);
+
+    /* The row's icon casts a real shadow the way the layer does, as Figma's
+       does: a new layer is pushed down, so its square casts below itself. */
+    const iconShadow = () =>
+      rows
+        .nth(2)
+        .locator("[data-shadow-icon]")
+        .evaluate((node) => getComputedStyle(node).boxShadow);
+    await expect.poll(iconShadow).toMatch(/ 0px 2px 0px 0px$/);
+    await expect.poll(iconShadow).not.toContain("inset");
+
+    await third.getByLabel("Layer 3 type", { exact: true }).click();
+    await page.getByRole("option", { name: "Inner shadow" }).click();
+    await expect.poll(shadow).toContain("inset");
+    // An inner layer's icon casts inset, which shows along the top inside.
+    await expect.poll(iconShadow).toMatch(/ 0px 2px 0px 0px inset$/);
+    await third.getByRole("spinbutton", { name: "Layer 3 Blur" }).fill("12");
+    await third
+      .getByRole("spinbutton", { name: "Layer 3 Blur" })
+      .press("Enter");
+    await expect(rows.nth(2)).toHaveAccessibleName(
+      /^Layer 3: Inner shadow, X 0 · Y 4 · B 12/,
+    );
+
+    await third.getByRole("button", { name: "Close Layer 3 settings" }).click();
+    await expect(third).toBeHidden();
+
+    await layers.getByRole("button", { name: "Hide Layer 3" }).click();
+    await expect.poll(shadow).not.toContain("inset");
+    await expect
+      .poll(async () => {
+        const stored = await readStoredWorkspace(page);
+        return stored?.elevation?.levels.find(
+          (level: { id: string }) => level.id === "low",
+        )?.layers[2];
+      })
+      .toMatchObject({ type: "inner", hidden: true });
+
+    await layers.getByRole("button", { name: "Delete Layer 3" }).click();
+    await expect(rows).toHaveCount(2);
+  });
+
+  test("applies a preset, and hands a custom stack to Advanced", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Elevation");
+    const sample = page
+      .getByRole("region", { name: "Elevation" })
+      .getByLabel("Low on light");
+    const presets = page.getByRole("group", { name: "Low presets" });
+
+    /* Colour, presets and pads are one group, with no divider between them:
+       all three set how this level's shadow looks. */
+    const simple = page.getByRole("group", { name: "Low simple" });
+    await expect(
+      simple.getByLabel("Shadow colour", { exact: true }),
+    ).toHaveCount(1);
+    await expect(
+      simple.getByRole("group", { name: "Low presets" }),
+    ).toBeVisible();
+    await expect(
+      simple.getByRole("group", { name: "Low adjustments" }),
+    ).toBeVisible();
+    const dividers = await simple.evaluate((group) =>
+      [...group.querySelectorAll<HTMLElement>(":scope > *")].map(
+        (part) => getComputedStyle(part).borderBottomWidth,
+      ),
+    );
+    expect(dividers.every((width) => width === "0px")).toBe(true);
+    /* Simple's adjustments: one Lightroom-style slider row each. */
+    const adjustments = page.getByRole("group", { name: "Low adjustments" });
+    const slider = (name: string) =>
+      adjustments.getByRole("slider", { name, exact: true });
+    const rowNames = () =>
+      adjustments.locator("[data-adjustment-row] [class*=sliderRowLabel]");
+    const drawn = () =>
+      sample.evaluate((node) => getComputedStyle(node).boxShadow);
+    const slideTo = async (name: string, key: "End" | "Home") => {
+      await slider(name).focus();
+      await slider(name).press(key);
+    };
+    await adjustments.getByRole("radio", { name: "Light" }).click();
+
+    /* The preset comes first in Simple, above the colour. */
+    const order = await simple.evaluate((group) =>
+      [...group.querySelectorAll(":scope > [role=group], :scope > div")].map(
+        (part) => part.getAttribute("aria-label") ?? "colour",
+      ),
+    );
+    expect(order.slice(0, 2)).toEqual(["Low presets", "colour"]);
+
+    /* A compact trigger: the seeded level is no preset, so Custom, with a
+       live thumbnail of its own shadow. */
+    const trigger = presets.getByRole("button", { name: /^Style preset: / });
+    await expect(trigger).toHaveAccessibleName("Style preset: Custom");
+
+    /* A hero row, not a one-line field: 52 to 56px tall, a square tile in
+       its thumbnail, and a second line that says what it does. */
+    const hero = await trigger.evaluate((button) => {
+      const tile = button
+        .querySelector("[data-preset-thumbnail]")!
+        .getBoundingClientRect();
+      return {
+        height: button.getBoundingClientRect().height,
+        tile: { width: tile.width, height: tile.height },
+      };
+    });
+    expect(hero.height).toBeGreaterThanOrEqual(52);
+    expect(hero.height).toBeLessThanOrEqual(56);
+    expect(hero.tile.width).toBe(hero.tile.height);
+    await expect(trigger).toContainText("Click to change preset");
+    await expect
+      .poll(() =>
+        trigger
+          .locator("[data-preset-thumbnail]")
+          .evaluate((node) => getComputedStyle(node).boxShadow),
+      )
+      .not.toBe("none");
+
+    /* It opens the presets as cards to the left of the panel, as a layer's
+       settings do, each previewing its real shadow. */
+    const dialog = page.getByRole("dialog", { name: "Style presets" });
+    /* Reopened with a retry, as elsewhere in these tests: a click in the
+       moment the last one is still closing is ignored, and no hand is that
+       fast. A selector that never opens still fails here. */
+    const open = async () => {
+      await expect(async () => {
+        await trigger.click();
+        await expect(dialog).toBeVisible({ timeout: 1000 });
+      }).toPass({ timeout: 5000 });
+    };
+    const pick = async (name: string) => {
+      await open();
+      await dialog
+        .getByRole("button", { name: new RegExp(`^${name}:`) })
+        .click();
+      // Picking one closes it.
+      await expect(dialog).toBeHidden();
+    };
+    await open();
+    const [panel, button] = [
+      (await dialog.boundingBox())!,
+      (await trigger.boundingBox())!,
+    ];
+    expect(panel.x + panel.width).toBeLessThanOrEqual(button.x + 1);
+    await expect(dialog.getByRole("button", { name: /:/ })).toHaveCount(5);
+
+    /* Every card's tile is square, with room on all four sides, so a
+       shadow casts evenly rather than being squashed or clipped. */
+    const tiles = await dialog
+      .locator("[data-preset-preview]")
+      .evaluateAll((nodes) =>
+        nodes.map((node) => {
+          const tile = node.getBoundingClientRect();
+          const area = node.parentElement!.getBoundingClientRect();
+          return {
+            width: tile.width,
+            height: tile.height,
+            room: Math.min(
+              tile.top - area.top,
+              area.bottom - tile.bottom,
+              tile.left - area.left,
+              area.right - tile.right,
+            ),
+          };
+        }),
+      );
+    for (const tile of tiles) {
+      expect(tile.width).toBe(tile.height);
+      expect(tile.room).toBeGreaterThanOrEqual(16);
+    }
+    await expect
+      .poll(() =>
+        dialog
+          .locator("[data-preset-preview=inset]")
+          .evaluate((node) => getComputedStyle(node).boxShadow),
+      )
+      .toContain("inset");
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+
+    await pick("Inset");
+    await expect(trigger).toHaveAccessibleName("Style preset: Inset");
+    // A preset's second line is what it is for.
+    await expect(trigger).toContainText("Pressed into the page.");
+    await expect
+      .poll(() => sample.evaluate((node) => getComputedStyle(node).boxShadow))
+      .toContain("inset");
+
+    /* Inset's sliders: Depth, Softness, Opacity. Pressed to its deepest,
+       it stays inset and stays Inset. */
+    await expect(rowNames()).toHaveText(["Depth", "Softness", "Opacity"]);
+    await slideTo("Depth", "End");
+    await expect.poll(drawn).toMatch(/0px 24px/);
+    await expect.poll(drawn).toContain("inset");
+    await expect(trigger).toHaveAccessibleName("Style preset: Inset");
+
+    /* Standard's sliders: Distance, Softness, Spread, Opacity. Its card is
+       the active one next time. */
+    await pick("Standard");
+    await expect(rowNames()).toHaveText([
+      "Distance",
+      "Softness",
+      "Spread",
+      "Opacity",
+    ]);
+    await open();
+    await expect(
+      dialog.getByRole("button", { name: /^Standard:/ }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await page.keyboard.press("Escape");
+
+    /* Neumorphic's: Distance moves shadow and highlight apart together;
+       Highlight and Shadow set each one's strength for the mode. */
+    await pick("Neumorphic");
+    await expect(rowNames()).toHaveText([
+      "Distance",
+      "Softness",
+      "Highlight",
+      "Shadow",
+    ]);
+    await slideTo("Distance", "End");
+    await expect.poll(drawn).toContain("20px 20px");
+    await expect.poll(drawn).toContain("-20px -20px");
+    const highlightBefore =
+      await slider("Highlight").getAttribute("aria-valuenow");
+    await slider("Highlight").focus();
+    await slider("Highlight").press("ArrowLeft");
+    await expect(slider("Highlight")).not.toHaveAttribute(
+      "aria-valuenow",
+      highlightBefore!,
+    );
+    await expect(trigger).toHaveAccessibleName("Style preset: Neumorphic");
+
+    await pick("Glow");
+
+    /* Glow has a colour of its own, so the colour control shows that one,
+       named for the level, rather than the shared shadow colour: no black
+       swatch beside a pink glow. */
+    const levelColour = page.getByLabel("Low colour", { exact: true });
+    await expect(levelColour).toContainText("primary");
+    await expect(levelColour).not.toContainText("950");
+    await expect(page.getByLabel("Shadow colour", { exact: true })).toHaveCount(
+      0,
+    );
+
+    /* Changing it recolours this glow, and only this level. */
+    const channels = (node: Element) =>
+      [...getComputedStyle(node).boxShadow.matchAll(/rgba?\((\d+, \d+, \d+)/g)]
+        .map((m) => m[1])
+        .join(" ");
+    const canvas = page.getByRole("region", { name: "Elevation" });
+    const medium = await canvas
+      .getByLabel("Medium on light")
+      .evaluate(channels);
+    const before = await sample.evaluate(channels);
+    await levelColour.click();
+    await page
+      .getByRole("option", { name: "primary 300", exact: true })
+      .click();
+    await expect.poll(() => sample.evaluate(channels)).not.toBe(before);
+    await expect(levelColour).toContainText("primary 300");
+    expect(await canvas.getByLabel("Medium on light").evaluate(channels)).toBe(
+      medium,
+    );
+    // Still a Glow, in its new colour.
+    await expect(trigger).toHaveAccessibleName("Style preset: Glow");
+
+    /* Glow's: Radius, Spread, Intensity. */
+    await expect(rowNames()).toHaveText(["Radius", "Spread", "Intensity"]);
+    await slideTo("Radius", "End");
+    await expect.poll(drawn).toMatch(/0px 0px 48px/);
+    await slideTo("Spread", "End");
+    await expect.poll(drawn).toMatch(/0px 0px 48px 24px/);
+    await slideTo("Intensity", "Home");
+    await expect(slider("Intensity")).toHaveAttribute("aria-valuenow", "0");
+    await expect(trigger).toHaveAccessibleName("Style preset: Glow");
+
+    // The Simple / Advanced switch is md, 32px, like every control here.
+    expect(
+      Math.round(
+        (await page
+          .getByRole("radiogroup", { name: "Elevation editor" })
+          .boundingBox())!.height,
+      ),
+    ).toBe(32);
+    // And every slider row is one 32px line.
+    const rowHeights = await adjustments
+      .locator("[data-adjustment-row]")
+      .evaluateAll((rows) =>
+        rows.map((row) => Math.round(row.getBoundingClientRect().height)),
+      );
+    expect(new Set(rowHeights)).toEqual(new Set([32]));
+    // No note or button stands in for the sliders; the switch goes to Advanced.
+    await expect(
+      page.getByRole("button", { name: "Edit layers in Advanced" }),
+    ).toHaveCount(0);
+    await page.getByRole("radio", { name: "Advanced" }).click();
+    await expect(
+      page
+        .getByRole("group", { name: "Low layers" })
+        .getByRole("button", { name: /^Layer \d+: Drop shadow/ }),
+    ).toHaveCount(2);
   });
 });
 
@@ -510,20 +1441,19 @@ test.describe("The scale studio's chrome", () => {
   test("undoes a prune, and redo puts it back", async ({
     seededPage: page,
   }) => {
-    const steps = page.getByRole("region", { name: "Generated spacing steps" });
-    const before = await steps.getByRole("listitem").count();
+    const toggle = page.getByRole("button", {
+      name: "Keep step 10",
+      exact: true,
+    });
 
-    await page
-      .getByRole("region", { name: "Steps" })
-      .getByRole("button", { name: "10", exact: true })
-      .click();
-    await expect(steps.getByRole("listitem")).toHaveCount(before - 1);
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
 
     await page.getByRole("button", { name: "Undo" }).click();
-    await expect(steps.getByRole("listitem")).toHaveCount(before);
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
 
     await page.getByRole("button", { name: "Redo" }).click();
-    await expect(steps.getByRole("listitem")).toHaveCount(before - 1);
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
   });
 
   test("undoes the last action on the page, not only this view", async ({
@@ -532,12 +1462,11 @@ test.describe("The scale studio's chrome", () => {
     /* Spacing, radius and elevation share one history: an undo is the last
        thing done in this studio, even after switching views. */
 
-    const steps = page.getByRole("region", { name: "Generated spacing steps" });
-    const before = await steps.getByRole("listitem").count();
-    await page
-      .getByRole("region", { name: "Steps" })
-      .getByRole("button", { name: "10", exact: true })
-      .click();
+    const toggle = page.getByRole("button", {
+      name: "Keep step 10",
+      exact: true,
+    });
+    await toggle.click();
 
     await showScaleView(page, "Radius");
     const slider = page.getByRole("slider", { name: /Roundness/ });
@@ -554,7 +1483,7 @@ test.describe("The scale studio's chrome", () => {
 
     await showScaleView(page, "Spacing");
     await page.getByRole("button", { name: "Undo" }).click();
-    await expect(steps.getByRole("listitem")).toHaveCount(before);
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
   });
 
   test("exports the whole system, not only the scales", async ({

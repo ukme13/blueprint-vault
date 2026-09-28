@@ -26,7 +26,17 @@ import type { ColourMode } from "../color/semantic";
  * See docs/roadmap/scale-studio.md.
  */
 
+/**
+ * A drop shadow falls outside the box; an inner one is `inset`, inside it.
+ *
+ * Optional on the layer, and absent means drop: every scale saved before
+ * layers had a type is a stack of drop shadows, and reads as one unchanged.
+ */
+export type ShadowLayerType = "drop" | "inner";
+
 export interface ShadowLayer {
+  /** Absent is "drop". Only an inner layer stores it. */
+  type?: ShadowLayerType;
   offsetXPx: number;
   offsetYPx: number;
   blurPx: number;
@@ -38,6 +48,25 @@ export interface ShadowLayer {
    * same alpha reads as nothing once the background is already dark.
    */
   opacity: { light: number; dark: number };
+  /**
+   * A shade of its own, for a layer that is not a shadow in the scale's
+   * colour: a neumorphic highlight, a coloured glow.
+   *
+   * A palette reference, never a raw colour, so it follows the palette as
+   * `colour` on the scale does. Absent means the scale's colour, which is what
+   * almost every layer wants.
+   */
+  colour?: SemanticReference;
+  /**
+   * Switched off without being deleted, so its values survive while an author
+   * compares the stack with and without it. A hidden layer is left out of
+   * every output: the CSS, the variables and the Design Tokens file.
+   */
+  hidden?: boolean;
+}
+
+export function isInnerShadow(layer: Pick<ShadowLayer, "type">): boolean {
+  return layer.type === "inner";
 }
 
 export interface ElevationLevel {
@@ -46,6 +75,13 @@ export interface ElevationLevel {
   name: string;
   description: string;
   layers: ShadowLayer[];
+  /**
+   * The preset last applied, if any. Standard and Subtle card are both two
+   * plain drop shadows, so once tuned in Simple their shape no longer says
+   * which one a level is; this does, for as long as the shape still fits.
+   * Absent on a level no preset has touched.
+   */
+  preset?: string;
 }
 
 export interface ElevationScale {
@@ -89,9 +125,7 @@ function layer(
  * already close to the shadow's own shade, so a thin layer of it barely moves
  * the pixels underneath. High keeps a stronger cast than contact in dark, so
  * a dialog still reads as further off the page than a menu. That cast is
- * 0.55, not 0.6: ELEVATION_OPACITY_MAX is 0.6, and a seed on the ceiling
- * leaves the editor no room to make it stronger and parks the pad's thumb in
- * its corner.
+ * 0.55 rather than higher, so a seed leaves room to make it stronger.
  */
 export const DEFAULT_ELEVATION_LEVELS: readonly ElevationLevel[] = [
   {
@@ -161,19 +195,41 @@ export function elevationVariableName(id: string): string {
  * one step away.
  */
 function shadowHex(tracks: ColorTrack[], colour: SemanticReference): string {
-  if (tracks.length === 0) return "#000000";
-
-  const track =
-    tracks.find((candidate) => candidate.id === colour.trackId) ??
-    tracks.find((candidate) => candidate.name === colour.trackId) ??
-    tracks[0]!;
-
+  const track = findElevationTrack(tracks, colour.trackId) ?? tracks[0];
+  if (!track) return "#000000";
   const exact = track.shades.find((shade) => shade.weight === colour.weight);
-  if (exact) return exact.hex;
+  return (exact ?? extremeShade(track, "darkest"))?.hex ?? "#000000";
+}
 
-  return track.shades.reduce((darkest, shade) =>
-    shade.weight > darkest.weight ? shade : darkest,
-  ).hex;
+/**
+ * The track a reference names: by id, or by name for a reference saved
+ * before tracks had ids. Undefined when neither matches.
+ */
+export function findElevationTrack(
+  tracks: readonly ColorTrack[],
+  idOrName: string,
+): ColorTrack | undefined {
+  return (
+    tracks.find((track) => track.id === idOrName) ??
+    tracks.find((track) => track.name === idOrName)
+  );
+}
+
+/** A track's lightest or darkest shade, by weight. */
+export function extremeShade(
+  track: ColorTrack,
+  end: "lightest" | "darkest",
+): ColorTrack["shades"][number] | undefined {
+  return track.shades.reduce<ColorTrack["shades"][number] | undefined>(
+    (best, shade) =>
+      !best ||
+      (end === "darkest"
+        ? shade.weight > best.weight
+        : shade.weight < best.weight)
+        ? shade
+        : best,
+    undefined,
+  );
 }
 
 /**
@@ -184,6 +240,8 @@ function shadowHex(tracks: ColorTrack[], colour: SemanticReference): string {
  * the parts. Formatting twice from one resolution beats resolving twice.
  */
 export interface ResolvedShadowLayer {
+  /** An inner shadow: `inset` in CSS, `inset: true` in Design Tokens. */
+  inset: boolean;
   offsetXPx: number;
   offsetYPx: number;
   blurPx: number;
@@ -202,42 +260,93 @@ export interface ResolvedElevation {
   css: string;
 }
 
+function rgbOf(hex: string): [number, number, number] {
+  const [red, green, blue] = hexToRgb(hex).map((channel) =>
+    Math.round(channel * 255),
+  );
+  return [red!, green!, blue!];
+}
+
+/**
+ * The hex the scale's shadows are drawn in, with the same fallback the
+ * shadows themselves use.
+ *
+ * Read from the scale rather than off a resolved layer: a layer can carry a
+ * colour of its own or be hidden, and a level can have none, so the first
+ * layer of the first level is not the scale's colour.
+ */
+export function elevationColourHex(
+  scale: ElevationScale,
+  tracks: ColorTrack[],
+): string {
+  return shadowHex(tracks, scale.colour);
+}
+
+/** One layer as a `box-shadow` entry. */
+export function shadowLayerCss(layer: ResolvedShadowLayer): string {
+  const [red, green, blue] = layer.rgb;
+  return `${layer.inset ? "inset " : ""}${layer.offsetXPx}px ${layer.offsetYPx}px ${layer.blurPx}px ${layer.spreadPx}px rgba(${red}, ${green}, ${blue}, ${layer.alpha})`;
+}
+
 /** Every level as a box-shadow value, for one mode. */
 export function resolveElevation(
   scale: ElevationScale,
   tracks: ColorTrack[],
   mode: ColourMode,
 ): ResolvedElevation[] {
-  const hex = shadowHex(tracks, scale.colour);
-  const [red, green, blue] = hexToRgb(hex).map((channel) =>
-    Math.round(channel * 255),
+  const scaleRgb = rgbOf(shadowHex(tracks, scale.colour));
+  return scale.levels.map((level) =>
+    resolveLevel(level, scaleRgb, tracks, mode),
   );
+}
 
-  return scale.levels.map((level) => {
-    const layers: ResolvedShadowLayer[] = level.layers.map((each) => ({
+/**
+ * One level as a box-shadow value, for one mode — without resolving the
+ * rest of the scale. For a preview of one level or of layers not yet in the
+ * scale, such as a preset's.
+ */
+export function resolveElevationLevel(
+  level: ElevationLevel,
+  scale: ElevationScale,
+  tracks: ColorTrack[],
+  mode: ColourMode,
+): ResolvedElevation {
+  return resolveLevel(
+    level,
+    rgbOf(shadowHex(tracks, scale.colour)),
+    tracks,
+    mode,
+  );
+}
+
+function resolveLevel(
+  level: ElevationLevel,
+  scaleRgb: [number, number, number],
+  tracks: ColorTrack[],
+  mode: ColourMode,
+): ResolvedElevation {
+  const layers: ResolvedShadowLayer[] = level.layers
+    .filter((each) => !each.hidden)
+    .map((each) => ({
+      inset: isInnerShadow(each),
       offsetXPx: each.offsetXPx,
       offsetYPx: each.offsetYPx,
       blurPx: each.blurPx,
       spreadPx: each.spreadPx,
-      rgb: [red!, green!, blue!],
+      rgb: each.colour ? rgbOf(shadowHex(tracks, each.colour)) : scaleRgb,
       alpha: Number(each.opacity[mode].toFixed(3)),
     }));
 
-    return {
-      id: level.id,
-      name: level.name,
-      description: level.description,
-      variable: elevationVariableName(level.id),
-      layers,
-      css:
-        layers
-          .map(
-            (each) =>
-              `${each.offsetXPx}px ${each.offsetYPx}px ${each.blurPx}px ${each.spreadPx}px rgba(${each.rgb[0]}, ${each.rgb[1]}, ${each.rgb[2]}, ${each.alpha})`,
-          )
-          .join(", ") || "none",
-    };
-  });
+  return {
+    id: level.id,
+    name: level.name,
+    description: level.description,
+    variable: elevationVariableName(level.id),
+    layers,
+    /* A level whose every layer is hidden draws nothing, the same as one
+       with no layers. */
+    css: layers.map(shadowLayerCss).join(", ") || "none",
+  };
 }
 
 /** The scale as custom properties, for one mode. */
@@ -265,8 +374,13 @@ function readLayer(value: unknown): ShadowLayer | null {
   const number = (at: unknown) =>
     typeof at === "number" && Number.isFinite(at) ? at : 0;
   const opacity = (raw.opacity ?? {}) as Record<string, unknown>;
+  const colour = readReference(raw.colour);
 
+  /* The optional fields are written only when they say something, so a layer
+     saved before they existed reads back as exactly what it was: no
+     `type: "drop"`, no `hidden: false`. */
   return {
+    ...(raw.type === "inner" ? { type: "inner" as const } : {}),
     offsetXPx: number(raw.offsetXPx),
     offsetYPx: number(raw.offsetYPx),
     blurPx: Math.max(number(raw.blurPx), 0),
@@ -275,7 +389,20 @@ function readLayer(value: unknown): ShadowLayer | null {
       light: clampOpacity(opacity.light),
       dark: clampOpacity(opacity.dark),
     },
+    ...(colour ? { colour } : {}),
+    ...(raw.hidden === true ? { hidden: true } : {}),
   };
+}
+
+/** A palette reference, or null for anything that is not one. */
+function readReference(value: unknown): SemanticReference | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const raw = value as Record<string, unknown>;
+  if (typeof raw.trackId !== "string" || !raw.trackId) return null;
+  if (typeof raw.weight !== "number" || !Number.isFinite(raw.weight)) {
+    return null;
+  }
+  return { trackId: raw.trackId, weight: raw.weight };
 }
 
 function readLevel(value: unknown): ElevationLevel | null {
@@ -287,6 +414,9 @@ function readLevel(value: unknown): ElevationLevel | null {
     id: raw.id,
     name: typeof raw.name === "string" && raw.name ? raw.name : raw.id,
     description: typeof raw.description === "string" ? raw.description : "",
+    ...(typeof raw.preset === "string" && raw.preset
+      ? { preset: raw.preset }
+      : {}),
     /* A level with no layers is `box-shadow: none`, which is a legitimate
        thing to want at the bottom of a scale. */
     layers: (Array.isArray(raw.layers) ? raw.layers : [])

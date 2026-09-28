@@ -6,6 +6,7 @@ import {
   expect,
   test,
 } from "./fixtures";
+import { spacingTagReport } from "./scale-fixtures";
 import { openPreview } from "./preview-fixtures";
 import {
   TYPOGRAPHY_STORAGE_KEY,
@@ -1216,6 +1217,42 @@ test.describe("on a phone", () => {
     );
   });
 
+  test("stacks the spacing preview's cards, and picks slots from a sheet", async ({
+    seededPage: page,
+  }) => {
+    await page.goto("/spacing");
+    const preview = page.getByRole("figure", { name: "Spacing preview" });
+    await expect(preview).toBeVisible();
+
+    /* The cards stack, the column gap running between them, and nothing
+       runs past the screen. */
+    const layout = await preview.evaluate((figure) => {
+      const cards = [
+        ...figure.querySelectorAll<HTMLElement>('[data-spacing-zone="inset"]'),
+      ].map((card) => card.getBoundingClientRect());
+      const gap = figure
+        .querySelector<HTMLElement>('[data-spacing-zone="columns"]')!
+        .getBoundingClientRect();
+      return {
+        stacked: cards[1]!.top >= cards[0]!.bottom,
+        gapHeight: Math.round(gap.height),
+        overflow: figure.scrollWidth - figure.clientWidth,
+      };
+    });
+    expect(layout).toEqual({ stacked: true, gapHeight: 16, overflow: 0 });
+
+    /* Every size tag clear of the cards' content, and on the screen. */
+    const tags = await spacingTagReport(preview);
+    expect(tags.tags).toBeGreaterThan(3);
+    expect(tags.hits).toEqual([]);
+    expect(tags.offScreen).toEqual([]);
+
+    /* A slot is picked from a sheet, as every selector on a phone is. */
+    await page.getByRole("button", { name: /^Stack spacing:/ }).click();
+    const sheet = page.getByRole("dialog", { name: "Stack spacing" });
+    await expect(sheet.locator(".astryx-bottom-sheet").first()).toBeVisible();
+  });
+
   test("draws each spacing bar at its own length", async ({
     seededPage: page,
   }) => {
@@ -1230,7 +1267,8 @@ test.describe("on a phone", () => {
     const bars = await rows.evaluateAll((items) =>
       items.map((item) => {
         const px = parseFloat(item.children[1]!.textContent ?? "0");
-        const bar = item.lastElementChild as HTMLElement;
+        // The bar by its class: the layout-use badges come after it now.
+        const bar = item.querySelector("[class*=tokenBar]") as HTMLElement;
         return {
           px,
           width: bar.getBoundingClientRect().width,
@@ -1245,6 +1283,71 @@ test.describe("on a phone", () => {
         `${px}px drawn ${width}`,
       ).toBeLessThanOrEqual(1);
     }
+  });
+
+  test("opens the style presets as a sheet, and a tap applies one", async ({
+    seededPage: page,
+  }) => {
+    /* On a wider screen the presets open to the left of the panel. A phone
+       has no left of the panel, so they come up as a sheet over the settings
+       sheet, with no close button of their own: the backdrop, a swipe or
+       Escape dismiss it, and picking a card applies it and closes. */
+    await page.goto("/elevation");
+    await page
+      .getByRole("button", { name: "Elevation settings", exact: true })
+      .click();
+    const settings = page.getByRole("dialog", { name: "Elevation settings" });
+    const trigger = settings.getByRole("button", { name: /^Style preset: / });
+    await trigger.click();
+
+    const presets = page.getByRole("dialog", { name: "Style presets" });
+    await expect(presets.locator(".astryx-bottom-sheet").first()).toBeVisible();
+    await expect(presets.getByRole("button", { name: /close/i })).toHaveCount(
+      0,
+    );
+    const cards = presets.getByRole("button", { name: /:/ });
+    await expect(cards).toHaveCount(5);
+    for (const box of await cards.evaluateAll((nodes) =>
+      nodes.map((node) => node.getBoundingClientRect().height),
+    )) {
+      expect(box).toBeGreaterThanOrEqual(44);
+    }
+
+    await presets.getByRole("button", { name: /^Inset:/ }).click();
+    await expect(presets).toBeHidden();
+    await expect(trigger).toHaveAccessibleName("Style preset: Inset");
+    await expect(page.locator("dialog[open]")).toHaveCount(1);
+    await expect(settings).toBeVisible();
+  });
+
+  test("opens a shadow layer's settings as a sheet, not beside the panel", async ({
+    seededPage: page,
+  }) => {
+    /* On a wider screen a layer's settings open to the left of the panel, as
+       in Figma. A phone has no left of the panel, so they stack as a sheet
+       on the settings sheet, and closing them leaves that one open. */
+    await page.goto("/elevation");
+    await page
+      .getByRole("button", { name: "Elevation settings", exact: true })
+      .click();
+    const settings = page.getByRole("dialog", { name: "Elevation settings" });
+    await settings.getByRole("radio", { name: "Advanced" }).click();
+    await settings.getByRole("button", { name: /^Layer 1: / }).click();
+
+    const layer = page.getByRole("dialog", { name: "Layer 1 settings" });
+    await expect(layer.locator(".astryx-bottom-sheet").first()).toBeVisible();
+    await layer.getByRole("spinbutton", { name: "Layer 1 Blur" }).fill("6");
+    await layer
+      .getByRole("spinbutton", { name: "Layer 1 Blur" })
+      .press("Enter");
+    await expect(
+      settings.getByRole("button", { name: /^Layer 1: .*B 6/ }),
+    ).toHaveCount(1);
+
+    await layer.getByRole("button", { name: "Close Layer 1 settings" }).click();
+    await expect(layer).toBeHidden();
+    await expect(page.locator("dialog[open]")).toHaveCount(1);
+    await expect(settings).toBeVisible();
   });
 
   for (const [route, section] of [
@@ -1288,31 +1391,32 @@ test.describe("on a phone", () => {
         await expect(page.locator("dialog[open]")).toHaveCount(1);
         await expect(sheet).toBeVisible();
 
-        /* A drag down on a shadow pad sets the shadow; it does not swipe the
-           sheet shut. A real touch, as the sheet listens for touches. */
-        const pad = sheet.getByRole("button", {
-          name: "Low light contact and cast",
-        });
-        const readout = pad.locator("xpath=following-sibling::*[1]");
+        /* A drag along an adjustment slider sets it; the thumb drifting
+           down as it goes, as a real one does, does not swipe the sheet
+           shut. A real touch, as the sheet listens for touches. */
+        const row = sheet
+          .getByRole("group", { name: "Low adjustments" })
+          .locator("[data-adjustment-row]")
+          .first();
+        const readout = row.locator("output");
         const before = await readout.textContent();
-        const padBox = (await pad.boundingBox())!;
+        const track = (await row.getByRole("slider").boundingBox())!;
         const cdp = await page.context().newCDPSession(page);
         await cdp.send("Emulation.setTouchEmulationEnabled", { enabled: true });
-        const x = padBox.x + padBox.width / 2;
-        const y = padBox.y + 8;
+        const x = track.x + track.width / 2;
+        const y = track.y + track.height / 2;
         const touch = (
           type: "touchStart" | "touchMove" | "touchEnd",
-          dy: number,
+          dx: number,
         ) =>
           cdp.send("Input.dispatchTouchEvent", {
             type,
-            touchPoints: type === "touchEnd" ? [] : [{ x, y: y + dy }],
+            touchPoints:
+              type === "touchEnd" ? [] : [{ x: x + dx, y: y + dx / 2 }],
           });
         await touch("touchStart", 0);
-        for (let dy = 10; dy <= padBox.height - 16; dy += 10) {
-          await touch("touchMove", dy);
-        }
-        await touch("touchEnd", padBox.height - 16);
+        for (let dx = 10; dx <= 80; dx += 10) await touch("touchMove", dx);
+        await touch("touchEnd", 80);
         await expect(sheet).toBeVisible();
         await expect(readout).not.toHaveText(before!);
       }

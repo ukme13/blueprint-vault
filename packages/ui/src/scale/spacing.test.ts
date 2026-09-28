@@ -7,11 +7,19 @@ import {
   MAX_SPACING_DENSITY,
   MIN_SPACING_BASE_UNIT_PX,
   MIN_SPACING_DENSITY,
+  SPACING_DENSITY_PRESETS,
   SPACING_BASE_UNIT_PRESETS,
   defaultSpacingScale,
   generateSpacingSteps,
   normalizeSpacingScale,
   resolveSpacing,
+  resolveSpacingSlots,
+  resolveSpacingRamp,
+  SPACING_SLOT_STEPS,
+  spacingDensityBehavior,
+  spacingChipSteps,
+  nearestSpacingToken,
+  matchingSpacingDensityPreset,
   spacingStepName,
   spacingVariableName,
 } from "./spacing";
@@ -219,5 +227,136 @@ describe("toggleSpacingStep", () => {
       baseUnitPx: scale.baseUnitPx,
       density: scale.density,
     });
+  });
+});
+
+describe("density presets", () => {
+  it("sit inside the density bounds", () => {
+    for (const preset of SPACING_DENSITY_PRESETS) {
+      expect(preset.value).toBeGreaterThanOrEqual(MIN_SPACING_DENSITY);
+      expect(preset.value).toBeLessThanOrEqual(MAX_SPACING_DENSITY);
+    }
+  });
+
+  it("move the layout steps and leave the fine grid where it is", () => {
+    const at = (density: number) =>
+      Object.fromEntries(
+        resolveSpacing({ ...defaultSpacingScale(), density }).map((token) => [
+          token.step,
+          token.px,
+        ]),
+      );
+    const compact = at(0.75);
+    const spacious = at(1.25);
+    // The fine grid — 0.5, 1, 1.5 on a 4px base — is 2, 4 and 6px at any
+    // density: the last step below where density starts.
+    for (const step of [0.5, 1, 1.5]) {
+      expect(compact[step]).toBe(step * 4);
+      expect(spacious[step]).toBe(step * 4);
+    }
+    // Step 2, the first layout step, moves: 8px at 1x.
+    expect(compact[2]).toBe(6);
+    expect(spacious[2]).toBe(10);
+    expect(spacious[16]).toBe(80);
+  });
+});
+
+describe("spacingChipSteps", () => {
+  it("offers the standard chips plus any step the scale holds", () => {
+    const chips = spacingChipSteps({ steps: [0, 2.5, 4] });
+    expect(chips).toContain(2.5);
+    expect(chips).toEqual([...chips].sort((a, b) => a - b));
+    expect(chips).toEqual(
+      [...new Set([...generateSpacingSteps(16), 2.5])].sort((a, b) => a - b),
+    );
+  });
+});
+
+describe("nearestSpacingToken", () => {
+  const tokens = resolveSpacing({ ...defaultSpacingScale(), steps: [0, 2, 6] });
+
+  it("is the step itself when the scale has it", () => {
+    expect(nearestSpacingToken(tokens, 2)?.step).toBe(2);
+  });
+
+  it("is the nearest step once it is pruned, the lower on a tie", () => {
+    expect(nearestSpacingToken(tokens, 5)?.step).toBe(6);
+    expect(nearestSpacingToken(tokens, 4)?.step).toBe(2);
+  });
+
+  it("is undefined for no tokens", () => {
+    expect(nearestSpacingToken([], 4)).toBeUndefined();
+  });
+});
+
+describe("spacingDensityBehavior", () => {
+  const token = (step: number) =>
+    resolveSpacing({ ...defaultSpacingScale(), steps: [step] })[0]!;
+
+  it("calls a fine step grid, at any density", () => {
+    expect(spacingDensityBehavior(token(1), 1)).toBe("grid");
+    expect(spacingDensityBehavior(token(0.5), 1.25)).toBe("grid");
+  });
+
+  it("calls a layout step scaled only when density is not 1", () => {
+    expect(spacingDensityBehavior(token(4), 1.25)).toBe("scaled");
+    expect(spacingDensityBehavior(token(4), 1)).toBe("unchanged");
+  });
+
+  it("says nothing of step 0", () => {
+    expect(spacingDensityBehavior(token(0), 0.75)).toBe("unchanged");
+  });
+});
+
+describe("matchingSpacingDensityPreset", () => {
+  it("names the preset a density is, and none between", () => {
+    expect(matchingSpacingDensityPreset(0.75)?.id).toBe("compact");
+    expect(matchingSpacingDensityPreset(1)?.id).toBe("default");
+    expect(matchingSpacingDensityPreset(1.1)).toBeNull();
+  });
+});
+
+describe("resolveSpacingSlots", () => {
+  const tokens = resolveSpacing(defaultSpacingScale());
+
+  it("gives each slot its own step, 24, 8 and 16px to start", () => {
+    const slots = resolveSpacingSlots(tokens, SPACING_SLOT_STEPS)!;
+    expect([slots.inset.px, slots.stack.px, slots.columns.px]).toEqual([
+      24, 8, 16,
+    ]);
+  });
+
+  it("moves only a slot whose step was pruned, to the nearest", () => {
+    const pruned = resolveSpacing({
+      ...defaultSpacingScale(),
+      steps: [0, 1, 2, 4, 8],
+    });
+    const slots = resolveSpacingSlots(pruned, SPACING_SLOT_STEPS)!;
+    // Inset's 6 is gone: 4 and 8 are as near, and the lower wins.
+    expect(slots.inset.step).toBe(4);
+    expect(slots.stack.step).toBe(2);
+    expect(slots.columns.step).toBe(4);
+  });
+
+  it("is null for no tokens", () => {
+    expect(resolveSpacingSlots([], SPACING_SLOT_STEPS)).toBeNull();
+  });
+});
+
+describe("resolveSpacingRamp", () => {
+  it("lists every offered step, kept or pruned, at its own size", () => {
+    const scale = { ...defaultSpacingScale(), steps: [0, 2, 4] };
+    const ramp = resolveSpacingRamp(scale);
+    expect(ramp.map((token) => token.step)).toEqual(spacingChipSteps(scale));
+    const four = ramp.find((token) => token.step === 4)!;
+    const three = ramp.find((token) => token.step === 3)!;
+    expect([four.kept, four.px]).toEqual([true, 16]);
+    // Pruned, but still the size it would be.
+    expect([three.kept, three.px]).toEqual([false, 12]);
+  });
+
+  it("keeps a step beyond the offered chips, like a preset's 2.5", () => {
+    const ramp = resolveSpacingRamp({ ...defaultSpacingScale(), steps: [2.5] });
+    expect(ramp.find((token) => token.step === 2.5)?.kept).toBe(true);
   });
 });
