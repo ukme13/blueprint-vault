@@ -30,7 +30,7 @@ interface SpacingTokenRowProps {
  * density, the multiplier on a layout step when density is not 1.
  *
  * A click anywhere on a kept row picks the step; the name is a button too,
- * so a keyboard and a screen reader reach it. The box at the end keeps or
+ * so a keyboard and a screen reader reach it. The box at the start keeps or
  * prunes the step. A pruned row is dimmed and picks nothing: the preview
  * cannot show a step the scale does not have.
  */
@@ -61,6 +61,18 @@ export function SpacingTokenRow({
       data-spacing-step={token.step}
       onClick={isKept ? onSelect : undefined}
     >
+      <button
+        aria-label={`Keep step ${spacingStepName(token.step)}`}
+        aria-pressed={isKept}
+        className={styles.tokenKeep}
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggleKept();
+        }}
+      >
+        {isKept ? <Check aria-hidden /> : null}
+      </button>
       <span className={styles.tokenName}>
         <button
           aria-pressed={isSelected}
@@ -87,18 +99,6 @@ export function SpacingTokenRow({
         className={styles.tokenBar}
         style={{ width: `${token.px}px` }}
       />
-      <button
-        aria-label={`Keep step ${spacingStepName(token.step)}`}
-        aria-pressed={isKept}
-        className={styles.tokenKeep}
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onToggleKept();
-        }}
-      >
-        {isKept ? <Check aria-hidden /> : null}
-      </button>
     </li>
   );
 }

@@ -460,7 +460,7 @@ test.describe("The spacing studio", () => {
     await expect.poll(insetOnPhone).toBe("4");
   });
 
-  test("keeps the keep box at the right end of each row", async ({
+  test("puts the keep box at the start of each row", async ({
     seededPage: page,
   }) => {
     const row = page
@@ -472,10 +472,10 @@ test.describe("The spacing studio", () => {
     const name = await row.locator("code").boundingBox();
     const bar = await row.locator("[class*=tokenBar]").boundingBox();
     const rowBox = await row.boundingBox();
-    // The variable leads the row; the box comes after the bar, at its end.
-    expect(name!.x - rowBox!.x).toBeLessThan(16);
-    expect(box!.x).toBeGreaterThanOrEqual(bar!.x + bar!.width);
-    expect(rowBox!.x + rowBox!.width - (box!.x + box!.width)).toBeLessThan(16);
+    // The box leads the row; the variable follows it, the bar comes last.
+    expect(box!.x - rowBox!.x).toBeLessThan(16);
+    expect(name!.x).toBeGreaterThanOrEqual(box!.x + box!.width);
+    expect(bar!.x).toBeGreaterThan(name!.x);
   });
 
   test("prunes a step from its row, and keeps it pruned", async ({

@@ -1271,7 +1271,9 @@ test.describe("on a phone", () => {
 
     const bars = await rows.evaluateAll((items) =>
       items.map((item) => {
-        const px = parseFloat(item.children[1]!.textContent ?? "0");
+        const px = parseFloat(
+          item.querySelector("[data-spacing-value]")!.textContent ?? "0",
+        );
         // The bar by its class: the keep box comes after it.
         const bar = item.querySelector("[class*=tokenBar]") as HTMLElement;
         return {
