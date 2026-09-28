@@ -64,11 +64,15 @@ export function ShadeSheet({
     >
       {palette && shade && (
         <ShadeDetailPopover
+          /* Fresh for each shade and each opening: it remembers whether it
+             was opened on the source shade. */
+          key={`${palette.id}-${shade.weight}-${activeShade ? "open" : "closed"}`}
           comparisonHex={wcagComparisonHex}
           comparisonLabel={wcagComparisonLabel}
           layout="sheet"
           paletteName={palette.name}
           shade={shade}
+          sourceHex={palette.seedHex}
           onAnchorChange={(hex) =>
             onAnchorChange(palette.id, shade.weight, hex)
           }

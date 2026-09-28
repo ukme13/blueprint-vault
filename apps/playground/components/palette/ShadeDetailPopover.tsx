@@ -1,15 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import {
-  SegmentedControl,
-  SegmentedControlItem,
-} from "@astryxdesign/core/SegmentedControl";
-import { Switch } from "@astryxdesign/core/Switch";
 import { useToast } from "@astryxdesign/core/Toast";
 import {
   COLOUR_FORMAT_LABELS,
-  Button,
   formatColour,
   type ShadeItem,
 } from "@blueprint/ui";
@@ -17,6 +12,7 @@ import { useColourFormat } from "./ColourFormatContext";
 import { ColourFormatSelector } from "./ColourFormatSelector";
 import { ColourPicker } from "./ColourPicker";
 import { ShadeContrastResult } from "./ShadeContrastResult";
+import { ShadeEditModeControls } from "./ShadeEditModeControls";
 import { usePaletteView } from "./PaletteViewContext";
 import styles from "./palette-workspace.module.css";
 import { useCopyFeedback } from "../useCopyFeedback";
@@ -24,6 +20,8 @@ import { useCopyFeedback } from "../useCopyFeedback";
 interface ShadeDetailPopoverProps {
   paletteName: string;
   shade: ShadeItem;
+  /** The track's seed: what the picker edits while it edits the source. */
+  sourceHex: string;
   comparisonHex: string;
   comparisonLabel: "white" | "black" | "custom";
   onAnchorChange: (hex: string | null) => void;
@@ -40,6 +38,7 @@ interface ShadeDetailPopoverProps {
 
 export function ShadeDetailPopover({
   paletteName,
+  sourceHex,
   shade,
   comparisonHex,
   comparisonLabel,
@@ -50,6 +49,13 @@ export function ShadeDetailPopover({
   layout = "popover",
 }: ShadeDetailPopoverProps) {
   const isSheet = layout === "sheet";
+  /* Opened on the source shade, it edits the source until it closes. A new
+     lightness moves the source to another weight, and this shade stops
+     being it; without this, the next pick would land as a manual override
+     here, with Manual, Anchor and Reset beside it. The callers remount the
+     popover each time it opens, so this is the shade as it was then. */
+  const [openedOnSource] = useState(shade.anchorType === "source");
+  const isSource = openedOnSource || shade.anchorType === "source";
   const { seen } = usePaletteView();
   const { colourFormat } = useColourFormat();
   const { copyText } = useCopyFeedback(1200);
@@ -57,12 +63,11 @@ export function ShadeDetailPopover({
   const colourValue = formatColour(shade.hex, colourFormat);
   const formatLabel = COLOUR_FORMAT_LABELS[colourFormat];
   const copyLabel = `Copy ${formatLabel}`;
-  const editLabel =
-    shade.anchorType === "source"
-      ? `${paletteName} ${shade.weight} source shade colour`
-      : shade.anchorType === "custom"
-        ? `${paletteName} ${shade.weight} anchor colour`
-        : `${paletteName} ${shade.weight} manual colour`;
+  const editLabel = isSource
+    ? `${paletteName} ${shade.weight} source shade colour`
+    : shade.anchorType === "custom"
+      ? `${paletteName} ${shade.weight} anchor colour`
+      : `${paletteName} ${shade.weight} manual colour`;
 
   const copyColour = async () => {
     const didCopy = await copyText(colourValue);
@@ -91,47 +96,14 @@ export function ShadeDetailPopover({
   };
 
   const editColour = (hex: string) => {
-    if (shade.anchorType === "source") {
+    /* Still the source after it has moved: see isSource above. */
+    if (isSource) {
       onSourceChange(hex);
     } else if (shade.anchorType === "custom") {
       onAnchorChange(hex);
     } else {
       onManualChange(hex);
     }
-  };
-
-  const changeEditMode = (mode: string) => {
-    const becomesAnchor = mode === "anchor";
-
-    if (becomesAnchor) {
-      onAnchorChange(shade.hex);
-    } else {
-      onManualChange(shade.hex);
-    }
-
-    toast({
-      autoHideDuration: 1800,
-      body: becomesAnchor ? "Changed to anchor" : "Changed to manual colour",
-      type: "info",
-      uniqueID: "shade-anchor-change",
-    });
-  };
-
-  const resetColour = () => {
-    if (shade.anchorType === "custom") {
-      onAnchorChange(null);
-    } else {
-      onManualChange(null);
-    }
-    toast({
-      autoHideDuration: 1800,
-      body:
-        shade.anchorType === "custom"
-          ? "Anchor removed"
-          : "Manual colour reset",
-      type: "info",
-      uniqueID: "shade-anchor-change",
-    });
   };
 
   return (
@@ -206,55 +178,22 @@ export function ShadeDetailPopover({
               </svg>
             }
             triggerLabel={`Edit ${paletteName} ${shade.weight} colour`}
-            value={shade.hex}
+            /* The source's own colour while it is the source being edited:
+               once it has moved, this weight's colour is somebody else's,
+               and the picker would commit that on Enter. */
+            value={isSource ? sourceHex : shade.hex}
             onChange={editColour}
           />
         </div>
       </div>
 
-      {/* The source shade is the track's seed and is always the anchor, so
-          it has nothing to switch. */}
-      {isSheet && shade.anchorType !== "source" && (
-        <div className={styles.shadeSheetAnchor}>
-          <Switch
-            description="Hold this colour and bend the scale around it."
-            label="Anchor"
-            value={shade.anchorType === "custom"}
-            onChange={(isAnchor) =>
-              changeEditMode(isAnchor ? "anchor" : "manual")
-            }
-          />
-        </div>
-      )}
-
-      {(shade.isOverridden || shade.anchorType === "custom") && (
-        <section
-          aria-label="Shade edit controls"
-          className={styles.popoverAnchorEditor}
-        >
-          {!isSheet && (
-            <span className={styles.shadeEditModeControl}>
-              <SegmentedControl
-                label="Shade colour mode"
-                layout="fill"
-                size="sm"
-                value={shade.anchorType === "custom" ? "anchor" : "manual"}
-                onChange={changeEditMode}
-              >
-                <SegmentedControlItem label="Manual" value="manual" />
-                <SegmentedControlItem label="Anchor" value="anchor" />
-              </SegmentedControl>
-            </span>
-          )}
-          <Button
-            scheme="neutral"
-            size="xs"
-            variant="text"
-            onClick={resetColour}
-          >
-            Reset
-          </Button>
-        </section>
+      {!isSource && (
+        <ShadeEditModeControls
+          isSheet={isSheet}
+          shade={shade}
+          onAnchorChange={onAnchorChange}
+          onManualChange={onManualChange}
+        />
       )}
 
       <ShadeContrastResult
