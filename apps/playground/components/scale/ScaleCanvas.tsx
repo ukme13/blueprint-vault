@@ -1,10 +1,8 @@
 "use client";
 
 import {
-  toggleSpacingStepWithLayout,
   type ColorTrack,
   type ElevationScale,
-  type LayoutToken,
   type RadiusScale,
   type SpacingScale,
 } from "@blueprint/ui";
@@ -13,6 +11,7 @@ import { RadiusCanvas } from "./RadiusEditor";
 import { SpacingCanvas } from "./SpacingEditor";
 import { SCALE_SECTION_LABEL, type ScaleSection } from "./scale-section";
 import type { ScaleHistoryBinding } from "./use-scale-history";
+import type { SpacingView } from "./use-spacing-view";
 import styles from "./scale-workspace.module.css";
 
 interface ScaleCanvasProps {
@@ -24,8 +23,7 @@ interface ScaleCanvasProps {
   write: ScaleHistoryBinding["write"];
   selectedElevationId: string;
   onSelectElevation: (id: string) => void;
-  /** The workspace's layout uses, moved off a step when it is pruned. */
-  layout: readonly LayoutToken[];
+  spacingView: SpacingView;
 }
 
 /** The current section's scale, drawn: steps, corners or shadows. */
@@ -38,7 +36,7 @@ export function ScaleCanvas({
   write,
   selectedElevationId,
   onSelectElevation,
-  layout,
+  spacingView,
 }: ScaleCanvasProps) {
   return (
     <section
@@ -46,14 +44,7 @@ export function ScaleCanvas({
       className={styles.canvas}
     >
       {section === "spacing" && (
-        <SpacingCanvas
-          scale={spacing}
-          onToggleStep={(step) =>
-            /* No edit key: each keep or prune is its own step in history,
-               the layout uses it moves included. */
-            write(toggleSpacingStepWithLayout(spacing, layout, step))
-          }
-        />
+        <SpacingCanvas scale={spacing} view={spacingView} />
       )}
       {section === "radius" && (
         <RadiusCanvas

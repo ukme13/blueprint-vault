@@ -6,7 +6,7 @@ import {
   expect,
   test,
 } from "./fixtures";
-import { spacingTagReport } from "./scale-fixtures";
+import { clippedValues, spacingTagReport } from "./scale-fixtures";
 import { openPreview } from "./preview-fixtures";
 import {
   TYPOGRAPHY_STORAGE_KEY,
@@ -1253,35 +1253,24 @@ test.describe("on a phone", () => {
     await expect(sheet.locator(".astryx-bottom-sheet").first()).toBeVisible();
   });
 
-  test("draws each spacing bar at its own length", async ({
+  test("fits every step's value whole, in px and in rem", async ({
     seededPage: page,
   }) => {
-    /* From a device: every bar ran the width of the screen, so 0px and 20px
-       looked the same. A bar is the step, drawn to scale. */
     await page.goto("/spacing");
-    const rows = page
-      .getByRole("region", { name: "Generated spacing steps" })
-      .locator("li");
-    await expect(rows.first()).toBeVisible();
-
-    const bars = await rows.evaluateAll((items) =>
-      items.map((item) => {
-        const px = parseFloat(item.children[1]!.textContent ?? "0");
-        // The bar by its class: the layout-use badges come after it now.
-        const bar = item.querySelector("[class*=tokenBar]") as HTMLElement;
-        return {
-          px,
-          width: bar.getBoundingClientRect().width,
-          room: item.getBoundingClientRect().width,
-        };
-      }),
-    );
-    expect(bars.length).toBeGreaterThan(4);
-    for (const { px, width, room } of bars) {
-      expect(
-        Math.abs(width - Math.min(px, room)),
-        `${px}px drawn ${width}`,
-      ).toBeLessThanOrEqual(1);
+    /* The steps are in the settings, a sheet on a phone. */
+    await page
+      .getByRole("button", { name: "Spacing settings", exact: true })
+      .click();
+    const steps = page
+      .getByRole("dialog", { name: "Spacing settings" })
+      .getByRole("region", { name: "Generated spacing steps" });
+    await expect(steps.locator("li").first()).toBeVisible();
+    for (const unit of ["px", "rem"]) {
+      await steps.getByRole("radio", { name: unit }).click();
+      await expect(
+        steps.locator('[data-spacing-step="0.5"] [data-spacing-value]'),
+      ).toHaveText(unit === "px" ? "2px" : "0.125rem");
+      expect(await clippedValues(steps)).toEqual([]);
     }
   });
 

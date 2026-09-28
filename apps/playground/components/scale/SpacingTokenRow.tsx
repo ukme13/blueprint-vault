@@ -1,21 +1,15 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, Lock } from "lucide-react";
 import {
-  spacingDensityBehavior,
   spacingStepName,
   type SpacingToken,
+  type SpacingUnit,
 } from "@blueprint/ui";
-import { SpacingCopyButton } from "./SpacingCopyButton";
 import styles from "./scale-workspace.module.css";
-
-/** The unit the list's value column is written in. */
-export type SpacingUnit = "px" | "rem";
 
 interface SpacingTokenRowProps {
   token: SpacingToken;
-  /** The scale's density, shown on the steps it moves. */
-  density: number;
   unit: SpacingUnit;
   isSelected: boolean;
   /** Whether the scale keeps this step; a pruned one is dimmed. */
@@ -24,37 +18,27 @@ interface SpacingTokenRowProps {
   onToggleKept: () => void;
 }
 
+const FIXED_HINT = "Fixed on base grid: does not scale with density";
+
 /**
  * One step of the spacing scale: its variable, its size in the list's unit,
- * whether density moves it, and a bar of its length.
- *
- * Whether density moves it: "grid" for a fine step that stays put at any
- * density, the multiplier on a layout step when density is not 1.
+ * A fine step, which density never moves, has a
+ * lock after its name; a layout step says nothing, since its size already
+ * shows what density did.
  *
  * A click anywhere on a kept row picks the step; the name is a button too,
- * so a keyboard and a screen reader reach it. The box at the end keeps or
+ * so a keyboard and a screen reader reach it. The box at the start keeps or
  * prunes the step. A pruned row is dimmed and picks nothing: the preview
  * cannot show a step the scale does not have.
  */
 export function SpacingTokenRow({
   token,
-  density,
   unit,
   isSelected,
   isKept,
   onSelect,
   onToggleKept,
 }: SpacingTokenRowProps) {
-  /* What density does to this step, said beside it. */
-  const behaviour = {
-    grid: {
-      text: "grid",
-      title: "On the fine grid: density does not move it.",
-    },
-    scaled: { text: `${density}×`, title: `Moved by density, ${density}×.` },
-    unchanged: null,
-  }[spacingDensityBehavior(token, density)];
-
   return (
     <li
       className={styles.tokenRow}
@@ -63,6 +47,18 @@ export function SpacingTokenRow({
       data-spacing-step={token.step}
       onClick={isKept ? onSelect : undefined}
     >
+      <button
+        aria-label={`Keep step ${spacingStepName(token.step)}`}
+        aria-pressed={isKept}
+        className={styles.tokenKeep}
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggleKept();
+        }}
+      >
+        {isKept ? <Check aria-hidden /> : null}
+      </button>
       <span className={styles.tokenName}>
         <button
           aria-pressed={isSelected}
@@ -76,31 +72,20 @@ export function SpacingTokenRow({
         >
           <code>{token.variable}</code>
         </button>
-        {isKept ? <SpacingCopyButton token={token} /> : null}
+        {token.followsDensity ? null : (
+          <span
+            aria-label={FIXED_HINT}
+            className={styles.tokenLock}
+            role="img"
+            title={FIXED_HINT}
+          >
+            <Lock aria-hidden />
+          </span>
+        )}
       </span>
-      <span data-spacing-value>
+      <span className={styles.tokenValue} data-spacing-value>
         {unit === "px" ? `${token.px}px` : `${token.rem}rem`}
       </span>
-      <span className={styles.tokenMeta} title={behaviour?.title}>
-        {behaviour?.text}
-      </span>
-      <span
-        aria-hidden="true"
-        className={styles.tokenBar}
-        style={{ width: `${token.px}px` }}
-      />
-      <button
-        aria-label={`Keep step ${spacingStepName(token.step)}`}
-        aria-pressed={isKept}
-        className={styles.tokenKeep}
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation();
-          onToggleKept();
-        }}
-      >
-        {isKept ? <Check aria-hidden /> : null}
-      </button>
     </li>
   );
 }

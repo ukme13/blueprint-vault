@@ -3,6 +3,7 @@ import type { Locator, Page } from "@playwright/test";
 import { defaultProject, readStoredWorkspace } from "./fixtures";
 import {
   expect,
+  clippedValues,
   showScaleView,
   spacingTagReport,
   test,
@@ -33,6 +34,8 @@ test.describe("The spacing studio", () => {
 
     await unit.getByRole("radio", { name: "rem" }).click();
     await expect(value).toHaveText("1rem");
+    // The longest, 0.125rem, fits whole in the inspector.
+    expect(await clippedValues(steps)).toEqual([]);
     await expect(steps.getByText("16px", { exact: true })).toHaveCount(0);
 
     await unit.getByRole("radio", { name: "px" }).click();
@@ -114,6 +117,25 @@ test.describe("The spacing studio", () => {
     });
     expect(fit).toEqual({ inside: true, sideBySide: true, overflow: 0 });
 
+    /* On a wide canvas the cards stop at 420px and sit centred. */
+    await page.setViewportSize({ width: 2400, height: 900 });
+    const wide = () =>
+      preview.evaluate((figure) => {
+        const box = figure
+          .querySelector("[class*=spacingCards]")!
+          .getBoundingClientRect();
+        const cards = [
+          ...figure.querySelectorAll('[data-spacing-zone="inset"]'),
+        ].map((card) => card.getBoundingClientRect());
+        const left = cards[0]!.left - box.left;
+        const right = box.right - cards[cards.length - 1]!.right;
+        return {
+          widths: cards.map((card) => Math.round(card.width)),
+          centred: Math.abs(left - right) <= 1 && left > 0,
+        };
+      });
+    await expect.poll(wide).toEqual({ widths: [420, 420], centred: true });
+
     // A stack gap runs the card body's full width, so its stripes show.
     const stackBand = await preview.evaluate((figure) => {
       const band = figure.querySelector('[data-spacing-zone="stack"]')!;
@@ -163,6 +185,53 @@ test.describe("The spacing studio", () => {
     await expect.poll(async () => (await collisions()).hits).toEqual([]);
   });
 
+  test("keeps the preview slots, marks and unit across a page switch", async ({
+    seededPage: page,
+  }) => {
+    const workspaces = page.getByRole("navigation", {
+      name: "Blueprint workspaces",
+    });
+    const inset = page.getByLabel("Inset spacing", { exact: true });
+    const stack = page.getByLabel("Stack spacing", { exact: true });
+    const marks = page.getByRole("switch", { name: "Show spacing" });
+    const rem = page
+      .getByRole("radiogroup", { name: "Value unit" })
+      .getByRole("radio", { name: "rem" });
+    const undo = page.getByRole("button", { name: "Undo" });
+
+    await expect(undo).toBeDisabled();
+    await inset.click();
+    await page.getByRole("option", { name: /^32px/ }).click();
+    await stack.click();
+    await page.getByRole("option", { name: /^12px/ }).click();
+    await marks.click();
+    await rem.click();
+    // A view setting, not an edit: nothing to undo.
+    await expect(undo).toBeDisabled();
+
+    /* To the colour studio and back, the way somebody would. */
+    await workspaces.getByRole("link", { name: "Colour" }).click();
+    await expect(page).toHaveURL(/colour$/);
+    await workspaces
+      .getByRole("link", { name: "Spacing", exact: true })
+      .click();
+
+    await expect(inset).toContainText("Inset: 32px");
+    await expect(stack).toContainText("Stack: 12px");
+    await expect(marks).not.toBeChecked();
+    await expect(rem).toBeChecked();
+    await expect(
+      page
+        .getByRole("region", { name: "Generated spacing steps" })
+        .locator('[data-spacing-step="4"] [data-spacing-value]'),
+    ).toHaveText("1rem");
+
+    /* And across a reload. */
+    await page.reload();
+    await expect(inset).toContainText("Inset: 32px");
+    await expect(rem).toBeChecked();
+  });
+
   test("hides and shows the spacing marks", async ({ seededPage: page }) => {
     const preview = page.getByRole("figure", { name: "Spacing preview" });
     const marks = () =>
@@ -205,6 +274,42 @@ test.describe("The spacing studio", () => {
     await expect.poll(async () => (await marks()).tags).toBeGreaterThan(3);
   });
 
+  test("lists the steps in the inspector, beside the preview", async ({
+    seededPage: page,
+  }) => {
+    const canvas = page.getByRole("region", { name: "Spacing canvas" });
+    const inspector = page.getByRole("complementary");
+    const steps = inspector.getByRole("region", {
+      name: "Generated spacing steps",
+    });
+    const preview = canvas.getByRole("figure", { name: "Spacing preview" });
+
+    /* The canvas is the preview; the list sits under Density. */
+    await expect(steps).toBeVisible();
+    await expect(
+      canvas.getByRole("region", { name: "Generated spacing steps" }),
+    ).toHaveCount(0);
+    const density = await inspector
+      .getByRole("heading", { name: "Density" })
+      .boundingBox();
+    expect((await steps.boundingBox())!.y).toBeGreaterThan(density!.y);
+
+    /* Every row fits the inspector's width: nothing runs past its edge. */
+    const outside = await steps.evaluate((section) => {
+      const edge = section.getBoundingClientRect().right;
+      return [...section.querySelectorAll("[aria-label^='Keep step']")].filter(
+        (box) => box.getBoundingClientRect().right > edge + 0.5,
+      ).length;
+    });
+    expect(outside).toBe(0);
+
+    /* The inspector scrolls on its own; the preview stays where it is. */
+    const last = steps.locator("li").last();
+    await last.scrollIntoViewIfNeeded();
+    await expect(last).toBeInViewport();
+    await expect(preview).toBeInViewport();
+  });
+
   test("sets the active slot from the step list", async ({
     seededPage: page,
   }) => {
@@ -240,25 +345,6 @@ test.describe("The spacing studio", () => {
       )
       .toBe(4);
     await expect.poll(insetPadding).toBe("32px");
-  });
-
-  test("copies a step as its variable", async ({
-    seededPage: page,
-    context,
-  }) => {
-    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-    const steps = page.getByRole("region", { name: "Generated spacing steps" });
-    const copy = steps.getByRole("button", { name: "Copy --spacing-8" });
-    await copy.click();
-    await expect(copy).toHaveAttribute("data-copy-result", "copied");
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
-      "var(--spacing-8)",
-    );
-    // Copying does not pick the row it sits in: Inset's 6 stays picked.
-    await expect(steps.locator('[data-spacing-step="6"]')).toHaveAttribute(
-      "data-selected",
-      "true",
-    );
   });
 
   test("applies a scale preset, calls an edited one Custom, and undoes", async ({
@@ -316,12 +402,22 @@ test.describe("The spacing studio", () => {
 
     await page.getByRole("radio", { name: "Compact 0.75×" }).click();
     await expect.poll(density).toBe(0.75);
-    /* Step 2 is the first layout step: 8px at 1x, 6px compact, and it says
-       why. Step 1 is on the fine grid: 4px, and marked as fixed. */
+    /* Step 2 is the first layout step: 8px at 1x, 6px compact; its size
+       says what density did, with no multiplier beside it. Step 1 is on
+       the fine grid: 4px, and locked. */
     await expect(row("2").getByText("6px", { exact: true })).toBeVisible();
-    await expect(row("2").getByText("0.75×", { exact: true })).toBeVisible();
+    await expect(row("2")).not.toContainText("×");
     await expect(row("1").getByText("4px", { exact: true })).toBeVisible();
-    await expect(row("1").getByText("grid", { exact: true })).toBeVisible();
+    await expect(
+      row("1").getByRole("img", { name: /^Fixed on base grid/ }),
+    ).toBeVisible();
+    // The hover says why.
+    await expect(
+      row("1").getByRole("img", { name: /^Fixed on base grid/ }),
+    ).toHaveAttribute(
+      "title",
+      "Fixed on base grid: does not scale with density",
+    );
 
     await page.getByRole("radio", { name: "Spacious 1.25×" }).click();
     await expect.poll(density).toBe(1.25);
@@ -377,7 +473,7 @@ test.describe("The spacing studio", () => {
     await expect.poll(insetOnPhone).toBe("4");
   });
 
-  test("keeps the keep box at the right end of each row", async ({
+  test("puts the keep box at the start of each row", async ({
     seededPage: page,
   }) => {
     const row = page
@@ -387,12 +483,14 @@ test.describe("The spacing studio", () => {
       .getByRole("button", { name: "Keep step 4", exact: true })
       .boundingBox();
     const name = await row.locator("code").boundingBox();
-    const bar = await row.locator("[class*=tokenBar]").boundingBox();
+    const value = await row.locator("[data-spacing-value]").boundingBox();
     const rowBox = await row.boundingBox();
-    // The variable leads the row; the box comes after the bar, at its end.
-    expect(name!.x - rowBox!.x).toBeLessThan(16);
-    expect(box!.x).toBeGreaterThanOrEqual(bar!.x + bar!.width);
-    expect(rowBox!.x + rowBox!.width - (box!.x + box!.width)).toBeLessThan(16);
+    // The box leads the row, the variable follows it, the value ends it.
+    expect(box!.x - rowBox!.x).toBeLessThan(16);
+    expect(name!.x).toBeGreaterThanOrEqual(box!.x + box!.width);
+    expect(value!.x).toBeGreaterThan(name!.x);
+    // No bar any more: the value says the size.
+    await expect(row.locator("[class*=tokenBar]")).toHaveCount(0);
   });
 
   test("prunes a step from its row, and keeps it pruned", async ({
@@ -509,32 +607,57 @@ test.describe("The spacing studio", () => {
 
     await expect(hairline).toContainText("2px");
     await expect(padding).toContainText("20px");
-    await expect(hairline).toContainText("grid");
+    await expect(
+      hairline.getByRole("img", { name: /^Fixed on base grid/ }),
+    ).toBeVisible();
+    // Only a fine step is locked; a layout step says what density did.
+    await expect(padding.getByRole("img")).toHaveCount(0);
 
     await expect
       .poll(async () => (await readStoredWorkspace(page))?.spacing?.density)
       .toBe(1.25);
   });
 
-  test("keeps the grid label and the bar on one row", async ({
+  test("puts the lock after the name, and every row at one height", async ({
     seededPage: page,
   }) => {
-    /* The word "grid" is a fifth child if it is its own cell in a four-column
-       row, and the bar wraps under the token name as a 2px tick. */
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    const hairline = steps.locator('[data-spacing-step="0.5"]');
+    const lock = hairline.getByRole("img", { name: /^Fixed on base grid/ });
+    const name = hairline.locator("code");
+    const value = hairline.locator("[data-spacing-value]");
 
-    const hairline = page
-      .getByRole("region", { name: "Generated spacing steps" })
-      .locator("li", { has: page.getByText("--spacing-0-5", { exact: true }) });
-    const label = hairline.getByText("grid", { exact: true });
-    // The bar, not the copy button's icon, which is hidden from readers too.
-    const bar = hairline.locator("[class*=tokenBar]");
+    /* After the name, on its line, before the value. */
+    const lockBox = (await lock.boundingBox())!;
+    const nameBox = (await name.boundingBox())!;
+    const valueBox = (await value.boundingBox())!;
+    expect(lockBox.x).toBeGreaterThanOrEqual(nameBox.x + nameBox.width);
+    expect(lockBox.x + lockBox.width).toBeLessThanOrEqual(valueBox.x);
+    expect(
+      Math.abs(
+        lockBox.y + lockBox.height / 2 - (nameBox.y + nameBox.height / 2),
+      ),
+    ).toBeLessThan(2);
 
-    const labelBox = await label.boundingBox();
-    const barBox = await bar.boundingBox();
-    expect(labelBox).toBeTruthy();
-    expect(barBox).toBeTruthy();
-    expect(Math.abs((labelBox?.y ?? 0) - (barBox?.y ?? 0))).toBeLessThan(4);
-    expect(barBox?.x ?? 0).toBeGreaterThan(labelBox?.x ?? 0);
+    /* Kept or pruned, locked or not, a row is one height, and a toggle
+       does not change it. */
+    const heights = () =>
+      steps.evaluate((section) => [
+        ...new Set(
+          [...section.querySelectorAll("li")].map(
+            (row) => row.getBoundingClientRect().height,
+          ),
+        ),
+      ]);
+    expect(await heights()).toHaveLength(1);
+    await page
+      .getByRole("button", { name: "Keep step 0-5", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Keep step 7", exact: true })
+      .click();
+    await expect(hairline).toHaveAttribute("data-pruned", "true");
+    expect(await heights()).toHaveLength(1);
   });
 });
 

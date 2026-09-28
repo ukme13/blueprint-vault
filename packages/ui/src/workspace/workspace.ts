@@ -12,6 +12,7 @@ import {
   elevationOrDefault,
   radiusOrDefault,
   spacingOrDefault,
+  spacingPreviewOrDefault,
 } from "./scale-slices";
 import { defaultElevationScale } from "../scale/elevation";
 import {
@@ -21,7 +22,11 @@ import {
   type LayoutToken,
 } from "../scale/layout-tokens";
 import { defaultRadiusScale } from "../scale/radius";
-import { defaultSpacingScale } from "../scale/spacing";
+import {
+  defaultSpacingPreviewSettings,
+  defaultSpacingScale,
+  normalizeSpacingPreviewSettings,
+} from "../scale/spacing";
 import {
   defaultPreviewDevices,
   normalizePreviewDevices,
@@ -36,7 +41,7 @@ import { normalizeButtonSchemes, type ButtonScheme } from "../button-tones";
 import type { SemanticToken } from "../color/semantic";
 import type { ElevationScale } from "../scale/elevation";
 import type { RadiusScale } from "../scale/radius";
-import type { SpacingScale } from "../scale/spacing";
+import type { SpacingPreviewSettings, SpacingScale } from "../scale/spacing";
 
 export const WORKSPACE_STORAGE_KEY = "blueprint.workspace.v1";
 
@@ -180,6 +185,9 @@ export function readWorkspaceProject(value: unknown): WorkspaceProject | null {
       (value as { buttonSchemes?: unknown }).buttonSchemes,
     ),
     spacing: spacingOrDefault(value.spacing),
+    spacingPreview: spacingPreviewOrDefault(
+      (value as { spacingPreview?: unknown }).spacingPreview,
+    ),
     radius: radiusOrDefault(value.radius),
     elevation: elevationOrDefault(value.elevation),
     ...readWorkspaceFrames(value, typography),
@@ -221,6 +229,7 @@ export function workspaceFromLegacy(
     removedSeedRoles: [],
     buttonSchemes: normalizeButtonSchemes(undefined),
     spacing: defaultSpacingScale(),
+    spacingPreview: defaultSpacingPreviewSettings(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
     ...readWorkspaceFrames(
@@ -312,6 +321,7 @@ export function emptyWorkspace(
     removedSeedRoles: [],
     buttonSchemes: normalizeButtonSchemes(undefined),
     spacing: defaultSpacingScale(),
+    spacingPreview: defaultSpacingPreviewSettings(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
     previewDevices: defaultPreviewDevices(),
@@ -504,5 +514,24 @@ export function withSharedName(project: WorkspaceProject): WorkspaceProject {
           system: { ...project.typography.system, name: project.name },
         }
       : null,
+  };
+}
+
+/**
+ * Change how the spacing canvas is set to look, keeping what the patch
+ * leaves out. Written straight to the workspace, not through the scale
+ * history: picking a preview slot or a unit is not an edit to undo.
+ */
+export function withSpacingPreview(
+  current: WorkspaceProject | null,
+  patch: Partial<SpacingPreviewSettings>,
+): WorkspaceProject {
+  const base = current ?? emptyWorkspace();
+  return {
+    ...base,
+    spacingPreview: normalizeSpacingPreviewSettings({
+      ...base.spacingPreview,
+      ...patch,
+    }),
   };
 }

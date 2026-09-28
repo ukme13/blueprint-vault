@@ -2,6 +2,8 @@
 
 import {
   applySpacingPreset,
+  toggleSpacingStepWithLayout,
+  type LayoutToken,
   type ColorTrack,
   type ElevationScale,
   type HybridTokenizedValue,
@@ -13,6 +15,7 @@ import { RadiusInspector } from "./RadiusEditor";
 import { SpacingInspector } from "./SpacingEditor";
 import { SCALE_SECTION_LABEL, type ScaleSection } from "./scale-section";
 import type { ScaleHistoryBinding } from "./use-scale-history";
+import type { SpacingView } from "./use-spacing-view";
 import styles from "./scale-workspace.module.css";
 
 interface ScaleInspectorProps {
@@ -27,6 +30,9 @@ interface ScaleInspectorProps {
   onDetachedBaseUnitChange: (value: number | null) => void;
   selectedElevationId: string;
   onSelectElevation: (id: string) => void;
+  /** The workspace's layout uses, moved off a step when it is pruned. */
+  layout: readonly LayoutToken[];
+  spacingView: SpacingView;
 }
 
 /**
@@ -45,6 +51,8 @@ export function ScaleInspector({
   onDetachedBaseUnitChange,
   selectedElevationId,
   onSelectElevation,
+  layout,
+  spacingView,
 }: ScaleInspectorProps) {
   return (
     <>
@@ -55,6 +63,12 @@ export function ScaleInspector({
         <SpacingInspector
           detachedBaseUnit={detachedBaseUnit}
           scale={spacing}
+          view={spacingView}
+          onToggleStep={(step) =>
+            /* No edit key: each keep or prune is its own step in history,
+               the layout uses it moves included. */
+            write(toggleSpacingStepWithLayout(spacing, layout, step))
+          }
           onApplyPreset={(id) => {
             /* The preset's base unit is a named one; show it as such. A
                write with no edit key is its own step in history. */

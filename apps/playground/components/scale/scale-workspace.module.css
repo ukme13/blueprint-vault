@@ -263,17 +263,23 @@
 }
 
 /* Above the rows, at their right: the unit their values are written in. */
-.tokenListHeader {
+/* The list's heading, with the unit its values are written in beside it. */
+.stepListHeader {
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: var(--spacing-2);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
 }
 
 .tokenRow {
   display: grid;
-  grid-template-columns: 10rem 4.5rem 3.25rem minmax(0, 1fr) auto;
+  /* Sized for the inspector: the name takes what the box and the value
+     leave, and the value is as wide as its text. */
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  /* One height, kept or pruned, locked or not: toggling moves nothing. */
+  block-size: var(--spacing-7);
   align-items: center;
-  gap: 12px;
+  gap: var(--spacing-2);
   padding: var(--spacing-1) var(--spacing-2);
   border-radius: var(--radius-element);
   font-size: 13px;
@@ -290,16 +296,27 @@
   box-shadow: 0 0 0 2px var(--color-focus-ring);
 }
 
-.tokenRow code,
-.tokenMeta {
+.tokenRow code {
   color: var(--color-fg-muted);
   font-size: 12px;
 }
 
-.tokenBar {
-  height: 12px;
-  border-radius: var(--radius-sm);
-  background: var(--color-action-primary);
+/* The value at the row's end, whole: `0.125rem` is as wide as it gets. */
+.tokenValue {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* A fine step's lock, after its name: small and quiet. */
+.tokenLock {
+  display: inline-flex;
+  flex: none;
+  color: var(--color-fg-muted);
+}
+
+.tokenLock svg {
+  width: var(--spacing-3);
+  height: var(--spacing-3);
 }
 
 /* The spacing canvas: the selected step used in a layout, above the list. */
@@ -434,9 +451,12 @@
 }
 
 /* Two cards side by side, the column gap between them. */
+/* Centred, however wide the canvas: a card past 420px reads as a page,
+   not a card. */
 .spacingCards {
   display: flex;
   align-items: stretch;
+  justify-content: center;
 }
 
 /* The two cards share the width, however long their text: without this a
@@ -444,6 +464,7 @@
 .spacingCards > .spacingInset {
   flex: 1 1 0;
   min-width: 0;
+  max-width: 26.25rem;
 }
 
 .spacingColumnGap {
@@ -562,6 +583,12 @@
     flex-direction: column;
   }
 
+  /* Stacked, each card is the full width up to its limit, centred. */
+  .spacingCards > .spacingInset {
+    align-self: center;
+    width: 100%;
+  }
+
   .spacingColumnGap {
     width: auto;
     height: var(--column-gap);
@@ -600,6 +627,7 @@
 }
 
 .tokenRow[data-pruned] > :not(.tokenName, .tokenKeep),
+.tokenRow[data-pruned] .tokenLock,
 .tokenRow[data-pruned] .tokenPick {
   opacity: 0.4;
 }
@@ -1363,36 +1391,6 @@
     /* None below: the tabs are the last row, and their underline is set to
        land on this bar's bottom border. Padding here lifted it off. */
     padding-block-end: 0;
-  }
-
-  /* A token row is five fixed columns — 8rem, 4rem, 4.5rem, 2.75rem and the
-     bar — which comes to 356px of reservations before the bar is drawn.
-     Measured on a 390px screen: the bar had about six pixels to live in and
-     the largest steps ran off the edge and were clipped.
-
-     The labels on one line and the bar on a line of its own under them,
-     drawn at its own length from the left. It was flex-wrapped once, with
-     `flex-basis: 100%` to force the new line, and that overrode the bar's
-     width: every step drew the full width of the screen, and 0px looked the
-     same as 20px. */
-  .tokenRow {
-    grid-template-columns: auto auto auto minmax(0, 1fr);
-    align-items: baseline;
-    column-gap: var(--spacing-2);
-    row-gap: var(--spacing-1);
-  }
-
-  .tokenBar {
-    grid-column: 1 / -1;
-    justify-self: start;
-    max-width: 100%;
-  }
-
-  /* The keep box stays on the first line, at its end. */
-  .tokenKeep {
-    grid-row: 1;
-    grid-column: -2;
-    justify-self: end;
   }
 }
 

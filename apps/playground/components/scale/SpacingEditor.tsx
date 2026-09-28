@@ -1,10 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import {
-  SegmentedControl,
-  SegmentedControlItem,
-} from "@astryxdesign/core/SegmentedControl";
 import { Switch } from "@astryxdesign/core/Switch";
 import { Ruler } from "lucide-react";
 import {
@@ -13,10 +8,7 @@ import {
   MIN_SPACING_BASE_UNIT_PX,
   SPACING_BASE_UNIT_PRESETS,
   resolveSpacing,
-  resolveSpacingRamp,
   resolveSpacingSlots,
-  SPACING_SLOT_STEPS,
-  type SpacingSlot,
   resolveHybridValue,
   type HybridTokenizedValue,
   type SpacingPresetId,
@@ -25,9 +17,10 @@ import {
 import { usePickerSheet } from "../picker-sheet";
 import { SpacingDensitySetting } from "./SpacingDensitySetting";
 import { SpacingPresetSelector } from "./SpacingPresetSelector";
-import { SpacingTokenRow, type SpacingUnit } from "./SpacingTokenRow";
+import { SpacingStepList } from "./SpacingStepList";
 import { SpacingPreviewTile } from "./SpacingPreviewTile";
 import { SpacingSlotPicker } from "./SpacingSlotPicker";
+import type { SpacingView } from "./use-spacing-view";
 import styles from "./scale-workspace.module.css";
 
 interface SpacingInspectorProps {
@@ -38,6 +31,9 @@ interface SpacingInspectorProps {
   /** A density preset: its own step in history, not part of a drag. */
   onDensityPreset: (density: number) => void;
   onApplyPreset: (id: SpacingPresetId) => void;
+  view: SpacingView;
+  /** Keep a step, or prune it: one step in history. */
+  onToggleStep: (step: number) => void;
 }
 
 export function SpacingInspector({
@@ -47,6 +43,8 @@ export function SpacingInspector({
   onDensityChange,
   onDensityPreset,
   onApplyPreset,
+  view,
+  onToggleStep,
 }: SpacingInspectorProps) {
   const pickerSheet = usePickerSheet();
 
@@ -85,85 +83,45 @@ export function SpacingInspector({
         onChange={onDensityChange}
         onPreset={onDensityPreset}
       />
+      <SpacingStepList scale={scale} view={view} onToggleStep={onToggleStep} />
     </>
   );
 }
 
 interface SpacingCanvasProps {
   scale: SpacingScale;
-  /** Keep a step, or prune it: one step in history. */
-  onToggleStep: (step: number) => void;
+  view: SpacingView;
 }
 
-export function SpacingCanvas({ scale, onToggleStep }: SpacingCanvasProps) {
-  /* The preview draws from the kept steps; the list shows the whole ramp,
-     pruned steps dimmed, each turned on and off in place. */
+/** The preview, on the canvas: the slot pickers, the marks switch, the cards. */
+export function SpacingCanvas({ scale, view }: SpacingCanvasProps) {
+  const { preview, onPreviewChange, activeSlot, onActiveSlotChange } = view;
   const tokens = resolveSpacing(scale);
-  const ramp = resolveSpacingRamp(scale);
-  const [steps, setSteps] = useState({ ...SPACING_SLOT_STEPS });
-  /* The slot a click on the step list sets: the one last touched. */
-  const [active, setActive] = useState<SpacingSlot>("inset");
-  /* Whether the preview marks its spaces, or shows the cards plain. */
-  const [showSpacing, setShowSpacing] = useState(true);
-  /* The unit the value column is written in. */
-  const [unit, setUnit] = useState<SpacingUnit>("px");
-  /* A pruned step falls back to the nearest kept one, per slot, so the preview never points at a step the scale no longer has. */
-  const resolved = resolveSpacingSlots(tokens, steps);
-  const setStep = (slot: SpacingSlot, step: number) => {
-    setActive(slot);
-    setSteps((current) => ({ ...current, [slot]: step }));
-  };
-  const selected = resolved?.[active];
+  /* A pruned step falls back to the nearest kept one, per slot, so the
+     preview never points at a step the scale no longer has. */
+  const resolved = resolveSpacingSlots(tokens, preview.slots);
+  if (!resolved) return null;
 
   return (
-    /* The region is the list of steps; the preview above it uses three. */
     <div className={styles.spacingCanvas}>
-      {resolved ? (
-        <>
-          <div className={styles.spacingToolbar}>
-            <SpacingSlotPicker
-              active={active}
-              steps={resolved}
-              tokens={tokens}
-              onActivate={setActive}
-              onChange={setStep}
-            />
-            <Switch
-              label="Show spacing"
-              value={showSpacing}
-              onChange={setShowSpacing}
-            />
-          </div>
-          <SpacingPreviewTile showSpacing={showSpacing} tokens={resolved} />
-        </>
-      ) : null}
-      <section aria-label="Generated spacing steps">
-        <div className={styles.tokenListHeader}>
-          <SegmentedControl
-            label="Value unit"
-            size="sm"
-            value={unit}
-            onChange={(value) => setUnit(value as SpacingUnit)}
-          >
-            <SegmentedControlItem label="px" value="px" />
-            <SegmentedControlItem label="rem" value="rem" />
-          </SegmentedControl>
-        </div>
-        <ol className={styles.tokenList}>
-          {ramp.map((token) => (
-            <SpacingTokenRow
-              key={token.step}
-              density={scale.density ?? 1}
-              isKept={token.kept}
-              isSelected={token.kept && token.step === selected?.step}
-              token={token}
-              unit={unit}
-              onSelect={() => setStep(active, token.step)}
-              onToggleKept={() => onToggleStep(token.step)}
-            />
-          ))}
-        </ol>
-      </section>
+      <div className={styles.spacingToolbar}>
+        <SpacingSlotPicker
+          active={activeSlot}
+          steps={resolved}
+          tokens={tokens}
+          onActivate={onActiveSlotChange}
+          onChange={(slot, step) => {
+            onActiveSlotChange(slot);
+            onPreviewChange({ slots: { ...preview.slots, [slot]: step } });
+          }}
+        />
+        <Switch
+          label="Show spacing"
+          value={preview.showSpacing}
+          onChange={(next) => onPreviewChange({ showSpacing: next })}
+        />
+      </div>
+      <SpacingPreviewTile showSpacing={preview.showSpacing} tokens={resolved} />
     </div>
   );
 }

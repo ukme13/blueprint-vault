@@ -140,6 +140,7 @@ function emptyForeignSlices(): ForeignSlices {
   return {
     typography: empty.typography,
     spacing: empty.spacing,
+    spacingPreview: empty.spacingPreview,
     radius: empty.radius,
     elevation: empty.elevation,
     previewDevices: empty.previewDevices,
@@ -156,6 +157,7 @@ function readForeignSlices(): ForeignSlices {
     return {
       typography: project.typography,
       spacing: project.spacing,
+      spacingPreview: project.spacingPreview,
       radius: project.radius,
       elevation: project.elevation,
       previewDevices: project.previewDevices,

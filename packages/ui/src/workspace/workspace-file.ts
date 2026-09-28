@@ -16,6 +16,7 @@ import {
   elevationOrDefault,
   radiusOrDefault,
   spacingOrDefault,
+  spacingPreviewOrDefault,
 } from "./scale-slices";
 import { readTypographyProjectData } from "./typography-project";
 import { DEFAULT_WORKSPACE_NAME, readWorkspaceFrames } from "./workspace";
@@ -109,6 +110,7 @@ function paletteOnlyWorkspace(
     removedSeedRoles: [],
     buttonSchemes: normalizeButtonSchemes(undefined),
     spacing: spacingOrDefault(undefined),
+    spacingPreview: spacingPreviewOrDefault(undefined),
     radius: radiusOrDefault(undefined),
     elevation: elevationOrDefault(undefined),
     ...readWorkspaceFrames({}, null),
@@ -219,6 +221,7 @@ function readWorkspaceFileProject(value: unknown): WorkspaceProject {
     removedSeedRoles,
     buttonSchemes: normalizeButtonSchemes(raw.buttonSchemes),
     spacing: spacingOrDefault(raw.spacing),
+    spacingPreview: spacingPreviewOrDefault(raw.spacingPreview),
     radius: radiusOrDefault(raw.radius),
     elevation: elevationOrDefault(raw.elevation),
     ...readWorkspaceFrames(raw, typography),

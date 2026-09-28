@@ -4,7 +4,7 @@ import type { ButtonScheme } from "../button-tones";
 import type { ElevationScale } from "../scale/elevation";
 import type { LayoutToken } from "../scale/layout-tokens";
 import type { RadiusScale } from "../scale/radius";
-import type { SpacingScale } from "../scale/spacing";
+import type { SpacingPreviewSettings, SpacingScale } from "../scale/spacing";
 import type { PreviewDevice } from "../typography/preview-devices";
 import type { PreviewDocument } from "../typography/preview-document";
 import type { PreviewSection } from "../typography/preview-sections";
@@ -113,6 +113,12 @@ export interface WorkspaceProject {
    * so a project saved before this gains the default rather than a gap.
    */
   spacing: SpacingScale;
+  /**
+   * How the spacing canvas is set to look: preview slots, marks, unit.
+   * A view setting, not part of the design system or its undo history.
+   * Missing on an older save is the default.
+   */
+  spacingPreview: SpacingPreviewSettings;
   /** Corner radii, named for what they go on. Filled like `spacing`. */
   radius: RadiusScale;
   /** Shadow levels. Filled like the other two scales. */
