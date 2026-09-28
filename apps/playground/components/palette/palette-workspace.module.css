@@ -853,8 +853,9 @@
 }
 
 .shadePopoverContent {
-  width: max-content;
-  min-width: 280px;
+  /* One width, whatever the rows say, so nothing shifts as they change. */
+  width: 300px;
+  min-width: 300px;
   max-width: min(440px, calc(100vw - 32px));
   overflow: hidden;
   box-sizing: border-box;
@@ -1705,7 +1706,7 @@
   }
 }
 
-/* The popover sizes itself to its content; the sheet is the screen's width. */
+/* The popover is a fixed 300px; the sheet is the screen's width. */
 .shadePopoverContent[data-layout="sheet"] {
   width: 100%;
   min-width: 0;

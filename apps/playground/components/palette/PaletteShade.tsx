@@ -158,7 +158,9 @@ export function PaletteShade({
       /* Edge to edge: each row brings its own inset, so the dividers
          between them meet both sides. */
       style={{ padding: 0 }}
-      width="max-content"
+      /* Fixed, so swapping the contrast sample or changing the colour
+         format never resizes it under the pointer. */
+      width={300}
       content={
         <ShadeDetailPopover
           paletteName={paletteName}

@@ -71,8 +71,8 @@ export function ShadeContrastResult({
   const [isSwapped, setIsSwapped] = useState(false);
   /* What the sample shows, said in words, so the swap is not a mystery. */
   const caption = isSwapped
-    ? `${capitalise(comparisonLabel)} text on ${shade.hex.toUpperCase()}`
-    : `Shade text on ${comparisonLabel} ${comparisonHex.toUpperCase()}`;
+    ? `${capitalise(comparisonLabel)} on Shade`
+    : `Shade on ${capitalise(comparisonLabel)}`;
   const textContrast = assessTextContrast(shade.hex, comparisonHex);
   const graphicContrast = assessNonTextContrast(shade.hex, comparisonHex);
   const largeTextGrade = contrastGrade(

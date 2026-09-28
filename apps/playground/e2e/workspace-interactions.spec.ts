@@ -29,11 +29,20 @@ test.describe("Shade details", () => {
     await expect(swap).toHaveAttribute("aria-pressed", "false");
     // The caption says which way round the sample is.
     const caption = contrast.locator("header small");
-    await expect(caption).toHaveText(/^Shade text on white #FFFFFF$/);
+    await expect(caption).toHaveText("Shade on White");
+    const width = () =>
+      contrast.evaluate(
+        (section) =>
+          section.closest(".astryx-popover")!.getBoundingClientRect().width,
+      );
+    const openWidth = await width();
+    expect(Math.round(openWidth)).toBe(300);
 
     await swap.click();
     await expect(swap).toHaveAttribute("aria-pressed", "true");
-    await expect(caption).toHaveText(/^White text on #[0-9A-F]{6}$/);
+    await expect(caption).toHaveText("White on Shade");
+    // Not a pixel wider or narrower for the swap.
+    expect(await width()).toBe(openWidth);
     await expect
       .poll(paint)
       .toEqual({ ground: before.ink, ink: before.ground });
@@ -41,7 +50,8 @@ test.describe("Shade details", () => {
 
     await swap.click();
     await expect.poll(paint).toEqual(before);
-    await expect(caption).toHaveText(/^Shade text on white/);
+    await expect(caption).toHaveText("Shade on White");
+    expect(await width()).toBe(openWidth);
 
     /* The popover has no padding of its own: its dividers meet both edges. */
     const edges = await contrast.evaluate((section) => {
@@ -166,7 +176,7 @@ test.describe("Shade details", () => {
     ).toContainText("oklch(");
     await expect(
       details.getByRole("region", { name: "WCAG 2 contrast result" }),
-    ).toContainText("Shade text on custom #7646AB");
+    ).toContainText("Shade on Custom");
     await expect(
       details.getByText("Large text", { exact: true }),
     ).toBeVisible();
