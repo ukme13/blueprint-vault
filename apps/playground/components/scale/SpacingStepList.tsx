@@ -58,7 +58,6 @@ export function SpacingStepList({
         {resolveSpacingRamp(scale).map((token) => (
           <SpacingTokenRow
             key={token.step}
-            density={scale.density ?? 1}
             isKept={token.kept}
             isSelected={token.kept && token.step === selected?.step}
             token={token}

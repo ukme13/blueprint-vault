@@ -380,10 +380,11 @@ test.describe("The spacing studio", () => {
 
     await page.getByRole("radio", { name: "Compact 0.75×" }).click();
     await expect.poll(density).toBe(0.75);
-    /* Step 2 is the first layout step: 8px at 1x, 6px compact, and it says
-       why. Step 1 is on the fine grid: 4px, and marked as fixed. */
+    /* Step 2 is the first layout step: 8px at 1x, 6px compact; its size
+       says what density did, with no multiplier beside it. Step 1 is on
+       the fine grid: 4px, and locked. */
     await expect(row("2").getByText("6px", { exact: true })).toBeVisible();
-    await expect(row("2").getByText("0.75×", { exact: true })).toBeVisible();
+    await expect(row("2")).not.toContainText("×");
     await expect(row("1").getByText("4px", { exact: true })).toBeVisible();
     await expect(
       row("1").getByRole("img", { name: /^Fixed on base grid/ }),
@@ -593,24 +594,46 @@ test.describe("The spacing studio", () => {
       .toBe(1.25);
   });
 
-  test("keeps the lock and the bar on one row", async ({
+  test("puts the lock after the name, and every row at one height", async ({
     seededPage: page,
   }) => {
-    /* The lock is a cell of its own: out of place, the bar wraps under the
-       token name as a 2px tick. */
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    const hairline = steps.locator('[data-spacing-step="0.5"]');
+    const lock = hairline.getByRole("img", { name: /^Fixed on base grid/ });
+    const name = hairline.locator("code");
+    const value = hairline.locator("[data-spacing-value]");
 
-    const hairline = page
-      .getByRole("region", { name: "Generated spacing steps" })
-      .locator("li", { has: page.getByText("--spacing-0-5", { exact: true }) });
-    const label = hairline.getByRole("img", { name: /^Fixed on base grid/ });
-    const bar = hairline.locator("[class*=tokenBar]");
+    /* After the name, on its line, before the value. */
+    const lockBox = (await lock.boundingBox())!;
+    const nameBox = (await name.boundingBox())!;
+    const valueBox = (await value.boundingBox())!;
+    expect(lockBox.x).toBeGreaterThanOrEqual(nameBox.x + nameBox.width);
+    expect(lockBox.x + lockBox.width).toBeLessThanOrEqual(valueBox.x);
+    expect(
+      Math.abs(
+        lockBox.y + lockBox.height / 2 - (nameBox.y + nameBox.height / 2),
+      ),
+    ).toBeLessThan(2);
 
-    const labelBox = await label.boundingBox();
-    const barBox = await bar.boundingBox();
-    expect(labelBox).toBeTruthy();
-    expect(barBox).toBeTruthy();
-    expect(Math.abs((labelBox?.y ?? 0) - (barBox?.y ?? 0))).toBeLessThan(4);
-    expect(barBox?.x ?? 0).toBeGreaterThan(labelBox?.x ?? 0);
+    /* Kept or pruned, locked or not, a row is one height, and a toggle
+       does not change it. */
+    const heights = () =>
+      steps.evaluate((section) => [
+        ...new Set(
+          [...section.querySelectorAll("li")].map(
+            (row) => row.getBoundingClientRect().height,
+          ),
+        ),
+      ]);
+    expect(await heights()).toHaveLength(1);
+    await page
+      .getByRole("button", { name: "Keep step 0-5", exact: true })
+      .click();
+    await page
+      .getByRole("button", { name: "Keep step 7", exact: true })
+      .click();
+    await expect(hairline).toHaveAttribute("data-pruned", "true");
+    expect(await heights()).toHaveLength(1);
   });
 });
 
