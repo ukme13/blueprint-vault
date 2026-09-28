@@ -1410,6 +1410,30 @@
     display: none;
   }
 
+  /* Room under the last card, clear of the screen's edge and of anything
+     floating over it: 64px, or the safe area where it is taller. */
+  .canvas {
+    padding-bottom: max(
+      calc(var(--spacing-8) * 2),
+      env(safe-area-inset-bottom, 0px)
+    );
+  }
+
+  /* The light and dark grounds share the screen's width half and half,
+     rather than two 8rem squares off to one side. */
+  .elevationModes {
+    width: 100%;
+  }
+
+  .elevationSample {
+    flex: 1 1 0%;
+    min-width: 0;
+  }
+
+  .elevationGround {
+    width: 100%;
+  }
+
   .settingsTrigger {
     display: inline-flex;
   }

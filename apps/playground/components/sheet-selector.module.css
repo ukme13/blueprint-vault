@@ -88,7 +88,8 @@
 .stickyHead {
   position: sticky;
   top: 0;
-  z-index: 0;
+  /* Above the options scrolling under it, swatches included. */
+  z-index: 10;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3, 12px);
@@ -96,7 +97,9 @@
   margin-bottom: calc(-1 * var(--spacing-3, 12px));
   padding-top: var(--spacing-6, 24px);
   padding-bottom: var(--spacing-3, 12px);
-  background: var(--color-background-surface);
+  /* Opaque, the sheet's own surface: the old token did not exist, so the
+     head was transparent and the shades showed through it. */
+  background: var(--color-surface-raised);
 }
 
 .title {
