@@ -8,6 +8,11 @@ import {
   type HybridTokenizedValue,
 } from "./hybrid-tokenized-input";
 
+const HIGHLIGHT_TINT =
+  "bg-[color-mix(in_srgb,var(--color-fg-primary)_10%,transparent)]";
+const SELECTED_TINT =
+  "bg-[color-mix(in_srgb,var(--color-fg-primary)_6%,transparent)]";
+
 export interface HybridTokenizedPresetListProps {
   /**
    * Focus the search as the list opens, so typing filters at once. The
@@ -62,6 +67,8 @@ export function HybridTokenizedPresetList({
           ref={searchRef}
           className="min-w-0 flex-1 border-0 bg-transparent text-sm text-fg-primary outline-none placeholder:text-fg-muted"
           placeholder={searchPlaceholder}
+          /* Not "search": Chrome clears a search field on Escape, and
+             Escape here closes the list. */
           type="text"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
@@ -89,12 +96,13 @@ export function HybridTokenizedPresetList({
             const selected = value.isPreset && value.presetId === preset.id;
             const active = index === highlight;
             /* Neutral, as Figma's variable list: the picked preset a quiet
-               tint and a heavier weight, the highlighted one a touch more. */
+               tint, the highlighted one a touch more. The pointer highlights
+               the row it is over, so hover needs no style of its own. */
             const rowTone = active
-              ? "bg-[color-mix(in_srgb,var(--color-fg-primary)_10%,transparent)]"
+              ? HIGHLIGHT_TINT
               : selected
-                ? "bg-[color-mix(in_srgb,var(--color-fg-primary)_6%,transparent)]"
-                : "hover:bg-[color-mix(in_srgb,var(--color-fg-primary)_10%,transparent)]";
+                ? SELECTED_TINT
+                : "";
             return (
               <button
                 aria-selected={selected}
@@ -109,7 +117,7 @@ export function HybridTokenizedPresetList({
                 }}
                 onMouseEnter={() => onHighlight(index)}
               >
-                <span className="flex min-w-0 items-center gap-2">
+                <span className="flex min-w-0 items-center gap-[var(--spacing-2)]">
                   <span
                     aria-hidden="true"
                     className="flex size-4 items-center justify-center rounded border border-border-default bg-surface-subtle font-mono text-xs text-fg-muted"
