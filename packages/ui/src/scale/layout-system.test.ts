@@ -23,6 +23,9 @@ const SYSTEM = [
   "gap-section",
   "inset-control-x",
   "inset-control-y",
+  "gap-grid",
+  "gap-nav",
+  "inset-card",
   "radius-surface",
   "radius-button",
   "radius-input",
@@ -34,7 +37,7 @@ function withCustom(label = "Hero inset"): LayoutToken[] {
 }
 
 describe("system layout uses", () => {
-  it("are the eight the system relies on, and nothing custom", () => {
+  it("are the eleven the system relies on, and nothing custom", () => {
     expect([...SYSTEM_LAYOUT_TOKEN_IDS].sort()).toEqual([...SYSTEM].sort());
     expect(isSystemLayoutToken("radius-button")).toBe(true);
     expect(isSystemLayoutToken("hero-inset")).toBe(false);
@@ -118,7 +121,7 @@ describe("layout use names", () => {
   });
 
   it("never let a rename take a system use's or another use's name", () => {
-    const tokens = addLayoutToken(withCustom(), "spacing", devices, "Grid gap");
+    const tokens = addLayoutToken(withCustom(), "spacing", devices, "Hero gap");
     const toSystem = renameLayoutToken(tokens, "hero-inset", "Section Gap");
     expect(
       toSystem.find((token) => token.name.startsWith("Section Gap")),
@@ -127,8 +130,8 @@ describe("layout use names", () => {
       name: "Section Gap 2",
     });
 
-    const toOther = renameLayoutToken(tokens, "hero-inset", "gap GRID");
-    expect(toOther.map((token) => token.name)).toContain("gap GRID 2");
+    const toOther = renameLayoutToken(tokens, "hero-inset", "gap HERO");
+    expect(toOther.map((token) => token.name)).toContain("gap HERO 2");
   });
 
   it("let a use change its own name's case", () => {

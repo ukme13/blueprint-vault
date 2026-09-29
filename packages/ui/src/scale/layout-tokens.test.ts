@@ -33,13 +33,16 @@ const extra = {
 };
 
 describe("layout tokens", () => {
-  it("seeds eight uses against the required frames", () => {
+  it("seeds eleven uses against the required frames", () => {
     const tokens = defaultLayoutTokens();
     expect(tokens.map((token) => token.id)).toEqual([
       "inset-container",
       "gap-section",
       "inset-control-x",
       "inset-control-y",
+      "gap-grid",
+      "gap-nav",
+      "inset-card",
       "radius-surface",
       "radius-button",
       "radius-input",
@@ -76,6 +79,35 @@ describe("layout tokens", () => {
     ).toContain("--inset-control-y: var(--spacing-1-5);");
   });
 
+  it("seeds the grid, nav and card uses the preview landing reads", () => {
+    const byDevice = (id: string) =>
+      defaultLayoutTokens().find((token) => token.id === id)?.byDevice;
+    expect(byDevice("gap-grid")).toEqual({
+      phone: "4",
+      tablet: "6",
+      desktop: "8",
+    });
+    expect(byDevice("gap-nav")).toEqual({
+      phone: "3",
+      tablet: "4",
+      desktop: "6",
+    });
+    expect(byDevice("inset-card")).toEqual({
+      phone: "4",
+      tablet: "5",
+      desktop: "6",
+    });
+    /* A workspace saved before them gains all three when read. */
+    const older = defaultLayoutTokens().filter(
+      (token) => !["gap-grid", "gap-nav", "inset-card"].includes(token.id),
+    );
+    expect(
+      normalizeLayoutTokens(older, defaultPreviewDevices()).map(
+        (token) => token.id,
+      ),
+    ).toEqual(expect.arrayContaining(["gap-grid", "gap-nav", "inset-card"]));
+  });
+
   it("seeds when the stored value is missing, and heals an empty list", () => {
     expect(
       normalizeLayoutTokens(undefined, defaultPreviewDevices()).map(
@@ -86,6 +118,9 @@ describe("layout tokens", () => {
       "gap-section",
       "inset-control-x",
       "inset-control-y",
+      "gap-grid",
+      "gap-nav",
+      "inset-card",
       "radius-surface",
       "radius-button",
       "radius-input",
@@ -101,6 +136,9 @@ describe("layout tokens", () => {
       "gap-section",
       "inset-control-x",
       "inset-control-y",
+      "gap-grid",
+      "gap-nav",
+      "inset-card",
       "radius-surface",
       "radius-button",
       "radius-input",
@@ -119,8 +157,8 @@ describe("layout tokens", () => {
         byDevice: { phone: "8", tablet: "10", desktop: "16" },
       },
       {
-        id: "gap-grid",
-        name: "Grid gap",
+        id: "gap-hero",
+        name: "Hero gap",
         description: "",
         kind: "spacing" as const,
         byDevice: { phone: "4", tablet: "4", desktop: "6" },
@@ -135,12 +173,15 @@ describe("layout tokens", () => {
       "gap-section",
       "inset-control-x",
       "inset-control-y",
+      "gap-grid",
+      "gap-nav",
+      "inset-card",
       "radius-surface",
       "radius-button",
       "radius-input",
       "radius-chip",
       "inset-hero",
-      "gap-grid",
+      "gap-hero",
     ]);
   });
 
@@ -271,6 +312,9 @@ describe("layout tokens", () => {
       "gap-section",
       "inset-control-x",
       "inset-control-y",
+      "gap-grid",
+      "gap-nav",
+      "inset-card",
       "radius-surface",
       "radius-button",
       "radius-input",
@@ -278,9 +322,9 @@ describe("layout tokens", () => {
       "hero-inset",
     ]);
     expect(next.at(-1)?.kind).toBe("spacing");
-    /* The last spacing use before it is Control block inset. */
+    /* The last spacing use before it is Card inset. */
     expect(next.at(-1)?.byDevice).toEqual(
-      next.find((token) => token.id === "inset-control-y")?.byDevice,
+      next.find((token) => token.id === "inset-card")?.byDevice,
     );
   });
 
@@ -291,9 +335,9 @@ describe("layout tokens", () => {
       defaultPreviewDevices(),
       "Hero inset",
     );
-    const next = renameLayoutToken(withHero, "hero-inset", "Grid gap");
-    expect(next.at(-1)?.id).toBe("grid-gap");
-    expect(next.at(-1)?.name).toBe("Grid gap");
+    const next = renameLayoutToken(withHero, "hero-inset", "Hero gap");
+    expect(next.at(-1)?.id).toBe("hero-gap");
+    expect(next.at(-1)?.name).toBe("Hero gap");
     expect(next.map((token) => token.id)).not.toContain("hero-inset");
   });
 
@@ -331,6 +375,9 @@ describe("layout tokens", () => {
       "gap-section",
       "inset-control-x",
       "inset-control-y",
+      "gap-grid",
+      "gap-nav",
+      "inset-card",
       "radius-surface",
       "radius-button",
       "radius-input",
@@ -349,6 +396,9 @@ describe("layout tokens", () => {
       "inset-container",
       "inset-control-x",
       "inset-control-y",
+      "gap-grid",
+      "gap-nav",
+      "inset-card",
       "radius-surface",
       "radius-button",
       "radius-input",
@@ -365,6 +415,9 @@ describe("layout tokens", () => {
       "gap-section",
       "inset-control-x",
       "inset-control-y",
+      "gap-grid",
+      "gap-nav",
+      "inset-card",
       "radius-surface",
       "radius-button",
       "radius-input",
@@ -412,9 +465,16 @@ describe("tokensUsingSpacingStep", () => {
     tokensUsingSpacingStep(uses, step).map((token) => token.id);
 
   it("finds the uses that point at a step on any frame", () => {
-    /* Step 4 is Container inset on a phone, and Control inline inset on a
-       tablet and a desktop; 10 is Container inset on a desktop. */
-    expect(names(4)).toEqual(["inset-container", "inset-control-x"]);
+    /* Step 4 is Container inset, Grid gap and Card inset on a phone,
+       Navigation gap on a tablet, and Control inline inset on a tablet and a
+       desktop; 10 is Container inset on a desktop. */
+    expect(names(4)).toEqual([
+      "inset-container",
+      "inset-control-x",
+      "gap-grid",
+      "gap-nav",
+      "inset-card",
+    ]);
     expect(names(10)).toEqual(["inset-container"]);
     expect(names(16)).toEqual(["gap-section"]);
   });

@@ -41,7 +41,7 @@ export function HomeEmptyState({ onCreate }: { onCreate: () => void }) {
               <Plus aria-hidden className="size-6" />
             </span>
           }
-          body="Start from the Blueprint seed or a preset, then shape colour, type and scale."
+          body="Start from a preset, then shape colour, type and scale."
           title="Create your first project"
         />
         <EmptyStateCard

@@ -1,0 +1,90 @@
+/* The spacing overlay on /preview: the landing's paddings and gaps, marked
+   as Figma's inspector marks them. */
+
+.layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  /* Clicks pass through to the page beneath; only the tags take them. */
+  pointer-events: none;
+}
+
+.zone {
+  position: absolute;
+  box-sizing: border-box;
+  --hatch: var(--color-icon-blue);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--hatch) 20%, transparent) 0 4px,
+    transparent 4px 8px
+  );
+}
+
+.zone[data-kind="gap"] {
+  --hatch: var(--color-icon-pink);
+  outline: 1px dashed var(--hatch);
+  outline-offset: -1px;
+}
+
+/* The tag sits at the band's start corner, over the page's own content
+   only where the band is thinner than the tag. */
+.badgeAnchor {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+/* What a zone holds takes clicks again: its tag, and the step list a tag
+   opens, which Astryx places beside its trigger, inside the zone. */
+.zone > * {
+  pointer-events: auto;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0 var(--spacing-1);
+  border: 0;
+  border-radius: var(--radius-inner);
+  background: var(--hatch);
+  color: white;
+  font: inherit;
+  font-size: var(--font-size-sm, 0.75rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/* A tag the workspace can change: a control, and says so. */
+.badge[data-editable] {
+  cursor: pointer;
+  box-shadow: 0 0 0 1px white;
+}
+
+.badge[data-editable]:hover {
+  filter: brightness(1.1);
+}
+
+/* A tag that only explains itself: a control, but a quieter one. */
+.badge[data-info] {
+  cursor: help;
+}
+
+/* Every tag that is a button, editable or not, shows keyboard focus. */
+button.badge:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3);
+}
+
+.infoLink {
+  color: var(--color-fg-accent);
+  font-weight: 600;
+}

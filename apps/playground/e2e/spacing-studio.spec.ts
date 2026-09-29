@@ -2018,7 +2018,8 @@ test.describe("Layout uses", () => {
       uses.locator('tr:has([data-token="gap-section"]) code'),
       uses.locator('tr:has([data-token="inset-container"]) code'),
     );
-    /* A control's two insets keep their places after them. */
+    /* A control's two insets, then the grid, nav and card uses, keep
+       their places after them. */
     await expect
       .poll(() => rowIds(uses))
       .toEqual([
@@ -2026,6 +2027,9 @@ test.describe("Layout uses", () => {
         "inset-container",
         "inset-control-x",
         "inset-control-y",
+        "gap-grid",
+        "gap-nav",
+        "inset-card",
       ]);
   });
 

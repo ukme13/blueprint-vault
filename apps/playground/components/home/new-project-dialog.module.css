@@ -1,0 +1,285 @@
+/* New project: a gallery of starting points beside the chosen one's
+   details, as a template browser lays them out. */
+
+.form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.header {
+  --layout-padding-outer-x: var(--spacing-5);
+  --layout-padding-outer-y: var(--spacing-4);
+  --layout-padding-inner-y: var(--spacing-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* The gallery takes what the details leave. */
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 17.5rem;
+  /* Both columns the full height of the dialog: the gallery scrolls inside
+     the room the details give it, rather than stopping at a fixed height
+     and cutting a card in half. */
+  align-items: stretch;
+  min-height: 0;
+}
+
+/* ---- gallery ---- */
+
+/* Each column's title, as a bar across its top under the dialog's own:
+   the two sit level and read as one secondary header. */
+.columnHead {
+  flex: none;
+  padding: var(--spacing-3) var(--spacing-5);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* The gallery: its title, then the cards, which scroll beneath it. */
+.gallery {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.galleryScroll {
+  flex: 1;
+  min-height: 0;
+  padding: var(--spacing-5);
+  overflow-y: auto;
+}
+
+/* The two columns' scrollbars, thin and quiet, as the preview's frame
+   draws them: the gallery scrolls on a short screen, the details on a
+   shorter one. */
+.galleryScroll,
+.details {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-default) transparent;
+}
+
+.galleryScroll::-webkit-scrollbar,
+.details::-webkit-scrollbar {
+  width: var(--spacing-2);
+}
+
+.galleryScroll::-webkit-scrollbar-track,
+.details::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.galleryScroll::-webkit-scrollbar-thumb,
+.details::-webkit-scrollbar-thumb {
+  background: var(--color-border-default);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: var(--radius-full, 9999px);
+}
+
+.galleryScroll::-webkit-scrollbar-thumb:hover,
+.details::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
+  background-clip: padding-box;
+}
+
+.galleryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-3);
+}
+
+/* A card is a label around its radio, so a click anywhere on it picks. */
+.presetCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  /* The picture runs to the card's top and sides, as a workspace card's
+     does; only the name below it is inset. */
+  overflow: hidden;
+  /* Transparent, not none: the picked card's edge takes this same pixel,
+     so nothing shifts when the choice moves. */
+  border: 1px solid transparent;
+  border-radius: var(--radius-container);
+  background: var(--color-surface-base);
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
+}
+
+.presetCard:hover {
+  border-color: var(--color-border-subtle);
+}
+
+/* Picked: the accent edge and a ring, clear at a glance. */
+.presetCard[data-selected] {
+  border-color: var(--color-action-primary);
+  box-shadow: 0 0 0 1px var(--color-action-primary);
+}
+
+/* The radio has focus; the card shows it. */
+.presetCard:has(.presetRadio:focus-visible) {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* The control itself, laid invisibly over the whole card: focusable, read
+   by a screen reader, and hit by a click anywhere on the card. */
+.presetRadio {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.presetThumb {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--spacing-3);
+  aspect-ratio: 16 / 9;
+  padding: var(--spacing-3);
+  background: var(--color-surface-subtle);
+}
+
+/* The seeds as one bar: primary widest, then secondary, then neutral. */
+.presetBar {
+  display: flex;
+  flex: 1;
+  height: var(--spacing-6);
+  overflow: hidden;
+  border-radius: var(--radius-inner);
+  box-shadow: inset 0 0 0 1px var(--color-border-default);
+}
+
+.presetBar > span:nth-child(1) {
+  flex: 3;
+}
+
+.presetBar > span:nth-child(2) {
+  flex: 2;
+}
+
+.presetBar > span:nth-child(3) {
+  flex: 1;
+}
+
+.presetSample {
+  color: var(--color-fg-primary);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.presetText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  padding: var(--spacing-3);
+}
+
+/* ---- details ---- */
+
+.details {
+  display: flex;
+  flex-direction: column;
+  /* Tighter than the gallery, so a preset's details fit beside it; on a
+     screen too short even so, the panel scrolls rather than clipping. */
+  gap: var(--spacing-3);
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--spacing-5);
+  padding-top: 0;
+  border-left: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-subtle);
+}
+
+/* The panel's title stays at its top as the details scroll under it, on
+   the panel's own ground, edge to edge. */
+.details > .columnHead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin-inline: calc(-1 * var(--spacing-5));
+  margin-bottom: var(--spacing-2);
+  background: var(--color-surface-subtle);
+}
+
+.detailGroup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.detailList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  margin: 0;
+}
+
+.detailRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2);
+}
+
+.detailRow dd {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  min-width: 0;
+  margin: 0;
+  text-align: right;
+}
+
+.detailSwatch {
+  width: var(--spacing-4);
+  height: var(--spacing-4);
+  flex: none;
+  border-radius: var(--radius-inner);
+  box-shadow: inset 0 0 0 1px var(--color-border-default);
+}
+
+.detailError {
+  margin: 0;
+  color: var(--color-status-error);
+}
+
+/* At the panel's foot, the one action, the panel's full width. Closing is
+   the header's button, Escape or the backdrop. */
+.detailActions {
+  display: flex;
+  margin-top: auto;
+  padding-top: var(--spacing-3);
+  /* Room under Create, so it does not sit on the panel's bottom edge. */
+  padding-bottom: var(--spacing-2);
+}
+
+.detailActions > * {
+  width: 100%;
+}
+
+/* On a phone the details follow the gallery, and the gallery is one card
+   to a row. */
+@media (max-width: 640px) {
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .galleryGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .details {
+    border-left: 0;
+    border-top: 1px solid var(--color-border-subtle);
+  }
+}

@@ -1,0 +1,133 @@
+"use client";
+
+import { Text } from "@astryxdesign/core/Text";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import {
+  Button,
+  DEFAULT_WORKSPACE_NAME,
+  workspacePresetDetails,
+  type WorkspacePreset,
+} from "@blueprint/ui";
+import styles from "./new-project-dialog.module.css";
+
+/**
+ * The panel beside the gallery, as Adobe's New Document keeps one: the
+ * name, what the chosen preset starts with, and Create at its foot. Every
+ * value is the preset's own or the default it leaves alone, so a preset
+ * that sets no step count still shows the nine it will start with.
+ */
+export function PresetDetails({
+  preset,
+  name,
+  error,
+  onNameChange,
+}: {
+  preset: WorkspacePreset;
+  name: string;
+  error: string;
+  onNameChange: (name: string) => void;
+}) {
+  const details = workspacePresetDetails(preset);
+  const ratio = details.ratioName
+    ? `${details.ratioName}, ${details.ratio}`
+    : String(details.ratio);
+
+  return (
+    <aside aria-label="Preset details" className={styles.details}>
+      <div className={styles.columnHead}>
+        <Text type="supporting" weight="semibold">
+          Preset details
+        </Text>
+      </div>
+      <TextInput
+        label="Project name"
+        placeholder={DEFAULT_WORKSPACE_NAME}
+        value={name}
+        onChange={onNameChange}
+      />
+
+      <section aria-label="Colour" className={styles.detailGroup}>
+        <Text type="supporting" weight="semibold">
+          Colour
+        </Text>
+        <dl className={styles.detailList}>
+          <Swatch hex={details.primaryHex} label="Primary" />
+          <Swatch hex={details.secondaryHex} label="Secondary" />
+          <Swatch hex={details.neutralHex} label="Neutral" />
+        </dl>
+      </section>
+
+      <section aria-label="Type" className={styles.detailGroup}>
+        <Text type="supporting" weight="semibold">
+          Type
+        </Text>
+        <dl className={styles.detailList}>
+          <Detail label="Typeface" value={details.typeface} />
+          <Detail label="Base size" value={`${details.baseFontSizePx}px`} />
+          <Detail label="Scale" value={ratio} />
+          <Detail label="Steps" value={String(details.stepCount)} />
+          <Detail label="Groups" value={details.roleGroups} />
+        </dl>
+      </section>
+
+      <section aria-label="Spacing and radius" className={styles.detailGroup}>
+        <Text type="supporting" weight="semibold">
+          Spacing & radius
+        </Text>
+        <dl className={styles.detailList}>
+          <Detail label="Grid" value={`${details.baseSpacingPx}px base`} />
+          <Detail label="Controls" value={corner(details.elementRadiusPx)} />
+          <Detail label="Cards" value={corner(details.containerRadiusPx)} />
+        </dl>
+      </section>
+
+      {error ? (
+        <p className={styles.detailError} role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      <div className={styles.detailActions}>
+        <Button scheme="primary" type="submit">
+          Create workspace
+        </Button>
+      </div>
+    </aside>
+  );
+}
+
+/** A corner as a person reads it: its px, and "square" when there is none. */
+function corner(px: number): string {
+  return px === 0 ? "0px, square" : `${px}px`;
+}
+
+function Detail({ label, value }: { label: string; value: string }) {
+  return (
+    <div className={styles.detailRow}>
+      <dt>
+        <Text type="supporting">{label}</Text>
+      </dt>
+      <dd>
+        <Text type="label">{value}</Text>
+      </dd>
+    </div>
+  );
+}
+
+function Swatch({ hex, label }: { hex: string; label: string }) {
+  return (
+    <div className={styles.detailRow}>
+      <dt>
+        <Text type="supporting">{label}</Text>
+      </dt>
+      <dd>
+        <span
+          aria-hidden="true"
+          className={styles.detailSwatch}
+          style={{ background: hex }}
+        />
+        <Text type="code">{hex.toUpperCase()}</Text>
+      </dd>
+    </div>
+  );
+}

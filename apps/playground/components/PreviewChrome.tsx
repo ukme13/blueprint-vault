@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Ruler } from "lucide-react";
 import type { ColourMode, PreviewDevice } from "@blueprint/ui";
 import { VisionControl } from "./VisionControl";
 import { PreviewDeviceBar } from "./typography/PreviewDeviceBar";
@@ -50,6 +50,9 @@ interface PreviewChromeProps {
   children?: ReactNode;
   onDeviceChange: (id: string) => void;
   onResetToDefault?: () => void;
+  /** The spacing overlay: shown or not, and the switch for it. */
+  showSpacing?: boolean;
+  onShowSpacingChange?: (next: boolean) => void;
 }
 
 export function PreviewChrome({
@@ -60,6 +63,8 @@ export function PreviewChrome({
   children,
   onDeviceChange,
   onResetToDefault,
+  showSpacing = false,
+  onShowSpacingChange,
 }: PreviewChromeProps) {
   const framed = device.kind === "phone" || device.kind === "tablet";
 
@@ -76,6 +81,16 @@ export function PreviewChrome({
           onChange={onDeviceChange}
         />
         <div className="ml-auto flex items-center gap-2">
+          {onShowSpacingChange ? (
+            <IconButton
+              aria-pressed={showSpacing}
+              icon={<Ruler aria-hidden className="size-4" />}
+              label={showSpacing ? "Hide spacing" : "Show spacing"}
+              size="sm"
+              variant={showSpacing ? "secondary" : "ghost"}
+              onClick={() => onShowSpacingChange(!showSpacing)}
+            />
+          ) : null}
           <VisionControl />
           {onResetToDefault ? (
             <>
