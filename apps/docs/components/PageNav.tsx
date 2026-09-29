@@ -22,10 +22,29 @@ import { headingSlug } from "../lib/sections";
  * a band across the upper third of the viewport, so a heading counts as
  * current when it reaches reading position rather than when it first appears.
  *
+ * The band cannot reach the last sections of a page: the page stops
+ * scrolling before their headings climb that far. So at the bottom of the
+ * page, within `BOTTOM_SLACK` of it, the last heading is current whatever
+ * the band says, and a click marks its link at once rather than waiting for
+ * the scroll to report.
+ *
  * With no JavaScript — or before hydration — every link still works, because
  * they are anchors and the ids are in the HTML. Only the highlight is missing,
  * which is the right thing to lose first.
  */
+
+/** How near the bottom of the page counts as at it, in CSS pixels. */
+const BOTTOM_SLACK = 50;
+
+function isAtPageBottom(): boolean {
+  const page = document.documentElement;
+  /* Only once the reader has scrolled: a page too short to scroll is at its
+     bottom from the start, and there the first section is the right one. */
+  return (
+    window.scrollY > 0 &&
+    window.innerHeight + window.scrollY >= page.scrollHeight - BOTTOM_SLACK
+  );
+}
 
 interface PageNavProps {
   headings: readonly string[];
@@ -42,8 +61,15 @@ export function PageNav({ headings }: PageNavProps) {
       .filter((node): node is HTMLElement => node !== null);
     if (sections.length === 0) return;
 
+    const last = sections[sections.length - 1]!.id;
     const observer = new IntersectionObserver(
       (entries) => {
+        /* At the bottom the last section holds, even as an earlier heading
+           passes through the band on the way down. */
+        if (isAtPageBottom()) {
+          setCurrent(last);
+          return;
+        }
         for (const entry of entries) {
           if (entry.isIntersecting) setCurrent(entry.target.id);
         }
@@ -54,7 +80,18 @@ export function PageNav({ headings }: PageNavProps) {
       { rootMargin: "-20% 0% -70% 0%" },
     );
     for (const section of sections) observer.observe(section);
-    return () => observer.disconnect();
+
+    /* The one thing the observer cannot see: arriving at the bottom. A
+       passive listener that only compares two numbers. */
+    const onScroll = () => {
+      if (isAtPageBottom()) setCurrent(last);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("scroll", onScroll);
+    };
   }, [headings]);
 
   if (headings.length === 0) return null;
@@ -81,6 +118,7 @@ export function PageNav({ headings }: PageNavProps) {
               <a
                 aria-current={id === active ? "true" : undefined}
                 href={`#${id}`}
+                onClick={() => setCurrent(id)}
               >
                 <Text type="label">{heading}</Text>
               </a>
