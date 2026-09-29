@@ -2,13 +2,13 @@
 
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { Icon } from "@astryxdesign/core/Icon";
-import { TextInput } from "@astryxdesign/core/TextInput";
-import { Check, Search } from "lucide-react";
+import { Check } from "lucide-react";
 import {
   sheetOptionGroups,
   type SheetOption,
   type SheetOptionInput,
 } from "@blueprint/ui";
+import { SelectorSearch } from "./SelectorSearch";
 import styles from "./sheet-selector.module.css";
 
 export function renderOptionIcon(icon: unknown): ReactNode {
@@ -108,23 +108,18 @@ export function SelectorOptionList({
     return () => observer.disconnect();
   }, [hasAutoFocus]);
 
+  const searchProps = {
+    ref: searchRef,
+    "aria-label": `Search ${label.toLowerCase()}`,
+    placeholder: searchPlaceholder ?? "Search",
+    value: query,
+    onValueChange: onQueryChange,
+  };
+
   return (
     <>
       {hasSearch && density === "compact" && (
-        /* A dropdown's header: a magnifier and a borderless field over a
-           line the width of the panel, as Astryx's own Selector draws it. */
-        <label className="flex items-center gap-3 border-b border-border-subtle px-4 py-3">
-          <Search aria-hidden className="size-4 shrink-0 text-fg-muted" />
-          <input
-            ref={searchRef}
-            aria-label={`Search ${label.toLowerCase()}`}
-            className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-fg-primary outline-none placeholder:text-fg-muted"
-            placeholder={searchPlaceholder ?? "Search"}
-            type="search"
-            value={query}
-            onChange={(event) => onQueryChange(event.target.value)}
-          />
-        </label>
+        <SelectorSearch {...searchProps} density="compact" type="search" />
       )}
       {density === "comfortable" && (header || hasSearch) && (
         /* Held at the top of the sheet while the options scroll under it:
@@ -133,15 +128,7 @@ export function SelectorOptionList({
         <div className={styles.stickyHead}>
           {header}
           {hasSearch && (
-            <TextInput
-              ref={searchRef}
-              isLabelHidden
-              label={`Search ${label.toLowerCase()}`}
-              placeholder={searchPlaceholder ?? "Search"}
-              value={query}
-              width="100%"
-              onChange={onQueryChange}
-            />
+            <SelectorSearch {...searchProps} density="comfortable" />
           )}
         </div>
       )}

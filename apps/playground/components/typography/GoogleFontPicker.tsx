@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { Check, FileUp, Info, Search, X } from "lucide-react";
+import { Check, FileUp, Info, X } from "lucide-react";
 import {
   ALLOWED_FONT_EXTENSIONS,
   searchGoogleFonts,
   type GoogleFont,
 } from "@blueprint/ui";
 import list from "../sheet-selector.module.css";
+import { SelectorSearch } from "../SelectorSearch";
 import { useIsPhone } from "../use-is-phone";
 import styles from "./typography-workspace.module.css";
 
@@ -103,52 +104,50 @@ export function GoogleFontPicker({
           {labelTooltip}
         </p>
       ) : null}
-      <label className="flex items-center gap-3 border-b border-border-subtle px-4 py-3">
-        <Search aria-hidden className="size-4 shrink-0 text-fg-muted" />
-        <input
-          ref={inputRef}
-          aria-activedescendant={
-            fonts.length > 0 ? `${listId}-${active}` : undefined
+      <SelectorSearch
+        density={isPhone ? "comfortable" : "compact"}
+        trailing={
+          query ? (
+            <button
+              aria-label="Clear search"
+              className={styles.fontPickerClear}
+              type="button"
+              onClick={() => {
+                search("");
+                inputRef.current?.focus();
+              }}
+            >
+              <X aria-hidden />
+            </button>
+          ) : null
+        }
+        value={query}
+        onValueChange={search}
+        ref={inputRef}
+        aria-activedescendant={
+          fonts.length > 0 ? `${listId}-${active}` : undefined
+        }
+        aria-autocomplete="list"
+        aria-controls={listId}
+        aria-expanded
+        aria-label={label}
+        autoComplete="off"
+        placeholder="Search fonts..."
+        role="combobox"
+        spellCheck={false}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown") {
+            event.preventDefault();
+            setActive((index) => Math.min(index + 1, fonts.length - 1));
+          } else if (event.key === "ArrowUp") {
+            event.preventDefault();
+            setActive((index) => Math.max(index - 1, 0));
+          } else if (event.key === "Enter" && fonts[active]) {
+            event.preventDefault();
+            onPick(fonts[active]);
           }
-          aria-autocomplete="list"
-          aria-controls={listId}
-          aria-expanded
-          aria-label={label}
-          autoComplete="off"
-          className={`min-w-0 flex-1 border-0 bg-transparent p-0 text-fg-primary ${isPhone ? "text-base" : "text-sm"} outline-none placeholder:text-fg-muted`}
-          placeholder="Search fonts..."
-          role="combobox"
-          spellCheck={false}
-          type="text"
-          value={query}
-          onChange={(event) => search(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "ArrowDown") {
-              event.preventDefault();
-              setActive((index) => Math.min(index + 1, fonts.length - 1));
-            } else if (event.key === "ArrowUp") {
-              event.preventDefault();
-              setActive((index) => Math.max(index - 1, 0));
-            } else if (event.key === "Enter" && fonts[active]) {
-              event.preventDefault();
-              onPick(fonts[active]);
-            }
-          }}
-        />
-        {query ? (
-          <button
-            aria-label="Clear search"
-            className={styles.fontPickerClear}
-            type="button"
-            onClick={() => {
-              search("");
-              inputRef.current?.focus();
-            }}
-          >
-            <X aria-hidden />
-          </button>
-        ) : null}
-      </label>
+        }}
+      />
 
       <div
         className={`${list.list} ${styles.fontPickerBody}`}

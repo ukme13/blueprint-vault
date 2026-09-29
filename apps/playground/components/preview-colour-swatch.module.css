@@ -8,15 +8,12 @@
   background: var(--preview-swatch);
 }
 
-.previewColourSwatch[data-empty] {
-  border-color: var(--color-fg-muted);
-  background:
-    linear-gradient(
-      to bottom right,
-      transparent calc(50% - var(--border-width)),
-      var(--color-fg-muted) calc(50% - var(--border-width)),
-      var(--color-fg-muted) calc(50% + var(--border-width)),
-      transparent calc(50% + var(--border-width))
-    ),
-    var(--color-surface-base);
+/* No colour of its own: Lucide's square-slash, in muted ink so it reads in
+   both themes. */
+.previewColourDefault {
+  display: block;
+  width: var(--spacing-4);
+  height: var(--spacing-4);
+  flex: none;
+  color: var(--color-fg-muted);
 }

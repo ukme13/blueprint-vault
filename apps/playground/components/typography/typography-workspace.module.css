@@ -878,31 +878,6 @@
   align-items: center;
 }
 
-.previewColourSwatch {
-  display: block;
-  width: var(--spacing-4);
-  height: var(--spacing-4);
-  box-sizing: border-box;
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--preview-swatch);
-}
-
-.previewColourSwatch[data-empty] {
-  /* Ink, not the hairline border: in dark mode --color-border sits on the
-     overlay and the slash disappears. Muted foreground is the empty mark. */
-  border-color: var(--color-fg-muted);
-  background:
-    linear-gradient(
-      to bottom right,
-      transparent calc(50% - var(--border-width)),
-      var(--color-fg-muted) calc(50% - var(--border-width)),
-      var(--color-fg-muted) calc(50% + var(--border-width)),
-      transparent calc(50% + var(--border-width))
-    ),
-    var(--color-surface-base);
-}
-
 .previewColourEmpty {
   margin: 0;
   color: var(--color-text-secondary);

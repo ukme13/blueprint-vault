@@ -102,6 +102,29 @@
   background: var(--color-surface-raised);
 }
 
+/* SelectorSearch: a borderless field over a divider the panel's width. */
+.search {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-3) var(--spacing-4);
+  border-bottom: var(--border-width) solid var(--color-border-subtle);
+}
+
+/* Under a padded sheet's title: reaching past the sheet's side padding so
+   the divider runs edge to edge, and closer to the title above it. */
+.stickyHead > .search {
+  margin-inline: calc(-1 * var(--spacing-4));
+  padding-top: var(--spacing-2);
+}
+
+/* A row's swatch or icon at 20px, a size a thumb's row can carry. */
+.list:not([data-density="compact"]) .option > :first-child:not(.optionLabel) {
+  width: var(--spacing-5);
+  height: var(--spacing-5);
+  flex: none;
+}
+
 .title {
   margin: 0;
   font-size: var(--font-size-lg, 1rem);

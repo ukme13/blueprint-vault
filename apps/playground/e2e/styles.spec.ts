@@ -234,7 +234,8 @@ test.describe("Typography studio styles", () => {
         return computed;
       }, value);
 
-    const ink = await styleOf(swatch, "border-top-color");
+    /* Lucide's square-slash, stroked in currentColor. */
+    const ink = await styleOf(swatch, "color");
     expect(ink).toBe(await token("var(--color-fg-muted)"));
     expect(ink).not.toBe(await token("var(--color-border)"));
     expect(ink).not.toBe(

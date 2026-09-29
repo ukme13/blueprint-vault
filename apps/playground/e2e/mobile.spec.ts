@@ -1207,7 +1207,33 @@ test.describe("on a phone", () => {
     await textColour.click();
     const sheet = page.getByRole("dialog", { name: "Text colour" });
     await expect(sheet.locator(".astryx-bottom-sheet")).toBeVisible();
-    await sheet.getByRole("textbox").fill("primary 5");
+
+    /* The search is the dropdown's borderless row, 16px, over a divider the
+       width of the sheet; Default is Lucide's square-slash. */
+    const search = sheet.getByRole("textbox");
+    const searchRow = search.locator("xpath=..");
+    const css = (locator: typeof search, property: string) =>
+      locator.evaluate(
+        (el, name) => getComputedStyle(el).getPropertyValue(name),
+        property,
+      );
+    expect(await css(search, "font-size")).toBe("16px");
+    expect(await css(search, "border-top-width")).toBe("0px");
+    expect(await css(searchRow, "border-bottom-width")).toBe("1px");
+    const panel = (await sheet
+      .locator(".astryx-bottom-sheet")
+      .first()
+      .boundingBox())!;
+    const rowBox = (await searchRow.boundingBox())!;
+    /* Inside the panel's own 1px border on either side. */
+    expect(rowBox.width).toBeGreaterThanOrEqual(panel.width - 2);
+    await expect(
+      sheet
+        .getByRole("option", { name: "Default" })
+        .locator("svg.lucide-square-slash"),
+    ).toBeVisible();
+
+    await search.fill("primary 5");
     await expect(
       sheet.getByRole("option", { name: "neutral 950", exact: true }),
     ).toHaveCount(0);
@@ -1217,6 +1243,10 @@ test.describe("on a phone", () => {
     });
     const optionBox = (await option.boundingBox())!;
     expect(optionBox.height).toBeGreaterThanOrEqual(44);
+    /* Swatches at 20px, a size a thumb's row carries. */
+    const swatchBox = (await option.locator("i").first().boundingBox())!;
+    expect(swatchBox.width).toBe(20);
+    expect(swatchBox.height).toBe(20);
     await option.click();
     await expect(sheet).toBeHidden();
     await expect(textColour).toHaveAccessibleName("Text colour: primary 500");
