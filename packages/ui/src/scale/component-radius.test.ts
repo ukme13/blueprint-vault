@@ -44,6 +44,8 @@ describe("component radius uses", () => {
     expect(ids).toEqual([
       "inset-container",
       "gap-section",
+      "inset-control-x",
+      "inset-control-y",
       "radius-surface",
       ...COMPONENT_IDS,
     ]);
@@ -59,6 +61,8 @@ describe("component radius uses", () => {
     expect(ids).toEqual([
       "inset-container",
       "gap-section",
+      "inset-control-x",
+      "inset-control-y",
       "radius-surface",
       ...COMPONENT_IDS,
     ]);

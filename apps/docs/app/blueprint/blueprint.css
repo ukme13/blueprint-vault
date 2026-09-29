@@ -411,6 +411,8 @@
 :root {
   --inset-container: var(--spacing-4);
   --gap-section: var(--spacing-16);
+  --inset-control-x: var(--spacing-3);
+  --inset-control-y: var(--spacing-1-5);
   --radius-surface: var(--radius-container);
   --radius-button: var(--radius-element);
   --radius-input: var(--radius-element);
@@ -421,6 +423,8 @@
   :root {
     --inset-container: var(--spacing-6);
     --gap-section: var(--spacing-16);
+    --inset-control-x: var(--spacing-4);
+    --inset-control-y: var(--spacing-2);
     --radius-surface: var(--radius-container);
     --radius-button: var(--radius-element);
     --radius-input: var(--radius-element);
@@ -432,6 +436,8 @@
   :root {
     --inset-container: var(--spacing-10);
     --gap-section: var(--spacing-16);
+    --inset-control-x: var(--spacing-4);
+    --inset-control-y: var(--spacing-2);
     --radius-surface: var(--radius-page);
     --radius-button: var(--radius-element);
     --radius-input: var(--radius-element);

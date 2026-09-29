@@ -21,6 +21,8 @@ const devices = defaultPreviewDevices();
 const SYSTEM = [
   "inset-container",
   "gap-section",
+  "inset-control-x",
+  "inset-control-y",
   "radius-surface",
   "radius-button",
   "radius-input",
@@ -32,7 +34,7 @@ function withCustom(label = "Hero inset"): LayoutToken[] {
 }
 
 describe("system layout uses", () => {
-  it("are the six the system relies on, and nothing custom", () => {
+  it("are the eight the system relies on, and nothing custom", () => {
     expect([...SYSTEM_LAYOUT_TOKEN_IDS].sort()).toEqual([...SYSTEM].sort());
     expect(isSystemLayoutToken("radius-button")).toBe(true);
     expect(isSystemLayoutToken("hero-inset")).toBe(false);

@@ -620,6 +620,15 @@
   --radius-full: 9999px;
 }
 
+/* Layout uses a page can read before a workspace sets them: a control's
+   padding. Outside `@theme`, where `--inset-*` is Tailwind's namespace
+   for position utilities and would make `inset-control-x` a `left`/`right`
+   offset. A workspace's export and the preview set their own. */
+:root {
+  --inset-control-x: var(--spacing-4);
+  --inset-control-y: var(--spacing-2);
+}
+
 /* ========================================================================
    COMPONENTS OVERRIDES (Astryx UI Bridge)
 
