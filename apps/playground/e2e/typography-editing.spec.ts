@@ -901,10 +901,13 @@ test.describe("Typography scale editing", () => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await showInspectorPanel(page, "Groups");
     await expect(
-      settings.getByRole("group", { name: "Display" }),
+      /* Exact: a Home create now starts on Primer, whose Enterprise groups
+         add a "Subtitle display" beside it. */
+      settings.getByRole("group", { name: "Display", exact: true }),
     ).toBeVisible();
     await expect(
-      settings.getByLabel("display font", { exact: true }),
+      /* Enterprise numbers its displays: display-1 and display-2. */
+      settings.getByLabel("display-1 font", { exact: true }),
     ).toContainText("Display");
     await expect(settings.getByLabel("h1 font", { exact: true })).toContainText(
       "Main",

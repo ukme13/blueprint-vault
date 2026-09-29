@@ -1,10 +1,12 @@
 import { DEFAULT_RADIUS_TOKENS } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { TYPE_SCALE_RATIO_PRESETS } from "../typography/presets";
+import { TYPE_ROLE_PRESETS } from "../typography/role-presets";
 import {
   SEED_PALETTE_TRACKS,
   SEED_TYPOGRAPHY,
   seedWorkspaceProject,
+  type SeedPaletteTracksOverride,
   type SeedWorkspaceInput,
 } from "./seed-project";
 import type { WorkspaceProject } from "./types";
@@ -34,27 +36,36 @@ export type WorkspacePreset = SeedWorkspaceInput & {
 const SWATCH_TRACK_IDS = ["primary", "secondary", "neutral"] as const;
 
 /*
- * Five starting points modelled on well-known product design systems: their
- * brand colours, their typefaces and base sizes, a type ratio per frame
- * (gentler on a phone than on a desktop), their spacing grid and density,
- * and their corners. The desktop ratio is also the type system's own.
+ * Five starting points modelled on well-known product design systems. Each
+ * seeds every slice: the seven colour tracks, the typeface, base size and
+ * role groups, a type ratio per frame (gentler on a phone than a desktop,
+ * the desktop one also the type system's), the spacing grid and density,
+ * and the corners.
  */
 
-/** GitHub Primer: a 14px system face, a 4px grid, 6px corners. */
+/** GitHub Primer: Enterprise groups, a 4px grid, 6px corners. */
 const PRIMER: WorkspacePreset = {
   id: "primer",
   name: "GitHub Primer",
   summary:
-    "Primer blue and success green, a 14px system sans at a major third, 6px corners.",
-  primarySeedHex: "#0969da",
-  secondarySeedHex: "#1a7f37",
-  neutralSeedHex: "#656d76",
+    "GitHub's design system. Primer blue, 4px grid, 6px radius, and Enterprise type groups.",
+  paletteTracks: {
+    primary: "#0969da",
+    secondary: "#1a7f37",
+    neutral: "#656d76",
+    success: "#1a7f37",
+    warning: "#9a6700",
+    error: "#cf222e",
+    info: "#0969da",
+  },
   typography: {
     fontFamily:
-      "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif",
+      "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif",
     baseFontSizePx: 14,
     ratio: 1.25,
     stepCount: 9,
+    rolePresetId: "enterprise",
+    specimenText: "Where the world builds software",
   },
   previewDevices: [
     { id: "phone", ratio: 1.18 },
@@ -62,24 +73,39 @@ const PRIMER: WorkspacePreset = {
     { id: "desktop", ratio: 1.25 },
   ],
   spacing: { baseUnitPx: 4, density: 1 },
-  radius: { tokenPx: { element: 6, container: 6 } },
+  radius: {
+    multiplier: 1,
+    tokens: [
+      { id: "inner", basePx: 3 },
+      { id: "element", basePx: 6 },
+      { id: "container", basePx: 6 },
+    ],
+  },
 };
 
-/** Stripe: an 8px grid, spacious, and a perfect fourth on a desktop. */
+/** Stripe: App UI groups, a spacious 8px grid, a perfect fourth. */
 const STRIPE: WorkspacePreset = {
   id: "stripe",
   name: "Stripe Vibrant",
   summary:
-    "Blurple and electric teal, Söhne at a perfect fourth, a spacious 8px grid.",
-  primarySeedHex: "#635bff",
-  secondarySeedHex: "#00d4b2",
-  neutralSeedHex: "#425466",
+    "Stripe's high-conversion fintech style. Blurple and teal, spacious 8px grid, App UI groups.",
+  paletteTracks: {
+    primary: "#635bff",
+    secondary: "#00d4b2",
+    neutral: "#425466",
+    success: "#0570de",
+    warning: "#f5a623",
+    error: "#df1b41",
+    info: "#635bff",
+  },
   typography: {
     fontFamily:
-      "sohne, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      "sohne, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     baseFontSizePx: 16,
     ratio: 1.333,
     stepCount: 9,
+    rolePresetId: "app-ui",
+    specimenText: "Financial infrastructure for the internet",
   },
   previewDevices: [
     { id: "phone", ratio: 1.2 },
@@ -87,24 +113,39 @@ const STRIPE: WorkspacePreset = {
     { id: "desktop", ratio: 1.333 },
   ],
   spacing: { baseUnitPx: 8, density: 1.15 },
-  radius: { tokenPx: { element: 8, container: 12 } },
+  radius: {
+    multiplier: 1,
+    tokens: [
+      { id: "inner", basePx: 4 },
+      { id: "element", basePx: 8 },
+      { id: "container", basePx: 12 },
+    ],
+  },
 };
 
-/** Linear: dense, a tight minor third over ten steps. */
+/** Linear: App UI groups, compact, a tight minor third over ten steps. */
 const LINEAR: WorkspacePreset = {
   id: "linear",
   name: "Linear Studio",
   summary:
-    "Indigo and cyan, 14px Inter over a tight minor third, a compact 4px grid.",
-  primarySeedHex: "#5e6ad2",
-  secondarySeedHex: "#26b5ce",
-  neutralSeedHex: "#8a8f98",
+    "Linear's focused craft. Brand indigo and cyan, compact 4px grid, App UI groups.",
+  paletteTracks: {
+    primary: "#5e6ad2",
+    secondary: "#26b5ce",
+    neutral: "#8a8f98",
+    success: "#27ae60",
+    warning: "#f2c94c",
+    error: "#eb5757",
+    info: "#5e6ad2",
+  },
   typography: {
     fontFamily:
       "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     baseFontSizePx: 14,
     ratio: 1.2,
     stepCount: 10,
+    rolePresetId: "app-ui",
+    specimenText: "Linear is a better way to build products",
   },
   previewDevices: [
     { id: "phone", ratio: 1.15 },
@@ -112,24 +153,39 @@ const LINEAR: WorkspacePreset = {
     { id: "desktop", ratio: 1.2 },
   ],
   spacing: { baseUnitPx: 4, density: 0.85 },
-  radius: { tokenPx: { element: 4, container: 8 } },
+  radius: {
+    multiplier: 1,
+    tokens: [
+      { id: "inner", basePx: 3 },
+      { id: "element", basePx: 4 },
+      { id: "container", basePx: 8 },
+    ],
+  },
 };
 
-/** Shopify Polaris: merchant-grade, a balanced minor third. */
+/** Shopify Polaris: Enterprise groups, a balanced 4px grid. */
 const POLARIS: WorkspacePreset = {
   id: "polaris",
   name: "Shopify Polaris",
   summary:
-    "Commerce emerald and deep slate, a 14px system sans at a minor third.",
-  primarySeedHex: "#008060",
-  secondarySeedHex: "#002e25",
-  neutralSeedHex: "#6d7175",
+    "Shopify's commerce platform. Deep emerald and slate, balanced 4px grid, Enterprise groups.",
+  paletteTracks: {
+    primary: "#008060",
+    secondary: "#002e25",
+    neutral: "#6d7175",
+    success: "#008060",
+    warning: "#ffc453",
+    error: "#d72c0d",
+    info: "#2c6ecb",
+  },
   typography: {
     fontFamily:
-      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      "-apple-system, BlinkMacSystemFont, 'San Francisco', 'Segoe UI', Roboto, sans-serif",
     baseFontSizePx: 14,
     ratio: 1.2,
     stepCount: 9,
+    rolePresetId: "enterprise",
+    specimenText: "Making commerce better for everyone",
   },
   previewDevices: [
     { id: "phone", ratio: 1.15 },
@@ -137,24 +193,39 @@ const POLARIS: WorkspacePreset = {
     { id: "desktop", ratio: 1.2 },
   ],
   spacing: { baseUnitPx: 4, density: 1 },
-  radius: { tokenPx: { element: 4, container: 8 } },
+  radius: {
+    multiplier: 1,
+    tokens: [
+      { id: "inner", basePx: 2 },
+      { id: "element", basePx: 4 },
+      { id: "container", basePx: 8 },
+    ],
+  },
 };
 
-/** IBM Carbon: square corners throughout, on an 8px grid. */
+/** IBM Carbon: Enterprise groups, square corners, an 8px grid. */
 const CARBON: WorkspacePreset = {
   id: "carbon",
   name: "IBM Carbon",
   summary:
-    "Carbon blue and cyan, IBM Plex Sans at a major third, square corners.",
-  primarySeedHex: "#0f62fe",
-  secondarySeedHex: "#1192e8",
-  neutralSeedHex: "#525252",
+    "IBM's enterprise system. Carbon blue, IBM Plex Sans, sharp 0px corners, Enterprise groups.",
+  paletteTracks: {
+    primary: "#0f62fe",
+    secondary: "#1192e8",
+    neutral: "#525252",
+    success: "#198038",
+    warning: "#f1c21b",
+    error: "#da1e28",
+    info: "#0043ce",
+  },
   typography: {
     fontFamily:
       "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     baseFontSizePx: 16,
     ratio: 1.25,
     stepCount: 9,
+    rolePresetId: "enterprise",
+    specimenText: "Let’s create something that changes everything",
   },
   previewDevices: [
     { id: "phone", ratio: 1.18 },
@@ -191,15 +262,29 @@ export function findWorkspacePreset(id: string): WorkspacePreset | undefined {
  * honest thing to show: it is the colour the person picked the preset for.
  */
 export function workspacePresetSwatches(preset: WorkspacePreset): string[] {
-  return SWATCH_TRACK_IDS.map((id) => {
-    if (id === "primary" && preset.primarySeedHex) return preset.primarySeedHex;
-    if (id === "secondary" && preset.secondarySeedHex) {
-      return preset.secondarySeedHex;
-    }
-    if (id === "neutral" && preset.neutralSeedHex) return preset.neutralSeedHex;
-    const track = SEED_PALETTE_TRACKS.find((seed) => seed.id === id);
-    return track?.seedHex ?? "#000000";
-  });
+  return SWATCH_TRACK_IDS.map((id) => presetTrackHex(preset, id));
+}
+
+/**
+ * The seed a preset starts one track on: its `paletteTracks` entry, then the
+ * older primary and secondary fields, then the studio's own. The same order
+ * `seedWorkspaceProject` reads them in.
+ */
+function presetTrackHex(
+  preset: WorkspacePreset,
+  id: keyof SeedPaletteTracksOverride,
+): string {
+  const field =
+    id === "primary"
+      ? preset.primarySeedHex
+      : id === "secondary"
+        ? preset.secondarySeedHex
+        : undefined;
+  return (
+    preset.paletteTracks?.[id] ??
+    field ??
+    SEED_PALETTE_TRACKS.find((track) => track.id === id)!.seedHex
+  );
 }
 
 /** A complete workspace from a preset, named. */
@@ -222,6 +307,8 @@ export interface WorkspacePresetDetails {
   /** The ratio's musical name, or null for one no preset names. */
   ratioName: string | null;
   stepCount: number;
+  /** The type role groups it names its styles by: App UI, Enterprise… */
+  roleGroups: string;
   /** The spacing grid's base unit. */
   baseSpacingPx: number;
   /** The corners of a control and of a card, multiplier applied. */
@@ -250,8 +337,6 @@ const GENERIC_FAMILY_NAMES: Record<string, string> = {
 export function workspacePresetDetails(
   preset: WorkspacePreset,
 ): WorkspacePresetDetails {
-  const seed = (id: string) =>
-    SEED_PALETTE_TRACKS.find((track) => track.id === id)!.seedHex;
   const type = { ...SEED_TYPOGRAPHY, ...preset.typography };
   const lead = type.fontFamily
     .split(",")[0]!
@@ -259,16 +344,22 @@ export function workspacePresetDetails(
     .replace(/^["']|["']$/g, "");
   const radiusPx = (id: string) => {
     const token = DEFAULT_RADIUS_TOKENS.find((each) => each.id === id)!;
-    const px = preset.radius?.tokenPx?.[id] ?? token.basePx;
+    const px =
+      preset.radius?.tokens?.find((each) => each.id === id)?.basePx ??
+      token.basePx;
     return token.scales ? px * (preset.radius?.multiplier ?? 1) : px;
   };
   const named = TYPE_SCALE_RATIO_PRESETS.find(
     (each) => Math.abs(each.ratio - type.ratio) < 0.001,
   );
   return {
-    primaryHex: preset.primarySeedHex ?? seed("primary"),
-    secondaryHex: preset.secondarySeedHex ?? seed("secondary"),
-    neutralHex: preset.neutralSeedHex ?? seed("neutral"),
+    primaryHex: presetTrackHex(preset, "primary"),
+    secondaryHex: presetTrackHex(preset, "secondary"),
+    neutralHex: presetTrackHex(preset, "neutral"),
+    roleGroups:
+      TYPE_ROLE_PRESETS.find(
+        (each) => each.id === (type.rolePresetId ?? "minimal"),
+      )?.label ?? "Minimal",
     typeface: GENERIC_FAMILY_NAMES[lead] ?? lead,
     baseFontSizePx: type.baseFontSizePx,
     ratio: type.ratio,

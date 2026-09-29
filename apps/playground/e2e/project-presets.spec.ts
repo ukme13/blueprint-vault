@@ -51,8 +51,8 @@ test.describe("Project presets", () => {
 
     expect(seedFor("primary")).toBe("#635bff");
     expect(seedFor("secondary")).toBe("#00d4b2");
-    /* The preset chooses brand colour; the status hues are the studio's. */
-    expect(seedFor("error")).toBe("#b02b1b");
+    /* And its status hues: every track is the preset's. */
+    expect(seedFor("error")).toBe("#df1b41");
     expect(stored.typography.system.ratio).toBeCloseTo(1.333, 3);
     /* Its grid and corners too, not the studio's defaults. */
     expect(stored.spacing).toMatchObject({ baseUnitPx: 8, density: 1.15 });
@@ -124,6 +124,7 @@ test.describe("Project presets", () => {
     await expect(details).toContainText("#656D76");
     await expect(details).toContainText("System sans");
     await expect(details).toContainText("Major Third, 1.25");
+    await expect(details).toContainText("Enterprise");
     const spacing = details.getByRole("region", { name: "Spacing and radius" });
     await expect(spacing).toContainText("4px base");
     await expect(spacing).toContainText("6px");
@@ -135,6 +136,7 @@ test.describe("Project presets", () => {
     await expect(stripe).toBeChecked();
     await expect(stripe).toBeFocused();
     await expect(details).toContainText("#635BFF");
+    await expect(details).toContainText("App UI");
     await page.keyboard.press("ArrowRight");
     await expect(details).toContainText("Inter");
     await expect(details).toContainText("Minor Third, 1.2");

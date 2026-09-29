@@ -64,6 +64,7 @@ export function PresetDetails({
           <Detail label="Base size" value={`${details.baseFontSizePx}px`} />
           <Detail label="Scale" value={ratio} />
           <Detail label="Steps" value={String(details.stepCount)} />
+          <Detail label="Groups" value={details.roleGroups} />
         </dl>
       </section>
 

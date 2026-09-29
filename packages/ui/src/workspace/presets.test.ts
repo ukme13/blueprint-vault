@@ -8,6 +8,7 @@ import {
   workspacePresetSwatches,
 } from "./presets";
 import { defaultRadiusScale } from "../scale/radius";
+import { detectTypeRolePreset } from "../typography/role-presets";
 import { defaultSpacingScale } from "../scale/spacing";
 import { seedWorkspaceProject } from "./seed-project";
 import { readWorkspaceProject } from "./workspace";
@@ -72,20 +73,66 @@ describe("instantiating a preset", () => {
     },
   );
 
-  it("puts the brand seeds on the brand tracks, leaving the rest alone", () => {
-    const stripe = findWorkspacePreset("stripe")!;
-    const project = instantiateWorkspacePreset(stripe, "Test");
-    const track = (id: string) =>
-      project.palette!.tracks.find((entry) => entry.id === id);
+  it("seeds all seven tracks from a preset's palette", () => {
+    const project = instantiateWorkspacePreset(
+      findWorkspacePreset("stripe")!,
+      "Test",
+    );
+    const seeds = Object.fromEntries(
+      project.palette!.tracks.map((track) => [track.id, track.seedHex]),
+    );
+    expect(seeds).toEqual({
+      primary: "#635bff",
+      secondary: "#00d4b2",
+      neutral: "#425466",
+      success: "#0570de",
+      warning: "#f5a623",
+      error: "#df1b41",
+      info: "#635bff",
+    });
+  });
 
-    expect(track("primary")!.seedHex).toBe("#635bff");
-    expect(track("secondary")!.seedHex).toBe("#00d4b2");
-    /* A preset chooses brand colour, not the status hues. */
-    expect(track("error")!.seedHex).toBe(
+  it("keeps the studio's status hues for a preset that names none", () => {
+    const project = instantiateWorkspacePreset(
+      { id: "bare", name: "Bare", summary: "", primarySeedHex: "#123456" },
+      "Test",
+    );
+    const track = (id: string) =>
+      project.palette!.tracks.find((entry) => entry.id === id)!.seedHex;
+    expect(track("primary")).toBe("#123456");
+    expect(track("error")).toBe(
       seedWorkspaceProject("Test").palette!.tracks.find(
         (entry) => entry.id === "error",
       )!.seedHex,
     );
+  });
+
+  it("names the type by the preset's role groups, and shows its line", () => {
+    const primer = instantiateWorkspacePreset(
+      findWorkspacePreset("primer")!,
+      "Test",
+    ).typography!;
+    expect(detectTypeRolePreset(primer.system)).toBe("enterprise");
+    expect(primer.specimenText).toBe("Where the world builds software");
+    const stripe = instantiateWorkspacePreset(
+      findWorkspacePreset("stripe")!,
+      "Test",
+    ).typography!;
+    expect(detectTypeRolePreset(stripe.system)).toBe("app-ui");
+  });
+
+  it("changes a corner's size and keeps its name and description", () => {
+    const tokens = instantiateWorkspacePreset(
+      findWorkspacePreset("primer")!,
+      "Test",
+    ).radius.tokens;
+    const inner = tokens.find((token) => token.id === "inner")!;
+    const defaults = defaultRadiusScale().tokens.find(
+      (token) => token.id === "inner",
+    )!;
+    expect(inner.basePx).toBe(3);
+    expect(inner.description).toBe(defaults.description);
+    expect(inner.name).toBe(defaults.name);
   });
 
   it("carries typography overrides into the system", () => {
@@ -208,6 +255,7 @@ describe("preset details", () => {
       ratio: 1.25,
       ratioName: "Major Third",
       stepCount: 9,
+      roleGroups: "Enterprise",
       baseSpacingPx: 4,
       elementRadiusPx: 6,
       containerRadiusPx: 6,
