@@ -203,7 +203,7 @@ const POLARIS: WorkspacePreset = {
   },
 };
 
-/** IBM Carbon: Enterprise groups, square corners, an 8px grid. */
+/** IBM Carbon: Enterprise groups, square corners, a 4px mini-unit. */
 const CARBON: WorkspacePreset = {
   id: "carbon",
   name: "IBM Carbon",
@@ -232,7 +232,9 @@ const CARBON: WorkspacePreset = {
     { id: "tablet", ratio: 1.22 },
     { id: "desktop", ratio: 1.25 },
   ],
-  spacing: { baseUnitPx: 8, density: 1 },
+  /* A 4px mini-unit, as Carbon counts; its 8px layout steps are step 2 and
+     up. On an 8px base every token doubled and the page sprawled. */
+  spacing: { baseUnitPx: 4, density: 1 },
   /* Every scaling corner to 0. A pill stays a pill: it does not scale. */
   radius: { multiplier: 0 },
 };

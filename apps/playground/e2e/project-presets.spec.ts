@@ -142,7 +142,7 @@ test.describe("Project presets", () => {
     await expect(details).toContainText("Minor Third, 1.2");
     /* Carbon's corners are square, and say so. */
     await gallery.getByRole("radio", { name: "IBM Carbon" }).check();
-    await expect(spacing).toContainText("8px base");
+    await expect(spacing).toContainText("4px base");
     await expect(spacing).toContainText("0px, square");
     await gallery.getByRole("radio", { name: "Linear Studio" }).check();
 
