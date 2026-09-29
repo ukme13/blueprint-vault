@@ -44,8 +44,8 @@ export function SpacingStepList({
       className={`${styles.settingGroup} ${styles.stepList}`}
     >
       {/* Beside the trigger, not inside it: the trigger is a button, and a
-          control inside a button is one nobody can reach. Kept out when the
-          list is folded, since the unit is still the list's. */}
+          control inside a button is one nobody can reach. Outside the
+          collapsible too, so the unit can still be set with the list folded. */}
       <div className={styles.stepListUnit}>
         <SegmentedControl
           label="Value unit"

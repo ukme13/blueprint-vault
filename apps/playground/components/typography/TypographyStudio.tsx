@@ -532,9 +532,9 @@ export function TypographyStudio() {
                 font={font}
                 onPick={(slot, family, generic) => {
                   /* Picking a Google family for a slot that held a file
-                         leaves those bytes referenced by nothing — and only
-                         that slot's, since the other one may still point at
-                         its own. */
+                     leaves those bytes referenced by nothing — and only
+                     that slot's, since the other one may still point at
+                     its own. */
                   if (isLocalSlot(font, slot)) {
                     void forgetFontSlot(font.id, slot);
                     setFontFileRevision((current) => current + 1);
@@ -547,11 +547,11 @@ export function TypographyStudio() {
                 }}
                 onRemoveSlot={(slot) => {
                   /* The file goes first, then the ones behind it follow
-                         their family forward a slot. Both before the state
-                         change, so a reload mid-way finds files under the keys
-                         the stored stack names — and in this order, because
-                         moving into the slot being emptied would overwrite the
-                         file that is on its way out. */
+                     their family forward a slot. Both before the state
+                     change, so a reload mid-way finds files under the keys
+                     the stored stack names — and in this order, because
+                     moving into the slot being emptied would overwrite the
+                     file that is on its way out. */
                   const moves = fallbackFileMoves(font, slot);
                   if (isLocalSlot(font, slot) || moves.length > 0) {
                     void forgetFontSlot(font.id, slot)

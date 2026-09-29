@@ -263,8 +263,6 @@
   list-style: none;
 }
 
-/* Above the rows, at their right: the unit their values are written in. */
-/* The list's heading, with the unit its values are written in beside it. */
 /* The steps: a folding list with its unit switch at the top right, level
    with the trigger and laid over its row's far end. */
 .stepList {
