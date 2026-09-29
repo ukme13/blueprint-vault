@@ -853,8 +853,9 @@
 }
 
 .shadePopoverContent {
-  width: max-content;
-  min-width: 280px;
+  /* One width, whatever the rows say, so nothing shifts as they change. */
+  width: 300px;
+  min-width: 300px;
   max-width: min(440px, calc(100vw - 32px));
   overflow: hidden;
   box-sizing: border-box;
@@ -867,7 +868,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 12px;
-  border-bottom: 1px solid var(--color-border-strong);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .shadePopoverContent > header p {
@@ -894,7 +895,7 @@
   gap: 8px;
   margin: 0;
   padding: 10px 12px;
-  border-bottom: 1px solid var(--color-border-strong);
+  border-bottom: 1px solid var(--color-border-subtle);
   color: var(--color-fg-muted);
   font-size: 11px;
 }
@@ -964,7 +965,7 @@
   gap: 8px;
   overflow: hidden;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--color-border-strong);
+  border-bottom: 1px solid var(--color-border-subtle);
 }
 
 .shadeEditModeControl {
@@ -979,7 +980,8 @@
 }
 
 .popoverContrast {
-  padding: 10px;
+  /* The same inset as the rows above it, now the popover has none. */
+  padding: 10px 12px;
 }
 
 .popoverContrast > header {
@@ -1003,8 +1005,7 @@
 .popoverContrast small {
   color: var(--color-fg-muted);
   font-family: var(--font-mono);
-  font-size: 8px;
-  text-transform: capitalize;
+  font-size: 11px;
 }
 
 .popoverContrastScore {
@@ -1020,7 +1021,7 @@
   display: grid;
   place-items: center;
   box-sizing: border-box;
-  border: 1px solid var(--color-border-strong);
+  border: 1px solid var(--color-border-subtle);
   border-radius: 6px;
   font-size: 16px;
   font-weight: 800;
@@ -1050,8 +1051,10 @@
   gap: 5px;
   margin: 0;
   color: var(--color-status-error);
-  font-family: var(--font-mono);
-  font-weight: 700;
+  /* The popover's own sans: a grade is a word, not a value to align. */
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .popoverContrastGrades dd[data-pass="true"] {
@@ -1703,7 +1706,7 @@
   }
 }
 
-/* The popover sizes itself to its content; the sheet is the screen's width. */
+/* The popover is a fixed 300px; the sheet is the screen's width. */
 .shadePopoverContent[data-layout="sheet"] {
   width: 100%;
   min-width: 0;
