@@ -424,7 +424,7 @@ export default function ButtonDocsPage() {
             title="Variant × Color Grid"
             description="Every one of the 6 variants rendered against all 8 core color tracks — use this to eyeball contrast across the 25-interval grid."
           />
-          <Card>
+          <Card className="table-card">
             <Table
               data={matrixData}
               columns={matrixColumns}
@@ -469,7 +469,7 @@ export default function ButtonDocsPage() {
             title="Props"
             description="Full API surface. Any remaining native <button> attributes (onClick, type, aria-*, …) are forwarded as-is."
           />
-          <Card>
+          <Card className="table-card">
             <Table
               data={propRows}
               columns={propsColumns}
