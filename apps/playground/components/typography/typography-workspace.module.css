@@ -268,12 +268,21 @@
   border-bottom: 1px solid var(--color-border-default);
 }
 
-.settingGroup h2,
-.groupTrigger {
+.settingGroup h2 {
   margin: 0;
   color: var(--color-fg-muted);
   font-size: 11px;
   font-weight: 650;
+}
+
+/* A folding group's trigger: a section header, clear and at reading size,
+   where a plain group's small muted label would read as a caption. */
+.groupTrigger {
+  padding-block: var(--spacing-1);
+  color: var(--color-fg-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .deviceHint {

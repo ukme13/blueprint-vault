@@ -41,26 +41,28 @@ export function SpacingStepList({
   return (
     <section
       aria-label="Generated spacing steps"
-      className={`${styles.settingGroup} ${styles.stepList}`}
+      className={styles.settingGroup}
     >
-      {/* Beside the trigger, not inside it: the trigger is a button, and a
-          control inside a button is one nobody can reach. Outside the
-          collapsible too, so the unit can still be set with the list folded. */}
-      <div className={styles.stepListUnit}>
-        <SegmentedControl
-          label="Value unit"
-          size="sm"
-          value={preview.unit}
-          onChange={(value) => onPreviewChange({ unit: value as SpacingUnit })}
-        >
-          <SegmentedControlItem label="px" value="px" />
-          <SegmentedControlItem label="rem" value="rem" />
-        </SegmentedControl>
-      </div>
       <Collapsible
         defaultIsOpen
         trigger={<span className={styles.groupTrigger}>Steps</span>}
       >
+        {/* The unit the values read in, above them at the right: inside
+            the panel, so the trigger's row holds only its label and its
+            chevron. */}
+        <div className={styles.stepListUnit}>
+          <SegmentedControl
+            label="Value unit"
+            size="sm"
+            value={preview.unit}
+            onChange={(value) =>
+              onPreviewChange({ unit: value as SpacingUnit })
+            }
+          >
+            <SegmentedControlItem label="px" value="px" />
+            <SegmentedControlItem label="rem" value="rem" />
+          </SegmentedControl>
+        </div>
         <ol className={styles.tokenList}>
           {resolveSpacingRamp(scale).map((token) => (
             <SpacingTokenRow

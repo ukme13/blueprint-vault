@@ -240,8 +240,7 @@
   gap: 20px;
 }
 
-.settingGroup h2,
-.groupTrigger {
+.settingGroup h2 {
   margin: 0;
   color: var(--color-fg-muted);
   font-size: 11px;
@@ -263,17 +262,21 @@
   list-style: none;
 }
 
-/* The steps: a folding list with its unit switch at the top right, level
-   with the trigger and laid over its row's far end. */
-.stepList {
-  position: relative;
+/* A folding group's trigger: a section header, clear and at reading size,
+   where a plain group's small muted label would read as a caption. */
+.groupTrigger {
+  padding-block: var(--spacing-1);
+  color: var(--color-fg-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
 }
 
+/* The unit switch, at the right above the steps. */
 .stepListUnit {
-  position: absolute;
-  top: 0;
-  right: 0;
-  z-index: 1;
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--spacing-2);
 }
 
 .tokenRow {

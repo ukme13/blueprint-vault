@@ -289,7 +289,7 @@ test.describe("The spacing studio", () => {
     await expect(chip).toContainText("Comfortable");
   });
 
-  test("folds the step list, and keeps its unit switch usable", async ({
+  test("folds the step list under a clear header, its switch clear of it", async ({
     seededPage: page,
   }) => {
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
@@ -299,23 +299,33 @@ test.describe("The spacing studio", () => {
 
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
     await expect(rows.first()).toBeVisible();
-    // The switch sits beside the trigger, not inside its button.
-    expect(await unit.evaluate((node) => node.closest("button") === null)).toBe(
-      true,
+
+    /* A section header, not a caption: reading size, weight, primary ink. */
+    const label = trigger.locator("[class*=groupTrigger]");
+    await expect(label).toHaveCSS("font-size", "14px");
+    await expect(label).toHaveCSS("font-weight", "600");
+
+    /* The switch sits in the panel, below the trigger's row: nothing lies
+       over the chevron. */
+    const triggerBox = (await trigger.boundingBox())!;
+    const unitBox = (await unit.boundingBox())!;
+    expect(unitBox.y).toBeGreaterThanOrEqual(
+      triggerBox.y + triggerBox.height - 1,
     );
 
-    await trigger.click();
-    await expect(trigger).toHaveAttribute("aria-expanded", "false");
-    await expect(rows.first()).toBeHidden();
-    /* Folded, the unit is still there to set. */
     await unit.getByRole("radio", { name: "rem" }).click();
-    await expect(unit.getByRole("radio", { name: "rem" })).toBeChecked();
-
-    await trigger.click();
-    await expect(rows.first()).toBeVisible();
     await expect(
       steps.locator('[data-spacing-step="4"] [data-spacing-value]'),
     ).toHaveText("1rem");
+
+    /* Folded, the list and its switch go together. */
+    await trigger.click();
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect(rows.first()).toBeHidden();
+    await expect(unit).toBeHidden();
+
+    await trigger.click();
+    await expect(rows.first()).toBeVisible();
   });
 
   test("hides and shows the spacing marks", async ({ seededPage: page }) => {

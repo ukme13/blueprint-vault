@@ -946,6 +946,10 @@ test.describe("Typography scale editing", () => {
 
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
     await expect(addFont).toBeVisible();
+    /* A section header, not the small muted caption plain groups use. */
+    const label = trigger.locator("[class*=groupTrigger]");
+    await expect(label).toHaveCSS("font-size", "14px");
+    await expect(label).toHaveCSS("font-weight", "600");
 
     await trigger.click();
     await expect(trigger).toHaveAttribute("aria-expanded", "false");
