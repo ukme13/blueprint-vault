@@ -1,0 +1,102 @@
+"use client";
+
+import { Text } from "@astryxdesign/core/Text";
+import {
+  WORKSPACE_PRESETS,
+  workspacePresetDetails,
+  type WorkspacePreset,
+} from "@blueprint/ui";
+import styles from "./new-project-dialog.module.css";
+
+/**
+ * The presets as cards, two to a row, as a template browser lays them out:
+ * a picture of each starting point, then its name and what it is.
+ *
+ * Each card is a label around a real radio, visually hidden. So the group
+ * is one tab stop, the arrow keys move the choice, Space picks, and a
+ * screen reader hears "Warm editorial, radio button, 2 of 3" with the
+ * summary as its description. The ring follows the radio's own focus and
+ * checked state; nothing is re-implemented.
+ */
+export function PresetGallery({
+  presetId,
+  onPresetChange,
+}: {
+  presetId: string;
+  onPresetChange: (presetId: string) => void;
+}) {
+  return (
+    <fieldset className={styles.gallery}>
+      <legend className={styles.galleryLegend}>
+        <Text type="supporting" weight="semibold">
+          Starting point
+        </Text>
+      </legend>
+      <div className={styles.galleryGrid}>
+        {WORKSPACE_PRESETS.map((preset) => (
+          <PresetCard
+            key={preset.id}
+            isSelected={preset.id === presetId}
+            preset={preset}
+            onSelect={() => onPresetChange(preset.id)}
+          />
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+function PresetCard({
+  preset,
+  isSelected,
+  onSelect,
+}: {
+  preset: WorkspacePreset;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  const details = workspacePresetDetails(preset);
+  const nameId = `preset-${preset.id}-name`;
+  const summaryId = `preset-${preset.id}-summary`;
+
+  return (
+    <label
+      className={styles.presetCard}
+      data-selected={isSelected || undefined}
+    >
+      <input
+        aria-describedby={summaryId}
+        aria-labelledby={nameId}
+        checked={isSelected}
+        className={styles.presetRadio}
+        name="workspace-preset"
+        type="radio"
+        value={preset.id}
+        onChange={onSelect}
+      />
+      {/* The system at a glance: its brand seeds as a bar, and a sample in
+          its lead typeface. Colours are data, so they arrive inline. */}
+      <span aria-hidden="true" className={styles.presetThumb}>
+        <span className={styles.presetBar}>
+          <span style={{ background: details.primaryHex }} />
+          <span style={{ background: details.secondaryHex }} />
+          <span style={{ background: details.neutralHex }} />
+        </span>
+        <span
+          className={styles.presetSample}
+          style={{ fontFamily: preset.typography?.fontFamily }}
+        >
+          Aa
+        </span>
+      </span>
+      <span className={styles.presetText}>
+        <Text id={nameId} type="label" weight="semibold">
+          {preset.name}
+        </Text>
+        <Text id={summaryId} type="supporting">
+          {preset.summary}
+        </Text>
+      </span>
+    </label>
+  );
+}

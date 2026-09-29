@@ -98,4 +98,50 @@ test.describe("Project presets", () => {
     await expect(dialog.getByRole("alert")).toContainText("8 projects");
     await expect(page).toHaveURL(/\/$/);
   });
+
+  test("lays the presets out as a gallery beside their details", async ({
+    page,
+  }) => {
+    await page.getByRole("button", { name: "New project" }).click();
+    const dialog = page.getByRole("dialog", { name: "New project" });
+    const gallery = dialog.getByRole("group", { name: "Starting point" });
+    const details = dialog.getByRole("complementary", {
+      name: "Preset details",
+    });
+
+    /* Two columns: the gallery on the left, the details to its right. */
+    const galleryBox = (await gallery.boundingBox())!;
+    const detailsBox = (await details.boundingBox())!;
+    expect(detailsBox.x).toBeGreaterThanOrEqual(
+      galleryBox.x + galleryBox.width - 1,
+    );
+    expect(Math.round((await dialog.boundingBox())!.width)).toBe(780);
+
+    /* Blueprint overrides nothing, so its details are the studio's own. */
+    await expect(details).toContainText("#7646AB");
+    await expect(details).toContainText("Inter");
+    await expect(details).toContainText("Major Third, 1.25");
+
+    /* The arrow keys move the choice, and the details follow it. */
+    await gallery.getByRole("radio", { name: "Blueprint seed" }).focus();
+    await page.keyboard.press("ArrowRight");
+    const editorial = gallery.getByRole("radio", { name: "Warm editorial" });
+    await expect(editorial).toBeChecked();
+    await expect(editorial).toBeFocused();
+    await expect(details).toContainText("#B4532A");
+    await expect(details).toContainText("Iowan Old Style");
+    await expect(details).toContainText("Perfect Fourth");
+
+    /* The picked card wears the ring, and only that one. */
+    /* Polled: the ring eases between cards. */
+    const ringed = () =>
+      gallery.evaluate((node) =>
+        [...node.querySelectorAll("label")]
+          .filter((card) => getComputedStyle(card).boxShadow !== "none")
+          .map((card) => card.textContent ?? ""),
+      );
+    await expect
+      .poll(ringed)
+      .toEqual([expect.stringContaining("Warm editorial")]);
+  });
 });

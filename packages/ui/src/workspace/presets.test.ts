@@ -4,6 +4,7 @@ import {
   WORKSPACE_PRESETS,
   findWorkspacePreset,
   instantiateWorkspacePreset,
+  workspacePresetDetails,
   workspacePresetSwatches,
 } from "./presets";
 import { seedWorkspaceProject } from "./seed-project";
@@ -145,5 +146,53 @@ describe("preset swatches", () => {
       tracks.find((entry) => entry.id === "secondary")!.seedHex,
       tracks.find((entry) => entry.id === "neutral")!.seedHex,
     ]);
+  });
+});
+
+describe("preset details", () => {
+  it("fills Blueprint's untouched values from the studio's defaults", () => {
+    expect(workspacePresetDetails(findWorkspacePreset("blueprint")!)).toEqual({
+      primaryHex: "#7646ab",
+      secondaryHex: "#0f9d8f",
+      neutralHex: "#737373",
+      typeface: "Inter",
+      baseFontSizePx: 16,
+      ratio: 1.25,
+      ratioName: "Major Third",
+      stepCount: 9,
+    });
+  });
+
+  it("keeps what a preset overrides, and names its ratio", () => {
+    expect(
+      workspacePresetDetails(findWorkspacePreset("editorial")!),
+    ).toMatchObject({
+      primaryHex: "#b4532a",
+      secondaryHex: "#3f6f5f",
+      typeface: "Iowan Old Style",
+      baseFontSizePx: 17,
+      ratioName: "Perfect Fourth",
+      stepCount: 9,
+    });
+  });
+
+  it("says a generic family in words", () => {
+    expect(
+      workspacePresetDetails(findWorkspacePreset("utility")!),
+    ).toMatchObject({
+      typeface: "System sans",
+      ratioName: "Minor Third",
+      stepCount: 10,
+    });
+  });
+
+  it("leaves an unnamed ratio unnamed rather than guessing", () => {
+    const preset = {
+      id: "x",
+      name: "x",
+      summary: "",
+      typography: { ratio: 1.31 },
+    };
+    expect(workspacePresetDetails(preset).ratioName).toBeNull();
   });
 });

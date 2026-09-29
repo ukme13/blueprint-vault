@@ -1,5 +1,7 @@
+import { TYPE_SCALE_RATIO_PRESETS } from "../typography/presets";
 import {
   SEED_PALETTE_TRACKS,
+  SEED_TYPOGRAPHY,
   seedWorkspaceProject,
   type SeedWorkspaceInput,
 } from "./seed-project";
@@ -120,4 +122,59 @@ export function instantiateWorkspacePreset(
   name: string,
 ): WorkspaceProject {
   return seedWorkspaceProject(name, preset);
+}
+
+/** What a preset starts a workspace with, every value filled in. */
+export interface WorkspacePresetDetails {
+  primaryHex: string;
+  secondaryHex: string;
+  neutralHex: string;
+  /** The face the stack leads with, as a person would name it. */
+  typeface: string;
+  baseFontSizePx: number;
+  ratio: number;
+  /** The ratio's musical name, or null for one no preset names. */
+  ratioName: string | null;
+  stepCount: number;
+}
+
+/* A generic family, said in words rather than as a CSS keyword. */
+const GENERIC_FAMILY_NAMES: Record<string, string> = {
+  "ui-sans-serif": "System sans",
+  "system-ui": "System sans",
+  "sans-serif": "Sans serif",
+  "ui-serif": "System serif",
+  serif: "Serif",
+  "ui-monospace": "System mono",
+  monospace: "Monospace",
+};
+
+/**
+ * A preset described in full, for a details panel: its seeds and type with
+ * the defaults it does not override filled in. Blueprint overrides nothing,
+ * and reads as the studio's own violet, teal and Inter at a Major Third.
+ */
+export function workspacePresetDetails(
+  preset: WorkspacePreset,
+): WorkspacePresetDetails {
+  const seed = (id: string) =>
+    SEED_PALETTE_TRACKS.find((track) => track.id === id)!.seedHex;
+  const type = { ...SEED_TYPOGRAPHY, ...preset.typography };
+  const lead = type.fontFamily
+    .split(",")[0]!
+    .trim()
+    .replace(/^["']|["']$/g, "");
+  const named = TYPE_SCALE_RATIO_PRESETS.find(
+    (each) => Math.abs(each.ratio - type.ratio) < 0.001,
+  );
+  return {
+    primaryHex: preset.primarySeedHex ?? seed("primary"),
+    secondaryHex: preset.secondarySeedHex ?? seed("secondary"),
+    neutralHex: seed("neutral"),
+    typeface: GENERIC_FAMILY_NAMES[lead] ?? lead,
+    baseFontSizePx: type.baseFontSizePx,
+    ratio: type.ratio,
+    ratioName: named?.name ?? null,
+    stepCount: type.stepCount,
+  };
 }
