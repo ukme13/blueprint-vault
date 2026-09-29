@@ -36,7 +36,7 @@ export function FontSlotChip({
   labelTooltip?: string;
   /** This slot's upload verb and noun, e.g. "Replace font". */
   uploadLabel: string;
-  onPick: (font: GoogleFont | null) => void;
+  onPick: (font: GoogleFont) => void;
   onUpload: () => void;
 }) {
   return (
@@ -66,12 +66,10 @@ export function FontSlotChip({
           family={family}
           label={name}
           labelTooltip={labelTooltip}
-          placeholder="Search Google Fonts"
           uploadLabel={uploadLabel}
           onPick={(picked) => {
             onPick(picked);
-            /* A family chosen, the choice is made; a cleared field is not. */
-            if (picked) onOpenChange(false);
+            onOpenChange(false);
           }}
           onUpload={() => {
             /* Closed first: the file dialog opens as the popover goes. */

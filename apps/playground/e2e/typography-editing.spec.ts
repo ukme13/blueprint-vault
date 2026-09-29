@@ -13,14 +13,6 @@ import {
 import type { Locator } from "@playwright/test";
 
 /**
- * Type a query into a font picker.
- *
- * Astryx collapses the Typeahead's input to zero width while a value token is
- * shown, so a picker that already holds a font cannot be filled directly.
- * Clearing the token is what the widget offers to get back to an editable
- * field, and it is what a person does too.
- */
-/**
  * Open a slot's picker from its chip, when it is not open already.
  *
  * A stack is a row of chips; each opens its slot's picker in a popover.
@@ -28,22 +20,27 @@ import type { Locator } from "@playwright/test";
 async function openSlot(scope: Locator, label: string) {
   const input = scope.getByLabel(label, { exact: true });
   if ((await input.count()) === 0) {
-    await scope
-      .getByRole("button", { name: new RegExp(`^${label}: `) })
-      .click();
+    /* With a retry: a click that lands while the last popover is still
+       closing is dropped while Astryx waits for the browser's asynchronous
+       toggle event. No hand is that fast; a chip that never opens still
+       fails. */
+    await expect(async () => {
+      if ((await input.count()) === 0) {
+        await scope
+          .getByRole("button", { name: new RegExp(`^${label}: `) })
+          .click();
+      }
+      await expect(input).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 5000 });
   }
   return input;
 }
 
 async function searchFont(scope: Locator, label: string, query: string) {
+  /* The picker's search field, which takes focus as the chip opens it. */
   const input = await openSlot(scope, label);
-  if (!(await input.isVisible())) {
-    await input
-      .locator("xpath=..")
-      .getByRole("button", { name: "Clear selection" })
-      .click();
-  }
   await input.fill(query);
+  return input;
 }
 
 /**
@@ -72,12 +69,6 @@ const storedFamilies = async (page: import("@playwright/test").Page) => {
   const stored = await readStoredWorkspace(page);
   return stored.typography.system.fonts[0].families as string[];
 };
-
-const labelInfo = (scope: Locator, label: string) =>
-  scope
-    .locator("label", { hasText: new RegExp(`^${label}$`) })
-    .locator("svg")
-    .first();
 
 test.describe("Typography scale editing", () => {
   test("switches between Editor, Specimen and Preview without leaving the inspector", async ({
@@ -571,12 +562,10 @@ test.describe("Typography scale editing", () => {
     await expect(
       settings.getByRole("button", { name: "Geist Sans" }),
     ).toBeVisible();
-    /* The note moved into the label's info icon. It is a standing fact about
-       the family rather than something to act on, so it is only read by
-       somebody who asks for it. */
+    /* A standing fact about the family rather than something to act on, so
+       it is read in the picker, not on the card. */
     await expect(settings.getByText(/is not a Google font/)).toBeHidden();
     await openSlot(settings, "Base font");
-    await labelInfo(settings, "Base font").hover();
     await expect(settings.getByText(/is not a Google font/)).toBeVisible();
 
     /* And the roles the old shape carried, which live a panel over. */
@@ -1172,54 +1161,72 @@ test.describe("Typography scale editing", () => {
   });
 });
 
-test.describe("Reopening a font picker", () => {
-  /*
-   * Astryx's Typeahead opens on focus alone, and its dropdown is a native
-   * popover that light-dismisses on any outside pointer click — the field
-   * included. Left alone, a second click on an already-focused picker closes
-   * the menu with nothing able to reopen it, and you have to leave the field
-   * and come back. `GoogleFontPicker` restores the click.
-   */
-  test("opens again when the focused field is clicked", async ({
+test.describe("The font picker in a chip", () => {
+  test("opens on the list with the search focused", async ({
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await openFallback(settings);
-    // The bilingual fallback starts empty, so the input itself is what is hit.
-    const input = settings.getByLabel("Base fallback 1", {
-      exact: true,
-    });
+    await settings.getByRole("button", { name: /^Base font: / }).click();
 
-    await input.click();
+    /* One click, and the families are there: no field to click into first. */
     await expect(page.getByRole("option").first()).toBeVisible();
-
-    // The click that used to close the menu and leave it closed.
-    await input.click();
-    await expect(page.getByRole("option").first()).toBeVisible();
-
-    await input.click();
-    await expect(page.getByRole("option").first()).toBeVisible();
+    const input = settings.getByLabel("Base font", { exact: true });
+    await expect(input).toBeFocused();
+    /* Typed straight into a beat later, as a hand would, with no click on
+       the field: focus that something else took would fail here. */
+    await page.waitForTimeout(300);
+    await page.keyboard.type("Lor");
+    await expect(input).toHaveValue("Lor");
+    await expect(
+      page.getByRole("option", { name: "Lora", exact: true }),
+    ).toBeVisible();
   });
 
-  test("still closes on Escape and on a click outside", async ({
+  test("marks the family the slot holds", async ({ seededPage: page }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await searchFont(settings, "Base font", "Lora");
+    await page.getByRole("option", { name: "Lora", exact: true }).click();
+
+    await searchFont(settings, "Base font", "Lora");
+    await expect(
+      page.getByRole("option", { name: "Lora", exact: true }),
+    ).toHaveAttribute("aria-selected", "true");
+  });
+
+  test("its clear empties the search and leaves the slot alone", async ({
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await openFallback(settings);
-    const input = settings.getByLabel("Base fallback 1", {
-      exact: true,
-    });
+    const stack = settings.getByRole("region", { name: "Base stack" });
+    await searchFont(settings, "Base font", "Sarabun");
+    await page.getByRole("option", { name: "Sarabun" }).first().click();
+    await expect(page.getByRole("option")).toHaveCount(0);
+    const before = await storedFamilies(page);
 
-    await input.click();
+    const input = await searchFont(settings, "Base font", "Kan");
+    await settings.getByRole("button", { name: "Clear search" }).click();
+
+    await expect(input).toHaveValue("");
+    await expect(input).toBeFocused();
+    await expect(page.getByRole("option").first()).toBeVisible();
+    await expect(
+      stack.getByRole("button", { name: "Base font: Sarabun" }),
+    ).toBeVisible();
+    expect(await storedFamilies(page)).toEqual(before);
+  });
+
+  test("picks from the keyboard, and Escape closes it", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const chip = settings.getByRole("button", { name: /^Base font: / });
+    await searchFont(settings, "Base font", "Orbitron");
+    await page.keyboard.press("Enter");
+    await expect(chip).toHaveAccessibleName("Base font: Orbitron");
+    await expect(page.getByRole("option")).toHaveCount(0);
+    await openSlot(settings, "Base font");
     await expect(page.getByRole("option").first()).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("option")).toHaveCount(0);
-
-    /* Reopened rather than assumed: dismissing must not be what stops the
-       click above from working. */
-    await input.click();
-    await expect(page.getByRole("option").first()).toBeVisible();
-    await settings.getByRole("heading", { name: "Scale" }).click();
     await expect(page.getByRole("option")).toHaveCount(0);
   });
 });
@@ -1467,7 +1474,6 @@ test.describe("Fallbacks", () => {
 
     await expect(settings.getByText(/is not a Google font/)).toBeHidden();
     await openSlot(settings, "Base font");
-    await labelInfo(settings, "Base font").hover();
     await expect(settings.getByText(/is not a Google font/)).toBeVisible();
     await expect(settings.getByText(/glyph/i)).toHaveCount(0);
   });
@@ -1479,9 +1485,8 @@ test.describe("Fallbacks", () => {
     await searchFont(settings, "Base font", "Sarabun");
     await page.getByRole("option", { name: "Sarabun" }).first().click();
 
-    await expect(
-      settings.locator("label", { hasText: /^Base font$/ }).locator("svg"),
-    ).toHaveCount(0);
+    await openSlot(settings, "Base font");
+    await expect(settings.getByText(/is not a Google font/)).toHaveCount(0);
   });
 });
 

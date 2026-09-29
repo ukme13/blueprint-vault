@@ -124,7 +124,7 @@ export function FontStackEditor({
       name={slotName(slot)}
       uploadLabel={`${action(slot)} font`}
       onOpenChange={(open) => setPicking(open ? slot : null)}
-      onPick={(picked) => onPick(slot, picked?.family ?? "", generic)}
+      onPick={(picked) => onPick(slot, picked.family, generic)}
       onUpload={() => fileRefs[slot].current?.click()}
     />
   );
