@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import type { CSSProperties } from "react";
 import { type LayoutToken, type SpacingScale } from "@blueprint/ui";
 import {
   measureSpacingZones,
@@ -63,9 +62,6 @@ export function SpacingOverlay({
     return () => observer.disconnect();
   }, [measure, spacing, layout, deviceId]);
 
-  const boundStep = (use: LayoutUseId) =>
-    layout.find((token) => token.id === use)?.byDevice[deviceId];
-
   return (
     <div
       ref={layerRef}
@@ -75,39 +71,40 @@ export function SpacingOverlay({
       role="group"
       style={{ width: size.width, height: size.height }}
     >
-      {zones.map(({ key, kind, band, use, hasBadge }) => (
-        <div
-          key={key}
-          className={styles.zone}
-          data-kind={kind}
-          style={
-            {
+      {zones.map(({ key, kind, band, use, hasBadge }) => {
+        /* The layout use this space is sized by, as the workspace holds it. */
+        const token = use ? layout.find((each) => each.id === use) : undefined;
+        return (
+          <div
+            key={key}
+            className={styles.zone}
+            data-kind={kind}
+            style={{
               left: band.x,
               top: band.y,
               width: band.width,
               height: band.height,
-            } as CSSProperties
-          }
-        >
-          {hasBadge ? (
-            <span className={styles.badgeAnchor}>
-              {use ? (
-                <SpacingUseBadge
-                  deviceName={deviceName}
-                  name={layout.find((token) => token.id === use)?.name ?? use}
-                  px={band.px}
-                  spacing={spacing}
-                  step={boundStep(use)}
-                  use={use}
-                  onRebind={onRebind}
-                />
-              ) : (
-                <SpacingInfoBadge px={band.px} spacing={spacing} />
-              )}
-            </span>
-          ) : null}
-        </div>
-      ))}
+            }}
+          >
+            {hasBadge ? (
+              <span className={styles.badgeAnchor}>
+                {token ? (
+                  <SpacingUseBadge
+                    deviceId={deviceId}
+                    deviceName={deviceName}
+                    px={band.px}
+                    spacing={spacing}
+                    token={token}
+                    onRebind={onRebind}
+                  />
+                ) : (
+                  <SpacingInfoBadge px={band.px} spacing={spacing} />
+                )}
+              </span>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }

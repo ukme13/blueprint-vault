@@ -11,22 +11,32 @@ export type LayoutUseId =
   "inset-container" | "gap-section" | "gap-grid" | "gap-nav" | "inset-card";
 
 /**
- * Which use pads an element, by its landing class, and on which sides: a
- * wrap's inset is its inline padding, a page band's is its block padding,
- * a card's is all four.
+ * Which use pads an element, and on which sides: a wrap's inset is its
+ * inline padding; a band of the page (each child of main, and the footer)
+ * its block padding; a card's all four.
  */
 const INSET_USES: readonly {
-  classes: readonly (string | undefined)[];
+  matches: (element: Element) => boolean;
   use: LayoutUseId;
   axis: "inline" | "block" | "both";
 }[] = [
   {
-    classes: [styles.wrap, styles.navInner],
+    matches: (element) => hasAny(element, [styles.wrap, styles.navInner]),
     use: "inset-container",
     axis: "inline",
   },
-  { classes: [styles.footer], use: "gap-section", axis: "block" },
-  { classes: [styles.card, styles.plan], use: "inset-card", axis: "both" },
+  {
+    matches: (element) =>
+      hasAny(element, [styles.footer]) ||
+      hasAny(element.parentElement, [styles.main]),
+    use: "gap-section",
+    axis: "block",
+  },
+  {
+    matches: (element) => hasAny(element, [styles.card, styles.plan]),
+    use: "inset-card",
+    axis: "both",
+  },
 ];
 
 /** Which use spaces an element's children, by its landing class. */
@@ -40,28 +50,20 @@ const GAP_USES: readonly {
 ];
 
 function hasAny(
-  element: Element,
+  element: Element | null,
   classes: readonly (string | undefined)[],
 ): boolean {
-  return classes.some((name) => !!name && element.classList.contains(name));
+  return classes.some((name) => !!name && !!element?.classList.contains(name));
 }
 
 /** The use padding this side of the element, if one does. */
 function insetUseOf(
-  element: HTMLElement,
+  element: Element,
   axis: "inline" | "block",
 ): LayoutUseId | null {
-  /* A band of the page, directly in main, is padded by Section gap. */
-  if (
-    axis === "block" &&
-    element.parentElement?.classList.contains(styles.main!)
-  ) {
-    return "gap-section";
-  }
   const match = INSET_USES.find(
     (each) =>
-      hasAny(element, each.classes) &&
-      (each.axis === "both" || each.axis === axis),
+      (each.axis === "both" || each.axis === axis) && each.matches(element),
   );
   return match?.use ?? null;
 }
@@ -130,16 +132,13 @@ export function measureSpacingZones(site: HTMLElement): SpacingZone[] {
     });
 
     if (!/flex|grid/.test(css.display)) return;
-    const children = [...element.children].filter((child) => {
-      const style = getComputedStyle(child);
-      const size = child.getBoundingClientRect();
-      return (
-        style.position !== "absolute" &&
-        style.position !== "fixed" &&
-        size.width > 0 &&
-        size.height > 0
-      );
-    });
+    /* Each child measured once: laid out in flow, with a box. */
+    const children = [...element.children]
+      .filter(
+        (child) => !/absolute|fixed/.test(getComputedStyle(child).position),
+      )
+      .map((child) => child.getBoundingClientRect())
+      .filter((size) => size.width > 0 && size.height > 0);
     if (children.length < 2) return;
     const content: OverlayRect = {
       x: box.x + px(css.borderLeftWidth) + px(css.paddingLeft),
@@ -156,7 +155,7 @@ export function measureSpacingZones(site: HTMLElement): SpacingZone[] {
       GAP_USES.find((each) => hasAny(element, each.classes))?.use ?? null;
     gapBands(
       content,
-      children.map((child) => local(child.getBoundingClientRect())),
+      children.map(local),
       px(css.rowGap),
       px(css.columnGap),
     ).forEach((band, position) => {

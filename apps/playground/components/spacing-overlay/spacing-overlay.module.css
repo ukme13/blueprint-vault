@@ -66,17 +66,13 @@
   filter: brightness(1.1);
 }
 
-.badge[data-editable]:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
-}
-
 /* A tag that only explains itself: a control, but a quieter one. */
 .badge[data-info] {
   cursor: help;
 }
 
-.badge[data-info]:focus-visible {
+/* Every tag that is a button, editable or not, shows keyboard focus. */
+button.badge:focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
