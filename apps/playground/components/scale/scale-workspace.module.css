@@ -489,6 +489,14 @@
   background: var(--color-surface-base);
 }
 
+/* A card's last block, its action, sits at the card's foot however much
+   taller the card beside it makes it. The space opens above the stack
+   gap before that block, so the gap stays drawn against the action it
+   leads into rather than floating in the middle. */
+.spacingCardBody > .spacingZone[data-spacing-zone="stack"]:nth-last-child(2) {
+  margin-top: auto;
+}
+
 /* What the cards say: an onboarding welcome and a profile form. */
 .sampleLogo {
   width: auto;
