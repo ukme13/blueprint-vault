@@ -12,23 +12,20 @@ import styles from "./new-project-dialog.module.css";
 
 /**
  * The panel beside the gallery, as Adobe's New Document keeps one: the
- * name, what the chosen preset starts with, and the buttons that act on
- * it. Every value is the preset's own or the default it leaves alone, so
- * Blueprint seed reads as violet, teal and Inter at a Major Third rather
- * than as blanks.
+ * name, what the chosen preset starts with, and Create at its foot. Every
+ * value is the preset's own or the default it leaves alone, so a preset
+ * that sets no step count still shows the nine it will start with.
  */
 export function PresetDetails({
   preset,
   name,
   error,
   onNameChange,
-  onCancel,
 }: {
   preset: WorkspacePreset;
   name: string;
   error: string;
   onNameChange: (name: string) => void;
-  onCancel: () => void;
 }) {
   const details = workspacePresetDetails(preset);
   const ratio = details.ratioName
@@ -78,14 +75,6 @@ export function PresetDetails({
       ) : null}
 
       <div className={styles.detailActions}>
-        <Button
-          scheme="neutral"
-          type="button"
-          variant="text"
-          onClick={onCancel}
-        >
-          Cancel
-        </Button>
         <Button scheme="primary" type="submit">
           Create workspace
         </Button>

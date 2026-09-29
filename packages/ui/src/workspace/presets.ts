@@ -31,67 +31,93 @@ export type WorkspacePreset = SeedWorkspaceInput & {
 /** The seed hexes a preset paints as swatches, in the order they are shown. */
 const SWATCH_TRACK_IDS = ["primary", "secondary", "neutral"] as const;
 
-/**
- * The studio's own starting system, unchanged.
- *
- * It carries no overrides on purpose. It is what create has always produced,
- * so choosing it changes nothing, and a test holds it byte-identical to
- * `seedWorkspaceProject(name)` so the default cannot drift behind the control.
- */
-const BLUEPRINT: WorkspacePreset = {
-  id: "blueprint",
-  name: "Blueprint seed",
-  summary: "The studio's own system. Violet and teal, Inter at a major third.",
-};
-
-/**
- * Warm, print-leaning. Terracotta against a muted forest green, a serif face,
- * and a wider ratio so the headings carry a page rather than a screen.
- */
-const EDITORIAL: WorkspacePreset = {
-  id: "editorial",
-  name: "Warm editorial",
-  summary:
-    "Terracotta and forest green, a serif face, and a wider perfect fourth.",
-  primarySeedHex: "#b4532a",
-  secondarySeedHex: "#3f6f5f",
+/** GitHub Primer: accessible high-contrast open source system. */
+const PRIMER: WorkspacePreset = {
+  id: "primer",
+  name: "GitHub Primer",
+  summary: "Primer blue and success green, system sans at a major third.",
+  primarySeedHex: "#0969da",
+  secondarySeedHex: "#1a7f37",
   typography: {
-    fontFamily: "Iowan Old Style, Georgia, ui-serif, serif",
-    baseFontSizePx: 17,
-    /* Perfect Fourth. */
-    ratio: 1.333,
+    fontFamily:
+      "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif",
+    baseFontSizePx: 16,
+    ratio: 1.25,
   },
 };
 
-/**
- * Cool and dense. Steel blue against rose, the platform's own sans, and a
- * tight ratio over more steps, which is the shape a tool with a lot on screen
- * tends to want.
- */
-const UTILITY: WorkspacePreset = {
-  id: "utility",
-  name: "Cool utility",
-  summary:
-    "Steel blue and rose, a system sans, and a tight minor third over ten steps.",
-  primarySeedHex: "#2f6f9f",
-  secondarySeedHex: "#c2456a",
+/** Stripe Vibrant: electric blurple and teal accent. */
+const STRIPE: WorkspacePreset = {
+  id: "stripe",
+  name: "Stripe Vibrant",
+  summary: "Blurple and electric teal accent, modern sans at a major third.",
+  primarySeedHex: "#635bff",
+  secondarySeedHex: "#00d4b2",
   typography: {
-    fontFamily: "ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif",
-    /* Minor Third. */
+    fontFamily:
+      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    baseFontSizePx: 16,
+    ratio: 1.25,
+  },
+};
+
+/** Linear Studio: sleek indigo and cyan over 10 tight steps. */
+const LINEAR: WorkspacePreset = {
+  id: "linear",
+  name: "Linear Studio",
+  summary: "Brand indigo and vibrant cyan, Inter over a tight minor third.",
+  primarySeedHex: "#5e6ad2",
+  secondarySeedHex: "#26b5ce",
+  typography: {
+    fontFamily:
+      "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    baseFontSizePx: 16,
     ratio: 1.2,
     stepCount: 10,
   },
 };
 
+/** Shopify Polaris: merchant-grade emerald and deep slate. */
+const POLARIS: WorkspacePreset = {
+  id: "polaris",
+  name: "Shopify Polaris",
+  summary: "Commerce emerald and deep slate, balanced minor third.",
+  primarySeedHex: "#008060",
+  secondarySeedHex: "#002e25",
+  typography: {
+    fontFamily:
+      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    baseFontSizePx: 16,
+    ratio: 1.2,
+  },
+};
+
+/** IBM Carbon: open enterprise blue and cyan with IBM Plex Sans. */
+const CARBON: WorkspacePreset = {
+  id: "carbon",
+  name: "IBM Carbon",
+  summary: "Carbon blue and cyan, IBM Plex Sans at a major third.",
+  primarySeedHex: "#0f62fe",
+  secondarySeedHex: "#1192e8",
+  typography: {
+    fontFamily:
+      "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    baseFontSizePx: 16,
+    ratio: 1.25,
+  },
+};
+
 /** Every preset the create dialog offers, in the order it lists them. */
 export const WORKSPACE_PRESETS: readonly WorkspacePreset[] = [
-  BLUEPRINT,
-  EDITORIAL,
-  UTILITY,
+  PRIMER,
+  STRIPE,
+  LINEAR,
+  POLARIS,
+  CARBON,
 ];
 
 /** The one a freshly opened dialog starts on. */
-export const DEFAULT_WORKSPACE_PRESET_ID = BLUEPRINT.id;
+export const DEFAULT_WORKSPACE_PRESET_ID = PRIMER.id;
 
 /** The preset with this id, or `undefined` for an id nothing defines. */
 export function findWorkspacePreset(id: string): WorkspacePreset | undefined {
@@ -140,6 +166,8 @@ export interface WorkspacePresetDetails {
 
 /* A generic family, said in words rather than as a CSS keyword. */
 const GENERIC_FAMILY_NAMES: Record<string, string> = {
+  "-apple-system": "System sans",
+  BlinkMacSystemFont: "System sans",
   "ui-sans-serif": "System sans",
   "system-ui": "System sans",
   "sans-serif": "Sans serif",
@@ -151,8 +179,8 @@ const GENERIC_FAMILY_NAMES: Record<string, string> = {
 
 /**
  * A preset described in full, for a details panel: its seeds and type with
- * the defaults it does not override filled in. Blueprint overrides nothing,
- * and reads as the studio's own violet, teal and Inter at a Major Third.
+ * the defaults it does not override filled in, so a preset that leaves the
+ * neutral seed or the step count alone still shows what it will start with.
  */
 export function workspacePresetDetails(
   preset: WorkspacePreset,

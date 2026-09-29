@@ -48,14 +48,15 @@ export function NewProjectDialog({
       onOpenChange={onOpenChange}
     >
       <form className={styles.form} onSubmit={onSubmit}>
-        <DialogHeader title="New project" onOpenChange={onOpenChange} />
+        <div className={styles.header}>
+          <DialogHeader title="New project" onOpenChange={onOpenChange} />
+        </div>
         <div className={styles.body}>
           <PresetGallery presetId={preset.id} onPresetChange={onPresetChange} />
           <PresetDetails
             error={error}
             name={name}
             preset={preset}
-            onCancel={() => onOpenChange(false)}
             onNameChange={onNameChange}
           />
         </div>

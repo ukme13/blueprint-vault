@@ -25,7 +25,7 @@ test.describe("Project presets", () => {
 
     await expect(dialog.getByLabel("Project name")).toBeVisible();
     await expect(
-      dialog.getByRole("radio", { name: "Blueprint seed" }),
+      dialog.getByRole("radio", { name: "GitHub Primer" }),
     ).toBeChecked();
     await expect(
       dialog.getByRole("button", { name: "Create workspace" }),
@@ -38,8 +38,8 @@ test.describe("Project presets", () => {
     await page.getByRole("button", { name: "New project" }).click();
     const dialog = page.getByRole("dialog", { name: "New project" });
 
-    await dialog.getByLabel("Project name").fill("Editorial");
-    await dialog.getByRole("radio", { name: "Warm editorial" }).click();
+    await dialog.getByLabel("Project name").fill("Stripe");
+    await dialog.getByRole("radio", { name: "Stripe Vibrant" }).click();
     await dialog.getByRole("button", { name: "Create workspace" }).click();
 
     await expect(page).toHaveURL(/\/colour\/?$/);
@@ -49,11 +49,11 @@ test.describe("Project presets", () => {
       stored.palette.tracks.find((track: { id: string }) => track.id === id)
         ?.seedHex;
 
-    expect(seedFor("primary")).toBe("#b4532a");
-    expect(seedFor("secondary")).toBe("#3f6f5f");
+    expect(seedFor("primary")).toBe("#635bff");
+    expect(seedFor("secondary")).toBe("#00d4b2");
     /* The preset chooses brand colour; the status hues are the studio's. */
     expect(seedFor("error")).toBe("#b02b1b");
-    expect(stored.typography.system.ratio).toBeCloseTo(1.333, 3);
+    expect(stored.typography.system.ratio).toBeCloseTo(1.25, 3);
   });
 
   test("a refused create keeps the dialog open and says why", async ({
@@ -117,20 +117,23 @@ test.describe("Project presets", () => {
     );
     expect(Math.round((await dialog.boundingBox())!.width)).toBe(780);
 
-    /* Blueprint overrides nothing, so its details are the studio's own. */
-    await expect(details).toContainText("#7646AB");
-    await expect(details).toContainText("Inter");
+    /* Opens on GitHub Primer; its details fill in the studio's defaults
+       for what it leaves out, such as the neutral seed and nine steps. */
+    await expect(details).toContainText("#0969DA");
+    await expect(details).toContainText("#737373");
+    await expect(details).toContainText("System sans");
     await expect(details).toContainText("Major Third, 1.25");
 
     /* The arrow keys move the choice, and the details follow it. */
-    await gallery.getByRole("radio", { name: "Blueprint seed" }).focus();
+    await gallery.getByRole("radio", { name: "GitHub Primer" }).focus();
     await page.keyboard.press("ArrowRight");
-    const editorial = gallery.getByRole("radio", { name: "Warm editorial" });
-    await expect(editorial).toBeChecked();
-    await expect(editorial).toBeFocused();
-    await expect(details).toContainText("#B4532A");
-    await expect(details).toContainText("Iowan Old Style");
-    await expect(details).toContainText("Perfect Fourth");
+    const stripe = gallery.getByRole("radio", { name: "Stripe Vibrant" });
+    await expect(stripe).toBeChecked();
+    await expect(stripe).toBeFocused();
+    await expect(details).toContainText("#635BFF");
+    await page.keyboard.press("ArrowRight");
+    await expect(details).toContainText("Inter");
+    await expect(details).toContainText("Minor Third, 1.2");
 
     /* The picked card wears the ring, and only that one. */
     /* Polled: the ring eases between cards. */
@@ -142,6 +145,55 @@ test.describe("Project presets", () => {
       );
     await expect
       .poll(ringed)
-      .toEqual([expect.stringContaining("Warm editorial")]);
+      .toEqual([expect.stringContaining("Linear Studio")]);
+
+    /* Unpicked cards draw no edge of their own. */
+    const edges = await gallery.evaluate((node) =>
+      [...node.querySelectorAll("label:not([data-selected])")].map(
+        (card) => getComputedStyle(card).borderTopColor,
+      ),
+    );
+    expect(new Set(edges)).toEqual(new Set(["rgba(0, 0, 0, 0)"]));
+
+    /* The gallery runs the dialog's full height, level with the details,
+       and scrolls only when the screen caps the dialog. It once stopped at
+       a fixed 28rem with room to spare, cutting a card in half. */
+    const fit = () =>
+      gallery.evaluate((node) => {
+        const box = node.getBoundingClientRect();
+        const panel = node.nextElementSibling!.getBoundingClientRect();
+        const dialogBox = node
+          .closest("dialog, [role=dialog]")!
+          .getBoundingClientRect();
+        return {
+          level: Math.abs(box.bottom - panel.bottom) <= 1,
+          overflow: Math.max(0, node.scrollHeight - node.clientHeight),
+          inside: [...node.querySelectorAll("label")].every((card) => {
+            const each = card.getBoundingClientRect();
+            return each.bottom <= dialogBox.bottom;
+          }),
+        };
+      });
+    expect((await fit()).level).toBe(true);
+    // With the room, every card shows whole and nothing scrolls.
+    await page.setViewportSize({ width: 1280, height: 1200 });
+    await expect.poll(fit).toEqual({ level: true, overflow: 0, inside: true });
+
+    /* One action, the panel's width; closing is the header's job. */
+    await expect(dialog.getByRole("button", { name: "Cancel" })).toHaveCount(0);
+    const create = (await dialog
+      .getByRole("button", { name: "Create workspace" })
+      .boundingBox())!;
+    const panel = await details.evaluate((node) => {
+      const css = getComputedStyle(node);
+      const box = node.getBoundingClientRect();
+      return (
+        box.width -
+        parseFloat(css.paddingLeft) -
+        parseFloat(css.paddingRight) -
+        parseFloat(css.borderLeftWidth)
+      );
+    });
+    expect(Math.abs(create.width - panel)).toBeLessThanOrEqual(1);
   });
 });

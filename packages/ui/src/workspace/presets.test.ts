@@ -71,13 +71,13 @@ describe("instantiating a preset", () => {
   );
 
   it("puts the brand seeds on the brand tracks, leaving the rest alone", () => {
-    const editorial = findWorkspacePreset("editorial")!;
-    const project = instantiateWorkspacePreset(editorial, "Test");
+    const stripe = findWorkspacePreset("stripe")!;
+    const project = instantiateWorkspacePreset(stripe, "Test");
     const track = (id: string) =>
       project.palette!.tracks.find((entry) => entry.id === id);
 
-    expect(track("primary")!.seedHex).toBe(editorial.primarySeedHex);
-    expect(track("secondary")!.seedHex).toBe(editorial.secondarySeedHex);
+    expect(track("primary")!.seedHex).toBe("#635bff");
+    expect(track("secondary")!.seedHex).toBe("#00d4b2");
     /* A preset chooses brand colour, not the status hues. */
     expect(track("error")!.seedHex).toBe(
       seedWorkspaceProject("Test").palette!.tracks.find(
@@ -87,32 +87,34 @@ describe("instantiating a preset", () => {
   });
 
   it("carries typography overrides into the system", () => {
-    const utility = findWorkspacePreset("utility")!;
-    const system = instantiateWorkspacePreset(utility, "Test").typography!
+    const linear = findWorkspacePreset("linear")!;
+    const system = instantiateWorkspacePreset(linear, "Test").typography!
       .system;
 
-    expect(system.ratio).toBe(utility.typography!.ratio);
-    expect(system.stepCount).toBe(utility.typography!.stepCount);
-    expect(system.fonts[0]!.families[0]).toBe("ui-sans-serif");
-    /* Left out of this preset, so it keeps the studio's own base size. */
+    expect(system.ratio).toBe(1.2);
+    expect(system.stepCount).toBe(10);
+    expect(system.fonts[0]!.families[0]).toBe("Inter");
+  });
+
+  it("keeps the studio's own defaults for what a preset leaves out", () => {
+    /* No step count in Primer, so it keeps the studio's nine. */
+    const primer = findWorkspacePreset("primer")!;
+    const system = instantiateWorkspacePreset(primer, "Test").typography!
+      .system;
+
+    expect(system.stepCount).toBe(9);
     expect(system.baseFontSizePx).toBe(16);
   });
 
-  it("takes the base size from a preset that sets one", () => {
-    const editorial = findWorkspacePreset("editorial")!;
-    const system = instantiateWorkspacePreset(editorial, "Test").typography!
-      .system;
-
-    expect(system.baseFontSizePx).toBe(17);
-    expect(system.fonts[0]!.families[0]).toBe("Iowan Old Style");
-  });
-
-  it("leaves the default create untouched", () => {
-    /* The control must not change what create already produced. If this fails,
-       the default drifted behind the dialog rather than with it. */
+  it("opens the dialog on GitHub Primer", () => {
     const preset = findWorkspacePreset(DEFAULT_WORKSPACE_PRESET_ID)!;
-    expect(instantiateWorkspacePreset(preset, "Test")).toEqual(
-      seedWorkspaceProject("Test"),
+    expect(preset.name).toBe("GitHub Primer");
+    const tracks = instantiateWorkspacePreset(preset, "Test").palette!.tracks;
+    expect(tracks.find((track) => track.id === "primary")!.seedHex).toBe(
+      "#0969da",
+    );
+    expect(tracks.find((track) => track.id === "secondary")!.seedHex).toBe(
+      "#1a7f37",
     );
   });
 });
@@ -129,16 +131,17 @@ describe("preset swatches", () => {
   });
 
   it("paints the preset's own brand seeds", () => {
-    const utility = findWorkspacePreset("utility")!;
-    const [primary, secondary] = workspacePresetSwatches(utility);
+    const [primary, secondary] = workspacePresetSwatches(
+      findWorkspacePreset("stripe")!,
+    );
 
-    expect(primary).toBe(utility.primarySeedHex);
-    expect(secondary).toBe(utility.secondarySeedHex);
+    expect(primary).toBe("#635bff");
+    expect(secondary).toBe("#00d4b2");
   });
 
   it("falls back to the seed tracks for a preset that overrides nothing", () => {
-    const blueprint = findWorkspacePreset(DEFAULT_WORKSPACE_PRESET_ID)!;
-    const swatches = workspacePresetSwatches(blueprint);
+    const bare = { id: "bare", name: "Bare", summary: "" };
+    const swatches = workspacePresetSwatches(bare);
     const tracks = seedWorkspaceProject("Test").palette!.tracks;
 
     expect(swatches).toEqual([
@@ -150,12 +153,12 @@ describe("preset swatches", () => {
 });
 
 describe("preset details", () => {
-  it("fills Blueprint's untouched values from the studio's defaults", () => {
-    expect(workspacePresetDetails(findWorkspacePreset("blueprint")!)).toEqual({
-      primaryHex: "#7646ab",
-      secondaryHex: "#0f9d8f",
+  it("describes GitHub Primer, the defaults it leaves filled in", () => {
+    expect(workspacePresetDetails(findWorkspacePreset("primer")!)).toEqual({
+      primaryHex: "#0969da",
+      secondaryHex: "#1a7f37",
       neutralHex: "#737373",
-      typeface: "Inter",
+      typeface: "System sans",
       baseFontSizePx: 16,
       ratio: 1.25,
       ratioName: "Major Third",
@@ -163,26 +166,30 @@ describe("preset details", () => {
     });
   });
 
+  it("names a quoted face as a person would", () => {
+    expect(
+      workspacePresetDetails(findWorkspacePreset("carbon")!),
+    ).toMatchObject({ typeface: "IBM Plex Sans", ratioName: "Major Third" });
+  });
+
   it("keeps what a preset overrides, and names its ratio", () => {
     expect(
-      workspacePresetDetails(findWorkspacePreset("editorial")!),
+      workspacePresetDetails(findWorkspacePreset("linear")!),
     ).toMatchObject({
-      primaryHex: "#b4532a",
-      secondaryHex: "#3f6f5f",
-      typeface: "Iowan Old Style",
-      baseFontSizePx: 17,
-      ratioName: "Perfect Fourth",
-      stepCount: 9,
+      primaryHex: "#5e6ad2",
+      typeface: "Inter",
+      ratioName: "Minor Third",
+      stepCount: 10,
     });
   });
 
-  it("says a generic family in words", () => {
+  it("fills a bare preset from the studio's own seed", () => {
     expect(
-      workspacePresetDetails(findWorkspacePreset("utility")!),
+      workspacePresetDetails({ id: "bare", name: "Bare", summary: "" }),
     ).toMatchObject({
-      typeface: "System sans",
-      ratioName: "Minor Third",
-      stepCount: 10,
+      primaryHex: "#7646ab",
+      secondaryHex: "#0f9d8f",
+      typeface: "Inter",
     });
   });
 

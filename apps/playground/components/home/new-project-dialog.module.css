@@ -7,20 +7,36 @@
   min-height: 0;
 }
 
+.header {
+  --layout-padding-outer-x: var(--spacing-5);
+  --layout-padding-outer-y: var(--spacing-4);
+  --layout-padding-inner-y: var(--spacing-4);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
 /* The gallery takes what the details leave. */
 .body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 17.5rem;
-  border-top: 1px solid var(--color-border-subtle);
+  /* Both columns the full height of the dialog: the gallery scrolls inside
+     the room the details give it, rather than stopping at a fixed height
+     and cutting a card in half. */
+  align-items: stretch;
+  min-height: 0;
 }
 
 /* ---- gallery ---- */
 
 .gallery {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   min-width: 0;
+  min-height: 0;
   margin: 0;
   padding: var(--spacing-5);
   border: 0;
+  overflow-y: auto;
 }
 
 .galleryLegend {
@@ -41,7 +57,9 @@
   flex-direction: column;
   gap: var(--spacing-3);
   padding: var(--spacing-3);
-  border: 1px solid var(--color-border-default);
+  /* Transparent, not none: the picked card's edge takes this same pixel,
+     so nothing shifts when the choice moves. */
+  border: 1px solid transparent;
   border-radius: var(--radius-container);
   background: var(--color-surface-base);
   cursor: pointer;
@@ -51,7 +69,7 @@
 }
 
 .presetCard:hover {
-  border-color: var(--color-border-strong);
+  border-color: var(--color-border-subtle);
 }
 
 /* Picked: the accent edge and a ring, clear at a glance. */
@@ -178,13 +196,16 @@
   color: var(--color-status-error);
 }
 
-/* At the panel's foot, as Adobe keeps Close and Create. */
+/* At the panel's foot, the one action, the panel's full width. Closing is
+   the header's button, Escape or the backdrop. */
 .detailActions {
   display: flex;
-  justify-content: flex-end;
-  gap: var(--spacing-2);
   margin-top: auto;
   padding-top: var(--spacing-2);
+}
+
+.detailActions > * {
+  width: 100%;
 }
 
 /* On a phone the details follow the gallery, and the gallery is one card
