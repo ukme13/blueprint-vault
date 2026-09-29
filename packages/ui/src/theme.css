@@ -618,6 +618,10 @@
   --radius-container: 12px;
   --radius-page: 28px;
   --radius-full: 9999px;
+  /* Rounded on top only: a bottom sheet's corners, a tab's. Built from the
+     corners above, as the export builds them. */
+  --radius-sheet: var(--radius-container) var(--radius-container) 0 0;
+  --radius-tab: var(--radius-element) var(--radius-element) 0 0;
 }
 
 /* Layout uses a page can read before a workspace sets them: a control's

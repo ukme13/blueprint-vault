@@ -1818,6 +1818,39 @@ test.describe("on a phone", () => {
     expect(layout.halves[0]!).toBeGreaterThan(128);
   });
 
+  test("rounds a bottom sheet by the sheet radius, top corners only", async ({
+    seededPage: page,
+  }) => {
+    /* A value of its own, unlike the container corner it normally
+       matches, so the panel following it is the rule doing its work. */
+    await page.getByRole("button", { name: "Semantics" }).click();
+    await page
+      .getByRole("button", { name: / light reference$/ })
+      .first()
+      .click();
+    const panel = page
+      .locator(".astryx-bottom-sheet")
+      .filter({ visible: true })
+      .first();
+    await expect(panel).toBeVisible();
+    /* On the panel's parent: the app's theme wrapper redefines the
+       token below the root, so an override there would not reach it. */
+    const corners = await panel.evaluate((node) => {
+      (node.parentElement as HTMLElement).style.setProperty(
+        "--radius-sheet",
+        "3px 3px 0 0",
+      );
+      const css = getComputedStyle(node);
+      return [
+        css.borderTopLeftRadius,
+        css.borderTopRightRadius,
+        css.borderBottomRightRadius,
+        css.borderBottomLeftRadius,
+      ];
+    });
+    expect(corners).toEqual(["3px", "3px", "0px", "0px"]);
+  });
+
   test("swipes the shade grid instead of breaking the page", async ({
     seededPage: page,
   }) => {

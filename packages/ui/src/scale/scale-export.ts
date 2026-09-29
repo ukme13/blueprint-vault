@@ -5,7 +5,11 @@ import {
   type ElevationScale,
   type ResolvedShadowLayer,
 } from "./elevation";
-import { resolveRadius, type RadiusScale } from "./radius";
+import {
+  radiusCompositeVariables,
+  resolveRadius,
+  type RadiusScale,
+} from "./radius";
 import { resolveSpacing, type SpacingScale } from "./spacing";
 
 /**
@@ -27,9 +31,14 @@ function spacingLines(scale: SpacingScale, indentation: string): string[] {
 }
 
 function radiusLines(scale: RadiusScale, indentation: string): string[] {
-  return resolveRadius(scale).map(
-    (token) => `${indentation}${token.variable}: ${token.px}px;`,
-  );
+  return [
+    ...resolveRadius(scale).map(
+      (token) => `${indentation}${token.variable}: ${token.px}px;`,
+    ),
+    ...radiusCompositeVariables(scale).map(
+      ([variable, value]) => `${indentation}${variable}: ${value};`,
+    ),
+  ];
 }
 
 function elevationLines(

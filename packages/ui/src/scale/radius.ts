@@ -264,8 +264,36 @@ export function normalizeRadiusScale(scale: RadiusScale): RadiusScale {
 }
 
 /** The scale as custom properties, in px. */
-export function radiusCssVariables(scale: RadiusScale): Record<string, string> {
-  return Object.fromEntries(
-    resolveRadius(scale).map((token) => [token.variable, `${token.px}px`]),
+/**
+ * Radii rounded on one side only, built from the named corners: a bottom
+ * sheet's top two corners, a tab's. Composites rather than sizes, so they
+ * follow the corner they name when it moves, and are left out when a scale
+ * no longer has that corner.
+ */
+export const RADIUS_COMPOSITES: readonly {
+  variable: string;
+  corner: string;
+}[] = [
+  { variable: "--radius-sheet", corner: "container" },
+  { variable: "--radius-tab", corner: "element" },
+];
+
+/** The composites this scale can build: `--radius-sheet`, `--radius-tab`. */
+export function radiusCompositeVariables(
+  scale: RadiusScale,
+): [string, string][] {
+  const corners = new Set(scale.tokens.map((token) => token.id));
+  return RADIUS_COMPOSITES.filter(({ corner }) => corners.has(corner)).map(
+    ({ variable, corner }) => {
+      const radius = `var(${radiusVariableName(corner)})`;
+      return [variable, `${radius} ${radius} 0 0`];
+    },
   );
+}
+
+export function radiusCssVariables(scale: RadiusScale): Record<string, string> {
+  return Object.fromEntries([
+    ...resolveRadius(scale).map((token) => [token.variable, `${token.px}px`]),
+    ...radiusCompositeVariables(scale),
+  ]);
 }

@@ -152,3 +152,33 @@ describe("the design tokens export", () => {
     expect(groups.radius.element.$value).toBe("8px");
   });
 });
+
+describe("directional radii", () => {
+  it("are emitted in the CSS :root block, built from the named corners", () => {
+    const css = formatScaleCss(input());
+    expect(css).toContain(
+      "--radius-sheet: var(--radius-container) var(--radius-container) 0 0;",
+    );
+    expect(css).toContain(
+      "--radius-tab: var(--radius-element) var(--radius-element) 0 0;",
+    );
+  });
+
+  it("are emitted in the Tailwind theme, where they make rounded-* utilities", () => {
+    const theme = formatScaleTailwind(input());
+    const block = theme.slice(
+      theme.indexOf("@theme static {"),
+      theme.indexOf("\n}"),
+    );
+    expect(block).toContain("--radius-sheet:");
+    expect(block).toContain("--radius-tab:");
+  });
+
+  it("are left out when the corner they name is gone", () => {
+    const radius = defaultRadiusScale();
+    radius.tokens = radius.tokens.filter((token) => token.id !== "container");
+    const css = formatScaleCss({ ...input(), radius });
+    expect(css).not.toContain("--radius-sheet:");
+    expect(css).toContain("--radius-tab:");
+  });
+});
