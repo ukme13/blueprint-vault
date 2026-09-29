@@ -7,6 +7,7 @@ import {
   searchGoogleFonts,
   type GoogleFont,
 } from "@blueprint/ui";
+import list from "../sheet-selector.module.css";
 import styles from "./typography-workspace.module.css";
 
 /** Said once, on the pinned row, rather than in a note under every slot. */
@@ -86,15 +87,20 @@ export function GoogleFontPicker({
   };
 
   return (
-    <div className={styles.fontPicker}>
+    /* The standard selector popover, as SelectorOptionList draws it: a
+       borderless search over a line the width of the panel, then the list
+       running to the edges below it. */
+    <section className="flex flex-col">
       {labelTooltip ? (
-        <p className={styles.fontPickerNote}>
+        <p
+          className={`${styles.fontPickerNote} border-b border-border-subtle px-4 py-3`}
+        >
           <Info aria-hidden className={styles.fontStackNoteIcon} />
           {labelTooltip}
         </p>
       ) : null}
-      <div className={styles.fontPickerSearch}>
-        <Search aria-hidden className={styles.fontPickerSearchIcon} />
+      <label className="flex items-center gap-3 border-b border-border-subtle px-4 py-3">
+        <Search aria-hidden className="size-4 shrink-0 text-fg-muted" />
         <input
           ref={inputRef}
           aria-activedescendant={
@@ -105,7 +111,7 @@ export function GoogleFontPicker({
           aria-expanded
           aria-label={label}
           autoComplete="off"
-          className={styles.fontPickerInput}
+          className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-fg-primary outline-none placeholder:text-fg-muted"
           placeholder="Search fonts..."
           role="combobox"
           spellCheck={false}
@@ -138,55 +144,57 @@ export function GoogleFontPicker({
             <X aria-hidden />
           </button>
         ) : null}
-      </div>
+      </label>
 
-      {uploadLabel ? (
-        <button
-          className={`${styles.fontPickerRow} ${styles.fontUploadRow}`}
-          type="button"
-          onClick={onUpload}
+      <div className={list.list} data-density="compact">
+        {/* Pinned at the top of the list: no search filters it away. */}
+        {uploadLabel ? (
+          <button className={list.option} type="button" onClick={onUpload}>
+            <FileUp aria-hidden className={styles.fontUploadRowIcon} />
+            <span className={list.optionLabel}>
+              {uploadLabel}{" "}
+              <span className={styles.fontUploadRowFormats}>
+                {UPLOAD_FORMATS}
+              </span>
+            </span>
+          </button>
+        ) : null}
+        <ul
+          ref={listRef}
+          aria-label={`Google Fonts for ${label}`}
+          className={styles.fontPickerList}
+          id={listId}
+          role="listbox"
         >
-          <FileUp aria-hidden className={styles.fontUploadRowIcon} />
-          {uploadLabel}
-          <span className={styles.fontUploadRowFormats}>{UPLOAD_FORMATS}</span>
-        </button>
-      ) : null}
-
-      <ul
-        ref={listRef}
-        aria-label={`Google Fonts for ${label}`}
-        className={styles.fontPickerList}
-        id={listId}
-        role="listbox"
-      >
-        {fonts.map((font, index) => {
-          const isSelected = font.family === family;
-          return (
-            /* A row, not a tab stop: the field keeps focus and its arrow
-               keys move the highlight, so mousedown must not steal it. */
-            <li
-              key={font.family}
-              aria-selected={isSelected}
-              className={styles.fontPickerRow}
-              data-active={index === active || undefined}
-              data-index={index}
-              id={`${listId}-${index}`}
-              role="option"
-              onClick={() => onPick(font)}
-              onMouseDown={(event) => event.preventDefault()}
-              onMouseEnter={() => setActive(index)}
-            >
-              <span className={styles.fontPickerFamily}>{font.family}</span>
-              {isSelected ? (
-                <Check aria-hidden className={styles.fontPickerCheck} />
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
-      {fonts.length === 0 ? (
-        <p className={styles.fontPickerEmpty}>No Google font matches.</p>
-      ) : null}
-    </div>
+          {fonts.map((font, index) => {
+            const isSelected = font.family === family;
+            return (
+              /* A row, not a tab stop: the field keeps focus and its arrow
+                 keys move the highlight, so mousedown must not steal it. */
+              <li
+                key={font.family}
+                aria-selected={isSelected}
+                className={list.option}
+                data-active={index === active || undefined}
+                data-index={index}
+                id={`${listId}-${index}`}
+                role="option"
+                onClick={() => onPick(font)}
+                onMouseDown={(event) => event.preventDefault()}
+                onMouseEnter={() => setActive(index)}
+              >
+                <span className={list.optionLabel}>{font.family}</span>
+                {isSelected ? (
+                  <Check aria-hidden className={list.check} />
+                ) : null}
+              </li>
+            );
+          })}
+        </ul>
+        {fonts.length === 0 ? (
+          <p className={list.empty}>No Google font matches.</p>
+        ) : null}
+      </div>
+    </section>
   );
 }

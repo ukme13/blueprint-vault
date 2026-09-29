@@ -42,6 +42,7 @@ export function FontSlotChip({
   return (
     <PopoverOrSheet
       className={styles.fontChipAnchor}
+      isFlush
       isOpen={isOpen}
       label={`Choose a family for ${name}`}
       trigger={
@@ -61,23 +62,21 @@ export function FontSlotChip({
       width={300}
       onOpenChange={onOpenChange}
     >
-      <div className={styles.fontChipPanel}>
-        <GoogleFontPicker
-          family={family}
-          label={name}
-          labelTooltip={labelTooltip}
-          uploadLabel={uploadLabel}
-          onPick={(picked) => {
-            onPick(picked);
-            onOpenChange(false);
-          }}
-          onUpload={() => {
-            /* Closed first: the file dialog opens as the popover goes. */
-            onOpenChange(false);
-            onUpload();
-          }}
-        />
-      </div>
+      <GoogleFontPicker
+        family={family}
+        label={name}
+        labelTooltip={labelTooltip}
+        uploadLabel={uploadLabel}
+        onPick={(picked) => {
+          onPick(picked);
+          onOpenChange(false);
+        }}
+        onUpload={() => {
+          /* Closed first: the file dialog opens as the popover goes. */
+          onOpenChange(false);
+          onUpload();
+        }}
+      />
     </PopoverOrSheet>
   );
 }

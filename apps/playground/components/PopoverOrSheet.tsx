@@ -23,6 +23,11 @@ interface PopoverOrSheetProps {
   /** The popover's width on a wider screen. */
   width: number;
   className?: string;
+  /**
+   * No padding on the popover, and no focus moved into it: for a panel whose
+   * header and list run to its edges and that focuses its own search.
+   */
+  isFlush?: boolean;
 }
 
 /**
@@ -49,6 +54,7 @@ export function PopoverOrSheet({
   children,
   width,
   className,
+  isFlush,
 }: PopoverOrSheetProps) {
   const isPhone = useIsPhone();
   const panel = isOpen ? children : null;
@@ -75,10 +81,12 @@ export function PopoverOrSheet({
       <Popover
         alignment="start"
         content={panel}
+        hasAutoFocus={!isFlush}
         hasCloseButton={false}
         isOpen={isOpen}
         label={label}
         placement="start"
+        style={isFlush ? { padding: 0 } : undefined}
         width={width}
         onOpenChange={onOpenChange}
       >

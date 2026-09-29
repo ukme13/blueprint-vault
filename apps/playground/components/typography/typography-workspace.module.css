@@ -987,15 +987,6 @@
   gap: var(--spacing-1);
 }
 
-/* The row pinned at the top of a font selector's menu: the action, then the
-   formats it accepts, on one line. */
-.fontUploadRow {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  min-width: 0;
-}
-
 .fontUploadRowIcon {
   width: 16px;
   height: 16px;
@@ -1399,17 +1390,8 @@
   color: var(--color-fg-muted);
 }
 
-.fontChipPanel {
-  padding: var(--spacing-3);
-}
-
-/* The picker inside a chip's popover: search, the pinned upload row, then
-   the catalogue, all showing as soon as the panel opens. */
-.fontPicker {
-  display: grid;
-  gap: var(--spacing-2);
-}
-
+/* The picker inside a chip's popover. Its header and rows are the standard
+   selector's (sheet-selector.module.css); these are only what it adds. */
 .fontPickerNote {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -1418,40 +1400,6 @@
   color: var(--color-text-secondary);
   font-size: var(--font-size-sm);
   line-height: 1.4;
-}
-
-.fontPickerSearch {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  height: var(--spacing-9);
-  padding-inline: var(--spacing-2);
-  border: var(--border-width) solid var(--color-border-default);
-  border-radius: var(--radius-element);
-  background: var(--color-surface-base);
-}
-
-.fontPickerSearch:focus-within {
-  border-color: var(--color-border-strong);
-}
-
-.fontPickerSearchIcon,
-.fontPickerCheck {
-  width: var(--spacing-4);
-  height: var(--spacing-4);
-  flex: none;
-  color: var(--color-text-secondary);
-}
-
-.fontPickerInput {
-  flex: 1;
-  min-width: 0;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-size: var(--font-size-sm);
 }
 
 .fontPickerClear {
@@ -1469,8 +1417,7 @@
 }
 
 .fontPickerClear:hover {
-  background: var(--color-surface-overlay);
-  color: var(--color-text-primary);
+  background: var(--color-surface-subtle);
 }
 
 .fontPickerClear svg {
@@ -1478,59 +1425,16 @@
   height: var(--spacing-4);
 }
 
-.fontPickerRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-2);
-  width: 100%;
-  min-height: var(--spacing-8);
-  padding-inline: var(--spacing-2);
-  border: 0;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  font-size: var(--font-size-sm);
-  text-align: start;
-  cursor: pointer;
-}
-
-.fontPickerRow:hover,
-.fontPickerRow[data-active] {
-  background: var(--color-surface-overlay);
-}
-
-/* The upload row reads as an action set apart from the catalogue under it. */
-.fontPickerRow.fontUploadRow {
-  justify-content: flex-start;
-  padding-bottom: var(--spacing-2);
-  border-bottom: var(--border-width) solid var(--color-surface-overlay);
-  border-radius: 0;
-}
-
-.fontPickerRow[aria-selected="true"] {
-  font-weight: 600;
-}
-
+/* The rows as one column inside the list, which already scrolls. */
 .fontPickerList {
-  max-height: min(18rem, 50vh);
+  display: flex;
+  flex-direction: column;
   margin: 0;
   padding: 0;
-  overflow-y: auto;
   list-style: none;
 }
 
-.fontPickerFamily {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.fontPickerEmpty {
-  margin: 0;
-  padding: var(--spacing-2);
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
+/* The row the arrow keys are on, drawn as the list's hover. */
+.fontPickerList > [data-active] {
+  background: var(--color-surface-subtle);
 }
