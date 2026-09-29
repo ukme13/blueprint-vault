@@ -1,3 +1,5 @@
+import { DEFAULT_RADIUS_TOKENS } from "../scale/radius";
+import { defaultSpacingScale } from "../scale/spacing";
 import { TYPE_SCALE_RATIO_PRESETS } from "../typography/presets";
 import {
   SEED_PALETTE_TRACKS,
@@ -31,80 +33,137 @@ export type WorkspacePreset = SeedWorkspaceInput & {
 /** The seed hexes a preset paints as swatches, in the order they are shown. */
 const SWATCH_TRACK_IDS = ["primary", "secondary", "neutral"] as const;
 
-/** GitHub Primer: accessible high-contrast open source system. */
+/*
+ * Five starting points modelled on well-known product design systems: their
+ * brand colours, their typefaces and base sizes, a type ratio per frame
+ * (gentler on a phone than on a desktop), their spacing grid and density,
+ * and their corners. The desktop ratio is also the type system's own.
+ */
+
+/** GitHub Primer: a 14px system face, a 4px grid, 6px corners. */
 const PRIMER: WorkspacePreset = {
   id: "primer",
   name: "GitHub Primer",
-  summary: "Primer blue and success green, system sans at a major third.",
+  summary:
+    "Primer blue and success green, a 14px system sans at a major third, 6px corners.",
   primarySeedHex: "#0969da",
   secondarySeedHex: "#1a7f37",
+  neutralSeedHex: "#656d76",
   typography: {
     fontFamily:
-      "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif",
-    baseFontSizePx: 16,
+      "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', sans-serif",
+    baseFontSizePx: 14,
     ratio: 1.25,
+    stepCount: 9,
   },
+  previewDevices: [
+    { id: "phone", ratio: 1.18 },
+    { id: "tablet", ratio: 1.2 },
+    { id: "desktop", ratio: 1.25 },
+  ],
+  spacing: { baseUnitPx: 4, density: 1 },
+  radius: { tokenPx: { element: 6, container: 6 } },
 };
 
-/** Stripe Vibrant: electric blurple and teal accent. */
+/** Stripe: an 8px grid, spacious, and a perfect fourth on a desktop. */
 const STRIPE: WorkspacePreset = {
   id: "stripe",
   name: "Stripe Vibrant",
-  summary: "Blurple and electric teal accent, modern sans at a major third.",
+  summary:
+    "Blurple and electric teal, Söhne at a perfect fourth, a spacious 8px grid.",
   primarySeedHex: "#635bff",
   secondarySeedHex: "#00d4b2",
+  neutralSeedHex: "#425466",
   typography: {
     fontFamily:
-      "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      "sohne, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     baseFontSizePx: 16,
-    ratio: 1.25,
+    ratio: 1.333,
+    stepCount: 9,
   },
+  previewDevices: [
+    { id: "phone", ratio: 1.2 },
+    { id: "tablet", ratio: 1.25 },
+    { id: "desktop", ratio: 1.333 },
+  ],
+  spacing: { baseUnitPx: 8, density: 1.15 },
+  radius: { tokenPx: { element: 8, container: 12 } },
 };
 
-/** Linear Studio: sleek indigo and cyan over 10 tight steps. */
+/** Linear: dense, a tight minor third over ten steps. */
 const LINEAR: WorkspacePreset = {
   id: "linear",
   name: "Linear Studio",
-  summary: "Brand indigo and vibrant cyan, Inter over a tight minor third.",
+  summary:
+    "Indigo and cyan, 14px Inter over a tight minor third, a compact 4px grid.",
   primarySeedHex: "#5e6ad2",
   secondarySeedHex: "#26b5ce",
+  neutralSeedHex: "#8a8f98",
   typography: {
     fontFamily:
       "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-    baseFontSizePx: 16,
+    baseFontSizePx: 14,
     ratio: 1.2,
     stepCount: 10,
   },
+  previewDevices: [
+    { id: "phone", ratio: 1.15 },
+    { id: "tablet", ratio: 1.18 },
+    { id: "desktop", ratio: 1.2 },
+  ],
+  spacing: { baseUnitPx: 4, density: 0.85 },
+  radius: { tokenPx: { element: 4, container: 8 } },
 };
 
-/** Shopify Polaris: merchant-grade emerald and deep slate. */
+/** Shopify Polaris: merchant-grade, a balanced minor third. */
 const POLARIS: WorkspacePreset = {
   id: "polaris",
   name: "Shopify Polaris",
-  summary: "Commerce emerald and deep slate, balanced minor third.",
+  summary:
+    "Commerce emerald and deep slate, a 14px system sans at a minor third.",
   primarySeedHex: "#008060",
   secondarySeedHex: "#002e25",
+  neutralSeedHex: "#6d7175",
   typography: {
     fontFamily:
       "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-    baseFontSizePx: 16,
+    baseFontSizePx: 14,
     ratio: 1.2,
+    stepCount: 9,
   },
+  previewDevices: [
+    { id: "phone", ratio: 1.15 },
+    { id: "tablet", ratio: 1.18 },
+    { id: "desktop", ratio: 1.2 },
+  ],
+  spacing: { baseUnitPx: 4, density: 1 },
+  radius: { tokenPx: { element: 4, container: 8 } },
 };
 
-/** IBM Carbon: open enterprise blue and cyan with IBM Plex Sans. */
+/** IBM Carbon: square corners throughout, on an 8px grid. */
 const CARBON: WorkspacePreset = {
   id: "carbon",
   name: "IBM Carbon",
-  summary: "Carbon blue and cyan, IBM Plex Sans at a major third.",
+  summary:
+    "Carbon blue and cyan, IBM Plex Sans at a major third, square corners.",
   primarySeedHex: "#0f62fe",
   secondarySeedHex: "#1192e8",
+  neutralSeedHex: "#525252",
   typography: {
     fontFamily:
       "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
     baseFontSizePx: 16,
     ratio: 1.25,
+    stepCount: 9,
   },
+  previewDevices: [
+    { id: "phone", ratio: 1.18 },
+    { id: "tablet", ratio: 1.22 },
+    { id: "desktop", ratio: 1.25 },
+  ],
+  spacing: { baseUnitPx: 8, density: 1 },
+  /* Every scaling corner to 0. A pill stays a pill: it does not scale. */
+  radius: { multiplier: 0 },
 };
 
 /** Every preset the create dialog offers, in the order it lists them. */
@@ -137,6 +196,7 @@ export function workspacePresetSwatches(preset: WorkspacePreset): string[] {
     if (id === "secondary" && preset.secondarySeedHex) {
       return preset.secondarySeedHex;
     }
+    if (id === "neutral" && preset.neutralSeedHex) return preset.neutralSeedHex;
     const track = SEED_PALETTE_TRACKS.find((seed) => seed.id === id);
     return track?.seedHex ?? "#000000";
   });
@@ -162,6 +222,11 @@ export interface WorkspacePresetDetails {
   /** The ratio's musical name, or null for one no preset names. */
   ratioName: string | null;
   stepCount: number;
+  /** The spacing grid's base unit. */
+  baseSpacingPx: number;
+  /** The corners of a control and of a card, multiplier applied. */
+  elementRadiusPx: number;
+  containerRadiusPx: number;
 }
 
 /* A generic family, said in words rather than as a CSS keyword. */
@@ -192,17 +257,26 @@ export function workspacePresetDetails(
     .split(",")[0]!
     .trim()
     .replace(/^["']|["']$/g, "");
+  const radiusPx = (id: string) => {
+    const token = DEFAULT_RADIUS_TOKENS.find((each) => each.id === id)!;
+    const px = preset.radius?.tokenPx?.[id] ?? token.basePx;
+    return token.scales ? px * (preset.radius?.multiplier ?? 1) : px;
+  };
   const named = TYPE_SCALE_RATIO_PRESETS.find(
     (each) => Math.abs(each.ratio - type.ratio) < 0.001,
   );
   return {
     primaryHex: preset.primarySeedHex ?? seed("primary"),
     secondaryHex: preset.secondarySeedHex ?? seed("secondary"),
-    neutralHex: seed("neutral"),
+    neutralHex: preset.neutralSeedHex ?? seed("neutral"),
     typeface: GENERIC_FAMILY_NAMES[lead] ?? lead,
     baseFontSizePx: type.baseFontSizePx,
     ratio: type.ratio,
     ratioName: named?.name ?? null,
     stepCount: type.stepCount,
+    baseSpacingPx:
+      preset.spacing?.baseUnitPx ?? defaultSpacingScale().baseUnitPx,
+    elementRadiusPx: radiusPx("element"),
+    containerRadiusPx: radiusPx("container"),
   };
 }

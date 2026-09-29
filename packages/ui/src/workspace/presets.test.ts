@@ -7,6 +7,8 @@ import {
   workspacePresetDetails,
   workspacePresetSwatches,
 } from "./presets";
+import { defaultRadiusScale } from "../scale/radius";
+import { defaultSpacingScale } from "../scale/spacing";
 import { seedWorkspaceProject } from "./seed-project";
 import { readWorkspaceProject } from "./workspace";
 
@@ -96,14 +98,57 @@ describe("instantiating a preset", () => {
     expect(system.fonts[0]!.families[0]).toBe("Inter");
   });
 
-  it("keeps the studio's own defaults for what a preset leaves out", () => {
-    /* No step count in Primer, so it keeps the studio's nine. */
-    const primer = findWorkspacePreset("primer")!;
-    const system = instantiateWorkspacePreset(primer, "Test").typography!
-      .system;
+  it("seeds spacing, radius, the neutral and each frame's ratio", () => {
+    const stripe = instantiateWorkspacePreset(
+      findWorkspacePreset("stripe")!,
+      "Test",
+    );
+    expect(stripe.spacing).toMatchObject({ baseUnitPx: 8, density: 1.15 });
+    const corner = (id: string) =>
+      stripe.radius.tokens.find((token) => token.id === id)!.basePx;
+    expect([corner("element"), corner("container")]).toEqual([8, 12]);
+    /* Stripe's corners happen to be the defaults; Linear's are not. */
+    const linear = instantiateWorkspacePreset(
+      findWorkspacePreset("linear")!,
+      "Test",
+    ).radius.tokens;
+    expect(
+      ["element", "container"].map(
+        (id) => linear.find((token) => token.id === id)!.basePx,
+      ),
+    ).toEqual([4, 8]);
+    expect(
+      stripe.palette!.tracks.find((track) => track.id === "neutral")!.seedHex,
+    ).toBe("#425466");
+    expect(
+      Object.fromEntries(
+        stripe.previewDevices.map((device) => [device.id, device.ratio]),
+      ),
+    ).toEqual({ phone: 1.2, tablet: 1.25, desktop: 1.333 });
+    expect(stripe.typography!.system.ratio).toBe(1.333);
+  });
 
-    expect(system.stepCount).toBe(9);
-    expect(system.baseFontSizePx).toBe(16);
+  it("gives IBM Carbon square corners, and leaves a pill a pill", () => {
+    const carbon = instantiateWorkspacePreset(
+      findWorkspacePreset("carbon")!,
+      "Test",
+    );
+    expect(carbon.radius.multiplier).toBe(0);
+    expect(
+      workspacePresetDetails(findWorkspacePreset("carbon")!),
+    ).toMatchObject({ elementRadiusPx: 0, containerRadiusPx: 0 });
+  });
+
+  it("changes nothing for a create that asks for nothing", () => {
+    /* The seed with no input is still the studio's own: every new slice
+       input falls back to exactly the default it replaced. */
+    const bare = instantiateWorkspacePreset(
+      { id: "bare", name: "Bare", summary: "" },
+      "Test",
+    );
+    expect(bare).toEqual(seedWorkspaceProject("Test"));
+    expect(bare.spacing).toEqual(defaultSpacingScale());
+    expect(bare.radius).toEqual(defaultRadiusScale());
   });
 
   it("opens the dialog on GitHub Primer", () => {
@@ -153,16 +198,19 @@ describe("preset swatches", () => {
 });
 
 describe("preset details", () => {
-  it("describes GitHub Primer, the defaults it leaves filled in", () => {
+  it("describes GitHub Primer in full", () => {
     expect(workspacePresetDetails(findWorkspacePreset("primer")!)).toEqual({
       primaryHex: "#0969da",
       secondaryHex: "#1a7f37",
-      neutralHex: "#737373",
+      neutralHex: "#656d76",
       typeface: "System sans",
-      baseFontSizePx: 16,
+      baseFontSizePx: 14,
       ratio: 1.25,
       ratioName: "Major Third",
       stepCount: 9,
+      baseSpacingPx: 4,
+      elementRadiusPx: 6,
+      containerRadiusPx: 6,
     });
   });
 

@@ -53,7 +53,9 @@ test.describe("Project presets", () => {
     expect(seedFor("secondary")).toBe("#00d4b2");
     /* The preset chooses brand colour; the status hues are the studio's. */
     expect(seedFor("error")).toBe("#b02b1b");
-    expect(stored.typography.system.ratio).toBeCloseTo(1.25, 3);
+    expect(stored.typography.system.ratio).toBeCloseTo(1.333, 3);
+    /* Its grid and corners too, not the studio's defaults. */
+    expect(stored.spacing).toMatchObject({ baseUnitPx: 8, density: 1.15 });
   });
 
   test("a refused create keeps the dialog open and says why", async ({
@@ -117,12 +119,14 @@ test.describe("Project presets", () => {
     );
     expect(Math.round((await dialog.boundingBox())!.width)).toBe(780);
 
-    /* Opens on GitHub Primer; its details fill in the studio's defaults
-       for what it leaves out, such as the neutral seed and nine steps. */
+    /* Opens on GitHub Primer, every value its own. */
     await expect(details).toContainText("#0969DA");
-    await expect(details).toContainText("#737373");
+    await expect(details).toContainText("#656D76");
     await expect(details).toContainText("System sans");
     await expect(details).toContainText("Major Third, 1.25");
+    const spacing = details.getByRole("region", { name: "Spacing and radius" });
+    await expect(spacing).toContainText("4px base");
+    await expect(spacing).toContainText("6px");
 
     /* The arrow keys move the choice, and the details follow it. */
     await gallery.getByRole("radio", { name: "GitHub Primer" }).focus();
@@ -134,6 +138,11 @@ test.describe("Project presets", () => {
     await page.keyboard.press("ArrowRight");
     await expect(details).toContainText("Inter");
     await expect(details).toContainText("Minor Third, 1.2");
+    /* Carbon's corners are square, and say so. */
+    await gallery.getByRole("radio", { name: "IBM Carbon" }).check();
+    await expect(spacing).toContainText("8px base");
+    await expect(spacing).toContainText("0px, square");
+    await gallery.getByRole("radio", { name: "Linear Studio" }).check();
 
     /* The picked card wears the ring, and only that one. */
     /* Polled: the ring eases between cards. */
@@ -148,12 +157,20 @@ test.describe("Project presets", () => {
       .toEqual([expect.stringContaining("Linear Studio")]);
 
     /* Unpicked cards draw no edge of their own. */
-    const edges = await gallery.evaluate((node) =>
-      [...node.querySelectorAll("label:not([data-selected])")].map(
-        (card) => getComputedStyle(card).borderTopColor,
-      ),
-    );
-    expect(new Set(edges)).toEqual(new Set(["rgba(0, 0, 0, 0)"]));
+    /* Polled, with the pointer moved off: the edge eases away from the
+       card just left, and a hovered card shows the subtle one. */
+    await page.mouse.move(0, 0);
+    await expect
+      .poll(() =>
+        gallery.evaluate((node) => [
+          ...new Set(
+            [...node.querySelectorAll("label:not([data-selected])")].map(
+              (card) => getComputedStyle(card).borderTopColor,
+            ),
+          ),
+        ]),
+      )
+      .toEqual(["rgba(0, 0, 0, 0)"]);
 
     /* The gallery runs the dialog's full height, level with the details,
        and scrolls only when the screen caps the dialog. It once stopped at

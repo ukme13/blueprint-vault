@@ -67,6 +67,17 @@ export function PresetDetails({
         </dl>
       </section>
 
+      <section aria-label="Spacing and radius" className={styles.detailGroup}>
+        <Text type="supporting" weight="semibold">
+          Spacing & radius
+        </Text>
+        <dl className={styles.detailList}>
+          <Detail label="Grid" value={`${details.baseSpacingPx}px base`} />
+          <Detail label="Controls" value={corner(details.elementRadiusPx)} />
+          <Detail label="Cards" value={corner(details.containerRadiusPx)} />
+        </dl>
+      </section>
+
       <Text type="supporting">{preset.summary}</Text>
       {error ? (
         <p className={styles.detailError} role="alert">
@@ -81,6 +92,11 @@ export function PresetDetails({
       </div>
     </aside>
   );
+}
+
+/** A corner as a person reads it: its px, and "square" when there is none. */
+function corner(px: number): string {
+  return px === 0 ? "0px, square" : `${px}px`;
 }
 
 function Detail({ label, value }: { label: string; value: string }) {

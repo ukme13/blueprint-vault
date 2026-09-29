@@ -1,10 +1,16 @@
 import type { ColorTrackInput } from "../color/types";
-import { defaultElevationScale } from "../scale/elevation";
+import {
+  defaultElevationScale,
+  normalizeElevationScale,
+  type ElevationScale,
+} from "../scale/elevation";
 import { defaultLayoutTokens } from "../scale/layout-tokens";
-import { defaultRadiusScale } from "../scale/radius";
+import { defaultRadiusScale, normalizeRadiusScale } from "../scale/radius";
 import {
   defaultSpacingPreviewSettings,
   defaultSpacingScale,
+  normalizeSpacingScale,
+  type SpacingScale,
 } from "../scale/spacing";
 import { defaultPreviewDevices } from "../typography/preview-devices";
 import {
@@ -75,11 +81,15 @@ export const SEED_PALETTE_TRACKS: readonly ColorTrackInput[] = [
 export function seedPaletteTracks(
   primarySeedHex: string,
   secondarySeedHex?: string,
+  neutralSeedHex?: string,
 ): ColorTrackInput[] {
   return SEED_PALETTE_TRACKS.map((track) => {
     if (track.id === "primary") return { ...track, seedHex: primarySeedHex };
     if (track.id === "secondary" && secondarySeedHex !== undefined) {
       return { ...track, seedHex: secondarySeedHex };
+    }
+    if (track.id === "neutral" && neutralSeedHex !== undefined) {
+      return { ...track, seedHex: neutralSeedHex };
     }
     return { ...track };
   });
@@ -89,9 +99,10 @@ export function seedPaletteTracks(
 export function seedPaletteProject(
   primarySeedHex = SEED_PALETTE_TRACKS[0]!.seedHex,
   secondarySeedHex?: string,
+  neutralSeedHex?: string,
 ): PaletteProjectData {
   return {
-    tracks: seedPaletteTracks(primarySeedHex, secondarySeedHex),
+    tracks: seedPaletteTracks(primarySeedHex, secondarySeedHex, neutralSeedHex),
     lightnessPattern: "custom",
     lightnessValues: defaultLightnessValues("custom"),
   };
@@ -159,11 +170,52 @@ export function seedTypographyProject(
  * builders, and parameterising them to serve two presets is a bigger change
  * than this earns; a preset that wanted denser spacing needs that work first.
  */
+/**
+ * Radius, as a starting system states it: how much the scale is multiplied,
+ * and the px of the named corners it sets. Not a partial `RadiusScale`: its
+ * tokens are a list, and half a list would drop the corners left out.
+ */
+export type SeedRadiusInput = {
+  multiplier?: number;
+  /** Token id to its px at a multiplier of 1, such as `element: 6`. */
+  tokenPx?: Partial<Record<string, number>>;
+};
+
+/**
+ * What a starting system changes from the studio's own. Anything left out
+ * is the default; every slice is normalized, so a value out of bounds is
+ * clamped rather than stored.
+ */
 export type SeedWorkspaceInput = {
   primarySeedHex?: string;
   secondarySeedHex?: string;
+  neutralSeedHex?: string;
   typography?: Partial<SeedTypographyInput>;
+  spacing?: Partial<SpacingScale>;
+  radius?: SeedRadiusInput;
+  elevation?: Partial<ElevationScale>;
+  /** A type-scale ratio per frame, by id: phone, tablet, desktop. */
+  previewDevices?: readonly { id: string; ratio: number }[];
 };
+
+function seedSpacing(input: Partial<SpacingScale> = {}): SpacingScale {
+  return normalizeSpacingScale({ ...defaultSpacingScale(), ...input });
+}
+
+function seedRadius({ multiplier, tokenPx = {} }: SeedRadiusInput = {}) {
+  const base = defaultRadiusScale();
+  return normalizeRadiusScale({
+    multiplier: multiplier ?? base.multiplier,
+    tokens: base.tokens.map((token) => ({
+      ...token,
+      basePx: tokenPx[token.id] ?? token.basePx,
+    })),
+  });
+}
+
+function seedElevation(input: Partial<ElevationScale> = {}): ElevationScale {
+  return normalizeElevationScale({ ...defaultElevationScale(), ...input });
+}
 
 export function seedWorkspaceProject(
   name: string,
@@ -172,8 +224,19 @@ export function seedWorkspaceProject(
   const palette = seedPaletteProject(
     input.primarySeedHex,
     input.secondarySeedHex,
+    input.neutralSeedHex,
   );
   const typography = { ...SEED_TYPOGRAPHY, ...input.typography };
+  /* The frames the studio always has, each on the preset's own ratio where
+     it sets one: a phone steps more gently than a desktop. */
+  const previewDevices = defaultPreviewDevices(typography.ratio).map(
+    (device) => ({
+      ...device,
+      ratio:
+        input.previewDevices?.find((each) => each.id === device.id)?.ratio ??
+        device.ratio,
+    }),
+  );
 
   return {
     name,
@@ -181,11 +244,11 @@ export function seedWorkspaceProject(
     semantics: semanticsForPalette(palette),
     removedSeedRoles: [],
     buttonSchemes: normalizeButtonSchemes(undefined),
-    spacing: defaultSpacingScale(),
+    spacing: seedSpacing(input.spacing),
     spacingPreview: defaultSpacingPreviewSettings(),
-    radius: defaultRadiusScale(),
-    elevation: defaultElevationScale(),
-    previewDevices: defaultPreviewDevices(typography.ratio),
+    radius: seedRadius(input.radius),
+    elevation: seedElevation(input.elevation),
+    previewDevices,
     layout: defaultLayoutTokens(),
     typography: seedTypographyProject(name, input.typography),
   };
