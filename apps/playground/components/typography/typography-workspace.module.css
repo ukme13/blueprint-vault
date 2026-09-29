@@ -1445,6 +1445,18 @@
   background: var(--color-overlay-hover);
 }
 
+/* The comfortable list pads nothing, since a sheet usually does; this one
+   is flush, so it pads itself as the compact list does, with the same gap
+   the divider below is centred in. */
+.fontPickerBody[data-density="comfortable"] {
+  gap: var(--spacing-4);
+  /* Set, not inherited: this sheet opens inside the type settings, whose
+     text is Astryx's 14px base, not the page's 16px that SheetSelector's
+     sheets inherit. */
+  font-size: var(--text-base);
+  padding: var(--spacing-2);
+}
+
 /* Divides uploading from the catalogue under it: a line the width of the
    list, with the list's own gap halved on either side. */
 .fontPickerUpload {

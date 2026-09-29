@@ -8,6 +8,7 @@ import {
   type GoogleFont,
 } from "@blueprint/ui";
 import list from "../sheet-selector.module.css";
+import { useIsPhone } from "../use-is-phone";
 import styles from "./typography-workspace.module.css";
 
 /** Said once, on the pinned row, rather than in a note under every slot. */
@@ -56,6 +57,9 @@ export function GoogleFontPicker({
   uploadLabel,
   onUpload,
 }: GoogleFontPickerProps) {
+  /* A phone sheet's rows and text, as SheetSelector's: 44px for a thumb, and
+     16px, below which iOS zooms the page as the search takes focus. */
+  const isPhone = useIsPhone();
   const [query, setQuery] = useState("");
   const [active, setActive] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -111,7 +115,7 @@ export function GoogleFontPicker({
           aria-expanded
           aria-label={label}
           autoComplete="off"
-          className="min-w-0 flex-1 border-0 bg-transparent p-0 text-sm text-fg-primary outline-none placeholder:text-fg-muted"
+          className={`min-w-0 flex-1 border-0 bg-transparent p-0 text-fg-primary ${isPhone ? "text-base" : "text-sm"} outline-none placeholder:text-fg-muted`}
           placeholder="Search fonts..."
           role="combobox"
           spellCheck={false}
@@ -146,7 +150,10 @@ export function GoogleFontPicker({
         ) : null}
       </label>
 
-      <div className={list.list} data-density="compact">
+      <div
+        className={`${list.list} ${styles.fontPickerBody}`}
+        data-density={isPhone ? "comfortable" : "compact"}
+      >
         {/* Pinned at the top of the list: no search filters it away. */}
         {uploadLabel ? (
           <button

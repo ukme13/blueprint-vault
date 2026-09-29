@@ -867,6 +867,26 @@ test.describe("on a phone", () => {
     await expect(sheet).toBeHidden();
   });
 
+  test("sets the font picker sheet at 16px, with thumb-sized rows", async ({
+    page,
+  }) => {
+    /* Like every phone selector: under 16px, iOS zooms the page as the
+       search takes focus, and a popover's 12px rows are hard to hit. */
+    await seedTypographyProject(page);
+    await page.getByRole("button", { name: /^Type settings/ }).click();
+    const settings = page.getByRole("dialog", { name: "Type scale settings" });
+    await settings.getByRole("button", { name: /^Base font: / }).click();
+
+    const search = page.getByLabel("Base font", { exact: true });
+    const option = page.getByRole("option").first();
+    await expect(option).toBeVisible();
+    const px = (locator: typeof option) =>
+      locator.evaluate((el) => parseFloat(getComputedStyle(el).fontSize));
+    expect(await px(search)).toBe(16);
+    expect(await px(option)).toBe(16);
+    expect((await option.boundingBox())!.height).toBeGreaterThanOrEqual(44);
+  });
+
   test("gives the type specimens the height, and settings a sheet", async ({
     page,
   }) => {
