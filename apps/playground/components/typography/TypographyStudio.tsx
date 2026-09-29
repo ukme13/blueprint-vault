@@ -1,98 +1,40 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { NumberInput } from "@astryxdesign/core/NumberInput";
+import { useMemo, useState, type CSSProperties } from "react";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
 import {
-  SegmentedControl,
-  SegmentedControlItem,
-} from "@astryxdesign/core/SegmentedControl";
-import { Tab, TabList } from "@astryxdesign/core/TabList";
-import {
-  openRoleGroupIds,
-  renameGroup,
-  renameOpenRoleGroup,
-  toggleRoleGroup,
-  assessBodyFontSize,
-  assessLineHeight,
-  assessRoleWeights,
-  assessScaleGrowth,
-  assessStepCount,
-  Button,
+  assessTypeSystem,
   generatePalettes,
   generateTypeSteps,
-  MAX_BASE_FONT_SIZE_PX,
-  MAX_REM_ROOT_PX,
-  MAX_STEP_COUNT,
-  MIN_BASE_FONT_SIZE_PX,
-  MIN_REM_ROOT_PX,
-  MIN_STEP_COUNT,
-  familiesToCss,
   findGoogleFont,
-  fontFamilyValue,
-  formatLength,
-  formatLetterSpacing,
-  canAddRole,
-  isRoleUnlinkedOnDevice,
-  letterSpacingEmSizePx,
-  letterSpacingPxOnDevice,
+  openRoleGroupIds,
+  openTypeScaleWarnings,
+  previewFontFor,
+  previewWeightFor,
+  roleStyleOnDevice,
   resolveRoleSizePx,
-  TYPE_SCALE_UNITS,
   TYPE_SCALE_RATIO_PRESETS,
-  clampRemRootPx,
   hybridPresetsFromModularScale,
-  type PaletteProjectData,
   type TypeRole,
-  type TypeScaleUnit,
-  resolveLineHeight,
   defaultPreviewDevices,
-  emptyWorkspace,
-  updatePreviewDevice,
   resolvePreviewDevice,
   useWorkspaceStore,
-  withPreviewDevices,
   withSeededTypographySlice,
   workspaceHasStudios,
-  type HybridTokenizedValue,
-  type LineHeightConfig,
   type ShadeRef,
 } from "@blueprint/ui";
-import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { Badge } from "@astryxdesign/core/Badge";
-import { IconButton } from "@astryxdesign/core/IconButton";
-import { SlidersHorizontal } from "lucide-react";
 import { Sheet } from "../Sheet";
-import { SheetSelector } from "../SheetSelector";
 import { StudioSliceEmpty } from "../shell/StudioSliceEmpty";
 import { useIsPhone } from "../use-is-phone";
 import { TypographyExportDialog } from "./TypographyExportDialog";
-import { FontsSettings } from "./FontsSettings";
-import { RoleGroupEditor } from "./RoleGroupEditor";
+import { TypographyInspector, type InspectorTab } from "./TypographyInspector";
 import { TypographyPreview } from "./TypographyPreview";
-import { PreviewDeviceBar } from "./PreviewDeviceBar";
-import { RolePresetBar } from "./RolePresetBar";
-import { PreviewDeviceSettings } from "./PreviewDeviceSettings";
-import { SpecimenTextField } from "./SpecimenTextField";
-import {
-  readStoredPalette,
-  readStoredProject,
-  writeStoredProject,
-  type TypographyProject,
-} from "./typography-project";
+import { TypographyTopbar } from "./TypographyTopbar";
+import { TypeStepCanvas } from "./TypeStepCanvas";
 import { useGoogleFontsLink } from "./use-google-fonts";
 import { useLocalFonts } from "./use-local-fonts";
+import { useDeviceRatios } from "./use-device-ratios";
+import { useTypographyProject } from "./use-typography-project";
 import { useTypographySystem } from "./use-typography-system";
 import styles from "./typography-workspace.module.css";
 import { storedTemplateForSection, type TypographySection } from "./types";
@@ -103,8 +45,15 @@ const SCALE_RATIO_PRESETS = hybridPresetsFromModularScale(
 
 export function TypographyStudio() {
   const workspace = useWorkspaceStore();
-  const [project, setProject] = useState<TypographyProject | null>(null);
-  const [hasLoadedProject, setHasLoadedProject] = useState(false);
+  const {
+    project,
+    setProject,
+    palette,
+    hasLoaded: hasLoadedProject,
+    patchProject,
+    setPreference,
+    reload,
+  } = useTypographyProject();
   const [activeSection, setActiveSection] =
     useState<TypographySection>("editor");
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
@@ -114,37 +63,17 @@ export function TypographyStudio() {
   /* Which font entry the step list renders in. The steps are sizes shared by
      several roles, so they have no font of their own to follow. */
   const [previewFontId, setPreviewFontId] = useState<string | null>(null);
-  /* The palette half of the same workspace, read once on load. Preview colours
-     are a way of looking at the scale, so the chosen pair is view state. */
-  const [palette, setPalette] = useState<PaletteProjectData | null>(null);
+  /* Preview colours are a way of looking at the scale, so the chosen pair
+     is view state. */
   const [textShade, setTextShade] = useState<ShadeRef | null>(null);
   const [backgroundShade, setBackgroundShade] = useState<ShadeRef | null>(null);
   const [previewWeight, setPreviewWeight] = useState<number | null>(null);
-  const [detachedRatios, setDetachedRatios] = useState<
-    Record<string, number | null>
-  >({});
   const inspectorPanel = useResizable({
     autoSaveId: "blueprint-typography-inspector",
     defaultSize: 560,
     minSizePx: 360,
     maxSizePx: 900,
   });
-
-  useEffect(() => {
-    /* Reading localStorage must happen in an effect: a useState initializer
-       would run during SSR, where window does not exist, and desync
-       hydration. */
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setProject(readStoredProject());
-    setPalette(readStoredPalette());
-    setHasLoadedProject(true);
-  }, []);
-
-  useEffect(() => {
-    if (!hasLoadedProject || !project) return;
-
-    writeStoredProject(project);
-  }, [hasLoadedProject, project]);
 
   const system = project?.system ?? null;
   const previewDevices =
@@ -181,39 +110,9 @@ export function TypographyStudio() {
     [palette],
   );
 
-  const {
-    addFont,
-    addGroup,
-    addRole,
-    bindLineHeight,
-    bindLetterSpacing,
-    bindRoleStep,
-    removeFont,
-    removeFontSlot,
-    removeGroup,
-    removeRole,
-    renameFont,
-    renameGroupById,
-    shiftGroup,
-    setGoogleFont,
-    setLocalFont,
-    reorderGroups,
-    unlinkLineHeight,
-    unlinkLetterSpacing,
-    unlinkRoleSize,
-    updateGroup,
-    updateRole,
-    updateSystem,
-  } = useTypographySystem(setProject);
+  const actions = useTypographySystem(setProject);
 
-  /* Which panel the inspector is showing.
-
-     Three, because the inspector had grown into one column holding the scale,
-     every font, every group and the warnings — a scroll long enough that
-     changing the ratio meant losing sight of what it changed. */
-  const [inspectorTab, setInspectorTab] = useState<
-    "settings" | "groups" | "warnings"
-  >("settings");
+  const [inspectorTab, setInspectorTab] = useState<InspectorTab>("settings");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   /* On a phone the groups are an accordion. Null until somebody opens or
      closes one, so the first group is open by default. */
@@ -222,69 +121,17 @@ export function TypographyStudio() {
   );
   const isPhone = useIsPhone();
 
-  /* A drag has to start past a few pixels, or every click on a handle is a
-     zero-length drag and the button never reports a press. The keyboard
-     sensor is what replaces the up and down buttons. */
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    }),
-  );
+  const deviceRatios = useDeviceRatios(patchProject);
 
-  /* Unit, specimen and template sit beside the system rather than in it, so
-     they do not go through the hook. This is the same guard it keeps, once. */
-  const patchProject = (
-    updater: (current: TypographyProject) => TypographyProject,
-  ) => {
-    setProject((current) => (current ? updater(current) : current));
-  };
-
-  const setPreference = (patch: Partial<Omit<TypographyProject, "system">>) =>
-    patchProject((current) => ({ ...current, ...patch }));
-
-  const handleDeviceRatio = (id: string, next: HybridTokenizedValue) => {
-    setDetachedRatios((current) => ({
-      ...current,
-      [id]: next.isPreset ? null : next.value,
-    }));
-    workspace.update((current) =>
-      withPreviewDevices(
-        current,
-        updatePreviewDevice((current ?? emptyWorkspace()).previewDevices, id, {
-          ratio: next.value,
-        }),
-      ),
-    );
-    if (id === "desktop") {
-      patchProject((current) => ({
-        ...current,
-        system: { ...current.system, ratio: next.value },
-      }));
-    }
-  };
-
-  /* Defaults to whatever body uses, since that is the size people read most,
-     and falls through if the chosen entry has since been removed. */
-  const previewFont =
-    system?.fonts.find((font) => font.id === previewFontId) ??
-    system?.fonts.find(
-      (font) =>
-        font.id === system.roles.find((role) => role.id === "body")?.fontId,
-    ) ??
-    system?.fonts[0];
-
-  /* Only the weights this family actually ships. More than half the catalogue
-     ships exactly one, so a fixed 100-900 control would offer eight weights the
-     browser could only fake. */
+  const previewFont = system
+    ? previewFontFor(system, previewFontId)
+    : undefined;
+  /* Only the weights this family actually ships. More than half the
+     catalogue ships exactly one, so a fixed 100-900 control would offer eight
+     weights the browser could only fake. */
   const previewWeights =
     findGoogleFont(previewFont?.families[0] ?? "")?.weights ?? [];
-  const resolvedPreviewWeight =
-    previewWeight !== null && previewWeights.includes(previewWeight)
-      ? previewWeight
-      : (previewWeights.find((weight) => weight === 400) ??
-        previewWeights[0] ??
-        400);
+  const resolvedPreviewWeight = previewWeightFor(previewWeights, previewWeight);
 
   useGoogleFontsLink(system, previewFont, resolvedPreviewWeight);
   /* Bumped after every upload, so re-adding a file that keeps its name still
@@ -296,56 +143,13 @@ export function TypographyStudio() {
   const frameId = activePreviewDevice?.id ?? "desktop";
   const sizeOnFrame = (role: TypeRole) =>
     system ? resolveRoleSizePx(system, steps, role, frameId) : 16;
-  const bodyRole =
-    roles.find((role) => role.id === "body") ??
-    roles.find((role) => role.groupId === "body");
-
-  /* Each assessment is named, so a row keeps its identity as others come and
-     go with the scale. Keying on position reuses whichever row happened to sit
-     there before. */
+  /* What the badges count and the Warnings tab lists: the checks worth
+     acting on. */
   const warnings = system
-    ? [
-        {
-          id: "body-size",
-          result: bodyRole ? assessBodyFontSize(sizeOnFrame(bodyRole)) : null,
-        },
-        {
-          id: "line-height",
-          result: bodyRole
-            ? /* The specimen decides the threshold: Thai marks need more room
-                 than Latin, and this is the copy being judged. */
-              assessLineHeight(
-                /* The resolved ratio: the validator's thresholds are ratios,
-                   and the config is an intent rather than a number. */
-                resolveLineHeight(
-                  bodyRole,
-                  sizeOnFrame(bodyRole),
-                  frameId,
-                  system,
-                ).computedLineHeightRatio,
-                project?.specimenText ?? "",
-              )
-            : null,
-        },
-        { id: "scale-growth", result: assessScaleGrowth(system.ratio) },
-        { id: "step-count", result: assessStepCount(system.stepCount) },
-        {
-          id: "role-weights",
-          result: assessRoleWeights(
-            roles.map((role) => ({
-              role: role.id,
-              fontWeight: role.fontWeight,
-            })),
-          ),
-        },
-      ].flatMap(({ id, result }) => (result ? [{ id, ...result }] : []))
+    ? openTypeScaleWarnings(
+        assessTypeSystem(system, steps, frameId, project?.specimenText ?? ""),
+      )
     : [];
-
-  /* What the badge counts: the warnings worth acting on. A pass is a check
-     that ran and found nothing, which is not news. */
-  const openWarnings = warnings.filter(
-    (warning) => warning.status !== "pass",
-  ).length;
 
   if (!hasLoadedProject) {
     return (
@@ -368,7 +172,7 @@ export function TypographyStudio() {
           const current = workspace.project;
           if (!current || !workspaceHasStudios(current)) return;
           workspace.save(withSeededTypographySlice(current));
-          setProject(readStoredProject());
+          reload();
         }}
       />
     );
@@ -382,326 +186,59 @@ export function TypographyStudio() {
   );
   const devices = previewDevices;
   const activeDevice = activePreviewDevice;
-  const handleBindStep = (id: string, stepOffset: number) =>
-    bindRoleStep(id, activeDevice.id, stepOffset);
-  const handleUnlinkSize = (id: string, fontSizePx: number) =>
-    unlinkRoleSize(id, activeDevice.id, fontSizePx);
-  const handleLineHeightOverride = (id: string, lineHeight: LineHeightConfig) =>
-    unlinkLineHeight(id, activeDevice.id, lineHeight);
-  const handleLineHeightRelink = (id: string) =>
-    bindLineHeight(id, activeDevice.id);
-  const handleLetterSpacingOverride = (id: string, letterSpacingPx: number) =>
-    unlinkLetterSpacing(id, activeDevice.id, letterSpacingPx);
-  const handleLetterSpacingRelink = (id: string) =>
-    bindLetterSpacing(id, activeDevice.id);
-
-  /* Templates receive resolved CSS so they never do scale maths themselves.
-     Sizes stay in px here: this is a rendered preview, not exported output.
-     Letter-spacing is the exported em (desktop size), so tracking scales with
-     the previewed size the same way the file will. */
-  const styleOfRole = (role: TypeRole): CSSProperties => {
-    const fontSizePx = sizeOnFrame(role);
-    const desktopSizePx = resolveRoleSizePx(
+  const styleOfRole = (role: TypeRole) =>
+    roleStyleOnDevice(
       system,
+      steps,
       desktopSteps,
       role,
-      "desktop",
-    );
-    const trackingPx = letterSpacingPxOnDevice(role, activeDevice.id);
-    return {
-      fontFamily: fontFamilyValue(system, role),
-      fontSize: `${fontSizePx}px`,
-      fontWeight: role.fontWeight,
-      lineHeight: resolveLineHeight(role, fontSizePx, activeDevice.id, system)
-        .computedLineHeightRatio,
-      letterSpacing: formatLetterSpacing(
-        trackingPx,
-        letterSpacingEmSizePx(role, fontSizePx, desktopSizePx, activeDevice.id),
-      ),
-      textTransform: role.textTransform,
-    };
-  };
-
-  /* The settings, the groups and the warnings. One element, rendered beside
-     the specimens on a wide screen and in a bottom sheet on a phone, so the
-     two can never offer different controls. */
-  const openGroups = openRoleGroupIds(storedOpenGroups, system.groups);
+      activeDevice.id,
+    ) as CSSProperties;
 
   const inspectorContent = (
-    <>
-      {/* TabList takes no className, so the tabs are reached through a
-                wrapper.
-
-                Astryx gives a tab a 10px radius, which reads as a pill
-                floating over the panel rather than a strip across the top of
-                it, and pins its height at 32px with a border box — so padding
-                on its own is absorbed rather than added. The height goes up by
-                the 8px the padding asks for.
-
-                The hover and selected background is not the button: it is a
-                span behind the label, sized to the old 32px and rounded to
-                match, so squaring the button alone left a rounded pill
-                floating inside a square tab. */}
-      <div className="[&_.astryx-tab]:h-10 [&_.astryx-tab]:rounded-none [&_.astryx-tab]:py-1 [&_.astryx-tab>span:first-child]:h-full [&_.astryx-tab>span:first-child]:rounded-none">
-        <TabList
-          hasDivider
-          layout="fill"
-          /* The tabs pattern rather than navigation: these switch panels
-                 in place, and `panelId` is how a screen reader gets from a
-                 tab to the panel it opened. */
-          role="tablist"
-          value={inspectorTab}
-          onChange={(value) => setInspectorTab(value as typeof inspectorTab)}
-        >
-          <Tab label="Settings" panelId="inspector-settings" value="settings" />
-          <Tab label="Groups" panelId="inspector-groups" value="groups" />
-          <Tab
-            label="Warnings"
-            panelId="inspector-warnings"
-            value="warnings"
-            /* Counts only, which is what a badge is for. Absent at zero:
-                   a badge reading 0 is a count of nothing taking up the room
-                   of a count of something. */
-            endContent={
-              openWarnings > 0 ? (
-                <Badge label={String(openWarnings)} variant="warning" />
-              ) : undefined
-            }
-          />
-        </TabList>
-      </div>
-
-      <div
-        hidden={inspectorTab !== "settings"}
-        id="inspector-settings"
-        role="tabpanel"
-      >
-        <div className={styles.settingGroup}>
-          <h2>Scale</h2>
-          <NumberInput
-            description="Even numbers only."
-            label="Base font size"
-            min={MIN_BASE_FONT_SIZE_PX}
-            max={MAX_BASE_FONT_SIZE_PX}
-            step={2}
-            units="px"
-            value={system.baseFontSizePx}
-            onChange={(value) => updateSystem({ baseFontSizePx: value })}
-          />
-          <NumberInput
-            isIntegerOnly
-            label="Number of steps"
-            min={MIN_STEP_COUNT}
-            max={MAX_STEP_COUNT}
-            value={system.stepCount}
-            onChange={(value) => updateSystem({ stepCount: value })}
-          />
-        </div>
-
-        <PreviewDeviceSettings
-          detachedRatios={detachedRatios}
-          devices={devices}
-          presets={SCALE_RATIO_PRESETS}
-          onRatioChange={handleDeviceRatio}
-        />
-
-        <FontsSettings
-          addFont={addFont}
-          fileStatus={localFontStatus}
-          fonts={system.fonts}
-          removeFont={removeFont}
-          removeFontSlot={removeFontSlot}
-          renameFont={renameFont}
-          setGoogleFont={setGoogleFont}
-          setLocalFont={setLocalFont}
-          onFilesChange={() => setFontFileRevision((current) => current + 1)}
-        />
-      </div>
-
-      <div
-        hidden={inspectorTab !== "groups"}
-        id="inspector-groups"
-        role="tabpanel"
-      >
-        <RolePresetBar system={system} onApply={updateSystem} />
-        {/* Groups are an order somebody arranges, so they are dragged
-                rather than stepped. The keyboard sensor is not a nicety here:
-                it is the whole of the keyboard story now that the up and down
-                buttons are gone — focus a handle, space to lift, arrows to
-                move, space to drop. */}
-        <DndContext
-          collisionDetection={closestCenter}
-          sensors={sensors}
-          onDragEnd={({ active, over }) => {
-            if (!over) return;
-            reorderGroups(String(active.id), String(over.id));
-          }}
-        >
-          <SortableContext
-            items={system.groups.map((group) => group.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            {system.groups.map((group, index) => (
-              <RoleGroupEditor
-                key={group.id}
-                accordion={
-                  isPhone
-                    ? {
-                        isOpen: openGroups.includes(group.id),
-                        onToggle: () =>
-                          setStoredOpenGroups(
-                            toggleRoleGroup(openGroups, group.id),
-                          ),
-                        onMoveUp:
-                          index > 0
-                            ? () => shiftGroup(group.id, -1)
-                            : undefined,
-                        onMoveDown:
-                          index < system.groups.length - 1
-                            ? () => shiftGroup(group.id, 1)
-                            : undefined,
-                      }
-                    : undefined
-                }
-                canAddRole={canAddRole(system, group)}
-                deviceId={activeDevice.id}
-                fonts={system.fonts}
-                group={group}
-                roles={roles.filter((role) => role.groupId === group.id)}
-                steps={sortedSteps}
-                system={system}
-                onAddRole={() => addRole(group)}
-                onBindStep={handleBindStep}
-                onIndexingChange={(indexing) =>
-                  updateGroup(group.id, { indexing })
-                }
-                onAutoLineHeightRatioChange={(autoLineHeightRatio) =>
-                  updateGroup(group.id, { autoLineHeightRatio })
-                }
-                onLabelChange={(label) => updateGroup(group.id, { label })}
-                onLabelCommit={() => {
-                  /* Renaming re-slugs the id the open state is kept by, so
-                     the new id is worked out the way the rename will, and
-                     the group stays open under it. */
-                  const renamed = renameGroup(system, group.id, group.label)
-                    .groups[index]?.id;
-                  if (renamed && renamed !== group.id) {
-                    setStoredOpenGroups(
-                      renameOpenRoleGroup(openGroups, group.id, renamed),
-                    );
-                  }
-                  renameGroupById(group.id, group.label);
-                }}
-                onRemove={() => removeGroup(group.id)}
-                onRoleChange={updateRole}
-                onRoleRemove={removeRole}
-                onLineHeightOverride={handleLineHeightOverride}
-                onLineHeightRelink={handleLineHeightRelink}
-                onLetterSpacingOverride={handleLetterSpacingOverride}
-                onLetterSpacingRelink={handleLetterSpacingRelink}
-                onUnlinkSize={handleUnlinkSize}
-              />
-            ))}
-          </SortableContext>
-        </DndContext>
-
-        <div className={styles.settingGroup}>
-          <Button
-            className={styles.addEntryButton}
-            scheme="primary"
-            size="medium"
-            variant="contained"
-            onClick={addGroup}
-          >
-            Add group
-          </Button>
-        </div>
-      </div>
-
-      <div
-        hidden={inspectorTab !== "warnings"}
-        id="inspector-warnings"
-        role="tabpanel"
-      >
-        <div className={styles.settingGroup}>
-          <h2>Warnings</h2>
-          <ul className={styles.warningList}>
-            {warnings
-              .filter((warning) => warning.status !== "pass")
-              .map((warning) => (
-                <li key={warning.id} data-status={warning.status}>
-                  {warning.summary}
-                </li>
-              ))}
-            {openWarnings === 0 && (
-              <li data-status="pass">No issues found in this type scale.</li>
-            )}
-          </ul>
-        </div>
-      </div>
-    </>
+    <TypographyInspector
+      actions={actions}
+      devices={{
+        ...deviceRatios,
+        devices,
+        presets: SCALE_RATIO_PRESETS,
+      }}
+      fonts={{
+        fileStatus: localFontStatus,
+        onFilesChange: () => setFontFileRevision((current) => current + 1),
+      }}
+      groups={{
+        deviceId: activeDevice.id,
+        isPhone,
+        openGroups: openRoleGroupIds(storedOpenGroups, system.groups),
+        steps: sortedSteps,
+        onOpenGroupsChange: setStoredOpenGroups,
+      }}
+      system={system}
+      tab={inspectorTab}
+      warnings={warnings}
+      onTabChange={setInspectorTab}
+    />
   );
 
   return (
     <div className={styles.workspace}>
-      <header className={styles.topbar}>
-        <nav aria-label="Typography views" className={styles.navigation}>
-          <TabList
-            size="sm"
-            value={activeSection}
-            onChange={(value) => {
-              const section = value as TypographySection;
-              setActiveSection(section);
-              const template = storedTemplateForSection(section);
-              if (template) setPreference({ template });
-            }}
-          >
-            <Tab label="Editor" value="editor" />
-            <Tab label="Specimen" value="specimen" />
-            <Tab label="Preview" value="preview" />
-          </TabList>
-        </nav>
-        <span className={styles.headerActions}>
-          <Button
-            aria-label="Export type scale"
-            scheme="neutral"
-            size="medium"
-            variant="outlined"
-            onClick={() => setIsExportDialogOpen(true)}
-          >
-            Export
-          </Button>
-        </span>
-      </header>
-
-      <section aria-label="Typography toolbar" className={styles.toolbar}>
-        <PreviewDeviceBar
-          activeId={activeDevice.id}
-          devices={devices}
-          onChange={setPreviewDevice}
-        />
-        {/* A phone's way to the settings. CSS shows it only there. The badge
-            is the Warnings tab's count, so it is not a second, different
-            number. */}
-        <span className={styles.settingsTrigger}>
-          <IconButton
-            icon={<SlidersHorizontal aria-hidden className="size-4" />}
-            label={
-              openWarnings > 0
-                ? `Type settings, ${openWarnings} ${openWarnings === 1 ? "warning" : "warnings"}`
-                : "Type settings"
-            }
-            size="md"
-            variant="secondary"
-            onClick={() => setIsSettingsOpen(true)}
-          />
-          {openWarnings > 0 && (
-            <span aria-hidden className={styles.settingsBadge}>
-              <Badge label={String(openWarnings)} variant="warning" />
-            </span>
-          )}
-        </span>
-      </section>
+      <TypographyTopbar
+        deviceBar={{
+          activeId: activeDevice.id,
+          devices,
+          onChange: setPreviewDevice,
+        }}
+        section={activeSection}
+        warningCount={warnings.length}
+        onExport={() => setIsExportDialogOpen(true)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onSectionChange={(section) => {
+          setActiveSection(section);
+          const template = storedTemplateForSection(section);
+          if (template) setPreference({ template });
+        }}
+      />
 
       <section
         className={styles.editor}
@@ -712,125 +249,18 @@ export function TypographyStudio() {
         }
       >
         {activeSection === "editor" ? (
-          <section aria-label="Generated type steps" className={styles.canvas}>
-            {/* Sits above the steps so the unit is chosen where the sizes are
-                read, not buried in the export dialog. */}
-            <div className="flex flex-wrap items-end gap-2 pb-3">
-              <SegmentedControl
-                label="Size unit"
-                size="sm"
-                value={project.unit}
-                onChange={(value) =>
-                  setPreference({ unit: value as TypeScaleUnit })
-                }
-              >
-                {TYPE_SCALE_UNITS.map((unit) => (
-                  <SegmentedControlItem
-                    key={unit}
-                    label={unit.toUpperCase()}
-                    value={unit}
-                  />
-                ))}
-              </SegmentedControl>
-              {project.unit === "rem" && (
-                <NumberInput
-                  isIntegerOnly
-                  isWheelEnabled={false}
-                  label="rem root"
-                  labelTooltip="The html font-size rem divides by. Default 16. The export names this as a comment when it is not 16; it does not set html { font-size }."
-                  max={MAX_REM_ROOT_PX}
-                  min={MIN_REM_ROOT_PX}
-                  size="sm"
-                  units="px"
-                  value={project.remRootPx}
-                  width={112}
-                  onChange={(value) =>
-                    setPreference({ remRootPx: clampRemRootPx(value) })
-                  }
-                />
-              )}
-
-              {/* Only worth showing once there is a choice to make. */}
-              {system.fonts.length > 1 && (
-                <SegmentedControl
-                  label="Preview font"
-                  size="sm"
-                  value={previewFont?.id ?? ""}
-                  onChange={setPreviewFontId}
-                >
-                  {system.fonts.map((font) => (
-                    <SegmentedControlItem
-                      key={font.id}
-                      label={font.name}
-                      value={font.id}
-                    />
-                  ))}
-                </SegmentedControl>
-              )}
-
-              {previewWeights.length > 1 && (
-                <div className="w-28">
-                  <SheetSelector
-                    isLabelHidden
-                    label="Preview weight"
-                    options={previewWeights.map((weight) => ({
-                      label: String(weight),
-                      value: String(weight),
-                    }))}
-                    size="sm"
-                    value={String(resolvedPreviewWeight)}
-                    onChange={(value) => setPreviewWeight(Number(value))}
-                  />
-                </div>
-              )}
-            </div>
-            <ul className={styles.stepList}>
-              {sortedSteps.map((step) => {
-                const stepRoles = roles.filter(
-                  (role) =>
-                    !isRoleUnlinkedOnDevice(role, activeDevice.id) &&
-                    role.stepOffset === step.offset,
-                );
-                return (
-                  <li key={step.step} className={styles.stepRow}>
-                    <SpecimenTextField
-                      style={{
-                        fontFamily: familiesToCss(previewFont?.families ?? []),
-                        fontSize: `${step.fontSizePx}px`,
-                        fontWeight: resolvedPreviewWeight,
-                      }}
-                      value={project.specimenText}
-                      onChange={(specimenText) =>
-                        setPreference({ specimenText })
-                      }
-                    />
-                    <span className={styles.stepMeta}>
-                      <code>
-                        {formatLength(
-                          step.fontSizePx,
-                          project.unit,
-                          project.remRootPx,
-                        )}
-                      </code>
-                      {Math.abs(step.exactFontSizePx - step.fontSizePx) >
-                        0.01 && (
-                        <small
-                          className={styles.stepExact}
-                          title={`Exact ${step.exactFontSizePx.toFixed(2)}px before rounding`}
-                        >
-                          {step.exactFontSizePx.toFixed(2)}
-                        </small>
-                      )}
-                      {step.isBase && <small>base</small>}
-                      {stepRoles.map((role) => (
-                        <small key={role.id}>{role.id}</small>
-                      ))}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
+          <TypeStepCanvas
+            deviceId={activeDevice.id}
+            preferences={project}
+            previewFont={previewFont}
+            previewWeight={resolvedPreviewWeight}
+            previewWeights={previewWeights}
+            steps={sortedSteps}
+            system={system}
+            onPreferencesChange={setPreference}
+            onPreviewFontChange={setPreviewFontId}
+            onPreviewWeightChange={setPreviewWeight}
+          />
         ) : (
           <TypographyPreview
             device={activeDevice}
