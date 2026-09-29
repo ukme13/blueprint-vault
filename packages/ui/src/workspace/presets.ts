@@ -83,12 +83,12 @@ const PRIMER: WorkspacePreset = {
   },
 };
 
-/** Stripe: App UI groups, a spacious 8px grid, a perfect fourth. */
+/** Stripe: App UI groups, an 8px rhythm on a 4px unit, a perfect fourth. */
 const STRIPE: WorkspacePreset = {
   id: "stripe",
   name: "Stripe Vibrant",
   summary:
-    "Stripe's high-conversion fintech style. Blurple and teal, spacious 8px grid, App UI groups.",
+    "Stripe's high-conversion fintech style. Blurple and teal, an 8px rhythm, App UI groups.",
   paletteTracks: {
     primary: "#635bff",
     secondary: "#00d4b2",
@@ -112,7 +112,10 @@ const STRIPE: WorkspacePreset = {
     { id: "tablet", ratio: 1.25 },
     { id: "desktop", ratio: 1.333 },
   ],
-  spacing: { baseUnitPx: 8, density: 1.15 },
+  /* The 4px unit the layout uses are written against; its 8px rhythm is step
+     2 and up. On an 8px base, with density on top, every use came out 2.3
+     times its size — a 64px section gap was 147px — and the page sprawled. */
+  spacing: { baseUnitPx: 4, density: 1 },
   radius: {
     multiplier: 1,
     tokens: [

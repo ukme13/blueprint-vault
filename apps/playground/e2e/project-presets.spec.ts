@@ -54,8 +54,9 @@ test.describe("Project presets", () => {
     /* And its status hues: every track is the preset's. */
     expect(seedFor("error")).toBe("#df1b41");
     expect(stored.typography.system.ratio).toBeCloseTo(1.333, 3);
-    /* Its grid and corners too, not the studio's defaults. */
-    expect(stored.spacing).toMatchObject({ baseUnitPx: 8, density: 1.15 });
+    /* Its spacing: the 4px unit the layout uses are written against, not an
+       8px base that doubled them. */
+    expect(stored.spacing).toMatchObject({ baseUnitPx: 4, density: 1 });
   });
 
   test("a refused create keeps the dialog open and says why", async ({
