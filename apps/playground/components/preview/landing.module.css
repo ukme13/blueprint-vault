@@ -379,7 +379,10 @@
   flex: 1;
   min-width: 0;
   margin: 0;
-  padding-block: var(--spacing-2);
+  /* None: the button sets the row's height, so it sits 4px from the
+     form's edge on all three sides. Padded, the input was the taller of
+     the two and the button floated in extra room above and below. */
+  padding-block: 0;
   border: 0;
   background: transparent;
   color: var(--color-fg-primary);

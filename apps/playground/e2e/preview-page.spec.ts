@@ -1414,3 +1414,32 @@ test.describe("The preview's spacing overlay", () => {
     ).toBeVisible();
   });
 });
+
+test.describe("The preview's newsletter form", () => {
+  test("insets its button evenly on the three outer sides", async ({
+    page,
+  }) => {
+    /* A padded input was taller than the button, so the button floated in
+       extra room: 8px above and below against 4px at the right. */
+    await openPreview(page);
+    const insets = await page
+      .getByRole("form", { name: "Newsletter sign-up" })
+      .evaluate((form) => {
+        const button = form.querySelector("button")!;
+        const css = getComputedStyle(form);
+        const box = form.getBoundingClientRect();
+        const inner = {
+          top: box.top + parseFloat(css.borderTopWidth),
+          bottom: box.bottom - parseFloat(css.borderBottomWidth),
+          right: box.right - parseFloat(css.borderRightWidth),
+        };
+        const own = button.getBoundingClientRect();
+        return [
+          own.top - inner.top,
+          inner.bottom - own.bottom,
+          inner.right - own.right,
+        ].map(Math.round);
+      });
+    expect(new Set(insets).size).toBe(1);
+  });
+});
