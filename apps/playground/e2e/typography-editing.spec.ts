@@ -951,6 +951,28 @@ test.describe("Typography scale editing", () => {
     await expect(label).toHaveCSS("font-size", "14px");
     await expect(label).toHaveCSS("font-weight", "600");
 
+    /* The stacks and Add font are spaced apart, as the group's children
+       were before they moved inside the collapsible. */
+    const gaps = await fonts.evaluate((section) => {
+      const items = [
+        ...section.querySelectorAll("section[aria-label$=' stack'], button"),
+      ].filter((node) =>
+        /stack$|^Add font$/.test(
+          node.getAttribute("aria-label") ?? node.textContent ?? "",
+        ),
+      );
+      return items
+        .slice(1)
+        .map((node, index) =>
+          Math.round(
+            node.getBoundingClientRect().top -
+              items[index]!.getBoundingClientRect().bottom,
+          ),
+        );
+    });
+    expect(gaps.length).toBeGreaterThan(0);
+    for (const gap of gaps) expect(gap).toBe(12);
+
     await trigger.click();
     await expect(trigger).toHaveAttribute("aria-expanded", "false");
     await expect(addFont).toBeHidden();
