@@ -225,3 +225,12 @@
 .list[data-density="compact"] .option:hover {
   background: var(--color-surface-subtle);
 }
+
+/* A desktop Selector without its chevron: see SheetSelector. */
+.noChevron {
+  display: contents;
+}
+
+.noChevron :global(.astryx-selector-indicator-icon) {
+  display: none;
+}

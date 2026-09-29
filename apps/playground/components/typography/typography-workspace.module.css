@@ -958,8 +958,10 @@
    positioned, so with nothing to say this collapses to no height rather than
    leaving a gap under the field. */
 .fontStackUpload {
-  display: grid;
-  gap: var(--spacing-1);
+  /* No box of its own: with only the hidden input in it, it still took the
+     card's gap, a ghost row under the chips per slot. Its note, when there
+     is one, is the card's row instead. */
+  display: contents;
 }
 
 .fontUploadRowIcon {
@@ -1359,10 +1361,23 @@
   color: var(--color-fg-primary);
 }
 
-/* The next fallback, not yet there: dashed. */
+/* An action, not a family: dashed, clear of fill, in the action colour,
+   and lit on hover as a button is. */
 .fontChipAdd {
   border-style: dashed;
-  color: var(--color-fg-muted);
+  border-color: var(--color-border-strong);
+  background: transparent;
+  color: var(--color-action-primary);
+  font-weight: 500;
+}
+
+.fontChipAdd:hover {
+  border-color: var(--color-action-primary);
+  background: var(--color-overlay-hover);
+}
+
+.fontChipAdd:active {
+  background: var(--color-overlay-pressed);
 }
 
 /* The picker inside a chip's popover. Its header and rows are the standard

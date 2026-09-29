@@ -89,7 +89,14 @@ export function TypographyPreview({
         />
       </div>
 
-      <section aria-label="Type scale preview" className={styles.previewPage}>
+      <section
+        aria-label="Type scale preview"
+        className={styles.previewPage}
+        /* The chosen background paints the whole canvas, not only the
+           cards on it. On this scrolling box, not the stage: painting the
+           stage put a square behind the rounded cards. */
+        style={backgroundHex ? { background: backgroundHex } : undefined}
+      >
         <div
           className={styles.previewStage}
           data-preview-background={backgroundHex ? "true" : undefined}

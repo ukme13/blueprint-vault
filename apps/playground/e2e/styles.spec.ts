@@ -283,6 +283,49 @@ test.describe("Typography studio styles", () => {
     expect(await styleOf(pass, "color")).not.toBe(await styleOf(fail, "color"));
   });
 
+  test("the preview colours have no chevron, and the background paints the canvas", async ({
+    page,
+  }) => {
+    await seed(page);
+    await page.getByRole("button", { name: "Preview", exact: true }).click();
+
+    /* A swatch and a name: the chevron was noise on a pair of colour
+       controls. The theme class is Astryx's stable hook for it. */
+    for (const name of ["Text colour", "Background colour"]) {
+      await expect(
+        page
+          .getByLabel(name)
+          .locator(
+            "xpath=ancestor-or-self::*[contains(@class,'astryx-selector')][1]",
+          )
+          .locator(".astryx-selector-indicator-icon"),
+      ).toBeHidden();
+    }
+
+    await page.getByLabel("Background colour").click();
+    await page
+      .getByRole("option", { name: "neutral 950", exact: true })
+      .click();
+    const canvas = page.getByRole("region", { name: "Type scale preview" });
+    const stage = canvas.locator("[data-preview-background='true']");
+    await expect(stage).toBeVisible();
+    /* The whole scrolling canvas, not only the cards on it. */
+    await expect
+      .poll(() => styleOf(canvas, "background-color"))
+      .toBe(
+        await styleOf(stage, "--preview-surface").then(async (hex) =>
+          page.evaluate((colour) => {
+            const probe = document.createElement("span");
+            probe.style.backgroundColor = colour.trim();
+            document.body.appendChild(probe);
+            const computed = getComputedStyle(probe).backgroundColor;
+            probe.remove();
+            return computed;
+          }, hex),
+        ),
+      );
+  });
+
   test("the editor steps sit 8px apart", async ({ page }) => {
     await seed(page);
     const steps = page

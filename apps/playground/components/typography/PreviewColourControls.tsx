@@ -54,6 +54,7 @@ function PaletteColourSelector({
 }) {
   return (
     <SheetSelector
+      hasChevron={false}
       hasSearch
       isLabelHidden
       label={label}

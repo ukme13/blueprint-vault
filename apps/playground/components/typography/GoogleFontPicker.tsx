@@ -62,7 +62,9 @@ export function GoogleFontPicker({
      16px, below which iOS zooms the page as the search takes focus. */
   const isPhone = useIsPhone();
   const [query, setQuery] = useState("");
-  const [active, setActive] = useState(0);
+  /* No row lit until the arrows or the pointer choose one: a highlight on
+     the first family read as that family being hovered. */
+  const [active, setActive] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const listId = useId();
@@ -88,7 +90,7 @@ export function GoogleFontPicker({
 
   const search = (next: string) => {
     setQuery(next);
-    setActive(0);
+    setActive(-1);
   };
 
   return (
@@ -124,9 +126,7 @@ export function GoogleFontPicker({
         value={query}
         onValueChange={search}
         ref={inputRef}
-        aria-activedescendant={
-          fonts.length > 0 ? `${listId}-${active}` : undefined
-        }
+        aria-activedescendant={active >= 0 ? `${listId}-${active}` : undefined}
         aria-autocomplete="list"
         aria-controls={listId}
         aria-expanded
@@ -142,9 +142,10 @@ export function GoogleFontPicker({
           } else if (event.key === "ArrowUp") {
             event.preventDefault();
             setActive((index) => Math.max(index - 1, 0));
-          } else if (event.key === "Enter" && fonts[active]) {
+          } else if (event.key === "Enter" && fonts[Math.max(active, 0)]) {
+            /* With nothing lit, Enter takes the best match. */
             event.preventDefault();
-            onPick(fonts[active]);
+            onPick(fonts[Math.max(active, 0)]!);
           }
         }}
       />

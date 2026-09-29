@@ -1170,6 +1170,8 @@ test.describe("The font picker in a chip", () => {
 
     /* One click, and the families are there: no field to click into first. */
     await expect(page.getByRole("option").first()).toBeVisible();
+    /* And none lit: a highlight on the first read as it being hovered. */
+    await expect(page.locator("[role='option'][data-active]")).toHaveCount(0);
     const input = settings.getByLabel("Base font", { exact: true });
     await expect(input).toBeFocused();
     /* Typed straight into a beat later, as a hand would, with no click on
@@ -1180,6 +1182,33 @@ test.describe("The font picker in a chip", () => {
     await expect(
       page.getByRole("option", { name: "Lora", exact: true }),
     ).toBeVisible();
+  });
+
+  test("leaves no ghost space under the chips", async ({
+    seededPage: page,
+  }) => {
+    /* Each slot's hidden file input sat in a wrapper that took the card's
+       gap, a blank row under the chips per slot. */
+    const stack = page
+      .getByRole("region", { name: "Type scale settings" })
+      .getByRole("region", { name: "Base stack" });
+    const chip = stack.getByRole("button", { name: /^Add a fallback to / });
+    const card = (await stack.boundingBox())!;
+    const row = (await chip.boundingBox())!;
+    const padding = await stack.evaluate((el) =>
+      parseFloat(getComputedStyle(el).paddingBottom),
+    );
+    const border = await stack.evaluate((el) =>
+      parseFloat(getComputedStyle(el).borderBottomWidth),
+    );
+    /* A note under the chips would be a real row; the seeded stack has none
+       unless its family cannot be previewed, which says so on the card. */
+    const notes = await stack.locator("p").count();
+    if (notes === 0) {
+      expect(card.y + card.height - (row.y + row.height)).toBeLessThanOrEqual(
+        padding + border + 1,
+      );
+    }
   });
 
   test("marks the family the slot holds", async ({ seededPage: page }) => {
