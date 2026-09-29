@@ -1481,3 +1481,8 @@
     height: var(--size-element-lg, 36px);
   }
 }
+
+/* The Uses panel's side padding, for the full-bleed scroll on a phone. */
+.usesScroll {
+  --bleed-gutter: 18px;
+}

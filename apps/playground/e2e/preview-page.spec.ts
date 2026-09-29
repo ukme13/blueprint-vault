@@ -1386,9 +1386,20 @@ test.describe("The preview's spacing overlay", () => {
         })
         .first()
         .click();
-      await page
+      const list = page
         .getByRole("listbox", { name: `${use} on Desktop` })
-        .filter({ visible: true })
+        .filter({ visible: true });
+      /* The popover pads nothing: its search row and divider run to its
+         edges, as every selector popover's do. */
+      const inset = await list.evaluate((node) => {
+        const popover = node.closest("[popover]")!.getBoundingClientRect();
+        const search = node
+          .parentElement!.querySelector("label")!
+          .getBoundingClientRect();
+        return [search.left - popover.left, popover.right - search.right];
+      });
+      expect(Math.max(...inset)).toBeLessThanOrEqual(1);
+      await list
         .getByRole("option", { name: `--spacing-${step}`, exact: true })
         .click();
     };
@@ -1408,7 +1419,11 @@ test.describe("The preview's spacing overlay", () => {
     await expect.poll(() => style(card, "paddingTop")).toBe("32px");
 
     /* A space no use sizes says which step it is, and where to tune it. */
-    await overlay.locator("button[data-info]").first().click();
+    const info = overlay.locator("button[data-info]").first();
+    /* Centred first: scrolled only as far as its edge, a badge near the top
+       sits under the sticky preview nav, which takes the click. */
+    await info.evaluate((node) => node.scrollIntoView({ block: "center" }));
+    await info.click();
     await expect(
       page.getByRole("link", { name: /^Tune --spacing-[\w-]+ in Spacing$/ }),
     ).toBeVisible();

@@ -29,6 +29,12 @@ interface PopoverOrSheetProps {
    * header and list run to its edges and that focuses its own search.
    */
   isFlush?: boolean;
+  /**
+   * No padding on the desktop popover only, for a list whose search and
+   * rows run to its edges; its phone sheet keeps the sheet's padding, which
+   * the list's phone header is laid out against.
+   */
+  isPopoverFlush?: boolean;
 }
 
 /**
@@ -56,6 +62,7 @@ export function PopoverOrSheet({
   width,
   className,
   isFlush,
+  isPopoverFlush,
 }: PopoverOrSheetProps) {
   const isPhone = useIsPhone();
   const panel = isOpen ? children : null;
@@ -88,7 +95,7 @@ export function PopoverOrSheet({
         isOpen={isOpen}
         label={label}
         placement="start"
-        style={isFlush ? { padding: 0 } : undefined}
+        style={isFlush || isPopoverFlush ? { padding: 0 } : undefined}
         width={width}
         onOpenChange={onOpenChange}
       >

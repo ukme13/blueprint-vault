@@ -35,6 +35,7 @@ import {
 } from "@blueprint/ui";
 import { useSemanticTableSort } from "../palette/use-semantic-row-sort";
 import { LayoutUsesRow } from "./LayoutUsesRow";
+import bleed from "../bleed-scroll.module.css";
 import styles from "./scale-workspace.module.css";
 
 function DropGap({ colSpan }: { colSpan: number }) {
@@ -138,7 +139,9 @@ export function LayoutUsesTable({
           {/* A width per column and a sideways scroll, as on Semantics. Shared
               out by the screen, three device columns left a step like "40"
               breaking over two lines on a phone. */}
-          <div className="min-w-0 overflow-x-auto">
+          <div
+            className={`min-w-0 overflow-x-auto ${bleed.bleed} ${styles.usesScroll}`}
+          >
             <Table
               aria-label={label}
               className="table-fixed"

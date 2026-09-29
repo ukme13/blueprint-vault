@@ -3,6 +3,8 @@
 import { type FormEvent } from "react";
 import { Dialog, DialogHeader } from "@astryxdesign/core/Dialog";
 import { WORKSPACE_PRESETS, findWorkspacePreset } from "@blueprint/ui";
+import { Sheet } from "../Sheet";
+import { useIsPhone } from "../use-is-phone";
 import { PresetDetails } from "./PresetDetails";
 import { PresetGallery } from "./PresetGallery";
 import styles from "./new-project-dialog.module.css";
@@ -39,6 +41,39 @@ export function NewProjectDialog({
 }) {
   const preset = findWorkspacePreset(presetId) ?? WORKSPACE_PRESETS[0]!;
 
+  const isPhone = useIsPhone();
+  const body = (
+    <div className={styles.body}>
+      <PresetGallery presetId={preset.id} onPresetChange={onPresetChange} />
+      <PresetDetails
+        error={error}
+        name={name}
+        preset={preset}
+        onNameChange={onNameChange}
+      />
+    </div>
+  );
+
+  /* On a phone, a sheet: the presets as one row that swipes, a card and a
+     third in view so the row reads as more, then the name and Create. The
+     preset's details are the desktop's second column; here they would push
+     the name out of sight, so they are left out. */
+  if (isPhone) {
+    return (
+      <Sheet
+        isOpen={isOpen}
+        label="New project"
+        padding="flush"
+        onClose={() => onOpenChange(false)}
+      >
+        <form className={styles.form} onSubmit={onSubmit}>
+          <h2 className={styles.sheetTitle}>New project</h2>
+          {body}
+        </form>
+      </Sheet>
+    );
+  }
+
   return (
     <Dialog
       isOpen={isOpen}
@@ -51,15 +86,7 @@ export function NewProjectDialog({
         <div className={styles.header}>
           <DialogHeader title="New project" onOpenChange={onOpenChange} />
         </div>
-        <div className={styles.body}>
-          <PresetGallery presetId={preset.id} onPresetChange={onPresetChange} />
-          <PresetDetails
-            error={error}
-            name={name}
-            preset={preset}
-            onNameChange={onNameChange}
-          />
-        </div>
+        {body}
       </form>
     </Dialog>
   );

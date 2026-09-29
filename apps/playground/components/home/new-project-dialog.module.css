@@ -267,19 +267,69 @@
   width: 100%;
 }
 
-/* On a phone the details follow the gallery, and the gallery is one card
-   to a row. */
+/* A phone's sheet: its title, the presets as one row that swipes, then the
+   name and Create. The preset's details are left out: they pushed the name
+   out of sight. */
+.sheetTitle {
+  margin: 0;
+  padding: 0 var(--spacing-4) var(--spacing-3);
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
 @media (max-width: 640px) {
   .body {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .gallery > .columnHead {
+    padding-inline: var(--spacing-4);
+  }
+
+  /* The row runs to the sheet's edges. Its side space is the row's own
+     padding, not the scroller's: a scroller's end padding is not scrolled
+     to past grid or flex items, which left the last card on the edge. */
+  .galleryScroll {
+    container-type: inline-size;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: var(--spacing-4) 0;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--spacing-4);
+  }
+
+  /* Two rows, filled a column at a time, so each swipe moves two cards. */
   .galleryGrid {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(2, auto);
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    width: max-content;
+    padding-inline: var(--spacing-4);
+  }
+
+  /* A column and a third in view past the leading space: that width, less
+     the gap, over 4/3. */
+  .presetCard {
+    flex: none;
+    width: calc((100cqi - var(--spacing-4) - var(--spacing-3)) * 3 / 4);
+    scroll-snap-align: start;
   }
 
   .details {
+    padding: var(--spacing-4);
     border-left: 0;
     border-top: 1px solid var(--color-border-subtle);
+    background: none;
+  }
+
+  /* Only the name, an error and Create. */
+  .details > .columnHead,
+  .details > .detailGroup {
+    display: none;
+  }
+
+  .detailActions {
+    margin-top: 0;
   }
 }

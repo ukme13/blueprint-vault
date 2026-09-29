@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import {
   PROJECT_STORAGE_KEY,
   createWorkspaceFromHome,
@@ -419,6 +419,96 @@ test.describe("on a phone", () => {
     );
   });
 
+  /* A sideways scroller runs to the edge of what clips it, and its content
+     starts and ends a gutter clear of that edge: full bleed. */
+  /* A phone selector's search: 16px, its divider the sheet's full width. */
+  const expectSheetSearch = async (page: Page) => {
+    const search = page
+      .locator(".astryx-bottom-sheet")
+      .filter({ visible: true })
+      .last()
+      .locator("label:has(input)")
+      .first();
+    await expect(search).toBeVisible();
+    const { inset, fontSize } = await search.evaluate((node) => {
+      const sheet = node.closest(".astryx-bottom-sheet")!;
+      const box = node.getBoundingClientRect();
+      const edge = sheet.getBoundingClientRect();
+      return {
+        inset: [
+          Math.round(box.left - edge.left),
+          Math.round(edge.right - box.right),
+        ],
+        fontSize: getComputedStyle(node.querySelector("input")!).fontSize,
+      };
+    });
+    /* Within the sheet's own 1px border, either side. */
+    expect(inset[0]).toBeLessThanOrEqual(1);
+    expect(inset[1]).toBeLessThanOrEqual(1);
+    expect(fontSize).toBe("16px");
+    /* A held header in the sheet's own paint, whatever page it opens over. */
+    const [head, panel] = await search.evaluate((node) => [
+      getComputedStyle(node.parentElement!).backgroundColor,
+      getComputedStyle(node.closest(".astryx-bottom-sheet")!).backgroundColor,
+    ]);
+    if (head !== "rgba(0, 0, 0, 0)") expect(head).toBe(panel);
+  };
+
+  const expectFullBleed = async (bleed: Locator, gutter: number) => {
+    /* The box that actually scrolls: the bleed itself, or a table's own
+       scroll box inside it, which is what cut the table at the gutter. */
+    const measure = () =>
+      bleed.evaluate((outer) => {
+        let clip = outer.parentElement!;
+        while (getComputedStyle(clip).overflowX === "visible") {
+          clip = clip.parentElement!;
+        }
+        const scroller =
+          outer.querySelector<HTMLElement>(".astryx-table-scroll-wrapper") ??
+          outer;
+        const edge = clip.getBoundingClientRect();
+        const box = scroller.getBoundingClientRect();
+        const content = scroller.firstElementChild!.getBoundingClientRect();
+        return {
+          outside: [
+            Math.round(box.left - edge.left),
+            Math.round(edge.right - box.right),
+          ],
+          start: content.left - box.left,
+          end: box.right - content.right,
+        };
+      });
+    const atStart = await measure();
+    expect(atStart.outside).toEqual([0, 0]);
+    expect(atStart.start).toBeCloseTo(gutter, 0);
+    await bleed.evaluate((outer) => {
+      const scroller =
+        outer.querySelector<HTMLElement>(".astryx-table-scroll-wrapper") ??
+        outer;
+      scroller.scrollLeft = scroller.scrollWidth;
+    });
+    await expect.poll(async () => (await measure()).end).toBeCloseTo(gutter, 0);
+  };
+
+  test("runs its sideways tables full bleed, with a gutter at each end", async ({
+    seededPage: page,
+  }) => {
+    await page.goto("/colour");
+    await expectFullBleed(page.locator("[class*='matrixScroller']"), 18);
+
+    await page.getByRole("button", { name: "Semantics" }).click();
+    await expectFullBleed(page.locator("[class*='tableWrap']"), 16);
+
+    for (const route of ["/spacing", "/radius"]) {
+      await page.goto(route);
+      await page
+        .getByRole("navigation", { name: "Scale sections" })
+        .getByRole("button", { name: "Uses" })
+        .click();
+      await expectFullBleed(page.locator("[class*='usesScroll']").first(), 18);
+    }
+  });
+
   test("scrolls the Uses table and picks a step from a sheet", async ({
     seededPage: page,
   }) => {
@@ -440,6 +530,7 @@ test.describe("on a phone", () => {
     await uses.getByLabel("Container inset on Phone").click();
     const sheet = page.getByRole("dialog", { name: "Spacing steps" });
     await expect(sheet).toBeVisible();
+    await expectSheetSearch(page);
     await expect(
       sheet.getByRole("listbox", { name: "Spacing steps" }),
     ).toBeVisible();
@@ -1641,6 +1732,71 @@ test.describe("on a phone", () => {
     ).toBeVisible();
   });
 
+  test("opens New project as a sheet: two swipeable rows, then the name", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await page.evaluate(() => {
+      window.localStorage.clear();
+      window.sessionStorage.clear();
+    });
+    await page.reload();
+    await page
+      .getByRole("button", { name: "New project", exact: true })
+      .click();
+
+    const sheet = page.getByRole("dialog", { name: "New project" });
+    const panel = sheet.locator(".astryx-bottom-sheet").first();
+    await expect(panel).toBeVisible();
+
+    /* A card and a third in view, so the row reads as more. */
+    const cards = sheet.getByRole("radio");
+    const first = (await cards
+      .first()
+      .locator("xpath=ancestor::label[1]")
+      .boundingBox())!;
+    /* Two rows, filled a column at a time: the second card is under the
+       first, the third starts the next column. */
+    const below = (await cards
+      .nth(1)
+      .locator("xpath=ancestor::label[1]")
+      .boundingBox())!;
+    expect(below.x).toBeCloseTo(first.x, 0);
+    expect(below.y).toBeGreaterThan(first.y + first.height);
+    const second = (await cards
+      .nth(2)
+      .locator("xpath=ancestor::label[1]")
+      .boundingBox())!;
+    const box = (await panel.boundingBox())!;
+    const inView = box.x + box.width - second.x;
+    expect(second.y).toBeCloseTo(first.y, 0);
+    expect(inView / second.width).toBeGreaterThan(0.2);
+    expect(inView / second.width).toBeLessThan(0.5);
+    /* Clear of the sheet's edge, not cut at a margin. */
+    expect(first.x - box.x).toBeGreaterThanOrEqual(12);
+
+    /* And the same space after the last card, once scrolled to the end. */
+    const last = cards.last().locator("xpath=ancestor::label[1]");
+    await last.evaluate((node) => {
+      const row = node.closest("[class*='galleryScroll']")!;
+      row.scrollLeft = row.scrollWidth;
+    });
+    await expect
+      .poll(async () => {
+        const end = (await last.boundingBox())!;
+        return box.x + box.width - (end.x + end.width);
+      })
+      .toBeGreaterThanOrEqual(12);
+
+    /* The name and Create, and none of the preset's details. */
+    await expect(sheet.getByLabel("Project name")).toBeInViewport();
+    await expect(
+      sheet.getByRole("button", { name: "Create workspace" }),
+    ).toBeInViewport();
+    await expect(sheet.getByText("Typeface")).toBeHidden();
+    await expect(sheet.getByText("Preset details")).toBeHidden();
+  });
+
   /* A medium button is 32px, the field it would sit beside; the menu button
      beside Export is 36px. On a phone they share a row. */
   const expectExportLevelWithMenu = async (page: Page) => {
@@ -1923,6 +2079,7 @@ test.describe("on a phone", () => {
     expect(
       await list.evaluate((node) => !!node.closest(".astryx-bottom-sheet")),
     ).toBe(true);
+    await expectSheetSearch(page);
   });
 
   test("swipes the shade grid instead of breaking the page", async ({

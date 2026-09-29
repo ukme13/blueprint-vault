@@ -9,6 +9,7 @@ import {
   type SheetOptionInput,
 } from "@blueprint/ui";
 import { SelectorSearch } from "./SelectorSearch";
+import { useIsPhone } from "./use-is-phone";
 import styles from "./sheet-selector.module.css";
 
 export function renderOptionIcon(icon: unknown): ReactNode {
@@ -57,10 +58,15 @@ export function SelectorOptionList({
   onQueryChange,
   hasSearch,
   searchPlaceholder,
-  density = "comfortable",
+  density: requestedDensity = "comfortable",
   hasAutoFocus,
   header,
 }: SelectorOptionListProps) {
+  /* On a phone every selector is a sheet, so a list asked for as a
+     dropdown's is drawn as a sheet's: 44px rows, 16px, and the search held
+     at the top with its divider run to the sheet's edges. */
+  const isPhone = useIsPhone();
+  const density = isPhone ? "comfortable" : requestedDensity;
   const groups = sheetOptionGroups([...options], query);
   const listRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);

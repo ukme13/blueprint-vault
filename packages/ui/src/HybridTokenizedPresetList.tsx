@@ -20,6 +20,12 @@ export interface HybridTokenizedPresetListProps {
    * over the list.
    */
   autoFocusSearch?: boolean;
+  /**
+   * `comfortable` for a phone sheet: 16px, below which iOS zooms as the
+   * search takes focus, rows a thumb can hit, and no height of its own,
+   * since the sheet scrolls. `compact` is the popover's.
+   */
+  density?: "compact" | "comfortable";
   decimals: number;
   filtered: readonly HybridTokenPreset[];
   highlight: number;
@@ -37,6 +43,7 @@ export interface HybridTokenizedPresetListProps {
 
 export function HybridTokenizedPresetList({
   autoFocusSearch = false,
+  density = "compact",
   decimals,
   filtered,
   highlight,
@@ -51,6 +58,7 @@ export function HybridTokenizedPresetList({
   onSearchKeyDown,
   onSelect,
 }: HybridTokenizedPresetListProps) {
+  const isComfortable = density === "comfortable";
   const searchRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (autoFocusSearch) searchRef.current?.focus({ preventScroll: true });
@@ -65,7 +73,7 @@ export function HybridTokenizedPresetList({
           aria-label="Search presets"
           autoComplete="off"
           ref={searchRef}
-          className="min-w-0 flex-1 border-0 bg-transparent text-sm text-fg-primary outline-none placeholder:text-fg-muted"
+          className={`min-w-0 flex-1 border-0 bg-transparent text-fg-primary outline-none placeholder:text-fg-muted ${isComfortable ? "text-base" : "text-sm"}`}
           placeholder={searchPlaceholder}
           /* Not "search": Chrome clears a search field on Escape, and
              Escape here closes the list. */
@@ -83,7 +91,7 @@ export function HybridTokenizedPresetList({
           highlight >= 0 ? `${listId}-${highlight}` : undefined
         }
         aria-label={popoverTitle}
-        className="max-h-56 overflow-y-auto px-[var(--spacing-1)] pb-[var(--spacing-1)]"
+        className={`overflow-y-auto px-[var(--spacing-1)] pb-[var(--spacing-1)] ${isComfortable ? "" : "max-h-56"}`}
         id={listId}
         role="listbox"
       >
@@ -106,7 +114,7 @@ export function HybridTokenizedPresetList({
             return (
               <button
                 aria-selected={selected}
-                className={`flex w-full cursor-pointer items-center justify-between rounded-[var(--radius-inner)] px-[var(--spacing-2)] py-[var(--spacing-2)] text-left text-xs text-fg-primary ${rowTone}`}
+                className={`flex w-full cursor-pointer items-center justify-between rounded-[var(--radius-inner)] px-[var(--spacing-2)] text-left text-fg-primary ${isComfortable ? "min-h-11 text-base" : "py-[var(--spacing-2)] text-xs"} ${rowTone}`}
                 id={`${listId}-${index}`}
                 key={preset.id}
                 role="option"

@@ -44,6 +44,7 @@ export function SpacingUseBadge({
 
   return (
     <PopoverOrSheet
+      isPopoverFlush
       isOpen={isOpen}
       label={label}
       trigger={

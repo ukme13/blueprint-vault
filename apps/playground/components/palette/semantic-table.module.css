@@ -146,6 +146,8 @@
 /* The table scrolls inside its own region rather than pushing the page wide,
    which is what keeps the sidebar and the table together at 1024. */
 .tableWrap {
+  /* The content region's side padding, for the full-bleed scroll. */
+  --bleed-gutter: var(--spacing-4);
   min-width: 0;
   overflow-x: auto;
 }
