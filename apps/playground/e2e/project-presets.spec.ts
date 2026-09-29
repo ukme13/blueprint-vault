@@ -215,4 +215,36 @@ test.describe("Project presets", () => {
     });
     expect(Math.abs(create.width - panel)).toBeLessThanOrEqual(1);
   });
+
+  test("keeps Create reachable, with room under it, on a short screen", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 560 });
+    await page.getByRole("button", { name: "New project" }).click();
+    const dialog = page.getByRole("dialog", { name: "New project" });
+    const details = dialog.getByRole("complementary", {
+      name: "Preset details",
+    });
+    const create = dialog.getByRole("button", { name: "Create workspace" });
+
+    /* Too short to show every detail: the panel scrolls, it does not clip. */
+    expect(
+      await details.evaluate((node) => getComputedStyle(node).overflowY),
+    ).toBe("auto");
+    await create.scrollIntoViewIfNeeded();
+    await expect(create).toBeInViewport();
+
+    /* Scrolled to its end, the button keeps room below it. */
+    const room = await details.evaluate((node) => {
+      node.scrollTop = node.scrollHeight;
+      const button = node.querySelector("button[type=submit]")!;
+      const css = getComputedStyle(node);
+      return (
+        node.getBoundingClientRect().bottom -
+        parseFloat(css.paddingBottom) -
+        button.getBoundingClientRect().bottom
+      );
+    });
+    expect(Math.round(room)).toBeGreaterThanOrEqual(8);
+  });
 });

@@ -39,6 +39,39 @@
   overflow-y: auto;
 }
 
+/* The two columns' scrollbars, thin and quiet, as the preview's frame
+   draws them: the gallery scrolls on a short screen, the details on a
+   shorter one. */
+.gallery,
+.details {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-default) transparent;
+}
+
+.gallery::-webkit-scrollbar,
+.details::-webkit-scrollbar {
+  width: var(--spacing-2);
+}
+
+.gallery::-webkit-scrollbar-track,
+.details::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.gallery::-webkit-scrollbar-thumb,
+.details::-webkit-scrollbar-thumb {
+  background: var(--color-border-default);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: var(--radius-full, 9999px);
+}
+
+.gallery::-webkit-scrollbar-thumb:hover,
+.details::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-strong);
+  background-clip: padding-box;
+}
+
 .galleryLegend {
   margin-bottom: var(--spacing-3);
   padding: 0;
@@ -148,7 +181,11 @@
 .details {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4);
+  /* Tighter than the gallery, so a preset's details fit beside it; on a
+     screen too short even so, the panel scrolls rather than clipping. */
+  gap: var(--spacing-3);
+  min-height: 0;
+  overflow-y: auto;
   padding: var(--spacing-5);
   border-left: 1px solid var(--color-border-subtle);
   background: var(--color-surface-subtle);
@@ -201,7 +238,9 @@
 .detailActions {
   display: flex;
   margin-top: auto;
-  padding-top: var(--spacing-2);
+  padding-top: var(--spacing-3);
+  /* Room under Create, so it does not sit on the panel's bottom edge. */
+  padding-bottom: var(--spacing-2);
 }
 
 .detailActions > * {
