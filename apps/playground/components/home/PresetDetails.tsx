@@ -79,7 +79,6 @@ export function PresetDetails({
         </dl>
       </section>
 
-      <Text type="supporting">{preset.summary}</Text>
       {error ? (
         <p className={styles.detailError} role="alert">
           {error}

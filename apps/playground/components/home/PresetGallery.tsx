@@ -10,12 +10,12 @@ import styles from "./new-project-dialog.module.css";
 
 /**
  * The presets as cards, two to a row, as a template browser lays them out:
- * a picture of each starting point, then its name and what it is.
+ * a picture of each starting point, then its name. What it is in detail
+ * is the panel beside, so a card does not repeat it in a sentence.
  *
  * Each card is a label around a real radio, visually hidden. So the group
  * is one tab stop, the arrow keys move the choice, Space picks, and a
- * screen reader hears "Warm editorial, radio button, 2 of 3" with the
- * summary as its description. The ring follows the radio's own focus and
+ * screen reader hears "Stripe Vibrant, radio button, 2 of 5". The ring follows the radio's own focus and
  * checked state; nothing is re-implemented.
  */
 export function PresetGallery({
@@ -57,7 +57,6 @@ function PresetCard({
 }) {
   const details = workspacePresetDetails(preset);
   const nameId = `preset-${preset.id}-name`;
-  const summaryId = `preset-${preset.id}-summary`;
 
   return (
     <label
@@ -65,7 +64,6 @@ function PresetCard({
       data-selected={isSelected || undefined}
     >
       <input
-        aria-describedby={summaryId}
         aria-labelledby={nameId}
         checked={isSelected}
         className={styles.presetRadio}
@@ -92,9 +90,6 @@ function PresetCard({
       <span className={styles.presetText}>
         <Text id={nameId} type="label" weight="semibold">
           {preset.name}
-        </Text>
-        <Text id={summaryId} type="supporting">
-          {preset.summary}
         </Text>
       </span>
     </label>

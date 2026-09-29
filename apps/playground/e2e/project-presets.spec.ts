@@ -119,6 +119,10 @@ test.describe("Project presets", () => {
     );
     expect(Math.round((await dialog.boundingBox())!.width)).toBe(780);
 
+    /* No summary sentence, on the cards or in the panel: the details
+       say it, value by value. */
+    await expect(dialog).not.toContainText("GitHub's design system");
+
     /* Opens on GitHub Primer, every value its own. */
     await expect(details).toContainText("#0969DA");
     await expect(details).toContainText("#656D76");
