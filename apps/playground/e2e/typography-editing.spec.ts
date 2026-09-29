@@ -1012,6 +1012,27 @@ test.describe("Typography scale editing", () => {
     expect(eased.seen.at(-1)).toBe(0);
     await expect(trigger).toHaveAttribute("aria-expanded", "false");
     await expect(addFont).toBeHidden();
+    /* Folded, nothing of the panel paints: clipped at its exact edge, so
+       the first card's top border cannot show as a line under the header,
+       faded and hidden. */
+    const folded = await fonts.evaluate((section) => {
+      const content = section.querySelector("button[aria-expanded]")!
+        .nextElementSibling as HTMLElement;
+      const child = getComputedStyle(content.firstElementChild!);
+      const css = getComputedStyle(content);
+      return {
+        height: Math.round(content.getBoundingClientRect().height),
+        clipMargin: child.overflowClipMargin,
+        opacity: css.opacity,
+        visibility: css.visibility,
+      };
+    });
+    expect(folded).toEqual({
+      height: 0,
+      clipMargin: "0px",
+      opacity: "0",
+      visibility: "hidden",
+    });
 
     await trigger.click();
     await expect(addFont).toBeVisible();

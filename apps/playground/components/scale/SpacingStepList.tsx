@@ -42,48 +42,44 @@ export function SpacingStepList({
   return (
     <section
       aria-label="Generated spacing steps"
-      className={`${styles.settingGroup} ${motion.smooth}`}
+      className={`${styles.settingGroup} ${styles.stepList} ${motion.smooth}`}
     >
+      {/* In the header row, just left of the chevron: beside the trigger
+          rather than inside it, since the trigger is a button and a control
+          inside one cannot be reached. Outside the panel, so it stays when
+          the list is folded. */}
+      <div className={styles.stepListUnit}>
+        <SegmentedControl
+          label="Value unit"
+          size="sm"
+          value={preview.unit}
+          onChange={(value) => onPreviewChange({ unit: value as SpacingUnit })}
+        >
+          <SegmentedControlItem label="px" value="px" />
+          <SegmentedControlItem label="rem" value="rem" />
+        </SegmentedControl>
+      </div>
       <Collapsible
         defaultIsOpen
         trigger={<span className={styles.groupTrigger}>Steps</span>}
       >
-        {/* One child, so the panel can ease between no height and its own. */}
-        <div>
-          {/* The unit the values read in, above them at the right: inside
-            the panel, so the trigger's row holds only its label and its
-            chevron. */}
-          <div className={styles.stepListUnit}>
-            <SegmentedControl
-              label="Value unit"
-              size="sm"
-              value={preview.unit}
-              onChange={(value) =>
-                onPreviewChange({ unit: value as SpacingUnit })
+        <ol className={styles.tokenList}>
+          {resolveSpacingRamp(scale).map((token) => (
+            <SpacingTokenRow
+              key={token.step}
+              isKept={token.kept}
+              isSelected={token.kept && token.step === selected?.step}
+              token={token}
+              unit={preview.unit}
+              onSelect={() =>
+                onPreviewChange({
+                  slots: { ...preview.slots, [activeSlot]: token.step },
+                })
               }
-            >
-              <SegmentedControlItem label="px" value="px" />
-              <SegmentedControlItem label="rem" value="rem" />
-            </SegmentedControl>
-          </div>
-          <ol className={styles.tokenList}>
-            {resolveSpacingRamp(scale).map((token) => (
-              <SpacingTokenRow
-                key={token.step}
-                isKept={token.kept}
-                isSelected={token.kept && token.step === selected?.step}
-                token={token}
-                unit={preview.unit}
-                onSelect={() =>
-                  onPreviewChange({
-                    slots: { ...preview.slots, [activeSlot]: token.step },
-                  })
-                }
-                onToggleKept={() => onToggleStep(token.step)}
-              />
-            ))}
-          </ol>
-        </div>
+              onToggleKept={() => onToggleStep(token.step)}
+            />
+          ))}
+        </ol>
       </Collapsible>
     </section>
   );

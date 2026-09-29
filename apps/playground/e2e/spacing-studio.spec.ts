@@ -289,7 +289,7 @@ test.describe("The spacing studio", () => {
     await expect(chip).toContainText("Comfortable");
   });
 
-  test("folds the step list under a clear header, its switch clear of it", async ({
+  test("folds the step list, its unit switch beside the chevron", async ({
     seededPage: page,
   }) => {
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
@@ -299,33 +299,43 @@ test.describe("The spacing studio", () => {
 
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
     await expect(rows.first()).toBeVisible();
-
-    /* A section header, not a caption: reading size, weight, primary ink. */
     const label = trigger.locator("[class*=groupTrigger]");
     await expect(label).toHaveCSS("font-size", "14px");
     await expect(label).toHaveCSS("font-weight", "600");
 
-    /* The switch sits in the panel, below the trigger's row: nothing lies
-       over the chevron. */
-    const triggerBox = (await trigger.boundingBox())!;
-    const unitBox = (await unit.boundingBox())!;
-    expect(unitBox.y).toBeGreaterThanOrEqual(
-      triggerBox.y + triggerBox.height - 1,
-    );
+    /* In the header row, left of the chevron and clear of it, centred on
+       the row, and not inside the trigger's button. */
+    const place = await steps.evaluate((section) => {
+      const button = section.querySelector("button[aria-expanded]")!;
+      const chevron = button.querySelector("svg")!.getBoundingClientRect();
+      const row = button.getBoundingClientRect();
+      const group = section.querySelector("[role=radiogroup]")!;
+      const box = group.getBoundingClientRect();
+      return {
+        leftOfChevron: box.right <= chevron.left - 4,
+        centred:
+          Math.abs(box.top + box.height / 2 - (row.top + row.height / 2)) <= 2,
+        outsideButton: group.closest("button") === null,
+      };
+    });
+    expect(place).toEqual({
+      leftOfChevron: true,
+      centred: true,
+      outsideButton: true,
+    });
 
-    await unit.getByRole("radio", { name: "rem" }).click();
-    await expect(
-      steps.locator('[data-spacing-step="4"] [data-spacing-value]'),
-    ).toHaveText("1rem");
-
-    /* Folded, the list and its switch go together. */
+    /* Folded, the list goes and the switch stays, still usable. */
     await trigger.click();
     await expect(trigger).toHaveAttribute("aria-expanded", "false");
     await expect(rows.first()).toBeHidden();
-    await expect(unit).toBeHidden();
+    await expect(unit).toBeVisible();
+    await unit.getByRole("radio", { name: "rem" }).click();
+    await expect(unit.getByRole("radio", { name: "rem" })).toBeChecked();
 
     await trigger.click();
-    await expect(rows.first()).toBeVisible();
+    await expect(
+      steps.locator('[data-spacing-step="4"] [data-spacing-value]'),
+    ).toHaveText("1rem");
   });
 
   test("hides and shows the spacing marks", async ({ seededPage: page }) => {

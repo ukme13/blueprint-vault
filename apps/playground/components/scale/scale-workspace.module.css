@@ -272,11 +272,20 @@
   cursor: pointer;
 }
 
-/* The unit switch, at the right above the steps. */
+/* The steps: the unit switch sits in the header row, just left of the
+   trigger's chevron. The group pads 17px 18px; the trigger row is 17px
+   tall and its chevron the last 17px of it, so the switch is centred on
+   that row and a small gap in from the chevron. */
+.stepList {
+  position: relative;
+}
+
 .stepListUnit {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: var(--spacing-2);
+  position: absolute;
+  top: calc(17px + 17px / 2);
+  right: calc(18px + 17px + var(--spacing-2));
+  z-index: 1;
+  transform: translateY(-50%);
 }
 
 .tokenRow {
