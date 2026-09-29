@@ -18,6 +18,7 @@ import {
   type LocalFontStatus,
 } from "./use-local-fonts";
 import type { useTypographySystem } from "./use-typography-system";
+import motion from "../collapsible-motion.module.css";
 import styles from "./typography-workspace.module.css";
 
 type FontActions = Pick<
@@ -69,7 +70,10 @@ export function FontsSettings({
   const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
 
   return (
-    <section aria-label="Fonts" className={styles.settingGroup}>
+    <section
+      aria-label="Fonts"
+      className={`${styles.settingGroup} ${motion.smooth}`}
+    >
       <Collapsible
         defaultIsOpen
         trigger={<span className={styles.groupTrigger}>Fonts</span>}

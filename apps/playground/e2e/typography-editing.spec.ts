@@ -973,12 +973,53 @@ test.describe("Typography scale editing", () => {
     expect(gaps.length).toBeGreaterThan(0);
     for (const gap of gaps) expect(gap).toBe(12);
 
-    await trigger.click();
+    /* Room between the header and the first stack. */
+    const headerRoom = await fonts.evaluate((section) => {
+      const button = section.querySelector("button[aria-expanded]")!;
+      const stack = section.querySelector("section[aria-label$=' stack']")!;
+      return Math.round(
+        stack.getBoundingClientRect().top -
+          button.getBoundingClientRect().bottom,
+      );
+    });
+    expect(headerRoom).toBeGreaterThanOrEqual(12);
+
+    /* It folds over time, not at once: sampled frame by frame after the
+       click, the panel passes through heights between open and shut. The
+       suite runs with motion reduced, so this asks for motion first. */
+    const fold = () =>
+      fonts.evaluate(async (section) => {
+        const button = section.querySelector(
+          "button[aria-expanded]",
+        ) as HTMLButtonElement;
+        const content = button.nextElementSibling as HTMLElement;
+        const full = content.getBoundingClientRect().height;
+        button.click();
+        const seen: number[] = [];
+        for (let frame = 0; frame < 30; frame += 1) {
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+          seen.push(Math.round(content.getBoundingClientRect().height));
+        }
+        return { full, seen };
+      });
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    const eased = await fold();
+    expect(
+      /* Well past the header padding, which eases too: the contents
+         themselves fold, not only the room above them. */
+      eased.seen.some((height) => height > 24 && height < eased.full - 24),
+    ).toBe(true);
+    expect(eased.seen.at(-1)).toBe(0);
     await expect(trigger).toHaveAttribute("aria-expanded", "false");
     await expect(addFont).toBeHidden();
 
     await trigger.click();
     await expect(addFont).toBeVisible();
+
+    /* Asked for less motion, it folds at once. */
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const instant = await fold();
+    expect(instant.seen[0]).toBe(0);
   });
 
   test("adds a font entry and assigns a role to it", async ({

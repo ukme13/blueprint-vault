@@ -1,0 +1,53 @@
+/* A folding panel that opens and closes over time rather than at once.
+
+   Astryx's Collapsible hides its content with display: none when closed,
+   which cannot be animated. Here the content stays laid out and its one
+   child eases between no height and its own, as a grid row from 0fr to
+   1fr. Closed is read from the trigger beside it, whose aria-expanded is
+   the state. Once folded, the content is also visibility: hidden, after
+   the fold has played, so a keyboard and a screen reader skip it as they
+   did before. */
+
+.smooth :global(.astryx-collapsible-content) {
+  display: grid;
+  grid-template-rows: 1fr;
+  /* Room under the header, on the box that folds, so it folds with it:
+     padding on the child inside would stay when the row shrank. The
+     group below pads its own foot. */
+  padding-block: var(--spacing-3) 0;
+  visibility: visible;
+  transition:
+    grid-template-rows var(--duration-medium, 200ms) var(--ease-standard, ease),
+    padding-block var(--duration-medium, 200ms) var(--ease-standard, ease),
+    visibility 0s linear 0s;
+}
+
+.smooth
+  :global(.astryx-collapsible-trigger[aria-expanded="false"])
+  + :global(.astryx-collapsible-content) {
+  grid-template-rows: 0fr;
+  /* Astryx pads the content box; that folds away too, or a closed panel
+     would keep a strip of empty space. */
+  padding-block: 0;
+  visibility: hidden;
+  /* Hidden only once the fold has finished, so it can be seen closing. */
+  transition:
+    grid-template-rows var(--duration-medium, 200ms) var(--ease-standard, ease),
+    padding-block var(--duration-medium, 200ms) var(--ease-standard, ease),
+    visibility 0s linear var(--duration-medium, 200ms);
+}
+
+/* The row can only shrink below its content when the child lets it. Clip
+   rather than hidden, with a margin, so a focus ring or a selected row's
+   outline just outside the child still shows when the panel is open. */
+.smooth :global(.astryx-collapsible-content) > * {
+  min-height: 0;
+  overflow: clip;
+  overflow-clip-margin: var(--spacing-1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .smooth :global(.astryx-collapsible-content) {
+    transition: none !important;
+  }
+}
