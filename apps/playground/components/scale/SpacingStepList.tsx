@@ -1,5 +1,6 @@
 "use client";
 
+import { Collapsible } from "@astryxdesign/core/Collapsible";
 import {
   SegmentedControl,
   SegmentedControlItem,
@@ -40,10 +41,12 @@ export function SpacingStepList({
   return (
     <section
       aria-label="Generated spacing steps"
-      className={styles.settingGroup}
+      className={`${styles.settingGroup} ${styles.stepList}`}
     >
-      <div className={styles.stepListHeader}>
-        <h2>Steps</h2>
+      {/* Beside the trigger, not inside it: the trigger is a button, and a
+          control inside a button is one nobody can reach. Kept out when the
+          list is folded, since the unit is still the list's. */}
+      <div className={styles.stepListUnit}>
         <SegmentedControl
           label="Value unit"
           size="sm"
@@ -54,23 +57,28 @@ export function SpacingStepList({
           <SegmentedControlItem label="rem" value="rem" />
         </SegmentedControl>
       </div>
-      <ol className={styles.tokenList}>
-        {resolveSpacingRamp(scale).map((token) => (
-          <SpacingTokenRow
-            key={token.step}
-            isKept={token.kept}
-            isSelected={token.kept && token.step === selected?.step}
-            token={token}
-            unit={preview.unit}
-            onSelect={() =>
-              onPreviewChange({
-                slots: { ...preview.slots, [activeSlot]: token.step },
-              })
-            }
-            onToggleKept={() => onToggleStep(token.step)}
-          />
-        ))}
-      </ol>
+      <Collapsible
+        defaultIsOpen
+        trigger={<span className={styles.groupTrigger}>Steps</span>}
+      >
+        <ol className={styles.tokenList}>
+          {resolveSpacingRamp(scale).map((token) => (
+            <SpacingTokenRow
+              key={token.step}
+              isKept={token.kept}
+              isSelected={token.kept && token.step === selected?.step}
+              token={token}
+              unit={preview.unit}
+              onSelect={() =>
+                onPreviewChange({
+                  slots: { ...preview.slots, [activeSlot]: token.step },
+                })
+              }
+              onToggleKept={() => onToggleStep(token.step)}
+            />
+          ))}
+        </ol>
+      </Collapsible>
     </section>
   );
 }

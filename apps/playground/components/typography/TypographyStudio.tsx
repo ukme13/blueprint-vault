@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
+import { Collapsible } from "@astryxdesign/core/Collapsible";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
 import {
   SegmentedControl,
@@ -517,79 +518,87 @@ export function TypographyStudio() {
           onRatioChange={handleDeviceRatio}
         />
 
-        <div className={styles.settingGroup}>
-          <h2>Fonts</h2>
-          {system.fonts.map((font) => (
-            <FontStackEditor
-              key={font.id}
-              canRemove={system.fonts.length > 1}
-              font={font}
-              onPick={(slot, family, generic) => {
-                /* Picking a Google family for a slot that held a file
-                       leaves those bytes referenced by nothing — and only
-                       that slot's, since the other one may still point at
-                       its own. */
-                if (isLocalSlot(font, slot)) {
-                  void forgetFontSlot(font.id, slot);
-                  setFontFileRevision((current) => current + 1);
-                }
-                setGoogleFont(font.id, slot, family, generic);
-              }}
-              onRemove={() => {
-                void forgetFontEntry(font.id);
-                removeFont(font.id);
-              }}
-              onRemoveSlot={(slot) => {
-                /* The file goes first, then the ones behind it follow
-                       their family forward a slot. Both before the state
-                       change, so a reload mid-way finds files under the keys
-                       the stored stack names — and in this order, because
-                       moving into the slot being emptied would overwrite the
-                       file that is on its way out. */
-                const moves = fallbackFileMoves(font, slot);
-                if (isLocalSlot(font, slot) || moves.length > 0) {
-                  void forgetFontSlot(font.id, slot)
-                    .then(() =>
-                      Promise.all(
-                        moves.map((move) =>
-                          moveLocalFont(font.id, move.from, move.to),
-                        ),
-                      ),
-                    )
-                    .then(() => setFontFileRevision((current) => current + 1));
-                }
-                removeFontSlot(font.id, slot);
-              }}
-              fileStatus={(slot) =>
-                localFontStatus.get(localFontKey(font.id, slot)) ?? "checking"
-              }
-              uploadError={(slot) =>
-                uploadErrors[localFontKey(font.id, slot)] ?? ""
-              }
-              onRename={(name) => renameFont(font.id, name)}
-              onUpload={(slot, file) => {
-                void storeLocalFont(font.id, slot, file).then((result) => {
-                  setUploadErrors((current) => ({
-                    ...current,
-                    [localFontKey(font.id, slot)]: result.rejected ?? "",
-                  }));
-                  if (!result.family) return;
-                  setLocalFont(font.id, slot, result.family);
-                  setFontFileRevision((current) => current + 1);
-                });
-              }}
-            />
-          ))}
-          <Button
-            className={styles.addEntryButton}
-            scheme="primary"
-            size="medium"
-            variant="contained"
-            onClick={addFont}
+        {/* A section named for its trigger: the heading it had cannot sit
+            inside the trigger, which is a button. */}
+        <section aria-label="Fonts" className={styles.settingGroup}>
+          <Collapsible
+            defaultIsOpen
+            trigger={<span className={styles.groupTrigger}>Fonts</span>}
           >
-            Add font
-          </Button>
-        </div>
+            {system.fonts.map((font) => (
+              <FontStackEditor
+                key={font.id}
+                canRemove={system.fonts.length > 1}
+                font={font}
+                onPick={(slot, family, generic) => {
+                  /* Picking a Google family for a slot that held a file
+                         leaves those bytes referenced by nothing — and only
+                         that slot's, since the other one may still point at
+                         its own. */
+                  if (isLocalSlot(font, slot)) {
+                    void forgetFontSlot(font.id, slot);
+                    setFontFileRevision((current) => current + 1);
+                  }
+                  setGoogleFont(font.id, slot, family, generic);
+                }}
+                onRemove={() => {
+                  void forgetFontEntry(font.id);
+                  removeFont(font.id);
+                }}
+                onRemoveSlot={(slot) => {
+                  /* The file goes first, then the ones behind it follow
+                         their family forward a slot. Both before the state
+                         change, so a reload mid-way finds files under the keys
+                         the stored stack names — and in this order, because
+                         moving into the slot being emptied would overwrite the
+                         file that is on its way out. */
+                  const moves = fallbackFileMoves(font, slot);
+                  if (isLocalSlot(font, slot) || moves.length > 0) {
+                    void forgetFontSlot(font.id, slot)
+                      .then(() =>
+                        Promise.all(
+                          moves.map((move) =>
+                            moveLocalFont(font.id, move.from, move.to),
+                          ),
+                        ),
+                      )
+                      .then(() =>
+                        setFontFileRevision((current) => current + 1),
+                      );
+                  }
+                  removeFontSlot(font.id, slot);
+                }}
+                fileStatus={(slot) =>
+                  localFontStatus.get(localFontKey(font.id, slot)) ?? "checking"
+                }
+                uploadError={(slot) =>
+                  uploadErrors[localFontKey(font.id, slot)] ?? ""
+                }
+                onRename={(name) => renameFont(font.id, name)}
+                onUpload={(slot, file) => {
+                  void storeLocalFont(font.id, slot, file).then((result) => {
+                    setUploadErrors((current) => ({
+                      ...current,
+                      [localFontKey(font.id, slot)]: result.rejected ?? "",
+                    }));
+                    if (!result.family) return;
+                    setLocalFont(font.id, slot, result.family);
+                    setFontFileRevision((current) => current + 1);
+                  });
+                }}
+              />
+            ))}
+            <Button
+              className={styles.addEntryButton}
+              scheme="primary"
+              size="medium"
+              variant="contained"
+              onClick={addFont}
+            >
+              Add font
+            </Button>
+          </Collapsible>
+        </section>
       </div>
 
       <div

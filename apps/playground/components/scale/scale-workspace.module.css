@@ -240,7 +240,8 @@
   gap: 20px;
 }
 
-.settingGroup h2 {
+.settingGroup h2,
+.groupTrigger {
   margin: 0;
   color: var(--color-fg-muted);
   font-size: 11px;
@@ -264,11 +265,17 @@
 
 /* Above the rows, at their right: the unit their values are written in. */
 /* The list's heading, with the unit its values are written in beside it. */
-.stepListHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-2);
+/* The steps: a folding list with its unit switch at the top right, level
+   with the trigger and laid over its row's far end. */
+.stepList {
+  position: relative;
+}
+
+.stepListUnit {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
 }
 
 .tokenRow {

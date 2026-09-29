@@ -936,6 +936,25 @@ test.describe("Typography scale editing", () => {
       .toMatch(/Kanit/);
   });
 
+  test("folds the Fonts panel from its trigger, open to start", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const fonts = settings.getByRole("region", { name: "Fonts" });
+    const trigger = fonts.getByRole("button", { name: "Fonts" });
+    const addFont = fonts.getByRole("button", { name: "Add font" });
+
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await expect(addFont).toBeVisible();
+
+    await trigger.click();
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect(addFont).toBeHidden();
+
+    await trigger.click();
+    await expect(addFont).toBeVisible();
+  });
+
   test("adds a font entry and assigns a role to it", async ({
     seededPage: page,
   }) => {
