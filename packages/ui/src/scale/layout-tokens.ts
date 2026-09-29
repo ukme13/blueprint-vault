@@ -83,6 +83,21 @@ export const DEFAULT_LAYOUT_TOKENS: readonly LayoutToken[] = [
     byDevice: { phone: "16", tablet: "16", desktop: "16" },
   },
   {
+    id: "inset-control-x",
+    name: "Control inline inset",
+    description: "Horizontal padding for buttons and inputs.",
+    kind: "spacing",
+    byDevice: { phone: "3", tablet: "4", desktop: "4" },
+  },
+  {
+    id: "inset-control-y",
+    name: "Control block inset",
+    description: "Vertical padding for buttons and inputs.",
+    kind: "spacing",
+    /* Step 1.5, named as its variable is: --spacing-1-5. */
+    byDevice: { phone: "1-5", tablet: "2", desktop: "2" },
+  },
+  {
     id: "radius-surface",
     name: "Surface radius",
     description: "Cards, panels, and other large surfaces.",

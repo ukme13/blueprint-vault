@@ -2018,9 +2018,15 @@ test.describe("Layout uses", () => {
       uses.locator('tr:has([data-token="gap-section"]) code'),
       uses.locator('tr:has([data-token="inset-container"]) code'),
     );
+    /* A control's two insets keep their places after them. */
     await expect
       .poll(() => rowIds(uses))
-      .toEqual(["gap-section", "inset-container"]);
+      .toEqual([
+        "gap-section",
+        "inset-container",
+        "inset-control-x",
+        "inset-control-y",
+      ]);
   });
 
   test("cell fields bind a spacing step or a typed px", async ({

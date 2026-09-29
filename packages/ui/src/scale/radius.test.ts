@@ -6,6 +6,7 @@ import {
   RADIUS_FULL_PX,
   defaultRadiusScale,
   normalizeRadiusScale,
+  RADIUS_COMPOSITES,
   radiusCssVariables,
   resolveRadius,
   type RadiusScale,
@@ -217,8 +218,19 @@ describe("radiusCssVariables", () => {
        corner should not. */
     const variables = radiusCssVariables(defaultRadiusScale());
     expect(variables["--radius-element"]).toBe("8px");
+    /* Every sized corner is px. The directional composites are those
+       corners combined, var() and all, so they are px underneath. */
+    const composites = RADIUS_COMPOSITES.map(({ variable }) => variable);
     expect(
-      Object.values(variables).every((value) => value.endsWith("px")),
+      Object.entries(variables)
+        .filter(([name]) => !composites.includes(name))
+        .every(([, value]) => value.endsWith("px")),
     ).toBe(true);
+    expect(variables["--radius-sheet"]).toBe(
+      "var(--radius-container) var(--radius-container) 0 0",
+    );
+    expect(variables["--radius-tab"]).toBe(
+      "var(--radius-element) var(--radius-element) 0 0",
+    );
   });
 });

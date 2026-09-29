@@ -44,6 +44,28 @@ import { ROOT_FONT_SIZE_PX, type TypeScaleUnit } from "./types";
  * somebody names a role "Body Large" and the two disagree about the hyphen.
  * A developer copying a name off the page has to get the one in their file.
  */
+/**
+ * The five weights every export names, as primitives: the scale a role's
+ * weight is read against. A role still carries its own number; these are
+ * the names for a component to reach for, and in a Tailwind `@theme` they
+ * are also the `font-light` … `font-bold` utilities.
+ */
+export const STANDARD_FONT_WEIGHTS = {
+  light: 300,
+  regular: 400,
+  medium: 500,
+  semibold: 600,
+  bold: 700,
+} as const;
+
+/** `--font-weight-light: 300` and the rest, as name and value pairs. */
+function fontWeightTokens(): [string, string][] {
+  return Object.entries(STANDARD_FONT_WEIGHTS).map(([name, weight]) => [
+    `--font-weight-${name}`,
+    String(weight),
+  ]);
+}
+
 export function typeTokenId(value: string): string {
   return value
     .trim()
@@ -249,7 +271,11 @@ function sharedLines(
     ];
   });
 
-  return [...fonts, ...steps, ...perRole];
+  const weights = fontWeightTokens().map(
+    ([name, value]) => `  ${name}: ${value};`,
+  );
+
+  return [...fonts, ...weights, ...steps, ...perRole];
 }
 
 /**
@@ -383,6 +409,10 @@ export function typeCssVariablesForDevice(
     vars[`--font-family-${typeTokenId(font.id)}`] = cssFamilyStack(
       font.families,
     );
+  }
+
+  for (const [name, value] of fontWeightTokens()) {
+    vars[name] = value;
   }
 
   for (const step of desktopSteps) {
