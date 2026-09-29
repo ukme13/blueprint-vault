@@ -1434,7 +1434,29 @@
   list-style: none;
 }
 
-/* The row the arrow keys are on, drawn as the list's hover. */
-.fontPickerList > [data-active] {
-  background: var(--color-surface-subtle);
+/* Rows lit with Astryx's own menu overlay rather than the selector's
+   surface-subtle, which the studio's tokens resolve near-black inside this
+   panel. Translucent, so it reads the same on whatever the popover sits on.
+   The row the arrow keys are on is drawn as the hover. */
+.fontPicker .fontPickerList > [role="option"][data-index]:hover,
+.fontPicker .fontPickerList > [role="option"][data-active],
+.fontPicker .fontPickerList > [role="option"][aria-selected="true"],
+.fontPicker .fontPickerUpload.fontPickerUpload:hover {
+  background: var(--color-overlay-hover);
+}
+
+/* Divides uploading from the catalogue under it: a line the width of the
+   list, with the list's own gap halved on either side. */
+.fontPickerUpload {
+  position: relative;
+}
+
+.fontPickerUpload::after {
+  content: "";
+  position: absolute;
+  right: calc(-1 * var(--spacing-2));
+  bottom: calc(-1 * var(--spacing-2));
+  left: calc(-1 * var(--spacing-2));
+  height: var(--border-width);
+  background: var(--color-border-subtle);
 }

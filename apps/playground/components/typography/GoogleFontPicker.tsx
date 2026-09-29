@@ -90,7 +90,7 @@ export function GoogleFontPicker({
     /* The standard selector popover, as SelectorOptionList draws it: a
        borderless search over a line the width of the panel, then the list
        running to the edges below it. */
-    <section className="flex flex-col">
+    <section className={`${styles.fontPicker} flex flex-col`}>
       {labelTooltip ? (
         <p
           className={`${styles.fontPickerNote} border-b border-border-subtle px-4 py-3`}
@@ -149,7 +149,11 @@ export function GoogleFontPicker({
       <div className={list.list} data-density="compact">
         {/* Pinned at the top of the list: no search filters it away. */}
         {uploadLabel ? (
-          <button className={list.option} type="button" onClick={onUpload}>
+          <button
+            className={`${list.option} ${styles.fontPickerUpload}`}
+            type="button"
+            onClick={onUpload}
+          >
             <FileUp aria-hidden className={styles.fontUploadRowIcon} />
             <span className={list.optionLabel}>
               {uploadLabel}{" "}
