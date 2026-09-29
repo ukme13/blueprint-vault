@@ -24,7 +24,8 @@ interface PopoverOrSheetProps {
   width: number;
   className?: string;
   /**
-   * No padding on the popover, and no focus moved into it: for a panel whose
+   * No padding on the popover or the sheet (which still clears its handle),
+   * and no focus moved into the popover: for a panel whose
    * header and list run to its edges and that focuses its own search.
    */
   isFlush?: boolean;
@@ -68,6 +69,7 @@ export function PopoverOrSheet({
         <Sheet
           isOpen={isOpen}
           label={label}
+          padding={isFlush ? "flush" : "content"}
           onClose={() => onOpenChange(false)}
         >
           {panel}
