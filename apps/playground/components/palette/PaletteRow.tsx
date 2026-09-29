@@ -116,6 +116,7 @@ export function PaletteRow({
             key={shade.weight}
             paletteName={palette.name}
             shade={shade}
+            sourceHex={palette.seedHex}
             isSelected={isSelected}
             hasPopover={hasShadePopovers}
             contrastReferenceHex={contrastReferenceHex}

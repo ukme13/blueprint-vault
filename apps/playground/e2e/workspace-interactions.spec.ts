@@ -1,6 +1,58 @@
-import { defaultProject, expect, test } from "./fixtures";
+import { defaultProject, expect, readStoredWorkspace, test } from "./fixtures";
 
 test.describe("Shade details", () => {
+  test("keeps editing the source when a new lightness moves it", async ({
+    seededPage: page,
+  }) => {
+    /* A darker or lighter seed moves the source to another weight. The
+       popover stays on the weight it opened on, and its next pick once
+       landed there as a manual override, with Manual and Reset beside it. */
+    const source = page
+      .getByRole("button", { name: /^Select secondary / })
+      .filter({ has: page.getByLabel("Source colour") });
+    const label = await source.getAttribute("aria-label");
+    const weight = /^Select secondary (\d+),/.exec(label!)![1]!;
+    await source.click();
+    const details = page.getByRole("dialog", {
+      name: `secondary ${weight} shade details`,
+    });
+    /* Two picks, the picker reopened between them: the first moves the
+       source off this weight, the second is the one that went astray. */
+    for (const hex of ["#17dfcc", "#12c9b7"]) {
+      await details
+        .getByRole("button", { name: `Edit secondary ${weight} colour` })
+        .click();
+      // Still the source, on the weight it opened on.
+      const field = page.getByLabel(
+        `secondary ${weight} source shade colour HEX value`,
+      );
+      await field.fill(hex);
+      await field.press("Enter");
+      await expect(field).toBeHidden();
+    }
+
+    await expect(
+      details.getByRole("region", { name: "Shade edit controls" }),
+    ).toHaveCount(0);
+    await expect(
+      page
+        .getByRole("button", { name: /^Select secondary / })
+        .getByLabel("Manual colour"),
+    ).toHaveCount(0);
+    await expect
+      .poll(async () => {
+        const stored = await readStoredWorkspace(page);
+        const track = stored?.palette?.tracks.find(
+          (each: { id: string }) => each.id === "secondary",
+        );
+        return {
+          seed: track?.seedHex.toLowerCase(),
+          manual: Object.keys(track?.adjustments?.manualOverrides ?? {}),
+        };
+      })
+      .toEqual({ seed: "#12c9b7", manual: [] });
+  });
+
   test("swaps the contrast sample, and sets the grades in the text face", async ({
     seededPage: page,
   }) => {

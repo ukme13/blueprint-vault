@@ -11,6 +11,8 @@ import styles from "./palette-workspace.module.css";
 interface PaletteShadeProps {
   paletteName: string;
   shade: ShadeItem;
+  /** The track's seed: the source shade's colour, wherever it sits. */
+  sourceHex: string;
   isSelected: boolean;
   contrastReferenceHex?: string;
   wcagComparisonHex: string;
@@ -25,6 +27,7 @@ interface PaletteShadeProps {
 
 export function PaletteShade({
   paletteName,
+  sourceHex,
   shade,
   isSelected,
   contrastReferenceHex,
@@ -163,8 +166,12 @@ export function PaletteShade({
       width={300}
       content={
         <ShadeDetailPopover
+          /* A fresh popover each time it opens: it remembers whether it was
+             opened on the source shade. */
+          key={isSelected ? "open" : "closed"}
           paletteName={paletteName}
           shade={shade}
+          sourceHex={sourceHex}
           comparisonHex={wcagComparisonHex}
           comparisonLabel={wcagComparisonLabel}
           onAnchorChange={onAnchorChange}
