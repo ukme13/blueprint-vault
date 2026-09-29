@@ -26,23 +26,31 @@ export function PresetGallery({
   onPresetChange: (presetId: string) => void;
 }) {
   return (
-    <fieldset className={styles.gallery}>
-      <legend className={styles.galleryLegend}>
+    /* A labelled group rather than a fieldset: a legend cannot be the bar
+       across the column's top that the details panel has beside it. */
+    <div
+      aria-labelledby="preset-gallery-title"
+      className={styles.gallery}
+      role="group"
+    >
+      <div className={styles.columnHead} id="preset-gallery-title">
         <Text type="supporting" weight="semibold">
           Starting point
         </Text>
-      </legend>
-      <div className={styles.galleryGrid}>
-        {WORKSPACE_PRESETS.map((preset) => (
-          <PresetCard
-            key={preset.id}
-            isSelected={preset.id === presetId}
-            preset={preset}
-            onSelect={() => onPresetChange(preset.id)}
-          />
-        ))}
       </div>
-    </fieldset>
+      <div className={styles.galleryScroll}>
+        <div className={styles.galleryGrid}>
+          {WORKSPACE_PRESETS.map((preset) => (
+            <PresetCard
+              key={preset.id}
+              isSelected={preset.id === presetId}
+              preset={preset}
+              onSelect={() => onPresetChange(preset.id)}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 

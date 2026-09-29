@@ -190,7 +190,11 @@ test.describe("Project presets", () => {
           .getBoundingClientRect();
         return {
           level: Math.abs(box.bottom - panel.bottom) <= 1,
-          overflow: Math.max(0, node.scrollHeight - node.clientHeight),
+          /* The cards scroll beneath the gallery's title bar. */
+          overflow: (() => {
+            const scroller = node.querySelector("[class*=galleryScroll]")!;
+            return Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+          })(),
           inside: [...node.querySelectorAll("label")].every((card) => {
             const each = card.getBoundingClientRect();
             return each.bottom <= dialogBox.bottom;
@@ -250,5 +254,50 @@ test.describe("Project presets", () => {
       );
     });
     expect(Math.round(room)).toBeGreaterThanOrEqual(8);
+  });
+
+  test("heads both columns with one bar, and runs card pictures to the edge", async ({
+    page,
+  }) => {
+    await page.getByRole("button", { name: "New project" }).click();
+    const dialog = page.getByRole("dialog", { name: "New project" });
+    const layout = await dialog.evaluate((node) => {
+      const heads = [...node.querySelectorAll("[class*=columnHead]")];
+      const box = (element: Element) => element.getBoundingClientRect();
+      const [left, right] = heads.map(box);
+      const galleryBox = box(heads[0]!.parentElement!);
+      const panel = heads[1]!.parentElement!;
+      const panelBox = box(panel);
+      const panelBorder = parseFloat(getComputedStyle(panel).borderLeftWidth);
+      const card = node.querySelector("label")!;
+      const thumb = card.querySelector("[class*=presetThumb]")!;
+      const text = card.querySelector("[class*=presetText]")!;
+      const cardCss = getComputedStyle(card);
+      const border = parseFloat(cardCss.borderTopWidth);
+      return {
+        heads: heads.map((head) => head.textContent),
+        level: Math.round(left!.top) === Math.round(right!.top),
+        sameHeight: Math.round(left!.height) === Math.round(right!.height),
+        edgeToEdge:
+          Math.round(left!.left) === Math.round(galleryBox.left) &&
+          Math.round(left!.right) === Math.round(galleryBox.right) &&
+          Math.round(right!.left) === Math.round(panelBox.left + panelBorder) &&
+          Math.round(right!.right) === Math.round(panelBox.right),
+        thumbFlush: [
+          box(thumb).top - box(card).top - border,
+          box(thumb).left - box(card).left - border,
+          box(card).right - border - box(thumb).right,
+        ].map(Math.round),
+        namePadded: parseFloat(getComputedStyle(text).paddingLeft) > 0,
+      };
+    });
+    expect(layout).toEqual({
+      heads: ["Starting point", "Preset details"],
+      level: true,
+      sameHeight: true,
+      edgeToEdge: true,
+      thumbFlush: [0, 0, 0],
+      namePadded: true,
+    });
   });
 });

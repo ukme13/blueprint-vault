@@ -27,38 +27,50 @@
 
 /* ---- gallery ---- */
 
+/* Each column's title, as a bar across its top under the dialog's own:
+   the two sit level and read as one secondary header. */
+.columnHead {
+  flex: none;
+  padding: var(--spacing-3) var(--spacing-5);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* The gallery: its title, then the cards, which scroll beneath it. */
 .gallery {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-width: 0;
   min-height: 0;
-  margin: 0;
+}
+
+.galleryScroll {
+  flex: 1;
+  min-height: 0;
   padding: var(--spacing-5);
-  border: 0;
   overflow-y: auto;
 }
 
 /* The two columns' scrollbars, thin and quiet, as the preview's frame
    draws them: the gallery scrolls on a short screen, the details on a
    shorter one. */
-.gallery,
+.galleryScroll,
 .details {
   scrollbar-width: thin;
   scrollbar-color: var(--color-border-default) transparent;
 }
 
-.gallery::-webkit-scrollbar,
+.galleryScroll::-webkit-scrollbar,
 .details::-webkit-scrollbar {
   width: var(--spacing-2);
 }
 
-.gallery::-webkit-scrollbar-track,
+.galleryScroll::-webkit-scrollbar-track,
 .details::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.gallery::-webkit-scrollbar-thumb,
+.galleryScroll::-webkit-scrollbar-thumb,
 .details::-webkit-scrollbar-thumb {
   background: var(--color-border-default);
   background-clip: padding-box;
@@ -66,15 +78,10 @@
   border-radius: var(--radius-full, 9999px);
 }
 
-.gallery::-webkit-scrollbar-thumb:hover,
+.galleryScroll::-webkit-scrollbar-thumb:hover,
 .details::-webkit-scrollbar-thumb:hover {
   background: var(--color-border-strong);
   background-clip: padding-box;
-}
-
-.galleryLegend {
-  margin-bottom: var(--spacing-3);
-  padding: 0;
 }
 
 .galleryGrid {
@@ -88,8 +95,9 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-3);
-  padding: var(--spacing-3);
+  /* The picture runs to the card's top and sides, as a workspace card's
+     does; only the name below it is inset. */
+  overflow: hidden;
   /* Transparent, not none: the picked card's edge takes this same pixel,
      so nothing shifts when the choice moves. */
   border: 1px solid transparent;
@@ -137,7 +145,6 @@
   gap: var(--spacing-3);
   aspect-ratio: 16 / 9;
   padding: var(--spacing-3);
-  border-radius: var(--radius-element);
   background: var(--color-surface-subtle);
 }
 
@@ -174,6 +181,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-1);
+  padding: var(--spacing-3);
 }
 
 /* ---- details ---- */
@@ -187,7 +195,19 @@
   min-height: 0;
   overflow-y: auto;
   padding: var(--spacing-5);
+  padding-top: 0;
   border-left: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-subtle);
+}
+
+/* The panel's title stays at its top as the details scroll under it, on
+   the panel's own ground, edge to edge. */
+.details > .columnHead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  margin-inline: calc(-1 * var(--spacing-5));
+  margin-bottom: var(--spacing-2);
   background: var(--color-surface-subtle);
 }
 

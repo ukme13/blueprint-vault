@@ -34,9 +34,11 @@ export function PresetDetails({
 
   return (
     <aside aria-label="Preset details" className={styles.details}>
-      <Text type="supporting" weight="semibold">
-        Preset details
-      </Text>
+      <div className={styles.columnHead}>
+        <Text type="supporting" weight="semibold">
+          Preset details
+        </Text>
+      </div>
       <TextInput
         label="Project name"
         placeholder={DEFAULT_WORKSPACE_NAME}
