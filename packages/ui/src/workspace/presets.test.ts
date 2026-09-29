@@ -145,12 +145,23 @@ describe("instantiating a preset", () => {
     expect(system.fonts[0]!.families[0]).toBe("Inter");
   });
 
+  it("seeds every preset on the 4px unit the layout uses are written against", () => {
+    /* A layout use is a step number: step 16 is a 64px section gap on 4px.
+       An 8px base doubled every use, and a density on top stretched it
+       further; the preview sprawled. A preset's own rhythm is its steps. */
+    for (const preset of WORKSPACE_PRESETS) {
+      const { spacing } = instantiateWorkspacePreset(preset, "Test");
+      expect([preset.id, spacing.baseUnitPx]).toEqual([preset.id, 4]);
+      expect(spacing.density).toBeLessThanOrEqual(1);
+    }
+  });
+
   it("seeds spacing, radius, the neutral and each frame's ratio", () => {
     const stripe = instantiateWorkspacePreset(
       findWorkspacePreset("stripe")!,
       "Test",
     );
-    expect(stripe.spacing).toMatchObject({ baseUnitPx: 8, density: 1.15 });
+    expect(stripe.spacing).toMatchObject({ baseUnitPx: 4, density: 1 });
     const corner = (id: string) =>
       stripe.radius.tokens.find((token) => token.id === id)!.basePx;
     expect([corner("element"), corner("container")]).toEqual([8, 12]);
