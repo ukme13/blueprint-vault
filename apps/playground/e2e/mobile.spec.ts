@@ -1818,6 +1818,30 @@ test.describe("on a phone", () => {
     expect(layout.halves[0]!).toBeGreaterThan(128);
   });
 
+  test("opens a spacing tag's steps as a sheet on /preview", async ({
+    page,
+  }) => {
+    /* Every choice on a phone is a sheet, the overlay's tags included. */
+    await openPreview(page);
+    await page.getByRole("button", { name: "Show spacing" }).click();
+    await page
+      .getByRole("group", { name: "Spacing overlay" })
+      .getByRole("button", { name: /^Section gap on Phone: \d+px/ })
+      .first()
+      .click();
+    /* Each Section gap tag has a sheet of the same name; the open one is
+       the one whose list shows. */
+    const list = page
+      .getByRole("listbox", { name: "Section gap on Phone" })
+      .filter({ visible: true });
+    await expect(
+      list.getByRole("option", { name: "--spacing-8", exact: true }),
+    ).toBeVisible();
+    expect(
+      await list.evaluate((node) => !!node.closest(".astryx-bottom-sheet")),
+    ).toBe(true);
+  });
+
   test("swipes the shade grid instead of breaking the page", async ({
     seededPage: page,
   }) => {

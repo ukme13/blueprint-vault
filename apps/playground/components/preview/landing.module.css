@@ -1,4 +1,6 @@
 .site {
+  /* The containing block for the spacing overlay laid over the page. */
+  position: relative;
   display: flex;
   min-height: 0;
   flex: 1;

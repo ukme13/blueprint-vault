@@ -1,4 +1,4 @@
-import { expect, test, openTheme } from "./fixtures";
+import { expect, test, openTheme, readStoredWorkspace } from "./fixtures";
 import { openPreview } from "./preview-fixtures";
 import { showScaleView } from "./scale-fixtures";
 
@@ -1298,5 +1298,66 @@ test.describe("The preview follows the radius scale", () => {
 
     await expect.poll(() => signUpRadius(page)).toBe("9999px");
     await expect.poll(() => starterPlanRadius(page)).toBe("28px");
+  });
+});
+
+test.describe("The preview's spacing overlay", () => {
+  test("marks paddings and gaps, and rebinds a layout use from its tag", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const toggle = page.getByRole("button", { name: "Show spacing" });
+    const overlay = page.getByRole("group", { name: "Spacing overlay" });
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await expect(overlay).toHaveCount(0);
+
+    await toggle.click();
+    await expect(
+      page.getByRole("button", { name: "Hide spacing" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(overlay).toBeVisible();
+
+    /* Both kinds of space are drawn: padding and gaps. */
+    await expect(overlay.locator('[data-kind="inset"]').first()).toBeAttached();
+    await expect(overlay.locator('[data-kind="gap"]').first()).toBeAttached();
+
+    /* The workspace's own uses are tags that open the steps. */
+    const sectionGap = overlay
+      .getByRole("button", { name: /^Section gap on Desktop: \d+px/ })
+      .first();
+    await expect(
+      overlay
+        .getByRole("button", { name: /^Container inset on Desktop: \d+px/ })
+        .first(),
+    ).toBeVisible();
+    await sectionGap.click();
+    await page
+      .getByRole("listbox", { name: "Section gap on Desktop" })
+      .getByRole("option", { name: /--spacing-8\b/ })
+      .click();
+
+    /* Saved on the frame in view, and the page moves with it: the hero's
+       gap is the section gap. */
+    await expect
+      .poll(async () => {
+        const stored = await readStoredWorkspace(page);
+        return stored.layout.find(
+          (token: { id: string }) => token.id === "gap-section",
+        )?.byDevice.desktop;
+      })
+      .toBe("8");
+    const heroGap = await page
+      .locator("[data-frame] section")
+      .first()
+      .evaluate((node) => getComputedStyle(node).rowGap);
+    expect(heroGap).toBe("32px");
+
+    /* Clicks pass through the overlay to the page beneath. */
+    await page.getByRole("heading", { level: 1 }).first().click();
+    await expect(page.getByRole("dialog", { name: "Inspect" })).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    await page.getByRole("button", { name: "Hide spacing" }).click();
+    await expect(overlay).toHaveCount(0);
   });
 });

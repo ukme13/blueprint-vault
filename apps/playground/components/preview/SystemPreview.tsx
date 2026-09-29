@@ -14,6 +14,8 @@ import {
   applyStyleToGroup,
   defaultElevationScale,
   defaultLayoutTokens,
+  setLayoutReference,
+  withLayoutTokens,
   defaultPreviewDevices,
   defaultRadiusScale,
   defaultSpacingScale,
@@ -52,6 +54,7 @@ import { usePaletteView } from "../palette/PaletteViewContext";
 import { useGoogleFontsLink } from "../typography/use-google-fonts";
 import { useLocalFonts } from "../typography/use-local-fonts";
 import { PreviewSite } from "./PreviewSite";
+import { SpacingOverlay } from "../spacing-overlay/SpacingOverlay";
 
 const EMPTY_TOKENS: never[] = [];
 const EMPTY_PALETTES: never[] = [];
@@ -79,6 +82,8 @@ export function SystemPreview() {
   const { resolved: mode } = useThemeMode();
   const canvasRef = useRef<HTMLDivElement>(null);
   const [deviceId, setDeviceId] = useState("desktop");
+  /* The spacing overlay: a way of looking, so not saved and not undone. */
+  const [showSpacing, setShowSpacing] = useState(false);
   const [inspecting, setInspecting] = useState<InspectTarget | null>(null);
   const [sectionError, setSectionError] = useState<PreviewImageError | null>(
     null,
@@ -381,13 +386,37 @@ export function SystemPreview() {
             setInspecting({ source: "section", id });
           }}
           onSectionFill={patchSectionFill}
-        />
+        >
+          {showSpacing ? (
+            <SpacingOverlay
+              deviceId={frame.id}
+              deviceName={frame.name}
+              layout={project?.layout ?? defaultLayoutTokens()}
+              spacing={project?.spacing ?? defaultSpacingScale()}
+              onRebind={(use, step) =>
+                update((current) =>
+                  withLayoutTokens(
+                    current,
+                    setLayoutReference(
+                      current?.layout ?? defaultLayoutTokens(),
+                      use,
+                      frame.id,
+                      step,
+                    ),
+                  ),
+                )
+              }
+            />
+          ) : null}
+        </PreviewSite>
       }
       device={frame}
       devices={devices}
       mode={mode}
       onDeviceChange={onDeviceChange}
+      showSpacing={showSpacing}
       onResetToDefault={resetAllToDefault}
+      onShowSpacingChange={setShowSpacing}
     >
       <PreviewInspector
         block={inspectedBlock}
