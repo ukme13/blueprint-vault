@@ -6,8 +6,65 @@ import {
 } from "@blueprint/ui";
 import styles from "../preview/landing.module.css";
 
-/** The layout uses the landing reads, the two a badge can rebind. */
-export type LayoutUseId = "inset-container" | "gap-section";
+/** The layout uses the landing reads: the ones a badge can rebind. */
+export type LayoutUseId =
+  "inset-container" | "gap-section" | "gap-grid" | "gap-nav" | "inset-card";
+
+/**
+ * Which use pads an element, by its landing class, and on which sides: a
+ * wrap's inset is its inline padding, a page band's is its block padding,
+ * a card's is all four.
+ */
+const INSET_USES: readonly {
+  classes: readonly (string | undefined)[];
+  use: LayoutUseId;
+  axis: "inline" | "block" | "both";
+}[] = [
+  {
+    classes: [styles.wrap, styles.navInner],
+    use: "inset-container",
+    axis: "inline",
+  },
+  { classes: [styles.footer], use: "gap-section", axis: "block" },
+  { classes: [styles.card, styles.plan], use: "inset-card", axis: "both" },
+];
+
+/** Which use spaces an element's children, by its landing class. */
+const GAP_USES: readonly {
+  classes: readonly (string | undefined)[];
+  use: LayoutUseId;
+}[] = [
+  { classes: [styles.hero, styles.split], use: "gap-section" },
+  { classes: [styles.cols], use: "gap-grid" },
+  { classes: [styles.navInner, styles.navLinks], use: "gap-nav" },
+];
+
+function hasAny(
+  element: Element,
+  classes: readonly (string | undefined)[],
+): boolean {
+  return classes.some((name) => !!name && element.classList.contains(name));
+}
+
+/** The use padding this side of the element, if one does. */
+function insetUseOf(
+  element: HTMLElement,
+  axis: "inline" | "block",
+): LayoutUseId | null {
+  /* A band of the page, directly in main, is padded by Section gap. */
+  if (
+    axis === "block" &&
+    element.parentElement?.classList.contains(styles.main!)
+  ) {
+    return "gap-section";
+  }
+  const match = INSET_USES.find(
+    (each) =>
+      hasAny(element, each.classes) &&
+      (each.axis === "both" || each.axis === axis),
+  );
+  return match?.use ?? null;
+}
 
 export interface SpacingZone {
   key: string;
@@ -33,11 +90,9 @@ function px(value: string): number {
  * the site's own scrolled coordinates, so an overlay laid inside the site
  * scrolls with it.
  *
- * Which layout use a space belongs to is read from the landing's classes:
- * a `.wrap` or the nav's inner row is padded by Container inset; a band of
- * the page, the footer included, is padded by Section gap; the hero and the
- * split sections are spaced by it. Everything else is drawn and tagged, and
- * is not the workspace's to change here.
+ * Which layout use a space belongs to is read from the landing's classes,
+ * in the two tables above. Everything else is drawn and tagged with its
+ * size and step, and is not a layout use.
  */
 export function measureSpacingZones(site: HTMLElement): SpacingZone[] {
   const origin = site.getBoundingClientRect();
@@ -56,15 +111,7 @@ export function measureSpacingZones(site: HTMLElement): SpacingZone[] {
     const rect = element.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
     const box = local(rect);
-    const classes = element.classList;
 
-    const insetUse: LayoutUseId | null =
-      classes.contains(styles.wrap!) || classes.contains(styles.navInner!)
-        ? "inset-container"
-        : element.parentElement?.classList.contains(styles.main!) ||
-            classes.contains(styles.footer!)
-          ? "gap-section"
-          : null;
     const insets = paddingBands(box, {
       top: px(css.paddingTop),
       right: px(css.paddingRight),
@@ -72,15 +119,7 @@ export function measureSpacingZones(site: HTMLElement): SpacingZone[] {
       left: px(css.paddingLeft),
     });
     insets.forEach((band, side) => {
-      /* A wrap's inset is its inline padding; a band's is its block. */
-      const use =
-        insetUse === "inset-container"
-          ? band.axis === "inline"
-            ? insetUse
-            : null
-          : insetUse === "gap-section" && band.axis === "block"
-            ? insetUse
-            : null;
+      const use = insetUseOf(element, band.axis);
       zones.push({
         key: `${index}-inset-${side}`,
         kind: "inset",
@@ -113,10 +152,8 @@ export function measureSpacingZones(site: HTMLElement): SpacingZone[] {
         px(css.paddingRight),
       height: box.height,
     };
-    const gapUse: LayoutUseId | null =
-      classes.contains(styles.hero!) || classes.contains(styles.split!)
-        ? "gap-section"
-        : null;
+    const gapUse =
+      GAP_USES.find((each) => hasAny(element, each.classes))?.use ?? null;
     gapBands(
       content,
       children.map((child) => local(child.getBoundingClientRect())),

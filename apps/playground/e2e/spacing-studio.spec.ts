@@ -1969,9 +1969,16 @@ test.describe("Layout uses", () => {
       uses.locator('tr:has([data-token="gap-section"]) code'),
       uses.locator('tr:has([data-token="inset-container"]) code'),
     );
+    /* The grid, nav and card uses keep their places after them. */
     await expect
       .poll(() => rowIds(uses))
-      .toEqual(["gap-section", "inset-container"]);
+      .toEqual([
+        "gap-section",
+        "inset-container",
+        "gap-grid",
+        "gap-nav",
+        "inset-card",
+      ]);
   });
 
   test("cell fields bind a spacing step or a typed px", async ({

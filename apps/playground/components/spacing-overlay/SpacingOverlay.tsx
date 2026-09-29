@@ -2,16 +2,13 @@
 
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
-import {
-  spacingTokenForPx,
-  type LayoutToken,
-  type SpacingScale,
-} from "@blueprint/ui";
+import { type LayoutToken, type SpacingScale } from "@blueprint/ui";
 import {
   measureSpacingZones,
   type LayoutUseId,
   type SpacingZone,
 } from "./measure-spacing-zones";
+import { SpacingInfoBadge } from "./SpacingInfoBadge";
 import { SpacingUseBadge } from "./SpacingUseBadge";
 import styles from "./spacing-overlay.module.css";
 
@@ -24,7 +21,8 @@ import styles from "./spacing-overlay.module.css";
  * listener. It takes no pointer events itself, so a click still reaches
  * the text beneath it to inspect; only the tags take clicks. A tag on
  * Container inset or Section gap opens the spacing steps and rebinds that
- * use on the frame in view; any other tag says its size and step.
+ * use on the frame in view; any other tag opens what step it is, with the
+ * way to the Spacing studio to change that step's size.
  */
 export function SpacingOverlay({
   spacing,
@@ -96,6 +94,7 @@ export function SpacingOverlay({
               {use ? (
                 <SpacingUseBadge
                   deviceName={deviceName}
+                  name={layout.find((token) => token.id === use)?.name ?? use}
                   px={band.px}
                   spacing={spacing}
                   step={boundStep(use)}
@@ -103,12 +102,7 @@ export function SpacingOverlay({
                   onRebind={onRebind}
                 />
               ) : (
-                <span
-                  className={styles.badge}
-                  title={stepTitle(spacing, band.px)}
-                >
-                  {Math.round(band.px)}px
-                </span>
+                <SpacingInfoBadge px={band.px} spacing={spacing} />
               )}
             </span>
           ) : null}
@@ -116,10 +110,4 @@ export function SpacingOverlay({
       ))}
     </div>
   );
-}
-
-/** A read-only tag's hover: the step it lands on, when it lands on one. */
-function stepTitle(spacing: SpacingScale, px: number): string {
-  const token = spacingTokenForPx(spacing, px);
-  return token ? token.variable : `${Math.round(px)}px, between steps`;
 }

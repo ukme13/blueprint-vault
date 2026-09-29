@@ -1360,4 +1360,57 @@ test.describe("The preview's spacing overlay", () => {
     await page.getByRole("button", { name: "Hide spacing" }).click();
     await expect(overlay).toHaveCount(0);
   });
+
+  test("rebinds the grid gap and card inset, and explains other spaces", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await page.getByRole("button", { name: "Show spacing" }).click();
+    const overlay = page.getByRole("group", { name: "Spacing overlay" });
+    const stored = async (id: string) =>
+      (await readStoredWorkspace(page)).layout.find(
+        (token: { id: string }) => token.id === id,
+      )?.byDevice.desktop;
+    const style = (selector: string, property: "rowGap" | "paddingTop") =>
+      page
+        .locator(`[data-frame] ${selector}`)
+        .first()
+        .evaluate(
+          (node, name) => getComputedStyle(node)[name as "rowGap"],
+          property,
+        );
+    const pick = async (use: string, step: string) => {
+      await overlay
+        .getByRole("button", {
+          name: new RegExp(`^${use} on Desktop: \\d+px`),
+        })
+        .first()
+        .click();
+      await page
+        .getByRole("listbox", { name: `${use} on Desktop` })
+        .filter({ visible: true })
+        .getByRole("option", { name: `--spacing-${step}`, exact: true })
+        .click();
+    };
+    const grid = '[class*="cols"]';
+    const card = "article";
+
+    /* Grid gap between the feature cards: 32px by default on a desktop. */
+    await expect.poll(() => style(grid, "rowGap")).toBe("32px");
+    await pick("Grid gap", "4");
+    await expect.poll(() => stored("gap-grid")).toBe("4");
+    await expect.poll(() => style(grid, "rowGap")).toBe("16px");
+
+    /* Card inset: 24px by default, then the step picked. */
+    await expect.poll(() => style(card, "paddingTop")).toBe("24px");
+    await pick("Card inset", "8");
+    await expect.poll(() => stored("inset-card")).toBe("8");
+    await expect.poll(() => style(card, "paddingTop")).toBe("32px");
+
+    /* A space no use sizes says which step it is, and where to tune it. */
+    await overlay.locator("button[data-info]").first().click();
+    await expect(
+      page.getByRole("link", { name: /^Tune --spacing-[\w-]+ in Spacing$/ }),
+    ).toBeVisible();
+  });
 });

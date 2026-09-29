@@ -11,18 +11,14 @@ import { SelectorOptionList } from "../SelectorOptionList";
 import type { LayoutUseId } from "./measure-spacing-zones";
 import styles from "./spacing-overlay.module.css";
 
-const USE_NAME: Record<LayoutUseId, string> = {
-  "inset-container": "Container inset",
-  "gap-section": "Section gap",
-};
-
 /**
- * A size tag on a space the workspace sizes: Container inset or Section
- * gap. A click opens the spacing steps, as a popover or, on a phone, a
+ * A size tag on a space a layout use sizes: Container inset, Section gap,
+ * Grid gap, Navigation gap or Card inset. A click opens the spacing steps, as a popover or, on a phone, a
  * sheet, and the pick rebinds that use on the frame being previewed.
  */
 export function SpacingUseBadge({
   use,
+  name,
   px,
   step,
   spacing,
@@ -30,6 +26,8 @@ export function SpacingUseBadge({
   onRebind,
 }: {
   use: LayoutUseId;
+  /** The use's own name, as the Uses table shows it. */
+  name: string;
   px: number;
   /** The step the use is bound to on this frame, when it is a step. */
   step: string | undefined;
@@ -39,7 +37,7 @@ export function SpacingUseBadge({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const label = `${USE_NAME[use]} on ${deviceName}`;
+  const label = `${name} on ${deviceName}`;
   const options = resolveSpacing(spacing).map((token) => ({
     value: spacingStepName(token.step),
     label: token.variable,

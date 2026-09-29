@@ -805,6 +805,9 @@ describe("preview devices live on the workspace", () => {
     expect(next.layout.map((token) => token.id)).toEqual([
       "inset-container",
       "gap-section",
+      "gap-grid",
+      "gap-nav",
+      "inset-card",
       "radius-surface",
       "radius-button",
       "radius-input",
