@@ -1,0 +1,36 @@
+/* A full-bleed scroller: on a phone, a sideways scroll that runs past its
+   parent's side padding to the edge, and pads itself by the same gutter, so
+   its content scrolls out to the edge rather than being cut at a margin, yet
+   starts and ends clear of it.
+
+   The gutter is the parent's side padding, given by the caller as
+   --bleed-gutter. The content has to be as wide as it looks (a table with
+   fixed columns, a grid with a width), so the end gutter is scrolled to. */
+@media (max-width: 640px) {
+  /* Doubled: it has to win over the scroller's own padding, whichever
+     stylesheet loads last. */
+  .bleed.bleed {
+    /* Wider than the parent by both gutters; a max-width of 100% would
+       hold it to the parent and leave the far side unbled. */
+    max-width: none;
+    margin-inline: calc(-1 * var(--bleed-gutter));
+    padding-inline: var(--bleed-gutter);
+    scroll-padding-inline: var(--bleed-gutter);
+  }
+}
+
+/* An Astryx Table scrolls in a box of its own, inside this one's padding,
+   so on its own it was cut at the gutter. That inner box takes the bleed
+   too: back out over this one's padding to the edge, padded by the same
+   gutter. */
+@media (max-width: 640px) {
+  .bleed.bleed :global(.astryx-table-scroll-wrapper) {
+    /* Astryx sizes it at 100%, so the margins alone would shift it, not
+       widen it. */
+    width: calc(100% + 2 * var(--bleed-gutter));
+    max-width: none;
+    margin-inline: calc(-1 * var(--bleed-gutter));
+    padding-inline: var(--bleed-gutter);
+    scroll-padding-inline: var(--bleed-gutter);
+  }
+}

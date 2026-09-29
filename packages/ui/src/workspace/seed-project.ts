@@ -1,10 +1,20 @@
 import type { ColorTrackInput } from "../color/types";
-import { defaultElevationScale } from "../scale/elevation";
+import {
+  defaultElevationScale,
+  normalizeElevationScale,
+  type ElevationScale,
+} from "../scale/elevation";
 import { defaultLayoutTokens } from "../scale/layout-tokens";
-import { defaultRadiusScale } from "../scale/radius";
+import {
+  defaultRadiusScale,
+  normalizeRadiusScale,
+  type RadiusToken,
+} from "../scale/radius";
 import {
   defaultSpacingPreviewSettings,
   defaultSpacingScale,
+  normalizeSpacingScale,
+  type SpacingScale,
 } from "../scale/spacing";
 import { defaultPreviewDevices } from "../typography/preview-devices";
 import {
@@ -16,6 +26,10 @@ import { seedPreviewSections } from "../typography/preview-sections";
 import { ROOT_FONT_SIZE_PX } from "../typography/types";
 import { defaultSystem } from "../typography/system";
 import { splitFontFamily } from "../typography/migrate";
+import {
+  applyTypeRolePreset,
+  type TypeRolePresetId,
+} from "../typography/role-presets";
 import { defaultLightnessValues } from "./palette-project";
 import { semanticsForPalette } from "./semantics";
 import { normalizeButtonSchemes } from "../button-tones";
@@ -64,24 +78,40 @@ export const SEED_PALETTE_TRACKS: readonly ColorTrackInput[] = [
   { id: "info", name: "info", seedHex: "#2878b8" },
 ];
 
+/** A seed per track a starting system sets, by track id. */
+export type SeedPaletteTracksOverride = Partial<
+  Record<
+    | "primary"
+    | "secondary"
+    | "neutral"
+    | "success"
+    | "warning"
+    | "error"
+    | "info",
+    string
+  >
+>;
+
 /**
- * The seven tracks, with the two brand colours moved onto chosen seeds.
+ * The seven tracks, each on a chosen seed where one is given.
  *
- * Both are the person's to choose. `secondary` is not a shade of `primary`
- * or a derived complement: it is a second brand colour, and a system that
- * derived it would be inventing a decision that belongs to whoever owns the
- * brand. It defaults to the seed above when nobody says otherwise.
+ * `secondary` is not a shade of `primary` or a derived complement: it is a
+ * second brand colour, and a system that derived it would be inventing a
+ * decision that belongs to whoever owns the brand. The status tracks move
+ * only when a starting system names them; otherwise they keep the studio's
+ * hues.
  */
 export function seedPaletteTracks(
   primarySeedHex: string,
   secondarySeedHex?: string,
+  overrides: SeedPaletteTracksOverride = {},
 ): ColorTrackInput[] {
   return SEED_PALETTE_TRACKS.map((track) => {
     if (track.id === "primary") return { ...track, seedHex: primarySeedHex };
-    if (track.id === "secondary" && secondarySeedHex !== undefined) {
-      return { ...track, seedHex: secondarySeedHex };
-    }
-    return { ...track };
+    const seedHex =
+      overrides[track.id as keyof SeedPaletteTracksOverride] ??
+      (track.id === "secondary" ? secondarySeedHex : undefined);
+    return seedHex === undefined ? { ...track } : { ...track, seedHex };
   });
 }
 
@@ -89,20 +119,28 @@ export function seedPaletteTracks(
 export function seedPaletteProject(
   primarySeedHex = SEED_PALETTE_TRACKS[0]!.seedHex,
   secondarySeedHex?: string,
+  overrides: SeedPaletteTracksOverride = {},
 ): PaletteProjectData {
   return {
-    tracks: seedPaletteTracks(primarySeedHex, secondarySeedHex),
+    tracks: seedPaletteTracks(primarySeedHex, secondarySeedHex, overrides),
     lightnessPattern: "custom",
     lightnessValues: defaultLightnessValues("custom"),
   };
 }
 
-/** The four numbers and one string that decide a starting type system. */
+/**
+ * What decides a starting type system: four numbers and a face, and
+ * optionally the role groups it names its styles by and the line its
+ * specimen shows.
+ */
 export type SeedTypographyInput = {
   fontFamily: string;
   baseFontSizePx: number;
   ratio: number;
   stepCount: number;
+  /** App UI, Enterprise, Editorial; Minimal is the default system's own. */
+  rolePresetId?: TypeRolePresetId;
+  specimenText?: string;
 };
 
 /** What Home create offers for type before anybody changes it. */
@@ -125,17 +163,22 @@ export function seedTypographyProject(
   overrides: Partial<SeedTypographyInput> = {},
 ): TypographyProjectData {
   const input = { ...SEED_TYPOGRAPHY, ...overrides };
-  const system = defaultSystem(
+  const base = defaultSystem(
     name,
     splitFontFamily(input.fontFamily),
     input.baseFontSizePx,
     input.ratio,
     input.stepCount,
   );
+  /* The default system is already Minimal's groups. */
+  const system =
+    input.rolePresetId && input.rolePresetId !== "minimal"
+      ? applyTypeRolePreset(base, input.rolePresetId)
+      : base;
   return {
     system,
     unit: DEFAULT_TYPE_SCALE_UNIT,
-    specimenText: DEFAULT_SPECIMEN_TEXT,
+    specimenText: input.specimenText ?? DEFAULT_SPECIMEN_TEXT,
     previewDocument: seedPreviewDocument(system),
     previewShell: seedPreviewShell(system),
     previewLanding: seedPreviewLanding(system),
@@ -146,34 +189,81 @@ export function seedTypographyProject(
 }
 
 /**
- * Every slice, filled from the studio's own defaults.
- *
- * Deterministic: the same name gives the same bytes, which is what lets a
- * generated export be committed and compared rather than regenerated and
- * trusted.
+ * Radius as a starting system states it: a multiplier, and the named corners
+ * it changes, by id. Only what a token gives is changed, so a corner keeps
+ * its name and description, and a corner left out keeps its default.
  */
+export type SeedRadiusInput = {
+  multiplier?: number;
+  tokens?: readonly (Partial<RadiusToken> & { id: string })[];
+};
+
 /**
- * What a preset is allowed to change about a starting system.
- *
- * Colour and type only. Spacing, radius and elevation have no-argument
- * builders, and parameterising them to serve two presets is a bigger change
- * than this earns; a preset that wanted denser spacing needs that work first.
+ * What a starting system changes from the studio's own. Anything left out
+ * is the default; every slice is normalized, so a value out of bounds is
+ * clamped rather than stored.
  */
 export type SeedWorkspaceInput = {
   primarySeedHex?: string;
   secondarySeedHex?: string;
+  /** Any of the seven tracks; wins over the two fields above. */
+  paletteTracks?: SeedPaletteTracksOverride;
   typography?: Partial<SeedTypographyInput>;
+  spacing?: Partial<SpacingScale>;
+  radius?: SeedRadiusInput;
+  elevation?: Partial<ElevationScale>;
+  /** A type-scale ratio per frame, by id: phone, tablet, desktop. */
+  previewDevices?: readonly { id: string; ratio: number }[];
 };
 
+function seedSpacing(input: Partial<SpacingScale> = {}): SpacingScale {
+  return normalizeSpacingScale({ ...defaultSpacingScale(), ...input });
+}
+
+function seedRadius({ multiplier, tokens = [] }: SeedRadiusInput = {}) {
+  const base = defaultRadiusScale();
+  return normalizeRadiusScale({
+    multiplier: multiplier ?? base.multiplier,
+    tokens: base.tokens.map((token) => ({
+      ...token,
+      ...tokens.find((each) => each.id === token.id),
+    })),
+  });
+}
+
+function seedElevation(input: Partial<ElevationScale> = {}): ElevationScale {
+  return normalizeElevationScale({ ...defaultElevationScale(), ...input });
+}
+
+/**
+ * Every slice, from the studio's own defaults and whatever a starting system
+ * changes: seven tracks, type with its role groups, a ratio per frame,
+ * spacing, corners and shadows.
+ *
+ * Deterministic: the same name and input give the same bytes, which is what
+ * lets a generated export be committed and compared rather than regenerated
+ * and trusted.
+ */
 export function seedWorkspaceProject(
   name: string,
   input: SeedWorkspaceInput = {},
 ): WorkspaceProject {
   const palette = seedPaletteProject(
-    input.primarySeedHex,
-    input.secondarySeedHex,
+    input.paletteTracks?.primary ?? input.primarySeedHex,
+    input.paletteTracks?.secondary ?? input.secondarySeedHex,
+    input.paletteTracks,
   );
   const typography = { ...SEED_TYPOGRAPHY, ...input.typography };
+  /* The frames the studio always has, each on the preset's own ratio where
+     it sets one: a phone steps more gently than a desktop. */
+  const previewDevices = defaultPreviewDevices(typography.ratio).map(
+    (device) => ({
+      ...device,
+      ratio:
+        input.previewDevices?.find((each) => each.id === device.id)?.ratio ??
+        device.ratio,
+    }),
+  );
 
   return {
     name,
@@ -181,11 +271,11 @@ export function seedWorkspaceProject(
     semantics: semanticsForPalette(palette),
     removedSeedRoles: [],
     buttonSchemes: normalizeButtonSchemes(undefined),
-    spacing: defaultSpacingScale(),
+    spacing: seedSpacing(input.spacing),
     spacingPreview: defaultSpacingPreviewSettings(),
-    radius: defaultRadiusScale(),
-    elevation: defaultElevationScale(),
-    previewDevices: defaultPreviewDevices(typography.ratio),
+    radius: seedRadius(input.radius),
+    elevation: seedElevation(input.elevation),
+    previewDevices,
     layout: defaultLayoutTokens(),
     typography: seedTypographyProject(name, input.typography),
   };

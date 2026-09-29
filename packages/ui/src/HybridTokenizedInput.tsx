@@ -210,6 +210,7 @@ export function HybridTokenizedInput({
   const panel = (
     <HybridTokenizedPresetList
       autoFocusSearch={open && !sheet}
+      density={sheet ? "comfortable" : "compact"}
       decimals={decimals}
       filtered={filtered}
       highlight={highlight}

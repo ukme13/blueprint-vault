@@ -40,6 +40,29 @@ async function openFallback(scope: import("@playwright/test").Locator) {
   if ((await add.count()) > 0) await add.first().click();
 }
 
+/** Open a slot's picker from its chip, when it is not open already. */
+async function openSlot(
+  scope: import("@playwright/test").Locator,
+  label: string,
+) {
+  const input = scope.getByLabel(label, { exact: true });
+  if ((await input.count()) === 0) {
+    /* With a retry: a click that lands while the last popover is still
+       closing is dropped while Astryx waits for the browser's asynchronous
+       toggle event. No hand is that fast; a chip that never opens still
+       fails. */
+    await expect(async () => {
+      if ((await input.count()) === 0) {
+        await scope
+          .getByRole("button", { name: new RegExp(`^${label}: `) })
+          .click();
+      }
+      await expect(input).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 5000 });
+  }
+  return input;
+}
+
 const registeredFamilies = (page: import("@playwright/test").Page) =>
   page.evaluate(() => {
     const names: string[] = [];
@@ -380,12 +403,7 @@ test.describe("A file nothing references", () => {
     await upload(page);
     const settings = page.getByRole("region", { name: "Type scale settings" });
 
-    await settings
-      .getByLabel("Base font", { exact: true })
-      .locator("xpath=..")
-      .getByRole("button", { name: "Clear selection" })
-      .click();
-    await settings.getByLabel("Base font", { exact: true }).fill("Lora");
+    await (await openSlot(settings, "Base font")).fill("Lora");
     await page.getByRole("option", { name: "Lora", exact: true }).click();
 
     await expect.poll(() => storedFontIds(page)).not.toContain("base::primary");
@@ -461,11 +479,11 @@ test.describe("Uploading from the font selector", () => {
     family: string,
   ) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    const input = settings.getByLabel("Base font", { exact: true });
-    await input
-      .locator("xpath=..")
-      .getByRole("button", { name: family, exact: true })
-      .click();
+    /* The family is in the chip's name; the picker opens from the chip. */
+    await expect(
+      settings.getByRole("button", { name: `Base font: ${family}` }),
+    ).toBeVisible();
+    const input = await openSlot(settings, "Base font");
     return { settings, input };
   };
 
@@ -478,10 +496,14 @@ test.describe("Uploading from the font selector", () => {
        survives an empty result — which is the next test. */
     await input.fill("");
 
-    const options = page.getByRole("option");
-    await expect(options.first()).toHaveText(/Upload font/);
-    // Above a catalogue that is actually there, not above an empty menu.
-    await expect(options).not.toHaveCount(1);
+    const upload = page.getByRole("button", { name: /^Upload font/ });
+    await expect(upload).toBeVisible();
+    // Above a catalogue that is actually there, not above an empty list.
+    const first = page.getByRole("option").first();
+    await expect(first).toBeVisible();
+    expect((await upload.boundingBox())!.y).toBeLessThan(
+      (await first.boundingBox())!.y,
+    );
   });
 
   test("keeps the row when the search matches no family", async ({
@@ -493,9 +515,10 @@ test.describe("Uploading from the font selector", () => {
     /* Finding out a font is not in the catalogue is exactly the moment someone
        needs this row, so the search that proves it must not be the search that
        removes it. */
-    const options = page.getByRole("option");
-    await expect(options).toHaveCount(1);
-    await expect(options.first()).toHaveText(/Upload font/);
+    await expect(page.getByRole("option")).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: /^Upload font/ }),
+    ).toBeVisible();
   });
 
   test("uploads the picked file rather than selecting a family", async ({
@@ -504,7 +527,7 @@ test.describe("Uploading from the font selector", () => {
     const { settings } = await openPicker(page, "Geist Sans");
 
     const chooser = page.waitForEvent("filechooser");
-    await page.getByRole("option").first().click();
+    await page.getByRole("button", { name: /^Upload font/ }).click();
     await (await chooser).setFiles(FILE);
 
     await expect(settings.getByText(/Rendering Brand-Regular/)).toBeVisible();
@@ -519,6 +542,8 @@ test.describe("Uploading from the font selector", () => {
 
     await openPicker(page, "Brand-Regular");
     // The row carries the same state the hidden input's label does.
-    await expect(page.getByRole("option").first()).toHaveText(/Replace font/);
+    await expect(
+      page.getByRole("button", { name: /^Replace font/ }),
+    ).toBeVisible();
   });
 });

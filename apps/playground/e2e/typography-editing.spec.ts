@@ -13,22 +13,34 @@ import {
 import type { Locator } from "@playwright/test";
 
 /**
- * Type a query into a font picker.
+ * Open a slot's picker from its chip, when it is not open already.
  *
- * Astryx collapses the Typeahead's input to zero width while a value token is
- * shown, so a picker that already holds a font cannot be filled directly.
- * Clearing the token is what the widget offers to get back to an editable
- * field, and it is what a person does too.
+ * A stack is a row of chips; each opens its slot's picker in a popover.
  */
-async function searchFont(scope: Locator, label: string, query: string) {
+async function openSlot(scope: Locator, label: string) {
   const input = scope.getByLabel(label, { exact: true });
-  if (!(await input.isVisible())) {
-    await input
-      .locator("xpath=..")
-      .getByRole("button", { name: "Clear selection" })
-      .click();
+  if ((await input.count()) === 0) {
+    /* With a retry: a click that lands while the last popover is still
+       closing is dropped while Astryx waits for the browser's asynchronous
+       toggle event. No hand is that fast; a chip that never opens still
+       fails. */
+    await expect(async () => {
+      if ((await input.count()) === 0) {
+        await scope
+          .getByRole("button", { name: new RegExp(`^${label}: `) })
+          .click();
+      }
+      await expect(input).toBeVisible({ timeout: 1000 });
+    }).toPass({ timeout: 5000 });
   }
+  return input;
+}
+
+async function searchFont(scope: Locator, label: string, query: string) {
+  /* The picker's search field, which takes focus as the chip opens it. */
+  const input = await openSlot(scope, label);
   await input.fill(query);
+  return input;
 }
 
 /**
@@ -57,12 +69,6 @@ const storedFamilies = async (page: import("@playwright/test").Page) => {
   const stored = await readStoredWorkspace(page);
   return stored.typography.system.fonts[0].families as string[];
 };
-
-const labelInfo = (scope: Locator, label: string) =>
-  scope
-    .locator("label", { hasText: new RegExp(`^${label}$`) })
-    .locator("svg")
-    .first();
 
 test.describe("Typography scale editing", () => {
   test("switches between Editor, Specimen and Preview without leaving the inspector", async ({
@@ -556,11 +562,10 @@ test.describe("Typography scale editing", () => {
     await expect(
       settings.getByRole("button", { name: "Geist Sans" }),
     ).toBeVisible();
-    /* The note moved into the label's info icon. It is a standing fact about
-       the family rather than something to act on, so it is only read by
-       somebody who asks for it. */
+    /* A standing fact about the family rather than something to act on, so
+       it is read in the picker, not on the card. */
     await expect(settings.getByText(/is not a Google font/)).toBeHidden();
-    await labelInfo(settings, "Base font").hover();
+    await openSlot(settings, "Base font");
     await expect(settings.getByText(/is not a Google font/)).toBeVisible();
 
     /* And the roles the old shape carried, which live a panel over. */
@@ -901,10 +906,13 @@ test.describe("Typography scale editing", () => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
     await showInspectorPanel(page, "Groups");
     await expect(
-      settings.getByRole("group", { name: "Display" }),
+      /* Exact: a Home create now starts on Primer, whose Enterprise groups
+         add a "Subtitle display" beside it. */
+      settings.getByRole("group", { name: "Display", exact: true }),
     ).toBeVisible();
     await expect(
-      settings.getByLabel("display font", { exact: true }),
+      /* Enterprise numbers its displays: display-1 and display-2. */
+      settings.getByLabel("display-1 font", { exact: true }),
     ).toContainText("Display");
     await expect(settings.getByLabel("h1 font", { exact: true })).toContainText(
       "Main",
@@ -934,6 +942,113 @@ test.describe("Typography scale editing", () => {
         ),
       )
       .toMatch(/Kanit/);
+  });
+
+  test("folds the Fonts panel from its trigger, open to start", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const fonts = settings.getByRole("region", { name: "Fonts" });
+    const trigger = fonts.getByRole("button", { name: "Fonts" });
+    const addFont = fonts.getByRole("button", { name: "Add font" });
+
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await expect(addFont).toBeVisible();
+    /* A section header, not the small muted caption plain groups use. */
+    const label = trigger.locator("[class*=groupTrigger]");
+    await expect(label).toHaveCSS("font-size", "14px");
+    await expect(label).toHaveCSS("font-weight", "600");
+
+    /* The stacks and Add font are spaced apart, as the group's children
+       were before they moved inside the collapsible. */
+    const gaps = await fonts.evaluate((section) => {
+      const items = [
+        ...section.querySelectorAll("section[aria-label$=' stack'], button"),
+      ].filter((node) =>
+        /stack$|^Add font$/.test(
+          node.getAttribute("aria-label") ?? node.textContent ?? "",
+        ),
+      );
+      return items
+        .slice(1)
+        .map((node, index) =>
+          Math.round(
+            node.getBoundingClientRect().top -
+              items[index]!.getBoundingClientRect().bottom,
+          ),
+        );
+    });
+    expect(gaps.length).toBeGreaterThan(0);
+    for (const gap of gaps) expect(gap).toBe(12);
+
+    /* Room between the header and the first stack. */
+    const headerRoom = await fonts.evaluate((section) => {
+      const button = section.querySelector("button[aria-expanded]")!;
+      const stack = section.querySelector("section[aria-label$=' stack']")!;
+      return Math.round(
+        stack.getBoundingClientRect().top -
+          button.getBoundingClientRect().bottom,
+      );
+    });
+    expect(headerRoom).toBeGreaterThanOrEqual(12);
+
+    /* It folds over time, not at once: sampled frame by frame after the
+       click, the panel passes through heights between open and shut. The
+       suite runs with motion reduced, so this asks for motion first. */
+    const fold = () =>
+      fonts.evaluate(async (section) => {
+        const button = section.querySelector(
+          "button[aria-expanded]",
+        ) as HTMLButtonElement;
+        const content = button.nextElementSibling as HTMLElement;
+        const full = content.getBoundingClientRect().height;
+        button.click();
+        const seen: number[] = [];
+        for (let frame = 0; frame < 30; frame += 1) {
+          await new Promise((resolve) => requestAnimationFrame(resolve));
+          seen.push(Math.round(content.getBoundingClientRect().height));
+        }
+        return { full, seen };
+      });
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    const eased = await fold();
+    expect(
+      /* Well past the header padding, which eases too: the contents
+         themselves fold, not only the room above them. */
+      eased.seen.some((height) => height > 24 && height < eased.full - 24),
+    ).toBe(true);
+    expect(eased.seen.at(-1)).toBe(0);
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect(addFont).toBeHidden();
+    /* Folded, nothing of the panel paints: clipped at its exact edge, so
+       the first card's top border cannot show as a line under the header,
+       faded and hidden. */
+    const folded = await fonts.evaluate((section) => {
+      const content = section.querySelector("button[aria-expanded]")!
+        .nextElementSibling as HTMLElement;
+      const child = getComputedStyle(content.firstElementChild!);
+      const css = getComputedStyle(content);
+      return {
+        height: Math.round(content.getBoundingClientRect().height),
+        clipMargin: child.overflowClipMargin,
+        opacity: css.opacity,
+        visibility: css.visibility,
+      };
+    });
+    expect(folded).toEqual({
+      height: 0,
+      clipMargin: "0px",
+      opacity: "0",
+      visibility: "hidden",
+    });
+
+    await trigger.click();
+    await expect(addFont).toBeVisible();
+
+    /* Asked for less motion, it folds at once. */
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    const instant = await fold();
+    expect(instant.seen[0]).toBe(0);
   });
 
   test("adds a font entry and assigns a role to it", async ({
@@ -1049,54 +1164,101 @@ test.describe("Typography scale editing", () => {
   });
 });
 
-test.describe("Reopening a font picker", () => {
-  /*
-   * Astryx's Typeahead opens on focus alone, and its dropdown is a native
-   * popover that light-dismisses on any outside pointer click — the field
-   * included. Left alone, a second click on an already-focused picker closes
-   * the menu with nothing able to reopen it, and you have to leave the field
-   * and come back. `GoogleFontPicker` restores the click.
-   */
-  test("opens again when the focused field is clicked", async ({
+test.describe("The font picker in a chip", () => {
+  test("opens on the list with the search focused", async ({
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await openFallback(settings);
-    // The bilingual fallback starts empty, so the input itself is what is hit.
-    const input = settings.getByLabel("Base fallback 1", {
-      exact: true,
-    });
+    await settings.getByRole("button", { name: /^Base font: / }).click();
 
-    await input.click();
+    /* One click, and the families are there: no field to click into first. */
     await expect(page.getByRole("option").first()).toBeVisible();
-
-    // The click that used to close the menu and leave it closed.
-    await input.click();
-    await expect(page.getByRole("option").first()).toBeVisible();
-
-    await input.click();
-    await expect(page.getByRole("option").first()).toBeVisible();
+    /* And none lit: a highlight on the first read as it being hovered. */
+    await expect(page.locator("[role='option'][data-active]")).toHaveCount(0);
+    const input = settings.getByLabel("Base font", { exact: true });
+    await expect(input).toBeFocused();
+    /* Typed straight into a beat later, as a hand would, with no click on
+       the field: focus that something else took would fail here. */
+    await page.waitForTimeout(300);
+    await page.keyboard.type("Lor");
+    await expect(input).toHaveValue("Lor");
+    await expect(
+      page.getByRole("option", { name: "Lora", exact: true }),
+    ).toBeVisible();
   });
 
-  test("still closes on Escape and on a click outside", async ({
+  test("leaves no ghost space under the chips", async ({
+    seededPage: page,
+  }) => {
+    /* Each slot's hidden file input sat in a wrapper that took the card's
+       gap, a blank row under the chips per slot. */
+    const stack = page
+      .getByRole("region", { name: "Type scale settings" })
+      .getByRole("region", { name: "Base stack" });
+    const chip = stack.getByRole("button", { name: /^Add a fallback to / });
+    const card = (await stack.boundingBox())!;
+    const row = (await chip.boundingBox())!;
+    const padding = await stack.evaluate((el) =>
+      parseFloat(getComputedStyle(el).paddingBottom),
+    );
+    const border = await stack.evaluate((el) =>
+      parseFloat(getComputedStyle(el).borderBottomWidth),
+    );
+    /* A note under the chips would be a real row; the seeded stack has none
+       unless its family cannot be previewed, which says so on the card. */
+    const notes = await stack.locator("p").count();
+    if (notes === 0) {
+      expect(card.y + card.height - (row.y + row.height)).toBeLessThanOrEqual(
+        padding + border + 1,
+      );
+    }
+  });
+
+  test("marks the family the slot holds", async ({ seededPage: page }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await searchFont(settings, "Base font", "Lora");
+    await page.getByRole("option", { name: "Lora", exact: true }).click();
+
+    await searchFont(settings, "Base font", "Lora");
+    await expect(
+      page.getByRole("option", { name: "Lora", exact: true }),
+    ).toHaveAttribute("aria-selected", "true");
+  });
+
+  test("its clear empties the search and leaves the slot alone", async ({
     seededPage: page,
   }) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    await openFallback(settings);
-    const input = settings.getByLabel("Base fallback 1", {
-      exact: true,
-    });
+    const stack = settings.getByRole("region", { name: "Base stack" });
+    await searchFont(settings, "Base font", "Sarabun");
+    await page.getByRole("option", { name: "Sarabun" }).first().click();
+    await expect(page.getByRole("option")).toHaveCount(0);
+    const before = await storedFamilies(page);
 
-    await input.click();
+    const input = await searchFont(settings, "Base font", "Kan");
+    await settings.getByRole("button", { name: "Clear search" }).click();
+
+    await expect(input).toHaveValue("");
+    await expect(input).toBeFocused();
+    await expect(page.getByRole("option").first()).toBeVisible();
+    await expect(
+      stack.getByRole("button", { name: "Base font: Sarabun" }),
+    ).toBeVisible();
+    expect(await storedFamilies(page)).toEqual(before);
+  });
+
+  test("picks from the keyboard, and Escape closes it", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const chip = settings.getByRole("button", { name: /^Base font: / });
+    await searchFont(settings, "Base font", "Orbitron");
+    await page.keyboard.press("Enter");
+    await expect(chip).toHaveAccessibleName("Base font: Orbitron");
+    await expect(page.getByRole("option")).toHaveCount(0);
+    await openSlot(settings, "Base font");
     await expect(page.getByRole("option").first()).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(page.getByRole("option")).toHaveCount(0);
-
-    /* Reopened rather than assumed: dismissing must not be what stops the
-       click above from working. */
-    await input.click();
-    await expect(page.getByRole("option").first()).toBeVisible();
-    await settings.getByRole("heading", { name: "Scale" }).click();
     await expect(page.getByRole("option")).toHaveCount(0);
   });
 });
@@ -1189,6 +1351,49 @@ test.describe("Where a Selector menu opens", () => {
       await page.keyboard.press("Escape");
       await expect(page.getByRole("option")).toHaveCount(0);
     }
+  });
+});
+
+test.describe("A stack as chips", () => {
+  test("shows each family as a chip that opens its picker", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const stack = settings.getByRole("region", { name: "Base stack" });
+
+    /* No field labels on the card: a chip per family, in order. */
+    await expect(stack.getByText("Base font", { exact: true })).toHaveCount(0);
+    const primary = stack.getByRole("button", { name: /^Base font: / });
+    await expect(primary).toBeVisible();
+
+    /* A chip opens its slot's picker; choosing closes it and the chip
+       says the new family. */
+    await primary.click();
+    const picker = page.getByRole("dialog", {
+      name: "Choose a family for Base font",
+    });
+    await expect(picker).toBeVisible();
+    await searchFont(settings, "Base font", "Lora");
+    await page.getByRole("option", { name: "Lora", exact: true }).click();
+    await expect(picker).toBeHidden();
+    await expect(primary).toHaveAccessibleName("Base font: Lora");
+
+    /* Add opens the new fallback's picker at once; picked, it is a chip
+       with its own remove. */
+    await stack.getByRole("button", { name: "Add a fallback to Base" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "Choose a family for Base fallback 1" }),
+    ).toBeVisible();
+    await searchFont(settings, "Base fallback 1", "Sarabun");
+    await page.getByRole("option", { name: "Sarabun" }).first().click();
+    const fallback = stack.getByRole("button", {
+      name: "Base fallback 1: Sarabun",
+    });
+    await expect(fallback).toBeVisible();
+
+    await stack.getByRole("button", { name: "Remove Base fallback 1" }).click();
+    await expect(fallback).toHaveCount(0);
+    await expect.poll(() => storedFamilies(page)).not.toContain("Sarabun");
   });
 });
 
@@ -1300,7 +1505,7 @@ test.describe("Fallbacks", () => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
 
     await expect(settings.getByText(/is not a Google font/)).toBeHidden();
-    await labelInfo(settings, "Base font").hover();
+    await openSlot(settings, "Base font");
     await expect(settings.getByText(/is not a Google font/)).toBeVisible();
     await expect(settings.getByText(/glyph/i)).toHaveCount(0);
   });
@@ -1312,9 +1517,8 @@ test.describe("Fallbacks", () => {
     await searchFont(settings, "Base font", "Sarabun");
     await page.getByRole("option", { name: "Sarabun" }).first().click();
 
-    await expect(
-      settings.locator("label", { hasText: /^Base font$/ }).locator("svg"),
-    ).toHaveCount(0);
+    await openSlot(settings, "Base font");
+    await expect(settings.getByText(/is not a Google font/)).toHaveCount(0);
   });
 });
 

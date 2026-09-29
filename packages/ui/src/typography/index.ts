@@ -15,3 +15,4 @@ export * from "./system-export";
 export * from "./types";
 export * from "./validation";
 export * from "./group-accordion";
+export * from "./studio";

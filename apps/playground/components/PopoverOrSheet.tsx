@@ -23,6 +23,18 @@ interface PopoverOrSheetProps {
   /** The popover's width on a wider screen. */
   width: number;
   className?: string;
+  /**
+   * No padding on the popover or the sheet (which still clears its handle),
+   * and no focus moved into the popover: for a panel whose
+   * header and list run to its edges and that focuses its own search.
+   */
+  isFlush?: boolean;
+  /**
+   * No padding on the desktop popover only, for a list whose search and
+   * rows run to its edges; its phone sheet keeps the sheet's padding, which
+   * the list's phone header is laid out against.
+   */
+  isPopoverFlush?: boolean;
 }
 
 /**
@@ -49,6 +61,8 @@ export function PopoverOrSheet({
   children,
   width,
   className,
+  isFlush,
+  isPopoverFlush,
 }: PopoverOrSheetProps) {
   const isPhone = useIsPhone();
   const panel = isOpen ? children : null;
@@ -62,6 +76,7 @@ export function PopoverOrSheet({
         <Sheet
           isOpen={isOpen}
           label={label}
+          padding={isFlush ? "flush" : "content"}
           onClose={() => onOpenChange(false)}
         >
           {panel}
@@ -75,10 +90,12 @@ export function PopoverOrSheet({
       <Popover
         alignment="start"
         content={panel}
+        hasAutoFocus={!isFlush}
         hasCloseButton={false}
         isOpen={isOpen}
         label={label}
         placement="start"
+        style={isFlush || isPopoverFlush ? { padding: 0 } : undefined}
         width={width}
         onOpenChange={onOpenChange}
       >

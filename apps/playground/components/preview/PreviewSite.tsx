@@ -110,6 +110,7 @@ export function PreviewSite({
   onInspectSection,
   onSectionFill,
   onSectionError,
+  children,
 }: {
   canvasRef: Ref<HTMLDivElement>;
   system: TypeSystem;
@@ -125,6 +126,8 @@ export function PreviewSite({
   onInspectSection: (id: PreviewSectionId) => void;
   onSectionFill: (id: PreviewSectionId, fill: PreviewSectionFill) => void;
   onSectionError: (id: PreviewSectionId, error: PreviewImageError) => void;
+  /** Laid over the page, inside it, so it scrolls with it: the overlay. */
+  children?: ReactNode;
 }) {
   const landingProps = {
     landing,
@@ -357,6 +360,7 @@ export function PreviewSite({
           </div>
         </div>
       </Band>
+      {children}
     </div>
   );
 }

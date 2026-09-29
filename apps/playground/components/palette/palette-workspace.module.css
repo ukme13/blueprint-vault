@@ -351,6 +351,8 @@
 }
 
 .matrixScroller {
+  /* The canvas's side padding, for the full-bleed scroll on a phone. */
+  --bleed-gutter: 18px;
   max-width: 100%;
   overflow-x: auto;
   /* Momentum on the iOS versions that still ask for it. The grid is 940px

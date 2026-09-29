@@ -1,4 +1,6 @@
 .site {
+  /* The containing block for the spacing overlay laid over the page. */
+  position: relative;
   display: flex;
   min-height: 0;
   flex: 1;
@@ -72,7 +74,9 @@
 .navInner {
   display: flex;
   align-items: center;
-  gap: var(--spacing-6);
+  /* Navigation gap, a layout use: the fallback is a stored workspace's
+     before it gained one. */
+  gap: var(--gap-nav, var(--spacing-6));
   min-width: 0;
   padding-block: var(--spacing-4);
 }
@@ -88,7 +92,7 @@
 .navLinks {
   display: flex;
   align-items: center;
-  gap: var(--spacing-6);
+  gap: var(--gap-nav, var(--spacing-6));
   margin-left: auto;
   color: var(--color-fg-secondary);
 }
@@ -174,9 +178,10 @@
   gap: var(--spacing-4);
 }
 
+/* The features, quad and pricing grids: Grid gap, a layout use. */
 .cols {
   display: grid;
-  gap: var(--spacing-6);
+  gap: var(--gap-grid, var(--spacing-8));
 }
 
 .cols3 {
@@ -195,7 +200,8 @@
   gap: var(--spacing-2);
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-surface);
-  padding: var(--spacing-6);
+  /* Card inset, a layout use, as the plans below. */
+  padding: var(--inset-card, var(--spacing-6));
   background: var(--color-surface-raised);
 }
 
@@ -280,7 +286,7 @@
   min-width: 0;
   border: 1px solid var(--color-border-subtle);
   border-radius: var(--radius-surface);
-  padding: var(--spacing-6);
+  padding: var(--inset-card, var(--spacing-6));
   background: var(--color-surface-raised);
 }
 
@@ -358,8 +364,10 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
-  padding: var(--spacing-1);
-  padding-inline-start: var(--spacing-4);
+  /* A control's insets, the layout uses: the input's text starts at the
+     inline inset, the button sits the block inset from the edge. */
+  padding: var(--inset-control-y, var(--spacing-1));
+  padding-inline-start: var(--inset-control-x, var(--spacing-4));
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-input, var(--radius-element));
   background: var(--color-surface-base);
@@ -373,7 +381,10 @@
   flex: 1;
   min-width: 0;
   margin: 0;
-  padding-block: var(--spacing-2);
+  /* None: the button sets the row's height, so it sits 4px from the
+     form's edge on all three sides. Padded, the input was the taller of
+     the two and the button floated in extra room above and below. */
+  padding-block: 0;
   border: 0;
   background: transparent;
   color: var(--color-fg-primary);
@@ -465,15 +476,8 @@
   justify-content: space-between;
 }
 
-.site[data-frame="tablet"] .navInner,
-.site[data-frame="tablet"] .navLinks {
-  gap: var(--spacing-4);
-}
-
-.site[data-frame="tablet"] .cols {
-  gap: var(--spacing-4);
-}
-
+/* Nav and grid gaps are layout uses, per frame: Navigation gap and Grid
+   gap carry each frame's step, so no frame restates them here. */
 .site[data-frame="tablet"] .cols3,
 .site[data-frame="tablet"] .cols4 {
   grid-template-columns: 1fr 1fr;
@@ -503,7 +507,6 @@
 }
 
 .site[data-frame="phone"] .navInner {
-  gap: var(--spacing-3);
   justify-content: space-between;
 }
 
@@ -532,10 +535,6 @@
 
 .site[data-frame="phone"] .splitRev .media {
   order: 0;
-}
-
-.site[data-frame="phone"] .cols {
-  gap: var(--spacing-4);
 }
 
 .site[data-frame="phone"] .cols3,

@@ -3,6 +3,7 @@ import { useIsPhone } from "../use-is-phone";
 import type { ColorTrack } from "@blueprint/ui";
 import { PaletteRow } from "./PaletteRow";
 import { ShadeSheet } from "./ShadeSheet";
+import bleed from "../bleed-scroll.module.css";
 import styles from "./palette-workspace.module.css";
 import type { ActiveShade } from "./types";
 
@@ -58,7 +59,7 @@ export function PaletteMatrix({
   return (
     <>
       <section
-        className={styles.matrixScroller}
+        className={`${styles.matrixScroller} ${bleed.bleed}`}
         data-testid="palette-matrix-scroller"
       >
         <section

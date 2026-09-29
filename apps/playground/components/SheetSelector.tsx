@@ -21,12 +21,26 @@ import { useIsPhone } from "./use-is-phone";
  * The sheet closes on a choice, and on its backdrop, a swipe or Escape.
  */
 
-type SheetSelectorProps = ComponentProps<typeof Selector>;
+type SheetSelectorProps = ComponentProps<typeof Selector> & {
+  /** Whether the trigger shows its chevron. A swatch trigger reads as a
+      control without one. */
+  hasChevron?: boolean;
+};
 
-export function SheetSelector(props: SheetSelectorProps) {
+export function SheetSelector({
+  hasChevron = true,
+  ...props
+}: SheetSelectorProps) {
   const isPhone = useIsPhone();
-  if (!isPhone) return <Selector {...props} />;
-  return <PhoneSelector {...props} />;
+  if (isPhone) return <PhoneSelector {...props} hasChevron={hasChevron} />;
+  if (hasChevron) return <Selector {...props} />;
+  /* Astryx has no prop for it; its chevron carries a stable theme class,
+     hidden from this wrapper, which lays out nothing. */
+  return (
+    <span className={styles.noChevron}>
+      <Selector {...props} />
+    </span>
+  );
 }
 
 function PhoneSelector({
@@ -42,6 +56,7 @@ function PhoneSelector({
   variant = "input",
   size = "md",
   width = "100%",
+  hasChevron,
 }: SheetSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const selected = findSheetOption(options, value ?? undefined);
@@ -66,7 +81,9 @@ function PhoneSelector({
               : (selected.label ?? selected.value)
             : placeholder}
         </span>
-        <ChevronDown aria-hidden className={styles.chevron} />
+        {hasChevron ? (
+          <ChevronDown aria-hidden className={styles.chevron} />
+        ) : null}
       </button>
 
       <SelectorSheet

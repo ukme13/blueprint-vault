@@ -3,6 +3,13 @@
   display: contents;
 }
 
+/* The panel rounded on top only, by the sheet radius: the composite of
+   the container corner and square bottom corners, so a sheet follows
+   the container corner the theme sets. */
+.escapeScope :global(.astryx-bottom-sheet) {
+  border-radius: var(--radius-sheet);
+}
+
 .body {
   white-space: normal;
 }

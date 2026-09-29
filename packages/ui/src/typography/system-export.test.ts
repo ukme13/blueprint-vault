@@ -16,6 +16,7 @@ import {
 import {
   formatTypeSystemCssExport,
   formatTypeSystemTailwindExport,
+  STANDARD_FONT_WEIGHTS,
   typeCssVariablesForDevice,
 } from "./system-export";
 
@@ -520,5 +521,56 @@ describe("typeCssVariablesForDevice", () => {
     expect(vars["--font-h1-family"]).toContain("var(--font-family-");
     expect(vars["--font-h1-weight"]).toBeDefined();
     expect(vars["--font-h1-line-height"]).toBeDefined();
+  });
+});
+
+describe("standard font weights", () => {
+  const system = defaultSystem("Brand", ["Inter"], 16, 1.25, 9);
+  const WEIGHTS = [
+    "--font-weight-light: 300;",
+    "--font-weight-regular: 400;",
+    "--font-weight-medium: 500;",
+    "--font-weight-semibold: 600;",
+    "--font-weight-bold: 700;",
+  ];
+
+  it("are the five named weights, light to bold", () => {
+    expect(STANDARD_FONT_WEIGHTS).toEqual({
+      light: 300,
+      regular: 400,
+      medium: 500,
+      semibold: 600,
+      bold: 700,
+    });
+  });
+
+  it("are emitted once in the CSS export, in its root block", () => {
+    const css = formatTypeSystemCssExport(system);
+    const root = css.slice(css.indexOf(":root {"), css.indexOf("\n}"));
+    for (const line of WEIGHTS) {
+      expect(root).toContain(line);
+      expect(css.split(line)).toHaveLength(2);
+    }
+  });
+
+  it("are emitted in the Tailwind theme, where they make font-* utilities", () => {
+    const theme = formatTypeSystemTailwindExport(system);
+    const block = theme.slice(
+      theme.indexOf("@theme static {"),
+      theme.indexOf("\n}"),
+    );
+    for (const line of WEIGHTS) expect(block).toContain(line);
+  });
+
+  it("are set on every preview frame", () => {
+    for (const device of defaultPreviewDevices()) {
+      expect(typeCssVariablesForDevice(system, device)).toMatchObject({
+        "--font-weight-light": "300",
+        "--font-weight-regular": "400",
+        "--font-weight-medium": "500",
+        "--font-weight-semibold": "600",
+        "--font-weight-bold": "700",
+      });
+    }
   });
 });

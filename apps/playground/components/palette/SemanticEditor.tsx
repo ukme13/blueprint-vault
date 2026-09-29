@@ -25,6 +25,7 @@ import {
 } from "./use-semantic-actions";
 import { useSemanticKeyboard } from "./use-semantic-keyboard";
 import { useSemanticSelection } from "./use-semantic-selection";
+import bleed from "../bleed-scroll.module.css";
 import styles from "./semantic-table.module.css";
 
 const RAIL_BELOW = 1024;
@@ -184,7 +185,7 @@ export function SemanticEditor({
             label="Token actions"
             menuWidth={220}
           >
-            <div className={styles.tableWrap}>
+            <div className={`${styles.tableWrap} ${bleed.bleed}`}>
               <SemanticTable
                 actionsFor={actionsFor}
                 buttonSchemes={buttonSchemes}

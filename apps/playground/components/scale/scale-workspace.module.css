@@ -262,13 +262,30 @@
   list-style: none;
 }
 
-/* Above the rows, at their right: the unit their values are written in. */
-/* The list's heading, with the unit its values are written in beside it. */
-.stepListHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-2);
+/* A folding group's trigger: a section header, clear and at reading size,
+   where a plain group's small muted label would read as a caption. */
+.groupTrigger {
+  padding-block: var(--spacing-1);
+  color: var(--color-fg-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* The steps: the unit switch sits in the header row, just left of the
+   trigger's chevron. The group pads 17px 18px; the trigger row is 17px
+   tall and its chevron the last 17px of it, so the switch is centred on
+   that row and a small gap in from the chevron. */
+.stepList {
+  position: relative;
+}
+
+.stepListUnit {
+  position: absolute;
+  top: calc(17px + 17px / 2);
+  right: calc(18px + 17px + var(--spacing-2));
+  z-index: 1;
+  transform: translateY(-50%);
 }
 
 .tokenRow {
@@ -487,6 +504,14 @@
   align-items: flex-start;
   height: 100%;
   background: var(--color-surface-base);
+}
+
+/* A card's last block, its action, sits at the card's foot however much
+   taller the card beside it makes it. The space opens above the stack
+   gap before that block, so the gap stays drawn against the action it
+   leads into rather than floating in the middle. */
+.spacingCardBody > .spacingZone[data-spacing-zone="stack"]:nth-last-child(2) {
+  margin-top: auto;
 }
 
 /* What the cards say: an onboarding welcome and a profile form. */
@@ -1463,4 +1488,9 @@
   .headerActions > button {
     height: var(--size-element-lg, 36px);
   }
+}
+
+/* The Uses panel's side padding, for the full-bleed scroll on a phone. */
+.usesScroll {
+  --bleed-gutter: 18px;
 }

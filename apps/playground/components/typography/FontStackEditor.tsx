@@ -18,22 +18,24 @@ import {
   type TypeFont,
 } from "@blueprint/ui";
 import { FontUploadField } from "./FontUploadField";
-import { GoogleFontPicker } from "./GoogleFontPicker";
+import { FontSlotChip } from "./FontSlotChip";
 import type { LocalFontStatus } from "./use-local-fonts";
 import styles from "./typography-workspace.module.css";
 
 /**
- * Edit one font as a primary family and up to three fallbacks behind it.
+ * Edit one font as a primary family and up to three fallbacks behind it,
+ * as a row of chips in the order the browser reads them.
  *
  * CSS falls back per glyph, so a stack is an ordered list and nothing here
  * has to detect a script: whichever family first has the glyph renders it.
- * That is also why the studio does not check what a fallback covers. A
- * designer picking one is testing something, and a check that thinks it knows
- * better is a check in the way.
+ * That is also why the studio does not check what a fallback covers.
  *
- * The whole entry is a card because a stack is read as a unit — which family
- * comes first matters, and a flat list of fields does not say where one entry
- * ends and the next begins.
+ * Each chip opens its slot's picker, searched from Google Fonts or uploaded,
+ * in a popover (a sheet on a phone). A fallback chip carries its own remove;
+ * the dashed chip at the end adds the next fallback and opens its picker.
+ * The file inputs and their notes stay on the card, not in the popover: the
+ * picker closes as the file dialog opens, and a missing file must be seen
+ * without opening anything.
  */
 
 interface FontStackEditorProps {
@@ -65,88 +67,74 @@ export function FontStackEditor({
   fileStatus,
   uploadError,
 }: FontStackEditorProps) {
-  /* One per slot, so the row pinned in each picker's menu reaches that slot's
-     input and no other. This is the same separation the inputs themselves
-     have, carried through to what opens them.
-
-     Built once for every slot rather than per rendered row: a ref created
-     while rendering a row would be a new object each time, and the picker
-     that opens it would be holding last render's. */
+  /* One file input per slot, built once rather than per rendered chip: a
+     ref created while rendering would be a new object each time. */
   const primaryFile = useRef<HTMLInputElement | null>(null);
   const firstFile = useRef<HTMLInputElement | null>(null);
   const secondFile = useRef<HTMLInputElement | null>(null);
   const thirdFile = useRef<HTMLInputElement | null>(null);
-  /* Four refs by hand rather than a map in one: the record is built here and
-     handed on, and nothing reads a `current` while rendering. */
   const fileRefs: Record<FontSlot, RefObject<HTMLInputElement | null>> = {
     primary: primaryFile,
     fallback: firstFile,
     fallback2: secondFile,
     fallback3: thirdFile,
   };
-  const fileRef = (slot: FontSlot) => fileRefs[slot];
 
   const primary = familyForSlot(font, "primary");
   const primaryFont = findGoogleFont(primary);
   const generic = primaryFont
     ? genericForCategory(primaryFont.category)
     : "sans-serif";
-  const primaryIsLocal = isLocalSlot(font, "primary");
-
-  /* What a family covers is the designer's business. Whether this preview can
-     load it at all is ours, and is the one thing left worth saying. */
   const isPreviewable = canPreviewFamily({
     family: primary,
     isInCatalogue: !!primaryFont,
-    isLocal: primaryIsLocal,
+    isLocal: isLocalSlot(font, "primary"),
   });
 
-  /* How many fallback rows to show.
-
-     The stored families decide it, so a reload, an import and an undo all
-     show the rows the stack actually has. `opened` is only for the row that
-     has just been added and holds nothing yet: an empty slot cannot be
-     stored, because the families array is the ordered list the browser reads
-     and a blank entry in it would be a family called "". */
+  /* How many fallback chips to show: the stored families, or one more for
+     a fallback just added and not yet chosen. An empty slot cannot be
+     stored, since the families array is the list the browser reads. */
   const [opened, setOpened] = useState(0);
+  /* The slot whose picker is open, if any. */
+  const [picking, setPicking] = useState<FontSlot | null>(null);
   const showToast = useToast();
   const filled = FALLBACK_SLOTS.filter((slot) => familyForSlot(font, slot));
   const rowCount = Math.min(Math.max(filled.length, opened), MAX_FALLBACKS);
   const rows = FALLBACK_SLOTS.slice(0, rowCount);
 
-  /* The verb is shared between the row someone reads and the `aria-label` on
-     the input it clicks, so the two cannot disagree about which state a slot
-     is in. */
   const slotName = (slot: FontSlot) =>
     slot === "primary"
       ? `${font.name} font`
       : `${font.name} fallback ${FALLBACK_SLOTS.indexOf(slot) + 1}`;
+  const action = (slot: FontSlot) =>
+    fontUploadAction(isLocalSlot(font, slot), fileStatus(slot));
 
-  const uploadFor = (slot: FontSlot) => (
-    <FontUploadField
-      action={fontUploadAction(isLocalSlot(font, slot), fileStatus(slot))}
+  /* A slot's chip, which opens its picker. */
+  const chip = (slot: FontSlot) => (
+    <FontSlotChip
       family={familyForSlot(font, slot)}
-      fileStatus={fileStatus(slot)}
-      generic={generic}
-      inputRef={fileRef(slot)}
-      isLocal={isLocalSlot(font, slot)}
+      isOpen={picking === slot}
+      isPrimary={slot === "primary"}
+      /* A standing fact about the family, not something to fix. */
+      labelTooltip={
+        slot === "primary" && !isPreviewable
+          ? `${primary} is not a Google font, so it is not loaded here. It still applies wherever it is installed.`
+          : undefined
+      }
       name={slotName(slot)}
-      uploadError={uploadError(slot)}
-      onUpload={(file) => onUpload(slot, file)}
+      uploadLabel={`${action(slot)} font`}
+      onOpenChange={(open) => setPicking(open ? slot : null)}
+      onPick={(picked) => onPick(slot, picked.family, generic)}
+      onUpload={() => fileRefs[slot].current?.click()}
     />
   );
 
   return (
     <section
-      /* A stack is read as a unit — which family comes first is the whole
-         meaning — so the entry is a card rather than a run of fields with a
-         rule between them. Utilities rather than the module beside it: the
-         card is new, and the module is not being rewritten around it. */
       aria-label={`${font.name} stack`}
-      /* `fontStack` carries no layout any more. It is the scope the module
-         hangs the upload-row separator inside the Typeahead menu on, and that
-         menu is Astryx's — there is no prop for it. */
-      className={`${styles.fontStack} flex flex-col gap-2 rounded-lg border border-border-default bg-surface-raised p-4`}
+      /* `fontStack` is the scope the module hangs the upload row's
+         separator on, inside the Typeahead menu, which is Astryx's. */
+      className={`${styles.fontStack} flex flex-col gap-3 rounded-lg border border-border-default bg-surface-raised p-4`}
     >
       <div className={styles.fontStackRow}>
         <div className={styles.fontStackField}>
@@ -159,39 +147,9 @@ export function FontStackEditor({
             onChange={onRename}
           />
         </div>
-        {/* Kept at the limit rather than removed. A control that disappears
-            reads as a bug in the control; one that answers is the app saying
-            no, once, where the click was. */}
-        <Button
-          aria-label={`Add a fallback to ${font.name}`}
-          className="h-8!"
-          /* `leftIcon` rather than an icon in the children: children render
-             into one span, where an svg and a string stack. The icon slot is
-             its own element beside the text, in the button's own flex row. */
-          leftIcon={<Plus aria-hidden="true" />}
-          scheme="neutral"
-          size="small"
-          variant="outlined"
-          onClick={() => {
-            if (rowCount >= MAX_FALLBACKS) {
-              showToast({
-                body: `A stack holds ${MAX_FALLBACKS} fallbacks. Remove one to add another.`,
-                /* Deduped, so leaning on the button says it once. */
-                uniqueID: `fallback-limit-${font.id}`,
-              });
-              return;
-            }
-            setOpened(rowCount + 1);
-          }}
-        >
-          Add fallback
-        </Button>
         {canRemove && (
           <Button
             aria-label={`Remove ${font.name} font`}
-            /* Sized against the name field beside it. See the note on the
-               role row's trash: `cn` is a plain join, so the CVA size stays
-               on the element and only the important suffix beats it. */
             scheme="neutral"
             size="icon"
             variant="outlined"
@@ -202,55 +160,62 @@ export function FontStackEditor({
         )}
       </div>
 
-      <GoogleFontPicker
-        family={primary}
-        label={slotName("primary")}
-        /* An info icon at the end of the label, which is where Astryx puts a
-           note about the field rather than about what was entered. It is a
-           standing fact about the family, not something to fix. */
-        labelTooltip={
-          isPreviewable
-            ? undefined
-            : `${primary} is not a Google font, so it is not loaded here. It still applies wherever it is installed.`
-        }
-        placeholder="Search Google Fonts"
-        uploadLabel={`${fontUploadAction(primaryIsLocal, fileStatus("primary"))} font`}
-        onPick={(picked) => onPick("primary", picked?.family ?? "", generic)}
-        onUpload={() => fileRef("primary").current?.click()}
-      />
-      {uploadFor("primary")}
-
-      {rows.map((slot) => (
-        <div key={slot} className="flex flex-col gap-2">
-          <div className={styles.fontStackRow}>
-            <div className={styles.fontStackField}>
-              <GoogleFontPicker
-                family={familyForSlot(font, slot)}
-                label={slotName(slot)}
-                placeholder="Search Google Fonts"
-                uploadLabel={`${fontUploadAction(isLocalSlot(font, slot), fileStatus(slot))} font`}
-                onPick={(picked) => onPick(slot, picked?.family ?? "", generic)}
-                onUpload={() => fileRef(slot).current?.click()}
-              />
-            </div>
-            <Button
+      <div className={styles.fontChips}>
+        {chip("primary")}
+        {rows.map((slot) => (
+          <span key={slot} className={styles.fontChipGroup}>
+            {chip(slot)}
+            <button
               aria-label={`Remove ${slotName(slot)}`}
-              /* The same button as the entry's trash, with a different glyph:
-                 they do the same kind of thing at different scopes, and one of
-                 them reading as filled made it look like the louder action. */
-              scheme="neutral"
-              size="icon"
-              variant="outlined"
+              className={styles.fontChipRemove}
+              type="button"
               onClick={() => {
                 setOpened(rowCount - 1);
+                setPicking(null);
                 onRemoveSlot(slot);
               }}
             >
-              <X aria-hidden="true" />
-            </Button>
-          </div>
-          {uploadFor(slot)}
-        </div>
+              <X aria-hidden />
+            </button>
+          </span>
+        ))}
+        {/* Kept at the limit rather than removed: a control that vanishes
+            reads as a bug; one that answers says no where the click was. */}
+        <button
+          aria-label={`Add a fallback to ${font.name}`}
+          className={styles.fontChipAdd}
+          type="button"
+          onClick={() => {
+            if (rowCount >= MAX_FALLBACKS) {
+              showToast({
+                body: `A stack holds ${MAX_FALLBACKS} fallbacks. Remove one to add another.`,
+                /* Deduped, so leaning on the button says it once. */
+                uniqueID: `fallback-limit-${font.id}`,
+              });
+              return;
+            }
+            setOpened(rowCount + 1);
+            setPicking(FALLBACK_SLOTS[rowCount]!);
+          }}
+        >
+          <Plus aria-hidden />
+          Add fallback
+        </button>
+      </div>
+
+      {(["primary", ...rows] as FontSlot[]).map((slot) => (
+        <FontUploadField
+          key={slot}
+          action={action(slot)}
+          family={familyForSlot(font, slot)}
+          fileStatus={fileStatus(slot)}
+          generic={generic}
+          inputRef={fileRefs[slot]}
+          isLocal={isLocalSlot(font, slot)}
+          name={slotName(slot)}
+          uploadError={uploadError(slot)}
+          onUpload={(file) => onUpload(slot, file)}
+        />
       ))}
     </section>
   );

@@ -542,6 +542,11 @@ describe("a version 5 file still opens, and a version 6 file carries alpha", () 
     expect(after.layout.map((token) => token.id)).toEqual([
       "inset-container",
       "gap-section",
+      "inset-control-x",
+      "inset-control-y",
+      "gap-grid",
+      "gap-nav",
+      "inset-card",
       "radius-surface",
       "radius-button",
       "radius-input",

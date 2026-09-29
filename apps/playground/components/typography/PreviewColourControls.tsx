@@ -1,6 +1,7 @@
 "use client";
 
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
+import { PreviewColourSwatch } from "../PreviewColourSwatch";
 import { SheetSelector } from "../SheetSelector";
 import { resolveShadeHex, type ColorTrack, type ShadeRef } from "@blueprint/ui";
 import { PaintBucket, Type } from "lucide-react";
@@ -19,23 +20,12 @@ function valueToRef(value: string): ShadeRef | null {
   return { trackId, weight: Number(weight) };
 }
 
-function ColourSwatch({ hex }: { hex: string | null }) {
-  return (
-    <i
-      aria-hidden
-      className={styles.previewColourSwatch}
-      data-empty={hex ? undefined : "true"}
-      style={hex ? ({ "--preview-swatch": hex } as CSSProperties) : undefined}
-    />
-  );
-}
-
 function shadeOptions(tracks: ColorTrack[]) {
   return [
     {
       label: "Default",
       value: NONE,
-      icon: <ColourSwatch hex={null} />,
+      icon: <PreviewColourSwatch hex={null} />,
     },
     ...tracks.map((track) => ({
       type: "section" as const,
@@ -43,7 +33,7 @@ function shadeOptions(tracks: ColorTrack[]) {
       options: track.shades.map((shade) => ({
         label: `${track.name} ${shade.weight}`,
         value: `${track.id}:${shade.weight}`,
-        icon: <ColourSwatch hex={shade.hex} />,
+        icon: <PreviewColourSwatch hex={shade.hex} />,
       })),
     })),
   ];
@@ -64,12 +54,15 @@ function PaletteColourSelector({
 }) {
   return (
     <SheetSelector
+      hasChevron={false}
       hasSearch
       isLabelHidden
       label={label}
       options={shadeOptions(tracks)}
       renderValue={(option) => (
-        <ColourSwatch hex={resolveShadeHex(tracks, valueToRef(option.value))} />
+        <PreviewColourSwatch
+          hex={resolveShadeHex(tracks, valueToRef(option.value))}
+        />
       )}
       searchPlaceholder="Search shades"
       size="sm"

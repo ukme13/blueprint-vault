@@ -4,8 +4,12 @@ import {
   WORKSPACE_PRESETS,
   findWorkspacePreset,
   instantiateWorkspacePreset,
+  workspacePresetDetails,
   workspacePresetSwatches,
 } from "./presets";
+import { defaultRadiusScale } from "../scale/radius";
+import { detectTypeRolePreset } from "../typography/role-presets";
+import { defaultSpacingScale } from "../scale/spacing";
 import { seedWorkspaceProject } from "./seed-project";
 import { readWorkspaceProject } from "./workspace";
 
@@ -69,49 +73,140 @@ describe("instantiating a preset", () => {
     },
   );
 
-  it("puts the brand seeds on the brand tracks, leaving the rest alone", () => {
-    const editorial = findWorkspacePreset("editorial")!;
-    const project = instantiateWorkspacePreset(editorial, "Test");
-    const track = (id: string) =>
-      project.palette!.tracks.find((entry) => entry.id === id);
+  it("seeds all seven tracks from a preset's palette", () => {
+    const project = instantiateWorkspacePreset(
+      findWorkspacePreset("stripe")!,
+      "Test",
+    );
+    const seeds = Object.fromEntries(
+      project.palette!.tracks.map((track) => [track.id, track.seedHex]),
+    );
+    expect(seeds).toEqual({
+      primary: "#635bff",
+      secondary: "#00d4b2",
+      neutral: "#425466",
+      success: "#0570de",
+      warning: "#f5a623",
+      error: "#df1b41",
+      info: "#635bff",
+    });
+  });
 
-    expect(track("primary")!.seedHex).toBe(editorial.primarySeedHex);
-    expect(track("secondary")!.seedHex).toBe(editorial.secondarySeedHex);
-    /* A preset chooses brand colour, not the status hues. */
-    expect(track("error")!.seedHex).toBe(
+  it("keeps the studio's status hues for a preset that names none", () => {
+    const project = instantiateWorkspacePreset(
+      { id: "bare", name: "Bare", summary: "", primarySeedHex: "#123456" },
+      "Test",
+    );
+    const track = (id: string) =>
+      project.palette!.tracks.find((entry) => entry.id === id)!.seedHex;
+    expect(track("primary")).toBe("#123456");
+    expect(track("error")).toBe(
       seedWorkspaceProject("Test").palette!.tracks.find(
         (entry) => entry.id === "error",
       )!.seedHex,
     );
   });
 
+  it("names the type by the preset's role groups, and shows its line", () => {
+    const primer = instantiateWorkspacePreset(
+      findWorkspacePreset("primer")!,
+      "Test",
+    ).typography!;
+    expect(detectTypeRolePreset(primer.system)).toBe("enterprise");
+    expect(primer.specimenText).toBe("Where the world builds software");
+    const stripe = instantiateWorkspacePreset(
+      findWorkspacePreset("stripe")!,
+      "Test",
+    ).typography!;
+    expect(detectTypeRolePreset(stripe.system)).toBe("app-ui");
+  });
+
+  it("changes a corner's size and keeps its name and description", () => {
+    const tokens = instantiateWorkspacePreset(
+      findWorkspacePreset("primer")!,
+      "Test",
+    ).radius.tokens;
+    const inner = tokens.find((token) => token.id === "inner")!;
+    const defaults = defaultRadiusScale().tokens.find(
+      (token) => token.id === "inner",
+    )!;
+    expect(inner.basePx).toBe(3);
+    expect(inner.description).toBe(defaults.description);
+    expect(inner.name).toBe(defaults.name);
+  });
+
   it("carries typography overrides into the system", () => {
-    const utility = findWorkspacePreset("utility")!;
-    const system = instantiateWorkspacePreset(utility, "Test").typography!
+    const linear = findWorkspacePreset("linear")!;
+    const system = instantiateWorkspacePreset(linear, "Test").typography!
       .system;
 
-    expect(system.ratio).toBe(utility.typography!.ratio);
-    expect(system.stepCount).toBe(utility.typography!.stepCount);
-    expect(system.fonts[0]!.families[0]).toBe("ui-sans-serif");
-    /* Left out of this preset, so it keeps the studio's own base size. */
-    expect(system.baseFontSizePx).toBe(16);
+    expect(system.ratio).toBe(1.2);
+    expect(system.stepCount).toBe(10);
+    expect(system.fonts[0]!.families[0]).toBe("Inter");
   });
 
-  it("takes the base size from a preset that sets one", () => {
-    const editorial = findWorkspacePreset("editorial")!;
-    const system = instantiateWorkspacePreset(editorial, "Test").typography!
-      .system;
-
-    expect(system.baseFontSizePx).toBe(17);
-    expect(system.fonts[0]!.families[0]).toBe("Iowan Old Style");
+  it("seeds spacing, radius, the neutral and each frame's ratio", () => {
+    const stripe = instantiateWorkspacePreset(
+      findWorkspacePreset("stripe")!,
+      "Test",
+    );
+    expect(stripe.spacing).toMatchObject({ baseUnitPx: 8, density: 1.15 });
+    const corner = (id: string) =>
+      stripe.radius.tokens.find((token) => token.id === id)!.basePx;
+    expect([corner("element"), corner("container")]).toEqual([8, 12]);
+    /* Stripe's corners happen to be the defaults; Linear's are not. */
+    const linear = instantiateWorkspacePreset(
+      findWorkspacePreset("linear")!,
+      "Test",
+    ).radius.tokens;
+    expect(
+      ["element", "container"].map(
+        (id) => linear.find((token) => token.id === id)!.basePx,
+      ),
+    ).toEqual([4, 8]);
+    expect(
+      stripe.palette!.tracks.find((track) => track.id === "neutral")!.seedHex,
+    ).toBe("#425466");
+    expect(
+      Object.fromEntries(
+        stripe.previewDevices.map((device) => [device.id, device.ratio]),
+      ),
+    ).toEqual({ phone: 1.2, tablet: 1.25, desktop: 1.333 });
+    expect(stripe.typography!.system.ratio).toBe(1.333);
   });
 
-  it("leaves the default create untouched", () => {
-    /* The control must not change what create already produced. If this fails,
-       the default drifted behind the dialog rather than with it. */
+  it("gives IBM Carbon square corners, and leaves a pill a pill", () => {
+    const carbon = instantiateWorkspacePreset(
+      findWorkspacePreset("carbon")!,
+      "Test",
+    );
+    expect(carbon.radius.multiplier).toBe(0);
+    expect(
+      workspacePresetDetails(findWorkspacePreset("carbon")!),
+    ).toMatchObject({ elementRadiusPx: 0, containerRadiusPx: 0 });
+  });
+
+  it("changes nothing for a create that asks for nothing", () => {
+    /* The seed with no input is still the studio's own: every new slice
+       input falls back to exactly the default it replaced. */
+    const bare = instantiateWorkspacePreset(
+      { id: "bare", name: "Bare", summary: "" },
+      "Test",
+    );
+    expect(bare).toEqual(seedWorkspaceProject("Test"));
+    expect(bare.spacing).toEqual(defaultSpacingScale());
+    expect(bare.radius).toEqual(defaultRadiusScale());
+  });
+
+  it("opens the dialog on GitHub Primer", () => {
     const preset = findWorkspacePreset(DEFAULT_WORKSPACE_PRESET_ID)!;
-    expect(instantiateWorkspacePreset(preset, "Test")).toEqual(
-      seedWorkspaceProject("Test"),
+    expect(preset.name).toBe("GitHub Primer");
+    const tracks = instantiateWorkspacePreset(preset, "Test").palette!.tracks;
+    expect(tracks.find((track) => track.id === "primary")!.seedHex).toBe(
+      "#0969da",
+    );
+    expect(tracks.find((track) => track.id === "secondary")!.seedHex).toBe(
+      "#1a7f37",
     );
   });
 });
@@ -128,16 +223,17 @@ describe("preset swatches", () => {
   });
 
   it("paints the preset's own brand seeds", () => {
-    const utility = findWorkspacePreset("utility")!;
-    const [primary, secondary] = workspacePresetSwatches(utility);
+    const [primary, secondary] = workspacePresetSwatches(
+      findWorkspacePreset("stripe")!,
+    );
 
-    expect(primary).toBe(utility.primarySeedHex);
-    expect(secondary).toBe(utility.secondarySeedHex);
+    expect(primary).toBe("#635bff");
+    expect(secondary).toBe("#00d4b2");
   });
 
   it("falls back to the seed tracks for a preset that overrides nothing", () => {
-    const blueprint = findWorkspacePreset(DEFAULT_WORKSPACE_PRESET_ID)!;
-    const swatches = workspacePresetSwatches(blueprint);
+    const bare = { id: "bare", name: "Bare", summary: "" };
+    const swatches = workspacePresetSwatches(bare);
     const tracks = seedWorkspaceProject("Test").palette!.tracks;
 
     expect(swatches).toEqual([
@@ -145,5 +241,61 @@ describe("preset swatches", () => {
       tracks.find((entry) => entry.id === "secondary")!.seedHex,
       tracks.find((entry) => entry.id === "neutral")!.seedHex,
     ]);
+  });
+});
+
+describe("preset details", () => {
+  it("describes GitHub Primer in full", () => {
+    expect(workspacePresetDetails(findWorkspacePreset("primer")!)).toEqual({
+      primaryHex: "#0969da",
+      secondaryHex: "#1a7f37",
+      neutralHex: "#656d76",
+      typeface: "System sans",
+      baseFontSizePx: 14,
+      ratio: 1.25,
+      ratioName: "Major Third",
+      stepCount: 9,
+      roleGroups: "Enterprise",
+      baseSpacingPx: 4,
+      elementRadiusPx: 6,
+      containerRadiusPx: 6,
+    });
+  });
+
+  it("names a quoted face as a person would", () => {
+    expect(
+      workspacePresetDetails(findWorkspacePreset("carbon")!),
+    ).toMatchObject({ typeface: "IBM Plex Sans", ratioName: "Major Third" });
+  });
+
+  it("keeps what a preset overrides, and names its ratio", () => {
+    expect(
+      workspacePresetDetails(findWorkspacePreset("linear")!),
+    ).toMatchObject({
+      primaryHex: "#5e6ad2",
+      typeface: "Inter",
+      ratioName: "Minor Third",
+      stepCount: 10,
+    });
+  });
+
+  it("fills a bare preset from the studio's own seed", () => {
+    expect(
+      workspacePresetDetails({ id: "bare", name: "Bare", summary: "" }),
+    ).toMatchObject({
+      primaryHex: "#7646ab",
+      secondaryHex: "#0f9d8f",
+      typeface: "Inter",
+    });
+  });
+
+  it("leaves an unnamed ratio unnamed rather than guessing", () => {
+    const preset = {
+      id: "x",
+      name: "x",
+      summary: "",
+      typography: { ratio: 1.31 },
+    };
+    expect(workspacePresetDetails(preset).ratioName).toBeNull();
   });
 });

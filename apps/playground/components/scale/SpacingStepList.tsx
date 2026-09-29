@@ -1,5 +1,6 @@
 "use client";
 
+import { Collapsible } from "@astryxdesign/core/Collapsible";
 import {
   SegmentedControl,
   SegmentedControlItem,
@@ -13,6 +14,7 @@ import {
 } from "@blueprint/ui";
 import { SpacingTokenRow } from "./SpacingTokenRow";
 import type { SpacingView } from "./use-spacing-view";
+import motion from "../collapsible-motion.module.css";
 import styles from "./scale-workspace.module.css";
 
 interface SpacingStepListProps {
@@ -40,10 +42,13 @@ export function SpacingStepList({
   return (
     <section
       aria-label="Generated spacing steps"
-      className={styles.settingGroup}
+      className={`${styles.settingGroup} ${styles.stepList} ${motion.smooth}`}
     >
-      <div className={styles.stepListHeader}>
-        <h2>Steps</h2>
+      {/* In the header row, just left of the chevron: beside the trigger
+          rather than inside it, since the trigger is a button and a control
+          inside one cannot be reached. Outside the panel, so it stays when
+          the list is folded. */}
+      <div className={styles.stepListUnit}>
         <SegmentedControl
           label="Value unit"
           size="sm"
@@ -54,23 +59,28 @@ export function SpacingStepList({
           <SegmentedControlItem label="rem" value="rem" />
         </SegmentedControl>
       </div>
-      <ol className={styles.tokenList}>
-        {resolveSpacingRamp(scale).map((token) => (
-          <SpacingTokenRow
-            key={token.step}
-            isKept={token.kept}
-            isSelected={token.kept && token.step === selected?.step}
-            token={token}
-            unit={preview.unit}
-            onSelect={() =>
-              onPreviewChange({
-                slots: { ...preview.slots, [activeSlot]: token.step },
-              })
-            }
-            onToggleKept={() => onToggleStep(token.step)}
-          />
-        ))}
-      </ol>
+      <Collapsible
+        defaultIsOpen
+        trigger={<span className={styles.groupTrigger}>Steps</span>}
+      >
+        <ol className={styles.tokenList}>
+          {resolveSpacingRamp(scale).map((token) => (
+            <SpacingTokenRow
+              key={token.step}
+              isKept={token.kept}
+              isSelected={token.kept && token.step === selected?.step}
+              token={token}
+              unit={preview.unit}
+              onSelect={() =>
+                onPreviewChange({
+                  slots: { ...preview.slots, [activeSlot]: token.step },
+                })
+              }
+              onToggleKept={() => onToggleStep(token.step)}
+            />
+          ))}
+        </ol>
+      </Collapsible>
     </section>
   );
 }

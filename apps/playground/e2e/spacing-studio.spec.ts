@@ -289,6 +289,83 @@ test.describe("The spacing studio", () => {
     await expect(chip).toContainText("Comfortable");
   });
 
+  test("folds the step list, its unit switch beside the chevron", async ({
+    seededPage: page,
+  }) => {
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    const trigger = steps.getByRole("button", { name: "Steps", exact: true });
+    const rows = steps.getByRole("listitem");
+    const unit = steps.getByRole("radiogroup", { name: "Value unit" });
+
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await expect(rows.first()).toBeVisible();
+    const label = trigger.locator("[class*=groupTrigger]");
+    await expect(label).toHaveCSS("font-size", "14px");
+    await expect(label).toHaveCSS("font-weight", "600");
+
+    /* In the header row, left of the chevron and clear of it, centred on
+       the row, and not inside the trigger's button. */
+    const place = await steps.evaluate((section) => {
+      const button = section.querySelector("button[aria-expanded]")!;
+      const chevron = button.querySelector("svg")!.getBoundingClientRect();
+      const row = button.getBoundingClientRect();
+      const group = section.querySelector("[role=radiogroup]")!;
+      const box = group.getBoundingClientRect();
+      return {
+        leftOfChevron: box.right <= chevron.left - 4,
+        centred:
+          Math.abs(box.top + box.height / 2 - (row.top + row.height / 2)) <= 2,
+        outsideButton: group.closest("button") === null,
+      };
+    });
+    expect(place).toEqual({
+      leftOfChevron: true,
+      centred: true,
+      outsideButton: true,
+    });
+
+    /* Folded, the list goes and the switch stays, still usable. */
+    await trigger.click();
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect(rows.first()).toBeHidden();
+    await expect(unit).toBeVisible();
+    await unit.getByRole("radio", { name: "rem" }).click();
+    await expect(unit.getByRole("radio", { name: "rem" })).toBeChecked();
+
+    await trigger.click();
+    await expect(
+      steps.locator('[data-spacing-step="4"] [data-spacing-value]'),
+    ).toHaveText("1rem");
+  });
+
+  test("keeps Save profile at the foot of its card", async ({
+    seededPage: page,
+  }) => {
+    /* The welcome card is the taller; the profile card stretches to match,
+       and its action belongs at the bottom, not under the last checkmark. */
+    const save = page
+      .getByRole("figure", { name: "Spacing preview" })
+      .getByRole("button", { name: "Save profile" });
+    const fit = await save.evaluate((button) => {
+      /* The button's block: the child of the card body that holds it. */
+      let block: Element = button;
+      while (!block.parentElement!.className.includes("spacingCardBody")) {
+        block = block.parentElement!;
+      }
+      const body = block.parentElement!;
+      const band = block.previousElementSibling!;
+      const bottom = (element: Element) =>
+        element.getBoundingClientRect().bottom;
+      return {
+        atFoot: Math.round(bottom(body) - bottom(button)),
+        gapTouches: Math.round(
+          button.getBoundingClientRect().top - bottom(band),
+        ),
+      };
+    });
+    expect(fit).toEqual({ atFoot: 0, gapTouches: 0 });
+  });
+
   test("hides and shows the spacing marks", async ({ seededPage: page }) => {
     const preview = page.getByRole("figure", { name: "Spacing preview" });
     const marks = () =>
@@ -1969,9 +2046,19 @@ test.describe("Layout uses", () => {
       uses.locator('tr:has([data-token="gap-section"]) code'),
       uses.locator('tr:has([data-token="inset-container"]) code'),
     );
+    /* A control's two insets, then the grid, nav and card uses, keep
+       their places after them. */
     await expect
       .poll(() => rowIds(uses))
-      .toEqual(["gap-section", "inset-container"]);
+      .toEqual([
+        "gap-section",
+        "inset-container",
+        "inset-control-x",
+        "inset-control-y",
+        "gap-grid",
+        "gap-nav",
+        "inset-card",
+      ]);
   });
 
   test("cell fields bind a spacing step or a typed px", async ({
