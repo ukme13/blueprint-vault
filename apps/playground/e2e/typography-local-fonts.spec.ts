@@ -40,6 +40,20 @@ async function openFallback(scope: import("@playwright/test").Locator) {
   if ((await add.count()) > 0) await add.first().click();
 }
 
+/** Open a slot's picker from its chip, when it is not open already. */
+async function openSlot(
+  scope: import("@playwright/test").Locator,
+  label: string,
+) {
+  const input = scope.getByLabel(label, { exact: true });
+  if ((await input.count()) === 0) {
+    await scope
+      .getByRole("button", { name: new RegExp(`^${label}: `) })
+      .click();
+  }
+  return input;
+}
+
 const registeredFamilies = (page: import("@playwright/test").Page) =>
   page.evaluate(() => {
     const names: string[] = [];
@@ -380,8 +394,9 @@ test.describe("A file nothing references", () => {
     await upload(page);
     const settings = page.getByRole("region", { name: "Type scale settings" });
 
-    await settings
-      .getByLabel("Base font", { exact: true })
+    await (
+      await openSlot(settings, "Base font")
+    )
       .locator("xpath=..")
       .getByRole("button", { name: "Clear selection" })
       .click();
@@ -461,7 +476,7 @@ test.describe("Uploading from the font selector", () => {
     family: string,
   ) => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
-    const input = settings.getByLabel("Base font", { exact: true });
+    const input = await openSlot(settings, "Base font");
     await input
       .locator("xpath=..")
       .getByRole("button", { name: family, exact: true })

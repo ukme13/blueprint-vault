@@ -20,8 +20,23 @@ import type { Locator } from "@playwright/test";
  * Clearing the token is what the widget offers to get back to an editable
  * field, and it is what a person does too.
  */
-async function searchFont(scope: Locator, label: string, query: string) {
+/**
+ * Open a slot's picker from its chip, when it is not open already.
+ *
+ * A stack is a row of chips; each opens its slot's picker in a popover.
+ */
+async function openSlot(scope: Locator, label: string) {
   const input = scope.getByLabel(label, { exact: true });
+  if ((await input.count()) === 0) {
+    await scope
+      .getByRole("button", { name: new RegExp(`^${label}: `) })
+      .click();
+  }
+  return input;
+}
+
+async function searchFont(scope: Locator, label: string, query: string) {
+  const input = await openSlot(scope, label);
   if (!(await input.isVisible())) {
     await input
       .locator("xpath=..")
@@ -560,6 +575,7 @@ test.describe("Typography scale editing", () => {
        the family rather than something to act on, so it is only read by
        somebody who asks for it. */
     await expect(settings.getByText(/is not a Google font/)).toBeHidden();
+    await openSlot(settings, "Base font");
     await labelInfo(settings, "Base font").hover();
     await expect(settings.getByText(/is not a Google font/)).toBeVisible();
 
@@ -1299,6 +1315,49 @@ test.describe("Where a Selector menu opens", () => {
   });
 });
 
+test.describe("A stack as chips", () => {
+  test("shows each family as a chip that opens its picker", async ({
+    seededPage: page,
+  }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const stack = settings.getByRole("region", { name: "Base stack" });
+
+    /* No field labels on the card: a chip per family, in order. */
+    await expect(stack.getByText("Base font", { exact: true })).toHaveCount(0);
+    const primary = stack.getByRole("button", { name: /^Base font: / });
+    await expect(primary).toBeVisible();
+
+    /* A chip opens its slot's picker; choosing closes it and the chip
+       says the new family. */
+    await primary.click();
+    const picker = page.getByRole("dialog", {
+      name: "Choose a family for Base font",
+    });
+    await expect(picker).toBeVisible();
+    await searchFont(settings, "Base font", "Lora");
+    await page.getByRole("option", { name: "Lora", exact: true }).click();
+    await expect(picker).toBeHidden();
+    await expect(primary).toHaveAccessibleName("Base font: Lora");
+
+    /* Add opens the new fallback's picker at once; picked, it is a chip
+       with its own remove. */
+    await stack.getByRole("button", { name: "Add a fallback to Base" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "Choose a family for Base fallback 1" }),
+    ).toBeVisible();
+    await searchFont(settings, "Base fallback 1", "Sarabun");
+    await page.getByRole("option", { name: "Sarabun" }).first().click();
+    const fallback = stack.getByRole("button", {
+      name: "Base fallback 1: Sarabun",
+    });
+    await expect(fallback).toBeVisible();
+
+    await stack.getByRole("button", { name: "Remove Base fallback 1" }).click();
+    await expect(fallback).toHaveCount(0);
+    await expect.poll(() => storedFamilies(page)).not.toContain("Sarabun");
+  });
+});
+
 test.describe("Fallbacks", () => {
   const addButton = (scope: Locator) =>
     scope.getByRole("button", { name: "Add a fallback to Base" });
@@ -1407,6 +1466,7 @@ test.describe("Fallbacks", () => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
 
     await expect(settings.getByText(/is not a Google font/)).toBeHidden();
+    await openSlot(settings, "Base font");
     await labelInfo(settings, "Base font").hover();
     await expect(settings.getByText(/is not a Google font/)).toBeVisible();
     await expect(settings.getByText(/glyph/i)).toHaveCount(0);

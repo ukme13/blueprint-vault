@@ -1331,3 +1331,116 @@
     height: var(--size-element-lg, 36px);
   }
 }
+
+/* ---- a font stack as chips, in the order the browser reads them ---- */
+
+.fontChips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+
+/* PopoverOrSheet's wrapper, sized to its chip in the row. */
+.fontChipAnchor {
+  display: inline-grid;
+  max-width: 100%;
+}
+
+.fontChip,
+.fontChipAdd {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  min-width: 0;
+  max-width: 100%;
+  height: var(--spacing-8);
+  padding: 0 var(--spacing-3);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-full, 9999px);
+  background: var(--color-surface-base);
+  color: var(--color-fg-primary);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.fontChip:hover,
+.fontChipAdd:hover {
+  border-color: var(--color-border-strong);
+}
+
+.fontChip:focus-visible,
+.fontChipAdd:focus-visible,
+.fontChipRemove:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+/* The primary family leads: the one the stack is named for. */
+.fontChip[data-primary] {
+  font-weight: 600;
+}
+
+.fontChip[data-empty] {
+  color: var(--color-fg-muted);
+}
+
+.fontChip svg,
+.fontChipAdd svg,
+.fontChipRemove svg {
+  flex: none;
+  width: var(--spacing-4);
+  height: var(--spacing-4);
+}
+
+.fontChipLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A fallback: its chip and its remove, one pill. */
+.fontChipGroup {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-full, 9999px);
+  background: var(--color-surface-base);
+}
+
+.fontChipGroup .fontChip {
+  border: 0;
+  padding-inline-end: var(--spacing-1);
+  background: transparent;
+}
+
+.fontChipRemove {
+  display: inline-grid;
+  place-items: center;
+  width: var(--spacing-6);
+  height: var(--spacing-6);
+  margin-inline-end: var(--spacing-1);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full, 9999px);
+  background: transparent;
+  color: var(--color-fg-muted);
+  cursor: pointer;
+}
+
+.fontChipRemove:hover {
+  background: var(--color-surface-subtle);
+  color: var(--color-fg-primary);
+}
+
+/* The next fallback, not yet there: dashed. */
+.fontChipAdd {
+  border-style: dashed;
+  color: var(--color-fg-muted);
+}
+
+.fontChipPanel {
+  padding: var(--spacing-3);
+}
