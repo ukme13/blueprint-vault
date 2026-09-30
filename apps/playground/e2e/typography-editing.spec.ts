@@ -593,6 +593,52 @@ test.describe("Typography scale editing", () => {
     await expect(settings.getByLabel(/ font weight$/)).toHaveCount(before + 1);
   });
 
+  test("adds a size group's role at the top, and shows it arriving", async ({
+    seededPage: page,
+  }) => {
+    /* Sizes count up from xs at the bottom, so a new role goes on top as the
+       next size up and no name below it moves. That puts it away from the Add
+       button under the group, so it is marked as just added and scrolled to. */
+    await showInspectorPanel(page, "Groups");
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const body = settings.getByRole("group", { name: "Body", exact: true });
+    const names = body.locator("[class*=roleSettingLabel]");
+
+    await body.getByLabel("body indexing", { exact: true }).click();
+    await page.getByRole("option", { name: "Size", exact: true }).click();
+
+    const add = body.getByRole("button", { name: "Add a role to Body" });
+    await add.click();
+    await expect(names).toHaveText(["body-sm", "body-xs"]);
+    await add.click();
+    await expect(names).toHaveText(["body-md", "body-sm", "body-xs"]);
+
+    const added = body.locator("[data-just-added]");
+    await expect(added).toHaveCount(1);
+    await expect(added.locator("[class*=roleSettingLabel]")).toHaveText(
+      "body-md",
+    );
+    await expect(names.first()).toBeInViewport();
+  });
+
+  test("keeps the heading group numbered, with its indexing off", async ({
+    seededPage: page,
+  }) => {
+    /* h1 to h6 are names, so Size would change nothing. */
+    await showInspectorPanel(page, "Groups");
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const h = settings.getByRole("group", { name: "H", exact: true });
+    const indexing = h.getByLabel("h indexing", { exact: true });
+
+    await expect(indexing).toBeDisabled();
+    await expect(indexing).toContainText("Number");
+    await expect(
+      settings
+        .getByRole("group", { name: "Body", exact: true })
+        .getByLabel("body indexing", { exact: true }),
+    ).toBeEnabled();
+  });
+
   test("removes a role", async ({ seededPage: page }) => {
     await showInspectorPanel(page, "Groups");
     const settings = page.getByRole("region", { name: "Type scale settings" });

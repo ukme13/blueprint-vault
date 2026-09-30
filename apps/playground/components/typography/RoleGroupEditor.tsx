@@ -19,6 +19,7 @@ import {
   MIN_LINE_HEIGHT_RATIO,
   TYPE_INDEXING_LABELS,
   hybridPresetsFromTypeSteps,
+  isHeadingGroup,
   type TypeFont,
   type TypeGroup,
   type TypeIndexing,
@@ -29,6 +30,7 @@ import {
 } from "@blueprint/ui";
 import { ConfirmDialog } from "../ConfirmDialog";
 import { RoleRow } from "./RoleRow";
+import { useAddedRoleId } from "./use-added-role";
 import styles from "./typography-workspace.module.css";
 import { SheetSelector } from "../SheetSelector";
 
@@ -115,6 +117,8 @@ export function RoleGroupEditor({
     isDragging,
   } = useSortable({ id: group.id });
   const sizePresets = hybridPresetsFromTypeSteps(steps);
+  const addedRoleId = useAddedRoleId(group, roles);
+  const isHeading = isHeadingGroup(group);
 
   return (
     <div
@@ -232,15 +236,19 @@ export function RoleGroupEditor({
                 onChange={onAutoLineHeightRatioChange}
               />
               {/* How this group's roles are numbered, a property of the name
-              next to it. */}
+              next to it. Headings are h1 to h6 whatever it says, so for them
+              it shows Number and is off rather than offering a choice that
+              changes nothing. */}
               <SheetSelector
                 label={`${group.id} indexing`}
                 isLabelHidden
+                isDisabled={isHeading}
+                disabledMessage="Headings are always numbered, h1 to h6."
                 options={(["number", "size"] as TypeIndexing[]).map((mode) => ({
                   label: TYPE_INDEXING_LABELS[mode],
                   value: mode,
                 }))}
-                value={group.indexing}
+                value={isHeading ? "number" : group.indexing}
                 onChange={(value) => onIndexingChange(value as TypeIndexing)}
               />
             </div>
@@ -295,6 +303,7 @@ export function RoleGroupEditor({
                   key={role.id}
                   deviceId={deviceId}
                   fonts={fonts}
+                  justAdded={role.id === addedRoleId}
                   role={role}
                   sizePresets={sizePresets}
                   steps={steps}
