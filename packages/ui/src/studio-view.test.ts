@@ -4,6 +4,7 @@ import {
   studioHref,
   studioViewParam,
   withStudioParam,
+  withoutStudioParams,
 } from "./studio-view";
 
 const VIEWS = ["editor", "specimen", "preview"] as const;
@@ -44,6 +45,22 @@ describe("withStudioParam", () => {
     expect(
       withStudioParam("view=specimen&tab=groups", "view", "editor", "editor"),
     ).toBe("tab=groups");
+  });
+});
+
+describe("withoutStudioParams", () => {
+  it("drops the named parameters and keeps the others", () => {
+    expect(
+      withoutStudioParams("?view=semantics&group=border&tab=a", ["group"]),
+    ).toBe("view=semantics&tab=a");
+    expect(withoutStudioParams("group=border&x=1", ["group", "x"])).toBe("");
+  });
+
+  it("leaves a query without them as it is", () => {
+    expect(withoutStudioParams("view=semantics", ["group"])).toBe(
+      "view=semantics",
+    );
+    expect(withoutStudioParams("", ["group"])).toBe("");
   });
 });
 

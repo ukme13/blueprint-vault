@@ -82,6 +82,9 @@ const PLAYGROUND_SECTIONS = [
   "accessibility",
 ] as const satisfies readonly PlaygroundSection[];
 
+/** Belong to the Semantics tab, so leaving it takes them out of the address. */
+const SEMANTICS_PARAMS = ["group"] as const;
+
 type PaletteProject = PaletteProjectData;
 
 function createPatternValues(
@@ -256,6 +259,7 @@ function PaletteStudioContent() {
     "view",
     PLAYGROUND_SECTIONS,
     "shade-generator",
+    SEMANTICS_PARAMS,
   );
   /* Measuring chrome closes when the bench is left. The tab handler does it
      before the switch, for a click; Back, Forward and a link change the tab

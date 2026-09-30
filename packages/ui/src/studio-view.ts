@@ -40,6 +40,21 @@ export function withStudioParam(
   return params.toString();
 }
 
+/**
+ * The query string without some parameters, the others kept.
+ *
+ * For a parameter that belongs to one view of a studio, such as the group a
+ * table is filtered to, so that leaving the view leaves it out of the address.
+ */
+export function withoutStudioParams(
+  search: string,
+  keys: readonly string[],
+): string {
+  const params = new URLSearchParams(search);
+  for (const key of keys) params.delete(key);
+  return params.toString();
+}
+
 /** Each studio's last non-default query, by its path: `{ "/typography": "view=specimen" }`. */
 export type StudioViewMemory = Readonly<Record<string, string>>;
 

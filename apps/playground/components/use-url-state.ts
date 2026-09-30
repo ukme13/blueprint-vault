@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
-import { studioViewParam, withStudioParam } from "@blueprint/ui";
+import {
+  studioViewParam,
+  withoutStudioParams,
+  withStudioParam,
+} from "@blueprint/ui";
 import { saveStudioView } from "./studio-view-memory";
 
 /* The query string is read straight from the address, through
@@ -29,6 +33,8 @@ function notify(): void {
   listeners.forEach((listener) => listener());
 }
 
+const NO_PARAMS: readonly string[] = [];
+
 const clientSearch = () => window.location.search;
 const serverSearch = () => "";
 
@@ -40,12 +46,14 @@ const serverSearch = () => "";
  * Next's router picks up with no request to the server and no reload:
  * `router.replace` would add no history entry, and Back would skip every tab.
  * A value equal to the default is left out of the address, and an unknown one
- * reads as the default.
+ * reads as the default. `clears` names the parameters that belong to one value,
+ * such as a filter of one tab, and are dropped when the value changes.
  */
 export function useUrlState<T extends string>(
   key: string,
   allowed: readonly T[],
   fallback: T,
+  clears: readonly string[] = NO_PARAMS,
 ): readonly [T, (next: T) => void] {
   /* Read so the hook renders again on a route change: a navigation made by a
      link changes the address without a \`popstate\`. */
@@ -65,19 +73,21 @@ export function useUrlState<T extends string>(
 
   const set = useCallback(
     (next: T) => {
-      const query = withStudioParam(
+      const changed = withStudioParam(
         window.location.search,
         key,
         next,
         fallback,
       );
-      /* The same address is not a new place to go back to. */
-      if (query === window.location.search.replace(/^\?/, "")) return;
+      /* The same address is not a new place to go back to, and the value
+         staying put is not a reason to drop what belongs to it. */
+      if (changed === window.location.search.replace(/^\?/, "")) return;
+      const query = withoutStudioParams(changed, clears);
       const url = `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
       window.history.pushState(null, "", url);
       notify();
     },
-    [key, fallback],
+    [key, fallback, clears],
   );
 
   return [value, set] as const;

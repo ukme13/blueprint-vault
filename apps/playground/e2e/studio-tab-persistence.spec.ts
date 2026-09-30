@@ -337,6 +337,43 @@ test.describe("Semantic table", () => {
   });
 
   colourTest(
+    "leaves the group out of the address on the other tabs",
+    async ({ seededPage: page }) => {
+      await page.goto("/colour?view=semantics");
+      const { group, rows } = semanticTable(page);
+      await group("Borders").click();
+      await expect(page).toHaveURL(/group=/);
+
+      /* Clicking the tab it is already on is not leaving it. */
+      await page.getByRole("button", { name: "Semantics" }).click();
+      await expect(page).toHaveURL(/group=/);
+
+      await page.getByRole("button", { name: "Accessibility" }).click();
+      await expect(page).toHaveURL(/view=accessibility/);
+      await expect(page).not.toHaveURL(/group=/);
+      /* Nor does the sidebar's link to Colour carry it. */
+      await studioLink(page, "Spacing").click();
+      await expect(studioLink(page, "Colour")).toHaveAttribute(
+        "href",
+        "/colour?view=accessibility",
+      );
+      await studioLink(page, "Colour").click();
+
+      /* Back on Semantics by the tab, it is All again. */
+      await page.getByRole("button", { name: "Semantics" }).click();
+      await expect(page).toHaveURL(/view=semantics/);
+      await expect(page).not.toHaveURL(/group=/);
+      await expect(rows.first()).toBeVisible();
+      await expect(rows).not.toHaveCount(4);
+
+      /* Back, by the browser, four entries on: the group it was left on. */
+      for (let step = 0; step < 4; step++) await page.goBack();
+      await expect(page).toHaveURL(/group=/);
+      await expect(rows).toHaveCount(4);
+    },
+  );
+
+  colourTest(
     "Space returns to the group and the scroll position it left",
     async ({ seededPage: page }) => {
       /* A short window, so that even one group is taller than it is. */
