@@ -29,7 +29,7 @@ import {
   type FontSlot,
 } from "@blueprint/ui";
 import type { TypographyProject } from "./typography-project";
-import { tagEdit } from "./use-typography-history";
+import { tagEdit } from "./typography-edit-keys";
 
 export interface TypographySystemActions {
   updateSystem: (patch: Partial<TypeSystem>) => void;

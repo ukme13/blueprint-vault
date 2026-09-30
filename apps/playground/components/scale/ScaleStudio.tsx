@@ -18,7 +18,6 @@ import {
 } from "@blueprint/ui";
 import { Sheet } from "../Sheet";
 import { SystemExportDialog } from "../SystemExportDialog";
-import { useUndoShortcut } from "../use-undo-shortcut";
 import { useUrlState } from "../use-url-state";
 import { useIsPhone } from "../use-is-phone";
 import { LayoutUsesTable } from "./LayoutUsesTable";
@@ -90,9 +89,6 @@ export function ScaleStudio() {
   const showPreview = studioView === "preview" && activeSection === "radius";
   /* Either takes the whole width, with no settings panel beside it. */
   const isFullWidth = showUses || showPreview;
-
-  /* Ctrl or Cmd+Z undoes, with Shift redoes, wherever focus is. */
-  useUndoShortcut(history.undo, history.redo);
 
   const sectionLabel = `${SCALE_SECTION_LABEL[activeSection]} settings`;
 
