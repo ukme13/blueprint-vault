@@ -54,6 +54,11 @@ test.describe("Project presets", () => {
     /* And its status hues: every track is the preset's. */
     expect(seedFor("error")).toBe("#df1b41");
     expect(stored.typography.system.ratio).toBeCloseTo(1.333, 3);
+    /* Its own 14px label, which the ratio skips, typed on every frame. */
+    const label = stored.typography.system.roles.find(
+      (role: { id: string }) => role.id === "label",
+    );
+    expect(label.unlinkedSizes).toEqual({ desktop: 14, tablet: 14, phone: 14 });
     /* Its spacing: the 4px unit the layout uses are written against, not an
        8px base that doubled them. */
     expect(stored.spacing).toMatchObject({ baseUnitPx: 4, density: 1 });

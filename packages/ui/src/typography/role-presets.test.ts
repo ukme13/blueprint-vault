@@ -216,7 +216,7 @@ describe("type role presets", () => {
     }
   });
 
-  it("read as custom once a role, a group or a size changes", () => {
+  it("read as custom once a role or a group changes", () => {
     const appUi = applyTypeRolePreset(system(), "app-ui");
     const edits: Array<[string, TypeSystem]> = [
       [
@@ -225,17 +225,6 @@ describe("type role presets", () => {
           ...appUi,
           roles: appUi.roles.map((role) =>
             role.id === "chip" ? { ...role, fontWeight: 700 } : role,
-          ),
-        },
-      ],
-      [
-        "hand-set size",
-        {
-          ...appUi,
-          roles: appUi.roles.map((role) =>
-            role.id === "h1"
-              ? { ...role, unlinkedSizes: { desktop: 40 } }
-              : role,
           ),
         },
       ],
@@ -253,6 +242,21 @@ describe("type role presets", () => {
     for (const [, edited] of edits) {
       expect(detectTypeRolePreset(edited)).toBe("custom");
     }
+  });
+
+  it("keep the preset when a role is given a size of its own", () => {
+    /* A preset seeds the sizes its design system uses (a 14px control on a
+       scale that skips it), so a typed size is not an edit of the shape. */
+    const appUi = applyTypeRolePreset(system(), "app-ui");
+    const sized = {
+      ...appUi,
+      roles: appUi.roles.map((role) =>
+        role.id === "h1"
+          ? { ...role, unlinkedSizes: { desktop: 40, tablet: 36, phone: 32 } }
+          : role,
+      ),
+    };
+    expect(detectTypeRolePreset(sized)).toBe("app-ui");
   });
 
   it("switch between presets and back", () => {

@@ -24,7 +24,11 @@ import {
 } from "../typography/preview-document";
 import { seedPreviewSections } from "../typography/preview-sections";
 import { ROOT_FONT_SIZE_PX } from "../typography/types";
-import { defaultSystem } from "../typography/system";
+import {
+  defaultSystem,
+  unlinkRoleSizeOnDevice,
+  type TypeSystem,
+} from "../typography/system";
 import { splitFontFamily } from "../typography/migrate";
 import {
   applyTypeRolePreset,
@@ -133,6 +137,14 @@ export function seedPaletteProject(
  * optionally the role groups it names its styles by and the line its
  * specimen shows.
  */
+/** A role's authentic size, where the preset's ratio skips or undershoots it. */
+export type SeedRoleOverride = {
+  fontSizePx?: number;
+};
+
+/** The frames a seeded override is typed on, so it holds on every device. */
+const SEED_OVERRIDE_FRAMES = ["desktop", "tablet", "phone"] as const;
+
 export type SeedTypographyInput = {
   fontFamily: string;
   baseFontSizePx: number;
@@ -141,6 +153,13 @@ export type SeedTypographyInput = {
   /** App UI, Enterprise, Editorial; Minimal is the default system's own. */
   rolePresetId?: TypeRolePresetId;
   specimenText?: string;
+  /**
+   * Sizes a system really uses that the ratio does not land on, by role id:
+   * a 14px control on a 16px scale, a 16px body on a 14px one. Each is typed
+   * on every frame, as a person unlinking the role from the scale would.
+   * A role id the preset does not have is ignored, so a test holds them to it.
+   */
+  roleOverrides?: Record<string, SeedRoleOverride>;
 };
 
 /** What Home create offers for type before anybody changes it. */
@@ -151,6 +170,23 @@ export const SEED_TYPOGRAPHY: SeedTypographyInput = {
   ratio: 1.25,
   stepCount: 9,
 };
+
+function applyRoleOverrides(
+  system: TypeSystem,
+  overrides: SeedTypographyInput["roleOverrides"],
+): TypeSystem {
+  return Object.entries(overrides ?? {}).reduce(
+    (next, [roleId, { fontSizePx }]) =>
+      fontSizePx === undefined
+        ? next
+        : SEED_OVERRIDE_FRAMES.reduce(
+            (framed, frameId) =>
+              unlinkRoleSizeOnDevice(framed, roleId, frameId, fontSizePx),
+            next,
+          ),
+    system,
+  );
+}
 
 /**
  * The typography slice a new project starts with.
@@ -171,10 +207,12 @@ export function seedTypographyProject(
     input.stepCount,
   );
   /* The default system is already Minimal's groups. */
-  const system =
+  const withRoles =
     input.rolePresetId && input.rolePresetId !== "minimal"
       ? applyTypeRolePreset(base, input.rolePresetId)
       : base;
+  /* Before the previews below: they read the sizes the system resolves to. */
+  const system = applyRoleOverrides(withRoles, input.roleOverrides);
   return {
     system,
     unit: DEFAULT_TYPE_SCALE_UNIT,
