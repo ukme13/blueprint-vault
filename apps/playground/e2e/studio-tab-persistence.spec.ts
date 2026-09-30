@@ -169,3 +169,68 @@ test.describe("Scale studios", () => {
     ).toBeVisible();
   });
 });
+
+test.describe("Space, to Preview and back", () => {
+  /** Focus to the page: Space is ignored while a button or a tab has it. */
+  const blurFocus = (page: import("@playwright/test").Page) =>
+    page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+
+  test("returns Typography to the view and tab it left", async ({
+    seededPage: page,
+  }) => {
+    await page.getByRole("button", { name: "Specimen" }).click();
+    await page.getByRole("tab", { name: /^Groups/ }).click();
+    await expect(page).toHaveURL(/view=specimen/);
+    await expect(page).toHaveURL(/tab=groups/);
+
+    await blurFocus(page);
+    await page.keyboard.press("Space");
+    await expect(page).toHaveURL(/\/preview/);
+
+    /* And back: the address the studio was left on, not its bare path. */
+    await blurFocus(page);
+    await page.keyboard.press("Space");
+    await expect(page).toHaveURL(/\/typography/);
+    await expect(page).toHaveURL(/view=specimen/);
+    await expect(page).toHaveURL(/tab=groups/);
+    await expect(page.getByRole("tab", { name: /^Groups/ })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+    await expect(
+      page.getByRole("region", { name: "Type scale preview" }),
+    ).toBeVisible();
+  });
+
+  test("returns a scale studio to its view", async ({ seededPage: page }) => {
+    await page.goto("/radius");
+    await page
+      .getByRole("navigation", { name: "Scale sections" })
+      .getByRole("button", { name: "Uses" })
+      .click();
+    await expect(page).toHaveURL(/view=uses/);
+
+    await blurFocus(page);
+    await page.keyboard.press("Space");
+    await expect(page).toHaveURL(/\/preview/);
+    await blurFocus(page);
+    await page.keyboard.press("Space");
+
+    await expect(page).toHaveURL(/\/radius/);
+    await expect(page).toHaveURL(/view=uses/);
+    await expect(
+      page.getByRole("region", { name: "Radius uses" }),
+    ).toBeVisible();
+  });
+
+  test("opens a studio left on its defaults on the bare path", async ({
+    seededPage: page,
+  }) => {
+    await blurFocus(page);
+    await page.keyboard.press("Space");
+    await expect(page).toHaveURL(/\/preview/);
+    await blurFocus(page);
+    await page.keyboard.press("Space");
+    await expect(page).toHaveURL(/\/typography\/?$/);
+  });
+});

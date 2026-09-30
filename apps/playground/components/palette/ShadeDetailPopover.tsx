@@ -206,19 +206,21 @@ export function ShadeDetailPopover({
         </div>
       </div>
 
-      <TextInput
-        label="Nickname"
-        labelTooltip="Said beside this token in an export."
-        placeholder={nicknamePlaceholder}
-        size="sm"
-        value={nicknameText}
-        width="100%"
-        onChange={(value) => {
-          const typed = cleanShadeLabel(value);
-          setNicknameText(typed);
-          onNicknameChange(typed);
-        }}
-      />
+      <div className={styles.popoverNickname}>
+        <TextInput
+          label="Nickname"
+          labelTooltip="Said beside this token in an export."
+          placeholder={nicknamePlaceholder}
+          size="sm"
+          value={nicknameText}
+          width="100%"
+          onChange={(value) => {
+            const typed = cleanShadeLabel(value);
+            setNicknameText(typed);
+            onNicknameChange(typed);
+          }}
+        />
+      </div>
 
       {!isSource && (
         <ShadeEditModeControls

@@ -902,6 +902,12 @@
   font-size: 11px;
 }
 
+/* The nickname's row: inset like the rows around it, and divided from them. */
+.popoverNickname {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
 .popoverValueActions {
   min-width: 0;
   flex: 1;

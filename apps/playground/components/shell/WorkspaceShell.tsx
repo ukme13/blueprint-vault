@@ -35,6 +35,7 @@ import {
 import { docsLink } from "../../lib/docs-url";
 import { STUDIO_VERSION } from "../../lib/studio-version";
 import { ThemeControl } from "../ThemeControl";
+import { readStudioViewMemory } from "../studio-view-memory";
 import { useStudioViewMemory } from "../use-studio-view-memory";
 import { useUndoShortcut } from "../use-undo-shortcut";
 import { NewTabLink } from "./NewTabLink";
@@ -273,7 +274,9 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
       if (remember) {
         window.sessionStorage.setItem(PREVIEW_RETURN_KEY, remember);
       }
-      router.push(next);
+      /* To the view it was left on, as the sidebar's link does: the bare path
+         would open the studio on its first tab. Preview has none to add. */
+      router.push(studioHref(readStudioViewMemory(), next));
     };
 
     window.addEventListener("keydown", onKeyDown);

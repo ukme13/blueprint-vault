@@ -54,6 +54,18 @@ test.describe("Shade nicknames", () => {
     await source.click();
     const details = detailsOf(page, weight);
     const field = details.getByLabel("Nickname");
+    /* The field is inset like the rows around it, not against the edge. */
+    const popover = (await details.boundingBox())!;
+    const fieldBox = (await field.boundingBox())!;
+    expect(fieldBox.x - popover.x).toBeGreaterThanOrEqual(11);
+    expect(
+      popover.x + popover.width - (fieldBox.x + fieldBox.width),
+    ).toBeGreaterThanOrEqual(11);
+    const labelBox = (await details
+      .getByText("Nickname", { exact: true })
+      .boundingBox())!;
+    expect(labelBox.x - popover.x).toBeGreaterThanOrEqual(11);
+
     /* The field says what it will say, greyed, until something is typed. */
     await expect(field).toHaveAttribute("placeholder", "main");
     await expect(field).toHaveValue("");
