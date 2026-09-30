@@ -68,7 +68,7 @@ const PRIMER: WorkspacePreset = {
     specimenText: "Where the world builds software",
     /* The 14px control size a 1.25 scale from 14px steps past its labels and buttons over; headings and body follow the scale. */
     roleOverrides: {
-      "input-label-sm": { fontSizePx: 14 },
+      "input-label-md": { fontSizePx: 14 },
       "button-md": { fontSizePx: 14 },
     },
   },
@@ -253,7 +253,7 @@ const CARBON: WorkspacePreset = {
     /* Carbon's 14px compact size, which its ratio skips; headings and body follow the scale. */
     roleOverrides: {
       label: { fontSizePx: 14 },
-      "input-value-sm": { fontSizePx: 14 },
+      "input-value-md": { fontSizePx: 14 },
     },
   },
   previewDevices: [
