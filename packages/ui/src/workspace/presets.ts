@@ -334,9 +334,10 @@ const GUARDIAN: WorkspacePreset = {
     stepCount: 9,
     rolePresetId: "editorial",
     specimenText: "News is what someone somewhere wants to suppress",
-    /* A 14px label; headings and body follow the scale. */
+    /* A 14px label and button; headings and body follow the scale. */
     roleOverrides: {
       label: { fontSizePx: 14 },
+      "button-md": { fontSizePx: 14 },
     },
   },
   previewDevices: [
@@ -378,9 +379,11 @@ const NOTION: WorkspacePreset = {
     stepCount: 9,
     rolePresetId: "editorial",
     specimenText: "Organize your ideas, projects, and life",
-    /* A 14px label; headings and body follow the scale. */
+    /* A 14px label, button and code; headings and body follow the scale. */
     roleOverrides: {
       label: { fontSizePx: 14 },
+      "button-md": { fontSizePx: 14 },
+      code: { fontSizePx: 14 },
     },
   },
   previewDevices: [
