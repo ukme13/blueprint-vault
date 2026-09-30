@@ -27,6 +27,7 @@ export function LayoutUsesRow({
   autoFocusName,
   canReorder,
   columns,
+  hint,
   presets,
   token,
   onCommitName,
@@ -39,6 +40,8 @@ export function LayoutUsesRow({
   autoFocusName: boolean;
   canReorder: boolean;
   columns: readonly PreviewDevice[];
+  /** A line under the variable, such as what the value makes of a button. */
+  hint?: string | null;
   presets: readonly HybridTokenPreset[];
   token: LayoutToken;
   onCommitName: (value: string) => void;
@@ -95,6 +98,11 @@ export function LayoutUsesRow({
             />
           )}
           <code className={styles.usesVar}>{layoutVariableName(token.id)}</code>
+          {hint && (
+            <span className={styles.usesRowHint} data-row-hint={token.id}>
+              {hint}
+            </span>
+          )}
         </div>
       </TableCell>
       {columns.map((device) => (

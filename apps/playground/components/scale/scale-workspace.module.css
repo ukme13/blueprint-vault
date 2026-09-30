@@ -132,7 +132,8 @@
 }
 
 .usesVar,
-.usesWidth {
+.usesWidth,
+.usesRowHint {
   display: block;
   color: var(--color-fg-muted);
   font-size: 11px;

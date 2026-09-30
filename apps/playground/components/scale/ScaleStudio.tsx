@@ -184,6 +184,7 @@ export function ScaleStudio() {
             radius={radius}
             spacing={spacing}
             tokens={layout}
+            typography={typography.system}
             onChange={(next) => history.write({ layout: next })}
           />
         ) : (
