@@ -9,6 +9,8 @@ import {
 } from "./presets";
 import { defaultRadiusScale } from "../scale/radius";
 import { detectTypeRolePreset } from "../typography/role-presets";
+import { generateTypeSteps } from "../typography/scale";
+import { resolveRoleSizePx } from "../typography/system";
 import { defaultSpacingScale } from "../scale/spacing";
 import { seedWorkspaceProject } from "./seed-project";
 import { readWorkspaceProject } from "./workspace";
@@ -158,33 +160,79 @@ describe("instantiating a preset", () => {
     }
   });
 
-  it("seeds each preset's authentic sizes, typed on every frame", () => {
+  it("seeds only a few surgical sizes, typed on every frame", () => {
+    /* The one or two sizes each ratio skips; everything else stays linked. */
     const expected: Record<string, Record<string, number>> = {
-      primer: {
-        "button-md": 16,
-        "subtitle-2": 16,
-        "button-sm": 12,
-        h1: 32,
-        h4: 16,
-        tag: 12,
-      },
-      stripe: { label: 14, "body-sm": 14, chip: 12, h1: 64, h3: 36 },
-      carbon: { label: 14, "body-2": 14, h4: 28, h2: 42, h1: 54, code: 12 },
-      linear: { "body-sm": 13, label: 13, "button-md": 13, chip: 12 },
+      primer: { "input-label-sm": 14, "button-md": 14 },
+      stripe: { label: 14, "button-md": 14 },
+      carbon: { label: 14, "input-value-sm": 14 },
+      linear: { "body-sm": 13, label: 13 },
       polaris: { "body-2": 13, "button-sm": 12, caption: 12 },
+      medium: { caption: 14 },
+      guardian: { label: 14 },
+      notion: { label: 14 },
     };
     for (const [id, sizes] of Object.entries(expected)) {
-      const preset = findWorkspacePreset(id)!;
+      const system = instantiateWorkspacePreset(
+        findWorkspacePreset(id)!,
+        "Test",
+      ).typography!.system;
+      const unlinked = Object.fromEntries(
+        system.roles
+          .filter((role) => Object.keys(role.unlinkedSizes).length > 0)
+          .map((role) => [role.id, role.unlinkedSizes]),
+      );
+      /* Exactly these roles, each typed on all three frames. */
+      expect([id, unlinked]).toEqual([
+        id,
+        Object.fromEntries(
+          Object.entries(sizes).map(([roleId, px]) => [
+            roleId,
+            { desktop: px, tablet: px, phone: px },
+          ]),
+        ),
+      ]);
+    }
+  });
+
+  it("keeps headings and body on the scale, descending and responsive", () => {
+    for (const preset of WORKSPACE_PRESETS) {
       const system = instantiateWorkspacePreset(preset, "Test").typography!
         .system;
-      for (const [roleId, px] of Object.entries(sizes)) {
-        const role = system.roles.find((each) => each.id === roleId);
-        expect([id, roleId, role?.unlinkedSizes]).toEqual([
-          id,
-          roleId,
-          { desktop: px, tablet: px, phone: px },
+      const at = (frame: string, ratio: number, roleId: string) =>
+        resolveRoleSizePx(
+          system,
+          generateTypeSteps(system.baseFontSizePx, ratio, system.stepCount),
+          system.roles.find((role) => role.id === roleId)!,
+          frame,
+        );
+      const headings = system.roles.filter((role) => /^h[1-6]$/.test(role.id));
+      expect([preset.id, headings.length]).toEqual([preset.id, 6]);
+      /* Never typed, so they follow the scale on every frame. */
+      for (const role of headings) {
+        expect([preset.id, role.id, role.unlinkedSizes]).toEqual([
+          preset.id,
+          role.id,
+          {},
         ]);
       }
+      const sizes = headings.map((role) =>
+        at("desktop", system.ratio, role.id),
+      );
+      /* h1 down to h6, never rising: an h4 larger than an h3 is a bug. */
+      for (let index = 1; index < sizes.length; index += 1) {
+        expect([preset.id, index, sizes[index - 1]! >= sizes[index]!]).toEqual([
+          preset.id,
+          index,
+          true,
+        ]);
+      }
+      expect(sizes[0]).toBeGreaterThan(sizes.at(-1)!);
+      /* And they shrink on a phone, whose ratio is smaller. */
+      const phoneRatio = preset.previewDevices!.find(
+        (device) => device.id === "phone",
+      )!.ratio;
+      expect(at("phone", phoneRatio, "h1")).toBeLessThan(sizes[0]!);
     }
   });
 
@@ -365,27 +413,19 @@ describe("preset details", () => {
     });
   });
 
-  it("instantiates the serif presets with their serif stack and sizes", () => {
-    for (const [id, lead, bodyMd, bodySm] of [
-      ["medium", "Charter", 18, 16],
-      ["guardian", "Guardian Egyptian Web", 16, 14],
-      ["notion", "Lyon-Text", 16, 14],
+  it("instantiates the serif presets with their serif stack", () => {
+    for (const [id, lead] of [
+      ["medium", "Charter"],
+      ["guardian", "Guardian Egyptian Web"],
+      ["notion", "Lyon-Text"],
     ] as const) {
-      const workspace = instantiateWorkspacePreset(
+      const system = instantiateWorkspacePreset(
         findWorkspacePreset(id)!,
         "Test",
-      );
-      const system = workspace.typography!.system;
+      ).typography!.system;
       expect(system.fonts[0]!.families[0]).toBe(lead);
       expect(system.fonts[0]!.families.at(-1)).toBe("serif");
       expect(detectTypeRolePreset(system)).toBe("editorial");
-      const size = (roleId: string) =>
-        system.roles.find((role) => role.id === roleId)!.unlinkedSizes.desktop;
-      expect([id, size("body-md"), size("body-sm")]).toEqual([
-        id,
-        bodyMd,
-        bodySm,
-      ]);
     }
   });
 

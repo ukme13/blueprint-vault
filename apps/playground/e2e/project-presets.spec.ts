@@ -85,10 +85,16 @@ test.describe("Project presets", () => {
     const system = (await readStoredWorkspace(page)).typography.system;
     expect(system.baseFontSizePx).toBe(18);
     expect(system.fonts[0].families[0]).toBe("Charter");
-    const body = system.roles.find(
-      (role: { id: string }) => role.id === "body-md",
-    );
-    expect(body.unlinkedSizes).toEqual({ desktop: 18, tablet: 18, phone: 18 });
+    const role = (id: string) =>
+      system.roles.find((each: { id: string }) => each.id === id);
+    /* Body and headings follow the scale; only the 14px caption is typed. */
+    expect(role("body-md").unlinkedSizes).toEqual({});
+    expect(role("h1").unlinkedSizes).toEqual({});
+    expect(role("caption").unlinkedSizes).toEqual({
+      desktop: 14,
+      tablet: 14,
+      phone: 14,
+    });
   });
 
   test("a refused create keeps the dialog open and says why", async ({
