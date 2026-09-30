@@ -40,9 +40,7 @@ test.describe("Playground navigation", () => {
     ).toBeVisible();
   });
 
-  test("resets to Shade generator after a full reload", async ({
-    seededPage: page,
-  }) => {
+  test("keeps its tab after a full reload", async ({ seededPage: page }) => {
     await page.getByRole("button", { name: "Accessibility" }).click();
     await expect(
       page.getByRole("heading", { name: "Accessibility" }),
@@ -50,8 +48,13 @@ test.describe("Playground navigation", () => {
 
     await page.reload();
 
+    /* The tab is in the address, so a refresh returns to it. */
+    await expect(page).toHaveURL(/view=accessibility/);
+    await expect(
+      page.getByRole("heading", { name: "Accessibility" }),
+    ).toBeVisible();
     await expect(
       page.getByRole("region", { name: "Generated colour shades" }),
-    ).toBeVisible();
+    ).toHaveCount(0);
   });
 });

@@ -723,10 +723,9 @@ test.describe("Button tones", () => {
       tones.getByRole("button", { name: "Remove Info tone" }),
     ).toHaveCount(0);
 
+    /* The tab is in the address, so a reload comes back to Semantics, where
+       the palette toolbar is hidden: the region itself is what to wait for. */
     await page.reload();
-    await expect(
-      page.getByRole("region", { name: "Palette toolbar" }),
-    ).toBeVisible();
     const after = await openSemantics(page);
     await expect(after.locator('[data-token="status.info"]')).toHaveCount(0);
     await expect(

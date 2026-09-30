@@ -1,3 +1,4 @@
+import { test as colourTest } from "./fixtures";
 import { expect, test } from "./typography-fixtures";
 
 /**
@@ -170,10 +171,126 @@ test.describe("Scale studios", () => {
   });
 });
 
+test.describe("Colour studio", () => {
+  const shades = (page: import("@playwright/test").Page) =>
+    page.getByRole("region", { name: "Generated colour shades" });
+  const semantics = (page: import("@playwright/test").Page) =>
+    page.getByRole("region", { name: "Semantic tokens" });
+
+  colourTest(
+    "opens on the Shade generator, with a clean address",
+    async ({ seededPage: page }) => {
+      await page.goto("/colour");
+      expect(new URL(page.url()).search).toBe("");
+      await expect(shades(page)).toBeVisible();
+    },
+  );
+
+  colourTest(
+    "keeps its tab across another studio",
+    async ({ seededPage: page }) => {
+      await page.goto("/colour");
+      await page.getByRole("button", { name: "Semantics" }).click();
+      await expect(page).toHaveURL(/view=semantics/);
+      await expect(semantics(page)).toBeVisible();
+
+      await studioLink(page, "Spacing").click();
+      await expect(page).toHaveURL(/\/spacing\/?$/);
+
+      await studioLink(page, "Colour").click();
+      await expect(page).toHaveURL(/view=semantics/);
+      await expect(semantics(page)).toBeVisible();
+    },
+  );
+
+  colourTest(
+    "leaves the default tab out of the address and the sidebar link",
+    async ({ seededPage: page }) => {
+      await page.goto("/colour");
+      await page.getByRole("button", { name: "Accessibility" }).click();
+      await expect(page).toHaveURL(/view=accessibility/);
+      await page.getByRole("button", { name: "Shade generator" }).click();
+      await expect(page).not.toHaveURL(/view=/);
+      await studioLink(page, "Spacing").click();
+      await expect(studioLink(page, "Colour")).toHaveAttribute(
+        "href",
+        "/colour",
+      );
+    },
+  );
+
+  colourTest(
+    "moves between tabs with Back and Forward",
+    async ({ seededPage: page }) => {
+      await page.goto("/colour");
+      await page.getByRole("button", { name: "Semantics" }).click();
+      await page.getByRole("button", { name: "Accessibility" }).click();
+      await expect(page).toHaveURL(/view=accessibility/);
+
+      await page.goBack();
+      await expect(page).toHaveURL(/view=semantics/);
+      await expect(semantics(page)).toBeVisible();
+
+      await page.goBack();
+      await expect(page).not.toHaveURL(/view=/);
+      await expect(shades(page)).toBeVisible();
+
+      await page.goForward();
+      await expect(page).toHaveURL(/view=semantics/);
+      await expect(semantics(page)).toBeVisible();
+    },
+  );
+
+  colourTest(
+    "keeps its tab through a refresh",
+    async ({ seededPage: page }) => {
+      await page.goto("/colour?view=accessibility");
+      await expect(
+        page.getByRole("heading", { name: "Accessibility" }),
+      ).toBeVisible();
+      await page.reload();
+      await expect(page).toHaveURL(/view=accessibility/);
+      await expect(
+        page.getByRole("heading", { name: "Accessibility" }),
+      ).toBeVisible();
+      await expect(shades(page)).toHaveCount(0);
+    },
+  );
+
+  colourTest(
+    "reads an unknown tab as the Shade generator",
+    async ({ seededPage: page }) => {
+      await page.goto("/colour?view=nonsense");
+      await expect(shades(page)).toBeVisible();
+    },
+  );
+});
+
 test.describe("Space, to Preview and back", () => {
   /** Focus to the page: Space is ignored while a button or a tab has it. */
   const blurFocus = (page: import("@playwright/test").Page) =>
     page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+
+  colourTest(
+    "returns Colour to the tab it left",
+    async ({ seededPage: page }) => {
+      await page.goto("/colour");
+      await page.getByRole("button", { name: "Semantics" }).click();
+      await expect(page).toHaveURL(/view=semantics/);
+
+      await blurFocus(page);
+      await page.keyboard.press("Space");
+      await expect(page).toHaveURL(/\/preview/);
+      await blurFocus(page);
+      await page.keyboard.press("Space");
+
+      await expect(page).toHaveURL(/\/colour/);
+      await expect(page).toHaveURL(/view=semantics/);
+      await expect(
+        page.getByRole("region", { name: "Semantic tokens" }),
+      ).toBeVisible();
+    },
+  );
 
   test("returns Typography to the view and tab it left", async ({
     seededPage: page,
