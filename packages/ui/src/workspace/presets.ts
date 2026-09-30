@@ -67,11 +67,12 @@ const PRIMER: WorkspacePreset = {
     rolePresetId: "enterprise",
     specimenText: "Where the world builds software",
     /* Primer's own sizes, where a 1.25 ratio from 14px lands between them: the
-       14px and 12px controls the negative steps fall past, and desktop
-       headings at Primer's 32, 24, 20 and 16. */
+       16px button and subtitle, the 14px and 12px controls the negative steps
+       fall past, and desktop headings at Primer's 32, 24, 20 and 16. */
     roleOverrides: {
       "input-label-sm": { fontSizePx: 14 },
-      "button-md": { fontSizePx: 14 },
+      "button-md": { fontSizePx: 16 },
+      "subtitle-2": { fontSizePx: 16 },
       "table-header": { fontSizePx: 14 },
       "button-sm": { fontSizePx: 12 },
       "input-value-xs": { fontSizePx: 12 },

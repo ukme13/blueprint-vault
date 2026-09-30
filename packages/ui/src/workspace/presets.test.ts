@@ -158,7 +158,14 @@ describe("instantiating a preset", () => {
 
   it("seeds each preset's authentic sizes, typed on every frame", () => {
     const expected: Record<string, Record<string, number>> = {
-      primer: { "button-md": 14, "button-sm": 12, h1: 32, h4: 16, tag: 12 },
+      primer: {
+        "button-md": 16,
+        "subtitle-2": 16,
+        "button-sm": 12,
+        h1: 32,
+        h4: 16,
+        tag: 12,
+      },
       stripe: { label: 14, "body-sm": 14, chip: 12, h1: 64, h3: 36 },
       carbon: { label: 14, "body-2": 14, h4: 28, h2: 42, h1: 54, code: 12 },
       linear: { "body-sm": 13, label: 13, "button-md": 13, chip: 12 },
