@@ -337,7 +337,7 @@ const GUARDIAN: WorkspacePreset = {
     /* A 14px label and button; headings and body follow the scale. */
     roleOverrides: {
       label: { fontSizePx: 14 },
-      "button-sm": { fontSizePx: 14 },
+      "button-md": { fontSizePx: 14 },
     },
   },
   previewDevices: [
@@ -382,7 +382,7 @@ const NOTION: WorkspacePreset = {
     /* A 14px label, button and code; headings and body follow the scale. */
     roleOverrides: {
       label: { fontSizePx: 14 },
-      "button-sm": { fontSizePx: 14 },
+      "button-md": { fontSizePx: 14 },
       code: { fontSizePx: 14 },
     },
   },

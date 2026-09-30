@@ -154,8 +154,8 @@ const EDITORIAL: PresetGroup[] = [
       { stepOffset: -1, fontWeight: 400 },
     ],
   },
-  /* Follow, Subscribe, the site shell's login: two sizes, named button-sm
-     (step 0) and button-xs (step -1) by the size rule. */
+  /* Follow, Subscribe, the site shell's login: three sizes, named
+     button-md, button-sm and button-xs by the size rule. */
   {
     id: "button",
     label: "Button",
@@ -164,6 +164,7 @@ const EDITORIAL: PresetGroup[] = [
     roles: [
       { stepOffset: 0, fontWeight: 600 },
       { stepOffset: -1, fontWeight: 600 },
+      { stepOffset: -2, fontWeight: 500 },
     ],
   },
   /* Every system has a label group: a load adds it back if it is missing,
