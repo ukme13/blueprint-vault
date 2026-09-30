@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { readStoredWorkspace } from "./fixtures";
+import { openSpacingSteps } from "./scale-fixtures";
 import { expect, showInspectorPanel, test } from "./typography-fixtures";
 
 /**
@@ -42,6 +43,7 @@ test.describe("Undo across studios", () => {
     /* 2. Another studio, and an edit there. */
     await studioLink(page, "Spacing").click();
     await expect(page).toHaveURL(/\/spacing/);
+    await openSpacingSteps(page);
     await expect(keepStep(page)).toHaveAttribute("aria-pressed", "true");
     await keepStep(page).click();
     await expect(keepStep(page)).toHaveAttribute("aria-pressed", "false");
@@ -78,6 +80,7 @@ test.describe("Undo across studios", () => {
 
     /* Away and back: this Typography is a new one, holding the added role. */
     await studioLink(page, "Spacing").click();
+    await openSpacingSteps(page);
     await keepStep(page).click();
     await studioLink(page, "Typography").click();
     await showInspectorPanel(page, "Groups");
@@ -150,6 +153,7 @@ test.describe("Undo across studios", () => {
     await page.keyboard.press("ControlOrMeta+z");
     /* Opening a studio is not an edit: nothing to take back. */
     expect(await storedRoles(page)).toBe(rolesBefore);
+    await openSpacingSteps(page);
     await expect(keepStep(page)).toHaveAttribute("aria-pressed", "true");
   });
 });

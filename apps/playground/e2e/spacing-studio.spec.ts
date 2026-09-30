@@ -4,6 +4,7 @@ import { defaultProject, readStoredWorkspace } from "./fixtures";
 import {
   expect,
   clippedValues,
+  openSpacingSteps,
   showScaleView,
   spacingTagReport,
   test,
@@ -297,6 +298,13 @@ test.describe("The spacing studio", () => {
     const rows = steps.getByRole("listitem");
     const unit = steps.getByRole("radiogroup", { name: "Value unit" });
 
+    /* It starts folded: the list is out of the way until it is wanted, and
+       the unit switch is already there beside the chevron. */
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect(rows.first()).toBeHidden();
+    await expect(unit).toBeVisible();
+
+    await trigger.click();
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
     await expect(rows.first()).toBeVisible();
     const label = trigger.locator("[class*=groupTrigger]");
@@ -411,6 +419,7 @@ test.describe("The spacing studio", () => {
   test("lists the steps in the inspector, beside the preview", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     const canvas = page.getByRole("region", { name: "Spacing canvas" });
     const inspector = page.getByRole("complementary");
     const steps = inspector.getByRole("region", {
@@ -447,6 +456,7 @@ test.describe("The spacing studio", () => {
   test("sets the active slot from the step list", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     const row = (step: number) =>
       steps.locator(`[data-spacing-step="${step}"]`);
@@ -484,6 +494,7 @@ test.describe("The spacing studio", () => {
   test("applies a scale preset, calls an edited one Custom, and undoes", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     const preset = page.getByRole("button", { name: /^Scale preset:/ });
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     const chip = (step: string) =>
@@ -586,6 +597,7 @@ test.describe("The spacing studio", () => {
   test("sets density on the slider, moving layout steps and not the grid", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     const row = (step: string) =>
       steps.locator(`[data-spacing-step="${step}"]`);
@@ -666,6 +678,7 @@ test.describe("The spacing studio", () => {
   test("pruning a step moves the layout uses on it to the nearest kept", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     const insetOnPhone = async () =>
       (
         (await readStoredWorkspace(page))?.layout as {
@@ -710,6 +723,7 @@ test.describe("The spacing studio", () => {
   test("puts the keep box at the start of each row", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     const row = page
       .getByRole("region", { name: "Generated spacing steps" })
       .locator('[data-spacing-step="4"]');
@@ -730,6 +744,7 @@ test.describe("The spacing studio", () => {
   test("prunes a step from its row, and keeps it pruned", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     const rows = await steps.getByRole("listitem").count();
     const row = steps.locator('[data-spacing-step="10"]');
@@ -764,6 +779,8 @@ test.describe("The spacing studio", () => {
       .not.toContain(10);
 
     await page.reload();
+    /* Folded again: the panel does not remember it was open. */
+    await openSpacingSteps(page);
     await expect(
       page.getByRole("button", { name: "Keep step 10", exact: true }),
     ).toHaveAttribute("aria-pressed", "false");
@@ -772,6 +789,7 @@ test.describe("The spacing studio", () => {
   test("a pruned step moves the preview to the nearest kept one", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     const inset = page
       .getByRole("figure", { name: "Spacing preview" })
@@ -803,6 +821,7 @@ test.describe("The spacing studio", () => {
   test("moves every step when the base unit changes", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     /* The grid is the model: one number moves the whole scale, which is what
        makes it a scale rather than a list of sizes. */
 
@@ -821,6 +840,7 @@ test.describe("The spacing studio", () => {
   test("moves layout gaps and leaves the fine grid", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     /* Density is the control that makes the page roomier without turning a
        2px hairline into 4px, which is what switching the base unit does. */
 
@@ -856,6 +876,7 @@ test.describe("The spacing studio", () => {
   test("puts the lock after the name, and every row at one height", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     const hairline = steps.locator('[data-spacing-step="0.5"]');
     const lock = hairline.getByRole("img", { name: /^Fixed on base grid/ });
@@ -1799,6 +1820,7 @@ test.describe("The scale studio's chrome", () => {
   test("undoes a prune, and redo puts it back", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     const toggle = page.getByRole("button", {
       name: "Keep step 10",
       exact: true,
@@ -1840,6 +1862,7 @@ test.describe("The scale studio's chrome", () => {
   test("leaves a text field its own undo in the scale studios", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     const toggle = page.getByRole("button", {
       name: "Keep step 10",
       exact: true,
@@ -1857,6 +1880,7 @@ test.describe("The scale studio's chrome", () => {
   test("undoes the last action on the page, not only this view", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     /* Spacing, radius and elevation share one history: an undo is the last
        thing done in this studio, even after switching views. */
 
@@ -1880,6 +1904,7 @@ test.describe("The scale studio's chrome", () => {
     );
 
     await showScaleView(page, "Spacing");
+    await openSpacingSteps(page);
     await page.getByRole("button", { name: "Undo" }).click();
     await expect(toggle).toHaveAttribute("aria-pressed", "true");
   });

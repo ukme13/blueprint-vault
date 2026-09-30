@@ -6,7 +6,11 @@ import {
   expect,
   test,
 } from "./fixtures";
-import { clippedValues, spacingTagReport } from "./scale-fixtures";
+import {
+  clippedValues,
+  openSpacingSteps,
+  spacingTagReport,
+} from "./scale-fixtures";
 import { openPreview } from "./preview-fixtures";
 import {
   TYPOGRAPHY_STORAGE_KEY,
@@ -1466,6 +1470,8 @@ test.describe("on a phone", () => {
     const steps = page
       .getByRole("dialog", { name: "Spacing settings" })
       .getByRole("region", { name: "Generated spacing steps" });
+    /* Folded until asked for. */
+    await openSpacingSteps(page);
     await expect(steps.locator("li").first()).toBeVisible();
     for (const unit of ["px", "rem"]) {
       await steps.getByRole("radio", { name: unit }).click();

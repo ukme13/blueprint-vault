@@ -39,6 +39,22 @@ export async function showScaleView(
     .click();
 }
 
+/**
+ * Open the Spacing studio's Steps panel, when it is not open already.
+ *
+ * It starts folded, so a test that reads or toggles a step opens it first. Safe
+ * to call twice: an open panel is left as it is.
+ */
+export async function openSpacingSteps(page: Page): Promise<void> {
+  const trigger = page
+    .getByRole("region", { name: "Generated spacing steps" })
+    .getByRole("button", { name: "Steps", exact: true });
+  if ((await trigger.getAttribute("aria-expanded")) === "false") {
+    await trigger.click();
+  }
+  await expect(trigger).toHaveAttribute("aria-expanded", "true");
+}
+
 export const test = base.extend<{ seededPage: Page }>({
   seededPage: async ({ page }, runTest) => {
     await openScaleStudio(page);
