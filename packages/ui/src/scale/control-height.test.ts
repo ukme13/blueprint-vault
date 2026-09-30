@@ -98,13 +98,32 @@ describe("buttonHeights", () => {
 });
 
 describe("describeButtonHeights", () => {
-  it("reads as a hint, largest first as given", () => {
+  it("reads as a hint for the standard button alone", () => {
     expect(
       describeButtonHeights([
-        { size: "md", heightPx: 40 },
+        { size: "md", heightPx: 38 },
+        { size: "sm", heightPx: 32 },
+        { size: "xs", heightPx: 28 },
+      ]),
+    ).toBe("Button: ~38px (md)");
+  });
+
+  it("finds md wherever it is in the list", () => {
+    expect(
+      describeButtonHeights([
+        { size: "sm", heightPx: 32 },
+        { size: "md", heightPx: 38 },
+      ]),
+    ).toBe("Button: ~38px (md)");
+  });
+
+  it("takes the first size when there is no md", () => {
+    expect(
+      describeButtonHeights([
+        { size: "lg", heightPx: 46 },
         { size: "sm", heightPx: 32 },
       ]),
-    ).toBe("Button: ~40px (md) · ~32px (sm)");
+    ).toBe("Button: ~46px (lg)");
   });
 
   it("leaves out the size when there is only the fallback", () => {

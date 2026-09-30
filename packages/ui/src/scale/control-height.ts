@@ -76,16 +76,22 @@ export function buttonHeights(
   return fallback ? [heightOf(fallback, null)] : [];
 }
 
+/** The size the hint speaks of: the standard button. */
+const STANDARD_BUTTON_SIZE = "md";
+
 /**
- * The heights as a hint under the block inset: `Button: ~40px (md) · ~32px (sm)`.
- * Null when there are none.
+ * The standard button's height as a hint under the block inset: `Button: ~38px (md)`.
+ *
+ * One size, not the ramp: the hint is a gauge for the inset, and the medium
+ * button is the one the others are read against. The first size when there is
+ * no `md`, and no suffix for the fallback role, which has none. Null when
+ * there are no heights.
  */
 export function describeButtonHeights(
   heights: readonly ButtonHeight[],
 ): string | null {
-  if (heights.length === 0) return null;
-  const sizes = heights.map(
-    (each) => `~${each.heightPx}px${each.size ? ` (${each.size})` : ""}`,
-  );
-  return `Button: ${sizes.join(" · ")}`;
+  const standard =
+    heights.find((each) => each.size === STANDARD_BUTTON_SIZE) ?? heights[0];
+  if (!standard) return null;
+  return `Button: ~${standard.heightPx}px${standard.size ? ` (${standard.size})` : ""}`;
 }

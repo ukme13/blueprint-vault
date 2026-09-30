@@ -39,7 +39,8 @@ test.describe("Button height from the control insets", () => {
     seededPage: page,
   }) => {
     const uses = await openUses(page);
-    await expect(heightHint(page)).toHaveText(/^Button: ~\d+px/);
+    /* The standard button alone, not one height for every size. */
+    await expect(heightHint(page)).toHaveText(/^Button: ~\d+px(?: \(md\))?$/);
     await expect(uses.locator("[data-row-hint]")).toHaveCount(1);
     /* Under the variable, inside the token's own cell. */
     await expect(
