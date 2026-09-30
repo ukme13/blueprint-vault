@@ -16,6 +16,7 @@ interface PaletteRowProps {
   onActiveShadeChange: (selection: ActiveShade | null) => void;
   onAnchorChange: (trackId: string, weight: number, hex: string | null) => void;
   onManualChange: (trackId: string, weight: number, hex: string | null) => void;
+  onNicknameChange: (trackId: string, weight: number, nickname: string) => void;
   onTrackChange: (
     id: string,
     property: "name" | "seedHex",
@@ -43,6 +44,7 @@ export function PaletteRow({
   onActiveShadeChange,
   onAnchorChange,
   onManualChange,
+  onNicknameChange,
   onTrackChange,
   onTrackOpen,
   onTrackMove,
@@ -136,6 +138,10 @@ export function PaletteRow({
               onManualChange(palette.id, shade.weight, hex)
             }
             onSourceChange={(hex) => onTrackChange(palette.id, "seedHex", hex)}
+            nickname={palette.adjustments.labels?.[shade.weight] ?? ""}
+            onNicknameChange={(nickname) =>
+              onNicknameChange(palette.id, shade.weight, nickname)
+            }
           />
         );
       })}

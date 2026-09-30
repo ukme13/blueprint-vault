@@ -8,6 +8,7 @@ import type {
   ShadeItem,
   TrackAdjustments,
 } from "./types";
+import { readShadeLabels } from "./shade-label";
 
 const MIN_WEIGHT = 50;
 const MIN_PRESET_WEIGHT = 25;
@@ -37,9 +38,11 @@ function normalizeAdjustmentRecord(
 export function normalizeTrackAdjustments(
   adjustments?: TrackAdjustments,
 ): TrackAdjustments {
+  const labels = readShadeLabels(adjustments?.labels);
   return {
     anchors: normalizeAdjustmentRecord(adjustments?.anchors),
     manualOverrides: normalizeAdjustmentRecord(adjustments?.manualOverrides),
+    ...(labels ? { labels } : {}),
   };
 }
 

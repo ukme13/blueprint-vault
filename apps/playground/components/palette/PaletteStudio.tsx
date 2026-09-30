@@ -40,6 +40,7 @@ import {
   generateStableWeights,
   normalizeHex,
   normalizeTrackAdjustments,
+  withShadeLabel,
   normalizeTrackName,
   parseBlueprintWorkspace,
   resizeLightnessArray,
@@ -481,7 +482,8 @@ function PaletteStudioContent() {
 
           return {
             ...track,
-            adjustments: { anchors, manualOverrides },
+            /* The rest of the adjustments stay: the nicknames are not colour. */
+            adjustments: { ...adjustments, anchors, manualOverrides },
           };
         }),
       };
@@ -514,9 +516,38 @@ function PaletteStudioContent() {
 
           return {
             ...track,
-            adjustments: { anchors, manualOverrides },
+            /* The rest of the adjustments stay: the nicknames are not colour. */
+            adjustments: { ...adjustments, anchors, manualOverrides },
           };
         }),
+      };
+    });
+  };
+
+  /* A shade's nickname, kept as it is typed. It is only ever said in an
+     export, beside the token; nothing in the studio depends on it. */
+  const changeShadeNickname = (
+    trackId: string,
+    weight: number,
+    nickname: string,
+  ) => {
+    setProject((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        tracks: current.tracks.map((track) =>
+          track.id === trackId
+            ? {
+                ...track,
+                adjustments: withShadeLabel(
+                  normalizeTrackAdjustments(track.adjustments),
+                  weight,
+                  nickname,
+                ),
+              }
+            : track,
+        ),
       };
     });
   };
@@ -531,7 +562,13 @@ function PaletteStudioContent() {
           track.id === trackId
             ? {
                 ...track,
-                adjustments: { anchors: {}, manualOverrides: {} },
+                /* Colours back to as generated; the nicknames are notes, not
+                   adjustments, and stay. */
+                adjustments: {
+                  ...normalizeTrackAdjustments(track.adjustments),
+                  anchors: {},
+                  manualOverrides: {},
+                },
               }
             : track,
         ),
@@ -838,6 +875,7 @@ function PaletteStudioContent() {
               onActiveShadeChange={setActiveShade}
               onAnchorChange={changeTrackAnchor}
               onManualChange={changeManualOverride}
+              onNicknameChange={changeShadeNickname}
               onTrackChange={updateTrack}
               onTrackOpen={setActiveTrackId}
               onTrackMove={moveTrack}

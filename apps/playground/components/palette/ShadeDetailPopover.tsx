@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { IconButton } from "@astryxdesign/core/IconButton";
+import { TextInput } from "@astryxdesign/core/TextInput";
 import { useToast } from "@astryxdesign/core/Toast";
 import {
   COLOUR_FORMAT_LABELS,
+  cleanShadeLabel,
   formatColour,
   type ShadeItem,
 } from "@blueprint/ui";
@@ -27,6 +29,9 @@ interface ShadeDetailPopoverProps {
   onAnchorChange: (hex: string | null) => void;
   onManualChange: (hex: string | null) => void;
   onSourceChange: (hex: string) => void;
+  /** This shade's nickname, as it stands; empty for none. */
+  nickname: string;
+  onNicknameChange: (nickname: string) => void;
   onClose: () => void;
   /**
    * `sheet` is the phone's bottom sheet: no close button of its own, and
@@ -45,6 +50,8 @@ export function ShadeDetailPopover({
   onAnchorChange,
   onManualChange,
   onSourceChange,
+  nickname,
+  onNicknameChange,
   onClose,
   layout = "popover",
 }: ShadeDetailPopoverProps) {
@@ -60,6 +67,18 @@ export function ShadeDetailPopover({
   const { colourFormat } = useColourFormat();
   const { copyText } = useCopyFeedback(1200);
   const toast = useToast();
+  /* What is in the field is kept here, as typed: the nickname that comes back
+     from the track is cleaned and trimmed, and a field fed that could not take
+     a space, so a second word would be impossible. The popover is new each time
+     it opens, so this starts from what was stored. */
+  const [nicknameText, setNicknameText] = useState(nickname);
+  /* What an export says with no nickname: the key shades say what they are. */
+  const nicknamePlaceholder =
+    shade.anchorType === "source"
+      ? "main"
+      : shade.anchorType === "custom"
+        ? "submain"
+        : "";
   const colourValue = formatColour(shade.hex, colourFormat);
   const formatLabel = COLOUR_FORMAT_LABELS[colourFormat];
   const copyLabel = `Copy ${formatLabel}`;
@@ -186,6 +205,20 @@ export function ShadeDetailPopover({
           />
         </div>
       </div>
+
+      <TextInput
+        description="Said beside this token in an export."
+        label="Nickname"
+        placeholder={nicknamePlaceholder}
+        size="sm"
+        value={nicknameText}
+        width="100%"
+        onChange={(value) => {
+          const typed = cleanShadeLabel(value);
+          setNicknameText(typed);
+          onNicknameChange(typed);
+        }}
+      />
 
       {!isSource && (
         <ShadeEditModeControls

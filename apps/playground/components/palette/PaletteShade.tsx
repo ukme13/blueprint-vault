@@ -21,6 +21,9 @@ interface PaletteShadeProps {
   onAnchorChange: (hex: string | null) => void;
   onManualChange: (hex: string | null) => void;
   onSourceChange: (hex: string) => void;
+  /** This shade's nickname, as typed; empty for none. */
+  nickname: string;
+  onNicknameChange: (nickname: string) => void;
   /** False on a phone, where the details open in a sheet instead. */
   hasPopover?: boolean;
 }
@@ -37,6 +40,8 @@ export function PaletteShade({
   onAnchorChange,
   onManualChange,
   onSourceChange,
+  nickname,
+  onNicknameChange,
   hasPopover = true,
 }: PaletteShadeProps) {
   const { seen, simulation } = usePaletteView();
@@ -177,6 +182,8 @@ export function PaletteShade({
           onAnchorChange={onAnchorChange}
           onManualChange={onManualChange}
           onSourceChange={onSourceChange}
+          nickname={nickname}
+          onNicknameChange={onNicknameChange}
           onClose={() => onSelect(false)}
         />
       }

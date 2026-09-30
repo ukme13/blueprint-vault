@@ -470,6 +470,40 @@ describe("withSharedName", () => {
   });
 });
 
+describe("shade nicknames on the way in", () => {
+  const withLabels = (labels: unknown) =>
+    legacyPalette({
+      tracks: [
+        {
+          id: "primary",
+          name: "primary",
+          seedHex: "#7646ab",
+          adjustments: { anchors: {}, manualOverrides: {}, labels },
+        },
+      ],
+    });
+
+  it("are read back, cleaned", () => {
+    const read = readPaletteProjectData(
+      withLabels({ 500: "  brand ", 600: "", abc: "x" }),
+    );
+    expect(read?.tracks[0]?.adjustments?.labels).toEqual({ 500: "brand" });
+  });
+
+  it("leave a project without them exactly as it was", () => {
+    const read = readPaletteProjectData(legacyPalette());
+    expect(read?.tracks[0]?.adjustments).toEqual({
+      anchors: {},
+      manualOverrides: {},
+    });
+    const emptied = readPaletteProjectData(withLabels({}));
+    expect(emptied?.tracks[0]?.adjustments).toEqual({
+      anchors: {},
+      manualOverrides: {},
+    });
+  });
+});
+
 describe("the name on pre-workspace palette data", () => {
   it("is read off the raw value, not off the slice", () => {
     expect(readLegacyPaletteName(legacyPalette())).toBe("My colour system");

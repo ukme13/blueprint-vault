@@ -34,7 +34,8 @@
         "$value": "#8359B5"
       },
       "500": {
-        "$value": "#7646AB"
+        "$value": "#7646AB",
+        "$description": "main"
       },
       "550": {
         "$value": "#663C95"
@@ -87,7 +88,8 @@
         "$value": "#4FB2A5"
       },
       "350": {
-        "$value": "#0F9D8F"
+        "$value": "#0F9D8F",
+        "$description": "main"
       },
       "400": {
         "$value": "#179487"
@@ -155,7 +157,8 @@
         "$value": "#808080"
       },
       "450": {
-        "$value": "#737373"
+        "$value": "#737373",
+        "$description": "main"
       },
       "500": {
         "$value": "#626462"
@@ -220,7 +223,8 @@
         "$value": "#3F8340"
       },
       "500": {
-        "$value": "#2F7D32"
+        "$value": "#2F7D32",
+        "$description": "main"
       },
       "550": {
         "$value": "#1F6623"
@@ -276,7 +280,8 @@
         "$value": "#BD8133"
       },
       "400": {
-        "$value": "#B87503"
+        "$value": "#B87503",
+        "$description": "main"
       },
       "450": {
         "$value": "#9E6200"
@@ -344,7 +349,8 @@
         "$value": "#BB4534"
       },
       "500": {
-        "$value": "#B02B1B"
+        "$value": "#B02B1B",
+        "$description": "main"
       },
       "550": {
         "$value": "#992315"
@@ -403,7 +409,8 @@
         "$value": "#4285BF"
       },
       "450": {
-        "$value": "#2878B8"
+        "$value": "#2878B8",
+        "$description": "main"
       },
       "500": {
         "$value": "#1E67A1"

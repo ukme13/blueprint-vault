@@ -25,6 +25,7 @@ interface PaletteMatrixProps {
   onActiveShadeChange: (selection: ActiveShade | null) => void;
   onAnchorChange: (trackId: string, weight: number, hex: string | null) => void;
   onManualChange: (trackId: string, weight: number, hex: string | null) => void;
+  onNicknameChange: (trackId: string, weight: number, nickname: string) => void;
   onTrackChange: (
     id: string,
     property: "name" | "seedHex",
@@ -49,6 +50,7 @@ export function PaletteMatrix({
   onActiveShadeChange,
   onAnchorChange,
   onManualChange,
+  onNicknameChange,
   onTrackChange,
   onTrackOpen,
   onTrackMove,
@@ -94,6 +96,7 @@ export function PaletteMatrix({
                 onActiveShadeChange={onActiveShadeChange}
                 onAnchorChange={onAnchorChange}
                 onManualChange={onManualChange}
+                onNicknameChange={onNicknameChange}
                 onTrackChange={onTrackChange}
                 onTrackOpen={onTrackOpen}
                 onTrackMove={onTrackMove}
@@ -113,6 +116,7 @@ export function PaletteMatrix({
           onAnchorChange={onAnchorChange}
           onClose={() => onActiveShadeChange(null)}
           onManualChange={onManualChange}
+          onNicknameChange={onNicknameChange}
           onSourceChange={(trackId, hex) =>
             onTrackChange(trackId, "seedHex", hex)
           }
