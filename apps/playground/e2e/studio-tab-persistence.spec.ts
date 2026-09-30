@@ -266,6 +266,127 @@ test.describe("Colour studio", () => {
   );
 });
 
+test.describe("Semantic table", () => {
+  const semanticTable = (page: import("@playwright/test").Page) => ({
+    editor: page.getByRole("region", { name: "Semantic tokens" }),
+    group: (label: string) =>
+      page
+        .getByRole("navigation", { name: "Token groups" })
+        .getByRole("listitem")
+        .filter({ hasText: label }),
+    rows: page
+      .getByRole("region", { name: "Semantic tokens" })
+      .locator("tr:has([data-token])"),
+  });
+
+  /** What scrolls the table: the nearest ancestor that scrolls, not the window. */
+  const scrollTop = (page: import("@playwright/test").Page) =>
+    page.evaluate(() => {
+      const start = document.querySelector('[aria-label="Semantic tokens"]');
+      for (let el = start?.parentElement; el; el = el.parentElement) {
+        if (/(auto|scroll)/.test(getComputedStyle(el).overflowY)) {
+          return el.scrollTop;
+        }
+      }
+      return -1;
+    });
+
+  const scrollTo = (page: import("@playwright/test").Page, top: number) =>
+    page.evaluate((to) => {
+      const start = document.querySelector('[aria-label="Semantic tokens"]');
+      for (let el = start?.parentElement; el; el = el.parentElement) {
+        if (/(auto|scroll)/.test(getComputedStyle(el).overflowY)) {
+          el.scrollTop = to;
+          return;
+        }
+      }
+    }, top);
+
+  const blurFocus = (page: import("@playwright/test").Page) =>
+    page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());
+
+  colourTest("keeps its group in the address", async ({ seededPage: page }) => {
+    await page.goto("/colour?view=semantics");
+    const { group, rows } = semanticTable(page);
+    await expect(rows.first()).toBeVisible();
+    const all = await rows.count();
+
+    await group("Borders").click();
+    await expect(page).toHaveURL(/view=semantics/);
+    await expect(page).toHaveURL(/group=/);
+    await expect(rows).toHaveCount(4);
+
+    /* Back is All, and Forward the group again. */
+    await page.goBack();
+    await expect(page).not.toHaveURL(/group=/);
+    await expect(rows).toHaveCount(all);
+    await page.goForward();
+    await expect(rows).toHaveCount(4);
+
+    /* A refresh, and a link to a group there is none of. */
+    await page.reload();
+    await expect(page).toHaveURL(/group=/);
+    await expect(rows).toHaveCount(4);
+    await page.goto("/colour?view=semantics&group=nonsense");
+    await expect(rows).toHaveCount(all);
+
+    /* All is the default, so it is left out of the address. */
+    await group("Borders").click();
+    await group("All").click();
+    await expect(page).not.toHaveURL(/group=/);
+  });
+
+  colourTest(
+    "Space returns to the group and the scroll position it left",
+    async ({ seededPage: page }) => {
+      /* A short window, so that even one group is taller than it is. */
+      await page.setViewportSize({ width: 1280, height: 360 });
+      await page.goto("/colour?view=semantics");
+      const { editor, group, rows } = semanticTable(page);
+      await expect(editor).toBeVisible();
+      await group("Surfaces").click();
+      await expect(page).toHaveURL(/group=/);
+      const shown = await rows.count();
+
+      await scrollTo(page, 160);
+      await expect.poll(() => scrollTop(page)).toBeGreaterThan(60);
+      const left = await scrollTop(page);
+
+      await blurFocus(page);
+      await page.keyboard.press("Space");
+      await expect(page).toHaveURL(/\/preview/);
+      await blurFocus(page);
+      await page.keyboard.press("Space");
+
+      await expect(page).toHaveURL(/view=semantics/);
+      await expect(page).toHaveURL(/group=/);
+      await expect(editor).toBeVisible();
+      await expect(rows).toHaveCount(shown);
+      await expect.poll(() => scrollTop(page)).toBeCloseTo(left, -1);
+    },
+  );
+
+  colourTest(
+    "returns an unfiltered table to where it was scrolled",
+    async ({ seededPage: page }) => {
+      await page.setViewportSize({ width: 1280, height: 360 });
+      await page.goto("/colour?view=semantics");
+      await expect(semanticTable(page).editor).toBeVisible();
+
+      await scrollTo(page, 400);
+      await expect.poll(() => scrollTop(page)).toBeGreaterThan(200);
+      const left = await scrollTop(page);
+
+      await studioLink(page, "Spacing").click();
+      await expect(page).toHaveURL(/\/spacing/);
+      await studioLink(page, "Colour").click();
+
+      await expect(semanticTable(page).editor).toBeVisible();
+      await expect.poll(() => scrollTop(page)).toBeCloseTo(left, -1);
+    },
+  );
+});
+
 test.describe("Space, to Preview and back", () => {
   /** Focus to the page: Space is ignored while a button or a tab has it. */
   const blurFocus = (page: import("@playwright/test").Page) =>
