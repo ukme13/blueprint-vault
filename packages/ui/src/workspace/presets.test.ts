@@ -169,8 +169,8 @@ describe("instantiating a preset", () => {
       linear: { "body-sm": 13, label: 13 },
       polaris: { "body-2": 13, "button-sm": 12, caption: 12 },
       medium: { caption: 14 },
-      guardian: { label: 14 },
-      notion: { label: 14 },
+      guardian: { label: 14, "button-sm": 14 },
+      notion: { label: 14, "button-sm": 14, code: 14 },
     };
     for (const [id, sizes] of Object.entries(expected)) {
       const system = instantiateWorkspacePreset(
@@ -192,6 +192,27 @@ describe("instantiating a preset", () => {
           ]),
         ),
       ]);
+    }
+  });
+
+  it("lands Medium's small button and code on 14px by the scale alone", () => {
+    /* 18px ÷ 1.25 = 14.4, so step -1 is 14px with nothing typed. */
+    const system = instantiateWorkspacePreset(
+      findWorkspacePreset("medium")!,
+      "Test",
+    ).typography!.system;
+    const steps = generateTypeSteps(
+      system.baseFontSizePx,
+      system.ratio,
+      system.stepCount,
+    );
+    for (const roleId of ["button-xs", "code"]) {
+      const role = system.roles.find((each) => each.id === roleId)!;
+      expect([roleId, role.unlinkedSizes]).toEqual([roleId, {}]);
+      expect([
+        roleId,
+        resolveRoleSizePx(system, steps, role, "desktop"),
+      ]).toEqual([roleId, 14]);
     }
   });
 

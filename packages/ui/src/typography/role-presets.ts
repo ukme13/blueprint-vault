@@ -137,6 +137,13 @@ const EDITORIAL: PresetGroup[] = [
       fontWeight: 700,
     })),
   },
+  /* The standfirst under a headline: Medium's story subtitle, a Guardian
+     standfirst. */
+  {
+    id: "subtitle",
+    label: "Subtitle",
+    roles: [{ stepOffset: 1, fontWeight: 400 }],
+  },
   {
     id: BODY_GROUP_ID,
     label: "Body",
@@ -145,6 +152,18 @@ const EDITORIAL: PresetGroup[] = [
       { stepOffset: 1, fontWeight: 400 },
       { stepOffset: 0, fontWeight: 400 },
       { stepOffset: -1, fontWeight: 400 },
+    ],
+  },
+  /* Follow, Subscribe, the site shell's login: two sizes, named button-sm
+     (step 0) and button-xs (step -1) by the size rule. */
+  {
+    id: "button",
+    label: "Button",
+    indexing: "size",
+    autoLineHeightRatio: 1.2,
+    roles: [
+      { stepOffset: 0, fontWeight: 600 },
+      { stepOffset: -1, fontWeight: 600 },
     ],
   },
   /* Every system has a label group: a load adds it back if it is missing,
@@ -159,6 +178,12 @@ const EDITORIAL: PresetGroup[] = [
     label: "Quote",
     autoLineHeightRatio: 1.4,
     roles: [{ stepOffset: 2, fontWeight: 400, font: "display" }],
+  },
+  /* Code in a technical article or a knowledge base's code block. */
+  {
+    id: "code",
+    label: "Code",
+    roles: [{ stepOffset: -1, fontWeight: 400 }],
   },
   {
     id: CAPTION_GROUP_ID,

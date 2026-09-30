@@ -81,14 +81,28 @@ describe("type role presets", () => {
       "h4",
       "h5",
       "h6",
+      "subtitle",
       "body-md",
       "body-sm",
       "body-xs",
+      "button-sm",
+      "button-xs",
       "label",
       "quote",
+      "code",
       "caption",
       "overline",
     ]);
+    /* The three added groups: a standfirst above body, two button sizes (the
+       size rule names two roles sm and xs, not md), and code one step down. */
+    const spec = (id: string) => {
+      const role = next.roles.find((each) => each.id === id)!;
+      return [role.stepOffset, role.fontWeight];
+    };
+    expect(spec("subtitle")).toEqual([1, 400]);
+    expect(spec("button-sm")).toEqual([0, 600]);
+    expect(spec("button-xs")).toEqual([-1, 600]);
+    expect(spec("code")).toEqual([-1, 400]);
     const overline = next.roles.find((role) => role.id === "overline")!;
     expect(overline.textTransform).toBe("uppercase");
     expect(elementForRole(next, overline)).toBe("span");
