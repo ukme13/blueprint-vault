@@ -554,6 +554,11 @@ test.describe("The spacing studio", () => {
     expect(
       await name.evaluate((el) => Number(getComputedStyle(el).fontWeight)),
     ).toBeGreaterThanOrEqual(600);
+    /* The name and its description touch: no gap between the two lines. */
+    const nameBox = (await name.boundingBox())!;
+    const hintBox = (await hint.boundingBox())!;
+    expect(Math.abs(hintBox.y - (nameBox.y + nameBox.height))).toBeLessThan(1);
+
     /* Wrapped, not clipped: nothing overflows the card sideways. */
     for (const part of [name, hint]) {
       expect(await part.evaluate((el) => getComputedStyle(el).whiteSpace)).toBe(

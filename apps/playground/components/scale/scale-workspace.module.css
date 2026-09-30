@@ -985,8 +985,9 @@
   padding: var(--spacing-3) var(--spacing-3) var(--spacing-3) var(--spacing-4);
 }
 
+/* The name and its description as one block, with no gap between the lines. */
 .presetTrigger[data-wrap] .presetTriggerText {
-  gap: var(--spacing-1);
+  gap: 0;
 }
 
 .presetTrigger[data-wrap] .presetTriggerName {

@@ -207,8 +207,8 @@ export function ShadeDetailPopover({
       </div>
 
       <TextInput
-        description="Said beside this token in an export."
         label="Nickname"
+        labelTooltip="Said beside this token in an export."
         placeholder={nicknamePlaceholder}
         size="sm"
         value={nicknameText}
