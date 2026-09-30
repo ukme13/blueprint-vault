@@ -9,6 +9,7 @@ import {
   createWorkspaceFromHome,
   openWorkspaceSettings,
   readStoredWorkspace,
+  writeStoredWorkspace,
 } from "./fixtures";
 import type { Locator } from "@playwright/test";
 
@@ -1351,6 +1352,34 @@ test.describe("Where a Selector menu opens", () => {
       await page.keyboard.press("Escape");
       await expect(page.getByRole("option")).toHaveCount(0);
     }
+  });
+});
+
+test.describe("The specimen's order", () => {
+  test("follows the groups, so reordering them reorders the specimen", async ({
+    seededPage: page,
+  }) => {
+    /* The groups reversed in storage, so their order cannot be the size
+       order the specimen used to sort by. */
+    const stored = await readStoredWorkspace(page);
+    const system = stored.typography.system;
+    system.groups = [...system.groups].reverse();
+    await writeStoredWorkspace(page, stored);
+    await page.reload();
+
+    await page.getByRole("button", { name: "Specimen" }).click();
+    const preview = page.getByRole("region", { name: "Type scale preview" });
+    await expect(preview.locator("article h3").first()).toBeVisible();
+    const shown = await preview.locator("article h3").allTextContents();
+
+    /* Group by group, each group's roles in the order they are defined. */
+    const expected = system.groups.flatMap((group: { id: string }) =>
+      system.roles
+        .filter((role: { groupId: string }) => role.groupId === group.id)
+        .map((role: { id: string }) => role.id),
+    );
+    expect(shown).toEqual(expected);
+    expect(shown.length).toBeGreaterThan(3);
   });
 });
 

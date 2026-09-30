@@ -6,6 +6,7 @@ import {
   openTypeScaleWarnings,
   previewFontFor,
   previewWeightFor,
+  rolesInGroupOrder,
   roleStyleOnDevice,
 } from "./studio";
 import { defaultGroups, type TypeRole, type TypeSystem } from "./system";
@@ -188,5 +189,64 @@ describe("previewWeightFor", () => {
     expect(previewWeightFor([300, 400, 700], 900)).toBe(400);
     expect(previewWeightFor([300, 700], null)).toBe(300);
     expect(previewWeightFor([], null)).toBe(400);
+  });
+});
+
+describe("rolesInGroupOrder", () => {
+  const groups = defaultGroups();
+  const [first, second] = groups;
+
+  it("follows the groups, not the sizes or the order roles were added", () => {
+    const s = system({
+      groups,
+      roles: [
+        role("b2", second!.id),
+        role("a1", first!.id),
+        role("b1", second!.id),
+        role("a2", first!.id),
+      ],
+    });
+    /* Group order first; inside a group, definition order. */
+    expect(rolesInGroupOrder(s).map((each) => each.id)).toEqual([
+      "a1",
+      "a2",
+      "b2",
+      "b1",
+    ]);
+    /* Reordering the groups reorders the specimen. */
+    const flipped = system({
+      ...s,
+      groups: [second!, first!, ...groups.slice(2)],
+    });
+    expect(rolesInGroupOrder(flipped).map((each) => each.id)).toEqual([
+      "b2",
+      "b1",
+      "a1",
+      "a2",
+    ]);
+  });
+
+  it("puts a role of an unknown group last instead of dropping it", () => {
+    const s = system({
+      groups,
+      roles: [
+        role("lost", "gone"),
+        role("a1", first!.id),
+        role("lost-2", "gone"),
+      ],
+    });
+    expect(rolesInGroupOrder(s).map((each) => each.id)).toEqual([
+      "a1",
+      "lost",
+      "lost-2",
+    ]);
+  });
+
+  it("keeps every role exactly once", () => {
+    const s = system({
+      groups,
+      roles: [role("x", first!.id), role("y", "gone"), role("z", second!.id)],
+    });
+    expect(rolesInGroupOrder(s)).toHaveLength(3);
   });
 });
