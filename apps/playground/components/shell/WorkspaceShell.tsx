@@ -27,6 +27,7 @@ import {
   previewShortcutDestination,
   previewShortcutReturnPath,
   radiusCssVariables,
+  studioHref,
   useWorkspaceStore,
   workspaceHasStudios,
   type ColorTrack,
@@ -34,6 +35,7 @@ import {
 import { docsLink } from "../../lib/docs-url";
 import { STUDIO_VERSION } from "../../lib/studio-version";
 import { ThemeControl } from "../ThemeControl";
+import { useStudioViewMemory } from "../use-studio-view-memory";
 import { NewTabLink } from "./NewTabLink";
 import { RailBrand } from "./RailBrand";
 import { RAIL_MOTION, railMotionStyle } from "./rail-motion";
@@ -103,6 +105,8 @@ function shouldIgnorePreviewShortcut(target: EventTarget | null): boolean {
  */
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  /* Each studio's link returns to the view it was left on. */
+  const viewMemory = useStudioViewMemory(pathname);
   const router = useRouter();
   const workspace = useWorkspaceStore();
   const isHome = pathname === "/";
@@ -418,7 +422,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                 {STUDIOS.map((studio) => (
                   <SideNavItem
                     key={studio.href}
-                    href={studio.href}
+                    href={studioHref(viewMemory, studio.href)}
                     icon={studio.icon}
                     endContent={
                       studio.href === "/preview" && !isNavCollapsed ? (

@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import { ColourFormatProvider } from "../../components/palette/ColourFormatContext";
 import { ScaleStudio } from "../../components/scale/ScaleStudio";
 
@@ -13,7 +13,11 @@ export default function ScaleStudiosLayout({
 }) {
   return (
     <ColourFormatProvider>
-      <ScaleStudio />
+      {/* The studio reads its view from the query string, which a
+          prerendered page may only do inside a Suspense boundary. */}
+      <Suspense fallback={null}>
+        <ScaleStudio />
+      </Suspense>
       {children}
     </ColourFormatProvider>
   );

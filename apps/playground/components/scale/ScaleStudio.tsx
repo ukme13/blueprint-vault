@@ -18,6 +18,7 @@ import {
 } from "@blueprint/ui";
 import { Sheet } from "../Sheet";
 import { SystemExportDialog } from "../SystemExportDialog";
+import { useUrlState } from "../use-url-state";
 import { useIsPhone } from "../use-is-phone";
 import { LayoutUsesTable } from "./LayoutUsesTable";
 import { ScaleCanvas } from "./ScaleCanvas";
@@ -36,6 +37,14 @@ import styles from "./scale-workspace.module.css";
 
 type StudioView = "scale" | "uses" | "preview";
 
+/* The views a section has, the first being where it opens: spacing has no
+   preview, and elevation has neither Uses nor Preview. */
+const VIEWS_BY_SECTION: Record<string, readonly StudioView[]> = {
+  spacing: ["scale", "uses"],
+  radius: ["scale", "uses", "preview"],
+  elevation: ["scale"],
+};
+
 export function ScaleStudio() {
   const pathname = usePathname();
   const activeSection = scaleSectionFromPath(pathname);
@@ -47,12 +56,14 @@ export function ScaleStudio() {
      canvas has the whole screen. As in the Typography studio. */
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const isPhone = useIsPhone();
-  const [studioView, setStudioView] = useState<StudioView>("scale");
-  const [viewSection, setViewSection] = useState(activeSection);
-  if (viewSection !== activeSection) {
-    setViewSection(activeSection);
-    setStudioView("scale");
-  }
+  /* In the URL, so Back and Forward move between views, a refresh keeps the
+     view, and the sidebar returns to it. Each section is its own route, so a
+     view never leaks into another: it is read against the section's own. */
+  const [studioView, setStudioView] = useUrlState<StudioView>(
+    "view",
+    VIEWS_BY_SECTION[activeSection] ?? ["scale"],
+    "scale",
+  );
   const settingsPanel = useScaleSettingsPanel();
 
   const project = store.project;

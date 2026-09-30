@@ -20,6 +20,13 @@ import styles from "./typography-workspace.module.css";
 
 export type InspectorTab = "settings" | "groups" | "warnings";
 
+/** The tabs a `?tab=` may name; the first is the one the inspector opens on. */
+export const INSPECTOR_TABS = [
+  "settings",
+  "groups",
+  "warnings",
+] as const satisfies readonly InspectorTab[];
+
 interface TypographyInspectorProps {
   system: TypeSystem;
   actions: TypographySystemActions;
