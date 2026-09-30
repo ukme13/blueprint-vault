@@ -15,3 +15,4 @@ export * from "./spacing-presets";
 export * from "./scale-export";
 export * from "./scale-preview";
 export * from "./scale-rows";
+export * from "./control-height";

@@ -7,9 +7,11 @@ import {
   selectAllVisible,
   selectionAfterClick,
   selectionWithin,
+  semanticGroupCounts,
   type SemanticToken,
   type Selection,
 } from "@blueprint/ui";
+import { useUrlState } from "../use-url-state";
 
 /**
  * What the table is showing and what is selected in it.
@@ -43,10 +45,30 @@ export interface SemanticSelection {
   clear: () => void;
 }
 
+/** The group parameter's value for every group, which is not a group's name. */
+const ALL_GROUPS = "";
+
 export function useSemanticSelection(
   tokens: SemanticToken[],
+  options: { isGroupHidden?: boolean } = {},
 ): SemanticSelection {
-  const [group, setGroupState] = useState<string | null>(null);
+  /* The group is in the address, next to the tab: Back, a refresh and the trip
+     to Preview and back all return to it. Only a group the layer still has
+     counts, so a link to one since removed reads as all of them. */
+  const groupNames = useMemo(
+    () => semanticGroupCounts(tokens).map((entry) => entry.group),
+    [tokens],
+  );
+  const [groupParam, setGroupParam] = useUrlState<string>(
+    "group",
+    groupNames,
+    ALL_GROUPS,
+  );
+  /* On a phone the group sidebar is hidden so the table has the width, and a
+     group chosen before it went would go on hiding tokens with nothing on
+     screen to say so. It stays in the address, unused, for the way back. */
+  const group =
+    options.isGroupHidden || groupParam === ALL_GROUPS ? null : groupParam;
   const [query, setQueryState] = useState("");
   const [selection, setSelection] = useState<Selection>(EMPTY_SELECTION);
 
@@ -63,13 +85,16 @@ export function useSemanticSelection(
      filter hid none of them, so this does not re-render on every keystroke. */
   const onScreen = selectionWithin(selection, visibleIds);
 
-  const setGroup = useCallback((next: string | null) => {
-    setGroupState(next);
-    /* Cleared outright rather than narrowed: changing the group is somebody
+  const setGroup = useCallback(
+    (next: string | null) => {
+      setGroupParam(next ?? ALL_GROUPS);
+      /* Cleared outright rather than narrowed: changing the group is somebody
        looking somewhere else, and carrying three invisible rows into the next
        operation is the surprise this rule exists to prevent. */
-    setSelection(EMPTY_SELECTION);
-  }, []);
+      setSelection(EMPTY_SELECTION);
+    },
+    [setGroupParam],
+  );
 
   const setQuery = useCallback((next: string) => {
     setQueryState(next);

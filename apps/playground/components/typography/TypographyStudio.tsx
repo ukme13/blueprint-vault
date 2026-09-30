@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
 import {
   assessTypeSystem,
@@ -27,7 +27,12 @@ import { Sheet } from "../Sheet";
 import { StudioSliceEmpty } from "../shell/StudioSliceEmpty";
 import { useIsPhone } from "../use-is-phone";
 import { TypographyExportDialog } from "./TypographyExportDialog";
-import { TypographyInspector, type InspectorTab } from "./TypographyInspector";
+import {
+  INSPECTOR_TABS,
+  TypographyInspector,
+  type InspectorTab,
+} from "./TypographyInspector";
+import { useUrlState } from "../use-url-state";
 import { TypographyPreview } from "./TypographyPreview";
 import { TypographyTopbar } from "./TypographyTopbar";
 import { TypeStepCanvas } from "./TypeStepCanvas";
@@ -37,7 +42,11 @@ import { useDeviceRatios } from "./use-device-ratios";
 import { useTypographyProject } from "./use-typography-project";
 import { useTypographySystem } from "./use-typography-system";
 import styles from "./typography-workspace.module.css";
-import { storedTemplateForSection, type TypographySection } from "./types";
+import {
+  storedTemplateForSection,
+  TYPOGRAPHY_SECTIONS,
+  type TypographySection,
+} from "./types";
 
 const SCALE_RATIO_PRESETS = hybridPresetsFromModularScale(
   TYPE_SCALE_RATIO_PRESETS,
@@ -54,8 +63,13 @@ export function TypographyStudio() {
     setPreference,
     reload,
   } = useTypographyProject();
-  const [activeSection, setActiveSection] =
-    useState<TypographySection>("editor");
+  /* The view and the inspector's tab live in the URL: Back and Forward move
+     between them, a refresh keeps them, and the sidebar returns to them. */
+  const [activeSection, setActiveSection] = useUrlState<TypographySection>(
+    "view",
+    TYPOGRAPHY_SECTIONS,
+    "editor",
+  );
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   /* The active device is a way of looking at the project, not part of it.
      Which devices are offered is a setting and persists. */
@@ -112,7 +126,11 @@ export function TypographyStudio() {
 
   const actions = useTypographySystem(setProject);
 
-  const [inspectorTab, setInspectorTab] = useState<InspectorTab>("settings");
+  const [inspectorTab, setInspectorTab] = useUrlState<InspectorTab>(
+    "tab",
+    INSPECTOR_TABS,
+    "settings",
+  );
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   /* On a phone the groups are an accordion. Null until somebody opens or
      closes one, so the first group is open by default. */
@@ -147,6 +165,19 @@ export function TypographyStudio() {
         assessTypeSystem(system, steps, frameId, project?.specimenText ?? ""),
       )
     : [];
+
+  /* The project stores the template its view shows, so the export follows it.
+     Here, not in the tab's handler: Back, Forward and a link change the view
+     without a click. */
+  const viewTemplate = storedTemplateForSection(activeSection);
+  const storedTemplate = project?.template;
+  useEffect(() => {
+    if (viewTemplate && storedTemplate && viewTemplate !== storedTemplate) {
+      setPreference({ template: viewTemplate });
+    }
+    // setPreference is a fresh closure each render; the two values decide.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewTemplate, storedTemplate]);
 
   if (!hasLoadedProject) {
     return (
@@ -195,7 +226,8 @@ export function TypographyStudio() {
     <TypographyInspector
       actions={actions}
       devices={{
-        ...deviceRatios,
+        detachedRatios: deviceRatios.detachedRatios,
+        onRatioChange: deviceRatios.onRatioChange,
         devices,
         presets: SCALE_RATIO_PRESETS,
       }}
@@ -229,11 +261,7 @@ export function TypographyStudio() {
         warningCount={warnings.length}
         onExport={() => setIsExportDialogOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
-        onSectionChange={(section) => {
-          setActiveSection(section);
-          const template = storedTemplateForSection(section);
-          if (template) setPreference({ template });
-        }}
+        onSectionChange={setActiveSection}
       />
 
       <section

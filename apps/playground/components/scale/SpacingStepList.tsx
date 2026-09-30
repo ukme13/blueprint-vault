@@ -60,7 +60,7 @@ export function SpacingStepList({
         </SegmentedControl>
       </div>
       <Collapsible
-        defaultIsOpen
+        defaultIsOpen={false}
         trigger={<span className={styles.groupTrigger}>Steps</span>}
       >
         <ol className={styles.tokenList}>

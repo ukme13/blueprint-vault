@@ -17,7 +17,10 @@ import {
 import {
   addLayoutToken,
   Button,
+  buttonHeights,
+  describeButtonHeights,
   duplicateLayoutToken,
+  hybridValueFromLayoutCell,
   layoutVariableName,
   removeLayoutToken,
   renameLayoutToken,
@@ -32,6 +35,7 @@ import {
   type PreviewDevice,
   type RadiusScale,
   type SpacingScale,
+  type TypeSystem,
 } from "@blueprint/ui";
 import { useSemanticTableSort } from "../palette/use-semantic-row-sort";
 import { LayoutUsesRow } from "./LayoutUsesRow";
@@ -63,6 +67,7 @@ export function LayoutUsesTable({
   radius,
   spacing,
   tokens,
+  typography,
   onChange,
 }: {
   devices: readonly PreviewDevice[];
@@ -70,6 +75,8 @@ export function LayoutUsesTable({
   radius: RadiusScale;
   spacing: SpacingScale;
   tokens: readonly LayoutToken[];
+  /** The type system, whose button sizes the block inset's hint measures. */
+  typography: TypeSystem;
   onChange: (next: LayoutToken[]) => void;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -89,6 +96,21 @@ export function LayoutUsesTable({
           name: token.name,
           value: token.px,
         }));
+  /* Under the block inset: what it makes of a button on the desktop frame,
+     which is the one the reference sizes are set for. Live, as it is read from
+     the tokens the table is editing. */
+  const desktop =
+    devices.find((device) => device.id === "desktop") ??
+    devices.find((device) => device.kind === "desktop");
+  const heightHint = (token: LayoutToken): string | null => {
+    if (token.id !== "inset-control-y" || !desktop) return null;
+    const { value } = hybridValueFromLayoutCell(
+      token.kind,
+      token.byDevice[desktop.id],
+      presets,
+    );
+    return describeButtonHeights(buttonHeights(typography, desktop, value));
+  };
   const label = kind === "radius" ? "Radius uses" : "Spacing uses";
   const hint =
     kind === "radius"
@@ -181,6 +203,7 @@ export function LayoutUsesTable({
                       autoFocusName={editingId === token.id}
                       canReorder={rows.length > 1}
                       columns={columns}
+                      hint={heightHint(token)}
                       presets={presets}
                       token={token}
                       onCommitName={(value) => {

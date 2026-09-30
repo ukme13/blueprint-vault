@@ -163,9 +163,9 @@ describe("instantiating a preset", () => {
   it("seeds only a few surgical sizes, typed on every frame", () => {
     /* The one or two sizes each ratio skips; everything else stays linked. */
     const expected: Record<string, Record<string, number>> = {
-      primer: { "input-label-sm": 14, "button-md": 14 },
+      primer: { "input-label-md": 14, "button-md": 14 },
       stripe: { label: 14, "button-md": 14 },
-      carbon: { label: 14, "input-value-sm": 14 },
+      carbon: { label: 14, "input-value-md": 14 },
       linear: { "body-sm": 13, label: 13 },
       polaris: { "body-2": 13, "button-sm": 12, caption: 12 },
       medium: { caption: 14 },

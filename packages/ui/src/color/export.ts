@@ -1,4 +1,5 @@
 import { formatColour, type ColourFormat } from "./format";
+import { shadeExportComment } from "./shade-label";
 import type { ColorTrack, ColorTrackInput } from "./types";
 
 /**
@@ -44,10 +45,10 @@ function tokenLines(
   indentation = "  ",
 ): string[] {
   return palettes.flatMap((palette) =>
-    palette.shades.map(
-      (shade) =>
-        `${indentation}--color-${paletteTokenName(palette.name)}-${shade.weight}: ${formatColour(shade.hex, colourFormat)};`,
-    ),
+    palette.shades.map((shade) => {
+      const comment = shadeExportComment(shade, palette.adjustments);
+      return `${indentation}--color-${paletteTokenName(palette.name)}-${shade.weight}: ${formatColour(shade.hex, colourFormat)};${comment ? ` /* ${comment} */` : ""}`;
+    }),
   );
 }
 
@@ -85,10 +86,16 @@ export function paletteDesignTokenGroup(
       palettes.map((palette) => [
         paletteTokenName(palette.name),
         Object.fromEntries(
-          palette.shades.map((shade) => [
-            shade.weight,
-            { $value: formatColour(shade.hex, colourFormat) },
-          ]),
+          palette.shades.map((shade) => {
+            const comment = shadeExportComment(shade, palette.adjustments);
+            return [
+              shade.weight,
+              {
+                $value: formatColour(shade.hex, colourFormat),
+                ...(comment ? { $description: comment } : {}),
+              },
+            ];
+          }),
         ),
       ]),
     ),

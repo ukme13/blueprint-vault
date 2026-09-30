@@ -24,6 +24,20 @@ const TEXT = "var(--color-fg-primary)";
 const BORDER = "var(--color-border-default)";
 const SURFACE = "var(--color-surface-base)";
 
+/**
+ * A button's padding is the layout's control insets, and its height is what
+ * they make: a line of the label, the block inset twice and the border. The
+ * Button's own size class fixes a height and no block padding, so both are
+ * set here, in place of it, and an inset changed in the Uses table changes the
+ * button. The fallbacks are the defaults the layout seeds, for a preview with
+ * no layout scope around it. `controlHeightPx` is this sum, for the hint.
+ */
+const CONTROL_INSET_STYLE: CSSProperties = {
+  height: "auto",
+  paddingBlock: "var(--inset-control-y, var(--spacing-2))",
+  paddingInline: "var(--inset-control-x, var(--spacing-4))",
+};
+
 export function slot(
   document: PreviewDocument,
   id: string,
@@ -186,7 +200,7 @@ export function SlotButton({
       aria-haspopup="dialog"
       scheme="primary"
       size="medium"
-      style={{ ...roleStyle, ...fill }}
+      style={{ ...CONTROL_INSET_STYLE, ...roleStyle, ...fill }}
       variant={variant}
       onClick={onInspect}
     >

@@ -26,6 +26,7 @@ interface ShadeSheetProps {
   onClose: () => void;
   onAnchorChange: (trackId: string, weight: number, hex: string | null) => void;
   onManualChange: (trackId: string, weight: number, hex: string | null) => void;
+  onNicknameChange: (trackId: string, weight: number, nickname: string) => void;
   onSourceChange: (trackId: string, hex: string) => void;
 }
 
@@ -37,6 +38,7 @@ export function ShadeSheet({
   onClose,
   onAnchorChange,
   onManualChange,
+  onNicknameChange,
   onSourceChange,
 }: ShadeSheetProps) {
   const [shown, setShown] = useState<ActiveShade | null>(activeShade);
@@ -81,6 +83,10 @@ export function ShadeSheet({
             onManualChange(palette.id, shade.weight, hex)
           }
           onSourceChange={(hex) => onSourceChange(palette.id, hex)}
+          nickname={palette.adjustments.labels?.[shade.weight] ?? ""}
+          onNicknameChange={(nickname) =>
+            onNicknameChange(palette.id, shade.weight, nickname)
+          }
         />
       )}
     </Sheet>

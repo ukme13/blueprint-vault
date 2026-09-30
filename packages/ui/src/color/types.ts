@@ -18,6 +18,14 @@ export interface ShadeItem {
 export interface TrackAdjustments {
   anchors: Record<number, string>;
   manualOverrides: Record<number, string>;
+  /**
+   * A nickname for a shade, by weight: `{ 500: "brand" }`.
+   *
+   * Said beside the shade's token in an export, in place of `main` or
+   * `submain`. Absent when there are none, so a project saved before
+   * nicknames existed reads back exactly as it was.
+   */
+  labels?: Record<number, string>;
 }
 
 export interface ColorTrack {

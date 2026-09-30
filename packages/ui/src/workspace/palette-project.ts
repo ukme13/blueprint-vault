@@ -11,6 +11,7 @@ import {
   normalizeTrackName,
 } from "../color/palette";
 import { BLUEPRINT_20_PRESET } from "../color/presets";
+import { readShadeLabels } from "../color/shade-label";
 import type { ColorTrackInput, TrackAdjustments } from "../color/types";
 
 /*
@@ -51,6 +52,7 @@ function readTrackAdjustments(value: unknown): TrackAdjustments {
     return { anchors: {}, manualOverrides: {} };
   }
 
+  const labels = readShadeLabels("labels" in value ? value.labels : undefined);
   return {
     anchors: readAdjustmentRecord(
       "anchors" in value ? value.anchors : undefined,
@@ -58,6 +60,7 @@ function readTrackAdjustments(value: unknown): TrackAdjustments {
     manualOverrides: readAdjustmentRecord(
       "manualOverrides" in value ? value.manualOverrides : undefined,
     ),
+    ...(labels ? { labels } : {}),
   };
 }
 

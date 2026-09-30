@@ -32,3 +32,4 @@ export * from "./preview-images";
 export * from "./report";
 export * from "./typography";
 export * from "./workspace";
+export * from "./studio-view";

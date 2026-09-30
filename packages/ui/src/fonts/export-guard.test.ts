@@ -84,6 +84,9 @@ const VALUE_FORMATTERS = [
   "formatLineHeightInput",
   /* Renders a relative time string from an epoch timestamp. */
   "formatRelativeTime",
+  /* Renders a density as "1.25×" for a slider's label. A number in, a few
+     characters out: it never sees a font, and nothing saves it to a file. */
+  "formatSpacingDensity",
 ];
 
 const FAMILY = "Brand-Regular";

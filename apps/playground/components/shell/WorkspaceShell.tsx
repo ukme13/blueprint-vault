@@ -27,6 +27,7 @@ import {
   previewShortcutDestination,
   previewShortcutReturnPath,
   radiusCssVariables,
+  studioHref,
   useWorkspaceStore,
   workspaceHasStudios,
   type ColorTrack,
@@ -34,6 +35,9 @@ import {
 import { docsLink } from "../../lib/docs-url";
 import { STUDIO_VERSION } from "../../lib/studio-version";
 import { ThemeControl } from "../ThemeControl";
+import { readStudioViewMemory } from "../studio-view-memory";
+import { useStudioViewMemory } from "../use-studio-view-memory";
+import { useUndoShortcut } from "../use-undo-shortcut";
 import { NewTabLink } from "./NewTabLink";
 import { RailBrand } from "./RailBrand";
 import { RAIL_MOTION, railMotionStyle } from "./rail-motion";
@@ -101,11 +105,21 @@ function shouldIgnorePreviewShortcut(target: EventTarget | null): boolean {
  * rail, and Settings as a rail row (this workspace's preview frames).
  * Space also swaps the current studio with `/preview`.
  */
+const noop = () => {};
+
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  /* Each studio's link returns to the view it was left on. */
+  const viewMemory = useStudioViewMemory(pathname);
   const router = useRouter();
   const workspace = useWorkspaceStore();
   const isHome = pathname === "/";
+  /* One shortcut for every studio, over the one history in the store: an edit
+     made in Typography is undone from Spacing. Home has nothing to undo. */
+  useUndoShortcut(
+    isHome ? noop : workspace.undo,
+    isHome ? noop : workspace.redo,
+  );
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpenedOn, setDrawerOpenedOn] = useState(pathname);
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);
@@ -260,7 +274,9 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
       if (remember) {
         window.sessionStorage.setItem(PREVIEW_RETURN_KEY, remember);
       }
-      router.push(next);
+      /* To the view it was left on, as the sidebar's link does: the bare path
+         would open the studio on its first tab. Preview has none to add. */
+      router.push(studioHref(readStudioViewMemory(), next));
     };
 
     window.addEventListener("keydown", onKeyDown);
@@ -418,7 +434,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
                 {STUDIOS.map((studio) => (
                   <SideNavItem
                     key={studio.href}
-                    href={studio.href}
+                    href={studioHref(viewMemory, studio.href)}
                     icon={studio.icon}
                     endContent={
                       studio.href === "/preview" && !isNavCollapsed ? (

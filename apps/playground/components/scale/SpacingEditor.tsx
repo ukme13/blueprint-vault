@@ -29,7 +29,6 @@ interface SpacingInspectorProps {
   onBaseUnitChange: (next: HybridTokenizedValue) => void;
   onDensityChange: (density: number) => void;
   /** A density preset: its own step in history, not part of a drag. */
-  onDensityPreset: (density: number) => void;
   onApplyPreset: (id: SpacingPresetId) => void;
   view: SpacingView;
   /** Keep a step, or prune it: one step in history. */
@@ -41,7 +40,6 @@ export function SpacingInspector({
   detachedBaseUnit,
   onBaseUnitChange,
   onDensityChange,
-  onDensityPreset,
   onApplyPreset,
   view,
   onToggleStep,
@@ -81,7 +79,6 @@ export function SpacingInspector({
       <SpacingDensitySetting
         density={scale.density ?? 1}
         onChange={onDensityChange}
-        onPreset={onDensityPreset}
       />
       <SpacingStepList scale={scale} view={view} onToggleStep={onToggleStep} />
     </>

@@ -5,7 +5,6 @@ import {
   browserWorkspaceStorage,
   loadStoredWorkspace,
   pruneUnlinkedSizes,
-  updateStoredWorkspace,
   withSharedName,
   withTypographySlice,
   type PaletteProjectData,
@@ -16,6 +15,7 @@ import {
   type PreviewTemplateId,
   type PreviewDocument,
   type PreviewSection,
+  type WorkspaceProject,
 } from "@blueprint/ui";
 
 export const DEFAULT_UNIT: TypeScaleUnit = DEFAULT_TYPE_SCALE_UNIT;
@@ -84,30 +84,31 @@ function narrowTemplate(
 }
 
 /**
- * Persist the typography half, and only that half.
+ * The workspace with the typography half written into it, and only that half.
  *
- * The stored workspace is re-read rather than reused from state: the palette
- * studio owns the other slice and may have written it since this page loaded.
- * Clearing the project nulls this slice rather than removing the key, so a
- * new type scale never costs someone their palette.
+ * An updater for the store, which re-reads what is stored before applying it:
+ * the palette studio owns the other slice and may have written it since this
+ * page loaded. Clearing the project nulls this slice rather than removing the
+ * key, so a new type scale never costs someone their palette.
  */
-export function writeStoredProject(project: TypographyProject | null): void {
-  updateStoredWorkspace(browserWorkspaceStorage(), (current) => {
-    /* Name lives on the rail. Passing the in-memory system name would
-       overwrite a rename the shell already wrote. */
-    const next = withSharedName(withTypographySlice(current, project));
-    if (!next.typography) return next;
-    /* Frames live on the workspace. A persist from this studio must not
-       resurrect sizes unlinked onto a desktop Settings just removed. */
-    return {
-      ...next,
-      typography: {
-        ...next.typography,
-        system: pruneUnlinkedSizes(
-          next.typography.system,
-          next.previewDevices.map((device) => device.id),
-        ),
-      },
-    };
-  });
+export function withStoredTypography(
+  current: WorkspaceProject | null,
+  project: TypographyProject | null,
+): WorkspaceProject {
+  /* Name lives on the rail. Passing the in-memory system name would overwrite
+     a rename the shell already wrote. */
+  const next = withSharedName(withTypographySlice(current, project));
+  if (!next.typography) return next;
+  /* Frames live on the workspace. A persist from this studio must not
+     resurrect sizes unlinked onto a desktop Settings just removed. */
+  return {
+    ...next,
+    typography: {
+      ...next.typography,
+      system: pruneUnlinkedSizes(
+        next.typography.system,
+        next.previewDevices.map((device) => device.id),
+      ),
+    },
+  };
 }

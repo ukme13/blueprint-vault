@@ -18,6 +18,7 @@ import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { useToast } from "@astryxdesign/core/Toast";
 import { useIsPhone } from "../use-is-phone";
+import { useUrlState } from "../use-url-state";
 import { RotateCcw } from "lucide-react";
 import {
   BLUEPRINT_20_PRESET,
@@ -40,6 +41,7 @@ import {
   generateStableWeights,
   normalizeHex,
   normalizeTrackAdjustments,
+  withShadeLabel,
   normalizeTrackName,
   parseBlueprintWorkspace,
   resizeLightnessArray,
@@ -72,6 +74,16 @@ import { ColourFormatProvider } from "./ColourFormatContext";
 import { PaletteViewProvider, usePaletteView } from "./PaletteViewContext";
 
 type PlaygroundSection = "shade-generator" | "semantics" | "accessibility";
+
+/** The tabs a `?view=` may name; the first is the one the studio opens on. */
+const PLAYGROUND_SECTIONS = [
+  "shade-generator",
+  "semantics",
+  "accessibility",
+] as const satisfies readonly PlaygroundSection[];
+
+/** Belong to the Semantics tab, so leaving it takes them out of the address. */
+const SEMANTICS_PARAMS = ["group"] as const;
 
 type PaletteProject = PaletteProjectData;
 
@@ -241,8 +253,23 @@ function PaletteStudioContent() {
   const [pendingImport, setPendingImport] = useState<WorkspaceProject | null>(
     null,
   );
-  const [activeSection, setActiveSection] =
-    useState<PlaygroundSection>("shade-generator");
+  /* The tab is in the URL, as the other studios' are: Back and Forward move
+     between tabs, a refresh keeps it, and the sidebar and Space return to it. */
+  const [activeSection, setActiveSection] = useUrlState<PlaygroundSection>(
+    "view",
+    PLAYGROUND_SECTIONS,
+    "shade-generator",
+    SEMANTICS_PARAMS,
+  );
+  /* Measuring chrome closes when the bench is left. The tab handler does it
+     before the switch, for a click; Back, Forward and a link change the tab
+     without one, so it is also done here. Only when it is open: closing sets
+     state anew each time, and an unguarded effect would never settle. */
+  useEffect(() => {
+    if (activeSection !== "shade-generator" && isContrastModeOpen) {
+      closeContrastMode();
+    }
+  }, [activeSection, isContrastModeOpen, closeContrastMode]);
   const settingsPanel = useResizable({
     autoSaveId: "blueprint-palette-settings",
     defaultSize: 350,
@@ -481,7 +508,8 @@ function PaletteStudioContent() {
 
           return {
             ...track,
-            adjustments: { anchors, manualOverrides },
+            /* The rest of the adjustments stay: the nicknames are not colour. */
+            adjustments: { ...adjustments, anchors, manualOverrides },
           };
         }),
       };
@@ -514,9 +542,38 @@ function PaletteStudioContent() {
 
           return {
             ...track,
-            adjustments: { anchors, manualOverrides },
+            /* The rest of the adjustments stay: the nicknames are not colour. */
+            adjustments: { ...adjustments, anchors, manualOverrides },
           };
         }),
+      };
+    });
+  };
+
+  /* A shade's nickname, kept as it is typed. It is only ever said in an
+     export, beside the token; nothing in the studio depends on it. */
+  const changeShadeNickname = (
+    trackId: string,
+    weight: number,
+    nickname: string,
+  ) => {
+    setProject((current) => {
+      if (!current) return current;
+
+      return {
+        ...current,
+        tracks: current.tracks.map((track) =>
+          track.id === trackId
+            ? {
+                ...track,
+                adjustments: withShadeLabel(
+                  normalizeTrackAdjustments(track.adjustments),
+                  weight,
+                  nickname,
+                ),
+              }
+            : track,
+        ),
       };
     });
   };
@@ -531,7 +588,13 @@ function PaletteStudioContent() {
           track.id === trackId
             ? {
                 ...track,
-                adjustments: { anchors: {}, manualOverrides: {} },
+                /* Colours back to as generated; the nicknames are notes, not
+                   adjustments, and stay. */
+                adjustments: {
+                  ...normalizeTrackAdjustments(track.adjustments),
+                  anchors: {},
+                  manualOverrides: {},
+                },
               }
             : track,
         ),
@@ -838,6 +901,7 @@ function PaletteStudioContent() {
               onActiveShadeChange={setActiveShade}
               onAnchorChange={changeTrackAnchor}
               onManualChange={changeManualOverride}
+              onNicknameChange={changeShadeNickname}
               onTrackChange={updateTrack}
               onTrackOpen={setActiveTrackId}
               onTrackMove={moveTrack}

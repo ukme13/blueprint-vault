@@ -9,6 +9,7 @@ import {
   generatePaletteFromPreset,
   generateStableWeights,
   isValidLightnessSequence,
+  normalizeTrackAdjustments,
   normalizeTrackName,
   paletteCssVariables,
   resizeLightnessArray,
@@ -348,5 +349,47 @@ describe("paletteCssVariables", () => {
     );
     // 2 tracks * 3 shades = 6 CSS variables
     expect(Object.keys(variables)).toHaveLength(6);
+  });
+});
+
+describe("shade nicknames in the track adjustments", () => {
+  it("are kept, cleaned, and left off when there are none", () => {
+    const named = normalizeTrackAdjustments({
+      anchors: {},
+      manualOverrides: {},
+      labels: { 500: "  brand  ", 600: "", 700: "deep" },
+    });
+    expect(named.labels).toEqual({ 500: "brand", 700: "deep" });
+
+    /* A project from before nicknames existed is unchanged, not given a key. */
+    const plain = normalizeTrackAdjustments({
+      anchors: {},
+      manualOverrides: {},
+    });
+    expect(plain).toEqual({ anchors: {}, manualOverrides: {} });
+    expect("labels" in plain).toBe(false);
+    expect(normalizeTrackAdjustments(undefined)).toEqual({
+      anchors: {},
+      manualOverrides: {},
+    });
+  });
+
+  it("reach the generated track, and are not read as a colour", () => {
+    const [track] = generatePalettes({
+      tracks: [
+        {
+          id: "primary",
+          name: "primary",
+          seedHex: "#7646ab",
+          adjustments: {
+            anchors: {},
+            manualOverrides: {},
+            labels: { 500: "brand" },
+          },
+        },
+      ],
+      lightnessValues: [...BLUEPRINT_20_PRESET.lightnessValues],
+    });
+    expect(track!.adjustments.labels).toEqual({ 500: "brand" });
   });
 });

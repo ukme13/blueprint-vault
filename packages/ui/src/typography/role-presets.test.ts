@@ -153,10 +153,19 @@ describe("type role presets", () => {
       ["body-2", -1],
       ["body-3", -2],
     ]);
-    /* A size group of two is sm and xs, by the naming rule. */
-    expect(inGroup("input-label").map((role) => role.id)).toEqual([
-      "input-label-sm",
-      "input-label-xs",
+    /* A size group of three is md, sm and xs, by the naming rule: the two
+       input groups step down from base as the button group does. */
+    const sized = (id: string) =>
+      inGroup(id).map((role) => [role.id, role.stepOffset, role.fontWeight]);
+    expect(sized("input-label")).toEqual([
+      ["input-label-md", 0, 500],
+      ["input-label-sm", -1, 500],
+      ["input-label-xs", -2, 500],
+    ]);
+    expect(sized("input-value")).toEqual([
+      ["input-value-md", 0, 400],
+      ["input-value-sm", -1, 400],
+      ["input-value-xs", -2, 400],
     ]);
     expect(inGroup("button").map((role) => role.id)).toEqual([
       "button-md",

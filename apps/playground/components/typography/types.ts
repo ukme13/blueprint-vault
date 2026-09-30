@@ -13,6 +13,13 @@ export type RoleStyleMap = Record<SemanticRole, RoleStyle>;
 
 export type TypographySection = "editor" | "specimen" | "preview";
 
+/** The views a `?view=` may name; the first is the studio's opening one. */
+export const TYPOGRAPHY_SECTIONS = [
+  "editor",
+  "specimen",
+  "preview",
+] as const satisfies readonly TypographySection[];
+
 /** How a view tab is stored on the project. Editor does not change it. */
 export function storedTemplateForSection(
   section: TypographySection,

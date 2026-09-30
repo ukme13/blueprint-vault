@@ -4,6 +4,7 @@ import { defaultProject, readStoredWorkspace } from "./fixtures";
 import {
   expect,
   clippedValues,
+  openSpacingSteps,
   showScaleView,
   spacingTagReport,
   test,
@@ -297,6 +298,13 @@ test.describe("The spacing studio", () => {
     const rows = steps.getByRole("listitem");
     const unit = steps.getByRole("radiogroup", { name: "Value unit" });
 
+    /* It starts folded: the list is out of the way until it is wanted, and
+       the unit switch is already there beside the chevron. */
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect(rows.first()).toBeHidden();
+    await expect(unit).toBeVisible();
+
+    await trigger.click();
     await expect(trigger).toHaveAttribute("aria-expanded", "true");
     await expect(rows.first()).toBeVisible();
     const label = trigger.locator("[class*=groupTrigger]");
@@ -411,6 +419,7 @@ test.describe("The spacing studio", () => {
   test("lists the steps in the inspector, beside the preview", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     const canvas = page.getByRole("region", { name: "Spacing canvas" });
     const inspector = page.getByRole("complementary");
     const steps = inspector.getByRole("region", {
@@ -447,6 +456,7 @@ test.describe("The spacing studio", () => {
   test("sets the active slot from the step list", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     const row = (step: number) =>
       steps.locator(`[data-spacing-step="${step}"]`);
@@ -484,7 +494,8 @@ test.describe("The spacing studio", () => {
   test("applies a scale preset, calls an edited one Custom, and undoes", async ({
     seededPage: page,
   }) => {
-    const preset = page.getByLabel("Scale preset", { exact: true });
+    await openSpacingSteps(page);
+    const preset = page.getByRole("button", { name: /^Scale preset:/ });
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     const chip = (step: string) =>
       page.getByRole("button", { name: `Keep step ${step}`, exact: true });
@@ -524,9 +535,69 @@ test.describe("The spacing studio", () => {
     await expect.poll(async () => (await stored())?.baseUnitPx).toBe(4);
   });
 
-  test("sets density from a preset, moving layout steps and not the grid", async ({
+  test("shows the scale preset as a card with its name and full description", async ({
     seededPage: page,
   }) => {
+    const card = page.getByRole("button", { name: /^Scale preset:/ });
+    const name = card.locator("[class*=presetTriggerName]");
+    const hint = card.locator("[class*=presetTriggerHint]");
+
+    /* The seeded scale is no preset, and says so in full. */
+    await expect(name).toHaveText("Custom");
+    await expect(hint).toHaveText("Your own base unit and steps.");
+    await expect(card.locator("svg")).toHaveCount(1);
+
+    /* A preset is named in bold, its description under it and not cut short. */
+    await card.click();
+    const list = page.getByRole("listbox", { name: "Scale presets" });
+    /* Every grid says what it is for, in the list as on the card. */
+    await expect(list.getByRole("option")).toHaveCount(4);
+    await expect(
+      list.getByRole("option", { name: /Tailwind v4 Harmonized/ }),
+    ).toContainText("Full stepped ramp matching Tailwind CSS utility classes.");
+    await list.getByRole("option", { name: /Tailwind v4 Harmonized/ }).click();
+    await expect(list).toBeHidden();
+
+    await expect(name).toHaveText("Tailwind v4 Harmonized");
+    await expect(hint).toHaveText(
+      "Full stepped ramp matching Tailwind CSS utility classes.",
+    );
+    expect(
+      await name.evaluate((el) => Number(getComputedStyle(el).fontWeight)),
+    ).toBeGreaterThanOrEqual(600);
+    /* The name and its description touch: no gap between the two lines. */
+    const nameBox = (await name.boundingBox())!;
+    const hintBox = (await hint.boundingBox())!;
+    expect(Math.abs(hintBox.y - (nameBox.y + nameBox.height))).toBeLessThan(1);
+
+    /* Wrapped, not clipped: nothing overflows the card sideways. */
+    for (const part of [name, hint]) {
+      expect(await part.evaluate((el) => getComputedStyle(el).whiteSpace)).toBe(
+        "normal",
+      );
+      expect(
+        await part.evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+      ).toBe(true);
+    }
+
+    /* The list marks the one the scale is, and Custom is not offered. */
+    await card.click();
+    await expect(
+      page
+        .getByRole("listbox", { name: "Scale presets" })
+        .getByRole("option", { name: /Tailwind v4 Harmonized/ }),
+    ).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("option", { name: /Custom/ })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(
+      page.getByRole("listbox", { name: "Scale presets" }),
+    ).toBeHidden();
+  });
+
+  test("sets density on the slider, moving layout steps and not the grid", async ({
+    seededPage: page,
+  }) => {
+    await openSpacingSteps(page);
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     const row = (step: string) =>
       steps.locator(`[data-spacing-step="${step}"]`);
@@ -534,8 +605,17 @@ test.describe("The spacing studio", () => {
       ((await readStoredWorkspace(page))?.spacing as { density: number })
         ?.density;
 
-    await page.getByRole("radio", { name: "Compact 0.75×" }).click();
+    /* There are no preset buttons: the slider is the one control. */
+    await expect(
+      page.getByRole("radio", { name: /Compact|Spacious/ }),
+    ).toHaveCount(0);
+    const slider = page.getByRole("slider", { name: /Density/ });
+    await expect(slider).toHaveAccessibleName("Density: 1×");
+    await slider.focus();
+    /* Five notches of 0.05 down from 1. */
+    for (let notch = 0; notch < 5; notch += 1) await slider.press("ArrowLeft");
     await expect.poll(density).toBe(0.75);
+    await expect(slider).toHaveAccessibleName("Density: 0.75×");
     /* Step 2 is the first layout step: 8px at 1x, 6px compact; its size
        says what density did, with no multiplier beside it. Step 1 is on
        the fine grid: 4px, and locked. */
@@ -553,19 +633,52 @@ test.describe("The spacing studio", () => {
       "Fixed on base grid: does not scale with density",
     );
 
-    await page.getByRole("radio", { name: "Spacious 1.25×" }).click();
+    /* Ten notches back up: 1.25, exactly, and not 1.2500000000000002. */
+    for (let notch = 0; notch < 10; notch += 1)
+      await slider.press("ArrowRight");
     await expect.poll(density).toBe(1.25);
+    await expect(slider).toHaveAccessibleName("Density: 1.25×");
     await expect(row("16").getByText("80px", { exact: true })).toBeVisible();
-    // The slider shows where the preset put it.
-    await expect(page.getByRole("slider", { name: /Density/ })).toHaveAttribute(
-      "aria-valuenow",
-      "1.25",
-    );
+    await expect(slider).toHaveAttribute("aria-valuenow", "1.25");
+  });
+
+  test("moves density a notch of 0.05 at a time, and sizes stay whole pixels", async ({
+    seededPage: page,
+  }) => {
+    const density = async () =>
+      ((await readStoredWorkspace(page))?.spacing as { density: number })
+        ?.density;
+    const slider = page.getByRole("slider", { name: /Density/ });
+    await slider.focus();
+
+    await slider.press("ArrowRight");
+    await expect.poll(density).toBe(1.05);
+    await expect(slider).toHaveAccessibleName("Density: 1.05×");
+    await slider.press("ArrowRight");
+    await expect.poll(density).toBe(1.1);
+    await expect(slider).toHaveAccessibleName("Density: 1.1×");
+
+    /* At any density every layout size is a whole, even pixel. */
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    const sizes = await steps.locator("[data-spacing-value]").allTextContents();
+    expect(sizes.length).toBeGreaterThan(5);
+    for (const size of sizes) {
+      /* Whole pixels: no decimal point, and even. */
+      expect(size).toMatch(/^\d+px$/);
+      expect(Number.parseInt(size, 10) % 2).toBe(0);
+    }
+
+    /* Home and End reach the bounds. */
+    await slider.press("Home");
+    await expect.poll(density).toBe(0.5);
+    await slider.press("End");
+    await expect.poll(density).toBe(2);
   });
 
   test("pruning a step moves the layout uses on it to the nearest kept", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     const insetOnPhone = async () =>
       (
         (await readStoredWorkspace(page))?.layout as {
@@ -610,6 +723,7 @@ test.describe("The spacing studio", () => {
   test("puts the keep box at the start of each row", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     const row = page
       .getByRole("region", { name: "Generated spacing steps" })
       .locator('[data-spacing-step="4"]');
@@ -630,6 +744,7 @@ test.describe("The spacing studio", () => {
   test("prunes a step from its row, and keeps it pruned", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     const rows = await steps.getByRole("listitem").count();
     const row = steps.locator('[data-spacing-step="10"]');
@@ -664,6 +779,8 @@ test.describe("The spacing studio", () => {
       .not.toContain(10);
 
     await page.reload();
+    /* Folded again: the panel does not remember it was open. */
+    await openSpacingSteps(page);
     await expect(
       page.getByRole("button", { name: "Keep step 10", exact: true }),
     ).toHaveAttribute("aria-pressed", "false");
@@ -672,6 +789,7 @@ test.describe("The spacing studio", () => {
   test("a pruned step moves the preview to the nearest kept one", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     const inset = page
       .getByRole("figure", { name: "Spacing preview" })
@@ -703,6 +821,7 @@ test.describe("The spacing studio", () => {
   test("moves every step when the base unit changes", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     /* The grid is the model: one number moves the whole scale, which is what
        makes it a scale rather than a list of sizes. */
 
@@ -721,6 +840,7 @@ test.describe("The spacing studio", () => {
   test("moves layout gaps and leaves the fine grid", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     /* Density is the control that makes the page roomier without turning a
        2px hairline into 4px, which is what switching the base unit does. */
 
@@ -737,7 +857,8 @@ test.describe("The spacing studio", () => {
 
     const slider = page.getByRole("slider", { name: /Density/ });
     await slider.focus();
-    await slider.press("ArrowRight");
+    /* Five notches of 0.05: 1.25. */
+    for (let notch = 0; notch < 5; notch += 1) await slider.press("ArrowRight");
 
     await expect(hairline).toContainText("2px");
     await expect(padding).toContainText("20px");
@@ -755,6 +876,7 @@ test.describe("The spacing studio", () => {
   test("puts the lock after the name, and every row at one height", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     const hairline = steps.locator('[data-spacing-step="0.5"]');
     const lock = hairline.getByRole("img", { name: /^Fixed on base grid/ });
@@ -1698,6 +1820,7 @@ test.describe("The scale studio's chrome", () => {
   test("undoes a prune, and redo puts it back", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     const toggle = page.getByRole("button", {
       name: "Keep step 10",
       exact: true,
@@ -1713,9 +1836,51 @@ test.describe("The scale studio's chrome", () => {
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
   });
 
+  test("undoes a removal when focus has fallen to the page", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Elevation");
+    const canvas = page.getByRole("region", { name: "Elevation", exact: true });
+    await canvas.getByRole("button", { name: "Add level" }).click();
+    await expect(canvas.getByText("--shadow-new-level")).toBeVisible();
+
+    /* The Delete button is gone the moment it is clicked, and focus with it. */
+    await canvas.getByRole("button", { name: "Delete New level" }).click();
+    await expect(canvas.getByText("--shadow-new-level")).toHaveCount(0);
+    expect(
+      await page.evaluate(() => document.activeElement === document.body),
+    ).toBe(true);
+
+    /* The shortcut still reaches the studio from there. */
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(canvas.getByText("--shadow-new-level")).toBeVisible();
+
+    await page.keyboard.press("ControlOrMeta+Shift+z");
+    await expect(canvas.getByText("--shadow-new-level")).toHaveCount(0);
+  });
+
+  test("leaves a text field its own undo in the scale studios", async ({
+    seededPage: page,
+  }) => {
+    await openSpacingSteps(page);
+    const toggle = page.getByRole("button", {
+      name: "Keep step 10",
+      exact: true,
+    });
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+
+    /* In a field, the shortcut is the browser's, for the text typed there. */
+    const field = page.getByLabel("Project name");
+    await field.focus();
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  });
+
   test("undoes the last action on the page, not only this view", async ({
     seededPage: page,
   }) => {
+    await openSpacingSteps(page);
     /* Spacing, radius and elevation share one history: an undo is the last
        thing done in this studio, even after switching views. */
 
@@ -1739,6 +1904,7 @@ test.describe("The scale studio's chrome", () => {
     );
 
     await showScaleView(page, "Spacing");
+    await openSpacingSteps(page);
     await page.getByRole("button", { name: "Undo" }).click();
     await expect(toggle).toHaveAttribute("aria-pressed", "true");
   });
