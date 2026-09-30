@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties, type KeyboardEvent } from "react";
+import { useState, type CSSProperties } from "react";
 import { usePathname } from "next/navigation";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import {
@@ -18,6 +18,7 @@ import {
 } from "@blueprint/ui";
 import { Sheet } from "../Sheet";
 import { SystemExportDialog } from "../SystemExportDialog";
+import { useUndoShortcut } from "../use-undo-shortcut";
 import { useUrlState } from "../use-url-state";
 import { useIsPhone } from "../use-is-phone";
 import { LayoutUsesTable } from "./LayoutUsesTable";
@@ -90,16 +91,8 @@ export function ScaleStudio() {
   /* Either takes the whole width, with no settings panel beside it. */
   const isFullWidth = showUses || showPreview;
 
-  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    const target = event.target as HTMLElement;
-    if (target.closest("input, textarea, [role='combobox']")) return;
-    if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== "z") {
-      return;
-    }
-    event.preventDefault();
-    if (event.shiftKey) history.redo();
-    else history.undo();
-  };
+  /* Ctrl or Cmd+Z undoes, with Shift redoes, wherever focus is. */
+  useUndoShortcut(history.undo, history.redo);
 
   const sectionLabel = `${SCALE_SECTION_LABEL[activeSection]} settings`;
 
@@ -134,7 +127,7 @@ export function ScaleStudio() {
   }
 
   return (
-    <div className={styles.workspace} onKeyDown={onKeyDown}>
+    <div className={styles.workspace}>
       <header className={styles.topbar}>
         {(activeSection === "spacing" || activeSection === "radius") && (
           <nav aria-label="Scale sections" className={styles.navigation}>

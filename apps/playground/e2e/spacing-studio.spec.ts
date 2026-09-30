@@ -1713,6 +1713,46 @@ test.describe("The scale studio's chrome", () => {
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
   });
 
+  test("undoes a removal when focus has fallen to the page", async ({
+    seededPage: page,
+  }) => {
+    await showScaleView(page, "Elevation");
+    const canvas = page.getByRole("region", { name: "Elevation", exact: true });
+    await canvas.getByRole("button", { name: "Add level" }).click();
+    await expect(canvas.getByText("--shadow-new-level")).toBeVisible();
+
+    /* The Delete button is gone the moment it is clicked, and focus with it. */
+    await canvas.getByRole("button", { name: "Delete New level" }).click();
+    await expect(canvas.getByText("--shadow-new-level")).toHaveCount(0);
+    expect(
+      await page.evaluate(() => document.activeElement === document.body),
+    ).toBe(true);
+
+    /* The shortcut still reaches the studio from there. */
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(canvas.getByText("--shadow-new-level")).toBeVisible();
+
+    await page.keyboard.press("ControlOrMeta+Shift+z");
+    await expect(canvas.getByText("--shadow-new-level")).toHaveCount(0);
+  });
+
+  test("leaves a text field its own undo in the scale studios", async ({
+    seededPage: page,
+  }) => {
+    const toggle = page.getByRole("button", {
+      name: "Keep step 10",
+      exact: true,
+    });
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+
+    /* In a field, the shortcut is the browser's, for the text typed there. */
+    const field = page.getByLabel("Project name");
+    await field.focus();
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+  });
+
   test("undoes the last action on the page, not only this view", async ({
     seededPage: page,
   }) => {

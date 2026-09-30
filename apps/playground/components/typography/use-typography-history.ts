@@ -12,6 +12,7 @@ import {
   type TypeSystem,
   type TypographyHistory,
 } from "@blueprint/ui";
+import { useUndoShortcut } from "../use-undo-shortcut";
 import type { TypographyProject } from "./typography-project";
 
 /**
@@ -92,36 +93,7 @@ export function useTypographyHistory(
     if (next) apply(next);
   }, [apply]);
 
-  /* Ctrl or Cmd+Z undoes, with Shift redoes. On the window, not the studio's
-     root: after Remove the button that had focus is gone and focus falls to
-     the body, outside every element of the studio, and a person who has just
-     removed something is exactly who reaches for undo. A text field keeps its
-     own undo, which is per keystroke and the native one, and a dialog or sheet
-     over the studio is not the studio's to undo. */
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (
-        !(event.metaKey || event.ctrlKey) ||
-        event.key.toLowerCase() !== "z"
-      ) {
-        return;
-      }
-      if (event.defaultPrevented) return;
-      const target = event.target as HTMLElement | null;
-      if (
-        target?.closest?.(
-          "input, textarea, select, [contenteditable], [role='combobox'], [role='dialog'], dialog",
-        )
-      ) {
-        return;
-      }
-      event.preventDefault();
-      if (event.shiftKey) redo();
-      else undo();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [undo, redo]);
+  useUndoShortcut(undo, redo);
 
   return {
     undo,
