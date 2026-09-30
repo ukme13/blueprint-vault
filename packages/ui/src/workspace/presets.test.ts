@@ -152,7 +152,9 @@ describe("instantiating a preset", () => {
     for (const preset of WORKSPACE_PRESETS) {
       const { spacing } = instantiateWorkspacePreset(preset, "Test");
       expect([preset.id, spacing.baseUnitPx]).toEqual([preset.id, 4]);
-      expect(spacing.density).toBeLessThanOrEqual(1);
+      /* Up to Stripe's old 1.15: a modest density on the 4px unit moves a
+         use by a tenth, where the 8px base doubled it. */
+      expect(spacing.density).toBeLessThanOrEqual(1.15);
     }
   });
 
@@ -324,6 +326,69 @@ describe("preset swatches", () => {
 });
 
 describe("preset details", () => {
+  it("describes the three serif presets in full", () => {
+    const details = (id: string) =>
+      workspacePresetDetails(findWorkspacePreset(id)!);
+    expect(details("medium")).toEqual({
+      primaryHex: "#1a8917",
+      secondaryHex: "#242424",
+      neutralHex: "#6b6b6b",
+      typeface: "Charter",
+      baseFontSizePx: 18,
+      ratio: 1.25,
+      ratioName: "Major Third",
+      stepCount: 9,
+      roleGroups: "Editorial",
+      baseSpacingPx: 4,
+      elementRadiusPx: 4,
+      containerRadiusPx: 8,
+    });
+    expect(details("guardian")).toMatchObject({
+      primaryHex: "#052962",
+      secondaryHex: "#ffe500",
+      typeface: "Guardian Egyptian Web",
+      baseFontSizePx: 16,
+      ratio: 1.333,
+      roleGroups: "Editorial",
+      elementRadiusPx: 2,
+      containerRadiusPx: 4,
+    });
+    expect(details("notion")).toMatchObject({
+      primaryHex: "#2f3437",
+      secondaryHex: "#2383e2",
+      typeface: "Lyon-Text",
+      baseFontSizePx: 16,
+      ratio: 1.25,
+      roleGroups: "Editorial",
+      elementRadiusPx: 4,
+      containerRadiusPx: 6,
+    });
+  });
+
+  it("instantiates the serif presets with their serif stack and sizes", () => {
+    for (const [id, lead, bodyMd, bodySm] of [
+      ["medium", "Charter", 18, 16],
+      ["guardian", "Guardian Egyptian Web", 16, 14],
+      ["notion", "Lyon-Text", 16, 14],
+    ] as const) {
+      const workspace = instantiateWorkspacePreset(
+        findWorkspacePreset(id)!,
+        "Test",
+      );
+      const system = workspace.typography!.system;
+      expect(system.fonts[0]!.families[0]).toBe(lead);
+      expect(system.fonts[0]!.families.at(-1)).toBe("serif");
+      expect(detectTypeRolePreset(system)).toBe("editorial");
+      const size = (roleId: string) =>
+        system.roles.find((role) => role.id === roleId)!.unlinkedSizes.desktop;
+      expect([id, size("body-md"), size("body-sm")]).toEqual([
+        id,
+        bodyMd,
+        bodySm,
+      ]);
+    }
+  });
+
   it("describes GitHub Primer in full", () => {
     expect(workspacePresetDetails(findWorkspacePreset("primer")!)).toEqual({
       primaryHex: "#0969da",

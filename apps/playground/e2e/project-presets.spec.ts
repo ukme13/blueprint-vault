@@ -64,6 +64,33 @@ test.describe("Project presets", () => {
     expect(stored.spacing).toMatchObject({ baseUnitPx: 4, density: 1 });
   });
 
+  test("offers the serif presets, and a created one carries its sizes", async ({
+    page,
+  }) => {
+    await page.getByRole("button", { name: "New project" }).click();
+    const dialog = page.getByRole("dialog", { name: "New project" });
+    const gallery = dialog.getByRole("group", { name: "Starting point" });
+    for (const name of ["Medium Story", "The Guardian", "Notion Serif"]) {
+      await expect(gallery.getByRole("radio", { name })).toBeAttached();
+    }
+
+    await dialog.getByLabel("Project name").fill("Reading");
+    await gallery.getByRole("radio", { name: "Medium Story" }).check();
+    await expect(dialog.getByRole("region", { name: "Type" })).toContainText(
+      "Charter",
+    );
+    await dialog.getByRole("button", { name: "Create workspace" }).click();
+    await expect(page).toHaveURL(/\/colour\/?$/);
+
+    const system = (await readStoredWorkspace(page)).typography.system;
+    expect(system.baseFontSizePx).toBe(18);
+    expect(system.fonts[0].families[0]).toBe("Charter");
+    const body = system.roles.find(
+      (role: { id: string }) => role.id === "body-md",
+    );
+    expect(body.unlinkedSizes).toEqual({ desktop: 18, tablet: 18, phone: 18 });
+  });
+
   test("a refused create keeps the dialog open and says why", async ({
     page,
   }) => {

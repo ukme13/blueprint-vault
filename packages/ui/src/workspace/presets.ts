@@ -306,6 +306,179 @@ const CARBON: WorkspacePreset = {
   radius: { multiplier: 0 },
 };
 
+/** Medium Story: Editorial groups, 18px Charter serif, warm ink & green, breathable reading. */
+const MEDIUM: WorkspacePreset = {
+  id: "medium",
+  name: "Medium Story",
+  summary:
+    "Long-form reading and editorial craft. Warm ink and green, 18px Charter serif, Editorial groups.",
+  paletteTracks: {
+    primary: "#1a8917",
+    secondary: "#242424",
+    neutral: "#6b6b6b",
+    success: "#1a8917",
+    warning: "#b58105",
+    error: "#c93b2b",
+    info: "#1a8917",
+  },
+  typography: {
+    fontFamily: "Charter, 'Newsreader', 'Iowan Old Style', Georgia, serif",
+    baseFontSizePx: 18,
+    ratio: 1.25,
+    stepCount: 9,
+    rolePresetId: "editorial",
+    specimenText: "Every story begins with a single sentence",
+    /* Reading sizes a 1.25 ratio from 18px steps over: a 44px and 36px display, a 16px and 14px small body, and 22px pull quotes. */
+    roleOverrides: {
+      "display-1": { fontSizePx: 44 },
+      "display-2": { fontSizePx: 36 },
+      h1: { fontSizePx: 36 },
+      h2: { fontSizePx: 30 },
+      h3: { fontSizePx: 24 },
+      h4: { fontSizePx: 20 },
+      h5: { fontSizePx: 18 },
+      h6: { fontSizePx: 16 },
+      "body-md": { fontSizePx: 18 },
+      "body-sm": { fontSizePx: 16 },
+      "body-xs": { fontSizePx: 14 },
+      quote: { fontSizePx: 22 },
+      label: { fontSizePx: 14 },
+      caption: { fontSizePx: 14 },
+      overline: { fontSizePx: 12 },
+    },
+  },
+  previewDevices: [
+    { id: "phone", ratio: 1.18 },
+    { id: "tablet", ratio: 1.2 },
+    { id: "desktop", ratio: 1.25 },
+  ],
+  spacing: { baseUnitPx: 4, density: 1.1 },
+  radius: {
+    multiplier: 1,
+    tokens: [
+      { id: "inner", basePx: 3 },
+      { id: "element", basePx: 4 },
+      { id: "container", basePx: 8 },
+    ],
+  },
+};
+
+/** The Guardian: British editorial authority. Deep navy & Guardian yellow, Egyptian serif, crisp 2px corners. */
+const GUARDIAN: WorkspacePreset = {
+  id: "guardian",
+  name: "The Guardian",
+  summary:
+    "British editorial authority. Deep navy & yellow, Egyptian serif, crisp 2px corners, Editorial groups.",
+  paletteTracks: {
+    primary: "#052962",
+    secondary: "#ffe500",
+    neutral: "#707070",
+    success: "#22874d",
+    warning: "#c70000",
+    error: "#c70000",
+    info: "#052962",
+  },
+  typography: {
+    fontFamily:
+      "'Guardian Egyptian Web', 'Playfair Display', Georgia, 'Times New Roman', serif",
+    baseFontSizePx: 16,
+    ratio: 1.333,
+    stepCount: 9,
+    rolePresetId: "editorial",
+    specimenText: "News is what someone somewhere wants to suppress",
+    /* The Guardian's headline and text sizes, which a perfect fourth from 16px leaps over: 52px and 40px displays, 36px to 15px headings, 14px and 13px text. */
+    roleOverrides: {
+      "display-1": { fontSizePx: 52 },
+      "display-2": { fontSizePx: 40 },
+      h1: { fontSizePx: 36 },
+      h2: { fontSizePx: 28 },
+      h3: { fontSizePx: 24 },
+      h4: { fontSizePx: 20 },
+      h5: { fontSizePx: 16 },
+      h6: { fontSizePx: 15 },
+      "body-md": { fontSizePx: 16 },
+      "body-sm": { fontSizePx: 14 },
+      "body-xs": { fontSizePx: 13 },
+      quote: { fontSizePx: 24 },
+      label: { fontSizePx: 14 },
+      caption: { fontSizePx: 13 },
+      overline: { fontSizePx: 12 },
+    },
+  },
+  previewDevices: [
+    { id: "phone", ratio: 1.2 },
+    { id: "tablet", ratio: 1.25 },
+    { id: "desktop", ratio: 1.333 },
+  ],
+  spacing: { baseUnitPx: 4, density: 1 },
+  radius: {
+    multiplier: 1,
+    tokens: [
+      { id: "inner", basePx: 0 },
+      { id: "element", basePx: 2 },
+      { id: "container", basePx: 4 },
+    ],
+  },
+};
+
+/** Notion Serif: Clean document flow, Lyon serif, slate & blue, modern 4px corners. */
+const NOTION: WorkspacePreset = {
+  id: "notion",
+  name: "Notion Serif",
+  summary:
+    "Minimalist knowledge base. Slate and blue, Lyon serif, modern 4px corners, Editorial groups.",
+  paletteTracks: {
+    primary: "#2f3437",
+    secondary: "#2383e2",
+    neutral: "#787774",
+    success: "#0f7b6c",
+    warning: "#dfab01",
+    error: "#eb5757",
+    info: "#2383e2",
+  },
+  typography: {
+    fontFamily:
+      "'Lyon-Text', 'iA Writer Quattro', Georgia, 'Times New Roman', serif",
+    baseFontSizePx: 16,
+    ratio: 1.25,
+    stepCount: 9,
+    rolePresetId: "editorial",
+    specimenText: "Organize your ideas, projects, and life",
+    /* A document's sizes, where 1.25 from 16px misses the 30px and 24px headings and the 14px and 12px small text. */
+    roleOverrides: {
+      "display-1": { fontSizePx: 40 },
+      "display-2": { fontSizePx: 32 },
+      h1: { fontSizePx: 30 },
+      h2: { fontSizePx: 24 },
+      h3: { fontSizePx: 20 },
+      h4: { fontSizePx: 18 },
+      h5: { fontSizePx: 16 },
+      h6: { fontSizePx: 14 },
+      "body-md": { fontSizePx: 16 },
+      "body-sm": { fontSizePx: 14 },
+      "body-xs": { fontSizePx: 12 },
+      quote: { fontSizePx: 18 },
+      label: { fontSizePx: 14 },
+      caption: { fontSizePx: 12 },
+      overline: { fontSizePx: 12 },
+    },
+  },
+  previewDevices: [
+    { id: "phone", ratio: 1.18 },
+    { id: "tablet", ratio: 1.2 },
+    { id: "desktop", ratio: 1.25 },
+  ],
+  spacing: { baseUnitPx: 4, density: 0.95 },
+  radius: {
+    multiplier: 1,
+    tokens: [
+      { id: "inner", basePx: 3 },
+      { id: "element", basePx: 4 },
+      { id: "container", basePx: 6 },
+    ],
+  },
+};
+
 /** Every preset the create dialog offers, in the order it lists them. */
 export const WORKSPACE_PRESETS: readonly WorkspacePreset[] = [
   PRIMER,
@@ -313,6 +486,9 @@ export const WORKSPACE_PRESETS: readonly WorkspacePreset[] = [
   LINEAR,
   POLARIS,
   CARBON,
+  MEDIUM,
+  GUARDIAN,
+  NOTION,
 ];
 
 /** The one a freshly opened dialog starts on. */
