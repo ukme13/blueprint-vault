@@ -170,6 +170,25 @@ export interface SpacingToken {
   followsDensity: boolean;
 }
 
+/**
+ * Round a length to an even number of pixels.
+ *
+ * Density is a slider, so 1.1 or 0.85 would otherwise leave a step at 8.8px
+ * or 6.8px: a fractional subpixel that renders soft. A tie resolves to
+ * whichever candidate divides by four — 10 stays, 18 becomes 16 — as the type
+ * scale's `roundToEvenPx` does, which pulls the scale toward the 4px grid.
+ * No floor: a spacing step may be small.
+ */
+export function roundToEvenSpacingPx(value: number): number {
+  const lower = Math.floor(value / 2) * 2;
+  const upper = lower + 2;
+  const toLower = value - lower;
+  const toUpper = upper - value;
+  if (toLower < toUpper) return lower;
+  if (toUpper < toLower) return upper;
+  return lower % 4 === 0 ? lower : upper;
+}
+
 /** Every step as a token, in order. */
 export function resolveSpacing(scale: SpacingScale): SpacingToken[] {
   const density = Number.isFinite(scale.density)
@@ -178,7 +197,10 @@ export function resolveSpacing(scale: SpacingScale): SpacingToken[] {
 
   return scale.steps.map((step) => {
     const followsDensity = spacingStepFollowsDensity(step);
-    const px = step * scale.baseUnitPx * (followsDensity ? density : 1);
+    const rawPx = step * scale.baseUnitPx * (followsDensity ? density : 1);
+    /* The fine grid keeps its clean multiples of the unit (2px, 4px, 6px);
+       everything density moves lands on an even pixel. */
+    const px = followsDensity ? roundToEvenSpacingPx(rawPx) : rawPx;
     return {
       step,
       name: spacingStepName(step),
