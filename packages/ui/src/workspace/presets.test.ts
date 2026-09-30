@@ -156,6 +156,74 @@ describe("instantiating a preset", () => {
     }
   });
 
+  it("seeds each preset's authentic sizes, typed on every frame", () => {
+    const expected: Record<string, Record<string, number>> = {
+      primer: {
+        "button-md": 16,
+        "subtitle-2": 16,
+        "button-sm": 12,
+        h1: 32,
+        h4: 16,
+        tag: 12,
+      },
+      stripe: { label: 14, "body-sm": 14, chip: 12, h1: 64, h3: 36 },
+      carbon: { label: 14, "body-2": 14, h4: 28, h2: 42, h1: 54, code: 12 },
+      linear: { "body-sm": 13, label: 13, "button-md": 13, chip: 12 },
+      polaris: { "body-2": 13, "button-sm": 12, caption: 12 },
+    };
+    for (const [id, sizes] of Object.entries(expected)) {
+      const preset = findWorkspacePreset(id)!;
+      const system = instantiateWorkspacePreset(preset, "Test").typography!
+        .system;
+      for (const [roleId, px] of Object.entries(sizes)) {
+        const role = system.roles.find((each) => each.id === roleId);
+        expect([id, roleId, role?.unlinkedSizes]).toEqual([
+          id,
+          roleId,
+          { desktop: px, tablet: px, phone: px },
+        ]);
+      }
+    }
+  });
+
+  it("only overrides roles the preset's groups really have", () => {
+    /* An id the role preset lacks would be ignored without a word. */
+    for (const preset of WORKSPACE_PRESETS) {
+      const system = instantiateWorkspacePreset(preset, "Test").typography!
+        .system;
+      const roleIds = new Set(system.roles.map((role) => role.id));
+      for (const roleId of Object.keys(
+        preset.typography?.roleOverrides ?? {},
+      )) {
+        expect([preset.id, roleId, roleIds.has(roleId)]).toEqual([
+          preset.id,
+          roleId,
+          true,
+        ]);
+      }
+    }
+  });
+
+  it("keeps each preset's role group name after its sizes are seeded", () => {
+    for (const preset of WORKSPACE_PRESETS) {
+      const system = instantiateWorkspacePreset(preset, "Test").typography!
+        .system;
+      expect(detectTypeRolePreset(system)).toBe(
+        preset.typography?.rolePresetId,
+      );
+    }
+  });
+
+  it("seeds Primer's dialog corner at 12px", () => {
+    const primer = instantiateWorkspacePreset(
+      findWorkspacePreset("primer")!,
+      "Test",
+    );
+    const corner = (id: string) =>
+      primer.radius.tokens.find((token) => token.id === id)!.basePx;
+    expect([corner("element"), corner("container")]).toEqual([6, 12]);
+  });
+
   it("seeds spacing, radius, the neutral and each frame's ratio", () => {
     const stripe = instantiateWorkspacePreset(
       findWorkspacePreset("stripe")!,
@@ -269,7 +337,7 @@ describe("preset details", () => {
       roleGroups: "Enterprise",
       baseSpacingPx: 4,
       elementRadiusPx: 6,
-      containerRadiusPx: 6,
+      containerRadiusPx: 12,
     });
   });
 

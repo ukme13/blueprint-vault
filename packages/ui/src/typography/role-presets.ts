@@ -398,16 +398,22 @@ export function applyTypeRolePreset(
  * Which preset the system's groups and roles are, exactly, or `custom`.
  *
  * Exactly: applying the preset to this system must give back the same
- * groups and roles, compared by value. A changed weight, a hand-set size, a
- * renamed or added group all make it `custom`, which is what the Groups tab
- * shows. The system is named by the rule first, so a seed that has not been
+ * groups and roles, compared by value. A changed weight, a renamed or added
+ * group or role all make it `custom`, which is what the Groups tab shows. A
+ * size typed on a role does not: presets seed some of their own. The system is named by the rule first, so a seed that has not been
  * through a load yet (`display-1`) reads the same as one that has.
  */
 export function detectTypeRolePreset(
   system: TypeSystem,
 ): TypeRolePresetId | "custom" {
   const named = withRoleNamingRule(system);
-  const current = canonical({ groups: named.groups, roles: named.roles });
+  /* Sizes typed on a role are not part of the shape: a preset seeds the
+     sizes its design system really uses (a 14px control the ratio skips), so
+     they must not read as an edit. */
+  const current = canonical({
+    groups: named.groups,
+    roles: named.roles.map((role) => ({ ...role, unlinkedSizes: {} })),
+  });
   for (const preset of TYPE_ROLE_PRESETS) {
     if (canonical(presetShape(system, preset.id)) === current) {
       return preset.id;

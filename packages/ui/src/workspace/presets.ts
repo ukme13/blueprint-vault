@@ -66,6 +66,24 @@ const PRIMER: WorkspacePreset = {
     stepCount: 9,
     rolePresetId: "enterprise",
     specimenText: "Where the world builds software",
+    /* Primer's own sizes, where a 1.25 ratio from 14px lands between them: the
+       16px button and subtitle, the 14px and 12px controls the negative steps
+       fall past, and desktop headings at Primer's 32, 24, 20 and 16. */
+    roleOverrides: {
+      "input-label-sm": { fontSizePx: 14 },
+      "button-md": { fontSizePx: 16 },
+      "subtitle-2": { fontSizePx: 16 },
+      "table-header": { fontSizePx: 14 },
+      "button-sm": { fontSizePx: 12 },
+      "input-value-xs": { fontSizePx: 12 },
+      tag: { fontSizePx: 12 },
+      caption: { fontSizePx: 12 },
+      code: { fontSizePx: 12 },
+      h1: { fontSizePx: 32 },
+      h2: { fontSizePx: 24 },
+      h3: { fontSizePx: 20 },
+      h4: { fontSizePx: 16 },
+    },
   },
   previewDevices: [
     { id: "phone", ratio: 1.18 },
@@ -78,7 +96,7 @@ const PRIMER: WorkspacePreset = {
     tokens: [
       { id: "inner", basePx: 3 },
       { id: "element", basePx: 6 },
-      { id: "container", basePx: 6 },
+      { id: "container", basePx: 12 },
     ],
   },
 };
@@ -106,6 +124,20 @@ const STRIPE: WorkspacePreset = {
     stepCount: 9,
     rolePresetId: "app-ui",
     specimenText: "Financial infrastructure for the internet",
+    /* The 14px controls and subtext a 1.333 ratio from 16px skips, the 12px
+       small UI the negative steps fall past, and Stripe's large headings. */
+    roleOverrides: {
+      label: { fontSizePx: 14 },
+      "body-sm": { fontSizePx: 14 },
+      "button-md": { fontSizePx: 14 },
+      code: { fontSizePx: 14 },
+      "button-sm": { fontSizePx: 12 },
+      chip: { fontSizePx: 12 },
+      caption: { fontSizePx: 12 },
+      h1: { fontSizePx: 64 },
+      h2: { fontSizePx: 48 },
+      h3: { fontSizePx: 36 },
+    },
   },
   previewDevices: [
     { id: "phone", ratio: 1.2 },
@@ -149,6 +181,15 @@ const LINEAR: WorkspacePreset = {
     stepCount: 10,
     rolePresetId: "app-ui",
     specimenText: "Linear is a better way to build products",
+    /* Linear's signature 13px compact sizes, and 12px small UI. */
+    roleOverrides: {
+      "body-sm": { fontSizePx: 13 },
+      label: { fontSizePx: 13 },
+      "button-md": { fontSizePx: 13 },
+      "button-sm": { fontSizePx: 12 },
+      chip: { fontSizePx: 12 },
+      caption: { fontSizePx: 12 },
+    },
   },
   previewDevices: [
     { id: "phone", ratio: 1.15 },
@@ -189,6 +230,12 @@ const POLARIS: WorkspacePreset = {
     stepCount: 9,
     rolePresetId: "enterprise",
     specimenText: "Making commerce better for everyone",
+    /* Polaris counts in single pixels: bodySm at 13px, and 12px small UI. */
+    roleOverrides: {
+      "body-2": { fontSizePx: 13 },
+      "button-sm": { fontSizePx: 12 },
+      caption: { fontSizePx: 12 },
+    },
   },
   previewDevices: [
     { id: "phone", ratio: 1.15 },
@@ -229,6 +276,23 @@ const CARBON: WorkspacePreset = {
     stepCount: 9,
     rolePresetId: "enterprise",
     specimenText: "Let’s create something that changes everything",
+    /* Carbon's type set: the 14px compact sizes on its 4px mini-unit, the
+       headings its ratio steps over (heading-04, -06, -07), and 12px small
+       UI. */
+    roleOverrides: {
+      label: { fontSizePx: 14 },
+      "input-value-sm": { fontSizePx: 14 },
+      "input-label-sm": { fontSizePx: 14 },
+      "body-2": { fontSizePx: 14 },
+      "button-md": { fontSizePx: 14 },
+      h4: { fontSizePx: 28 },
+      h2: { fontSizePx: 42 },
+      h1: { fontSizePx: 54 },
+      "button-sm": { fontSizePx: 12 },
+      "input-value-xs": { fontSizePx: 12 },
+      caption: { fontSizePx: 12 },
+      code: { fontSizePx: 12 },
+    },
   },
   previewDevices: [
     { id: "phone", ratio: 1.18 },
