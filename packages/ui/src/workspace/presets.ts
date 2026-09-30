@@ -66,23 +66,10 @@ const PRIMER: WorkspacePreset = {
     stepCount: 9,
     rolePresetId: "enterprise",
     specimenText: "Where the world builds software",
-    /* Primer's own sizes, where a 1.25 ratio from 14px lands between them: the
-       16px button and subtitle, the 14px and 12px controls the negative steps
-       fall past, and desktop headings at Primer's 32, 24, 20 and 16. */
+    /* The 14px control size a 1.25 scale from 14px steps past its labels and buttons over; headings and body follow the scale. */
     roleOverrides: {
       "input-label-sm": { fontSizePx: 14 },
-      "button-md": { fontSizePx: 16 },
-      "subtitle-2": { fontSizePx: 16 },
-      "table-header": { fontSizePx: 14 },
-      "button-sm": { fontSizePx: 12 },
-      "input-value-xs": { fontSizePx: 12 },
-      tag: { fontSizePx: 12 },
-      caption: { fontSizePx: 12 },
-      code: { fontSizePx: 12 },
-      h1: { fontSizePx: 32 },
-      h2: { fontSizePx: 24 },
-      h3: { fontSizePx: 20 },
-      h4: { fontSizePx: 16 },
+      "button-md": { fontSizePx: 14 },
     },
   },
   previewDevices: [
@@ -124,19 +111,10 @@ const STRIPE: WorkspacePreset = {
     stepCount: 9,
     rolePresetId: "app-ui",
     specimenText: "Financial infrastructure for the internet",
-    /* The 14px controls and subtext a 1.333 ratio from 16px skips, the 12px
-       small UI the negative steps fall past, and Stripe's large headings. */
+    /* The 14px UI size a 1.333 scale from 16px skips; headings and body follow the scale. */
     roleOverrides: {
       label: { fontSizePx: 14 },
-      "body-sm": { fontSizePx: 14 },
       "button-md": { fontSizePx: 14 },
-      code: { fontSizePx: 14 },
-      "button-sm": { fontSizePx: 12 },
-      chip: { fontSizePx: 12 },
-      caption: { fontSizePx: 12 },
-      h1: { fontSizePx: 64 },
-      h2: { fontSizePx: 48 },
-      h3: { fontSizePx: 36 },
     },
   },
   previewDevices: [
@@ -181,14 +159,10 @@ const LINEAR: WorkspacePreset = {
     stepCount: 10,
     rolePresetId: "app-ui",
     specimenText: "Linear is a better way to build products",
-    /* Linear's signature 13px compact sizes, and 12px small UI. */
+    /* Linear's signature 13px compact size; headings and body follow the scale. */
     roleOverrides: {
       "body-sm": { fontSizePx: 13 },
       label: { fontSizePx: 13 },
-      "button-md": { fontSizePx: 13 },
-      "button-sm": { fontSizePx: 12 },
-      chip: { fontSizePx: 12 },
-      caption: { fontSizePx: 12 },
     },
   },
   previewDevices: [
@@ -276,22 +250,10 @@ const CARBON: WorkspacePreset = {
     stepCount: 9,
     rolePresetId: "enterprise",
     specimenText: "Let’s create something that changes everything",
-    /* Carbon's type set: the 14px compact sizes on its 4px mini-unit, the
-       headings its ratio steps over (heading-04, -06, -07), and 12px small
-       UI. */
+    /* Carbon's 14px compact size, which its ratio skips; headings and body follow the scale. */
     roleOverrides: {
       label: { fontSizePx: 14 },
       "input-value-sm": { fontSizePx: 14 },
-      "input-label-sm": { fontSizePx: 14 },
-      "body-2": { fontSizePx: 14 },
-      "button-md": { fontSizePx: 14 },
-      h4: { fontSizePx: 28 },
-      h2: { fontSizePx: 42 },
-      h1: { fontSizePx: 54 },
-      "button-sm": { fontSizePx: 12 },
-      "input-value-xs": { fontSizePx: 12 },
-      caption: { fontSizePx: 12 },
-      code: { fontSizePx: 12 },
     },
   },
   previewDevices: [
@@ -328,23 +290,9 @@ const MEDIUM: WorkspacePreset = {
     stepCount: 9,
     rolePresetId: "editorial",
     specimenText: "Every story begins with a single sentence",
-    /* Reading sizes a 1.25 ratio from 18px steps over: a 44px and 36px display, a 16px and 14px small body, and 22px pull quotes. */
+    /* A 14px caption; an 18px base at 1.25 already lands on 18, 22, 28, 36 and 44, so the rest follows the scale. */
     roleOverrides: {
-      "display-1": { fontSizePx: 44 },
-      "display-2": { fontSizePx: 36 },
-      h1: { fontSizePx: 36 },
-      h2: { fontSizePx: 30 },
-      h3: { fontSizePx: 24 },
-      h4: { fontSizePx: 20 },
-      h5: { fontSizePx: 18 },
-      h6: { fontSizePx: 16 },
-      "body-md": { fontSizePx: 18 },
-      "body-sm": { fontSizePx: 16 },
-      "body-xs": { fontSizePx: 14 },
-      quote: { fontSizePx: 22 },
-      label: { fontSizePx: 14 },
       caption: { fontSizePx: 14 },
-      overline: { fontSizePx: 12 },
     },
   },
   previewDevices: [
@@ -386,23 +334,9 @@ const GUARDIAN: WorkspacePreset = {
     stepCount: 9,
     rolePresetId: "editorial",
     specimenText: "News is what someone somewhere wants to suppress",
-    /* The Guardian's headline and text sizes, which a perfect fourth from 16px leaps over: 52px and 40px displays, 36px to 15px headings, 14px and 13px text. */
+    /* A 14px label; headings and body follow the scale. */
     roleOverrides: {
-      "display-1": { fontSizePx: 52 },
-      "display-2": { fontSizePx: 40 },
-      h1: { fontSizePx: 36 },
-      h2: { fontSizePx: 28 },
-      h3: { fontSizePx: 24 },
-      h4: { fontSizePx: 20 },
-      h5: { fontSizePx: 16 },
-      h6: { fontSizePx: 15 },
-      "body-md": { fontSizePx: 16 },
-      "body-sm": { fontSizePx: 14 },
-      "body-xs": { fontSizePx: 13 },
-      quote: { fontSizePx: 24 },
       label: { fontSizePx: 14 },
-      caption: { fontSizePx: 13 },
-      overline: { fontSizePx: 12 },
     },
   },
   previewDevices: [
@@ -444,23 +378,9 @@ const NOTION: WorkspacePreset = {
     stepCount: 9,
     rolePresetId: "editorial",
     specimenText: "Organize your ideas, projects, and life",
-    /* A document's sizes, where 1.25 from 16px misses the 30px and 24px headings and the 14px and 12px small text. */
+    /* A 14px label; headings and body follow the scale. */
     roleOverrides: {
-      "display-1": { fontSizePx: 40 },
-      "display-2": { fontSizePx: 32 },
-      h1: { fontSizePx: 30 },
-      h2: { fontSizePx: 24 },
-      h3: { fontSizePx: 20 },
-      h4: { fontSizePx: 18 },
-      h5: { fontSizePx: 16 },
-      h6: { fontSizePx: 14 },
-      "body-md": { fontSizePx: 16 },
-      "body-sm": { fontSizePx: 14 },
-      "body-xs": { fontSizePx: 12 },
-      quote: { fontSizePx: 18 },
       label: { fontSizePx: 14 },
-      caption: { fontSizePx: 12 },
-      overline: { fontSizePx: 12 },
     },
   },
   previewDevices: [

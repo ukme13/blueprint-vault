@@ -392,9 +392,12 @@ describe("the spacing page is a template over the scale", () => {
       <SpacingTable scale={{ ...base, density: 1.25 }} />,
     );
 
-    /* Step 3 at 4px × 1.25 is 15px, which the seeded scale cannot produce. */
-    expect(before).not.toContain("15px");
-    expect(after).toContain("15px");
+    /* Step 6 at 4px × 1.25 is 30px, which the seeded scale cannot produce.
+       Even, as every density-moved step is: step 3 would be 15px, and lands
+       on 16. */
+    expect(before).not.toContain("30px");
+    expect(after).toContain("30px");
+    expect(after).not.toContain("15px");
     expect(after).toContain("2px");
     expect(after).toContain("grid");
   });

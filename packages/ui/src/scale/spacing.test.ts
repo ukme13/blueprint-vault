@@ -10,6 +10,7 @@ import {
   SPACING_DENSITY_PRESETS,
   SPACING_BASE_UNIT_PRESETS,
   defaultSpacingScale,
+  roundToEvenSpacingPx,
   generateSpacingSteps,
   normalizeSpacingScale,
   resolveSpacing,
@@ -258,6 +259,69 @@ describe("density presets", () => {
     expect(compact[2]).toBe(6);
     expect(spacious[2]).toBe(10);
     expect(spacious[16]).toBe(80);
+  });
+
+  it("land on even pixels at any density, never a fractional subpixel", () => {
+    /* The slider is free, so 0.85 would leave step 2 at 6.8px. */
+    for (const density of [0.55, 0.85, 0.95, 1.1, 1.15, 1.35, 1.75]) {
+      for (const baseUnitPx of [4, 8]) {
+        const tokens = resolveSpacing({
+          ...defaultSpacingScale(),
+          baseUnitPx,
+          density,
+        });
+        for (const token of tokens.filter((each) => each.followsDensity)) {
+          expect([density, baseUnitPx, token.step, token.px % 2]).toEqual([
+            density,
+            baseUnitPx,
+            token.step,
+            0,
+          ]);
+        }
+      }
+    }
+  });
+
+  it("keep each layout step within two pixels of the exact value", () => {
+    const tokens = resolveSpacing({ ...defaultSpacingScale(), density: 1.1 });
+    for (const token of tokens.filter((each) => each.followsDensity)) {
+      expect(Math.abs(token.px - token.step * 4 * 1.1)).toBeLessThanOrEqual(2);
+    }
+    /* Medium's 1.1: 8.8px is 8, 13.2px is 14, 17.6px is 18 — all even. */
+    const px = Object.fromEntries(
+      tokens.map((token) => [token.step, token.px]),
+    );
+    expect([px[2], px[3], px[4]]).toEqual([8, 14, 18]);
+  });
+
+  it("leave the fine grid, and an unmoved density, exactly where they were", () => {
+    const fine = resolveSpacing({ ...defaultSpacingScale(), density: 1.1 });
+    expect(
+      fine.filter((token) => !token.followsDensity).map((token) => token.px),
+    ).toEqual(
+      fine
+        .filter((token) => !token.followsDensity)
+        .map((token) => token.step * 4),
+    );
+    /* At 1x every step is already a multiple of the unit, and stays so. */
+    for (const token of resolveSpacing(defaultSpacingScale())) {
+      expect(token.px).toBe(token.step * 4);
+    }
+  });
+});
+
+describe("roundToEvenSpacingPx", () => {
+  it("rounds to the nearest even pixel, and lets a tie fall on a multiple of 4", () => {
+    expect(roundToEvenSpacingPx(6.8)).toBe(6);
+    expect(roundToEvenSpacingPx(8.8)).toBe(8);
+    expect(roundToEvenSpacingPx(9.2)).toBe(10);
+    /* 9 sits between 8 and 10; 8 divides by four. 11 sits between 10 and 12. */
+    expect(roundToEvenSpacingPx(9)).toBe(8);
+    expect(roundToEvenSpacingPx(11)).toBe(12);
+    expect(roundToEvenSpacingPx(10)).toBe(10);
+    /* No floor: a small step stays small. */
+    expect(roundToEvenSpacingPx(2.2)).toBe(2);
+    expect(roundToEvenSpacingPx(0)).toBe(0);
   });
 });
 
