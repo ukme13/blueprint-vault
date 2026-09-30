@@ -177,3 +177,19 @@ export function previewWeightFor(
   if (chosen !== null && weights.includes(chosen)) return chosen;
   return weights.find((weight) => weight === 400) ?? weights[0] ?? 400;
 }
+
+/**
+ * The roles in the order the Groups panel shows them: each group in
+ * `system.groups` order, its roles in the order they are defined, as they
+ * sit in the group's card. A role whose group no longer exists goes last,
+ * in definition order, rather than dropping out of the specimen.
+ */
+export function rolesInGroupOrder(system: TypeSystem): TypeRole[] {
+  const groupIds = new Set(system.groups.map((group) => group.id));
+  return [
+    ...system.groups.flatMap((group) =>
+      system.roles.filter((role) => role.groupId === group.id),
+    ),
+    ...system.roles.filter((role) => !groupIds.has(role.groupId)),
+  ];
+}

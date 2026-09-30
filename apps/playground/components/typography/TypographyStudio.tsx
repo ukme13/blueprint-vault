@@ -12,7 +12,7 @@ import {
   previewFontFor,
   previewWeightFor,
   roleStyleOnDevice,
-  resolveRoleSizePx,
+  rolesInGroupOrder,
   TYPE_SCALE_RATIO_PRESETS,
   hybridPresetsFromModularScale,
   type TypeRole,
@@ -139,10 +139,7 @@ export function TypographyStudio() {
   const [fontFileRevision, setFontFileRevision] = useState(0);
   const localFontStatus = useLocalFonts(system, fontFileRevision);
 
-  const roles = system?.roles ?? [];
   const frameId = activePreviewDevice?.id ?? "desktop";
-  const sizeOnFrame = (role: TypeRole) =>
-    system ? resolveRoleSizePx(system, steps, role, frameId) : 16;
   /* What the badges count and the Warnings tab lists: the checks worth
      acting on. */
   const warnings = system
@@ -181,9 +178,8 @@ export function TypographyStudio() {
   const sortedSteps = [...steps].sort(
     (first, second) => second.fontSizePx - first.fontSizePx,
   );
-  const rolesLargeToSmall = [...roles].sort(
-    (first, second) => sizeOnFrame(second) - sizeOnFrame(first),
-  );
+  /* The specimen reads in the order of the Groups panel beside it. */
+  const specimenRoles = rolesInGroupOrder(system);
   const devices = previewDevices;
   const activeDevice = activePreviewDevice;
   const styleOfRole = (role: TypeRole) =>
@@ -264,7 +260,7 @@ export function TypographyStudio() {
         ) : (
           <TypographyPreview
             device={activeDevice}
-            roles={rolesLargeToSmall}
+            roles={specimenRoles}
             specimenText={project.specimenText}
             onSpecimenTextChange={(specimenText) =>
               setPreference({ specimenText })
