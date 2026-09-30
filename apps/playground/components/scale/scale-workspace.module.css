@@ -976,6 +976,86 @@
   color: var(--color-fg-muted);
 }
 
+/* The card in full, for a preset whose description is worth reading: as tall as
+   its text needs, and the name and the description wrapped and not cut short by
+   an ellipsis. The single-line card above stays for the ones that fit. */
+.presetTrigger[data-wrap] {
+  height: auto;
+  min-height: calc(var(--spacing-10) + var(--spacing-4));
+  padding: var(--spacing-3) var(--spacing-3) var(--spacing-3) var(--spacing-4);
+}
+
+.presetTrigger[data-wrap] .presetTriggerText {
+  gap: var(--spacing-1);
+}
+
+.presetTrigger[data-wrap] .presetTriggerName {
+  font-size: var(--font-size-lg);
+}
+
+.presetTrigger[data-wrap] .presetTriggerName,
+.presetTrigger[data-wrap] .presetTriggerHint {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+/* The open list: each grid by name, with what it is for under it. */
+.presetOptions {
+  display: grid;
+  gap: var(--spacing-1);
+}
+
+.presetOption {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  width: 100%;
+  min-height: var(--spacing-11);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 0;
+  border-radius: var(--radius-inner);
+  background: transparent;
+  color: var(--color-fg-primary);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.presetOption:hover,
+.presetOption[aria-selected="true"] {
+  background: var(--color-overlay-hover);
+}
+
+.presetOption:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+.presetOptionText {
+  display: grid;
+  flex: 1 1 auto;
+  gap: var(--spacing-1);
+  min-width: 0;
+}
+
+.presetOptionName {
+  font-size: var(--font-size-base);
+  font-weight: 650;
+}
+
+.presetOptionHint {
+  color: var(--color-fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+.presetOptionCheck {
+  flex: none;
+  width: var(--spacing-4);
+  height: var(--spacing-4);
+  color: var(--color-action-primary);
+}
+
 /* The open panel: a title, then the cards two across. */
 .presetPanel {
   display: grid;

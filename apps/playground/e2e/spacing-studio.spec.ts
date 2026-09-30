@@ -484,7 +484,7 @@ test.describe("The spacing studio", () => {
   test("applies a scale preset, calls an edited one Custom, and undoes", async ({
     seededPage: page,
   }) => {
-    const preset = page.getByLabel("Scale preset", { exact: true });
+    const preset = page.getByRole("button", { name: /^Scale preset:/ });
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
     const chip = (step: string) =>
       page.getByRole("button", { name: `Keep step ${step}`, exact: true });
@@ -524,7 +524,61 @@ test.describe("The spacing studio", () => {
     await expect.poll(async () => (await stored())?.baseUnitPx).toBe(4);
   });
 
-  test("sets density from a preset, moving layout steps and not the grid", async ({
+  test("shows the scale preset as a card with its name and full description", async ({
+    seededPage: page,
+  }) => {
+    const card = page.getByRole("button", { name: /^Scale preset:/ });
+    const name = card.locator("[class*=presetTriggerName]");
+    const hint = card.locator("[class*=presetTriggerHint]");
+
+    /* The seeded scale is no preset, and says so in full. */
+    await expect(name).toHaveText("Custom");
+    await expect(hint).toHaveText("Your own base unit and steps.");
+    await expect(card.locator("svg")).toHaveCount(1);
+
+    /* A preset is named in bold, its description under it and not cut short. */
+    await card.click();
+    const list = page.getByRole("listbox", { name: "Scale presets" });
+    /* Every grid says what it is for, in the list as on the card. */
+    await expect(list.getByRole("option")).toHaveCount(4);
+    await expect(
+      list.getByRole("option", { name: /Tailwind v4 Harmonized/ }),
+    ).toContainText("Full stepped ramp matching Tailwind CSS utility classes.");
+    await list.getByRole("option", { name: /Tailwind v4 Harmonized/ }).click();
+    await expect(list).toBeHidden();
+
+    await expect(name).toHaveText("Tailwind v4 Harmonized");
+    await expect(hint).toHaveText(
+      "Full stepped ramp matching Tailwind CSS utility classes.",
+    );
+    expect(
+      await name.evaluate((el) => Number(getComputedStyle(el).fontWeight)),
+    ).toBeGreaterThanOrEqual(600);
+    /* Wrapped, not clipped: nothing overflows the card sideways. */
+    for (const part of [name, hint]) {
+      expect(await part.evaluate((el) => getComputedStyle(el).whiteSpace)).toBe(
+        "normal",
+      );
+      expect(
+        await part.evaluate((el) => el.scrollWidth <= el.clientWidth + 1),
+      ).toBe(true);
+    }
+
+    /* The list marks the one the scale is, and Custom is not offered. */
+    await card.click();
+    await expect(
+      page
+        .getByRole("listbox", { name: "Scale presets" })
+        .getByRole("option", { name: /Tailwind v4 Harmonized/ }),
+    ).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByRole("option", { name: /Custom/ })).toHaveCount(0);
+    await page.keyboard.press("Escape");
+    await expect(
+      page.getByRole("listbox", { name: "Scale presets" }),
+    ).toBeHidden();
+  });
+
+  test("sets density on the slider, moving layout steps and not the grid", async ({
     seededPage: page,
   }) => {
     const steps = page.getByRole("region", { name: "Generated spacing steps" });
@@ -534,8 +588,17 @@ test.describe("The spacing studio", () => {
       ((await readStoredWorkspace(page))?.spacing as { density: number })
         ?.density;
 
-    await page.getByRole("radio", { name: "Compact 0.75×" }).click();
+    /* There are no preset buttons: the slider is the one control. */
+    await expect(
+      page.getByRole("radio", { name: /Compact|Spacious/ }),
+    ).toHaveCount(0);
+    const slider = page.getByRole("slider", { name: /Density/ });
+    await expect(slider).toHaveAccessibleName("Density: 1×");
+    await slider.focus();
+    /* Five notches of 0.05 down from 1. */
+    for (let notch = 0; notch < 5; notch += 1) await slider.press("ArrowLeft");
     await expect.poll(density).toBe(0.75);
+    await expect(slider).toHaveAccessibleName("Density: 0.75×");
     /* Step 2 is the first layout step: 8px at 1x, 6px compact; its size
        says what density did, with no multiplier beside it. Step 1 is on
        the fine grid: 4px, and locked. */
@@ -553,14 +616,46 @@ test.describe("The spacing studio", () => {
       "Fixed on base grid: does not scale with density",
     );
 
-    await page.getByRole("radio", { name: "Spacious 1.25×" }).click();
+    /* Ten notches back up: 1.25, exactly, and not 1.2500000000000002. */
+    for (let notch = 0; notch < 10; notch += 1)
+      await slider.press("ArrowRight");
     await expect.poll(density).toBe(1.25);
+    await expect(slider).toHaveAccessibleName("Density: 1.25×");
     await expect(row("16").getByText("80px", { exact: true })).toBeVisible();
-    // The slider shows where the preset put it.
-    await expect(page.getByRole("slider", { name: /Density/ })).toHaveAttribute(
-      "aria-valuenow",
-      "1.25",
-    );
+    await expect(slider).toHaveAttribute("aria-valuenow", "1.25");
+  });
+
+  test("moves density a notch of 0.05 at a time, and sizes stay whole pixels", async ({
+    seededPage: page,
+  }) => {
+    const density = async () =>
+      ((await readStoredWorkspace(page))?.spacing as { density: number })
+        ?.density;
+    const slider = page.getByRole("slider", { name: /Density/ });
+    await slider.focus();
+
+    await slider.press("ArrowRight");
+    await expect.poll(density).toBe(1.05);
+    await expect(slider).toHaveAccessibleName("Density: 1.05×");
+    await slider.press("ArrowRight");
+    await expect.poll(density).toBe(1.1);
+    await expect(slider).toHaveAccessibleName("Density: 1.1×");
+
+    /* At any density every layout size is a whole, even pixel. */
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    const sizes = await steps.locator("[data-spacing-value]").allTextContents();
+    expect(sizes.length).toBeGreaterThan(5);
+    for (const size of sizes) {
+      /* Whole pixels: no decimal point, and even. */
+      expect(size).toMatch(/^\d+px$/);
+      expect(Number.parseInt(size, 10) % 2).toBe(0);
+    }
+
+    /* Home and End reach the bounds. */
+    await slider.press("Home");
+    await expect.poll(density).toBe(0.5);
+    await slider.press("End");
+    await expect.poll(density).toBe(2);
   });
 
   test("pruning a step moves the layout uses on it to the nearest kept", async ({
@@ -737,7 +832,8 @@ test.describe("The spacing studio", () => {
 
     const slider = page.getByRole("slider", { name: /Density/ });
     await slider.focus();
-    await slider.press("ArrowRight");
+    /* Five notches of 0.05: 1.25. */
+    for (let notch = 0; notch < 5; notch += 1) await slider.press("ArrowRight");
 
     await expect(hairline).toContainText("2px");
     await expect(padding).toContainText("20px");

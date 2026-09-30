@@ -78,18 +78,21 @@ export const MIN_SPACING_DENSITY = 0.5;
 export const MAX_SPACING_DENSITY = 2;
 
 /**
- * One-click densities for the slider beside them. Each moves only the layout
- * steps (2 and up); the fine grid stays where it is at any of them.
+ * How far one notch of the density slider moves it.
+ *
+ * Fine enough to land on 0.85 or 1.1, and coarse enough that a notch is a
+ * change somebody can see: spacing rounds to even pixels, so a smaller step
+ * would often move nothing at all.
  */
-export const SPACING_DENSITY_PRESETS: readonly {
-  id: "compact" | "default" | "spacious";
-  name: string;
-  value: number;
-}[] = [
-  { id: "compact", name: "Compact", value: 0.75 },
-  { id: "default", name: "Default", value: DEFAULT_SPACING_DENSITY },
-  { id: "spacious", name: "Spacious", value: 1.25 },
-];
+export const SPACING_DENSITY_STEP = 0.05;
+
+/**
+ * A density as it is said: "1×" at the default, and otherwise as many places
+ * as it has, at most two — "0.85×", "1.1×", "1.25×".
+ */
+export function formatSpacingDensity(density: number): string {
+  return `${Number(density.toFixed(2))}×`;
+}
 
 /**
  * Layout steps are this multiple and up.
@@ -328,15 +331,6 @@ export function spacingDensityBehavior(
 ): "grid" | "scaled" | "unchanged" {
   if (!token.followsDensity) return token.step > 0 ? "grid" : "unchanged";
   return density !== DEFAULT_SPACING_DENSITY ? "scaled" : "unchanged";
-}
-
-/** The density preset a density is exactly, or null between them. */
-export function matchingSpacingDensityPreset(
-  density: number,
-): (typeof SPACING_DENSITY_PRESETS)[number] | null {
-  return (
-    SPACING_DENSITY_PRESETS.find((preset) => preset.value === density) ?? null
-  );
 }
 
 /**

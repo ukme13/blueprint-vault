@@ -88,9 +88,6 @@ export function ScaleInspector({
               { editKey: "spacing:density" },
             )
           }
-          onDensityPreset={(density) =>
-            write({ spacing: { ...spacing, density } })
-          }
         />
       )}
       {section === "radius" && (

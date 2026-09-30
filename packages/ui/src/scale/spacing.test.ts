@@ -7,7 +7,7 @@ import {
   MAX_SPACING_DENSITY,
   MIN_SPACING_BASE_UNIT_PX,
   MIN_SPACING_DENSITY,
-  SPACING_DENSITY_PRESETS,
+  SPACING_DENSITY_STEP,
   SPACING_BASE_UNIT_PRESETS,
   defaultSpacingScale,
   roundToEvenSpacingPx,
@@ -20,7 +20,7 @@ import {
   spacingDensityBehavior,
   spacingChipSteps,
   nearestSpacingToken,
-  matchingSpacingDensityPreset,
+  formatSpacingDensity,
   spacingStepName,
   spacingVariableName,
 } from "./spacing";
@@ -231,15 +231,14 @@ describe("toggleSpacingStep", () => {
   });
 });
 
-describe("density presets", () => {
-  it("sit inside the density bounds", () => {
-    for (const preset of SPACING_DENSITY_PRESETS) {
-      expect(preset.value).toBeGreaterThanOrEqual(MIN_SPACING_DENSITY);
-      expect(preset.value).toBeLessThanOrEqual(MAX_SPACING_DENSITY);
-    }
+describe("density", () => {
+  it("has a step that reaches both bounds exactly", () => {
+    const notches =
+      (MAX_SPACING_DENSITY - MIN_SPACING_DENSITY) / SPACING_DENSITY_STEP;
+    expect(Math.abs(notches - Math.round(notches))).toBeLessThan(1e-9);
   });
 
-  it("move the layout steps and leave the fine grid where it is", () => {
+  it("moves the layout steps and leave the fine grid where it is", () => {
     const at = (density: number) =>
       Object.fromEntries(
         resolveSpacing({ ...defaultSpacingScale(), density }).map((token) => [
@@ -372,11 +371,18 @@ describe("spacingDensityBehavior", () => {
   });
 });
 
-describe("matchingSpacingDensityPreset", () => {
-  it("names the preset a density is, and none between", () => {
-    expect(matchingSpacingDensityPreset(0.75)?.id).toBe("compact");
-    expect(matchingSpacingDensityPreset(1)?.id).toBe("default");
-    expect(matchingSpacingDensityPreset(1.1)).toBeNull();
+describe("formatSpacingDensity", () => {
+  it("says 1× at the default, and otherwise the places it has", () => {
+    expect(formatSpacingDensity(1)).toBe("1×");
+    expect(formatSpacingDensity(1.05)).toBe("1.05×");
+    expect(formatSpacingDensity(1.1)).toBe("1.1×");
+    expect(formatSpacingDensity(0.85)).toBe("0.85×");
+    expect(formatSpacingDensity(2)).toBe("2×");
+  });
+
+  it("does not show the float noise a slider leaves behind", () => {
+    expect(formatSpacingDensity(1.2500000000000002)).toBe("1.25×");
+    expect(formatSpacingDensity(0.8500000000000001)).toBe("0.85×");
   });
 });
 
