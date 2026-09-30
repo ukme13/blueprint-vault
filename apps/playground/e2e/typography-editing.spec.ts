@@ -1401,6 +1401,104 @@ test.describe("Where a Selector menu opens", () => {
   });
 });
 
+test.describe("Undo and redo", () => {
+  const weights = (page: import("@playwright/test").Page) =>
+    page
+      .getByRole("region", { name: "Type scale settings" })
+      .getByLabel(/ font weight$/);
+
+  test.beforeEach(async ({ seededPage: page }) => {
+    await showInspectorPanel(page, "Groups");
+  });
+
+  test("undoes an added role, and redoes it", async ({ seededPage: page }) => {
+    const before = await weights(page).count();
+
+    await page.getByRole("button", { name: "Add a role to Body" }).click();
+    await expect(weights(page)).toHaveCount(before + 1);
+
+    /* The button keeps focus, which is not a text field: the shortcut is ours. */
+    await page.keyboard.press("Control+z");
+    await expect(weights(page)).toHaveCount(before);
+
+    await page.keyboard.press("Control+Shift+z");
+    await expect(weights(page)).toHaveCount(before + 1);
+  });
+
+  test("brings a removed role back", async ({ seededPage: page }) => {
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const remove = settings.getByRole("button", {
+      name: "Remove caption",
+      exact: true,
+    });
+    const before = await weights(page).count();
+
+    await remove.click();
+    await expect(remove).toBeHidden();
+    await expect(weights(page)).toHaveCount(before - 1);
+
+    await page.keyboard.press("Control+z");
+    await expect(remove).toBeVisible();
+    await expect(weights(page)).toHaveCount(before);
+
+    /* And redo takes it away again. */
+    await page.keyboard.press("Control+Shift+z");
+    await expect(remove).toBeHidden();
+  });
+
+  test("undoes one edit at a time, in order", async ({ seededPage: page }) => {
+    const before = await weights(page).count();
+    const add = page.getByRole("button", { name: "Add a role to Body" });
+
+    await add.click();
+    await add.click();
+    await expect(weights(page)).toHaveCount(before + 2);
+
+    await page.keyboard.press("Control+z");
+    await expect(weights(page)).toHaveCount(before + 1);
+    await page.keyboard.press("Control+z");
+    await expect(weights(page)).toHaveCount(before);
+    /* Nothing further to undo: the shortcut does nothing. */
+    await page.keyboard.press("Control+z");
+    await expect(weights(page)).toHaveCount(before);
+  });
+
+  test("leaves a text field its own undo", async ({ seededPage: page }) => {
+    const before = await weights(page).count();
+    await page.getByRole("button", { name: "Add a role to Body" }).click();
+    await expect(weights(page)).toHaveCount(before + 1);
+
+    /* In a field, Ctrl+Z is the browser's, for the text typed there. */
+    await page.getByLabel("body name", { exact: true }).focus();
+    await page.keyboard.press("Control+z");
+    await expect(weights(page)).toHaveCount(before + 1);
+  });
+
+  test("keeps the desktop ratio and the system's together", async ({
+    seededPage: page,
+  }) => {
+    const ratios = async () => {
+      const stored = await readStoredWorkspace(page);
+      const desktop = stored.previewDevices.find(
+        (device: { id: string }) => device.id === "desktop",
+      );
+      return [stored.typography.system.ratio, desktop.ratio];
+    };
+    await showInspectorPanel(page, "Settings");
+    const [systemBefore, desktopBefore] = await ratios();
+    expect(systemBefore).toBe(desktopBefore);
+
+    await page.getByLabel("Desktop ratio", { exact: true }).click();
+    await page.getByRole("option", { name: /Golden Ratio/ }).click();
+    await expect.poll(async () => (await ratios())[0]).not.toBe(systemBefore);
+
+    /* Focus off the field, then undo: both go back, and stay equal. */
+    await page.getByRole("heading", { name: "Scale" }).click();
+    await page.keyboard.press("Control+z");
+    await expect.poll(ratios).toEqual([systemBefore, systemBefore]);
+  });
+});
+
 test.describe("The specimen's order", () => {
   test("follows the groups, so reordering them reorders the specimen", async ({
     seededPage: page,

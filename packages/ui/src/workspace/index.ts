@@ -11,5 +11,6 @@ export * from "./workspace";
 export * from "./workspace-file";
 export * from "./semantics-history";
 export * from "./scale-history";
+export * from "./typography-history";
 export * from "./preview-shortcut";
 export * from "./format-time";

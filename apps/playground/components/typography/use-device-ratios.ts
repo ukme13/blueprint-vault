@@ -46,5 +46,21 @@ export function useDeviceRatios(
     }
   };
 
-  return { detachedRatios, onRatioChange };
+  /**
+   * Puts the desktop's ratio back on the workspace's device, for an undo or a
+   * redo: the system holds it too, and the two must not part.
+   */
+  const syncDesktopRatio = (ratio: number) =>
+    workspace.update((current) =>
+      withPreviewDevices(
+        current,
+        updatePreviewDevice(
+          (current ?? emptyWorkspace()).previewDevices,
+          "desktop",
+          { ratio },
+        ),
+      ),
+    );
+
+  return { detachedRatios, onRatioChange, syncDesktopRatio };
 }

@@ -29,6 +29,7 @@ import {
   type FontSlot,
 } from "@blueprint/ui";
 import type { TypographyProject } from "./typography-project";
+import { tagEdit } from "./use-typography-history";
 
 export interface TypographySystemActions {
   updateSystem: (patch: Partial<TypeSystem>) => void;
@@ -91,35 +92,58 @@ export function useTypographySystem(
   return useMemo(() => {
     /* The one place that answers "is there a project?". Every action below is
        an edit to a system that exists; no project means no edit. */
-    const editSystem = (edit: (system: TypeSystem) => TypeSystem) =>
-      setProject((current) =>
-        current ? { ...current, system: edit(current.system) } : current,
-      );
+    /* `key` names the control an edit came from, so a run of them (a line
+       height stepped, a name typed) is one undo step. Discrete edits — add,
+       remove, reorder, pick a font — have none, and each is its own step. */
+    const editSystem = (
+      edit: (system: TypeSystem) => TypeSystem,
+      key?: string,
+    ) =>
+      setProject((current) => {
+        if (!current) return current;
+        const system = edit(current.system);
+        if (system !== current.system) tagEdit(system, key);
+        return { ...current, system };
+      });
 
     return {
       updateSystem: (patch) =>
-        editSystem((system) => ({ ...system, ...patch })),
+        editSystem(
+          (system) => ({ ...system, ...patch }),
+          `system:${Object.keys(patch).sort().join(",")}`,
+        ),
       updateRole: (id, patch) =>
-        editSystem((system) => updateRole(system, id, patch)),
+        editSystem(
+          (system) => updateRole(system, id, patch),
+          `role:${id}:${Object.keys(patch).sort().join(",")}`,
+        ),
       updateRoleValue: (id, patch) =>
-        editSystem((system) => updateRoleValue(system, id, patch)),
+        editSystem(
+          (system) => updateRoleValue(system, id, patch),
+          `role:${id}:${Object.keys(patch).sort().join(",")}`,
+        ),
       bindRoleStep: (id, deviceId, stepOffset) =>
         editSystem((system) =>
           bindRoleStepOnDevice(system, id, deviceId, stepOffset),
         ),
       unlinkRoleSize: (id, deviceId, fontSizePx) =>
-        editSystem((system) =>
-          unlinkRoleSizeOnDevice(system, id, deviceId, fontSizePx),
+        editSystem(
+          (system) => unlinkRoleSizeOnDevice(system, id, deviceId, fontSizePx),
+          `role:${id}:size:${deviceId}`,
         ),
       unlinkLineHeight: (id, deviceId, lineHeight) =>
-        editSystem((system) =>
-          unlinkLineHeightOnDevice(system, id, deviceId, lineHeight),
+        editSystem(
+          (system) =>
+            unlinkLineHeightOnDevice(system, id, deviceId, lineHeight),
+          `role:${id}:lineHeight:${deviceId}`,
         ),
       bindLineHeight: (id, deviceId) =>
         editSystem((system) => bindLineHeightOnDevice(system, id, deviceId)),
       unlinkLetterSpacing: (id, deviceId, letterSpacingPx) =>
-        editSystem((system) =>
-          unlinkLetterSpacingOnDevice(system, id, deviceId, letterSpacingPx),
+        editSystem(
+          (system) =>
+            unlinkLetterSpacingOnDevice(system, id, deviceId, letterSpacingPx),
+          `role:${id}:letterSpacing:${deviceId}`,
         ),
       bindLetterSpacing: (id, deviceId) =>
         editSystem((system) => bindLetterSpacingOnDevice(system, id, deviceId)),
@@ -130,7 +154,10 @@ export function useTypographySystem(
       renameGroupById: (groupId, label) =>
         editSystem((system) => renameGroup(system, groupId, label)),
       updateGroup: (groupId, patch) =>
-        editSystem((system) => updateGroup(system, groupId, patch)),
+        editSystem(
+          (system) => updateGroup(system, groupId, patch),
+          `group:${groupId}:${Object.keys(patch).sort().join(",")}`,
+        ),
       shiftGroup: (groupId, direction) =>
         editSystem((system) => ({
           ...system,
@@ -147,7 +174,7 @@ export function useTypographySystem(
       removeFontSlot: (id, slot) =>
         editSystem((system) => removeFontSlot(system, id, slot).system),
       renameFont: (id, name) =>
-        editSystem((system) => renameFont(system, id, name)),
+        editSystem((system) => renameFont(system, id, name), `font:${id}:name`),
       setGoogleFont: (id, slot, family, generic) =>
         editSystem((system) =>
           setGoogleFont(system, id, slot, family, generic),

@@ -39,6 +39,7 @@ import { TypeStepCanvas } from "./TypeStepCanvas";
 import { useGoogleFontsLink } from "./use-google-fonts";
 import { useLocalFonts } from "./use-local-fonts";
 import { useDeviceRatios } from "./use-device-ratios";
+import { useTypographyHistory } from "./use-typography-history";
 import { useTypographyProject } from "./use-typography-project";
 import { useTypographySystem } from "./use-typography-system";
 import styles from "./typography-workspace.module.css";
@@ -140,6 +141,12 @@ export function TypographyStudio() {
   const isPhone = useIsPhone();
 
   const deviceRatios = useDeviceRatios(patchProject);
+  /* Undo and redo for the system. A ratio lives on the workspace's desktop
+     device as well, so it follows when an undo changes it. */
+  useTypographyHistory(project, setProject, (next, previous) => {
+    if (next.ratio !== previous.ratio)
+      deviceRatios.syncDesktopRatio(next.ratio);
+  });
 
   const previewFont = system
     ? previewFontFor(system, previewFontId)
@@ -226,7 +233,8 @@ export function TypographyStudio() {
     <TypographyInspector
       actions={actions}
       devices={{
-        ...deviceRatios,
+        detachedRatios: deviceRatios.detachedRatios,
+        onRatioChange: deviceRatios.onRatioChange,
         devices,
         presets: SCALE_RATIO_PRESETS,
       }}
