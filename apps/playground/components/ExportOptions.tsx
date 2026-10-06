@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
 import {
   Button,
@@ -10,8 +11,10 @@ import {
   MIN_REM_ROOT_PX,
   ROOT_FONT_SIZE_PX,
   TYPE_SCALE_UNITS,
+  localSlots,
   type ColourFormat,
   type TypeScaleUnit,
+  type WorkspaceProject,
 } from "@blueprint/ui";
 import { SheetSelector } from "./SheetSelector";
 import styles from "./system-export-dialog.module.css";
@@ -23,6 +26,40 @@ export interface ExportTypeOptions {
   localFamilies: readonly string[];
   onUnitChange: (unit: TypeScaleUnit) => void;
   onRemRootChange: (remRootPx: number) => void;
+}
+
+export type TypePreference = { unit?: TypeScaleUnit; remRootPx?: number };
+
+/**
+ * The unit and rem root the export is written in. With `onSave` the choice is
+ * the project's own and goes straight to it; without, it is held here until
+ * `reset`, so the dialog does not change a studio nobody is looking at.
+ */
+export function useExportTypeUnit(
+  typography: WorkspaceProject["typography"],
+  onSave?: (patch: TypePreference) => void,
+) {
+  /* A choice made here and not saved; empty follows the project. */
+  const [choice, setChoice] = useState<TypePreference>({});
+  const unit: TypeScaleUnit = choice.unit ?? typography?.unit ?? "rem";
+  const remRootPx =
+    choice.remRootPx ?? typography?.remRootPx ?? ROOT_FONT_SIZE_PX;
+  const choose = (patch: TypePreference) => {
+    if (onSave) onSave(patch);
+    else setChoice((current) => ({ ...current, ...patch }));
+  };
+  const options: ExportTypeOptions | null = typography
+    ? {
+        unit,
+        remRootPx,
+        localFamilies: localSlots(typography.system).map(
+          ({ family }) => family,
+        ),
+        onUnitChange: (next) => choose({ unit: next }),
+        onRemRootChange: (next) => choose({ remRootPx: next }),
+      }
+    : null;
+  return { unit, remRootPx, options, reset: () => setChoice({}) };
 }
 
 interface ExportOptionsProps {

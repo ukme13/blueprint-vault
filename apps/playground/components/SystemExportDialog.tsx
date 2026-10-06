@@ -6,65 +6,31 @@ import { Dialog } from "@astryxdesign/core/Dialog";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { useIsPhone } from "./use-is-phone";
-import { strToU8, zipSync } from "fflate";
 import {
   Button,
-  buildHandoverFiles,
-  HANDOVER_README,
-  buildAccessibilityReport,
-  formatAccessibilityReportJson,
-  formatAccessibilityReportMarkdown,
-  formatBlueprintWorkspace,
-  formatDesignSystemCss,
-  formatDesignSystemDesignTokens,
-  formatDesignSystemTailwind,
   generatePalettes,
-  localSlots,
   parseBlueprintWorkspace,
-  ROOT_FONT_SIZE_PX,
   type ColourFormat,
-  type TypeScaleUnit,
   type WorkspaceProject,
 } from "@blueprint/ui";
 import { useColourFormat } from "./palette/ColourFormatContext";
 import styles from "./system-export-dialog.module.css";
-import { STUDIO_VERSION } from "../lib/studio-version";
-import { ExportOptions } from "./ExportOptions";
-
-type ExportFormat =
-  | "css"
-  | "tailwind"
-  | "tokens"
-  | "project"
-  | "report-md"
-  | "report-json"
-  | "handover";
-
-const FORMATS: Array<{ value: ExportFormat; label: string }> = [
-  { value: "css", label: "CSS" },
-  { value: "tailwind", label: "Tailwind CSS" },
-  { value: "tokens", label: "Design Tokens" },
-  { value: "project", label: "Blueprint" },
-  { value: "report-md", label: "Report" },
-  { value: "report-json", label: "Report (JSON)" },
-  { value: "handover", label: "Handover (.zip)" },
-];
-
-/* The report is the only format that is about the project rather than made of
-   it, so it is the only one the colour-format switch does not apply to: every
-   value in it is a measurement, and a ratio has no hex notation. */
-const REPORT_FORMATS: ExportFormat[] = ["report-md", "report-json"];
-
-/* The formats a type scale is written into, and so the ones a unit applies
-   to. The project file keeps the unit as a preference rather than applying
-   it, and the report measures. */
-const TYPE_FORMATS: ExportFormat[] = ["css", "tailwind", "tokens", "handover"];
-
-type TypePreference = { unit?: TypeScaleUnit; remRootPx?: number };
-
-/** The studio version stamped into a handover's README, which is what a client
-    quotes when something in their file looks wrong. */
-const HANDOVER_VERSION = STUDIO_VERSION;
+import {
+  ExportOptions,
+  useExportTypeUnit,
+  type TypePreference,
+} from "./ExportOptions";
+import {
+  downloadExport,
+  exportExtension,
+  exportFilename,
+  exportHandoverFiles,
+  exportOutput,
+  FORMATS,
+  REPORT_FORMATS,
+  TYPE_FORMATS,
+  type ExportFormat,
+} from "./system-export-download";
 
 interface SystemExportDialogProps {
   isOpen: boolean;
@@ -108,177 +74,43 @@ export function SystemExportDialog({
     useState<ColourFormat>(sharedColourFormat);
   const [importError, setImportError] = useState("");
   const importInputRef = useRef<HTMLInputElement>(null);
-  /* A choice made here and not saved; empty follows the project. */
-  const [typeChoice, setTypeChoice] = useState<TypePreference>({});
+  const typeUnit = useExportTypeUnit(
+    workspace.typography,
+    onTypographyPreferenceChange,
+  );
+  const { unit, remRootPx } = typeUnit;
 
   const handleOpenChange = (nextIsOpen: boolean) => {
     if (!nextIsOpen) {
       setImportError("");
-      setTypeChoice({});
+      typeUnit.reset();
     }
     onOpenChange(nextIsOpen);
   };
 
-  const typography = workspace.typography;
-  const unit: TypeScaleUnit = typeChoice.unit ?? typography?.unit ?? "rem";
-  const remRootPx =
-    typeChoice.remRootPx ?? typography?.remRootPx ?? ROOT_FONT_SIZE_PX;
-  const chooseType = (patch: TypePreference) => {
-    if (onTypographyPreferenceChange) onTypographyPreferenceChange(patch);
-    else setTypeChoice((current) => ({ ...current, ...patch }));
-  };
-
-  /* The workspace as this dialog writes it: the project's own, with the unit
-     chosen here. */
-  const exported = useMemo(
-    () =>
-      typography
-        ? { ...workspace, typography: { ...typography, unit, remRootPx } }
-        : workspace,
-    [remRootPx, typography, unit, workspace],
-  );
-
-  /* Built once and read twice, so the README somebody previews is the README
-     inside the archive they download rather than a second rendering of it. */
   const handover = useMemo(
-    () =>
-      buildHandoverFiles(exported, {
-        colourFormat,
-        /* A handover's typography file is rem or px; pt is for print, and
-           the px it is converted from is what a screen reads. */
-        typeScaleUnit: unit === "rem" ? "rem" : "px",
-        version: HANDOVER_VERSION,
-        /* Date only. A handover exported twice in one afternoon should differ
-           by its contents or not at all, and a timestamp would make every
-           archive a different file for no reason a client can see. */
-        exportedAt: new Date().toISOString().slice(0, 10),
-      }),
-    [colourFormat, exported, unit],
+    () => exportHandoverFiles({ workspace, colourFormat, unit, remRootPx }),
+    [colourFormat, remRootPx, unit, workspace],
   );
-
-  const output = useMemo(() => {
-    /* Every family in every format. A semantic alias points at a primitive
-       variable, a use at a spacing step, and a shadow sits inside the spacing
-       around it, so a file carrying one of them is half a system — and a
-       browser drops a reference to a variable nothing declares in silence. */
-    const system = {
-      palettes,
-      semantics: workspace.semantics ?? [],
-      spacing: workspace.spacing,
-      radius: workspace.radius,
-      elevation: workspace.elevation,
+  const output = useMemo(
+    () =>
+      exportOutput(
+        exportFormat,
+        { workspace, palettes, colourFormat, unit, remRootPx },
+        handover,
+      ),
+    [
       colourFormat,
-      layout: workspace.layout,
-      previewDevices: workspace.previewDevices,
-      typography: typography
-        ? { system: typography.system, unit, remRootPx }
-        : null,
-    };
-    if (exportFormat === "tailwind") {
-      return formatDesignSystemTailwind(system);
-    }
-    if (exportFormat === "tokens") {
-      return formatDesignSystemDesignTokens(system);
-    }
-    if (exportFormat === "project") {
-      return formatBlueprintWorkspace(workspace);
-    }
-    if (exportFormat === "handover") {
-      /* The README rather than a file listing. It is the one file in there
-         that says what the other seven are, so previewing it answers the
-         question somebody opens this dialog with. */
-      return (
-        handover.find((file) => file.path === HANDOVER_README)?.contents ?? ""
-      );
-    }
-    if (REPORT_FORMATS.includes(exportFormat)) {
-      /* Built here rather than passed in, so the preview and the downloaded
-         file are the same string by construction. The report carries no
-         timestamp for the same reason: it has to be a pure function of the
-         project, or the two would quietly disagree. */
-      const report = buildAccessibilityReport({
-        projectName: workspace.name,
-        palettes,
-        semantics: workspace.semantics,
-        typography: workspace.typography?.system ?? null,
-      });
-      if (!report) return "";
-      return exportFormat === "report-json"
-        ? formatAccessibilityReportJson(report)
-        : formatAccessibilityReportMarkdown(report);
-    }
-    return formatDesignSystemCss(system);
-  }, [
-    colourFormat,
-    exportFormat,
-    handover,
-    palettes,
-    remRootPx,
-    typography,
-    unit,
-    workspace,
-  ]);
-
-  const extension =
-    exportFormat === "handover"
-      ? "zip"
-      : exportFormat === "report-md"
-        ? "md"
-        : exportFormat === "project" ||
-            exportFormat === "tokens" ||
-            exportFormat === "report-json"
-          ? "json"
-          : "css";
-  const filename = `${
-    workspace.name
-      .trim()
-      .replace(/[^a-z0-9]+/gi, "-")
-      .toLowerCase() || "blueprint-workspace"
-  }${REPORT_FORMATS.includes(exportFormat) ? "-accessibility" : ""}${
-    exportFormat === "handover" ? "-handover" : ""
-  }.${exportFormat === "project" ? "blueprint." : ""}${extension}`;
-
-  const downloadOutput = () => {
-    /* A zip is bytes rather than a string, so it takes its own path to the
-       same three lines. fflate over jszip: zero dependencies against four, one
-       of which is a Node stream polyfill that would ship to the browser, and
-       jszip's last release is 2022. */
-    if (exportFormat === "handover") {
-      const archive = zipSync(
-        Object.fromEntries(
-          handover.map((file) => [file.path, strToU8(file.contents)]),
-        ),
-        /* Level 6: a design system is text and compresses to a fraction of
-           itself either way, and 9 spends time a click should not. */
-        { level: 6 },
-      );
-      const zipUrl = URL.createObjectURL(
-        new Blob([archive as BlobPart], { type: "application/zip" }),
-      );
-      const zipLink = document.createElement("a");
-      zipLink.href = zipUrl;
-      zipLink.download = filename;
-      zipLink.click();
-      URL.revokeObjectURL(zipUrl);
-      return;
-    }
-
-    const url = URL.createObjectURL(
-      new Blob([output], {
-        type:
-          extension === "json"
-            ? "application/json"
-            : extension === "md"
-              ? "text/markdown"
-              : "text/css",
-      }),
-    );
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
+      exportFormat,
+      handover,
+      palettes,
+      remRootPx,
+      unit,
+      workspace,
+    ],
+  );
+  const extension = exportExtension(exportFormat);
+  const filename = exportFilename(workspace.name, exportFormat);
 
   const importProject = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -350,19 +182,7 @@ export function SystemExportDialog({
               exportFormat !== "project" &&
               !REPORT_FORMATS.includes(exportFormat)
             }
-            type={
-              typography && TYPE_FORMATS.includes(exportFormat)
-                ? {
-                    unit,
-                    remRootPx,
-                    localFamilies: localSlots(typography.system).map(
-                      ({ family }) => family,
-                    ),
-                    onUnitChange: (next) => chooseType({ unit: next }),
-                    onRemRootChange: (next) => chooseType({ remRootPx: next }),
-                  }
-                : null
-            }
+            type={TYPE_FORMATS.includes(exportFormat) ? typeUnit.options : null}
             onColourFormatChange={setColourFormat}
           />
         </section>
@@ -417,7 +237,9 @@ export function SystemExportDialog({
           scheme="primary"
           size="medium"
           variant="contained"
-          onClick={downloadOutput}
+          onClick={() =>
+            downloadExport(exportFormat, filename, output, handover)
+          }
         >
           Download
         </Button>
