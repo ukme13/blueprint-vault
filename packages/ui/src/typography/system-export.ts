@@ -3,8 +3,9 @@ import {
   letterSpacingEm,
   remRootContractComment,
 } from "./export";
+import { BLUEPRINT_TOKENS_EXTENSION } from "../color/semantic-export";
 import { fluidEmClamp, fluidLengthClamp, fluidUnitlessClamp } from "./fluid";
-import { findGoogleFont } from "./google-fonts";
+import { findGoogleFont, googleFontsHref } from "./google-fonts";
 import {
   defaultPreviewDevices,
   sortPreviewDevicesByWidth,
@@ -295,21 +296,48 @@ function googleFontNotice(system: TypeSystem): string[] {
   ].sort();
 
   if (families.length === 0) return [];
+  /* The ready-made link, as text: no `url(` and no `@import`, which the
+     export guard keeps out of every file (an uploaded font may not be
+     licensed for the web). Each family asks for the weights its roles use. */
+  const href = googleFontsHref(
+    families.map((family) => ({
+      family,
+      weights: [
+        ...new Set(
+          system.roles
+            .filter((role) =>
+              system.fonts
+                .find((font) => font.id === role.fontId)
+                ?.families.includes(family),
+            )
+            .map((role) => role.fontWeight),
+        ),
+      ].sort((a, b) => a - b),
+    })),
+  );
   return [
     "/* Loads from Google Fonts. These tokens name the families but do not",
     "   load them — the consuming app must:",
     ...families.map((family) => `     - ${family}`),
+    ...(href
+      ? [
+          "   For example, in the page's <head>:",
+          `     <link rel="stylesheet" href="${href}">`,
+        ]
+      : []),
     "*/",
   ];
 }
 
-function body(
+/**
+ * Every role's resolved size, leading and tracking on each preview frame,
+ * narrowest first. The CSS and the Design Tokens both read these, so the two
+ * cannot disagree about a size.
+ */
+function frameSnapshots(
   system: TypeSystem,
-  unit: TypeScaleUnit,
-  open: string,
   devices: readonly PreviewDevice[] | undefined,
-  remRootPx: number,
-): string {
+): FrameSnapshot[] {
   const stacked = stackedPreviewDevices(system, devices);
   const desktop =
     stacked.find((device) => device.id === "desktop") ?? stacked.at(-1)!;
@@ -324,10 +352,20 @@ function body(
       resolveRoleSizePx(system, desktopSteps, role, desktop.id),
     ]),
   );
-  const snapshots: FrameSnapshot[] = stacked.map((device) => ({
+  return stacked.map((device) => ({
     device,
     roles: roleViewportTokens(system, device, desktopSizeByRoleId),
   }));
+}
+
+function body(
+  system: TypeSystem,
+  unit: TypeScaleUnit,
+  open: string,
+  devices: readonly PreviewDevice[] | undefined,
+  remRootPx: number,
+): string {
+  const snapshots = frameSnapshots(system, devices);
   const roleLines = fluidRoleLines(snapshots, unit, remRootPx);
   const remComment = remRootContractComment(unit, remRootPx);
 
@@ -453,4 +491,74 @@ export function formatTypeSystemTailwindExport(
   remRootPx: number = ROOT_FONT_SIZE_PX,
 ): string {
   return body(system, unit, "@theme static {", devices, remRootPx);
+}
+
+/**
+ * Typography as a Design Tokens (DTCG) group.
+ *
+ * Font families and the standard weights as their own tokens, then one
+ * `typography` composite per role on each preview frame, narrowest first, the
+ * way the semantic layer gives its modes. Sizes are in `unit`, from the same
+ * resolved frames the CSS export writes, so a token pipeline and a
+ * stylesheet agree. A role's case transform has no DTCG field and rides in
+ * Blueprint's extension when it is not `none`.
+ */
+export function typographyDesignTokenGroup(
+  system: TypeSystem,
+  unit: TypeScaleUnit = "rem",
+  devices?: readonly PreviewDevice[],
+  remRootPx: number = ROOT_FONT_SIZE_PX,
+): Record<string, unknown> {
+  const group: Record<string, unknown> = {
+    $description: "Typography exported from Blueprint, roles per preview frame",
+    fontFamily: {
+      $type: "fontFamily",
+      ...Object.fromEntries(
+        system.fonts.map((font) => [
+          typeTokenId(font.id),
+          { $value: [...font.families] },
+        ]),
+      ),
+    },
+    fontWeight: {
+      $type: "fontWeight",
+      ...Object.fromEntries(
+        Object.entries(STANDARD_FONT_WEIGHTS).map(([name, weight]) => [
+          name,
+          { $value: weight },
+        ]),
+      ),
+    },
+  };
+
+  for (const { device, roles } of frameSnapshots(system, devices)) {
+    group[device.id] = Object.fromEntries(
+      roles.map((resolved, index) => {
+        const role = system.roles[index]!;
+        return [
+          resolved.tokenId,
+          {
+            $type: "typography",
+            $value: {
+              fontFamily: `{typography.fontFamily.${typeTokenId(role.fontId)}}`,
+              fontSize: formatLength(resolved.fontSizePx, unit, remRootPx),
+              fontWeight: role.fontWeight,
+              lineHeight: Number(resolved.lineHeight.toFixed(4)),
+              letterSpacing: `${Number(resolved.letterSpacingEm.toFixed(4))}em`,
+            },
+            ...(role.textTransform === "none"
+              ? {}
+              : {
+                  $extensions: {
+                    [BLUEPRINT_TOKENS_EXTENSION]: {
+                      textTransform: role.textTransform,
+                    },
+                  },
+                }),
+          },
+        ];
+      }),
+    );
+  }
+  return group;
 }

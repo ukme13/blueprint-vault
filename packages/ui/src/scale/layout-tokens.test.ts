@@ -3,7 +3,9 @@ import { defaultPreviewDevices } from "../typography/preview-devices";
 import {
   defaultLayoutTokens,
   formatLayoutCss,
+  formatLayoutTailwind,
   isLayoutCellValue,
+  layoutDesignTokenGroup,
   layoutCssVariablesForDevice,
   normalizeLayoutTokens,
   pruneLayoutDevices,
@@ -252,6 +254,48 @@ describe("layout tokens", () => {
     expect(css).toContain(".preview-site {");
     expect(css).not.toContain(":root {");
     expect(css).toContain("--inset-container: var(--spacing-4);");
+  });
+
+  it("opens the Tailwind theme on the narrowest frame and overrides wider ones", () => {
+    const tailwind = formatLayoutTailwind(
+      defaultLayoutTokens(),
+      defaultPreviewDevices(),
+    );
+    const [phone, tablet] = tailwind.split("@media (min-width: 768px)");
+    expect(phone).toContain("@theme static {");
+    expect(phone).toContain("--inset-container: var(--spacing-4);");
+    expect(tablet).toContain(":root {");
+    expect(tablet).not.toContain("@theme");
+    expect(tailwind).toContain("@media (min-width: 1120px)");
+  });
+
+  it("writes nothing when there are no uses", () => {
+    expect(formatLayoutCss([], defaultPreviewDevices())).toBe("");
+    expect(formatLayoutTailwind([], defaultPreviewDevices())).toBe("");
+  });
+
+  it("gives each frame its own token group, as aliases or lengths", () => {
+    const tokens = setLayoutReference(
+      defaultLayoutTokens(),
+      "inset-container",
+      "desktop",
+      "20px",
+    );
+    const group = layoutDesignTokenGroup(
+      tokens,
+      defaultPreviewDevices(),
+    ) as Record<string, Record<string, { $value: string }>>;
+
+    expect(Object.keys(group)).toEqual([
+      "$type",
+      "$description",
+      "phone",
+      "tablet",
+      "desktop",
+    ]);
+    expect(group.phone!["inset-container"]!.$value).toBe("{spacing.4}");
+    expect(group.desktop!["inset-container"]!.$value).toBe("20px");
+    expect(group.phone!["radius-surface"]!.$value).toBe("{radius.container}");
   });
 
   it("resolves one frame as custom properties so a canvas can pick the width", () => {

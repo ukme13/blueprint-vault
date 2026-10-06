@@ -6,7 +6,8 @@ export const EXPORT_GUIDANCE: GuidanceBlock[] = [
     heading: "Five things you can take out",
     paragraphs: [
       "CSS custom properties, for a project that wants the tokens and nothing else. A Tailwind theme block, for one that wants utilities named after them. DTCG design tokens, for a pipeline that reads the format. A Blueprint project file, which is the studio's own document. And the accessibility report, in Markdown or JSON.",
-      "Colour values can be written as hex, OKLCH or RGB, and the choice is shared across the studio — a picker and an export never disagree about how a colour is spelled.",
+      "Every studio opens the same Export dialog, and the CSS, Tailwind and token formats each carry the whole system: colours, semantic colours, the three scales, the spacing and radius uses, and the type scale.",
+      "Colour values can be written as hex, OKLCH or RGB, and the choice is shared across the studio — a picker and an export never disagree about how a colour is spelled. Type sizes can be written in rem, px or pt; the choice is the type scale's own, and the Typography studio keeps it.",
     ],
   },
   {
@@ -27,7 +28,7 @@ export const EXPORT_GUIDANCE: GuidanceBlock[] = [
   {
     heading: "Installing what comes out",
     paragraphs: [
-      "The README names the order. In short: the CSS or the Tailwind block carries the tokens, the typography stylesheet carries the faces and the roles, and a product references the semantic names rather than the primitive shades.",
+      "The README names the order. In short: the Tailwind block carries the tokens and the type roles; with plain CSS, the typography stylesheet goes beside the CSS one; and a product references the semantic names rather than the primitive shades.",
       "That last part is the whole discipline. A product that reaches for `neutral 300` has copied a value; one that uses `border.subtle` has installed a system, and will still be right after the next palette change.",
     ],
   },

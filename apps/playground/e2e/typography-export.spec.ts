@@ -4,19 +4,41 @@ import {
   showInspectorPanel,
   test,
 } from "./typography-fixtures";
+import type { Page } from "@playwright/test";
+
+/* The dialog writes the whole system, so a unit button or a media query is
+   only this studio's when it is looked for inside the dialog's own parts. */
+const dialogOf = (page: Page) =>
+  page.getByRole("dialog", { name: "Export design system" });
+const unitButton = (page: Page, unit: string) =>
+  dialogOf(page)
+    .getByRole("group", { name: "Type unit" })
+    .getByRole("button", { name: unit, exact: true });
+
+/** The preview from the type scale on: the palette, scales and uses come
+    first and have media queries of their own. */
+async function typographyText(page: Page): Promise<string> {
+  const text =
+    (await page
+      .getByRole("region", { name: "Export preview" })
+      .textContent()) ?? "";
+  return text.slice(text.indexOf("--font-family-"));
+}
 
 test.describe("Typography export", () => {
   test("shows CSS and Tailwind export output", async ({ seededPage: page }) => {
     await page.getByRole("button", { name: "Export type scale" }).click();
 
+    const dialog = dialogOf(page);
     await expect(
-      page.getByRole("heading", { name: "Export type scale" }),
+      dialog.getByRole("heading", { name: "Export design system" }),
     ).toBeVisible();
-    await expect(page.getByText("--font-family-base:")).toBeVisible();
-    await expect(page.getByText(":root {")).toBeVisible();
+    await expect(dialog.getByText("--font-family-base:")).toBeVisible();
+    await expect(dialog.getByText(":root {").first()).toBeVisible();
 
-    await page.getByRole("button", { name: "Tailwind CSS" }).click();
-    await expect(page.getByText("@theme static {")).toBeVisible();
+    await dialog.getByRole("button", { name: "Tailwind CSS" }).click();
+    await expect(dialog.getByText("@theme static {").first()).toBeVisible();
+    await expect(dialog.getByText("--font-family-base:")).toBeVisible();
   });
 
   test("exports rem by default and switches unit on request", async ({
@@ -30,13 +52,13 @@ test.describe("Typography export", () => {
       preview.getByText("--font-body-letter-spacing: 0em;"),
     ).toBeVisible();
 
-    await page.getByRole("button", { name: "pt", exact: true }).click();
+    await unitButton(page, "pt").click();
     await expect(preview.getByText("--font-body-size: 12pt;")).toBeVisible();
     await expect(
       preview.getByText("--font-body-letter-spacing: 0em;"),
     ).toBeVisible();
 
-    await page.getByRole("button", { name: "px", exact: true }).click();
+    await unitButton(page, "px").click();
     await expect(preview.getByText("--font-body-size: 16px;")).toBeVisible();
     await expect(
       preview.getByText("--font-body-letter-spacing: 0em;"),
@@ -77,16 +99,15 @@ test.describe("Typography export", () => {
     await fillHybridNumber(page, "body size", "20");
 
     await page.getByRole("button", { name: "Export type scale" }).click();
-    await page.getByRole("button", { name: "px", exact: true }).click();
+    await unitButton(page, "px").click();
 
     const preview = page.getByRole("region", { name: "Export preview" });
     await expect(preview.getByText("clamp(14px,")).toBeVisible();
-    await expect(preview.getByText("@media (min-width: 768px)")).toBeVisible();
-    await expect(preview.getByText("clamp(18px,")).toBeVisible();
-    await expect(preview.getByText("20px)")).toBeVisible();
-    await expect(preview.getByText("@media (min-width: 1120px)")).toHaveCount(
-      0,
-    );
+    const css = await typographyText(page);
+    expect(css).toContain("@media (min-width: 768px)");
+    expect(css).toContain("clamp(18px,");
+    expect(css).toContain("20px)");
+    expect(css).not.toContain("@media (min-width: 1120px)");
   });
 
   test("downloads the generated CSS file", async ({ seededPage: page }) => {

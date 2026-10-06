@@ -410,3 +410,138 @@
   --shadow-med: 0px 1px 2px 0px rgba(0, 1, 0, 0.2), 0px 2px 12px 0px rgba(0, 1, 0, 0.2);
   --shadow-high: 0px 2px 2px 0px rgba(0, 1, 0, 0.2), 0px 8px 24px 0px rgba(0, 1, 0, 0.3);
 }
+
+@theme static {
+  --inset-container: var(--spacing-4);
+  --gap-section: var(--spacing-16);
+  --inset-control-x: var(--spacing-3);
+  --inset-control-y: var(--spacing-1-5);
+  --gap-grid: var(--spacing-4);
+  --gap-nav: var(--spacing-3);
+  --inset-card: var(--spacing-4);
+  --radius-surface: var(--radius-container);
+  --radius-button: var(--radius-element);
+  --radius-input: var(--radius-element);
+  --radius-chip: var(--radius-inner);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --inset-container: var(--spacing-6);
+    --gap-section: var(--spacing-16);
+    --inset-control-x: var(--spacing-4);
+    --inset-control-y: var(--spacing-2);
+    --gap-grid: var(--spacing-6);
+    --gap-nav: var(--spacing-4);
+    --inset-card: var(--spacing-5);
+    --radius-surface: var(--radius-container);
+    --radius-button: var(--radius-element);
+    --radius-input: var(--radius-element);
+    --radius-chip: var(--radius-inner);
+  }
+}
+
+@media (min-width: 1120px) {
+  :root {
+    --inset-container: var(--spacing-10);
+    --gap-section: var(--spacing-16);
+    --inset-control-x: var(--spacing-4);
+    --inset-control-y: var(--spacing-2);
+    --gap-grid: var(--spacing-8);
+    --gap-nav: var(--spacing-6);
+    --inset-card: var(--spacing-6);
+    --radius-surface: var(--radius-page);
+    --radius-button: var(--radius-element);
+    --radius-input: var(--radius-element);
+    --radius-chip: var(--radius-inner);
+  }
+}
+
+
+/* Loads from Google Fonts. These tokens name the families but do not
+   load them — the consuming app must:
+     - Kanit
+     - Sarabun
+     - Space Grotesk
+     - Work Sans
+   For example, in the page's <head>:
+     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Kanit:wght@700&family=Sarabun:wght@400;500;700&family=Space+Grotesk:wght@700&family=Work+Sans:wght@400;500;700&display=swap">
+*/
+@theme static {
+  --font-family-display: "Space Grotesk", Kanit, sans-serif;
+  --font-family-main: "Work Sans", Sarabun, sans-serif;
+  --font-weight-light: 300;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-size-0: 11px;
+  --font-size-1: 12px;
+  --font-size-2: 16px;
+  --font-size-3: 20px;
+  --font-size-4: 24px;
+  --font-size-5: 32px;
+  --font-size-6: 40px;
+  --font-size-7: 48px;
+  --font-size-8: 62px;
+  --font-display-family: var(--font-family-display);
+  --font-display-weight: 700;
+  --font-display-transform: none;
+  --font-h1-family: var(--font-family-main);
+  --font-h1-weight: 700;
+  --font-h1-transform: none;
+  --font-h2-family: var(--font-family-main);
+  --font-h2-weight: 700;
+  --font-h2-transform: none;
+  --font-h3-family: var(--font-family-main);
+  --font-h3-weight: 700;
+  --font-h3-transform: none;
+  --font-h4-family: var(--font-family-main);
+  --font-h4-weight: 700;
+  --font-h4-transform: none;
+  --font-h5-family: var(--font-family-main);
+  --font-h5-weight: 700;
+  --font-h5-transform: none;
+  --font-h6-family: var(--font-family-main);
+  --font-h6-weight: 700;
+  --font-h6-transform: none;
+  --font-body-family: var(--font-family-main);
+  --font-body-weight: 400;
+  --font-body-transform: none;
+  --font-label-family: var(--font-family-main);
+  --font-label-weight: 500;
+  --font-label-transform: none;
+  --font-caption-family: var(--font-family-main);
+  --font-caption-weight: 400;
+  --font-caption-transform: none;
+  --font-display-size: 62px;
+  --font-display-line-height: 1.1613;
+  --font-display-letter-spacing: 0em;
+  --font-h1-size: 62px;
+  --font-h1-line-height: 1.2258;
+  --font-h1-letter-spacing: 0em;
+  --font-h2-size: 48px;
+  --font-h2-line-height: 1.25;
+  --font-h2-letter-spacing: 0em;
+  --font-h3-size: 40px;
+  --font-h3-line-height: 1.2;
+  --font-h3-letter-spacing: 0em;
+  --font-h4-size: 32px;
+  --font-h4-line-height: 1.25;
+  --font-h4-letter-spacing: 0em;
+  --font-h5-size: 24px;
+  --font-h5-line-height: 1.3333;
+  --font-h5-letter-spacing: 0em;
+  --font-h6-size: 20px;
+  --font-h6-line-height: 1.2;
+  --font-h6-letter-spacing: 0em;
+  --font-body-size: 16px;
+  --font-body-line-height: 1.5;
+  --font-body-letter-spacing: 0em;
+  --font-label-size: 12px;
+  --font-label-line-height: 1.3333;
+  --font-label-letter-spacing: 0em;
+  --font-caption-size: 11px;
+  --font-caption-line-height: 1.4545;
+  --font-caption-letter-spacing: 0em;
+}

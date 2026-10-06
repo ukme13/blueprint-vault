@@ -444,17 +444,20 @@ export function layoutPrimitiveVar(
 }
 
 /**
- * Custom properties for the layout uses, rewritten at each preview width.
+ * The uses as blocks of custom properties, one per preview width.
  *
- * Phone (narrowest) sits on `:root`. Later frames are `min-width` queries.
+ * The narrowest frame opens with `open`; every wider one is a `min-width`
+ * query on `selector`. Shared by the CSS and Tailwind exports so the two
+ * cannot write different values.
  */
-export function formatLayoutCss(
+function layoutBlocks(
   tokens: readonly LayoutToken[],
   devices: readonly PreviewDevice[],
-  selector = ":root",
+  open: string,
+  selector: string,
 ): string {
   const ordered = sortPreviewDevicesByWidth([...devices]);
-  if (ordered.length === 0) return "";
+  if (ordered.length === 0 || tokens.length === 0) return "";
 
   const block = (frame: PreviewDevice, indent: string) =>
     tokens.map(
@@ -463,7 +466,7 @@ export function formatLayoutCss(
     );
 
   const first = ordered[0]!;
-  const lines = [`${selector} {`, ...block(first, "  "), "}"];
+  const lines = [open, ...block(first, "  "), "}"];
   for (const frame of ordered.slice(1)) {
     lines.push(
       "",
@@ -475,6 +478,79 @@ export function formatLayoutCss(
     );
   }
   return `${lines.join("\n")}\n`;
+}
+
+/**
+ * Custom properties for the layout uses, rewritten at each preview width.
+ *
+ * Phone (narrowest) sits on `:root`. Later frames are `min-width` queries.
+ */
+export function formatLayoutCss(
+  tokens: readonly LayoutToken[],
+  devices: readonly PreviewDevice[],
+  selector = ":root",
+): string {
+  return layoutBlocks(tokens, devices, `${selector} {`, selector);
+}
+
+/**
+ * The uses for a Tailwind v4 stylesheet.
+ *
+ * The narrowest frame goes in `@theme static`, so the radius uses become
+ * utilities (`rounded-button`, `rounded-surface`) and every use is declared
+ * on `:root`. Wider frames override those same properties in `min-width`
+ * queries on `:root`, outside the theme, because a `@theme` block is
+ * top-level only; a utility reads the variable, so it follows the frame.
+ * Spacing uses keep their names (`--inset-card`) and are reached with
+ * `p-(--inset-card)`.
+ */
+export function formatLayoutTailwind(
+  tokens: readonly LayoutToken[],
+  devices: readonly PreviewDevice[],
+): string {
+  return layoutBlocks(tokens, devices, "@theme static {", ":root");
+}
+
+/** One use on one frame as a token value: an alias, or a typed px. */
+function layoutTokenValue(
+  token: LayoutToken,
+  deviceId: string,
+): string | undefined {
+  const cell = token.byDevice[deviceId];
+  if (!cell) return undefined;
+  const px = parseLayoutRawPx(cell);
+  if (px !== undefined) return formatLayoutRawPx(px);
+  if (token.kind === "radius") return `{radius.${cell}}`;
+  const step = Number(cell);
+  return `{spacing.${Number.isFinite(step) ? spacingStepName(step) : cell}}`;
+}
+
+/**
+ * The uses as a Design Tokens (DTCG) group, one group per preview frame.
+ *
+ * The same shape the semantic layer gives its modes: frames are siblings
+ * under one key, narrowest first. A use that points at a base token is an
+ * alias into the spacing or radius group, so a token pipeline keeps the
+ * link a stylesheet keeps with `var()`.
+ */
+export function layoutDesignTokenGroup(
+  tokens: readonly LayoutToken[],
+  devices: readonly PreviewDevice[],
+): Record<string, unknown> {
+  const group: Record<string, unknown> = {
+    $type: "dimension",
+    $description:
+      "Layout uses exported from Blueprint, one group per preview frame",
+  };
+  for (const frame of sortPreviewDevicesByWidth([...devices])) {
+    const values: Record<string, { $value: string }> = {};
+    for (const token of tokens) {
+      const value = layoutTokenValue(token, frame.id);
+      if (value !== undefined) values[token.id] = { $value: value };
+    }
+    group[frame.id] = values;
+  }
+  return group;
 }
 
 /** Layout uses as custom properties for one named frame. */

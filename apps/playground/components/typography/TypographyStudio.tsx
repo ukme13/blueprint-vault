@@ -17,6 +17,7 @@ import {
   hybridPresetsFromModularScale,
   type TypeRole,
   defaultPreviewDevices,
+  emptyWorkspace,
   resolvePreviewDevice,
   useWorkspaceStore,
   withSeededTypographySlice,
@@ -26,7 +27,7 @@ import {
 import { Sheet } from "../Sheet";
 import { StudioSliceEmpty } from "../shell/StudioSliceEmpty";
 import { useIsPhone } from "../use-is-phone";
-import { TypographyExportDialog } from "./TypographyExportDialog";
+import { SystemExportDialog } from "../SystemExportDialog";
 import {
   INSPECTOR_TABS,
   TypographyInspector,
@@ -360,16 +361,17 @@ export function TypographyStudio() {
         </Sheet>
       )}
 
-      <TypographyExportDialog
+      <SystemExportDialog
         isOpen={isExportDialogOpen}
-        projectName={workspace.project?.name ?? system.name}
-        system={system}
-        unit={project.unit}
-        remRootPx={project.remRootPx}
-        devices={previewDevices}
+        workspace={{
+          ...(workspace.project ?? emptyWorkspace()),
+          name: workspace.project?.name ?? system.name,
+          /* This studio's copy, which a store write follows a render
+             behind. */
+          typography: project,
+        }}
         onOpenChange={setIsExportDialogOpen}
-        onUnitChange={(unit) => setPreference({ unit })}
-        onRemRootChange={(remRootPx) => setPreference({ remRootPx })}
+        onTypographyPreferenceChange={setPreference}
       />
     </div>
   );

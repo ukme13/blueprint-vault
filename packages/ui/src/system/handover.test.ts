@@ -24,9 +24,9 @@ const build = () => buildHandoverFiles(seedWorkspaceProject("Client"), options);
 
 describe("the handover archive", () => {
   it("carries every file the export dialog already offers", () => {
-    /* The dialog's six formats, by the name each lands under here. A seventh
-       row added to that dialog and not to this list is the case this catches,
-       and it is the likely one: the dialog is where somebody adds a format. */
+    /* The dialog's file formats, by the name each lands under here. A format
+       added to that dialog and not to this list is the case this catches, and
+       it is the likely one: the dialog is where somebody adds a format. */
     const paths = build().map((file) => file.path);
 
     expect(paths).toContain("blueprint.css");
@@ -35,9 +35,28 @@ describe("the handover archive", () => {
     expect(paths).toContain("workspace.blueprint.json");
     expect(paths).toContain("accessibility-report.md");
     expect(paths).toContain("accessibility-report.json");
-    /* And the one the dialog does not offer, because typography's unit is a
-       decision the dialog never asks for. */
+    /* And typography on its own, for a plain-CSS install: blueprint.css
+       leaves it out so the two can be imported side by side. */
     expect(paths).toContain("blueprint-typography.css");
+  });
+
+  it("puts the uses everywhere, and typography everywhere but blueprint.css", () => {
+    /* The dialog's single files carry the whole system, and so do these.
+       blueprint.css is the exception only for typography, which ships beside
+       it in blueprint-typography.css. */
+    const files = build();
+    const file = (path: string) =>
+      files.find((each) => each.path === path)!.contents;
+    const size = /--font-[a-z0-9-]+-size:/;
+
+    expect(file("blueprint.css")).toContain("--inset-card:");
+    expect(file("blueprint.css")).not.toMatch(size);
+    expect(file("blueprint.tailwind.css")).toContain("--radius-button:");
+    expect(file("blueprint.tailwind.css")).toMatch(size);
+
+    const tokens = JSON.parse(file("blueprint.tokens.json"));
+    expect(tokens.layout.phone["inset-card"]).toBeDefined();
+    expect(tokens.typography.desktop).toBeDefined();
   });
 
   it("writes something into every one of them", () => {
