@@ -1653,7 +1653,7 @@ test.describe("on a phone", () => {
     /* From a device: the formats kept a 300px column and left the code a
        58px slit beside it. */
     await page.getByRole("button", { name: "Export palette" }).click();
-    const dialog = page.getByRole("dialog", { name: "Export palette" });
+    const dialog = page.getByRole("dialog", { name: "Export design system" });
     await expect(dialog).toBeVisible();
 
     const formats = dialog.getByRole("group", { name: "Format" });

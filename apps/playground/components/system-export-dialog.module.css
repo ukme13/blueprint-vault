@@ -1,12 +1,8 @@
 /*
  * The export dialog's own styles, moved from the palette workspace module.
  *
- * The dialog is shared now — Colour and Scale open the same one — so its styles
- * live beside it rather than inside one studio's stylesheet.
- *
- * The typography studio still has its own copy of most of these. Six of the
- * eight rules are byte-identical to these; two differ in sizing. Folding that
- * one in as well is worth doing and is not this change.
+ * The dialog is shared — every studio opens the same one — so its styles live
+ * beside it rather than inside one studio's stylesheet.
  */
 
 /* Hidden from sight, not from a screen reader. Duplicated rather than moved:

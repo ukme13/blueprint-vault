@@ -444,66 +444,6 @@
   margin-bottom: 0;
 }
 
-.exportDialogHeader,
-.exportDialogFooter {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 18px;
-}
-
-.exportDialogHeader {
-  border-bottom: 1px solid var(--color-border-strong);
-}
-
-.exportDialogHeader h2 {
-  margin: 0;
-  font-size: 16px;
-}
-
-.exportDialogHeader > button {
-  margin-left: auto;
-}
-
-.exportDialogBody {
-  min-height: 430px;
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-}
-
-.exportSettings {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 18px;
-  border-right: 1px solid var(--color-border-strong);
-}
-
-.exportSettings h3 {
-  margin: 0;
-  font-size: 12px;
-}
-
-.exportFormatGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.exportPreview {
-  overflow: auto;
-  padding: 16px;
-  background: var(--color-surface-subtle);
-}
-
-.exportDialogFooter {
-  border-top: 1px solid var(--color-border-strong);
-}
-
-.exportDialogFooterSpacer {
-  flex: 1;
-}
-
 .creationPage {
   padding-bottom: 80px;
 }
@@ -700,13 +640,6 @@
 .stepSample:focus-visible {
   outline: 2px solid var(--color-border-emphasized, var(--color-border));
   outline-offset: 2px;
-}
-
-.exportUnitHint {
-  margin: 0;
-  color: var(--color-text-secondary);
-  font-size: var(--font-size-sm);
-  line-height: 1.4;
 }
 
 .previewToolbar {
@@ -1025,14 +958,6 @@
    rather than an error, same as the hint below. */
 .fontStackNote[data-missing="true"] {
   color: var(--color-status-warning);
-}
-
-/* The one place the studio talks about licensing at the point of shipping. */
-.exportLicenceNote {
-  margin: 0;
-  color: var(--color-status-warning);
-  font-size: var(--font-size-sm);
-  line-height: 1.4;
 }
 
 /* A role's fields, each in a cell with a caption for a phone, where the

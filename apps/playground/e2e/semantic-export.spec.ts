@@ -179,7 +179,9 @@ test.describe("An alias with a transparency", () => {
     /* The export is a modal, and it is still open. Everything behind it is
        inert until it closes, which reads in a trace as a button that is
        visible, enabled and never clickable. */
-    const exportDialog = page.getByRole("dialog", { name: "Export palette" });
+    const exportDialog = page.getByRole("dialog", {
+      name: "Export design system",
+    });
     await page.keyboard.press("Escape");
     await expect(exportDialog).toBeHidden();
 

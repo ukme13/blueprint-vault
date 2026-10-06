@@ -586,7 +586,7 @@ test.describe("Interface feedback", () => {
   }) => {
     await page.getByRole("button", { name: "Export palette" }).click();
     const exportDialog = page.getByRole("dialog", {
-      name: "Export palette",
+      name: "Export design system",
     });
     const exportPreview = page.getByRole("region", {
       name: "Export preview",

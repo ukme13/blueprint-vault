@@ -11,8 +11,6 @@ import {
   Button,
   buildHandoverFiles,
   HANDOVER_README,
-  COLOUR_FORMAT_LABELS,
-  COLOUR_FORMATS,
   buildAccessibilityReport,
   formatAccessibilityReportJson,
   formatAccessibilityReportMarkdown,
@@ -21,14 +19,17 @@ import {
   formatDesignSystemDesignTokens,
   formatDesignSystemTailwind,
   generatePalettes,
+  localSlots,
   parseBlueprintWorkspace,
+  ROOT_FONT_SIZE_PX,
   type ColourFormat,
+  type TypeScaleUnit,
   type WorkspaceProject,
 } from "@blueprint/ui";
 import { useColourFormat } from "./palette/ColourFormatContext";
 import styles from "./system-export-dialog.module.css";
 import { STUDIO_VERSION } from "../lib/studio-version";
-import { SheetSelector } from "./SheetSelector";
+import { ExportOptions } from "./ExportOptions";
 
 type ExportFormat =
   | "css"
@@ -54,6 +55,13 @@ const FORMATS: Array<{ value: ExportFormat; label: string }> = [
    value in it is a measurement, and a ratio has no hex notation. */
 const REPORT_FORMATS: ExportFormat[] = ["report-md", "report-json"];
 
+/* The formats a type scale is written into, and so the ones a unit applies
+   to. The project file keeps the unit as a preference rather than applying
+   it, and the report measures. */
+const TYPE_FORMATS: ExportFormat[] = ["css", "tailwind", "tokens", "handover"];
+
+type TypePreference = { unit?: TypeScaleUnit; remRootPx?: number };
+
 /** The studio version stamped into a handover's README, which is what a client
     quotes when something in their file looks wrong. */
 const HANDOVER_VERSION = STUDIO_VERSION;
@@ -70,6 +78,14 @@ interface SystemExportDialogProps {
    * dialog without an import button rather than one whose button does nothing.
    */
   onImportRequest?: (project: WorkspaceProject) => void;
+  /**
+   * Saves the type unit and rem root chosen here as the project's own.
+   *
+   * Typography passes it: the unit is that studio's preference, and the
+   * dialog is where it is set. Elsewhere the choice lasts while the dialog is
+   * open, rather than changing a studio somebody is not looking at.
+   */
+  onTypographyPreferenceChange?: (patch: TypePreference) => void;
   onOpenChange: (isOpen: boolean) => void;
 }
 
@@ -77,6 +93,7 @@ export function SystemExportDialog({
   isOpen,
   workspace,
   onImportRequest,
+  onTypographyPreferenceChange,
   onOpenChange,
 }: SystemExportDialogProps) {
   /* Derived rather than passed. The palette is already in the workspace, and a
@@ -91,33 +108,59 @@ export function SystemExportDialog({
     useState<ColourFormat>(sharedColourFormat);
   const [importError, setImportError] = useState("");
   const importInputRef = useRef<HTMLInputElement>(null);
+  /* A choice made here and not saved; empty follows the project. */
+  const [typeChoice, setTypeChoice] = useState<TypePreference>({});
 
   const handleOpenChange = (nextIsOpen: boolean) => {
-    if (!nextIsOpen) setImportError("");
+    if (!nextIsOpen) {
+      setImportError("");
+      setTypeChoice({});
+    }
     onOpenChange(nextIsOpen);
   };
+
+  const typography = workspace.typography;
+  const unit: TypeScaleUnit = typeChoice.unit ?? typography?.unit ?? "rem";
+  const remRootPx =
+    typeChoice.remRootPx ?? typography?.remRootPx ?? ROOT_FONT_SIZE_PX;
+  const chooseType = (patch: TypePreference) => {
+    if (onTypographyPreferenceChange) onTypographyPreferenceChange(patch);
+    else setTypeChoice((current) => ({ ...current, ...patch }));
+  };
+
+  /* The workspace as this dialog writes it: the project's own, with the unit
+     chosen here. */
+  const exported = useMemo(
+    () =>
+      typography
+        ? { ...workspace, typography: { ...typography, unit, remRootPx } }
+        : workspace,
+    [remRootPx, typography, unit, workspace],
+  );
 
   /* Built once and read twice, so the README somebody previews is the README
      inside the archive they download rather than a second rendering of it. */
   const handover = useMemo(
     () =>
-      buildHandoverFiles(workspace, {
+      buildHandoverFiles(exported, {
         colourFormat,
-        typeScaleUnit: workspace.typography?.unit === "rem" ? "rem" : "px",
+        /* A handover's typography file is rem or px; pt is for print, and
+           the px it is converted from is what a screen reads. */
+        typeScaleUnit: unit === "rem" ? "rem" : "px",
         version: HANDOVER_VERSION,
         /* Date only. A handover exported twice in one afternoon should differ
            by its contents or not at all, and a timestamp would make every
            archive a different file for no reason a client can see. */
         exportedAt: new Date().toISOString().slice(0, 10),
       }),
-    [colourFormat, workspace],
+    [colourFormat, exported, unit],
   );
 
   const output = useMemo(() => {
     /* Every family in every format. A semantic alias points at a primitive
-       variable and a shadow sits inside the spacing around it, so a file
-       carrying one of them is half a system — and a browser drops a reference
-       to a variable nothing declares in silence. */
+       variable, a use at a spacing step, and a shadow sits inside the spacing
+       around it, so a file carrying one of them is half a system — and a
+       browser drops a reference to a variable nothing declares in silence. */
     const system = {
       palettes,
       semantics: workspace.semantics ?? [],
@@ -125,6 +168,11 @@ export function SystemExportDialog({
       radius: workspace.radius,
       elevation: workspace.elevation,
       colourFormat,
+      layout: workspace.layout,
+      previewDevices: workspace.previewDevices,
+      typography: typography
+        ? { system: typography.system, unit, remRootPx }
+        : null,
     };
     if (exportFormat === "tailwind") {
       return formatDesignSystemTailwind(system);
@@ -160,7 +208,16 @@ export function SystemExportDialog({
         : formatAccessibilityReportMarkdown(report);
     }
     return formatDesignSystemCss(system);
-  }, [colourFormat, exportFormat, handover, palettes, workspace]);
+  }, [
+    colourFormat,
+    exportFormat,
+    handover,
+    palettes,
+    remRootPx,
+    typography,
+    unit,
+    workspace,
+  ]);
 
   const extension =
     exportFormat === "handover"
@@ -245,7 +302,7 @@ export function SystemExportDialog({
 
   return (
     <Dialog
-      aria-label="Export palette"
+      aria-label="Export design system"
       className={styles.exportDialog}
       isOpen={isOpen}
       maxHeight="82vh"
@@ -255,7 +312,7 @@ export function SystemExportDialog({
       onOpenChange={handleOpenChange}
     >
       <header className={styles.exportDialogHeader}>
-        <h2>Export palette</h2>
+        <h2>Export design system</h2>
         <IconButton
           icon={<Icon icon="close" size="sm" />}
           label="Close export"
@@ -287,24 +344,27 @@ export function SystemExportDialog({
               </Button>
             ))}
           </div>
-          {exportFormat !== "project" &&
-            !REPORT_FORMATS.includes(exportFormat) && (
-              <label className={styles.exportColourFormat}>
-                <span>Colour format</span>
-                <SheetSelector
-                  isLabelHidden
-                  label="Export colour format"
-                  options={COLOUR_FORMATS.map((format) => ({
-                    label: COLOUR_FORMAT_LABELS[format],
-                    value: format,
-                  }))}
-                  size="sm"
-                  value={colourFormat}
-                  width={130}
-                  onChange={(value) => setColourFormat(value as ColourFormat)}
-                />
-              </label>
-            )}
+          <ExportOptions
+            colourFormat={colourFormat}
+            showsColourFormat={
+              exportFormat !== "project" &&
+              !REPORT_FORMATS.includes(exportFormat)
+            }
+            type={
+              typography && TYPE_FORMATS.includes(exportFormat)
+                ? {
+                    unit,
+                    remRootPx,
+                    localFamilies: localSlots(typography.system).map(
+                      ({ family }) => family,
+                    ),
+                    onUnitChange: (next) => chooseType({ unit: next }),
+                    onRemRootChange: (next) => chooseType({ remRootPx: next }),
+                  }
+                : null
+            }
+            onColourFormatChange={setColourFormat}
+          />
         </section>
         <section className={styles.exportPreview} aria-label="Export preview">
           <CodeBlock

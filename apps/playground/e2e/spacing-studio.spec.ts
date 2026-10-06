@@ -19,6 +19,20 @@ import { fillHybridNumber } from "./typography-fixtures";
  * the scale being editable and surviving a reload.
  */
 
+/** The seeded workspace is a palette only; these give it a type scale, the
+    way somebody would. */
+async function withTypeScale(page: Page): Promise<void> {
+  await page.goto("/typography");
+  await page.getByRole("button", { name: "Seed from Blueprint" }).click();
+  await expect(
+    page.getByRole("region", { name: "Type scale settings" }),
+  ).toBeVisible();
+  await page.goto("/spacing");
+  await expect(
+    page.getByRole("button", { name: "Export", exact: true }),
+  ).toBeVisible();
+}
+
 test.describe("The spacing studio", () => {
   test("shows the seeded scale in px, or in rem from the unit switch", async ({
     seededPage: page,
@@ -1914,6 +1928,7 @@ test.describe("The scale studio's chrome", () => {
   }) => {
     /* The tokens used to ship only from the Colour page, so somebody who built
        a spacing scale here had to go elsewhere to get it out. */
+    await withTypeScale(page);
 
     await page.getByRole("button", { name: "Export", exact: true }).click();
     const preview = page.getByRole("region", { name: "Export preview" });
@@ -1930,6 +1945,42 @@ test.describe("The scale studio's chrome", () => {
     expect(css).toMatch(/--shadow-low:/);
     expect(css).toMatch(/--color-primary-\d+:/);
     expect(css).toContain("--color-action-primary:");
+    /* And the uses and the type scale, which only the handover had. */
+    expect(css).toContain("--inset-card:");
+    expect(css).toContain("--radius-button:");
+    expect(css).toMatch(/--font-[a-z0-9-]+-size:/);
+  });
+
+  test("writes the type scale in the unit chosen in the dialog", async ({
+    seededPage: page,
+  }) => {
+    await withTypeScale(page);
+    await page.getByRole("button", { name: "Export", exact: true }).click();
+    const dialog = page.getByRole("dialog", { name: "Export design system" });
+    const preview = dialog.getByRole("region", { name: "Export preview" });
+    const units = dialog.getByRole("group", { name: "Type unit" });
+    const bodySize = /--font-body-size: ([^;]+);/;
+    const size = async () =>
+      ((await preview.textContent()) ?? "").match(bodySize)?.[1] ?? "";
+
+    await expect(units.getByRole("button", { name: "rem" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect.poll(size).toMatch(/rem/);
+
+    await units.getByRole("button", { name: "px" }).click();
+    await expect.poll(size).toMatch(/px/);
+    await expect.poll(size).not.toMatch(/rem/);
+
+    /* A choice here is the dialog's: the next opening follows the project
+       again, rather than this studio changing Typography's unit. */
+    await dialog.getByRole("button", { name: "Close export" }).click();
+    await page.getByRole("button", { name: "Export", exact: true }).click();
+    await expect(units.getByRole("button", { name: "rem" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 
   test("offers no import, because it cannot confirm one", async ({
