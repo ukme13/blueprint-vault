@@ -18,6 +18,7 @@ import {
   formatTypeSystemTailwindExport,
   STANDARD_FONT_WEIGHTS,
   typeCssVariablesForDevice,
+  typographyDesignTokenGroup,
 } from "./system-export";
 
 const legacy: LegacyTypographyProject = {
@@ -425,6 +426,29 @@ describe("google font notice", () => {
     expect(output).not.toContain("- sans-serif");
   });
 
+  it("gives the stylesheet link as text, never as a url()", () => {
+    /* The export names fonts and does not load them (see
+       fonts/export-guard.test.ts), so the link is something to copy into a
+       page's <head>, written inside the comment. */
+    const withGoogle: TypeSystem = {
+      ...authored,
+      fonts: [
+        {
+          id: "content",
+          name: "Content",
+          families: ["Sarabun", "sans-serif"],
+          sources: { primary: "google" },
+        },
+      ],
+    };
+    const output = formatTypeSystemCssExport(withGoogle);
+    expect(output).toContain(
+      '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun',
+    );
+    expect(output).not.toMatch(/url\s*\(/i);
+    expect(output).not.toContain("@import");
+  });
+
   it("says nothing when no family comes from Google", () => {
     const output = formatTypeSystemCssExport(migratedLegacy);
     expect(output).not.toContain("Google Fonts");
@@ -572,5 +596,46 @@ describe("standard font weights", () => {
         "--font-weight-bold": "700",
       });
     }
+  });
+});
+
+describe("typographyDesignTokenGroup", () => {
+  const devices = defaultPreviewDevices();
+
+  it("gives each frame the size the stylesheet gives it", () => {
+    /* Tokens and CSS are read from the same resolved frames; a pipeline and a
+       stylesheet that disagree on a heading's size is the bug this holds. */
+    const group = typographyDesignTokenGroup(authored, "rem", devices);
+    for (const device of devices) {
+      const vars = typeCssVariablesForDevice(authored, device);
+      const frame = group[device.id] as Record<
+        string,
+        { $value: { fontSize: string } }
+      >;
+      expect(frame.h1!.$value.fontSize, device.id).toBe(vars["--font-h1-size"]);
+    }
+  });
+
+  it("writes sizes in the chosen unit and points at the family token", () => {
+    const group = typographyDesignTokenGroup(authored, "rem", devices);
+    const desktop = group.desktop as Record<
+      string,
+      { $value: { fontSize: string; fontFamily: string } }
+    >;
+    expect(desktop.h1!.$value.fontSize).toBe("3.5rem");
+    expect(desktop.h1!.$value.fontFamily).toBe(
+      "{typography.fontFamily.display}",
+    );
+    expect(
+      (group.fontFamily as Record<string, { $value: string[] }>).display!
+        .$value,
+    ).toEqual(["Orbitron", "sans-serif"]);
+  });
+
+  it("carries a case transform in Blueprint's extension", () => {
+    const group = typographyDesignTokenGroup(authored, "rem", devices);
+    const phone = group.phone as Record<string, Record<string, unknown>>;
+    expect(JSON.stringify(phone.h1!.$extensions)).toContain("uppercase");
+    expect(phone.body!.$extensions).toBeUndefined();
   });
 });

@@ -16,19 +16,35 @@ import {
   type ScaleExportInput,
 } from "../scale/scale-export";
 import type { SemanticToken } from "../color/semantic";
+import {
+  formatLayoutCss,
+  formatLayoutTailwind,
+  layoutDesignTokenGroup,
+  type LayoutToken,
+} from "../scale/layout-tokens";
+import type { PreviewDevice } from "../typography/preview-devices";
+import type { TypeSystem } from "../typography/system";
+import {
+  formatTypeSystemCssExport,
+  formatTypeSystemTailwindExport,
+  typographyDesignTokenGroup,
+} from "../typography/system-export";
+import type { TypeScaleUnit } from "../typography/types";
 
 /**
- * Everything the colour side of the workspace produces, in one file.
+ * Everything the workspace produces, in one file.
  *
- * Colour primitives, the semantic layer over them, and the three scales. A
- * client installs one file rather than four they have to remember belong
- * together — a semantic alias without its primitive, or a shadow without the
- * spacing around it, is half a system.
+ * Colour primitives, the semantic layer over them, the three scales, the
+ * layout uses that point into those scales per preview frame, and the type
+ * system. A client installs one file rather than five they have to remember
+ * belong together — a semantic alias without its primitive, or a radius use
+ * without the radius it names, is half a system.
  *
- * Typography is not here. It ships from its own studio with its own unit
- * choice, and folding it in would mean picking that unit on the client's
- * behalf. Named `design system` rather than `colour system` all the same,
- * because it stopped being only colour at stage 5 of the scale plan.
+ * Typography used to ship only from its own studio, because its unit (rem,
+ * px or pt) was a choice this file would have made on the client's behalf.
+ * The unit is now part of the input, chosen in the one export dialog every
+ * studio opens. Uses and typography are optional: a caller that leaves them
+ * out gets the colour and scale file it always did.
  *
  * See docs/roadmap/scale-studio.md.
  */
@@ -36,6 +52,39 @@ import type { SemanticToken } from "../color/semantic";
 export interface DesignSystemExportInput extends ScaleExportInput {
   semantics: SemanticToken[];
   colourFormat: ColourFormat;
+  /** Layout uses, written per preview frame. Needs `previewDevices`. */
+  layout?: readonly LayoutToken[];
+  previewDevices?: readonly PreviewDevice[];
+  /** The type system and the unit to write it in. */
+  typography?: {
+    system: TypeSystem;
+    unit: TypeScaleUnit;
+    remRootPx: number;
+  } | null;
+}
+
+function layoutPart(
+  input: DesignSystemExportInput,
+  format: typeof formatLayoutCss,
+): string {
+  return input.layout && input.previewDevices
+    ? format(input.layout, input.previewDevices)
+    : "";
+}
+
+function typographyPart(
+  input: DesignSystemExportInput,
+  format: typeof formatTypeSystemCssExport,
+): string {
+  const { typography } = input;
+  return typography
+    ? format(
+        typography.system,
+        typography.unit,
+        input.previewDevices,
+        typography.remRootPx,
+      )
+    : "";
 }
 
 function joined(parts: string[]): string {
@@ -49,6 +98,8 @@ export function formatDesignSystemCss(input: DesignSystemExportInput): string {
     formatPaletteCssExport(palettes, colourFormat),
     semantics.length === 0 ? "" : formatSemanticCssExport(semantics, palettes),
     formatScaleCss(input),
+    layoutPart(input, formatLayoutCss),
+    typographyPart(input, formatTypeSystemCssExport),
   ]);
 }
 
@@ -63,6 +114,8 @@ export function formatDesignSystemTailwind(
       ? ""
       : formatSemanticTailwindExport(semantics, palettes),
     formatScaleTailwind(input),
+    layoutPart(input, formatLayoutTailwind),
+    typographyPart(input, formatTypeSystemTailwindExport),
   ]);
 }
 
@@ -84,6 +137,19 @@ export function formatDesignSystemDesignTokens(
             ).semantic,
           }),
       ...scaleDesignTokenGroups(input),
+      ...(input.layout && input.previewDevices
+        ? { layout: layoutDesignTokenGroup(input.layout, input.previewDevices) }
+        : {}),
+      ...(input.typography
+        ? {
+            typography: typographyDesignTokenGroup(
+              input.typography.system,
+              input.typography.unit,
+              input.previewDevices,
+              input.typography.remRootPx,
+            ),
+          }
+        : {}),
     },
     null,
     2,

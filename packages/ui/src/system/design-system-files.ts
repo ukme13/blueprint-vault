@@ -8,7 +8,6 @@ import {
   formatDesignSystemTailwind,
 } from "./design-system-export";
 import { formatTypeSystemCssExport } from "../typography/system-export";
-import { formatLayoutCss } from "../scale/layout-tokens";
 
 /**
  * A whole workspace as the set of files somebody installs.
@@ -34,9 +33,9 @@ export type DesignSystemFilesOptions = {
   /**
    * Typography's unit.
    *
-   * Its own option because `formatDesignSystemCss` deliberately leaves
-   * typography out — the unit is a decision, and folding it in would make it
-   * on the reader's behalf. Whoever asks for the files makes it instead.
+   * Its own option because the unit is a decision, and the files would
+   * otherwise make it on the reader's behalf. Whoever asks for the files
+   * makes it instead.
    */
   typeScaleUnit: "px" | "rem";
   /**
@@ -80,15 +79,22 @@ export function designSystemFiles(
        set of tools reads. The values are OKLCH-derived either way: this is the
        notation, not the colour. */
     colourFormat: options.colourFormat ?? "hex",
+    layout: project.layout,
+    previewDevices: project.previewDevices,
   };
+  /* Typography goes into the single-file formats. blueprint.css leaves it
+     out, because it has always shipped beside it as blueprint-typography.css
+     and an install that imports both would declare it twice. */
+  const typography = project.typography
+    ? {
+        system: project.typography.system,
+        unit: options.typeScaleUnit,
+        remRootPx: project.typography.remRootPx,
+      }
+    : null;
 
   return {
-    "blueprint.css": [
-      formatDesignSystemCss(system),
-      formatLayoutCss(project.layout, project.previewDevices),
-    ]
-      .filter((part) => part.trim().length > 0)
-      .join("\n"),
+    "blueprint.css": formatDesignSystemCss(system),
     "blueprint-typography.css": project.typography
       ? formatTypeSystemCssExport(
           project.typography.system,
@@ -97,8 +103,14 @@ export function designSystemFiles(
           project.typography.remRootPx,
         )
       : "",
-    "blueprint.tailwind.css": formatDesignSystemTailwind(system),
-    "blueprint.tokens.json": formatDesignSystemDesignTokens(system),
+    "blueprint.tailwind.css": formatDesignSystemTailwind({
+      ...system,
+      typography,
+    }),
+    "blueprint.tokens.json": formatDesignSystemDesignTokens({
+      ...system,
+      typography,
+    }),
   };
 }
 

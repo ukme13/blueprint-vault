@@ -74,11 +74,11 @@ export const HANDOVER_REPORT_JSON = "accessibility-report.json";
  */
 const DESCRIPTIONS: Readonly<Record<string, string>> = {
   "blueprint.css":
-    "Every colour, spacing, radius and elevation token as CSS custom properties. **Install this one** if you write plain CSS.",
+    "Every colour, spacing, radius and elevation token, and the uses that point at them, as CSS custom properties. **Install this one** if you write plain CSS.",
   "blueprint-typography.css":
-    "The type scale: one variable per role for family, size, line height, letter spacing, weight and transform. Install it beside whichever of the two above you chose — typography ships separately because its unit is your decision.",
+    "The type scale: one variable per role for family, size, line height, letter spacing, weight and transform. Install it beside `blueprint.css`; the Tailwind and Design Tokens files already carry typography.",
   "blueprint.tailwind.css":
-    "The same tokens as a Tailwind v4 `@theme`, which is what generates `bg-action-primary` and `p-4`. **Install this one instead** if you use Tailwind.",
+    "The same tokens as a Tailwind v4 `@theme`, which is what generates `bg-action-primary` and `p-4`, plus the uses and the type scale. **Install this one instead** if you use Tailwind.",
   "blueprint.tokens.json":
     "The same system in the Design Tokens (DTCG) format. **Use this one** if you feed a token pipeline — Style Dictionary, Figma Tokens, or your own.",
   [HANDOVER_WORKSPACE_FILE]:

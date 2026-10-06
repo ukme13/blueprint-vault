@@ -52,6 +52,7 @@ const DOCUMENT_FORMATTERS = [
   "formatAccessibilityReportMarkdown",
   "formatBlueprintWorkspace",
   "formatLayoutCss",
+  "formatLayoutTailwind",
   "formatPaletteCss",
   "formatPaletteCssExport",
   "formatPaletteDesignTokens",
