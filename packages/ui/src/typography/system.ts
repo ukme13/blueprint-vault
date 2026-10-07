@@ -446,18 +446,16 @@ export interface TypeRoleValue {
 }
 
 /**
- * The line-height config this device uses: a typed override, else the shared
- * default.
+ * The line-height config this device uses: its own override, else the one
+ * the frame above it in the cascade has (phone follows tablet), else the
+ * shared default.
  */
 export function lineHeightConfigOnDevice(
   role: TypeRole,
   deviceId = "desktop",
 ): LineHeightConfig {
-  const id = canonicalSizeDeviceId(deviceId);
-  if (isLineHeightUnlinkedOnDevice(role, id)) {
-    return role.unlinkedLineHeights[id]!;
-  }
-  return role.lineHeight;
+  const key = cascadeKey(role.unlinkedLineHeights, deviceId);
+  return key ? role.unlinkedLineHeights[key]! : role.lineHeight;
 }
 
 /**
@@ -791,6 +789,26 @@ function hasDeviceKey(
   );
 }
 
+/**
+ * The frame a frame follows before the shared value: phone follows tablet.
+ * Desktop is the shared value itself, and tablet follows it directly.
+ */
+const CASCADE_PARENT: Readonly<Record<string, string>> = { phone: "tablet" };
+
+/**
+ * Which frame's own value this frame reads: its own, else its parent's in
+ * the cascade, else none — and the shared value applies.
+ */
+function cascadeKey(
+  map: Record<string, unknown> | undefined,
+  deviceId: string,
+): string | null {
+  const id = canonicalSizeDeviceId(deviceId);
+  if (hasDeviceKey(map, id)) return id;
+  const parent = CASCADE_PARENT[id];
+  return parent && hasDeviceKey(map, parent) ? parent : null;
+}
+
 function pruneDeviceMap<T>(
   map: Record<string, T> | undefined,
   allowed: Set<string>,
@@ -852,25 +870,24 @@ export function isLetterSpacingUnlinkedOnDevice(
 }
 
 /**
- * Tracking this device uses: a typed override, else the shared default.
+ * Tracking this device uses: its own override, else the frame above it in
+ * the cascade (phone follows tablet), else the shared default.
  */
 export function letterSpacingPxOnDevice(
   role: TypeRole,
   deviceId = "desktop",
 ): number {
-  const id = canonicalSizeDeviceId(deviceId);
-  if (isLetterSpacingUnlinkedOnDevice(role, id)) {
-    return role.unlinkedLetterSpacings[id]!;
-  }
-  return role.letterSpacingPx;
+  const key = cascadeKey(role.unlinkedLetterSpacings, deviceId);
+  return key ? role.unlinkedLetterSpacings[key]! : role.letterSpacingPx;
 }
 
 /**
  * Font size the em conversion uses for this frame.
  *
  * Shared tracking is a proportion of the desktop size, so interpolated frames
- * inherit it. A typed value on this frame was authored against the size on
- * screen, so that frame's size is the divisor.
+ * inherit it. A frame's own value — typed there, or followed from the frame
+ * above it in the cascade — is a length on that frame, so the size on screen
+ * is the divisor and the frame renders the number it shows.
  */
 export function letterSpacingEmSizePx(
   role: TypeRole,
@@ -878,17 +895,18 @@ export function letterSpacingEmSizePx(
   desktopSizePx: number,
   deviceId: string,
 ): number {
-  return isLetterSpacingUnlinkedOnDevice(role, deviceId)
-    ? fontSizePx
-    : desktopSizePx;
+  return cascadeKey(role.unlinkedLetterSpacings, deviceId) === null
+    ? desktopSizePx
+    : fontSizePx;
 }
 
 /**
  * Resolve a role's font size in px on one named device.
  *
  * Precedence: follow another role, else a typed size for this device, else a
- * step offset on the ramp `steps` describes, else another typed size (desktop,
- * then phone), else 16. `seen` breaks a cycle if two roles point at each other.
+ * step offset on the ramp `steps` describes, else the typed size of the frame
+ * above it in the cascade (phone follows tablet), else another typed size
+ * (desktop, then phone), else 16. `seen` breaks a cycle if two roles point at each other.
  */
 export function resolveRoleSizePx(
   system: TypeSystem,
@@ -919,6 +937,11 @@ export function resolveRoleSizePx(
     );
     if (step) return step.fontSizePx;
   }
+
+  /* Off the ramp, a frame follows the one above it in the cascade (phone
+     follows tablet) before the shared desktop size. */
+  const parent = cascadeKey(role.unlinkedSizes, id);
+  if (parent) return role.unlinkedSizes[parent]!;
 
   return (
     role.unlinkedSizes.desktop ??

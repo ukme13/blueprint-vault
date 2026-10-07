@@ -407,4 +407,29 @@ test.describe("The line-height field", () => {
     /* 16 × 1.8 is 28.8, snapped up to 32. */
     await expect(field).toHaveAttribute("placeholder", "32");
   });
+
+  test("phone follows tablet's own line height, and its ✕ goes back to it", async ({
+    seededPage: page,
+  }) => {
+    const field = lineHeightField(page);
+    const clear = page.getByRole("button", { name: `Clear ${LINE_HEIGHT}` });
+    const devices = page.getByRole("navigation", { name: "Preview devices" });
+
+    await devices.getByRole("button", { name: "Tablet" }).click();
+    await field.fill("28");
+    await field.blur();
+    await expect(unlinkedMarker(page)).toBeVisible();
+
+    await devices.getByRole("button", { name: "Phone" }).click();
+    await expect(field).toHaveValue("28");
+    await expect(unlinkedMarker(page)).toHaveCount(0);
+    await expect(clear).toHaveCount(0);
+
+    await field.fill("22");
+    await field.blur();
+    await expect(clear).toBeVisible();
+    await clear.click();
+    await expect(field).toHaveValue("28");
+    await expect(unlinkedMarker(page)).toHaveCount(0);
+  });
 });
