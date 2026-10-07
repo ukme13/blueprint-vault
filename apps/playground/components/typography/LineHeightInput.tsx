@@ -50,6 +50,11 @@ interface LineHeightInputProps {
   onChange: (config: LineHeightConfig) => void;
   /** Empty the field: drop this device's override, or hand shared back to auto. */
   onRelink: () => void;
+  /**
+   * The ✕: for an override, back to the shared value; for a typed shared
+   * value, back to auto. Absent on auto, and on a frame only following.
+   */
+  hasClear?: boolean;
 }
 
 export function LineHeightInput({
@@ -58,6 +63,7 @@ export function LineHeightInput({
   computedPx,
   onChange,
   onRelink,
+  hasClear = false,
 }: LineHeightInputProps) {
   /* A ratio is shown as itself and carries no unit, because it has none — it
      is a multiple of the font size rather than a length. */
@@ -135,7 +141,7 @@ export function LineHeightInput({
       value={edit.draft}
       /* The resolved height, muted, whenever the field is empty. */
       placeholder={String(computedPx)}
-      hasClear
+      hasClear={hasClear}
       onChange={(value: number | null) => {
         /* Emptying the field is an answer, not a step towards one, so it
            commits here rather than waiting for a blur.

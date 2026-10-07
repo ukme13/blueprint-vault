@@ -7,8 +7,10 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type MouseEvent,
   type ReactNode,
 } from "react";
+import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import {
   Popover,
@@ -53,6 +55,16 @@ export interface HybridTokenizedInputProps {
    * included, so the two cannot drift apart.
    */
   sheet?: (props: HybridTokenizedSheetProps) => ReactNode;
+  /**
+   * A typed value that overrides something this field would otherwise
+   * follow, such as a step on one device. It reads in the accent colour.
+   */
+  isOverride?: boolean;
+  /**
+   * Shown beside a typed value as a ✕ that drops it and follows again.
+   * Absent, there is nothing to go back to and no button.
+   */
+  onRelink?: () => void;
 }
 
 const FIELD_CLASS =
@@ -91,6 +103,8 @@ export function HybridTokenizedInput({
   isLabelHidden = false,
   onChange,
   sheet,
+  isOverride = false,
+  onRelink,
 }: HybridTokenizedInputProps) {
   const labelId = useId();
   const controlId = useId();
@@ -303,7 +317,8 @@ export function HybridTokenizedInput({
       ) : (
         <>
           <input
-            className="m-0 min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 font-mono text-xs text-fg-primary outline-none"
+            className={`m-0 min-w-0 flex-1 appearance-none border-0 bg-transparent p-0 font-mono text-xs outline-none ${isOverride ? "text-fg-accent" : "text-fg-primary"}`}
+            data-override={isOverride || undefined}
             id={controlId}
             inputMode="decimal"
             max={max}
@@ -341,6 +356,21 @@ export function HybridTokenizedInput({
             }}
             onKeyDown={onRawKeyDown}
           />
+          {onRelink ? (
+            <IconButton
+              icon={<Icon icon="close" size="sm" />}
+              label={`Clear ${label}`}
+              size="sm"
+              variant="ghost"
+              onClick={(event: MouseEvent) => {
+                /* A press moves focus first, so the field's blur has already
+                   written its draft by the time this runs, and the relink
+                   lands after it. */
+                event.stopPropagation();
+                onRelink();
+              }}
+            />
+          ) : null}
           <span data-hybrid-apply="">
             <IconButton
               icon={<VariableHexagonIcon />}

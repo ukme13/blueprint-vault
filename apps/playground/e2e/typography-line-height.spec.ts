@@ -9,6 +9,10 @@ import { readStoredWorkspace } from "./fixtures";
 /**
  * The line-height field.
  *
+ * Typed on desktop it is the shared value, which tablet and phone follow;
+ * typed on tablet or phone it is that frame's override, in the accent colour
+ * and with a ✕ that puts the frame back on the shared value.
+ *
  * The engine is covered in `packages/ui`. What only a browser can answer is
  * whether the field commits at all: it holds a draft and writes it on blur,
  * and Astryx's NumberInput takes `onBlur` through `BaseProps` rather than
@@ -134,13 +138,14 @@ test.describe("The line-height field", () => {
         mode: "px",
         value: 28,
       });
+    /* On desktop that is the shared value, not an override. */
     await expect
       .poll(() => storedSharedLineHeight(page))
       .toEqual({
-        mode: "ratio",
-        value: 1.5,
+        mode: "px",
+        value: 28,
       });
-    await expect(unlinkedMarker(page)).toBeVisible();
+    await expect(unlinkedMarker(page)).toHaveCount(0);
 
     await field.fill("1.25");
     await field.blur();
@@ -252,6 +257,55 @@ test.describe("The line-height field", () => {
     await expect(field).toBeFocused();
   });
 
+  test("shows a ✕ for a typed value, in the accent colour only for an override", async ({
+    seededPage: page,
+  }) => {
+    const field = lineHeightField(page);
+    const clear = page.getByRole("button", { name: `Clear ${LINE_HEIGHT}` });
+    const devices = page.getByRole("navigation", { name: "Preview devices" });
+    const colourOf = (variable: string) =>
+      page.evaluate((name) => {
+        const probe = document.createElement("span");
+        probe.style.color = `var(${name})`;
+        document.body.append(probe);
+        const colour = getComputedStyle(probe).color;
+        probe.remove();
+        return colour;
+      }, variable);
+    const accent = await colourOf("--color-fg-accent");
+    const iconColour = () =>
+      clear.locator("svg").evaluate((svg) => getComputedStyle(svg).color);
+
+    /* Typed on desktop: shared, so the default colour, and a ✕ back to auto. */
+    await field.fill("28");
+    await field.blur();
+    await expect(field).toHaveValue("28");
+    await expect(clear).toBeVisible();
+    await expect(field).not.toHaveCSS("color", accent);
+    expect(await iconColour()).not.toBe(accent);
+
+    /* Auto: a placeholder and no ✕. */
+    await field.focus();
+    await field.press("a");
+    await expect(field).toHaveValue("");
+    await expect(clear).toHaveCount(0);
+
+    /* Tablet following a typed shared value has nothing of its own to clear. */
+    await field.fill("28");
+    await field.blur();
+    await devices.getByRole("button", { name: "Tablet" }).click();
+    await expect(field).toHaveValue("28");
+    await expect(clear).toHaveCount(0);
+
+    /* Typed on tablet: an override, value and ✕ in the accent colour. */
+    await field.fill("32");
+    await field.blur();
+    await expect(unlinkedMarker(page)).toBeVisible();
+    await expect(clear).toBeVisible();
+    await expect(field).toHaveCSS("color", accent);
+    expect(await iconColour()).toBe(accent);
+  });
+
   test("auto follows the font size, and a pinned height does not", async ({
     seededPage: page,
   }) => {
@@ -305,7 +359,9 @@ test.describe("The line-height field", () => {
     seededPage: page,
   }) => {
     const field = lineHeightField(page);
+    const devices = page.getByRole("navigation", { name: "Preview devices" });
 
+    await devices.getByRole("button", { name: "Tablet" }).click();
     await field.fill("28");
     await field.blur();
     await expect(unlinkedMarker(page)).toBeVisible();

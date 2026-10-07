@@ -29,7 +29,7 @@ export function useDeviceRoleActions(
       onUnlinkSize: (id, fontSizePx) =>
         actions.unlinkRoleSize(id, deviceId, fontSizePx),
       onLineHeightOverride: (id, lineHeight) =>
-        actions.unlinkLineHeight(id, deviceId, lineHeight),
+        actions.setLineHeight(id, deviceId, lineHeight),
       onLineHeightRelink: (id) => actions.bindLineHeight(id, deviceId),
       onLetterSpacingOverride: (id, letterSpacingPx) =>
         actions.setLetterSpacing(id, deviceId, letterSpacingPx),

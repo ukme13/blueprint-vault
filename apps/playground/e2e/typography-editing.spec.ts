@@ -824,8 +824,12 @@ test.describe("Typography scale editing", () => {
     // 14 is not on the default ramp, so this is only reachable by typing.
     await fillHybridNumber(page, "body size", "14");
 
-    await expect(settings.getByLabel("body size")).toHaveValue("14");
-    await expect(settings.getByLabel("body size")).not.toContainText("+");
+    await expect(
+      settings.getByRole("textbox", { name: "body size" }),
+    ).toHaveValue("14");
+    await expect(
+      settings.getByRole("textbox", { name: "body size" }),
+    ).not.toContainText("+");
   });
 
   test("picking a step relinks the size to the ramp", async ({
@@ -841,6 +845,63 @@ test.describe("Typography scale editing", () => {
     await expect(settings.getByLabel("body size")).toContainText("+1");
   });
 
+  test("a typed size reads as an override, and its ✕ goes back to the step", async ({
+    seededPage: page,
+  }) => {
+    await showInspectorPanel(page, "Groups");
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const clear = settings.getByRole("button", { name: "Clear body size" });
+
+    /* Bound to a step: the chip, and nothing to clear. */
+    await expect(clear).toHaveCount(0);
+
+    await fillHybridNumber(page, "body size", "14");
+    const typed = settings.getByRole("textbox", { name: "body size" });
+    await expect(typed).toHaveAttribute("data-override", "true");
+    await expect(clear).toBeVisible();
+    /* The ✕ is in the accent colour with the value it clears. */
+    const accent = await page.evaluate(() => {
+      const probe = document.createElement("span");
+      probe.style.color = "var(--color-fg-accent)";
+      document.body.append(probe);
+      const colour = getComputedStyle(probe).color;
+      probe.remove();
+      return colour;
+    });
+    await expect(typed).toHaveCSS("color", accent);
+    expect(
+      await clear.locator("svg").evaluate((svg) => getComputedStyle(svg).color),
+    ).toBe(accent);
+
+    await clear.click();
+    await expect(settings.getByLabel("body size")).toContainText("+0");
+    await expect(clear).toHaveCount(0);
+  });
+
+  test("a typed three-digit size stays readable beside its two buttons", async ({
+    seededPage: page,
+  }) => {
+    /* The field holds the number, its ✕ and the step button. In a narrow
+       Size column the number was squeezed to no width and could not be
+       typed in. */
+    await showInspectorPanel(page, "Groups");
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await fillHybridNumber(page, "body size", "120");
+
+    const typed = settings.getByRole("textbox", { name: "body size" });
+    await expect(typed).toHaveValue("120");
+    await expect(
+      settings.getByRole("button", { name: "Clear body size" }),
+    ).toBeVisible();
+    expect(
+      await typed.evaluate(
+        (input: HTMLInputElement) =>
+          input.clientWidth > 0 && input.scrollWidth <= input.clientWidth,
+      ),
+      "the typed size is cropped",
+    ).toBe(true);
+  });
+
   test("typing a size on phone leaves desktop bound to the step", async ({
     seededPage: page,
   }) => {
@@ -850,8 +911,12 @@ test.describe("Typography scale editing", () => {
 
     await devices.getByRole("button", { name: "Phone" }).click();
     await fillHybridNumber(page, "body size", "14");
-    await expect(settings.getByLabel("body size")).toHaveValue("14");
-    await expect(settings.getByLabel("body size")).not.toContainText("+");
+    await expect(
+      settings.getByRole("textbox", { name: "body size" }),
+    ).toHaveValue("14");
+    await expect(
+      settings.getByRole("textbox", { name: "body size" }),
+    ).not.toContainText("+");
 
     await devices.getByRole("button", { name: "Desktop", exact: true }).click();
     await expect(settings.getByLabel("body size")).toContainText("+0");
