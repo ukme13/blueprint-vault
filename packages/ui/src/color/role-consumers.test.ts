@@ -153,7 +153,9 @@ describe("usedBy", () => {
 
        Two have none: `border.subtle` and `border.muted`, which were seeded as
        vocabulary rather than for a caller. They are what makes the removed-seed
-       list reachable at all.
+       list reachable at all. `border.strong` joined them when the bridge's
+       emphasized border moved to `border.default`, which left it nothing
+       outside the studio reading it.
 
        Held as an exact set rather than a count, so a role gaining or losing a
        consumer is a decision somebody makes here rather than a number that
@@ -163,7 +165,7 @@ describe("usedBy", () => {
       .filter((token) => !isLoadBearing(token.id))
       .map((token) => token.id);
 
-    expect(free).toEqual(["border.subtle", "border.muted"]);
+    expect(free).toEqual(["border.subtle", "border.muted", "border.strong"]);
   });
 
   it("follows the tone table rather than a copy of it", () => {

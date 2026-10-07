@@ -258,13 +258,13 @@ test.describe("Operating on a selection", () => {
     const editor = await openSemantics(page);
     await showBorders(editor);
 
-    /* All four: two nothing reads, two the Astryx bridge does. */
+    /* All four: three nothing reads, one the Astryx bridge does. */
     await rowBody(editor, "border.default").click();
     await rowBody(editor, "border.strong").click({ modifiers: ["Shift"] });
     await expect(selectionCount(editor)).toHaveText("4 selected");
 
-    /* The two that are read carry the mark; the two that are not do not. */
-    await expect(editor.locator("[data-locked]")).toHaveCount(2);
+    /* The one that is read carries the mark; the three that are not do not. */
+    await expect(editor.locator("[data-locked]")).toHaveCount(1);
 
     await page.keyboard.press("Delete");
     /* The Delete key asks too, naming how many. */
@@ -273,12 +273,9 @@ test.describe("Operating on a selection", () => {
       .getByRole("button", { name: "Delete tokens" })
       .click();
 
-    await expect(await rowIds(editor)).toEqual([
-      "border.default",
-      "border.strong",
-    ]);
-    /* And the refusal is said out loud, naming a row and what reads it —
-       otherwise two rows simply fail to disappear. */
+    await expect(await rowIds(editor)).toEqual(["border.default"]);
+    /* And the refusal is said out loud, naming the row and what reads it —
+       otherwise a row simply fails to disappear. */
     await expect(toastText(page)).toContainText(
       "border.default (Astryx bridge)",
     );

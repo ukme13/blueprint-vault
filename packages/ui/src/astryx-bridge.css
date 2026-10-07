@@ -68,7 +68,11 @@
 
     /* Borders & decoratives */
     --color-border: var(--color-border-default);
-    --color-border-emphasized: var(--color-border-strong);
+    /* Default rather than strong: every Astryx input draws its edge with
+       this, and neutral-300 read as harsh around a page of fields. Astryx
+       also uses it for hover edges, dividers and inset rings, which soften
+       with it. */
+    --color-border-emphasized: var(--color-border-default);
     --color-skeleton: var(--color-surface-skeleton);
     --color-track: var(--color-surface-track);
 
