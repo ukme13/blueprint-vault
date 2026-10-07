@@ -37,6 +37,8 @@ import {
   bindLineHeightOnDevice,
   unlinkLetterSpacingOnDevice,
   bindLetterSpacingOnDevice,
+  setLetterSpacingOnDevice,
+  duplicateGroup,
   pruneUnlinkedSizes,
   isRoleUnlinkedOnDevice,
   isLineHeightUnlinkedOnDevice,
@@ -951,6 +953,117 @@ describe("group auto line-height ratio", () => {
     expect(
       after.groups.find((group) => group.id === "body")!.autoLineHeightRatio,
     ).toBe(2.5);
+  });
+});
+
+describe("setLetterSpacingOnDevice", () => {
+  const body = (s: TypeSystem) => s.roles.find((r) => r.id === "body")!;
+
+  it("makes a desktop value the shared one, so phone and tablet follow it", () => {
+    const after = setLetterSpacingOnDevice(system(), "body", "desktop", 0.5);
+    expect(body(after).letterSpacingPx).toBe(0.5);
+    expect(body(after).unlinkedLetterSpacings).toEqual({});
+    expect(letterSpacingPxOnDevice(body(after), "phone")).toBe(0.5);
+    expect(letterSpacingPxOnDevice(body(after), "tablet")).toBe(0.5);
+    expect(isLetterSpacingUnlinkedOnDevice(body(after), "phone")).toBe(false);
+  });
+
+  it("clears a desktop override a project already holds", () => {
+    /* What the old edit wrote: desktop unlinked, the shared value still 0. */
+    const before = system({
+      roles: [role("body", "body", { unlinkedLetterSpacings: { desktop: 1 } })],
+    });
+    const after = setLetterSpacingOnDevice(before, "body", "desktop", 0.25);
+    expect(isLetterSpacingUnlinkedOnDevice(body(after), "desktop")).toBe(false);
+    expect(letterSpacingPxOnDevice(body(after), "desktop")).toBe(0.25);
+    expect(letterSpacingPxOnDevice(body(after), "tablet")).toBe(0.25);
+  });
+
+  it("keeps a phone or tablet value that frame's own", () => {
+    const shared = setLetterSpacingOnDevice(system(), "body", "desktop", 0.5);
+    const phone = setLetterSpacingOnDevice(shared, "body", "phone", -0.2);
+    expect(body(phone).letterSpacingPx).toBe(0.5);
+    expect(letterSpacingPxOnDevice(body(phone), "phone")).toBe(-0.2);
+    expect(letterSpacingPxOnDevice(body(phone), "tablet")).toBe(0.5);
+
+    /* A later desktop edit leaves the phone's own value where it is. */
+    const again = setLetterSpacingOnDevice(phone, "body", "desktop", 1);
+    expect(letterSpacingPxOnDevice(body(again), "phone")).toBe(-0.2);
+    expect(letterSpacingPxOnDevice(body(again), "tablet")).toBe(1);
+
+    /* Relinking the phone takes it back to the shared value. */
+    const relinked = bindLetterSpacingOnDevice(again, "body", "phone");
+    expect(letterSpacingPxOnDevice(body(relinked), "phone")).toBe(1);
+  });
+});
+
+describe("duplicateGroup", () => {
+  const before = () =>
+    system({
+      groups: [
+        { ...free("body", "size"), label: "Body" },
+        { ...free("caption", "number"), label: "Caption" },
+      ],
+      roles: [
+        role("body-sm", "body", { fontWeight: 500, letterSpacingPx: 0.3 }),
+        role("body-xs", "body", { sameAsRoleId: "body-sm" }),
+        role("caption", "caption", { sameAsRoleId: "body-xs" }),
+      ],
+    });
+
+  it("puts the copy directly under the source, with its own label and id", () => {
+    const after = duplicateGroup(before(), "body");
+    expect(after.groups.map((g) => [g.id, g.label])).toEqual([
+      ["body", "Body"],
+      ["body-copy", "Body (Copy)"],
+      ["caption", "Caption"],
+    ]);
+    expect(after.groups[1]!.indexing).toBe("size");
+  });
+
+  it("copies every role under the copy's names, after the source's roles", () => {
+    const after = duplicateGroup(before(), "body");
+    expect(after.roles.map((r) => [r.id, r.groupId])).toEqual([
+      ["body-sm", "body"],
+      ["body-xs", "body"],
+      ["body-copy-sm", "body-copy"],
+      ["body-copy-xs", "body-copy"],
+      ["caption", "caption"],
+    ]);
+    const copy = after.roles.find((r) => r.id === "body-copy-sm")!;
+    expect(copy.fontWeight).toBe(500);
+    expect(copy.letterSpacingPx).toBe(0.3);
+    expect(copy.name).toBe("body-copy-sm");
+  });
+
+  it("points a follow inside the group at the copy, and leaves the source alone", () => {
+    const after = duplicateGroup(before(), "body");
+    const find = (id: string) => after.roles.find((r) => r.id === id)!;
+    expect(find("body-copy-xs").sameAsRoleId).toBe("body-copy-sm");
+    expect(find("body-xs").sameAsRoleId).toBe("body-sm");
+    expect(find("caption").sameAsRoleId).toBe("body-xs");
+  });
+
+  it("takes the next free id when a copy already exists", () => {
+    const twice = duplicateGroup(duplicateGroup(before(), "body"), "body");
+    expect(twice.groups.map((g) => g.id)).toEqual([
+      "body",
+      "body-copy-2",
+      "body-copy",
+      "caption",
+    ]);
+    const ids = twice.roles.map((r) => r.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("copies an empty group, and ignores an unknown id", () => {
+    const empty = system({ groups: [free("a", "number")], roles: [] });
+    expect(duplicateGroup(empty, "a").groups.map((g) => g.id)).toEqual([
+      "a",
+      "a-copy",
+    ]);
+    const s = before();
+    expect(duplicateGroup(s, "nope")).toBe(s);
   });
 });
 

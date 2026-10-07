@@ -6,9 +6,8 @@ import {
   ChevronUp,
   GripVertical,
   Plus,
-  Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
@@ -28,7 +27,7 @@ import {
   type TypeSystem,
   type LineHeightConfig,
 } from "@blueprint/ui";
-import { ConfirmDialog } from "../ConfirmDialog";
+import { RoleGroupMenu, useLeavingGroup } from "./RoleGroupMenu";
 import { RoleRow } from "./RoleRow";
 import { useAddedRoleId } from "./use-added-role";
 import styles from "./typography-workspace.module.css";
@@ -47,6 +46,10 @@ export interface RoleGroupEditorProps {
   canAddRole: boolean;
   onAddRole: () => void;
   onRemove: () => void;
+  /** Copy the group and its roles directly under it. */
+  onDuplicate: () => void;
+  /** Just added or duplicated: it arrives visibly and is scrolled to. */
+  justAdded?: boolean;
   onLabelChange: (label: string) => void;
   onLabelCommit: () => void;
   onIndexingChange: (indexing: TypeIndexing) => void;
@@ -85,6 +88,8 @@ export function RoleGroupEditor({
   canAddRole,
   onAddRole,
   onRemove,
+  onDuplicate,
+  justAdded = false,
   onLabelChange,
   onLabelCommit,
   onIndexingChange,
@@ -100,9 +105,16 @@ export function RoleGroupEditor({
   accordion,
 }: RoleGroupEditorProps) {
   const isOpen = accordion ? accordion.isOpen : true;
-  /* On a phone, removing a group asks first: the trash sits among fields a
-     thumb is tapping, and a group takes its roles with it. */
-  const [isConfirmingRemove, setIsConfirmingRemove] = useState(false);
+  const { isLeaving, height: leavingHeight, leave } = useLeavingGroup(onRemove);
+  const cardRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!justAdded) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+    cardRef.current?.scrollIntoView({
+      block: "nearest",
+      behavior: reduce.matches ? "auto" : "smooth",
+    });
+  }, [justAdded]);
   const bodyId = `role-group-${group.id}`;
   /* The card is the sortable, and the handle is the only thing that starts a
      drag: the card is full of fields, and a press on one of them is somebody
@@ -122,11 +134,20 @@ export function RoleGroupEditor({
 
   return (
     <div
-      ref={setNodeRef}
+      ref={(node) => {
+        setNodeRef(node);
+        cardRef.current = node;
+      }}
+      aria-hidden={isLeaving || undefined}
       aria-label={group.label}
-      className={`${styles.settingGroup} flex flex-col gap-3 rounded-lg border border-border-default bg-surface-raised p-4`}
+      className={`${styles.settingGroup} ${justAdded ? styles.roleGroupAdded : ""} ${isLeaving ? styles.roleGroupLeaving : ""} flex flex-col gap-3 rounded-lg border border-border-default bg-surface-raised p-4`}
+      data-just-added={justAdded || undefined}
       role="group"
       style={{
+        /* The height it folds from, measured as it starts to leave. */
+        ...((leavingHeight === null
+          ? {}
+          : { "--group-height": `${leavingHeight}px` }) as CSSProperties),
         /* Translate rather than Transform.
 
            `CSS.Transform` is translate plus scale, and the scale is measured
@@ -268,17 +289,13 @@ export function RoleGroupEditor({
                   <Plus aria-hidden="true" />
                 </Button>
               )}
-              <Button
-                aria-label={`Remove ${group.label} group`}
-                scheme="neutral"
-                size="icon"
-                variant="outlined"
-                onClick={
-                  accordion ? () => setIsConfirmingRemove(true) : onRemove
-                }
-              >
-                <Trash2 aria-hidden="true" />
-              </Button>
+              <RoleGroupMenu
+                alwaysConfirm={Boolean(accordion)}
+                label={group.label}
+                roleCount={roles.length}
+                onDelete={() => leave(cardRef.current)}
+                onDuplicate={onDuplicate}
+              />
             </div>
           </div>
 
@@ -335,24 +352,6 @@ export function RoleGroupEditor({
             </Button>
           )}
         </div>
-      )}
-
-      {accordion && (
-        <ConfirmDialog
-          actionLabel="Delete group"
-          description={
-            roles.length === 0
-              ? "This group has no roles."
-              : `Its ${roles.length} ${roles.length === 1 ? "role goes" : "roles go"} with it.`
-          }
-          isOpen={isConfirmingRemove}
-          title={`Delete group "${group.label}"?`}
-          onAction={() => {
-            setIsConfirmingRemove(false);
-            onRemove();
-          }}
-          onCancel={() => setIsConfirmingRemove(false)}
-        />
       )}
     </div>
   );

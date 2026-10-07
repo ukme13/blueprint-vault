@@ -2,9 +2,9 @@ import { expect, showInspectorPanel, test } from "./typography-fixtures";
 import { readStoredWorkspace } from "./fixtures";
 
 /**
- * Letter-spacing follows the same unlink/relink rule as line-height: typing
- * on one preview device pins that frame and leaves the shared value on the
- * rest. Clearing the override puts the frame back on the shared number.
+ * Letter-spacing on desktop is the shared value, which phone and tablet
+ * follow. Typing on phone or tablet pins that frame and leaves the shared
+ * value on the rest; clearing the override puts the frame back on it.
  */
 
 const LETTER_SPACING = "body letter spacing";
@@ -63,11 +63,33 @@ test.describe("The letter-spacing field", () => {
     await expect.poll(() => storedSharedTracking(page)).toBe(0);
   });
 
+  test("typing tracking on desktop sets the shared value phone and tablet follow", async ({
+    seededPage: page,
+  }) => {
+    const field = letterSpacingField(page);
+    const devices = page.getByRole("navigation", { name: "Preview devices" });
+
+    await field.fill("0.5");
+    await field.blur();
+    await expect(field).toHaveValue("0.5");
+    /* Desktop is the reference frame, so its value is not an override. */
+    await expect(unlinkedMarker(page)).toHaveCount(0);
+    await expect.poll(() => storedSharedTracking(page)).toBe(0.5);
+
+    for (const device of ["Tablet", "Phone"]) {
+      await devices.getByRole("button", { name: device }).click();
+      await expect(field).toHaveValue("0.5");
+      await expect(unlinkedMarker(page)).toHaveCount(0);
+    }
+  });
+
   test("clearing an override restores the shared tracking", async ({
     seededPage: page,
   }) => {
     const field = letterSpacingField(page);
+    const devices = page.getByRole("navigation", { name: "Preview devices" });
 
+    await devices.getByRole("button", { name: "Tablet" }).click();
     await field.fill("0.5");
     await field.blur();
     await expect(unlinkedMarker(page)).toBeVisible();

@@ -17,8 +17,9 @@ import {
   unlinkRoleSizeOnDevice,
   unlinkLineHeightOnDevice,
   bindLineHeightOnDevice,
-  unlinkLetterSpacingOnDevice,
+  setLetterSpacingOnDevice,
   bindLetterSpacingOnDevice,
+  duplicateGroup,
   updateGroup,
   updateRole,
   updateRoleValue,
@@ -46,7 +47,8 @@ export interface TypographySystemActions {
     lineHeight: LineHeightConfig,
   ) => void;
   bindLineHeight: (id: string, deviceId: string) => void;
-  unlinkLetterSpacing: (
+  /** Desktop's value is the shared one; any other frame's is its own. */
+  setLetterSpacing: (
     id: string,
     deviceId: string,
     letterSpacingPx: number,
@@ -73,6 +75,8 @@ export interface TypographySystemActions {
   ) => void;
   setLocalFont: (id: string, slot: FontSlot, family: string) => void;
   removeGroup: (groupId: string) => void;
+  /** Copy a group and its roles directly under it. */
+  duplicateGroup: (groupId: string) => void;
 }
 
 /**
@@ -139,10 +143,10 @@ export function useTypographySystem(
         ),
       bindLineHeight: (id, deviceId) =>
         editSystem((system) => bindLineHeightOnDevice(system, id, deviceId)),
-      unlinkLetterSpacing: (id, deviceId, letterSpacingPx) =>
+      setLetterSpacing: (id, deviceId, letterSpacingPx) =>
         editSystem(
           (system) =>
-            unlinkLetterSpacingOnDevice(system, id, deviceId, letterSpacingPx),
+            setLetterSpacingOnDevice(system, id, deviceId, letterSpacingPx),
           `role:${id}:letterSpacing:${deviceId}`,
         ),
       bindLetterSpacing: (id, deviceId) =>
@@ -183,6 +187,8 @@ export function useTypographySystem(
         editSystem((system) => setLocalFont(system, id, family, slot)),
       removeGroup: (groupId) =>
         editSystem((system) => removeGroup(system, groupId)),
+      duplicateGroup: (groupId) =>
+        editSystem((system) => duplicateGroup(system, groupId)),
     };
   }, [setProject]);
 }

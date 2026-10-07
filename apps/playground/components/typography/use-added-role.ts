@@ -40,3 +40,30 @@ export function useAddedRoleId(
 
   return addedId;
 }
+
+/**
+ * The id of the group that was just added or duplicated, or null.
+ *
+ * The one id that is new when the list grew by exactly one. A preset swaps
+ * the groups wholesale and a rename changes an id without adding one, so
+ * neither marks anything. Worked out during render, like the role above, so
+ * the card mounts already marked.
+ */
+export function useAddedGroupId(groups: readonly TypeGroup[]): string | null {
+  const ids = groups.map((group) => group.id);
+  const key = ids.join(" ");
+  const [seen, setSeen] = useState({ key, ids });
+  const [addedId, setAddedId] = useState<string | null>(null);
+
+  if (key !== seen.key) {
+    const fresh = ids.filter((id) => !seen.ids.includes(id));
+    setSeen({ key, ids });
+    setAddedId(
+      ids.length === seen.ids.length + 1 && fresh.length === 1
+        ? fresh[0]!
+        : null,
+    );
+  }
+
+  return addedId;
+}
