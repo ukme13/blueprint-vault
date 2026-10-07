@@ -38,7 +38,8 @@ export interface RoleRowProps {
   /** Just added by Add role: plays an entrance and scrolls into view. */
   justAdded?: boolean;
   onBindStep: (id: string, stepOffset: number) => void;
-  onUnlinkSize: (id: string, fontSizePx: number) => void;
+  onSetSize: (id: string, fontSizePx: number) => void;
+  onSizeRelink: (id: string) => void;
   onLineHeightOverride: (id: string, lineHeight: LineHeightConfig) => void;
   onLineHeightRelink: (id: string) => void;
   onLetterSpacingOverride: (id: string, letterSpacingPx: number) => void;
@@ -56,7 +57,8 @@ export function RoleRow({
   sizePresets,
   justAdded = false,
   onBindStep,
-  onUnlinkSize,
+  onSetSize,
+  onSizeRelink,
   onLineHeightOverride,
   onLineHeightRelink,
   onLetterSpacingOverride,
@@ -80,7 +82,10 @@ export function RoleRow({
       behavior: reduce.matches ? "auto" : "smooth",
     });
   }, [justAdded]);
+  const isDesktop = canonicalSizeDeviceId(deviceId) === "desktop";
   const sizeUnlinked = isRoleUnlinkedOnDevice(role, deviceId);
+  /* A size typed on Desktop is the shared one, not an override. */
+  const sizeOverride = sizeUnlinked && !isDesktop;
   const lineHeightUnlinked = isLineHeightUnlinkedOnDevice(role, deviceId);
   const lineHeight = lineHeightConfigOnDevice(role, deviceId);
   /* The ✕ on line height: an override clears back to the shared value; a
@@ -88,9 +93,7 @@ export function RoleRow({
      frame that only follows the shared value has nothing of its own to
      clear. */
   const lineHeightClearable =
-    lineHeightUnlinked ||
-    (canonicalSizeDeviceId(deviceId) === "desktop" &&
-      lineHeight.mode !== "auto");
+    lineHeightUnlinked || (isDesktop && lineHeight.mode !== "auto");
   const letterSpacingUnlinked = isLetterSpacingUnlinkedOnDevice(role, deviceId);
   const fontSizePx = resolveRoleSizePx(system, steps, role, deviceId);
 
@@ -111,7 +114,7 @@ export function RoleRow({
           column headers are hidden and a role is a small card of fields. On a
           wider panel the caption is hidden and the header names the column. */}
       <div
-        className={`${styles.sizeCell} ${sizeUnlinked ? styles.sizeUnlinked : ""}`}
+        className={`${styles.sizeCell} ${sizeOverride ? styles.sizeUnlinked : ""}`}
       >
         <span aria-hidden="true" className={styles.roleFieldCaption}>
           Size
@@ -132,21 +135,24 @@ export function RoleRow({
             fontSizePx,
           )}
           valueSuffix="px"
-          /* A typed size overrides the step on this device: accent, with a
-             ✕ back to the step. A role with no step has nothing to go back
-             to, so no ✕. */
-          isOverride={sizeUnlinked}
+          /* Typed on Tablet or Phone, a size is that frame's override:
+             accent, with a ✕ back to what it followed. Typed on Desktop it is
+             the shared size, in the default colour, and has nothing to go back
+             to — unless a project from before kept its step beside it. */
+          isOverride={sizeOverride}
           onRelink={
-            sizeUnlinked && role.stepOffset !== null
-              ? () => onBindStep(role.id, role.stepOffset!)
-              : undefined
+            sizeOverride
+              ? () => onSizeRelink(role.id)
+              : sizeUnlinked && role.stepOffset !== null
+                ? () => onBindStep(role.id, role.stepOffset!)
+                : undefined
           }
           onChange={(next) => {
             if (next.isPreset && next.presetId !== undefined) {
               onBindStep(role.id, Number(next.presetId));
               return;
             }
-            onUnlinkSize(role.id, next.value);
+            onSetSize(role.id, next.value);
           }}
         />
       </div>

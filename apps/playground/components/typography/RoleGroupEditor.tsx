@@ -56,7 +56,8 @@ export interface RoleGroupEditorProps {
   onAutoLineHeightRatioChange: (ratio: number) => void;
   onRoleChange: (id: string, patch: Partial<TypeRole>) => void;
   onBindStep: (id: string, stepOffset: number) => void;
-  onUnlinkSize: (id: string, fontSizePx: number) => void;
+  onSetSize: (id: string, fontSizePx: number) => void;
+  onSizeRelink: (id: string) => void;
   onLineHeightOverride: (id: string, lineHeight: LineHeightConfig) => void;
   onLineHeightRelink: (id: string) => void;
   onLetterSpacingOverride: (id: string, letterSpacingPx: number) => void;
@@ -96,7 +97,8 @@ export function RoleGroupEditor({
   onAutoLineHeightRatioChange,
   onRoleChange,
   onBindStep,
-  onUnlinkSize,
+  onSetSize,
+  onSizeRelink,
   onLineHeightOverride,
   onLineHeightRelink,
   onLetterSpacingOverride,
@@ -332,7 +334,8 @@ export function RoleGroupEditor({
                   onLetterSpacingRelink={onLetterSpacingRelink}
                   onRoleChange={onRoleChange}
                   onRoleRemove={onRoleRemove}
-                  onUnlinkSize={onUnlinkSize}
+                  onSetSize={onSetSize}
+                  onSizeRelink={onSizeRelink}
                 />
               ))}
             </div>

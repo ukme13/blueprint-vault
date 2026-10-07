@@ -31,3 +31,22 @@ export function VariableHexagonIcon() {
     </svg>
   );
 }
+
+/** The ✕ beside a typed value, sized for the field's compact buttons. */
+export function CloseIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height="12"
+      stroke="currentColor"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      width="12"
+    >
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  );
+}

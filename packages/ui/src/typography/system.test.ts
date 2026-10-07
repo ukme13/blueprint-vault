@@ -36,6 +36,8 @@ import {
   unlinkLineHeightOnDevice,
   bindLineHeightOnDevice,
   setLineHeightOnDevice,
+  setSizeOnDevice,
+  relinkSizeOnDevice,
   unlinkLetterSpacingOnDevice,
   bindLetterSpacingOnDevice,
   setLetterSpacingOnDevice,
@@ -890,6 +892,51 @@ describe("updateGroup", () => {
     const after = updateGroup(before, "caption", { label: "Overline" });
     expect(after.groups[0]!.label).toBe("Overline");
     expect(after.roles[0]!.id).toBe("caption");
+  });
+});
+
+describe("setSizeOnDevice", () => {
+  const steps = generateTypeSteps(16, 1.25, 9);
+  const body = (s: TypeSystem) => s.roles.find((r) => r.id === "body")!;
+  const size = (s: TypeSystem, device: string) =>
+    resolveRoleSizePx(s, steps, body(s), device);
+
+  it("makes a desktop size the shared one, so tablet and phone follow it", () => {
+    const after = setSizeOnDevice(system(), "body", "desktop", 18);
+    expect(body(after).stepOffset).toBeNull();
+    expect(body(after).unlinkedSizes).toEqual({ desktop: 18 });
+    expect(size(after, "tablet")).toBe(18);
+    expect(size(after, "phone")).toBe(18);
+    /* Following, not overriding: no frame but desktop holds a size. */
+    expect(isRoleUnlinkedOnDevice(body(after), "phone")).toBe(false);
+  });
+
+  it("keeps a tablet or phone size that frame's own", () => {
+    const shared = setSizeOnDevice(system(), "body", "desktop", 18);
+    const phone = setSizeOnDevice(shared, "body", "phone", 14);
+    expect(size(phone, "phone")).toBe(14);
+    expect(size(phone, "tablet")).toBe(18);
+    expect(size(phone, "desktop")).toBe(18);
+
+    /* A later desktop edit leaves the phone's own size where it is. */
+    const again = setSizeOnDevice(phone, "body", "desktop", 20);
+    expect(size(again, "phone")).toBe(14);
+    expect(size(again, "tablet")).toBe(20);
+  });
+
+  it("leaves the step in place for an override on a smaller frame", () => {
+    const phone = setSizeOnDevice(system(), "body", "phone", 14);
+    expect(body(phone).stepOffset).toBe(0);
+    expect(size(phone, "phone")).toBe(14);
+    expect(size(phone, "desktop")).toBe(16);
+  });
+
+  it("relinks a frame to what it followed: the step, or the desktop size", () => {
+    const onStep = setSizeOnDevice(system(), "body", "phone", 14);
+    expect(size(relinkSizeOnDevice(onStep, "body", "phone"), "phone")).toBe(16);
+
+    const shared = setSizeOnDevice(onStep, "body", "desktop", 18);
+    expect(size(relinkSizeOnDevice(shared, "body", "phone"), "phone")).toBe(18);
   });
 });
 

@@ -10,8 +10,7 @@ import {
   type MouseEvent,
   type ReactNode,
 } from "react";
-import { Icon } from "@astryxdesign/core/Icon";
-import { IconButton } from "@astryxdesign/core/IconButton";
+import { Tooltip } from "@astryxdesign/core/Tooltip";
 import {
   Popover,
   type PopoverTriggerRenderProps,
@@ -30,7 +29,11 @@ import {
   type HybridTokenizedValue,
 } from "./hybrid-tokenized-input";
 import { HybridTokenizedPresetList } from "./HybridTokenizedPresetList";
-import { ChevronDownIcon, VariableHexagonIcon } from "./hybrid-tokenized-icons";
+import {
+  ChevronDownIcon,
+  CloseIcon,
+  VariableHexagonIcon,
+} from "./hybrid-tokenized-icons";
 
 export interface HybridTokenizedInputProps {
   label: string;
@@ -69,6 +72,12 @@ export interface HybridTokenizedInputProps {
 
 const FIELD_CLASS =
   "flex h-[var(--size-element-md)] w-full cursor-text items-center gap-[var(--spacing-2)] rounded-[var(--radius-element)] border border-border-default bg-surface-subtle px-[var(--spacing-2)] transition-colors hover:border-border-strong focus-within:border-fg-accent focus-within:ring-1 focus-within:ring-fg-accent";
+
+/* The ✕ and the step button beside a typed value: 20px, muted, and close
+   together, so they sit with the number rather than as two heavy 28px
+   buttons in a 32px field. */
+const MINI_BUTTON_CLASS =
+  "inline-flex size-5 shrink-0 cursor-pointer items-center justify-center rounded-[var(--radius-inner)] border-0 bg-transparent p-0 text-fg-muted transition-colors hover:bg-surface-raised hover:text-fg-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring";
 
 const CHIP_CLASS =
   "inline-flex h-6 max-w-full min-w-0 items-center whitespace-nowrap gap-[var(--spacing-1)] rounded-[var(--radius-inner)] border border-border-default bg-surface-raised px-[var(--spacing-2)] font-mono text-xs text-fg-primary hover:bg-surface-overlay focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus-ring";
@@ -356,30 +365,35 @@ export function HybridTokenizedInput({
             }}
             onKeyDown={onRawKeyDown}
           />
-          {onRelink ? (
-            <IconButton
-              icon={<Icon icon="close" size="sm" />}
-              label={`Clear ${label}`}
-              size="sm"
-              variant="ghost"
-              onClick={(event: MouseEvent) => {
-                /* A press moves focus first, so the field's blur has already
-                   written its draft by the time this runs, and the relink
-                   lands after it. */
-                event.stopPropagation();
-                onRelink();
-              }}
-            />
-          ) : null}
-          <span data-hybrid-apply="">
-            <IconButton
-              icon={<VariableHexagonIcon />}
-              label="Apply preset"
-              size="sm"
-              tooltip="Apply preset"
-              variant="ghost"
-              onClick={trigger.onClick}
-            />
+          <span className="inline-flex shrink-0 items-center gap-1">
+            {onRelink ? (
+              <Tooltip content="Clear" hasHoverIndication={false}>
+                <button
+                  aria-label={`Clear ${label}`}
+                  className={MINI_BUTTON_CLASS}
+                  type="button"
+                  onClick={(event: MouseEvent) => {
+                    /* A press moves focus first, so the field's blur has
+                       already written its draft by the time this runs, and
+                       the relink lands after it. */
+                    event.stopPropagation();
+                    onRelink();
+                  }}
+                >
+                  <CloseIcon />
+                </button>
+              </Tooltip>
+            ) : null}
+            <Tooltip content="Apply preset" hasHoverIndication={false}>
+              <button
+                aria-label="Apply preset"
+                className={MINI_BUTTON_CLASS}
+                type="button"
+                onClick={trigger.onClick}
+              >
+                <VariableHexagonIcon />
+              </button>
+            </Tooltip>
           </span>
         </>
       )}
