@@ -754,15 +754,18 @@
   /* Role as wide as its longest token, on one line: a name like
      subtitle-display-1 broke at its hyphens.
 
-     Size is 6.5-7.5rem. It once took the widest share and squeezed the
+     Size is 7.25-8rem. It once took the widest share and squeezed the
      names, but it cannot go below what a typed value needs: "120" beside
-     its ✕ and the step button. At 5.5rem the number had no width left and
-     could not be typed in. Weight is capped at 4.25rem.
+     its ✕ and the step button, two 28px buttons and the field's padding.
+     At 5.5rem the number had no width left and could not be typed in; at
+     6.5rem it had 14px of the 22px "120" takes. 7.25rem leaves a little over,
+     because a monospace digit is not the same width in every font. Weight
+     is capped at 4.25rem.
 
      Line height has the room instead, because it carries a unit and a ✕ —
      "120 px" was cropped at 4.5rem. Spacing sits between the two. */
   grid-template-columns:
-    minmax(max-content, 1.2fr) minmax(6.5rem, 7.5rem) minmax(6rem, 1fr)
+    minmax(max-content, 1.2fr) minmax(7.25rem, 8rem) minmax(6rem, 1fr)
     minmax(3.75rem, 4.25rem) minmax(6rem, 1fr) minmax(5.25rem, 0.8fr) auto;
   column-gap: var(--spacing-2);
   row-gap: var(--spacing-2);
