@@ -812,6 +812,16 @@
   color: var(--color-fg-accent);
 }
 
+/* An override's ✕ is in the accent colour with its value; a shared value's
+   is the default. Set on the icon rather than the button: Astryx gives its
+   buttons a colour no module selector outranks, and the icon inherits it
+   unless told otherwise. */
+.sizeUnlinked button[aria-label^="Clear"] svg,
+.lineHeightUnlinked button[aria-label^="Clear"] svg,
+.letterSpacingUnlinked button[aria-label^="Clear"] svg {
+  color: var(--color-fg-accent);
+}
+
 /* Auto: the resolved height as a muted placeholder, so a followed default
    never reads like a pinned number. */
 .lineHeightCell :global(input)::placeholder {

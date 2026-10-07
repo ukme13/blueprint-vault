@@ -51,8 +51,8 @@ interface LineHeightInputProps {
   /** Empty the field: drop this device's override, or hand shared back to auto. */
   onRelink: () => void;
   /**
-   * The ✕, for an override on this device only. A shared value has none: it
-   * is cleared by emptying the field, or with the A key, back to auto.
+   * The ✕: for an override, back to the shared value; for a typed shared
+   * value, back to auto. Absent on auto, and on a frame only following.
    */
   hasClear?: boolean;
 }

@@ -788,6 +788,19 @@ test.describe("Typography scale editing", () => {
     const typed = settings.getByRole("textbox", { name: "body size" });
     await expect(typed).toHaveAttribute("data-override", "true");
     await expect(clear).toBeVisible();
+    /* The ✕ is in the accent colour with the value it clears. */
+    const accent = await page.evaluate(() => {
+      const probe = document.createElement("span");
+      probe.style.color = "var(--color-fg-accent)";
+      document.body.append(probe);
+      const colour = getComputedStyle(probe).color;
+      probe.remove();
+      return colour;
+    });
+    await expect(typed).toHaveCSS("color", accent);
+    expect(
+      await clear.locator("svg").evaluate((svg) => getComputedStyle(svg).color),
+    ).toBe(accent);
 
     await clear.click();
     await expect(settings.getByLabel("body size")).toContainText("+0");

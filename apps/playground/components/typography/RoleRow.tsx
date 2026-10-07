@@ -8,6 +8,7 @@ import {
   HybridTokenizedInput,
   hybridPresetsFromTypeSteps,
   hybridValueFromStepOffset,
+  canonicalSizeDeviceId,
   isRoleUnlinkedOnDevice,
   isLineHeightUnlinkedOnDevice,
   isLetterSpacingUnlinkedOnDevice,
@@ -78,6 +79,15 @@ export function RoleRow({
   }, [justAdded]);
   const sizeUnlinked = isRoleUnlinkedOnDevice(role, deviceId);
   const lineHeightUnlinked = isLineHeightUnlinkedOnDevice(role, deviceId);
+  const lineHeight = lineHeightConfigOnDevice(role, deviceId);
+  /* The ✕ on line height: an override clears back to the shared value; a
+     typed shared value, on Desktop where it is set, clears back to auto. A
+     frame that only follows the shared value has nothing of its own to
+     clear. */
+  const lineHeightClearable =
+    lineHeightUnlinked ||
+    (canonicalSizeDeviceId(deviceId) === "desktop" &&
+      lineHeight.mode !== "auto");
   const letterSpacingUnlinked = isLetterSpacingUnlinkedOnDevice(role, deviceId);
   const fontSizePx = resolveRoleSizePx(system, steps, role, deviceId);
 
@@ -97,7 +107,9 @@ export function RoleRow({
       {/* Each field carries a caption the phone shows, where the table's
           column headers are hidden and a role is a small card of fields. On a
           wider panel the caption is hidden and the header names the column. */}
-      <div className={styles.sizeCell}>
+      <div
+        className={`${styles.sizeCell} ${sizeUnlinked ? styles.sizeUnlinked : ""}`}
+      >
         <span aria-hidden="true" className={styles.roleFieldCaption}>
           Size
         </span>
@@ -174,9 +186,9 @@ export function RoleRow({
           Line height
         </span>
         <LineHeightInput
-          hasClear={lineHeightUnlinked}
+          hasClear={lineHeightClearable}
           label={`${role.id} line height`}
-          config={lineHeightConfigOnDevice(role, deviceId)}
+          config={lineHeight}
           computedPx={
             resolveLineHeight(role, fontSizePx, deviceId, system)
               .computedLineHeightPx

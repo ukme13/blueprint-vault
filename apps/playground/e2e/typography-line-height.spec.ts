@@ -192,11 +192,11 @@ test.describe("The line-height field", () => {
   }) => {
     const field = lineHeightField(page);
 
-    /* A shared value has no ✕ — that is for an override — and emptying the
-       field from the keyboard does not commit: NumberInput puts the last
-       value back on blur. The A key is the way back to auto. */
-    await field.focus();
-    await field.press("a");
+    /* The clear button, which is the gesture the placeholder invites. It
+       commits on blur like any other edit, so the model does not change until
+       focus leaves — `fill("")` looks the same on screen and never gets
+       there, because it does not emit the events the input listens for. */
+    await page.getByRole("button", { name: `Clear ${LINE_HEIGHT}` }).click();
     await page.getByLabel("body font weight").click();
     await expect(field).toHaveValue("");
 
@@ -207,38 +207,69 @@ test.describe("The line-height field", () => {
     await expect(field).toHaveAttribute("placeholder", "28");
   });
 
-  test("shows the ✕ for an override on this device, not for the shared value", async ({
+  test("returns to auto the moment a shared value is cleared, without waiting for a blur", async ({
+    seededPage: page,
+  }) => {
+    const field = lineHeightField(page);
+
+    await page.getByRole("button", { name: `Clear ${LINE_HEIGHT}` }).click();
+
+    /* Still focused: clearing is an answer, not a step towards one.
+
+       The placeholder is the tell, because it is computed from the model. 24
+       is what `auto` gives body at 16px. */
+    await expect(field).toHaveValue("");
+    await expect(field).toHaveAttribute("placeholder", "24");
+    await expect(field).toBeFocused();
+  });
+
+  test("shows a ✕ for a typed value, in the accent colour only for an override", async ({
     seededPage: page,
   }) => {
     const field = lineHeightField(page);
     const clear = page.getByRole("button", { name: `Clear ${LINE_HEIGHT}` });
     const devices = page.getByRole("navigation", { name: "Preview devices" });
+    const colourOf = (variable: string) =>
+      page.evaluate((name) => {
+        const probe = document.createElement("span");
+        probe.style.color = `var(${name})`;
+        document.body.append(probe);
+        const colour = getComputedStyle(probe).color;
+        probe.remove();
+        return colour;
+      }, variable);
+    const accent = await colourOf("--color-fg-accent");
+    const iconColour = () =>
+      clear.locator("svg").evaluate((svg) => getComputedStyle(svg).color);
 
-    /* Typed on desktop: shared, default colour, no ✕. */
+    /* Typed on desktop: shared, so the default colour, and a ✕ back to auto. */
     await field.fill("28");
     await field.blur();
     await expect(field).toHaveValue("28");
+    await expect(clear).toBeVisible();
+    await expect(field).not.toHaveCSS("color", accent);
+    expect(await iconColour()).not.toBe(accent);
+
+    /* Auto: a placeholder and no ✕. */
+    await field.focus();
+    await field.press("a");
+    await expect(field).toHaveValue("");
     await expect(clear).toHaveCount(0);
 
-    /* Tablet follows it, still with no ✕ — it is not tablet's own. */
+    /* Tablet following a typed shared value has nothing of its own to clear. */
+    await field.fill("28");
+    await field.blur();
     await devices.getByRole("button", { name: "Tablet" }).click();
     await expect(field).toHaveValue("28");
     await expect(clear).toHaveCount(0);
 
-    /* Typed on tablet: an override, in the accent colour, with its ✕. */
+    /* Typed on tablet: an override, value and ✕ in the accent colour. */
     await field.fill("32");
     await field.blur();
     await expect(unlinkedMarker(page)).toBeVisible();
     await expect(clear).toBeVisible();
-    const colours = await page.evaluate(() => {
-      const probe = document.createElement("span");
-      probe.style.color = "var(--color-fg-accent)";
-      document.body.append(probe);
-      const accent = getComputedStyle(probe).color;
-      probe.remove();
-      return accent;
-    });
-    await expect(field).toHaveCSS("color", colours);
+    await expect(field).toHaveCSS("color", accent);
+    expect(await iconColour()).toBe(accent);
   });
 
   test("auto follows the font size, and a pinned height does not", async ({
