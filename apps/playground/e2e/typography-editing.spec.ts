@@ -807,6 +807,30 @@ test.describe("Typography scale editing", () => {
     await expect(clear).toHaveCount(0);
   });
 
+  test("a typed three-digit size stays readable beside its two buttons", async ({
+    seededPage: page,
+  }) => {
+    /* The field holds the number, its ✕ and the step button. In a narrow
+       Size column the number was squeezed to no width and could not be
+       typed in. */
+    await showInspectorPanel(page, "Groups");
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    await fillHybridNumber(page, "body size", "120");
+
+    const typed = settings.getByRole("textbox", { name: "body size" });
+    await expect(typed).toHaveValue("120");
+    await expect(
+      settings.getByRole("button", { name: "Clear body size" }),
+    ).toBeVisible();
+    expect(
+      await typed.evaluate(
+        (input: HTMLInputElement) =>
+          input.clientWidth > 0 && input.scrollWidth <= input.clientWidth,
+      ),
+      "the typed size is cropped",
+    ).toBe(true);
+  });
+
   test("typing a size on phone leaves desktop bound to the step", async ({
     seededPage: page,
   }) => {
