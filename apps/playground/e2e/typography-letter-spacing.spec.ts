@@ -100,4 +100,38 @@ test.describe("The letter-spacing field", () => {
     await expect.poll(() => storedSharedTracking(page)).toBe(0);
     await expect.poll(() => storedTracking(page)).toBe(0);
   });
+
+  test("phone follows tablet's own tracking, and its ✕ goes back to it", async ({
+    seededPage: page,
+  }) => {
+    const field = letterSpacingField(page);
+    const clear = page.getByRole("button", { name: `Clear ${LETTER_SPACING}` });
+    const devices = page.getByRole("navigation", { name: "Preview devices" });
+
+    /* Desktop sets the shared value; tablet gives itself its own. */
+    await field.fill("0.5");
+    await field.blur();
+    await devices.getByRole("button", { name: "Tablet" }).click();
+    await field.fill("0.2");
+    await field.blur();
+    await expect(unlinkedMarker(page)).toBeVisible();
+
+    /* Phone follows tablet, not desktop — and it is following, so no
+       override state and no ✕. */
+    await devices.getByRole("button", { name: "Phone" }).click();
+    await expect(field).toHaveValue("0.2");
+    await expect(unlinkedMarker(page)).toHaveCount(0);
+    await expect(clear).toHaveCount(0);
+
+    /* Its own value wins, as an override with its ✕ ... */
+    await field.fill("0.1");
+    await field.blur();
+    await expect(unlinkedMarker(page)).toBeVisible();
+    await expect(clear).toBeVisible();
+
+    /* ... and the ✕ puts it back on tablet's. */
+    await clear.click();
+    await expect(field).toHaveValue("0.2");
+    await expect(unlinkedMarker(page)).toHaveCount(0);
+  });
 });

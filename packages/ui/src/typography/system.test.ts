@@ -395,9 +395,10 @@ describe("per-device line height", () => {
       tablet: { mode: "ratio", value: 1.2 },
     });
     expect(isLineHeightUnlinkedOnDevice(after.roles[0]!, "phone")).toBe(false);
+    /* Relinked, phone follows tablet's own value before the shared one. */
     expect(lineHeightConfigOnDevice(after.roles[0]!, "phone")).toEqual({
       mode: "ratio",
-      value: 1.5,
+      value: 1.2,
     });
   });
 
@@ -479,7 +480,8 @@ describe("per-device letter spacing", () => {
     expect(isLetterSpacingUnlinkedOnDevice(after.roles[0]!, "phone")).toBe(
       false,
     );
-    expect(letterSpacingPxOnDevice(after.roles[0]!, "phone")).toBe(0);
+    /* Relinked, phone follows tablet's own value before the shared one. */
+    expect(letterSpacingPxOnDevice(after.roles[0]!, "phone")).toBe(0.2);
   });
 
   it("prunes typed tracking for frames that no longer exist", () => {
@@ -892,6 +894,89 @@ describe("updateGroup", () => {
     const after = updateGroup(before, "caption", { label: "Overline" });
     expect(after.groups[0]!.label).toBe("Overline");
     expect(after.roles[0]!.id).toBe("caption");
+  });
+});
+
+describe("the device cascade: desktop, then tablet, then phone", () => {
+  const steps = generateTypeSteps(16, 1.25, 9);
+  const body = (s: TypeSystem) => s.roles.find((r) => r.id === "body")!;
+  const px = (value: number) => ({ mode: "px" as const, value });
+  const size = (s: TypeSystem, device: string) =>
+    resolveRoleSizePx(s, steps, body(s), device);
+
+  it("gives phone the desktop value while tablet has none of its own", () => {
+    const s = setLetterSpacingOnDevice(
+      setLineHeightOnDevice(
+        setSizeOnDevice(system(), "body", "desktop", 20),
+        "body",
+        "desktop",
+        px(30),
+      ),
+      "body",
+      "desktop",
+      0.4,
+    );
+    expect(size(s, "phone")).toBe(20);
+    expect(lineHeightConfigOnDevice(body(s), "phone")).toEqual(px(30));
+    expect(letterSpacingPxOnDevice(body(s), "phone")).toBe(0.4);
+  });
+
+  it("gives phone tablet's own value once tablet has one", () => {
+    let s = setSizeOnDevice(system(), "body", "desktop", 20);
+    s = setSizeOnDevice(s, "body", "tablet", 18);
+    s = setLineHeightOnDevice(s, "body", "tablet", px(26));
+    s = setLetterSpacingOnDevice(s, "body", "tablet", 0.2);
+
+    expect(size(s, "phone")).toBe(18);
+    expect(lineHeightConfigOnDevice(body(s), "phone")).toEqual(px(26));
+    expect(letterSpacingPxOnDevice(body(s), "phone")).toBe(0.2);
+    /* Following, so not phone's own: no override state, no ✕. */
+    expect(isRoleUnlinkedOnDevice(body(s), "phone")).toBe(false);
+    expect(isLineHeightUnlinkedOnDevice(body(s), "phone")).toBe(false);
+    expect(isLetterSpacingUnlinkedOnDevice(body(s), "phone")).toBe(false);
+    /* Desktop is untouched by either. */
+    expect(size(s, "desktop")).toBe(20);
+  });
+
+  it("lets phone's own value win, and relinking it follows tablet again", () => {
+    let s = setSizeOnDevice(system(), "body", "desktop", 20);
+    s = setSizeOnDevice(s, "body", "tablet", 18);
+    s = setSizeOnDevice(s, "body", "phone", 15);
+    s = setLineHeightOnDevice(s, "body", "tablet", px(26));
+    s = setLineHeightOnDevice(s, "body", "phone", px(22));
+    s = setLetterSpacingOnDevice(s, "body", "tablet", 0.2);
+    s = setLetterSpacingOnDevice(s, "body", "phone", 0.1);
+
+    expect(size(s, "phone")).toBe(15);
+    expect(lineHeightConfigOnDevice(body(s), "phone")).toEqual(px(22));
+    expect(letterSpacingPxOnDevice(body(s), "phone")).toBe(0.1);
+
+    s = relinkSizeOnDevice(s, "body", "phone");
+    s = bindLineHeightOnDevice(s, "body", "phone");
+    s = bindLetterSpacingOnDevice(s, "body", "phone");
+    expect(size(s, "phone")).toBe(18);
+    expect(lineHeightConfigOnDevice(body(s), "phone")).toEqual(px(26));
+    expect(letterSpacingPxOnDevice(body(s), "phone")).toBe(0.2);
+  });
+
+  it("keeps a role on its step on phone, whatever tablet typed", () => {
+    /* The ramp drives every frame that has no size of its own. */
+    const s = setSizeOnDevice(system(), "body", "tablet", 18);
+    expect(body(s).stepOffset).toBe(0);
+    expect(size(s, "phone")).toBe(16);
+  });
+
+  it("divides phone's followed tracking by phone's own size", () => {
+    /* A frame-level length, so phone renders the number it shows; shared
+       tracking stays a proportion of the desktop size. */
+    const tablet = setLetterSpacingOnDevice(system(), "body", "tablet", 0.2);
+    expect(letterSpacingEmSizePx(body(tablet), 14, 20, "phone")).toBe(14);
+    expect(letterSpacingEmSizePx(body(system()), 14, 20, "phone")).toBe(20);
+  });
+
+  it("leaves tablet following desktop, never phone", () => {
+    const s = setLetterSpacingOnDevice(system(), "body", "phone", 0.3);
+    expect(letterSpacingPxOnDevice(body(s), "tablet")).toBe(0);
   });
 });
 

@@ -75,6 +75,14 @@ export async function fillHybridNumber(
       .press("Backspace");
   }
   const input = page.getByLabel(label, { exact: true });
+  /* Focus first and let a frame pass. The field moves its caret to the end
+     on the frame after it gains focus; when `fill` did the focusing, that
+     could land between its select-all and its typing, so "18" went in after
+     the "20" already there and "2018" was clamped to 400. */
+  await input.focus();
+  await page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => resolve(null))),
+  );
   await input.fill(value);
   await input.blur();
 }

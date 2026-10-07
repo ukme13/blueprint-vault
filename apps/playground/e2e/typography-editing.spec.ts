@@ -907,6 +907,38 @@ test.describe("Typography scale editing", () => {
     await expect(clear).toHaveCount(0);
   });
 
+  test("phone follows tablet's typed size, and its ✕ goes back to it", async ({
+    seededPage: page,
+  }) => {
+    await showInspectorPanel(page, "Groups");
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const devices = page.getByRole("navigation", { name: "Preview devices" });
+    const typed = settings.getByRole("textbox", { name: "body size" });
+    const clear = settings.getByRole("button", { name: "Clear body size" });
+
+    /* Off the ramp: desktop shared at 20, tablet its own 18. Each value is
+       read back before the next frame, so a frame switch never lands on an
+       edit still on its way. */
+    await fillHybridNumber(page, "body size", "20");
+    await expect(typed).toHaveValue("20");
+    await devices.getByRole("button", { name: "Tablet" }).click();
+    await expect(typed).toHaveValue("20");
+    await fillHybridNumber(page, "body size", "18");
+    await expect(typed).toHaveAttribute("data-override", "true");
+    await expect(typed).toHaveValue("18");
+
+    /* Phone follows tablet, as a follower: no override, no ✕. */
+    await devices.getByRole("button", { name: "Phone" }).click();
+    await expect(typed).toHaveValue("18");
+    await expect(typed).not.toHaveAttribute("data-override");
+    await expect(clear).toHaveCount(0);
+
+    await fillHybridNumber(page, "body size", "15");
+    await expect(typed).toHaveAttribute("data-override", "true");
+    await clear.click();
+    await expect(typed).toHaveValue("18");
+  });
+
   test("a typed three-digit size stays readable beside its two buttons", async ({
     seededPage: page,
   }) => {
