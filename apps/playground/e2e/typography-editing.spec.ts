@@ -648,6 +648,17 @@ test.describe("Typography scale editing", () => {
     await settings
       .getByRole("button", { name: "Remove caption", exact: true })
       .click();
+    /* It asks first; Cancel keeps the role. */
+    const confirm = page.getByRole("alertdialog", {
+      name: 'Delete role "caption"?',
+    });
+    await confirm.getByRole("button", { name: "Cancel" }).click();
+    await expect(settings.getByLabel(/ font weight$/)).toHaveCount(before);
+
+    await settings
+      .getByRole("button", { name: "Remove caption", exact: true })
+      .click();
+    await confirm.getByRole("button", { name: "Delete role" }).click();
 
     await expect(settings.getByLabel(/ font weight$/)).toHaveCount(before - 1);
     await expect(
@@ -1494,6 +1505,10 @@ test.describe("Undo and redo", () => {
     const before = await weights(page).count();
 
     await remove.click();
+    await page
+      .getByRole("alertdialog", { name: 'Delete role "caption"?' })
+      .getByRole("button", { name: "Delete role" })
+      .click();
     await expect(remove).toBeHidden();
     await expect(weights(page)).toHaveCount(before - 1);
 

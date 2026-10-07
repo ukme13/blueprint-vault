@@ -1147,8 +1147,17 @@ test.describe("The elevation editor", () => {
       )
       .toEqual(["low", "med", "high", "float"]);
 
-    /* And removed from its row. */
+    /* And removed from its row, after it asks. Cancel keeps it. */
+    const confirm = page.getByRole("alertdialog", {
+      name: 'Delete elevation level "Float"?',
+    });
     await canvas.getByRole("button", { name: "Delete Float" }).click();
+    await expect(confirm).toContainText("--shadow-float CSS variable");
+    await confirm.getByRole("button", { name: "Cancel" }).click();
+    await expect(canvas.getByText("--shadow-float")).toBeVisible();
+
+    await canvas.getByRole("button", { name: "Delete Float" }).click();
+    await confirm.getByRole("button", { name: "Delete level" }).click();
     await expect(canvas.getByText("--shadow-float")).toHaveCount(0);
     await expect(
       page.getByRole("group", { name: "Low adjustments" }),
@@ -1858,8 +1867,13 @@ test.describe("The scale studio's chrome", () => {
     await canvas.getByRole("button", { name: "Add level" }).click();
     await expect(canvas.getByText("--shadow-new-level")).toBeVisible();
 
-    /* The Delete button is gone the moment it is clicked, and focus with it. */
+    /* The Delete button is gone the moment the removal is confirmed, and
+       focus with it. */
     await canvas.getByRole("button", { name: "Delete New level" }).click();
+    await page
+      .getByRole("alertdialog", { name: 'Delete elevation level "New level"?' })
+      .getByRole("button", { name: "Delete level" })
+      .click();
     await expect(canvas.getByText("--shadow-new-level")).toHaveCount(0);
     expect(
       await page.evaluate(() => document.activeElement === document.body),
@@ -2206,6 +2220,11 @@ test.describe("Layout uses", () => {
       .getByRole("button", { name: "Actions for Hero inset copy" })
       .click();
     await page.getByRole("menuitem", { name: "Delete" }).click();
+    const confirm = page.getByRole("alertdialog", {
+      name: 'Delete use "Hero inset copy"?',
+    });
+    await expect(confirm).toContainText("--hero-inset-copy token");
+    await confirm.getByRole("button", { name: "Delete use" }).click();
     await expect(
       uses.getByText("--hero-inset-copy", { exact: true }),
     ).toHaveCount(0);

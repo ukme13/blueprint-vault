@@ -267,6 +267,11 @@ test.describe("Operating on a selection", () => {
     await expect(editor.locator("[data-locked]")).toHaveCount(2);
 
     await page.keyboard.press("Delete");
+    /* The Delete key asks too, naming how many. */
+    await page
+      .getByRole("alertdialog", { name: "Delete 4 tokens?" })
+      .getByRole("button", { name: "Delete tokens" })
+      .click();
 
     await expect(await rowIds(editor)).toEqual([
       "border.default",
@@ -303,6 +308,10 @@ test.describe("Operating on a selection", () => {
     await rowBody(editor, "border.subtle").click();
     await rowBody(editor, "border.muted").click({ modifiers: ["Shift"] });
     await page.keyboard.press("Delete");
+    await page
+      .getByRole("alertdialog", { name: "Delete 2 tokens?" })
+      .getByRole("button", { name: "Delete tokens" })
+      .click();
     await expect(editor.locator("tr:has([data-token])")).toHaveCount(2);
 
     await page.keyboard.press("ControlOrMeta+z");
@@ -484,6 +493,10 @@ test.describe("Operating on a selection", () => {
     await expect(editor.locator('[data-token="custom.pending"]')).toBeVisible();
     await editor.getByRole("button", { name: "Actions for pending" }).click();
     await page.getByRole("menuitem", { name: "Delete" }).click();
+    await page
+      .getByRole("alertdialog", { name: /^Delete token / })
+      .getByRole("button", { name: "Delete token" })
+      .click();
     await expect(editor.locator('[data-token="custom.pending"]')).toHaveCount(
       0,
     );
@@ -557,6 +570,10 @@ test.describe("Folder names and spreadsheet editing", () => {
 
     await editor.getByRole("button", { name: "Actions for token" }).click();
     await page.getByRole("menuitem", { name: "Delete" }).click();
+    await page
+      .getByRole("alertdialog", { name: /^Delete token / })
+      .getByRole("button", { name: "Delete token" })
+      .click();
     await expect(editor.locator('[data-token="status.token"]')).toHaveCount(0);
   });
 

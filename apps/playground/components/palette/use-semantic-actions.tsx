@@ -5,7 +5,6 @@ import { Button } from "@astryxdesign/core/Button";
 import { useToast, type ShowToastFn } from "@astryxdesign/core/Toast";
 import {
   BUTTON_SCHEME_LABELS,
-  deleteTokens,
   describeRefusals,
   describeSemanticEdit,
   dropButtonScheme,
@@ -45,6 +44,8 @@ interface UseSemanticActions {
   onChange: (next: SemanticToken[], options?: SemanticWriteOptions) => void;
   /** Ask for a group name, then move these rows into it. */
   onNewGroup: (ids: string[]) => void;
+  /** Ask before deleting these rows; the caller deletes on a yes. */
+  onDeleteRequest: (ids: string[]) => void;
   /** Reverse the last recorded semantic write. */
   onUndo?: () => void;
   /** Which button tones this workspace still has. */
@@ -96,6 +97,7 @@ export function useSemanticActions({
   isSelected,
   onChange,
   onNewGroup,
+  onDeleteRequest,
   onUndo,
   buttonSchemes,
 }: UseSemanticActions): SemanticActions {
@@ -170,10 +172,18 @@ export function useSemanticActions({
           label,
         })),
         duplicate: () => apply(duplicateTokens(tokens, ids)),
-        remove: () => apply(deleteTokens(tokens, ids, { buttonSchemes })),
+        remove: () => onDeleteRequest(ids),
       };
     },
-    [apply, buttonSchemes, clipboard, onNewGroup, target, tokens],
+    [
+      apply,
+      buttonSchemes,
+      clipboard,
+      onDeleteRequest,
+      onNewGroup,
+      target,
+      tokens,
+    ],
   );
 
   return { apply, dropScheme, actionsFor, target };

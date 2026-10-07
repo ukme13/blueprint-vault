@@ -149,6 +149,10 @@ test.describe("The semantic editor", () => {
        one Delete that applies to a selection. */
     await editor.getByRole("button", { name: "Actions for new-token" }).click();
     await page.getByRole("menuitem", { name: "Delete" }).click();
+    await page
+      .getByRole("alertdialog", { name: /^Delete token / })
+      .getByRole("button", { name: "Delete token" })
+      .click();
     await expect(editor.locator("tr:has([data-token])")).toHaveCount(72);
   });
 
