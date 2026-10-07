@@ -482,11 +482,11 @@ describe("the size a role exports", () => {
 
     const css = formatTypeSystemCssExport(system, "px");
 
-    expect(css).toContain("--font-h1-size: 62px;");
+    expect(css).toContain("--font-h1-size: 64px;");
     expect(css).toContain("--font-h6-size: 20px;");
     expect(css).toContain("--font-body-size: 16px;");
     /* And the role tokens agree with the step tokens they came from. */
-    expect(css).toContain("--font-size-8: 62px;");
+    expect(css).toContain("--font-size-8: 64px;");
   });
 
   it("is the one somebody typed, when they unlinked the role", () => {

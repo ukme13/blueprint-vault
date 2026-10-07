@@ -160,6 +160,24 @@ describe("roundToEvenPx", () => {
   it("leaves an even value alone", () => {
     [12, 16, 20, 64].forEach((px) => expect(roundToEvenPx(px)).toBe(px));
   });
+
+  it("snaps a size above 48px to the nearest multiple of eight", () => {
+    // Step 8 on base 16 at 1.25: 62 on the even grid.
+    expect(roundToEvenPx(61.04)).toBe(64);
+    expect(roundToEvenPx(76.29)).toBe(80);
+    expect(roundToEvenPx(48.83)).toBe(48);
+  });
+
+  it("breaks a tie above 48px toward the multiple of sixteen", () => {
+    expect(roundToEvenPx(52)).toBe(48);
+    expect(roundToEvenPx(60)).toBe(64);
+  });
+
+  it("keeps 48 itself on the even grid", () => {
+    expect(roundToEvenPx(48)).toBe(48);
+    expect(roundToEvenPx(47.2)).toBe(48);
+    expect(roundToEvenPx(46.9)).toBe(46);
+  });
 });
 
 describe("generated sizes", () => {

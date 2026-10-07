@@ -43,8 +43,9 @@ describe("resolving a role's size", () => {
     );
 
     expect(sizes.get("body")).toBe(16);
-    /* h1 sits six steps above base: 16 × 1.25⁶ is 61.03, which rounds to 62. */
-    expect(sizes.get("h1")).toBe(62);
+    /* h1 sits six steps above base: 16 × 1.25⁶ is 61.03, which is above 48
+       and so snaps to the 8px grid: 64. */
+    expect(sizes.get("h1")).toBe(64);
     expect(sizes.get("h6")).toBe(20);
     expect(new Set(sizes.values()).size).toBeGreaterThan(1);
   });
@@ -145,7 +146,7 @@ describe("the role rows", () => {
     /* Base is exactly 16 and needs no footnote. */
     expect(row("body").exactFontSizePx).toBeNull();
     /* h1 is 61.03 rounded to 62, which the reader is owed. */
-    expect(row("h1").fontSizePx).toBe(62);
+    expect(row("h1").fontSizePx).toBe(64);
     expect(row("h1").exactFontSizePx).toBeCloseTo(61.035, 2);
   });
 
@@ -399,7 +400,7 @@ describe("which role a template slot draws", () => {
       ),
     };
 
-    expect(sizeOf(system, "display")).toBe(62);
+    expect(sizeOf(system, "display")).toBe(64);
     expect(sizeOf(system, "title")).toBe(48);
     expect(sizeOf(system, "heading")).toBe(40);
     expect(sizeOf(system, "body")).toBe(16);
