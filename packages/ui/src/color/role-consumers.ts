@@ -54,7 +54,6 @@ export const ASTRYX_BRIDGE_ROLE_VARIABLES: readonly string[] = [
   "--color-action-primary-fg",
   "--color-action-primary-surface",
   "--color-border-default",
-  "--color-border-strong",
   "--color-fg-accent",
   "--color-fg-disabled",
   "--color-fg-on-action",

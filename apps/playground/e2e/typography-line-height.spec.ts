@@ -84,6 +84,34 @@ test.describe("The line-height field", () => {
     await expect(lineHeightField(page)).toHaveValue("1.5");
   });
 
+  test("fits a three-digit px height beside its clear button", async ({
+    seededPage: page,
+  }) => {
+    /* The column was 4.5rem, and "120" with its unit and ✕ was cropped. */
+    const field = lineHeightField(page);
+    await field.fill("120");
+    await field.blur();
+    await expect(field).toHaveValue("120");
+    const clear = page.getByRole("button", { name: `Clear ${LINE_HEIGHT}` });
+    await expect(clear).toBeVisible();
+
+    expect(
+      await field.evaluate(
+        (input: HTMLInputElement) => input.scrollWidth <= input.clientWidth,
+      ),
+      "the value is cropped",
+    ).toBe(true);
+    /* And the ✕ stays inside the column rather than over the next one. */
+    const cell = (await page
+      .locator("[class*=lineHeightCell]")
+      .filter({ has: field })
+      .boundingBox())!;
+    const clearBox = (await clear.boundingBox())!;
+    expect(clearBox.x + clearBox.width).toBeLessThanOrEqual(
+      cell.x + cell.width + 1,
+    );
+  });
+
   test("reads a bare number by its size, with no unit control to find", async ({
     seededPage: page,
   }) => {
