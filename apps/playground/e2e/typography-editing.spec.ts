@@ -71,6 +71,16 @@ const storedFamilies = async (page: import("@playwright/test").Page) => {
   return stored.typography.system.fonts[0].families as string[];
 };
 
+const accentColour = (page: import("@playwright/test").Page) =>
+  page.evaluate(() => {
+    const probe = document.createElement("span");
+    probe.style.color = "var(--color-fg-accent)";
+    document.body.append(probe);
+    const colour = getComputedStyle(probe).color;
+    probe.remove();
+    return colour;
+  });
+
 test.describe("Typography scale editing", () => {
   test("switches between Editor, Specimen and Preview without leaving the inspector", async ({
     seededPage: page,
@@ -845,30 +855,49 @@ test.describe("Typography scale editing", () => {
     await expect(settings.getByLabel("body size")).toContainText("+1");
   });
 
-  test("a typed size reads as an override, and its ✕ goes back to the step", async ({
+  test("a size typed on Desktop is shared, and Tablet and Phone follow it", async ({
     seededPage: page,
   }) => {
     await showInspectorPanel(page, "Groups");
     const settings = page.getByRole("region", { name: "Type scale settings" });
+    const devices = page.getByRole("navigation", { name: "Preview devices" });
+    const typed = settings.getByRole("textbox", { name: "body size" });
     const clear = settings.getByRole("button", { name: "Clear body size" });
+    const accent = await accentColour(page);
 
-    /* Bound to a step: the chip, and nothing to clear. */
+    /* Desktop is the reference frame: the shared size, default colour, and
+       nothing to clear back to. */
+    await fillHybridNumber(page, "body size", "14");
+    await expect(typed).toHaveValue("14");
+    await expect(typed).not.toHaveAttribute("data-override");
+    await expect(typed).not.toHaveCSS("color", accent);
     await expect(clear).toHaveCount(0);
 
-    await fillHybridNumber(page, "body size", "14");
+    for (const device of ["Tablet", "Phone"]) {
+      await devices.getByRole("button", { name: device }).click();
+      await expect(typed).toHaveValue("14");
+      await expect(clear).toHaveCount(0);
+    }
+  });
+
+  test("a size typed on Tablet is its override, and its ✕ follows again", async ({
+    seededPage: page,
+  }) => {
+    await showInspectorPanel(page, "Groups");
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const devices = page.getByRole("navigation", { name: "Preview devices" });
+    const clear = settings.getByRole("button", { name: "Clear body size" });
+    const accent = await accentColour(page);
+
+    /* Bound to a step: the chip, and nothing to clear. */
+    await devices.getByRole("button", { name: "Tablet" }).click();
+    await expect(clear).toHaveCount(0);
+
+    await fillHybridNumber(page, "body size", "12");
     const typed = settings.getByRole("textbox", { name: "body size" });
     await expect(typed).toHaveAttribute("data-override", "true");
-    await expect(clear).toBeVisible();
-    /* The ✕ is in the accent colour with the value it clears. */
-    const accent = await page.evaluate(() => {
-      const probe = document.createElement("span");
-      probe.style.color = "var(--color-fg-accent)";
-      document.body.append(probe);
-      const colour = getComputedStyle(probe).color;
-      probe.remove();
-      return colour;
-    });
     await expect(typed).toHaveCSS("color", accent);
+    /* The ✕ is in the accent colour with the value it clears. */
     expect(
       await clear.locator("svg").evaluate((svg) => getComputedStyle(svg).color),
     ).toBe(accent);
@@ -886,6 +915,11 @@ test.describe("Typography scale editing", () => {
        typed in. */
     await showInspectorPanel(page, "Groups");
     const settings = page.getByRole("region", { name: "Type scale settings" });
+    /* On Tablet, where a typed size is an override and has its ✕. */
+    await page
+      .getByRole("navigation", { name: "Preview devices" })
+      .getByRole("button", { name: "Tablet" })
+      .click();
     await fillHybridNumber(page, "body size", "120");
 
     const typed = settings.getByRole("textbox", { name: "body size" });
@@ -900,6 +934,14 @@ test.describe("Typography scale editing", () => {
       ),
       "the typed size is cropped",
     ).toBe(true);
+    /* Both buttons are compact, 20px, not 28px buttons in a 32px field. */
+    for (const name of ["Clear body size", "Apply preset"]) {
+      const box = (await settings
+        .getByRole("button", { name, exact: true })
+        .first()
+        .boundingBox())!;
+      expect(box.width, name).toBeLessThanOrEqual(20);
+    }
   });
 
   test("typing a size on phone leaves desktop bound to the step", async ({

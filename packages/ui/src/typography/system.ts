@@ -957,6 +957,46 @@ export function unlinkRoleSizeOnDevice(
   }));
 }
 
+/**
+ * Type a size while looking at one device.
+ *
+ * Desktop is the reference frame, so a size typed there is the shared one: it
+ * leaves the ramp (`stepOffset` null) and tablet and phone follow it until
+ * they are given their own. On any other frame the size is that frame's
+ * override. The same rule as line height and letter spacing.
+ */
+export function setSizeOnDevice(
+  system: TypeSystem,
+  roleId: string,
+  deviceId: string,
+  fontSizePx: number,
+): TypeSystem {
+  if (canonicalSizeDeviceId(deviceId) !== "desktop") {
+    return unlinkRoleSizeOnDevice(system, roleId, deviceId, fontSizePx);
+  }
+  return mapRole(system, roleId, (role) => ({
+    ...role,
+    stepOffset: null,
+    sameAsRoleId: null,
+    unlinkedSizes: setDeviceKey(role.unlinkedSizes, "desktop", fontSizePx),
+  }));
+}
+
+/**
+ * Drop this frame's own size, so it follows again: the step when the role has
+ * one, else the shared desktop size. Other frames are left as they are.
+ */
+export function relinkSizeOnDevice(
+  system: TypeSystem,
+  roleId: string,
+  deviceId: string,
+): TypeSystem {
+  return mapRole(system, roleId, (role) => ({
+    ...role,
+    unlinkedSizes: omitDeviceKey(role.unlinkedSizes, deviceId),
+  }));
+}
+
 /** Drop typed sizes and line heights for frames that no longer exist. */
 export function pruneUnlinkedSizes(
   system: TypeSystem,

@@ -7,7 +7,8 @@ import type { TypographySystemActions } from "./use-typography-system";
 /** A role's per-device edits, named as RoleGroupEditor takes them. */
 export interface DeviceRoleActions {
   onBindStep: (id: string, stepOffset: number) => void;
-  onUnlinkSize: (id: string, fontSizePx: number) => void;
+  onSetSize: (id: string, fontSizePx: number) => void;
+  onSizeRelink: (id: string) => void;
   onLineHeightOverride: (id: string, lineHeight: LineHeightConfig) => void;
   onLineHeightRelink: (id: string) => void;
   onLetterSpacingOverride: (id: string, letterSpacingPx: number) => void;
@@ -26,8 +27,9 @@ export function useDeviceRoleActions(
     () => ({
       onBindStep: (id, stepOffset) =>
         actions.bindRoleStep(id, deviceId, stepOffset),
-      onUnlinkSize: (id, fontSizePx) =>
-        actions.unlinkRoleSize(id, deviceId, fontSizePx),
+      onSetSize: (id, fontSizePx) =>
+        actions.setRoleSize(id, deviceId, fontSizePx),
+      onSizeRelink: (id) => actions.relinkRoleSize(id, deviceId),
       onLineHeightOverride: (id, lineHeight) =>
         actions.setLineHeight(id, deviceId, lineHeight),
       onLineHeightRelink: (id) => actions.bindLineHeight(id, deviceId),

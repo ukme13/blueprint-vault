@@ -14,7 +14,8 @@ import {
   renameGroup,
   setGoogleFont,
   setLocalFont,
-  unlinkRoleSizeOnDevice,
+  setSizeOnDevice,
+  relinkSizeOnDevice,
   setLineHeightOnDevice,
   bindLineHeightOnDevice,
   setLetterSpacingOnDevice,
@@ -40,7 +41,10 @@ export interface TypographySystemActions {
     patch: Partial<{ lineHeight: LineHeightConfig; letterSpacingPx: number }>,
   ) => void;
   bindRoleStep: (id: string, deviceId: string, stepOffset: number) => void;
-  unlinkRoleSize: (id: string, deviceId: string, fontSizePx: number) => void;
+  /** Desktop's size is the shared one; any other frame's is its own. */
+  setRoleSize: (id: string, deviceId: string, fontSizePx: number) => void;
+  /** Drop this frame's own size, so it follows the step or desktop again. */
+  relinkRoleSize: (id: string, deviceId: string) => void;
   /** Desktop's value is the shared one; any other frame's is its own. */
   setLineHeight: (
     id: string,
@@ -131,9 +135,11 @@ export function useTypographySystem(
         editSystem((system) =>
           bindRoleStepOnDevice(system, id, deviceId, stepOffset),
         ),
-      unlinkRoleSize: (id, deviceId, fontSizePx) =>
+      relinkRoleSize: (id, deviceId) =>
+        editSystem((system) => relinkSizeOnDevice(system, id, deviceId)),
+      setRoleSize: (id, deviceId, fontSizePx) =>
         editSystem(
-          (system) => unlinkRoleSizeOnDevice(system, id, deviceId, fontSizePx),
+          (system) => setSizeOnDevice(system, id, deviceId, fontSizePx),
           `role:${id}:size:${deviceId}`,
         ),
       setLineHeight: (id, deviceId, lineHeight) =>
