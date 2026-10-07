@@ -752,13 +752,17 @@
 .roleTable {
   display: grid;
   /* Role as wide as its longest token, on one line: a name like
-     subtitle-display-1 broke at its hyphens. Size is capped at 6.5rem and
-     Weight at 4.25rem, both narrower than they were: Size had taken the
-     widest share and left the names squeezed. Line height has the room
-     instead, because it carries a unit and a clear button — "120 px" with
-     its ✕ was cropped at 4.5rem. Spacing sits between the two. */
+     subtitle-display-1 broke at its hyphens.
+
+     Size is 6.5-7.5rem. It once took the widest share and squeezed the
+     names, but it cannot go below what a typed value needs: "120" beside
+     its ✕ and the step button. At 5.5rem the number had no width left and
+     could not be typed in. Weight is capped at 4.25rem.
+
+     Line height has the room instead, because it carries a unit and a ✕ —
+     "120 px" was cropped at 4.5rem. Spacing sits between the two. */
   grid-template-columns:
-    minmax(max-content, 1.2fr) minmax(5.5rem, 6.5rem) minmax(6rem, 1fr)
+    minmax(max-content, 1.2fr) minmax(6.5rem, 7.5rem) minmax(6rem, 1fr)
     minmax(3.75rem, 4.25rem) minmax(6rem, 1fr) minmax(5.25rem, 0.8fr) auto;
   column-gap: var(--spacing-2);
   row-gap: var(--spacing-2);
