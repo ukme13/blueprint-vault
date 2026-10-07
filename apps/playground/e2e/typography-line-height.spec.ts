@@ -87,8 +87,14 @@ test.describe("The line-height field", () => {
   test("fits a three-digit px height beside its clear button", async ({
     seededPage: page,
   }) => {
-    /* The column was 4.5rem, and "120" with its unit and ✕ was cropped. */
+    /* The column was 4.5rem, and "120" with its unit and ✕ was cropped.
+       Typed on Tablet, where a value is always that frame's override and so
+       always has its ✕, whichever frame the shared value is set on. */
     const field = lineHeightField(page);
+    await page
+      .getByRole("navigation", { name: "Preview devices" })
+      .getByRole("button", { name: "Tablet" })
+      .click();
     await field.fill("120");
     await field.blur();
     await expect(field).toHaveValue("120");
