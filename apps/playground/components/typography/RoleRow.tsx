@@ -117,6 +117,15 @@ export function RoleRow({
             fontSizePx,
           )}
           valueSuffix="px"
+          /* A typed size overrides the step on this device: accent, with a
+             ✕ back to the step. A role with no step has nothing to go back
+             to, so no ✕. */
+          isOverride={sizeUnlinked}
+          onRelink={
+            sizeUnlinked && role.stepOffset !== null
+              ? () => onBindStep(role.id, role.stepOffset!)
+              : undefined
+          }
           onChange={(next) => {
             if (next.isPreset && next.presetId !== undefined) {
               onBindStep(role.id, Number(next.presetId));
@@ -165,6 +174,7 @@ export function RoleRow({
           Line height
         </span>
         <LineHeightInput
+          hasClear={lineHeightUnlinked}
           label={`${role.id} line height`}
           config={lineHeightConfigOnDevice(role, deviceId)}
           computedPx={

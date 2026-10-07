@@ -9,6 +9,10 @@ import { readStoredWorkspace } from "./fixtures";
 /**
  * The line-height field.
  *
+ * Typed on desktop it is the shared value, which tablet and phone follow;
+ * typed on tablet or phone it is that frame's override, in the accent colour
+ * and with a ✕ that puts the frame back on the shared value.
+ *
  * The engine is covered in `packages/ui`. What only a browser can answer is
  * whether the field commits at all: it holds a draft and writes it on blur,
  * and Astryx's NumberInput takes `onBlur` through `BaseProps` rather than
@@ -100,13 +104,14 @@ test.describe("The line-height field", () => {
         mode: "px",
         value: 28,
       });
+    /* On desktop that is the shared value, not an override. */
     await expect
       .poll(() => storedSharedLineHeight(page))
       .toEqual({
-        mode: "ratio",
-        value: 1.5,
+        mode: "px",
+        value: 28,
       });
-    await expect(unlinkedMarker(page)).toBeVisible();
+    await expect(unlinkedMarker(page)).toHaveCount(0);
 
     await field.fill("1.25");
     await field.blur();
@@ -187,11 +192,11 @@ test.describe("The line-height field", () => {
   }) => {
     const field = lineHeightField(page);
 
-    /* The clear button, which is the gesture the placeholder invites. It
-       commits on blur like any other edit, so the model does not change until
-       focus leaves — `fill("")` looks the same on screen and never gets
-       there, because it does not emit the events the input listens for. */
-    await page.getByRole("button", { name: `Clear ${LINE_HEIGHT}` }).click();
+    /* A shared value has no ✕ — that is for an override — and emptying the
+       field from the keyboard does not commit: NumberInput puts the last
+       value back on blur. The A key is the way back to auto. */
+    await field.focus();
+    await field.press("a");
     await page.getByLabel("body font weight").click();
     await expect(field).toHaveValue("");
 
@@ -202,20 +207,38 @@ test.describe("The line-height field", () => {
     await expect(field).toHaveAttribute("placeholder", "28");
   });
 
-  test("returns to auto the moment a shared value is cleared, without waiting for a blur", async ({
+  test("shows the ✕ for an override on this device, not for the shared value", async ({
     seededPage: page,
   }) => {
     const field = lineHeightField(page);
+    const clear = page.getByRole("button", { name: `Clear ${LINE_HEIGHT}` });
+    const devices = page.getByRole("navigation", { name: "Preview devices" });
 
-    await page.getByRole("button", { name: `Clear ${LINE_HEIGHT}` }).click();
+    /* Typed on desktop: shared, default colour, no ✕. */
+    await field.fill("28");
+    await field.blur();
+    await expect(field).toHaveValue("28");
+    await expect(clear).toHaveCount(0);
 
-    /* Still focused: clearing is an answer, not a step towards one.
+    /* Tablet follows it, still with no ✕ — it is not tablet's own. */
+    await devices.getByRole("button", { name: "Tablet" }).click();
+    await expect(field).toHaveValue("28");
+    await expect(clear).toHaveCount(0);
 
-       The placeholder is the tell, because it is computed from the model. 24
-       is what `auto` gives body at 16px. */
-    await expect(field).toHaveValue("");
-    await expect(field).toHaveAttribute("placeholder", "24");
-    await expect(field).toBeFocused();
+    /* Typed on tablet: an override, in the accent colour, with its ✕. */
+    await field.fill("32");
+    await field.blur();
+    await expect(unlinkedMarker(page)).toBeVisible();
+    await expect(clear).toBeVisible();
+    const colours = await page.evaluate(() => {
+      const probe = document.createElement("span");
+      probe.style.color = "var(--color-fg-accent)";
+      document.body.append(probe);
+      const accent = getComputedStyle(probe).color;
+      probe.remove();
+      return accent;
+    });
+    await expect(field).toHaveCSS("color", colours);
   });
 
   test("auto follows the font size, and a pinned height does not", async ({
@@ -271,7 +294,9 @@ test.describe("The line-height field", () => {
     seededPage: page,
   }) => {
     const field = lineHeightField(page);
+    const devices = page.getByRole("navigation", { name: "Preview devices" });
 
+    await devices.getByRole("button", { name: "Tablet" }).click();
     await field.fill("28");
     await field.blur();
     await expect(unlinkedMarker(page)).toBeVisible();

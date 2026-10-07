@@ -1006,6 +1006,30 @@ export function bindLineHeightOnDevice(
   }));
 }
 
+/**
+ * Type a line height while looking at one device.
+ *
+ * Desktop is the reference frame, so a value typed there is the shared one:
+ * tablet and phone follow it until they are given their own. A desktop
+ * override a project already holds goes, or it would hide the edit. On any
+ * other frame the value is that frame's override.
+ */
+export function setLineHeightOnDevice(
+  system: TypeSystem,
+  roleId: string,
+  deviceId: string,
+  lineHeight: LineHeightConfig,
+): TypeSystem {
+  if (canonicalSizeDeviceId(deviceId) !== "desktop") {
+    return unlinkLineHeightOnDevice(system, roleId, deviceId, lineHeight);
+  }
+  return mapRole(system, roleId, (role) => ({
+    ...role,
+    lineHeight,
+    unlinkedLineHeights: omitDeviceKey(role.unlinkedLineHeights, "desktop"),
+  }));
+}
+
 /** Type tracking on one device; the shared value still drives the rest. */
 export function unlinkLetterSpacingOnDevice(
   system: TypeSystem,

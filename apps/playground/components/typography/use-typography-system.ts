@@ -15,7 +15,7 @@ import {
   setGoogleFont,
   setLocalFont,
   unlinkRoleSizeOnDevice,
-  unlinkLineHeightOnDevice,
+  setLineHeightOnDevice,
   bindLineHeightOnDevice,
   unlinkLetterSpacingOnDevice,
   bindLetterSpacingOnDevice,
@@ -40,7 +40,8 @@ export interface TypographySystemActions {
   ) => void;
   bindRoleStep: (id: string, deviceId: string, stepOffset: number) => void;
   unlinkRoleSize: (id: string, deviceId: string, fontSizePx: number) => void;
-  unlinkLineHeight: (
+  /** Desktop's value is the shared one; any other frame's is its own. */
+  setLineHeight: (
     id: string,
     deviceId: string,
     lineHeight: LineHeightConfig,
@@ -131,10 +132,9 @@ export function useTypographySystem(
           (system) => unlinkRoleSizeOnDevice(system, id, deviceId, fontSizePx),
           `role:${id}:size:${deviceId}`,
         ),
-      unlinkLineHeight: (id, deviceId, lineHeight) =>
+      setLineHeight: (id, deviceId, lineHeight) =>
         editSystem(
-          (system) =>
-            unlinkLineHeightOnDevice(system, id, deviceId, lineHeight),
+          (system) => setLineHeightOnDevice(system, id, deviceId, lineHeight),
           `role:${id}:lineHeight:${deviceId}`,
         ),
       bindLineHeight: (id, deviceId) =>

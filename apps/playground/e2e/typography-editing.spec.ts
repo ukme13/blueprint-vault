@@ -753,8 +753,12 @@ test.describe("Typography scale editing", () => {
     // 14 is not on the default ramp, so this is only reachable by typing.
     await fillHybridNumber(page, "body size", "14");
 
-    await expect(settings.getByLabel("body size")).toHaveValue("14");
-    await expect(settings.getByLabel("body size")).not.toContainText("+");
+    await expect(
+      settings.getByRole("textbox", { name: "body size" }),
+    ).toHaveValue("14");
+    await expect(
+      settings.getByRole("textbox", { name: "body size" }),
+    ).not.toContainText("+");
   });
 
   test("picking a step relinks the size to the ramp", async ({
@@ -770,6 +774,26 @@ test.describe("Typography scale editing", () => {
     await expect(settings.getByLabel("body size")).toContainText("+1");
   });
 
+  test("a typed size reads as an override, and its ✕ goes back to the step", async ({
+    seededPage: page,
+  }) => {
+    await showInspectorPanel(page, "Groups");
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const clear = settings.getByRole("button", { name: "Clear body size" });
+
+    /* Bound to a step: the chip, and nothing to clear. */
+    await expect(clear).toHaveCount(0);
+
+    await fillHybridNumber(page, "body size", "14");
+    const typed = settings.getByRole("textbox", { name: "body size" });
+    await expect(typed).toHaveAttribute("data-override", "true");
+    await expect(clear).toBeVisible();
+
+    await clear.click();
+    await expect(settings.getByLabel("body size")).toContainText("+0");
+    await expect(clear).toHaveCount(0);
+  });
+
   test("typing a size on phone leaves desktop bound to the step", async ({
     seededPage: page,
   }) => {
@@ -779,8 +803,12 @@ test.describe("Typography scale editing", () => {
 
     await devices.getByRole("button", { name: "Phone" }).click();
     await fillHybridNumber(page, "body size", "14");
-    await expect(settings.getByLabel("body size")).toHaveValue("14");
-    await expect(settings.getByLabel("body size")).not.toContainText("+");
+    await expect(
+      settings.getByRole("textbox", { name: "body size" }),
+    ).toHaveValue("14");
+    await expect(
+      settings.getByRole("textbox", { name: "body size" }),
+    ).not.toContainText("+");
 
     await devices.getByRole("button", { name: "Desktop", exact: true }).click();
     await expect(settings.getByLabel("body size")).toContainText("+0");

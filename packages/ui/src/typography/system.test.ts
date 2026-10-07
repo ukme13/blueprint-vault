@@ -35,6 +35,7 @@ import {
   unlinkRoleSizeOnDevice,
   unlinkLineHeightOnDevice,
   bindLineHeightOnDevice,
+  setLineHeightOnDevice,
   unlinkLetterSpacingOnDevice,
   bindLetterSpacingOnDevice,
   pruneUnlinkedSizes,
@@ -887,6 +888,43 @@ describe("updateGroup", () => {
     const after = updateGroup(before, "caption", { label: "Overline" });
     expect(after.groups[0]!.label).toBe("Overline");
     expect(after.roles[0]!.id).toBe("caption");
+  });
+});
+
+describe("setLineHeightOnDevice", () => {
+  const body = (s: TypeSystem) => s.roles.find((r) => r.id === "body")!;
+  const px = (value: number) => ({ mode: "px" as const, value });
+
+  it("makes a desktop value the shared one, so tablet and phone follow it", () => {
+    const after = setLineHeightOnDevice(system(), "body", "desktop", px(28));
+    expect(body(after).lineHeight).toEqual(px(28));
+    expect(body(after).unlinkedLineHeights).toEqual({});
+    expect(lineHeightConfigOnDevice(body(after), "tablet")).toEqual(px(28));
+    expect(lineHeightConfigOnDevice(body(after), "phone")).toEqual(px(28));
+    expect(isLineHeightUnlinkedOnDevice(body(after), "phone")).toBe(false);
+  });
+
+  it("clears a desktop override a project already holds", () => {
+    const before = system({
+      roles: [
+        role("body", "body", { unlinkedLineHeights: { desktop: px(40) } }),
+      ],
+    });
+    const after = setLineHeightOnDevice(before, "body", "desktop", px(30));
+    expect(isLineHeightUnlinkedOnDevice(body(after), "desktop")).toBe(false);
+    expect(lineHeightConfigOnDevice(body(after), "desktop")).toEqual(px(30));
+  });
+
+  it("keeps a tablet or phone value that frame's own", () => {
+    const shared = setLineHeightOnDevice(system(), "body", "desktop", px(28));
+    const phone = setLineHeightOnDevice(shared, "body", "phone", px(22));
+    expect(body(phone).lineHeight).toEqual(px(28));
+    expect(lineHeightConfigOnDevice(body(phone), "phone")).toEqual(px(22));
+    expect(lineHeightConfigOnDevice(body(phone), "tablet")).toEqual(px(28));
+
+    /* Relinking the phone takes it back to the shared value. */
+    const relinked = bindLineHeightOnDevice(phone, "body", "phone");
+    expect(lineHeightConfigOnDevice(body(relinked), "phone")).toEqual(px(28));
   });
 });
 

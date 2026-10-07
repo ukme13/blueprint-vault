@@ -812,6 +812,13 @@
   color: var(--color-fg-accent);
 }
 
+/* Auto: the resolved height as a muted placeholder, so a followed default
+   never reads like a pinned number. */
+.lineHeightCell :global(input)::placeholder {
+  color: var(--color-text-secondary);
+  opacity: 1;
+}
+
 .fontStackRow {
   display: flex;
   align-items: flex-end;
