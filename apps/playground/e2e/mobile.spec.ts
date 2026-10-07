@@ -1174,8 +1174,12 @@ test.describe("on a phone", () => {
     await add.click();
     await expect(rows).toHaveCount(before + 1);
 
-    /* The trash is beside the name, and asks first. */
-    const trash = group.getByRole("button", { name: `Remove ${name} group` });
+    /* The group's menu is beside the name, and Delete group asks first. */
+    const trash = group.getByRole("button", { name: `${name} group actions` });
+    const askToDelete = async () => {
+      await trash.click();
+      await page.getByRole("menuitem", { name: "Delete group" }).click();
+    };
     const nameField = group.getByRole("textbox").first();
     const [trashBox, nameBox] = [
       (await trash.boundingBox())!,
@@ -1190,7 +1194,7 @@ test.describe("on a phone", () => {
     const confirm = page.getByRole("dialog", {
       name: `Delete group "${name}"?`,
     });
-    await trash.click();
+    await askToDelete();
     await expect(confirm).toBeVisible();
     /* Escape closes the question, not the settings under it. */
     await page.keyboard.press("Escape");
@@ -1198,14 +1202,14 @@ test.describe("on a phone", () => {
     await expect(sheet).toBeVisible();
     await expect(page.locator("dialog[open]")).toHaveCount(1);
 
-    await trash.click();
+    await askToDelete();
     await confirm.getByRole("button", { name: "Cancel" }).click();
     await expect(confirm).toBeHidden();
     await expect(
       sheet.locator("[class*=roleGroupName]", { hasText: name }),
     ).toHaveCount(1);
 
-    await trash.click();
+    await askToDelete();
     await confirm.getByRole("button", { name: "Delete group" }).click();
     await expect(
       sheet.locator("[class*=roleGroupName]", { hasText: name }),

@@ -1038,6 +1038,38 @@ export function bindLetterSpacingOnDevice(
   }));
 }
 
+/**
+ * Type tracking while looking at one device.
+ *
+ * Desktop is the reference frame, so a value typed there is the shared one:
+ * phone and tablet follow it until they are given their own. Any desktop
+ * override a project already holds goes, or it would hide the edit. On any
+ * other frame the value is that frame's override, as before.
+ */
+export function setLetterSpacingOnDevice(
+  system: TypeSystem,
+  roleId: string,
+  deviceId: string,
+  letterSpacingPx: number,
+): TypeSystem {
+  if (canonicalSizeDeviceId(deviceId) !== "desktop") {
+    return unlinkLetterSpacingOnDevice(
+      system,
+      roleId,
+      deviceId,
+      letterSpacingPx,
+    );
+  }
+  return mapRole(system, roleId, (role) => ({
+    ...role,
+    letterSpacingPx,
+    unlinkedLetterSpacings: omitDeviceKey(
+      role.unlinkedLetterSpacings,
+      "desktop",
+    ),
+  }));
+}
+
 /* The edits a studio makes to a system, as TypeSystem -> TypeSystem. They sit
    here rather than in the app because they are the same species as addFont and
    reindexGroup beside them, and several call those directly. */
@@ -1163,6 +1195,71 @@ export function addGroup(system: TypeSystem): TypeSystem {
   return {
     ...system,
     groups: [...system.groups, defineGroup(`group-${index}`, `Group ${index}`)],
+  };
+}
+
+/**
+ * Copy a group and its roles, and put the copy directly under the source.
+ *
+ * The copy is labelled "<label> (Copy)", with an id slugged from that label
+ * and made unique the way a rename does. Its roles take the copy's own names
+ * from `roleIdsForGroup`, so no token is shared with the source. A role that
+ * followed another role in the same group follows that role's copy; one that
+ * followed a role elsewhere keeps following it. The copied roles sit after the
+ * source's in `system.roles`, so the order roles are read in stays grouped.
+ */
+export function duplicateGroup(
+  system: TypeSystem,
+  groupId: string,
+): TypeSystem {
+  const index = system.groups.findIndex((group) => group.id === groupId);
+  const source = system.groups[index];
+  if (!source) return system;
+
+  const label = `${source.label} (Copy)`;
+  const wanted = slugify(label) || `${source.id}-copy`;
+  let id = wanted;
+  let suffix = 2;
+  while (system.groups.some((group) => group.id === id)) {
+    id = `${wanted}-${suffix}`;
+    suffix += 1;
+  }
+  const copy: TypeGroup = { ...source, id, label };
+
+  const members = rolesInGroup(system, groupId);
+  const ids = roleIdsForGroup(copy, members.length);
+  const copiedIds = new Map(members.map((role, at) => [role.id, ids[at]!]));
+  const copies = members.map((role, at) => ({
+    ...role,
+    id: ids[at]!,
+    name: role.name === role.id ? ids[at]! : role.name,
+    groupId: id,
+    sameAsRoleId: role.sameAsRoleId
+      ? (copiedIds.get(role.sameAsRoleId) ?? role.sameAsRoleId)
+      : null,
+  }));
+
+  const lastMember = system.roles.reduce(
+    (last, role, at) => (role.groupId === groupId ? at : last),
+    -1,
+  );
+  const roles =
+    lastMember === -1
+      ? system.roles
+      : [
+          ...system.roles.slice(0, lastMember + 1),
+          ...copies,
+          ...system.roles.slice(lastMember + 1),
+        ];
+
+  return {
+    ...system,
+    groups: [
+      ...system.groups.slice(0, index + 1),
+      copy,
+      ...system.groups.slice(index + 1),
+    ],
+    roles,
   };
 }
 

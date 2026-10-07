@@ -644,7 +644,7 @@ test.describe("Typography scale editing", () => {
     const settings = page.getByRole("region", { name: "Type scale settings" });
     const before = await settings.getByLabel(/ font weight$/).count();
 
-    // exact, or this also matches the group's own "Remove Caption group".
+    // exact, or this also matches a longer "Remove caption …" name.
     await settings
       .getByRole("button", { name: "Remove caption", exact: true })
       .click();
@@ -709,9 +709,69 @@ test.describe("Typography scale editing", () => {
         settings.getByRole("button", { name: `Reorder ${group} group` }),
       ).toBeVisible();
       await expect(
-        settings.getByRole("button", { name: `Remove ${group} group` }),
+        settings.getByRole("button", { name: `${group} group actions` }),
       ).toBeVisible();
     }
+  });
+
+  test("duplicates a group and its roles directly under it", async ({
+    seededPage: page,
+  }) => {
+    await showInspectorPanel(page, "Groups");
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const body = settings.getByRole("group", { name: "Body", exact: true });
+    const bodyRoles = await body.getByLabel(/ letter spacing$/).count();
+
+    await settings.getByRole("button", { name: "Body group actions" }).click();
+    await page.getByRole("menuitem", { name: "Duplicate group" }).click();
+
+    const copy = settings.getByRole("group", {
+      name: "Body (Copy)",
+      exact: true,
+    });
+    await expect(copy).toBeVisible();
+    await expect(copy.getByLabel(/ letter spacing$/)).toHaveCount(bodyRoles);
+    await expect(copy.getByLabel("body-copy name")).toHaveValue("Body (Copy)");
+
+    /* Directly under its source, not at the end. */
+    const order = await settings
+      .locator("[role=group][aria-label]")
+      .evaluateAll((nodes) =>
+        nodes.map((node) => node.getAttribute("aria-label")),
+      );
+    expect(order.indexOf("Body (Copy)")).toBe(order.indexOf("Body") + 1);
+  });
+
+  test("asks before deleting a group with roles, not an empty one", async ({
+    seededPage: page,
+  }) => {
+    await showInspectorPanel(page, "Groups");
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const deleteGroup = async (label: string) => {
+      await settings
+        .getByRole("button", { name: `${label} group actions` })
+        .click();
+      await page.getByRole("menuitem", { name: "Delete group" }).click();
+    };
+
+    await deleteGroup("Caption");
+    const confirm = page.getByRole("alertdialog", {
+      name: 'Delete group "Caption"?',
+    });
+    await expect(confirm).toBeVisible();
+    await confirm.getByRole("button", { name: "Delete group" }).click();
+    await expect(
+      settings.getByRole("group", { name: "Caption", exact: true }),
+    ).toHaveCount(0);
+
+    await settings.getByRole("button", { name: "Add group" }).click();
+    const empty = settings.getByRole("group", { name: /^Group \d+$/ });
+    const label = (await empty.getAttribute("aria-label"))!;
+    await deleteGroup(label);
+    await expect(
+      page.getByRole("alertdialog", { name: /^Delete group/ }),
+    ).toHaveCount(0);
+    await expect(empty).toHaveCount(0);
   });
 
   test("a group named h numbers its roles without a dash", async ({

@@ -32,7 +32,7 @@ export function useDeviceRoleActions(
         actions.unlinkLineHeight(id, deviceId, lineHeight),
       onLineHeightRelink: (id) => actions.bindLineHeight(id, deviceId),
       onLetterSpacingOverride: (id, letterSpacingPx) =>
-        actions.unlinkLetterSpacing(id, deviceId, letterSpacingPx),
+        actions.setLetterSpacing(id, deviceId, letterSpacingPx),
       onLetterSpacingRelink: (id) => actions.bindLetterSpacing(id, deviceId),
     }),
     [actions, deviceId],

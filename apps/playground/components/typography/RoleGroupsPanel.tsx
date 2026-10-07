@@ -24,6 +24,7 @@ import {
 } from "@blueprint/ui";
 import { RoleGroupEditor } from "./RoleGroupEditor";
 import { RolePresetBar } from "./RolePresetBar";
+import { useAddedGroupId } from "./use-added-role";
 import { useDeviceRoleActions } from "./use-device-role-actions";
 import type { TypographySystemActions } from "./use-typography-system";
 import styles from "./typography-workspace.module.css";
@@ -54,6 +55,7 @@ export function RoleGroupsPanel({
   onOpenGroupsChange,
 }: RoleGroupsPanelProps) {
   const deviceActions = useDeviceRoleActions(actions, deviceId);
+  const addedGroupId = useAddedGroupId(system.groups);
 
   /* A drag has to start past a few pixels, or every click on a handle is a
      zero-length drag and the button never reports a press. The keyboard
@@ -111,6 +113,7 @@ export function RoleGroupsPanel({
               deviceId={deviceId}
               fonts={system.fonts}
               group={group}
+              justAdded={group.id === addedGroupId}
               roles={system.roles.filter((role) => role.groupId === group.id)}
               steps={steps}
               system={system}
@@ -138,6 +141,7 @@ export function RoleGroupsPanel({
                 actions.renameGroupById(group.id, group.label);
               }}
               onRemove={() => actions.removeGroup(group.id)}
+              onDuplicate={() => actions.duplicateGroup(group.id)}
               onRoleChange={actions.updateRole}
               onRoleRemove={actions.removeRole}
             />

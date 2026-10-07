@@ -790,6 +790,42 @@
   animation: roleAppear 280ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
+/* A group Add group or Duplicate group just made: it fades and slides in,
+   the same curve a new role uses. */
+@keyframes groupAppear {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+}
+
+.roleGroupAdded {
+  animation: groupAppear 280ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* A deleted group folds away before it is removed: it fades, shrinks a
+   little, and its height closes from what it measured when the fold began
+   (--group-height), so the groups under it slide up instead of jumping. The
+   200ms is GROUP_LEAVE_MS in RoleGroupMenu.tsx. */
+@keyframes groupLeave {
+  from {
+    max-height: var(--group-height);
+  }
+  to {
+    max-height: 0;
+    opacity: 0;
+    transform: scale(0.96);
+    padding-block: 0;
+    border-width: 0;
+  }
+}
+
+.roleGroupLeaving {
+  overflow: hidden;
+  pointer-events: none;
+  animation: groupLeave 200ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+
 .roleTableHead {
   /* --font-size-sm is 0.75rem, 12px at a 16px root. */
   font-size: var(--font-size-sm);
@@ -1422,6 +1458,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .roleGroupAdded,
+  .roleGroupLeaving,
   .roleTableRowAdded,
   .roleTableRowAdded > * {
     animation: none !important;
