@@ -7,6 +7,7 @@ import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { useIsPhone } from "../use-is-phone";
 import { useScrollMemory } from "../use-scroll-memory";
 import {
+  deleteTokens,
   moveToGroup,
   reorderToken,
   renameTokenFromCell,
@@ -15,6 +16,7 @@ import {
   type SemanticToken,
 } from "@blueprint/ui";
 import { SemanticNewGroupDialog } from "./SemanticNewGroupDialog";
+import { SemanticDeleteDialog } from "./SemanticDeleteDialog";
 import { type SemanticCell } from "./SemanticRow";
 import { semanticMenuItems } from "./SemanticRowMenu";
 import { SemanticSidebar } from "./SemanticSidebar";
@@ -53,6 +55,7 @@ export function SemanticEditor({
     cell: SemanticCell;
   } | null>(null);
   const [grouping, setGrouping] = useState<string[] | null>(null);
+  const [deleting, setDeleting] = useState<readonly string[] | null>(null);
   const isPhone = useIsPhone();
   const selection = useSemanticSelection(tokens, { isGroupHidden: isPhone });
   const isRail = useMediaQuery(`(max-width: ${RAIL_BELOW - 1}px)`);
@@ -66,6 +69,7 @@ export function SemanticEditor({
     isSelected: selection.isSelected,
     onChange,
     onNewGroup: setGrouping,
+    onDeleteRequest: setDeleting,
     onUndo,
     selected: selection.selected,
     tokens,
@@ -81,7 +85,7 @@ export function SemanticEditor({
     [selection],
   );
   const onKeyDown = useSemanticKeyboard({
-    apply,
+    onDelete: setDeleting,
     clear: selection.clear,
     onEdit: setEditing,
     onRedo,
@@ -89,9 +93,7 @@ export function SemanticEditor({
     region,
     selectAll: selection.selectAll,
     selected: selection.selected,
-    tokens,
     visible: selection.visible,
-    buttonSchemes,
   });
 
   if (palettes.length === 0) {
@@ -243,6 +245,14 @@ export function SemanticEditor({
           </ContextMenu>
         </div>
       </section>
+      <SemanticDeleteDialog
+        ids={deleting}
+        onCancel={() => setDeleting(null)}
+        onConfirm={(ids) => {
+          apply(deleteTokens(tokens, [...ids], consumers));
+          setDeleting(null);
+        }}
+      />
       <SemanticNewGroupDialog
         count={grouping?.length ?? 0}
         isOpen={grouping !== null}

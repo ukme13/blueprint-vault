@@ -16,9 +16,11 @@ import {
   removeElevationLevel,
   resolveElevationLevel,
   type ColorTrack,
+  type ElevationLevel,
   type ElevationScale,
 } from "@blueprint/ui";
 import { useThemeMode } from "../../app/theme-provider";
+import { ConfirmDialog } from "../ConfirmDialog";
 import { ElevationCopyButton } from "./ElevationCopyButton";
 import {
   ELEVATION_PREVIEW_CONTEXTS,
@@ -54,6 +56,11 @@ export function ElevationCanvas({
   const { resolved: studioMode } = useThemeMode();
   /* What the shadows are shown on. A view setting, not part of the scale. */
   const [context, setContext] = useState<ElevationPreviewContext>("card");
+  /* A custom level asks before it goes: its variable may already be in
+     somebody's stylesheet. */
+  const [pendingDelete, setPendingDelete] = useState<ElevationLevel | null>(
+    null,
+  );
 
   const addLevel = () => {
     const next = addElevationLevel(scale);
@@ -168,7 +175,7 @@ export function ElevationCanvas({
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
-                      onChange(removeElevationLevel(scale, level.id));
+                      setPendingDelete(level);
                     }}
                   >
                     <Trash2 aria-hidden className="size-4" />
@@ -179,6 +186,23 @@ export function ElevationCanvas({
           );
         })}
       </ol>
+      <ConfirmDialog
+        actionLabel="Delete level"
+        description={
+          pendingDelete
+            ? `This removes the level and its ${elevationVariableName(pendingDelete.id)} CSS variable.`
+            : ""
+        }
+        isOpen={pendingDelete !== null}
+        title={`Delete elevation level "${pendingDelete?.name ?? ""}"?`}
+        onAction={() => {
+          if (pendingDelete) {
+            onChange(removeElevationLevel(scale, pendingDelete.id));
+          }
+          setPendingDelete(null);
+        }}
+        onCancel={() => setPendingDelete(null)}
+      />
     </section>
   );
 }

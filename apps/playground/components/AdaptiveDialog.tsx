@@ -54,7 +54,10 @@ export function AdaptiveDialog({
       aria-label={title}
       isOpen={isOpen}
       padding={0}
-      purpose="form"
+      /* Info, so a click on the backdrop closes it as every other dialog in
+         the studio does, and as the phone sheet already did. Form would keep
+         it open once somebody had typed in it. */
+      purpose="info"
       width={460}
       onOpenChange={(open) => {
         if (!open) onClose();

@@ -130,6 +130,24 @@ test.describe("Tones", () => {
     await page.keyboard.press("ControlOrMeta+z");
     await expect.poll(border).toBe(before);
   });
+  test("the backdrop closes Sync, even after choosing, and syncs nothing", async ({
+    seededPage: page,
+  }) => {
+    /* AdaptiveDialog is `info` now: `form` kept it open once something in
+       it had been clicked, unlike every other dialog in the studio. */
+    const editor = await openSemantics(page);
+    const before = await storedTokens(page);
+
+    await editor.getByRole("button", { name: "Sync", exact: true }).click();
+    const dialog = page.getByRole("dialog", {
+      name: "Sync with palette anchors",
+    });
+    await dialog.getByRole("radio", { name: "High contrast" }).click();
+    await page.mouse.click(4, 4);
+
+    await expect(dialog).toBeHidden();
+    expect(await storedTokens(page)).toEqual(before);
+  });
 });
 
 test.describe("Tones on a phone", () => {

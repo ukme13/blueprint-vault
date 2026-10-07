@@ -138,6 +138,8 @@ export function LayoutUsesRow({
         <LayoutUsesRowMenu
           isSystem={isSystem}
           label={`Actions for ${token.name}`}
+          tokenName={token.name}
+          variableName={layoutVariableName(token.id)}
           onDuplicate={onDuplicate}
           onRemove={onRemove}
           onReset={onReset}

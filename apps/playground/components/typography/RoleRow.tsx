@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NumberInput } from "@astryxdesign/core/NumberInput";
 import {
   Button,
@@ -22,6 +22,7 @@ import {
   type LineHeightConfig,
 } from "@blueprint/ui";
 import { LineHeightInput } from "./LineHeightInput";
+import { ConfirmDialog } from "../ConfirmDialog";
 import styles from "./typography-workspace.module.css";
 import { SheetSelector } from "../SheetSelector";
 import { usePickerSheet } from "../picker-sheet";
@@ -64,6 +65,8 @@ export function RoleRow({
 }: RoleRowProps) {
   const pickerSheet = usePickerSheet();
   const rowRef = useRef<HTMLDivElement>(null);
+  /* Removing a role asks first: its token may already be in use. */
+  const [isConfirmingRemove, setIsConfirmingRemove] = useState(false);
 
   useEffect(() => {
     if (!justAdded) return;
@@ -211,13 +214,25 @@ export function RoleRow({
         scheme="neutral"
         size="icon"
         variant="outlined"
-        onClick={() => onRoleRemove(role.id)}
+        onClick={() => setIsConfirmingRemove(true)}
       >
         {/* The icon is the label. `size="icon"` takes children as the
             glyph and the accessible name from aria-label, so the row
             keeps naming which role it removes. */}
         <X aria-hidden="true" />
       </Button>
+      {/* Closed, it renders a hidden dialog, so it takes no grid cell. */}
+      <ConfirmDialog
+        actionLabel="Delete role"
+        description="This removes the role and its token. Any components using it will need to be updated."
+        isOpen={isConfirmingRemove}
+        title={`Delete role "${role.id}"?`}
+        onAction={() => {
+          setIsConfirmingRemove(false);
+          onRoleRemove(role.id);
+        }}
+        onCancel={() => setIsConfirmingRemove(false)}
+      />
     </div>
   );
 }

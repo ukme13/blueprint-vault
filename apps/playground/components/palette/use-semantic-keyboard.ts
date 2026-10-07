@@ -1,40 +1,33 @@
 "use client";
 
 import { useCallback } from "react";
-import {
-  deleteTokens,
-  type ButtonScheme,
-  type SemanticToken,
-} from "@blueprint/ui";
+import type { SemanticToken } from "@blueprint/ui";
 import type { SemanticCell } from "./SemanticRow";
 
 interface SemanticKeyboardOptions {
-  tokens: SemanticToken[];
   visible: SemanticToken[];
   selectAll: () => void;
   clear: () => void;
   selected: string[];
-  apply: (result: ReturnType<typeof deleteTokens>) => void;
+  /** Ask before deleting these rows, as the menu does. */
+  onDelete: (ids: string[]) => void;
   onUndo?: () => void;
   onRedo?: () => void;
   onEdit: (next: { id: string; cell: SemanticCell } | null) => void;
   region: React.RefObject<HTMLDivElement | null>;
-  buttonSchemes: readonly ButtonScheme[];
 }
 
 /** Spreadsheet movement is UI state, separate from the semantic model. */
 export function useSemanticKeyboard({
-  tokens,
   visible,
   selectAll,
   clear,
   selected,
-  apply,
+  onDelete,
   onUndo,
   onRedo,
   onEdit,
   region,
-  buttonSchemes,
 }: SemanticKeyboardOptions) {
   return useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
@@ -89,12 +82,11 @@ export function useSemanticKeyboard({
       if (event.key === "Escape") clear();
       if (event.key === "Delete" || event.key === "Backspace") {
         event.preventDefault();
-        apply(deleteTokens(tokens, selected, { buttonSchemes }));
+        if (selected.length > 0) onDelete(selected);
       }
     },
     [
-      apply,
-      buttonSchemes,
+      onDelete,
       clear,
       onEdit,
       onRedo,
@@ -102,7 +94,6 @@ export function useSemanticKeyboard({
       region,
       selectAll,
       selected,
-      tokens,
       visible,
     ],
   );
