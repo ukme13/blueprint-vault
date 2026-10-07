@@ -81,24 +81,35 @@ export const STEPS_BELOW_BASE = 2;
  */
 export const MIN_GENERATED_FONT_SIZE_PX = 11;
 
+/** Above this, a size snaps to the 8px grid rather than the 2px one. */
+const LARGE_SIZE_THRESHOLD_PX = 48;
+
 /**
- * Round a size to an even number of pixels, never below the floor.
+ * Round a generated size onto a grid, never below the floor. Two tiers:
  *
- * A tie resolves to whichever candidate divides by four — 25 becomes 24, not 26.
- * That is unambiguous by construction, since exactly one of any two consecutive
- * even numbers divides by four, and it pulls the scale toward the 4px grid most
- * component work already sits on.
+ * - **48px and below: the nearest even pixel.** A tie resolves to whichever
+ *   candidate divides by four — 25 becomes 24, not 26. Exactly one of any two
+ *   consecutive even numbers divides by four, so that is unambiguous, and it
+ *   pulls text sizes toward the 4px grid most component work sits on.
+ * - **Above 48px: the nearest multiple of eight.** Display and hero sizes
+ *   are few and far apart, and a 62 beside a 64 is a difference nobody sees
+ *   but every layout has to absorb; on the 8px grid they line up with the
+ *   spacing around them. A tie resolves to whichever candidate divides by
+ *   sixteen — 52 becomes 48, 60 becomes 64 — unambiguous for the same reason.
+ *
+ * Step 8 on a 16px base at 1.25 is 61.04: 62 on the even grid, 64 on this.
  */
 export function roundToEvenPx(fontSizePx: number): number {
-  const lower = Math.floor(fontSizePx / 2) * 2;
-  const upper = lower + 2;
+  const grid = fontSizePx > LARGE_SIZE_THRESHOLD_PX ? 8 : 2;
+  const lower = Math.floor(fontSizePx / grid) * grid;
+  const upper = lower + grid;
   const toLower = fontSizePx - lower;
   const toUpper = upper - fontSizePx;
 
   let rounded: number;
   if (toLower < toUpper) rounded = lower;
   else if (toUpper < toLower) rounded = upper;
-  else rounded = lower % 4 === 0 ? lower : upper;
+  else rounded = lower % (grid * 2) === 0 ? lower : upper;
 
   return Math.max(rounded, MIN_GENERATED_FONT_SIZE_PX);
 }

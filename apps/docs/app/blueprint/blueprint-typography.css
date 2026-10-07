@@ -23,7 +23,7 @@
   --font-size-5: 32px;
   --font-size-6: 40px;
   --font-size-7: 48px;
-  --font-size-8: 62px;
+  --font-size-8: 64px;
   --font-display-family: var(--font-family-display);
   --font-display-weight: 700;
   --font-display-transform: none;
@@ -54,11 +54,11 @@
   --font-caption-family: var(--font-family-main);
   --font-caption-weight: 400;
   --font-caption-transform: none;
-  --font-display-size: 62px;
-  --font-display-line-height: 1.1613;
+  --font-display-size: 64px;
+  --font-display-line-height: 1.125;
   --font-display-letter-spacing: 0em;
-  --font-h1-size: 62px;
-  --font-h1-line-height: 1.2258;
+  --font-h1-size: 64px;
+  --font-h1-line-height: 1.25;
   --font-h1-letter-spacing: 0em;
   --font-h2-size: 48px;
   --font-h2-line-height: 1.25;

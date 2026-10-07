@@ -1450,9 +1450,9 @@
         "$type": "typography",
         "$value": {
           "fontFamily": "{typography.fontFamily.display}",
-          "fontSize": "62px",
+          "fontSize": "64px",
           "fontWeight": 700,
-          "lineHeight": 1.1613,
+          "lineHeight": 1.125,
           "letterSpacing": "0em"
         }
       },
@@ -1460,9 +1460,9 @@
         "$type": "typography",
         "$value": {
           "fontFamily": "{typography.fontFamily.main}",
-          "fontSize": "62px",
+          "fontSize": "64px",
           "fontWeight": 700,
-          "lineHeight": 1.2258,
+          "lineHeight": 1.25,
           "letterSpacing": "0em"
         }
       },
@@ -1552,9 +1552,9 @@
         "$type": "typography",
         "$value": {
           "fontFamily": "{typography.fontFamily.display}",
-          "fontSize": "62px",
+          "fontSize": "64px",
           "fontWeight": 700,
-          "lineHeight": 1.1613,
+          "lineHeight": 1.125,
           "letterSpacing": "0em"
         }
       },
@@ -1562,9 +1562,9 @@
         "$type": "typography",
         "$value": {
           "fontFamily": "{typography.fontFamily.main}",
-          "fontSize": "62px",
+          "fontSize": "64px",
           "fontWeight": 700,
-          "lineHeight": 1.2258,
+          "lineHeight": 1.25,
           "letterSpacing": "0em"
         }
       },
@@ -1654,9 +1654,9 @@
         "$type": "typography",
         "$value": {
           "fontFamily": "{typography.fontFamily.display}",
-          "fontSize": "62px",
+          "fontSize": "64px",
           "fontWeight": 700,
-          "lineHeight": 1.1613,
+          "lineHeight": 1.125,
           "letterSpacing": "0em"
         }
       },
@@ -1664,9 +1664,9 @@
         "$type": "typography",
         "$value": {
           "fontFamily": "{typography.fontFamily.main}",
-          "fontSize": "62px",
+          "fontSize": "64px",
           "fontWeight": 700,
-          "lineHeight": 1.2258,
+          "lineHeight": 1.25,
           "letterSpacing": "0em"
         }
       },
