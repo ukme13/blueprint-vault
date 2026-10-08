@@ -19,6 +19,19 @@ import {
 
 export const PALETTE_VIEW_STORAGE_KEY = "blueprint.palette-view.v1";
 
+/** Which contrast model the Contrast tool measures with. */
+export const CONTRAST_STANDARDS = ["wcag2", "wcag3"] as const;
+export type ContrastStandard = (typeof CONTRAST_STANDARDS)[number];
+
+export const CONTRAST_STANDARD_LABELS: Record<ContrastStandard, string> = {
+  wcag2: "WCAG 2",
+  wcag3: "WCAG 3",
+};
+
+export function isContrastStandard(value: unknown): value is ContrastStandard {
+  return CONTRAST_STANDARDS.includes(value as ContrastStandard);
+}
+
 export interface PaletteViewPreferences {
   /**
    * Which deficiency the Vision chip shows while it is on.
@@ -41,8 +54,13 @@ export interface PaletteViewPreferences {
   severity: number;
   /** Whether the Vision chip is active. */
   isSimulationOn: boolean;
-  /** Whether the WCAG contrast comparison panel is open. */
+  /** Whether the contrast comparison panel is open. */
   isContrastModeOpen: boolean;
+  /**
+   * The model contrast is measured with: WCAG 2's ratio, or WCAG 3's APCA Lc.
+   * Kept while the tool is off, so turning it on returns to the one in use.
+   */
+  contrastStandard: ContrastStandard;
 }
 
 export const DEFAULT_PALETTE_VIEW: PaletteViewPreferences = {
@@ -52,6 +70,7 @@ export const DEFAULT_PALETTE_VIEW: PaletteViewPreferences = {
   severity: 1,
   isSimulationOn: false,
   isContrastModeOpen: false,
+  contrastStandard: "wcag2",
 };
 
 /** What to render through, given the chip's state. */
@@ -103,6 +122,9 @@ export function readPaletteView(raw: string | null): PaletteViewPreferences {
       value.isContrastModeOpen,
       DEFAULT_PALETTE_VIEW.isContrastModeOpen,
     ),
+    contrastStandard: isContrastStandard(value.contrastStandard)
+      ? value.contrastStandard
+      : DEFAULT_PALETTE_VIEW.contrastStandard,
   };
 }
 
@@ -182,9 +204,10 @@ export function visionDraftToOpen(
 /** What the WCAG contrast is measured against. */
 export type ContrastTarget = "white" | "black" | "custom";
 
-/** What the WCAG sheet edits. */
+/** What the Contrast sheet edits. */
 export interface ContrastSettings {
   isOn: boolean;
+  standard: ContrastStandard;
   target: ContrastTarget;
   /** Used when `target` is `custom`, and kept when it is not. */
   customColour: string;
@@ -193,6 +216,7 @@ export interface ContrastSettings {
 /** Where Reset takes the WCAG sheet, and what a studio opens with. */
 export const DEFAULT_CONTRAST_SETTINGS: ContrastSettings = {
   isOn: DEFAULT_PALETTE_VIEW.isContrastModeOpen,
+  standard: DEFAULT_PALETTE_VIEW.contrastStandard,
   target: "white",
   customColour: "#7646ab",
 };

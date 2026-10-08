@@ -160,7 +160,7 @@ test.describe("Shade details", () => {
     await expect(contrastRatios).toHaveCount(0);
 
     const contrastMode = page.getByRole("button", {
-      name: "WCAG 2",
+      name: "Contrast",
       exact: true,
     });
     await contrastMode.hover();
@@ -171,7 +171,11 @@ test.describe("Shade details", () => {
       ),
     ).toBeVisible();
     await contrastMode.click();
-    await expect(contrastMode).toHaveAttribute("aria-pressed", "true");
+    /* Contrast names the group and is never lit; the standard in use is. */
+    await expect(contrastMode).not.toHaveAttribute("aria-pressed");
+    await expect(
+      page.getByRole("button", { name: "WCAG 2", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
     await expect(contrastRatios).toHaveCount(140);
 
     const ratioAgainstWhite = await shade.getAttribute("data-contrast-ratio");
@@ -256,7 +260,9 @@ test.describe("Shade details", () => {
     await expect(shade).toBeFocused();
 
     await contrastMode.click();
-    await expect(contrastMode).toHaveAttribute("aria-pressed", "false");
+    await expect(
+      page.getByRole("button", { name: "WCAG 2", exact: true }),
+    ).toHaveAttribute("aria-pressed", "false");
     await expect(contrastRatios).toHaveCount(0);
 
     await page.reload();

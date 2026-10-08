@@ -15,7 +15,6 @@ import {
   SegmentedControlItem,
 } from "@astryxdesign/core/SegmentedControl";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
-import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { useToast } from "@astryxdesign/core/Toast";
 import { useIsPhone } from "../use-is-phone";
 import { useUrlState } from "../use-url-state";
@@ -48,6 +47,7 @@ import {
   type ButtonScheme,
   type PaletteProjectData,
   type SemanticToken,
+  ContrastIcon,
   DEFAULT_CONTRAST_SETTINGS,
   type ContrastTarget,
 } from "@blueprint/ui";
@@ -57,6 +57,7 @@ import { VisionControl } from "../VisionControl";
 import { StudioSliceEmpty } from "../shell/StudioSliceEmpty";
 import { PaletteControls } from "./PaletteControls";
 import { ColourPicker } from "./ColourPicker";
+import { ContrastControl } from "./ContrastControl";
 import { ContrastSheet } from "./ContrastSheet";
 import { PaletteMatrix } from "./PaletteMatrix";
 import { PalettePreview } from "./PalettePreview";
@@ -208,9 +209,11 @@ function PaletteStudioContent() {
      colour format. Neither is part of the project. */
   const {
     isContrastModeOpen,
-    toggleContrastMode,
     closeContrastMode,
     setContrastModeOpen,
+    contrastStandard,
+    setContrastStandard,
+    chooseContrastStandard,
   } = usePaletteView();
   const [contrastTarget, setContrastTarget] = useState<ContrastTarget>(
     DEFAULT_CONTRAST_SETTINGS.target,
@@ -218,7 +221,7 @@ function PaletteStudioContent() {
   const [customContrastColour, setCustomContrastColour] = useState(
     DEFAULT_CONTRAST_SETTINGS.customColour,
   );
-  /* On a phone, WCAG 2 opens a sheet rather than toggling in place. The same
+  /* On a phone, Contrast opens a sheet rather than toggling in place. The same
      breakpoint the stylesheet hides the inline options at; the hook reads
      false on first render, so before hydration a tap does what it does on a
      desktop, which is never wrong, only less tidy. */
@@ -772,11 +775,9 @@ function PaletteStudioContent() {
         >
           Add colour
         </Button>
-        <Tooltip
-          content="Below 3:1 fails. Normal text needs 4.5:1 for AA and 7:1 for AAA."
-          hasHoverIndication={false}
-          placement="below"
-        >
+        {/* On a phone Contrast is one chip that opens its sheet; the group is
+            the desktop's, where every choice is a press away. */}
+        {isPhone ? (
           <Button
             aria-pressed={isContrastModeOpen}
             className={styles.contrastModeButton}
@@ -784,22 +785,31 @@ function PaletteStudioContent() {
             scheme="neutral"
             size="small"
             variant="outlined"
-            onClick={
-              isPhone ? () => setIsContrastSheetOpen(true) : toggleContrastMode
-            }
+            onClick={() => setIsContrastSheetOpen(true)}
           >
-            WCAG 2
+            <ContrastIcon className="size-3.5" />
+            Contrast
           </Button>
-        </Tooltip>
+        ) : (
+          <ContrastControl
+            isOn={isContrastModeOpen}
+            standard={contrastStandard}
+            onStandardChange={chooseContrastStandard}
+            onTurnOff={closeContrastMode}
+            onTurnOn={() => setContrastModeOpen(true)}
+          />
+        )}
         <ContrastSheet
           isOpen={isContrastSheetOpen}
           settings={{
             isOn: isContrastModeOpen,
+            standard: contrastStandard,
             target: contrastTarget,
             customColour: customContrastColour,
           }}
           onApply={(settings) => {
             setContrastModeOpen(settings.isOn);
+            setContrastStandard(settings.standard);
             setContrastTarget(settings.target);
             setCustomContrastColour(settings.customColour);
           }}

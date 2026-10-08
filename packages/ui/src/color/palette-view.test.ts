@@ -12,6 +12,7 @@ const CUSTOM: PaletteViewPreferences = {
   severity: 0.6,
   isSimulationOn: true,
   isContrastModeOpen: true,
+  contrastStandard: "wcag3",
 };
 
 describe("activeSimulation", () => {
@@ -36,6 +37,18 @@ describe("activeSimulation", () => {
 });
 
 describe("readPaletteView", () => {
+  it("reads the contrast standard, and defaults one it cannot read", () => {
+    expect(
+      readPaletteView(JSON.stringify({ contrastStandard: "wcag3" }))
+        .contrastStandard,
+    ).toBe("wcag3");
+    expect(
+      readPaletteView(JSON.stringify({ contrastStandard: "wcag4" }))
+        .contrastStandard,
+    ).toBe("wcag2");
+    expect(DEFAULT_PALETTE_VIEW.contrastStandard).toBe("wcag2");
+  });
+
   it("returns the defaults when nothing is stored", () => {
     expect(readPaletteView(null)).toEqual(DEFAULT_PALETTE_VIEW);
     expect(readPaletteView("")).toEqual(DEFAULT_PALETTE_VIEW);
@@ -62,12 +75,14 @@ describe("readPaletteView", () => {
       severity: 1,
       isSimulationOn: false,
       isContrastModeOpen: false,
+      contrastStandard: "wcag2",
     });
     expect(readPaletteView('{"isContrastModeOpen":true}')).toEqual({
       deficiency: "deuteranopia",
       severity: 1,
       isSimulationOn: false,
       isContrastModeOpen: true,
+      contrastStandard: "wcag2",
     });
   });
 

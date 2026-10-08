@@ -121,6 +121,7 @@
 /* Accessibility keeps Vision; bench-only controls stay on Shade generator. */
 .toolbar[data-tools="vision-only"] .addButton,
 .toolbar[data-tools="vision-only"] .contrastModeButton,
+.toolbar[data-tools="vision-only"] .contrastGroup,
 .toolbar[data-tools="vision-only"] .contrastOptions,
 .toolbar[data-tools="vision-only"] .toolbarDivider,
 .toolbar[data-tools="vision-only"] .resetButton,
@@ -148,6 +149,52 @@
   border-color: var(--color-action-primary);
   background: var(--color-action-muted);
   color: var(--color-fg-accent);
+}
+
+/* Contrast, WCAG 2, WCAG 3 and Off in one outline. Contrast names the group
+   and is never lit; the standard measuring is. */
+.contrastGroup {
+  display: inline-flex;
+  align-items: stretch;
+  height: var(--size-element-sm);
+  overflow: hidden;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-element);
+  background: var(--color-surface-base);
+}
+
+.contrastGroup button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 0;
+  background: transparent;
+  color: var(--color-fg-secondary);
+  font: inherit;
+  font-size: var(--font-size-sm, 0.75rem);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.contrastGroup button + button {
+  border-left: 1px solid var(--color-border-subtle);
+}
+
+.contrastGroup button:hover {
+  background: var(--color-surface-subtle);
+  color: var(--color-fg-primary);
+}
+
+.contrastGroup button[aria-pressed="true"] {
+  background: var(--color-action-muted);
+  color: var(--color-fg-accent);
+}
+
+.contrastGroup button:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
 }
 
 .contrastOptions {
