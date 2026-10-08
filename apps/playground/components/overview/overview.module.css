@@ -404,11 +404,6 @@
   line-height: 1.2;
 }
 
-.specimenMeta {
-  font-size: 0.75rem;
-  color: var(--color-fg-muted, var(--color-fg-secondary));
-}
-
 /* The field is a frame, and the button sits inside it a little way in, so the
    field's corner and the button's corner can be judged against each other. */
 .field {

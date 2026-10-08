@@ -43,7 +43,6 @@ export function OverviewComponentSpecimens({
       >
         <header className={styles.specimenHeader}>
           <h3 className={styles.specimenTitle}>Input</h3>
-          <span className={styles.specimenMeta}>Input and Button radius</span>
         </header>
         <span className={styles.field} data-field="">
           <input
@@ -67,7 +66,6 @@ export function OverviewComponentSpecimens({
       >
         <header className={styles.specimenHeader}>
           <h3 className={styles.specimenTitle}>Chips</h3>
-          <span className={styles.specimenMeta}>Chip radius</span>
         </header>
         <ul className={styles.chipRow}>
           {CHIPS.map(({ id, label, icon: Icon }) => (
