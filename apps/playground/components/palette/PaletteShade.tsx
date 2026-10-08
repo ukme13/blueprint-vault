@@ -82,6 +82,7 @@ export function PaletteShade({
       data-anchor={shade.isAnchor}
       data-contrast-ratio={ratioLabel}
       data-contrast-standard={reading ? contrastStandard : undefined}
+      data-contrast-status={reading?.status}
       data-has-contrast={reading !== null}
       data-selected={isSelected}
       /* Simulated for the eye only. The label, the title and the contrast
@@ -93,6 +94,16 @@ export function PaletteShade({
       /* With a popover, the popover opens itself from this trigger. */
       onClick={hasPopover ? undefined : () => onSelect(!isSelected)}
     >
+      {reading && (
+        /* How the pair does, without reading the number: red short of the
+           first line, amber between, green past the second. The words are in
+           the button's name; this is for the eye. */
+        <span
+          aria-hidden="true"
+          className={styles.shadeContrastStatus}
+          data-status={reading.status}
+        />
+      )}
       <span className={styles.shadeContent}>
         {ratioLabel && (
           <span aria-hidden="true" className={styles.shadeContrastRatio}>

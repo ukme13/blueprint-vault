@@ -869,6 +869,33 @@
   gap: 0px;
 }
 
+/* The contrast status: a 2px line along the foot of the swatch. A hairline of
+   the text colour above it parts it from the swatch, so red, amber and green
+   read on a light shade and a dark one alike. */
+.shadeContrastStatus {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  border-bottom-left-radius: inherit;
+  border-bottom-right-radius: inherit;
+  box-shadow: 0 -1px 0 color-mix(in srgb, currentColor 35%, transparent);
+  pointer-events: none;
+}
+
+.shadeContrastStatus[data-status="fail"] {
+  background: var(--color-status-error);
+}
+
+.shadeContrastStatus[data-status="partial"] {
+  background: var(--color-status-warning);
+}
+
+.shadeContrastStatus[data-status="pass"] {
+  background: var(--color-status-success);
+}
+
 .shadeContrastRatio {
   font-family: var(--font-mono);
   font-size: 11px;

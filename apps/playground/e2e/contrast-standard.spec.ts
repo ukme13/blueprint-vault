@@ -198,6 +198,92 @@ test.describe("The Contrast tool", () => {
     expect(await readings(page)).toEqual(ratios);
   });
 
+  test("marks every swatch with how it does: red, amber or green along its foot", async ({
+    seededPage: page,
+  }) => {
+    /* Off, no swatch carries one. */
+    await expect(page.locator("[data-contrast-status]")).toHaveCount(0);
+
+    await contrastButton(page).click();
+    const swatches = page.locator("button[data-contrast-status]");
+    await expect(swatches.first()).toBeVisible();
+    const count = await swatches.count();
+    expect(count).toBeGreaterThan(100);
+
+    /* The bar is a 2px line along the foot, as wide as the swatch. */
+    const geometry = await swatches.first().evaluate((node) => {
+      const bar = node.querySelector("[data-status]")!.getBoundingClientRect();
+      const box = node.getBoundingClientRect();
+      return {
+        height: bar.height,
+        widthGap: Math.abs(bar.width - box.width),
+        footGap: Math.abs(bar.bottom - box.bottom),
+      };
+    });
+    expect(geometry.height).toBeCloseTo(2, 0);
+    expect(geometry.widthGap).toBeLessThan(1);
+    expect(geometry.footGap).toBeLessThan(1);
+
+    /* Each step reads from the figure on the swatch, under both standards,
+       leaving out the few within a tenth of a line where rounding hides it. */
+    const lines = {
+      wcag2: [3, 7],
+      wcag3: [45, 75],
+    } as const;
+    for (const which of ["wcag2", "wcag3"] as const) {
+      if (which === "wcag3") await standard(page, "WCAG 3").click();
+      await expect(swatches.first()).toHaveAttribute(
+        "data-contrast-standard",
+        which,
+      );
+      const [partial, pass] = lines[which];
+      const rows = await swatches.evaluateAll((nodes) =>
+        nodes.map((node) => ({
+          value: Number(node.getAttribute("data-contrast-ratio")),
+          status: node.getAttribute("data-contrast-status"),
+          name: node.getAttribute("aria-label") ?? "",
+        })),
+      );
+      const seen = new Set<string>();
+      for (const row of rows) {
+        seen.add(row.status!);
+        const near = [partial, pass].some(
+          (line) => Math.abs(row.value - line) < 0.1,
+        );
+        if (near) continue;
+        const expected =
+          row.value >= pass
+            ? "pass"
+            : row.value >= partial
+              ? "partial"
+              : "fail";
+        expect(row.status, row.name).toBe(expected);
+        /* And said in words, for those who do not see the bar. */
+        expect(row.name).toMatch(/fails|passes in part|passes/);
+      }
+      /* A real palette has all three. */
+      expect([...seen].sort()).toEqual(["fail", "partial", "pass"]);
+    }
+
+    /* Three colours for three steps, not one. */
+    await standard(page, "WCAG 2").click();
+    const colours = await page.locator("[data-status]").evaluateAll((bars) => {
+      const byStatus = new Map<string, string>();
+      for (const bar of bars) {
+        byStatus.set(
+          bar.getAttribute("data-status")!,
+          getComputedStyle(bar).backgroundColor,
+        );
+      }
+      return [...byStatus.values()];
+    });
+    expect(new Set(colours).size).toBe(3);
+
+    /* Off again, and they go. */
+    await contrastButton(page).click();
+    await expect(page.locator("[data-contrast-status]")).toHaveCount(0);
+  });
+
   test("grades a shade by the standard in force: AA and AAA, or Body, Large and UI", async ({
     seededPage: page,
   }) => {
