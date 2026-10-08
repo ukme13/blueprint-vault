@@ -96,20 +96,22 @@
 /* What an undo or a redo changed, for a moment: a tint of the action colour
    that fades out. The hook sets the attribute; a studio chooses the element. */
 @keyframes undo-flash {
-  from {
+  /* Held for a while, then a long fade, so it is there when the eye arrives. */
+  0%,
+  35% {
     background-color: color-mix(
       in srgb,
       var(--color-action-primary) 24%,
       transparent
     );
   }
-  to {
+  100% {
     background-color: transparent;
   }
 }
 
 [data-undo-highlight] {
-  animation: undo-flash 1.2s ease-out;
+  animation: undo-flash 2.8s ease-in-out;
 }
 
 /* No fade under reduced motion: a ring that holds, and goes with the flag. */

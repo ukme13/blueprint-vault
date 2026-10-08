@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@astryxdesign/core/Button";
 import { useToast } from "@astryxdesign/core/Toast";
 import {
   stepMessage,
@@ -25,10 +26,11 @@ import { pushStudioUrl } from "./use-url-state";
  * its shade generator) is reached by pushing the address and telling the
  * studio, as a tab click does, since the router would change the address and
  * leave the tab where it was. And a line says what was undone and where, so a
- * change of screen is never unexplained.
+ * change of screen is never unexplained, with the one button that takes it back:
+ * Redo on an undo, Undo on a redo.
  */
 export function useUndoNavigation(
-  store: Pick<WorkspaceStore, "revision" | "lastStep">,
+  store: Pick<WorkspaceStore, "revision" | "lastStep" | "undo" | "redo">,
   pathname: string,
   isHome: boolean,
 ): void {
@@ -42,10 +44,26 @@ export function useUndoNavigation(
     if (isHome) return;
     const step = store.lastStep;
     if (!step) return;
-    toast({
+    /* The step's opposite, so a slip is a click away. It closes the line it
+       is on; the step it takes brings its own, which replaces any left. */
+    const reverse = step.direction === "undo" ? store.redo : store.undo;
+    let dismiss = () => {};
+    dismiss = toast({
       body: stepMessage(step),
       type: "info",
       uniqueID: "workspace-undo",
+      autoHideDuration: 5000,
+      endContent: (
+        <Button
+          label={step.direction === "undo" ? "Redo" : "Undo"}
+          size="sm"
+          variant="secondary"
+          onClick={() => {
+            dismiss();
+            reverse();
+          }}
+        />
+      ),
     });
     const destination = undoDestination(
       step.origin,
@@ -57,5 +75,14 @@ export function useUndoNavigation(
       destination.split("?")[0] === pathname.replace(/(.)\/$/, "$1");
     if (samePage) pushStudioUrl(destination);
     else router.push(destination);
-  }, [store.revision, store.lastStep, pathname, isHome, router, toast]);
+  }, [
+    store.revision,
+    store.lastStep,
+    store.undo,
+    store.redo,
+    pathname,
+    isHome,
+    router,
+    toast,
+  ]);
 }

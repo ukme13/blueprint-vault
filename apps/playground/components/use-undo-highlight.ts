@@ -5,8 +5,12 @@ import type { WorkspaceStore, WorkspaceTarget } from "@blueprint/ui";
 
 /** How long after an undo a studio that opens late still points at its edit. */
 const FRESH_MS = 5000;
-/** The flash, matching the `undo-flash` animation in the global stylesheet. */
-const FLASH_MS = 1400;
+/**
+ * How long the mark stays: a little over the `undo-flash` animation in the
+ * global stylesheet, so the fade finishes before the attribute goes. Long
+ * enough to find after a change of studio, where the eye is still arriving.
+ */
+const FLASH_MS = 3000;
 /** Frames to wait for a studio that is still rendering what was restored. */
 const FRAMES_TO_WAIT = 20;
 

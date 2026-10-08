@@ -184,6 +184,33 @@ test.describe("Undo across studios", () => {
     await expect.poll(() => storedRoles(page)).toBe(before + 1);
   });
 
+  test("the toast offers the way back: Redo after an undo, Undo after a redo", async ({
+    seededPage: page,
+  }) => {
+    await showInspectorPanel(page, "Groups");
+    const before = await storedRoles(page);
+    await page.getByRole("button", { name: "Add a role to Body" }).click();
+    await expect.poll(() => storedRoles(page)).toBe(before + 1);
+    await blurFocus(page);
+
+    const toast = page.locator(".astryx-toast");
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect.poll(() => storedRoles(page)).toBe(before);
+    await expect(toast).toContainText("Undid edit in Typography");
+    await expect(toast.getByRole("button", { name: "Undo" })).toHaveCount(0);
+
+    /* Redo, from the toast: the edit is back, and the line says so. */
+    await toast.getByRole("button", { name: "Redo" }).click();
+    await expect.poll(() => storedRoles(page)).toBe(before + 1);
+    await expect(toast).toContainText("Redid edit in Typography");
+    await expect(toast.getByRole("button", { name: "Redo" })).toHaveCount(0);
+
+    /* And Undo, from that one, takes it away again. */
+    await toast.getByRole("button", { name: "Undo" }).click();
+    await expect.poll(() => storedRoles(page)).toBe(before);
+    await expect(toast).toContainText("Undid edit in Typography");
+  });
+
   test("stays put when the edit was made in the studio already open", async ({
     seededPage: page,
   }) => {

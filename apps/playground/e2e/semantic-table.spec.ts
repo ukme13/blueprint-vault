@@ -241,8 +241,13 @@ test.describe("Reference transparency", () => {
       });
     await expect.poll(look).toEqual(["none", "solid"]);
 
+    /* Long enough to find after a change of screen: still there after two
+       seconds. */
+    await page.waitForTimeout(2000);
+    await expect(lit).toHaveCount(1);
+
     /* It goes, and the value is the restored one. */
-    await expect(lit).toHaveCount(0, { timeout: 5000 });
+    await expect(lit).toHaveCount(0, { timeout: 6000 });
     await expect(alpha).toHaveValue("12%");
 
     /* With motion allowed, a redo lights the same cell as a fade instead. */
