@@ -631,6 +631,34 @@ test.describe("Typography scale editing", () => {
     await expect(names.first()).toBeInViewport();
   });
 
+  test("greys Add role out when the group is full, rather than fading the brand colour", async ({
+    seededPage: page,
+  }) => {
+    await showInspectorPanel(page, "Groups");
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const addTo = (group: string) =>
+      settings
+        .getByRole("group", { name: group, exact: true })
+        .getByRole("button", { name: `Add a role to ${group}` });
+    const look = (group: string) =>
+      addTo(group).evaluate((node) => {
+        const style = getComputedStyle(node);
+        return { fill: style.backgroundColor, opacity: style.opacity };
+      });
+
+    const open = await look("Body");
+    // Fill the heading group to its capacity.
+    const add = addTo("H");
+    for (let step = 0; step < 12 && (await add.isEnabled()); step += 1) {
+      await add.click();
+    }
+    await expect(add).toBeDisabled();
+
+    const full = await look("H");
+    expect(full.opacity).toBe("1");
+    expect(full.fill).not.toBe(open.fill);
+  });
+
   test("keeps the heading group numbered, with its indexing off", async ({
     seededPage: page,
   }) => {

@@ -954,6 +954,17 @@
   color: var(--color-status-error);
 }
 
+/* Add role is a primary button, but when the group cannot take another role it
+   is grey rather than a faded green: a dimmed brand colour still looks like an
+   action, and this one is not on offer. */
+.addRoleButton:disabled,
+.addRoleButton[aria-disabled="true"] {
+  background: var(--color-surface-subtle);
+  border-color: transparent;
+  color: var(--color-fg-disabled);
+  opacity: 1;
+}
+
 /* "Add font" and "Add group" are siblings in the reader's mind, so they are one
    size and one width wherever they appear. Left to a grid child's default
    stretch they ran the full width of a panel that opens to 900px. */

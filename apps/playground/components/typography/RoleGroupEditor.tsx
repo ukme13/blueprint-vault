@@ -282,6 +282,7 @@ export function RoleGroupEditor({
               {!accordion && (
                 <Button
                   aria-label={`Add a role to ${group.label}`}
+                  className={styles.addRoleButton}
                   disabled={!canAddRole}
                   scheme="primary"
                   size="icon"
