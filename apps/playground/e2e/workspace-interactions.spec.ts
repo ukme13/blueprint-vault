@@ -260,9 +260,10 @@ test.describe("Shade details", () => {
     await expect(shade).toBeFocused();
 
     await contrastMode.click();
+    /* Off, only Contrast is left in the group. */
     await expect(
       page.getByRole("button", { name: "WCAG 2", exact: true }),
-    ).toHaveAttribute("aria-pressed", "false");
+    ).toHaveCount(0);
     await expect(contrastRatios).toHaveCount(0);
 
     await page.reload();

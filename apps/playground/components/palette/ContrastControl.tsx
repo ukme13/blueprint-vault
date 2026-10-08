@@ -2,6 +2,7 @@
 
 import { Tooltip } from "@astryxdesign/core/Tooltip";
 import {
+  Button,
   CONTRAST_STANDARD_LABELS,
   CONTRAST_STANDARDS,
   ContrastIcon,
@@ -25,13 +26,18 @@ const TIPS: Record<ContrastStandard, string> = {
 };
 
 /**
- * Contrast, WCAG 2 and WCAG 3 as one group.
+ * Contrast, and once it is on WCAG 2 and WCAG 3, as one group.
  *
- * Contrast is the group's name, not a mode: it is never the one that is lit.
- * Pressing it switches contrast on in the standard that was in use last, or
- * off if it is on. A standard lights when it is the one measuring, and
- * pressing the one that is lit turns the tool off. With none lit, it is off:
- * there is no Off button because pressing either of those already is one.
+ * Off, only Contrast shows. Contrast is the group's name, not a mode: it is
+ * never the one that is lit. Pressing it switches contrast on in the standard
+ * that was in use last, and reveals the two standards; pressing it again
+ * switches off and hides them. A standard lights when it is the one
+ * measuring, and pressing the one that is lit turns the tool off. There is no
+ * Off button because pressing either of those already is one.
+ *
+ * Each is the toolbar's own outlined button, so the fill, the hover and the
+ * focus ring are the ones Add colour and Vision have; only the corners are
+ * squared where two meet.
  */
 export function ContrastControl({
   isOn,
@@ -40,6 +46,11 @@ export function ContrastControl({
   onTurnOff,
   onStandardChange,
 }: ContrastControlProps) {
+  const standards = isOn ? CONTRAST_STANDARDS : [];
+  /* Where each sits in the row, so the joins are squared by position and not
+     by a sibling selector that a tooltip's wrapper would break. */
+  const place = (index: number) =>
+    index === 0 ? (standards.length === 0 ? "only" : "first") : "after";
   return (
     <span aria-label="Contrast" className={styles.contrastGroup} role="group">
       <Tooltip
@@ -47,26 +58,35 @@ export function ContrastControl({
         hasHoverIndication={false}
         placement="below"
       >
-        <button
-          className={styles.contrastGroupLabel}
-          type="button"
+        <Button
+          className={styles.contrastSegment}
+          data-place={place(0)}
+          leftIcon={<ContrastIcon className="size-3.5" />}
+          scheme="neutral"
+          size="small"
+          variant="outlined"
           onClick={isOn ? onTurnOff : onTurnOn}
         >
-          <ContrastIcon className="size-3.5" />
           Contrast
-        </button>
+        </Button>
       </Tooltip>
-      {CONTRAST_STANDARDS.map((each) => {
-        const isLit = isOn && standard === each;
+      {standards.map((each, index) => {
+        const isLit = standard === each;
+        const isLast = index === standards.length - 1;
         return (
-          <button
+          <Button
             key={each}
             aria-pressed={isLit}
-            type="button"
+            className={styles.contrastSegment}
+            data-active={isLit}
+            data-place={isLast ? "last" : "between"}
+            scheme="neutral"
+            size="small"
+            variant="outlined"
             onClick={() => (isLit ? onTurnOff() : onStandardChange(each))}
           >
             {CONTRAST_STANDARD_LABELS[each]}
-          </button>
+          </Button>
         );
       })}
     </span>

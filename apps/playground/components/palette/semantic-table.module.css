@@ -55,6 +55,23 @@
   display: none;
 }
 
+/* The selected group sits on the muted accent, and ordinary text reads on it
+   (5.0:1 in light, 17.9:1 in dark). White would not: the on-action colour is
+   for the filled accent, and on this fill it is 4.2:1 in light and nearly
+   invisible in dark, where it turns dark. The count takes the same colour
+   instead of the secondary one, which fell below 4.5:1 here. */
+.sidebar [aria-current="true"],
+.sidebar [aria-selected="true"],
+.sidebar [data-selected="true"] {
+  color: var(--color-fg-primary);
+}
+
+.sidebar [aria-current="true"] *,
+.sidebar [aria-selected="true"] *,
+.sidebar [data-selected="true"] * {
+  color: inherit;
+}
+
 .count {
   color: var(--color-fg-secondary);
   font-size: var(--font-size-xs, 0.75rem);

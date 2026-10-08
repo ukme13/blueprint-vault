@@ -782,12 +782,12 @@ function PaletteStudioContent() {
             aria-pressed={isContrastModeOpen}
             className={styles.contrastModeButton}
             data-active={isContrastModeOpen}
+            leftIcon={<ContrastIcon className="size-3.5" />}
             scheme="neutral"
             size="small"
             variant="outlined"
             onClick={() => setIsContrastSheetOpen(true)}
           >
-            <ContrastIcon className="size-3.5" />
             Contrast
           </Button>
         ) : (

@@ -1,10 +1,11 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "./fixtures";
+import { expect, openTheme, test } from "./fixtures";
 
 /**
- * The Contrast tool: Contrast, WCAG 2, WCAG 3 and Off as one group. Contrast
- * names it and is never lit; the standard measuring is. The standard changes
- * the number on every swatch and the grades in a shade's details.
+ * The Contrast tool: Contrast alone while it is off, and once it is on WCAG 2
+ * and WCAG 3 beside it, as one group. Contrast names it and is never lit; the
+ * standard measuring is. The standard changes the number on every swatch and
+ * the grades in a shade's details.
  */
 const group = (page: Page) =>
   page.getByRole("group", { name: "Contrast", exact: true });
@@ -12,19 +13,15 @@ const contrastButton = (page: Page) =>
   group(page).getByRole("button", { name: "Contrast", exact: true });
 const standard = (page: Page, name: "WCAG 2" | "WCAG 3") =>
   group(page).getByRole("button", { name, exact: true });
-/** Off is nothing lit: neither standard is pressed. */
-const expectOff = async (page: Page) => {
-  await expect(standard(page, "WCAG 2")).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
-  await expect(standard(page, "WCAG 3")).toHaveAttribute(
-    "aria-pressed",
-    "false",
-  );
-};
 const comparison = (page: Page) =>
   page.getByRole("region", { name: "Contrast comparison", exact: true });
+
+/** Off is Contrast alone: neither standard is there to be pressed. */
+const expectOff = async (page: Page) => {
+  await expect(group(page).getByRole("button")).toHaveText(["Contrast"]);
+  await expect(comparison(page)).toHaveCount(0);
+  await expect(page.locator("button[data-contrast-ratio]")).toHaveCount(0);
+};
 
 const readings = (page: Page) =>
   page
@@ -34,19 +31,26 @@ const readings = (page: Page) =>
     );
 
 test.describe("The Contrast tool", () => {
-  test("starts off: no standard lit, and no numbers on the swatches", async ({
+  test("starts off as Contrast alone, with no numbers on the swatches", async ({
     seededPage: page,
   }) => {
     await expect(group(page)).toBeVisible();
-    /* Three buttons and no Off: pressing a lit one is how it is turned off. */
-    await expect(group(page).getByRole("button")).toHaveText([
-      "Contrast",
-      "WCAG 2",
-      "WCAG 3",
-    ]);
     await expectOff(page);
-    await expect(comparison(page)).toHaveCount(0);
-    await expect(page.locator("button[data-contrast-ratio]")).toHaveCount(0);
+
+    /* The icon sits beside the label, on its centre line, and the button is
+       as tall as Add colour and Vision beside it. */
+    const button = (await contrastButton(page).boundingBox())!;
+    const icon = (await contrastButton(page).locator("svg").boundingBox())!;
+    expect(icon.y + icon.height / 2).toBeCloseTo(
+      button.y + button.height / 2,
+      0,
+    );
+    expect(icon.x + icon.width).toBeLessThan(button.x + button.width / 2);
+    const add = (await page
+      .getByRole("button", { name: "Add colour" })
+      .boundingBox())!;
+    expect(button.height).toBeCloseTo(add.height, 0);
+    expect(button.y).toBeCloseTo(add.y, 0);
   });
 
   test("Contrast switches it on in WCAG 2 and never lights itself", async ({
@@ -54,6 +58,12 @@ test.describe("The Contrast tool", () => {
   }) => {
     await contrastButton(page).click();
 
+    /* The standards appear, and the one in use is lit. */
+    await expect(group(page).getByRole("button")).toHaveText([
+      "Contrast",
+      "WCAG 2",
+      "WCAG 3",
+    ]);
     await expect(standard(page, "WCAG 2")).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -82,17 +92,15 @@ test.describe("The Contrast tool", () => {
       () => standard(page, "WCAG 2").click(),
       () => contrastButton(page).click(),
     ]) {
-      await standard(page, "WCAG 2").click();
+      await contrastButton(page).click();
       await expect(comparison(page)).toBeVisible();
       await turnOff();
       await expectOff(page);
-      await expect(comparison(page)).toHaveCount(0);
-      await expect(page.locator("button[data-contrast-ratio]")).toHaveCount(0);
     }
 
     /* The other standard, pressed while one is lit, switches rather than
        turning off. */
-    await standard(page, "WCAG 2").click();
+    await contrastButton(page).click();
     await standard(page, "WCAG 3").click();
     await expect(standard(page, "WCAG 3")).toHaveAttribute(
       "aria-pressed",
@@ -108,11 +116,8 @@ test.describe("The Contrast tool", () => {
   test("Contrast comes back on in the standard last used", async ({
     seededPage: page,
   }) => {
+    await contrastButton(page).click();
     await standard(page, "WCAG 3").click();
-    await expect(standard(page, "WCAG 3")).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
     await standard(page, "WCAG 3").click();
     await expectOff(page);
 
@@ -172,7 +177,7 @@ test.describe("The Contrast tool", () => {
   test("grades a shade by the standard in force: AA and AAA, or Body, Large and UI", async ({
     seededPage: page,
   }) => {
-    await standard(page, "WCAG 2").click();
+    await contrastButton(page).click();
     const shade = page.getByRole("button", { name: /Select primary 500,/ });
     await shade.first().click();
     const details = page.getByRole("dialog", {
@@ -217,3 +222,81 @@ test.describe("The Contrast tool", () => {
     );
   });
 });
+
+/**
+ * Whether text that sits on a fill can be read: the WCAG 2 contrast between a
+ * node's own colour and the background of the fill it is on (itself, or the
+ * ancestor `within` names), in whichever theme is showing. Measured on the
+ * painted colours, whatever space they are written in.
+ */
+const contrastOf = (page: Page, selector: string, within?: string) =>
+  page
+    .locator(selector)
+    .first()
+    .evaluate((node, fillSelector) => {
+      const luminance = (value: string) => {
+        const context = document.createElement("canvas").getContext("2d")!;
+        context.fillStyle = value;
+        context.fillRect(0, 0, 1, 1);
+        const [r, g, b] = context.getImageData(0, 0, 1, 1).data as unknown as [
+          number,
+          number,
+          number,
+        ];
+        const linear = (v: number) => {
+          const s = v / 255;
+          return s <= 0.04045 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+        };
+        return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+      };
+      const fill = fillSelector
+        ? (node.closest(fillSelector) as HTMLElement)
+        : (node as HTMLElement);
+      const text = luminance(getComputedStyle(node).color);
+      const ground = luminance(getComputedStyle(fill).backgroundColor);
+      return (Math.max(text, ground) + 0.05) / (Math.min(text, ground) + 0.05);
+    }, within);
+
+for (const theme of ["Light", "Dark"] as const) {
+  test.describe(`Text that sits on a fill, in ${theme.toLowerCase()} mode`, () => {
+    test("the standard measuring reads on its fill", async ({
+      seededPage: page,
+    }) => {
+      const themes = await openTheme(page);
+      await themes.getByRole("radio", { name: theme }).click();
+      await page.keyboard.press("Escape");
+
+      await contrastButton(page).click();
+      await expect(standard(page, "WCAG 2")).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+      const ratio = await contrastOf(
+        page,
+        'button[aria-pressed="true"]:has-text("WCAG 2")',
+      );
+      expect(ratio).toBeGreaterThanOrEqual(4.5);
+    });
+
+    test("the selected group in the semantic sidebar, and its count, read on theirs", async ({
+      seededPage: page,
+    }) => {
+      const themes = await openTheme(page);
+      await themes.getByRole("radio", { name: theme }).click();
+      await page.keyboard.press("Escape");
+      await page.getByRole("button", { name: "Semantics" }).click();
+      await expect(
+        page.getByRole("region", { name: "Semantic tokens" }),
+      ).toBeVisible({ timeout: 20_000 });
+
+      const item = '[aria-label="Token groups"] [aria-current="true"]';
+      expect(await contrastOf(page, item)).toBeGreaterThanOrEqual(4.5);
+      const count = await contrastOf(
+        page,
+        `${item} [class*="count"]`,
+        '[aria-current="true"]',
+      );
+      expect(count).toBeGreaterThanOrEqual(4.5);
+    });
+  });
+}
