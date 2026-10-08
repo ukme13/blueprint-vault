@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { seedProject } from "./fixtures";
+import { openTheme, seedProject } from "./fixtures";
 import { showScaleView } from "./scale-fixtures";
 
 test.describe("Bento Overview Studio", () => {
@@ -307,4 +307,40 @@ test.describe("The overview follows the radius scale", () => {
     await expect.poll(() => radius(frame)).toBe("8px");
     await expect.poll(() => radius(chip)).toBe("4px");
   });
+
+  for (const theme of ["Light", "Dark"] as const) {
+    test(`lifts the cards off the canvas by fill alone in ${theme.toLowerCase()} mode`, async ({
+      page,
+    }) => {
+      await seedProject(page);
+      await page.goto("/overview");
+      await expect(page.locator("[data-overview-studio]")).toBeVisible();
+      const themes = await openTheme(page);
+      await themes.getByRole("radio", { name: theme }).click();
+      await page.keyboard.press("Escape");
+
+      /* The lightness each paints, whatever colour space it is written in. */
+      const { ground, card, well } = await page
+        .locator("[data-overview-grid]")
+        .evaluate((grid) => {
+          const lightness = (node: Element) => {
+            const context = document.createElement("canvas").getContext("2d")!;
+            context.fillStyle = getComputedStyle(node).backgroundColor;
+            context.fillRect(0, 0, 1, 1);
+            const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
+            return (0.2126 * r! + 0.7152 * g! + 0.0722 * b!) / 255;
+          };
+          return {
+            ground: lightness(grid.parentElement!),
+            card: lightness(grid.querySelector("[data-specimen='field']")!),
+            well: lightness(grid.querySelector("[data-field]")!),
+          };
+        });
+
+      /* Lighter than the ground it sits on, by enough to see without a rule. */
+      expect(card - ground).toBeGreaterThan(0.06);
+      /* And what is set into a card sits below it, not level with it. */
+      expect(well).toBeLessThan(card);
+    });
+  }
 });

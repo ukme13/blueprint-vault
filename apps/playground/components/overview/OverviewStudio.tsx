@@ -64,9 +64,9 @@ export function OverviewStudio() {
     [project],
   );
 
-  /* The project's own semantic layer, as the Preview sets it, so the cards
-     resolve --color-fg-muted, the action and the status colours from its
-     tracks and not the studio's. */
+  /* The project's own semantic layer, as the Preview sets it, so the surfaces,
+     --color-fg-muted, the action and the status colours come from its tracks
+     and not the studio's. */
   const semanticVariables = useMemo(
     (): CSSProperties =>
       semanticCssVariables(
@@ -248,7 +248,11 @@ export function OverviewStudio() {
         </div>
       </header>
 
-      <main className={styles.canvas} style={semanticVariables}>
+      <main
+        className={styles.canvas}
+        data-mode={mode}
+        style={semanticVariables}
+      >
         <div className={styles.bentoGrid} data-overview-grid="true">
           {/* Column 1: Color Families */}
           <div className={styles.column} data-column="colors">
