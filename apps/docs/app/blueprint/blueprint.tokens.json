@@ -637,6 +637,9 @@
         },
         "on-info": {
           "$value": "{palette.neutral.25}"
+        },
+        "muted": {
+          "$value": "{palette.neutral.550}"
         }
       },
       "focus": {
@@ -969,6 +972,9 @@
         },
         "on-info": {
           "$value": "{palette.neutral.950}"
+        },
+        "muted": {
+          "$value": "{palette.neutral.500}"
         }
       },
       "focus": {

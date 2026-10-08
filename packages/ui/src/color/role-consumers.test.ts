@@ -155,7 +155,9 @@ describe("usedBy", () => {
        vocabulary rather than for a caller. They are what makes the removed-seed
        list reachable at all. `border.strong` joined them when the bridge's
        emphasized border moved to `border.default`, which left it nothing
-       outside the studio reading it.
+       outside the studio reading it. `fg.muted` is the fourth: seeded so a
+       project has a placeholder tone of its own, read by the studio and the
+       preview through the CSS variable rather than by a role the bridge maps.
 
        Held as an exact set rather than a count, so a role gaining or losing a
        consumer is a decision somebody makes here rather than a number that
@@ -165,7 +167,12 @@ describe("usedBy", () => {
       .filter((token) => !isLoadBearing(token.id))
       .map((token) => token.id);
 
-    expect(free).toEqual(["border.subtle", "border.muted", "border.strong"]);
+    expect(free).toEqual([
+      "border.subtle",
+      "border.muted",
+      "border.strong",
+      "fg.muted",
+    ]);
   });
 
   it("follows the tone table rather than a copy of it", () => {

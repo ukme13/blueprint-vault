@@ -214,6 +214,7 @@
   --color-status-info-surface-hover: color-mix(in oklab, var(--color-info-100) 18%, transparent);
   --color-status-info-fg: var(--color-info-900);
   --color-status-info-border: var(--color-info-450);
+  --color-fg-muted: var(--color-neutral-550);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -290,6 +291,7 @@
     --color-status-info-surface-hover: color-mix(in oklab, var(--color-info-900) 22%, transparent);
     --color-status-info-fg: var(--color-info-100);
     --color-status-info-border: var(--color-info-450);
+    --color-fg-muted: var(--color-neutral-500);
   }
 }
 
@@ -366,6 +368,7 @@
   --color-status-info-surface-hover: color-mix(in oklab, var(--color-info-900) 22%, transparent);
   --color-status-info-fg: var(--color-info-100);
   --color-status-info-border: var(--color-info-450);
+  --color-fg-muted: var(--color-neutral-500);
 }
 
 :root {
