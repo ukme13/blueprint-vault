@@ -43,6 +43,11 @@ interface SelectorOptionListProps {
   header?: ReactNode;
   /** Focus the search each time the list is shown, so typing filters at once. */
   hasAutoFocus?: boolean;
+  /**
+   * Show each option's text description beside its label, and let the search
+   * read it: a size next to a name, found by typing the size.
+   */
+  hasDescriptions?: boolean;
 }
 
 /**
@@ -60,6 +65,7 @@ export function SelectorOptionList({
   searchPlaceholder,
   density: requestedDensity = "comfortable",
   hasAutoFocus,
+  hasDescriptions = false,
   header,
 }: SelectorOptionListProps) {
   /* On a phone every selector is a sheet, so a list asked for as a
@@ -67,7 +73,9 @@ export function SelectorOptionList({
      at the top with its divider run to the sheet's edges. */
   const isPhone = useIsPhone();
   const density = isPhone ? "comfortable" : requestedDensity;
-  const groups = sheetOptionGroups([...options], query);
+  const groups = sheetOptionGroups([...options], query, {
+    searchDescriptions: hasDescriptions,
+  });
   const listRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -177,6 +185,12 @@ export function SelectorOptionList({
                   <span className={styles.optionLabel}>
                     {option.label ?? option.value}
                   </span>
+                  {hasDescriptions &&
+                    typeof option.description === "string" && (
+                      <span className={styles.optionDescription}>
+                        {option.description}
+                      </span>
+                    )}
                   {isSelected && <Check aria-hidden className={styles.check} />}
                 </button>
               );

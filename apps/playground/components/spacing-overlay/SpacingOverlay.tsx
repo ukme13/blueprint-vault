@@ -92,6 +92,7 @@ export function SpacingOverlay({
                   <SpacingUseBadge
                     deviceId={deviceId}
                     deviceName={deviceName}
+                    layout={layout}
                     px={band.px}
                     spacing={spacing}
                     token={token}

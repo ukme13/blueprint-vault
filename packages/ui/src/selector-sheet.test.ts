@@ -21,6 +21,20 @@ const options = [
 ];
 
 describe("sheetOptionGroups", () => {
+  it("reads descriptions only when asked", () => {
+    const sized = [
+      { value: "gap", label: "Section gap", description: "64px" },
+      { value: "inset", label: "Container inset", description: "80px" },
+    ];
+    const found = (query: string, searchDescriptions: boolean) =>
+      sheetOptionGroups(sized, query, { searchDescriptions }).flatMap((group) =>
+        group.options.map((option) => option.value),
+      );
+    expect(found("64", false)).toEqual([]);
+    expect(found("64", true)).toEqual(["gap"]);
+    expect(found("gap", true)).toEqual(["gap"]);
+  });
+
   it("keeps sections under their titles and loose options in order", () => {
     expect(
       sheetOptionGroups(options).map((group) => [

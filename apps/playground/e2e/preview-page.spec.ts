@@ -1332,6 +1332,10 @@ test.describe("The preview's spacing overlay", () => {
     ).toBeVisible();
     await sectionGap.click();
     await page
+      .getByRole("tab", { name: "Steps" })
+      .filter({ visible: true })
+      .click();
+    await page
       .getByRole("listbox", { name: "Section gap on Desktop" })
       .getByRole("option", { name: /--spacing-8\b/ })
       .click();
@@ -1361,6 +1365,65 @@ test.describe("The preview's spacing overlay", () => {
     await expect(overlay).toHaveCount(0);
   });
 
+  test("opens on Uses, takes another use's size, and switches to Steps", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await page.getByRole("button", { name: "Show spacing" }).click();
+    const overlay = page.getByRole("group", { name: "Spacing overlay" });
+    const stored = async (id: string) =>
+      (await readStoredWorkspace(page)).layout.find(
+        (token: { id: string }) => token.id === id,
+      )?.byDevice.desktop;
+
+    await overlay
+      .getByRole("button", { name: /^Card inset on Desktop: \d+px/ })
+      .first()
+      .click();
+    const list = page
+      .getByRole("listbox", { name: "Card inset on Desktop" })
+      .filter({ visible: true });
+    const uses = page
+      .getByRole("tab", { name: "Uses" })
+      .filter({ visible: true });
+    const steps = page
+      .getByRole("tab", { name: "Steps" })
+      .filter({ visible: true });
+
+    /* Uses first: each named, with its size on this frame, and the use
+       being edited checked. */
+    await expect(uses).toHaveAttribute("aria-selected", "true");
+    await expect(steps).toHaveAttribute("aria-selected", "false");
+    await expect(list).toContainText(/Section gap\s*\d+px/);
+    await expect(
+      list.getByRole("option", { name: /^Card inset/ }),
+    ).toHaveAttribute("aria-selected", "true");
+    await expect(list.getByRole("option", { name: /^--spacing-/ })).toHaveCount(
+      0,
+    );
+
+    /* Searching narrows by name, and a tab switch clears it. */
+    const search = page
+      .getByPlaceholder("Search uses")
+      .filter({ visible: true });
+    await search.fill("grid");
+    await expect(list.getByRole("option")).toHaveCount(1);
+    await steps.click();
+    await expect(
+      list.getByRole("option", { name: /^--spacing-/ }).first(),
+    ).toBeVisible();
+    await uses.click();
+    await expect(
+      page.getByPlaceholder("Search uses").filter({ visible: true }),
+    ).toHaveValue("");
+
+    /* Picking a use gives this one that use's step. */
+    const sectionGap = await stored("gap-section");
+    expect(sectionGap).not.toBe(await stored("inset-card"));
+    await list.getByRole("option", { name: /^Section gap/ }).click();
+    await expect.poll(() => stored("inset-card")).toBe(sectionGap);
+  });
+
   test("rebinds the grid gap and card inset, and explains other spaces", async ({
     page,
   }) => {
@@ -1386,6 +1449,10 @@ test.describe("The preview's spacing overlay", () => {
         })
         .first()
         .click();
+      await page
+        .getByRole("tab", { name: "Steps" })
+        .filter({ visible: true })
+        .click();
       const list = page
         .getByRole("listbox", { name: `${use} on Desktop` })
         .filter({ visible: true });
@@ -1400,7 +1467,7 @@ test.describe("The preview's spacing overlay", () => {
       });
       expect(Math.max(...inset)).toBeLessThanOrEqual(1);
       await list
-        .getByRole("option", { name: `--spacing-${step}`, exact: true })
+        .getByRole("option", { name: new RegExp(`^--spacing-${step}\\b`) })
         .click();
     };
     const grid = '[class*="cols"]';

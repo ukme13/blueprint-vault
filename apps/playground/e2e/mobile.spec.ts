@@ -2114,13 +2114,17 @@ test.describe("on a phone", () => {
       .getByRole("button", { name: /^Section gap on Phone: \d+px/ })
       .first()
       .click();
+    await page
+      .getByRole("tab", { name: "Steps" })
+      .filter({ visible: true })
+      .click();
     /* Each Section gap tag has a sheet of the same name; the open one is
        the one whose list shows. */
     const list = page
       .getByRole("listbox", { name: "Section gap on Phone" })
       .filter({ visible: true });
     await expect(
-      list.getByRole("option", { name: "--spacing-8", exact: true }),
+      list.getByRole("option", { name: /^--spacing-8\b/ }),
     ).toBeVisible();
     expect(
       await list.evaluate((node) => !!node.closest(".astryx-bottom-sheet")),

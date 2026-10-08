@@ -31,12 +31,19 @@ function asOption(item: string | SheetOption): SheetOption {
   return typeof item === "string" ? { value: item, label: item } : item;
 }
 
-function matches(option: SheetOption, query: string): boolean {
+function matches(
+  option: SheetOption,
+  query: string,
+  searchDescriptions: boolean,
+): boolean {
   if (!query) return true;
   const needle = query.trim().toLowerCase();
   return (
     (option.label ?? option.value).toLowerCase().includes(needle) ||
-    option.value.toLowerCase().includes(needle)
+    option.value.toLowerCase().includes(needle) ||
+    (searchDescriptions &&
+      typeof option.description === "string" &&
+      option.description.toLowerCase().includes(needle))
   );
 }
 
@@ -46,10 +53,14 @@ function matches(option: SheetOption, query: string): boolean {
  * Loose options between sections are gathered into untitled groups in the
  * order they came; a divider starts a new one. Groups a search empties are
  * left out rather than shown as a title over nothing.
+ *
+ * A search reads an option's label and value. A list that shows its
+ * descriptions, such as a size beside a name, asks for them to be read too.
  */
 export function sheetOptionGroups(
   items: readonly SheetOptionInput[],
   query = "",
+  { searchDescriptions = false }: { searchDescriptions?: boolean } = {},
 ): SheetOptionGroup[] {
   const groups: SheetOptionGroup[] = [];
   let loose: SheetOption[] = [];
@@ -73,7 +84,9 @@ export function sheetOptionGroups(
   return groups
     .map((group) => ({
       ...group,
-      options: group.options.filter((option) => matches(option, query)),
+      options: group.options.filter((option) =>
+        matches(option, query, searchDescriptions),
+      ),
     }))
     .filter((group) => group.options.length > 0);
 }
