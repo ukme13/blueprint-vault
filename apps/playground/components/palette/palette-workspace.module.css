@@ -238,11 +238,6 @@
   outline-offset: -2px;
 }
 
-.contrastOptions > small {
-  color: var(--color-fg-muted);
-  font-size: 11px;
-}
-
 /* Wide enough for the longest label when it is the active, bold one: at 190px
    "Custom" was cut to "Cust…" as soon as it was chosen. */
 .contrastTargetControl {

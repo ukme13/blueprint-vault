@@ -10,13 +10,8 @@ import {
 } from "react";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { ResizeHandle, useResizable } from "@astryxdesign/core/Resizable";
-import {
-  SegmentedControl,
-  SegmentedControlItem,
-} from "@astryxdesign/core/SegmentedControl";
 import { Tab, TabList } from "@astryxdesign/core/TabList";
 import { useToast } from "@astryxdesign/core/Toast";
-import { useIsPhone } from "../use-is-phone";
 import { useUrlState } from "../use-url-state";
 import { RotateCcw } from "lucide-react";
 import {
@@ -47,7 +42,6 @@ import {
   type ButtonScheme,
   type PaletteProjectData,
   type SemanticToken,
-  ContrastIcon,
   DEFAULT_CONTRAST_SETTINGS,
   type ContrastTarget,
 } from "@blueprint/ui";
@@ -56,10 +50,7 @@ import { SystemExportDialog } from "../SystemExportDialog";
 import { VisionControl } from "../VisionControl";
 import { StudioSliceEmpty } from "../shell/StudioSliceEmpty";
 import { PaletteControls } from "./PaletteControls";
-import { ColourPicker } from "./ColourPicker";
-import { ContrastControl } from "./ContrastControl";
-import { ContrastPolarityToggle } from "./ContrastPolarityToggle";
-import { ContrastSheet } from "./ContrastSheet";
+import { ContrastToolbar } from "./ContrastToolbar";
 import { PaletteMatrix } from "./PaletteMatrix";
 import { PalettePreview } from "./PalettePreview";
 import { SemanticEditor } from "./SemanticEditor";
@@ -208,28 +199,13 @@ function PaletteStudioContent() {
   const [activeTrackId, setActiveTrackId] = useState<string | null>(null);
   /* View modes live in context so they persist per device, alongside the
      colour format. Neither is part of the project. */
-  const {
-    isContrastModeOpen,
-    closeContrastMode,
-    setContrastModeOpen,
-    contrastStandard,
-    setContrastStandard,
-    chooseContrastStandard,
-    contrastPolarity,
-    togglePolarity,
-  } = usePaletteView();
+  const { isContrastModeOpen, closeContrastMode } = usePaletteView();
   const [contrastTarget, setContrastTarget] = useState<ContrastTarget>(
     DEFAULT_CONTRAST_SETTINGS.target,
   );
   const [customContrastColour, setCustomContrastColour] = useState(
     DEFAULT_CONTRAST_SETTINGS.customColour,
   );
-  /* On a phone, Contrast opens a sheet rather than toggling in place. The same
-     breakpoint the stylesheet hides the inline options at; the hook reads
-     false on first render, so before hydration a tap does what it does on a
-     desktop, which is never wrong, only less tidy. */
-  const isPhone = useIsPhone();
-  const [isContrastSheetOpen, setIsContrastSheetOpen] = useState(false);
   const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
   const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   /* Read once on load, so an export carries the type scale without this
@@ -778,79 +754,12 @@ function PaletteStudioContent() {
         >
           Add colour
         </Button>
-        {/* On a phone Contrast is one chip that opens its sheet; the group is
-            the desktop's, where every choice is a press away. */}
-        {isPhone ? (
-          <Button
-            aria-pressed={isContrastModeOpen}
-            className={styles.contrastModeButton}
-            data-active={isContrastModeOpen}
-            leftIcon={<ContrastIcon className="size-3.5" />}
-            scheme="neutral"
-            size="small"
-            variant="outlined"
-            onClick={() => setIsContrastSheetOpen(true)}
-          >
-            Contrast
-          </Button>
-        ) : (
-          <ContrastControl
-            isOn={isContrastModeOpen}
-            standard={contrastStandard}
-            onStandardChange={chooseContrastStandard}
-            onTurnOff={closeContrastMode}
-            onTurnOn={() => setContrastModeOpen(true)}
-          />
-        )}
-        <ContrastSheet
-          isOpen={isContrastSheetOpen}
-          settings={{
-            isOn: isContrastModeOpen,
-            standard: contrastStandard,
-            target: contrastTarget,
-            customColour: customContrastColour,
-          }}
-          onApply={(settings) => {
-            setContrastModeOpen(settings.isOn);
-            setContrastStandard(settings.standard);
-            setContrastTarget(settings.target);
-            setCustomContrastColour(settings.customColour);
-          }}
-          onClose={() => setIsContrastSheetOpen(false)}
+        <ContrastToolbar
+          customColour={customContrastColour}
+          target={contrastTarget}
+          onCustomColourChange={setCustomContrastColour}
+          onTargetChange={setContrastTarget}
         />
-        {isContrastModeOpen && (
-          <section
-            aria-label="Contrast comparison"
-            className={styles.contrastOptions}
-          >
-            <ContrastPolarityToggle
-              polarity={contrastPolarity}
-              onToggle={togglePolarity}
-            />
-            <span className={styles.contrastTargetControl}>
-              <SegmentedControl
-                label="Contrast comparison colour"
-                layout="fill"
-                size="sm"
-                value={contrastTarget}
-                onChange={(value) => setContrastTarget(value as ContrastTarget)}
-              >
-                <SegmentedControlItem label="White" value="white" />
-                <SegmentedControlItem label="Black" value="black" />
-                <SegmentedControlItem label="Custom" value="custom" />
-              </SegmentedControl>
-            </span>
-            {contrastTarget === "custom" && (
-              <span className={styles.customContrastPicker}>
-                <ColourPicker
-                  label="custom contrast colour"
-                  value={customContrastColour}
-                  onChange={setCustomContrastColour}
-                />
-              </span>
-            )}
-          </section>
-        )}
         <VisionControl />
         {/* On a phone Reset preset is an icon beside Vision rather than a
             label at the far end of a strip that scrolls. Both are rendered and
