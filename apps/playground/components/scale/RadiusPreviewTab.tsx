@@ -191,7 +191,7 @@ export function RadiusPreviewTab({
             </ul>
 
             <div
-              className="flex items-center gap-1.5 border border-border-default bg-surface-base p-1.5 transition-colors focus-within:border-fg-accent"
+              className="flex items-center gap-1.5 border border-border-subtle bg-surface-base p-1.5 transition-colors focus-within:border-fg-accent"
               data-radius-sample="radius-input"
               style={{ borderRadius: componentRadiusCss("radius-input") }}
             >
