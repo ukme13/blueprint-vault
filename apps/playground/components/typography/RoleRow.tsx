@@ -239,9 +239,10 @@ export function RoleRow({
       </div>
       <Button
         aria-label={`Remove ${role.id}`}
+        className={styles.removeRoleButton}
         scheme="neutral"
         size="icon"
-        variant="outlined"
+        variant="text"
         onClick={() => setIsConfirmingRemove(true)}
       >
         {/* The icon is the label. `size="icon"` takes children as the

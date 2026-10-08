@@ -283,9 +283,9 @@ export function RoleGroupEditor({
                 <Button
                   aria-label={`Add a role to ${group.label}`}
                   disabled={!canAddRole}
-                  scheme="neutral"
+                  scheme="primary"
                   size="icon"
-                  variant="outlined"
+                  variant="contained"
                   onClick={onAddRole}
                 >
                   <Plus aria-hidden="true" />
