@@ -226,6 +226,9 @@ test.describe("Reference transparency", () => {
     await expect(page).toHaveURL(/\/typography/);
     await page.keyboard.press("ControlOrMeta+z");
     await expect(page).toHaveURL(/\/colour\?.*view=semantics/);
+    await expect(
+      page.getByText("Undid edit in Semantics").first(),
+    ).toBeVisible();
 
     /* Already on the tab: the address names it, so no click is needed. */
     const back = page.getByRole("region", { name: "Semantic tokens" });
@@ -236,6 +239,42 @@ test.describe("Reference transparency", () => {
         .locator('tr:has([data-semantic-token="border.subtle"])')
         .getByRole("textbox", { name: /border subtle light transparency/i }),
     ).toHaveValue("12%");
+  });
+
+  test("an undo from the Colour studio's shade generator switches to Semantics", async ({
+    seededPage: page,
+  }) => {
+    const editor = await openSemantics(page);
+    await showBorders(editor);
+    const alpha = editor
+      .locator('tr:has([data-semantic-token="border.subtle"])')
+      .getByRole("textbox", { name: /border subtle light transparency/i });
+    await alpha.fill("65%");
+    await alpha.press("Enter");
+    await expect(alpha).toHaveValue("65%");
+
+    /* Over to another tab of the same studio, then the undo. */
+    await page.getByRole("button", { name: "Shade generator" }).click();
+    await expect(page).not.toHaveURL(/view=semantics/);
+    await expect(editor).toBeHidden();
+    await page.keyboard.press("ControlOrMeta+z");
+
+    /* The tab follows the edit, and says why. */
+    await expect(page).toHaveURL(/\/colour\?.*view=semantics/);
+    await expect(
+      page.getByText("Undid edit in Semantics").first(),
+    ).toBeVisible();
+    await expect(editor).toBeVisible();
+    await expect(alpha).toHaveValue("12%");
+
+    /* Redo, from the other tab, comes back the same way. */
+    await page.getByRole("button", { name: "Shade generator" }).click();
+    await page.keyboard.press("ControlOrMeta+Shift+z");
+    await expect(
+      page.getByText("Redid edit in Semantics").first(),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/view=semantics/);
+    await expect(alpha).toHaveValue("65%");
   });
 
   test("keeps alpha docked, exposes opaque values on focus, and tabs from reference", async ({

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { undoDestination } from "./undo-navigation";
+import { stepMessage, undoDestination } from "./undo-navigation";
 
 const at = (pathname: string, search = "") => ({ pathname, search });
 
@@ -57,5 +57,37 @@ describe("undoDestination", () => {
     expect(
       undoDestination(origin, at("/colour", "view=semantics&group=fg"), {}),
     ).toBeNull();
+  });
+});
+
+describe("stepMessage", () => {
+  it("says what was done and where", () => {
+    expect(
+      stepMessage({
+        direction: "undo",
+        origin: { path: "/colour", query: "view=semantics" },
+      }),
+    ).toBe("Undid edit in Semantics");
+    expect(
+      stepMessage({ direction: "redo", origin: { path: "/typography" } }),
+    ).toBe("Redid edit in Typography");
+    expect(
+      stepMessage({ direction: "undo", origin: { path: "/preview" } }),
+    ).toBe("Undid edit in Preview");
+  });
+
+  it("names the studio for the Colour studio's other tabs", () => {
+    expect(
+      stepMessage({ direction: "undo", origin: { path: "/colour" } }),
+    ).toBe("Undid edit in Colour");
+  });
+
+  it("says only what was done when it is not known where", () => {
+    expect(stepMessage({ direction: "undo", origin: null })).toBe(
+      "Undid the last edit",
+    );
+    expect(
+      stepMessage({ direction: "redo", origin: { path: "/elsewhere" } }),
+    ).toBe("Redid the last edit");
   });
 });

@@ -28,3 +28,42 @@ export function undoDestination(
     ? studioHref(memory, origin.path)
     : `${origin.path}?${origin.query}`;
 }
+
+/** An undo or a redo that has just been taken, and where its edit was made. */
+export interface WorkspaceStep {
+  direction: "undo" | "redo";
+  origin: WorkspaceOrigin | null;
+}
+
+const STUDIO_LABELS: Readonly<Record<string, string>> = {
+  "/colour": "Colour",
+  "/typography": "Typography",
+  "/spacing": "Spacing",
+  "/radius": "Radius",
+  "/elevation": "Elevation",
+  "/preview": "Preview",
+};
+
+/**
+ * What to call the place an edit was made: the studio, or its Semantics tab,
+ * which is the one view a person thinks of as a place of its own. Null for a
+ * path the app does not know.
+ */
+export function originLabel(origin: WorkspaceOrigin): string | null {
+  if (origin.path === "/colour" && origin.query === "view=semantics") {
+    return "Semantics";
+  }
+  return STUDIO_LABELS[origin.path] ?? null;
+}
+
+/**
+ * The line to show after an undo or a redo: what happened, and where.
+ *
+ * So a person taken to another studio or tab is told why the screen changed,
+ * and one who stayed put is told what was taken back.
+ */
+export function stepMessage(step: WorkspaceStep): string {
+  const verb = step.direction === "undo" ? "Undid" : "Redid";
+  const label = step.origin ? originLabel(step.origin) : null;
+  return label ? `${verb} edit in ${label}` : `${verb} the last edit`;
+}

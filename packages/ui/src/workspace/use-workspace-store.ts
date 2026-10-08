@@ -35,6 +35,7 @@ import {
   type WorkspaceHistory,
   type WorkspaceOrigin,
 } from "./workspace-history";
+import type { WorkspaceStep } from "./undo-navigation";
 
 export interface WorkspaceLibraryView {
   currentId: string | null;
@@ -89,12 +90,12 @@ export interface WorkspaceStore {
    */
   revision: number;
   /**
-   * Where the edit the latest undo or redo moved over was made, or null.
+   * The latest undo or redo, and where the edit it moved over was made.
    *
    * Changes with `revision`. For the shell, which takes the person there so
-   * that what was reverted is on screen.
+   * that what was reverted is on screen, and says so.
    */
-  undoOrigin: WorkspaceOrigin | null;
+  lastStep: WorkspaceStep | null;
   /** Read again, for a tab that has learnt storage changed under it. */
   reload: () => void;
   /** Make this id current. Unknown ids are ignored. */
@@ -159,7 +160,7 @@ function useWorkspaceStoreState(): WorkspaceStore {
     canRedo: false,
   });
   const [revision, setRevision] = useState(0);
-  const [undoOrigin, setUndoOrigin] = useState<WorkspaceOrigin | null>(null);
+  const [lastStep, setLastStep] = useState<WorkspaceStep | null>(null);
 
   const refreshAvailable = useCallback(() => {
     const history = historyRef.current?.history;
@@ -298,7 +299,7 @@ function useWorkspaceStoreState(): WorkspaceStore {
                 : entry,
             ),
           }));
-          setUndoOrigin(history.lastOrigin);
+          setLastStep({ direction, origin: history.lastOrigin });
           setRevision((count) => count + 1);
         }
       }
@@ -404,7 +405,7 @@ function useWorkspaceStoreState(): WorkspaceStore {
     canUndo: available.canUndo,
     canRedo: available.canRedo,
     revision,
-    undoOrigin,
+    lastStep,
     reload,
     switchTo,
     add,
