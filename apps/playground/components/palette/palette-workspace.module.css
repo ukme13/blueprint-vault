@@ -123,7 +123,6 @@
 .toolbar[data-tools="vision-only"] .contrastModeButton,
 .toolbar[data-tools="vision-only"] .contrastGroup,
 .toolbar[data-tools="vision-only"] .contrastOptions,
-.toolbar[data-tools="vision-only"] .toolbarDivider,
 .toolbar[data-tools="vision-only"] .resetButton,
 .toolbar[data-tools="vision-only"] .resetIconButton {
   display: none;
@@ -132,13 +131,6 @@
 /* The phone's Reset preset; the label is the desktop's. */
 .toolbar .resetIconButton {
   display: none;
-}
-
-.toolbarDivider {
-  width: 1px;
-  height: 22px;
-  margin: 0 4px;
-  background: var(--color-surface-overlay);
 }
 
 .toolbar .resetButton {
@@ -1724,8 +1716,7 @@
     flex-shrink: 0;
   }
 
-  .toolbar .resetButton,
-  .toolbarDivider {
+  .toolbar .resetButton {
     display: none;
   }
 

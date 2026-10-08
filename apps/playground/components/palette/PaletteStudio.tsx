@@ -857,7 +857,6 @@ function PaletteStudioContent() {
           variant="ghost"
           onClick={() => setIsResetConfirmOpen(true)}
         />
-        <span className={styles.toolbarDivider} />
         <Button
           className={styles.resetButton}
           scheme="neutral"

@@ -274,6 +274,43 @@ test.describe("Shade details", () => {
     ).toContainText("OKLCH");
   });
 
+  test("types a HEX through its shorthand without it being filled in early", async ({
+    seededPage: page,
+  }) => {
+    await page.getByRole("button", { name: /Select primary 200,/ }).click();
+    await page
+      .getByRole("dialog", { name: "primary 200 shade details" })
+      .getByRole("button", { name: "Edit primary 200 colour" })
+      .click();
+    const picker = page.getByRole("dialog", {
+      name: "primary 200 manual colour picker",
+    });
+    const hexInput = picker.getByLabel("primary 200 manual colour HEX value");
+
+    /* #111 is a valid shorthand, but a person typing #111000 is not done: it
+       stays as typed and the next digits land after it. */
+    await hexInput.fill("");
+    await hexInput.pressSequentially("#111");
+    await expect(hexInput).toHaveValue("#111");
+    await hexInput.pressSequentially("000");
+    await expect(hexInput).toHaveValue("#111000");
+
+    /* Shorthand is still welcome, once finished. */
+    await hexInput.fill("#abc");
+    await expect(hexInput).toHaveValue("#abc");
+    await hexInput.press("Enter");
+    await expect(picker).toBeHidden();
+    await page
+      .getByRole("dialog", { name: "primary 200 shade details" })
+      .getByRole("button", { name: "Edit primary 200 colour" })
+      .click();
+    await expect(
+      page
+        .getByRole("dialog", { name: "primary 200 manual colour picker" })
+        .getByLabel("primary 200 manual colour HEX value"),
+    ).toHaveValue("#AABBCC");
+  });
+
   test("manually edits a shade, promotes it to an anchor, and resets it", async ({
     seededPage: page,
   }) => {
