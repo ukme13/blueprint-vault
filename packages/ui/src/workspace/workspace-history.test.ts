@@ -3,12 +3,11 @@ import { withTypographySlice, emptyWorkspace } from "./workspace";
 import { seedTypographyProject, seedWorkspaceProject } from "./seed-project";
 import {
   WORKSPACE_HISTORY_LIMIT,
-  changedSemanticTargets,
   createWorkspaceHistory,
-  originOfChange,
   restoreUndoable,
   undoableKey,
 } from "./workspace-history";
+import { changedSemanticTargets, originOfChange } from "./workspace-origin";
 import type { WorkspaceProject } from "./types";
 import { updateRoleValue } from "../typography/system";
 

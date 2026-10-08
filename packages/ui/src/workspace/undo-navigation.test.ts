@@ -1,66 +1,64 @@
 import { describe, expect, it } from "vitest";
-import {
-  stepMessage,
-  undoDestination,
-  type WorkspaceStep,
-} from "./undo-navigation";
+import { stepMessage, undoMove, type WorkspaceStep } from "./undo-navigation";
 
 const at = (pathname: string, search = "") => ({ pathname, search });
 
-describe("undoDestination", () => {
+describe("undoMove", () => {
   it("stays when there is no origin", () => {
-    expect(undoDestination(null, at("/spacing"), {})).toBeNull();
+    expect(undoMove(null, at("/spacing"), {})).toBeNull();
   });
 
   it("stays in the studio the edit was made in", () => {
+    expect(undoMove({ path: "/typography" }, at("/typography"), {})).toBeNull();
     expect(
-      undoDestination({ path: "/typography" }, at("/typography"), {}),
-    ).toBeNull();
-    expect(
-      undoDestination({ path: "/typography" }, at("/typography/"), {}),
+      undoMove({ path: "/typography" }, at("/typography/"), {}),
     ).toBeNull();
     /* Whichever view of it, when the origin names none. */
     expect(
-      undoDestination(
-        { path: "/typography" },
-        at("/typography", "view=specimen"),
-        {},
-      ),
+      undoMove({ path: "/typography" }, at("/typography", "view=specimen"), {}),
     ).toBeNull();
   });
 
-  it("goes to the studio the edit was made in", () => {
-    expect(undoDestination({ path: "/typography" }, at("/spacing"), {})).toBe(
-      "/typography",
-    );
-    expect(undoDestination({ path: "/radius" }, at("/overview"), {})).toBe(
-      "/radius",
-    );
+  it("goes to the studio the edit was made in, by the router", () => {
+    expect(undoMove({ path: "/typography" }, at("/spacing"), {})).toEqual({
+      href: "/typography",
+      withinPage: false,
+    });
+    expect(undoMove({ path: "/radius" }, at("/overview"), {})).toEqual({
+      href: "/radius",
+      withinPage: false,
+    });
   });
 
   it("opens the studio on the view it was last left on", () => {
     expect(
-      undoDestination({ path: "/typography" }, at("/spacing"), {
+      undoMove({ path: "/typography" }, at("/spacing"), {
         "/typography": "view=specimen",
       }),
-    ).toBe("/typography?view=specimen");
+    ).toEqual({ href: "/typography?view=specimen", withinPage: false });
   });
 
   it("goes to the view an origin names, over the remembered one", () => {
     const origin = { path: "/colour", query: "view=semantics" };
     expect(
-      undoDestination(origin, at("/typography"), {
-        "/colour": "view=accessibility",
-      }),
-    ).toBe("/colour?view=semantics");
-    /* Same studio, other tab. */
-    expect(
-      undoDestination(origin, at("/colour", "view=accessibility"), {}),
-    ).toBe("/colour?view=semantics");
+      undoMove(origin, at("/typography"), { "/colour": "view=accessibility" }),
+    ).toEqual({ href: "/colour?view=semantics", withinPage: false });
     /* Already on it. */
     expect(
-      undoDestination(origin, at("/colour", "view=semantics&group=fg"), {}),
+      undoMove(origin, at("/colour", "view=semantics&group=fg"), {}),
     ).toBeNull();
+  });
+
+  it("marks a move to another view of the open studio as within the page", () => {
+    const origin = { path: "/colour", query: "view=semantics" };
+    expect(undoMove(origin, at("/colour", "view=accessibility"), {})).toEqual({
+      href: "/colour?view=semantics",
+      withinPage: true,
+    });
+    expect(undoMove(origin, at("/colour/"), {})).toEqual({
+      href: "/colour?view=semantics",
+      withinPage: true,
+    });
   });
 });
 

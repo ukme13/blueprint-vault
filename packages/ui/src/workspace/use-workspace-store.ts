@@ -33,8 +33,8 @@ import {
   createWorkspaceHistory,
   restoreUndoable,
   type WorkspaceHistory,
-  type WorkspaceOrigin,
 } from "./workspace-history";
+import type { WorkspaceOrigin } from "./workspace-origin";
 import type { WorkspaceStep } from "./undo-navigation";
 
 export interface WorkspaceLibraryView {

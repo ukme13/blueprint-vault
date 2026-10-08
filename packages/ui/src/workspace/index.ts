@@ -11,6 +11,8 @@ export * from "./workspace";
 export * from "./workspace-file";
 export * from "./semantics-history";
 export * from "./scale-history";
+export * from "./undoable-parts";
+export * from "./workspace-origin";
 export * from "./workspace-history";
 export * from "./preview-shortcut";
 export * from "./undo-shortcut";

@@ -1,5 +1,22 @@
 import { studioHref, type StudioViewMemory } from "../studio-view";
-import type { WorkspaceOrigin, WorkspaceTarget } from "./workspace-history";
+import type { WorkspaceOrigin, WorkspaceTarget } from "./workspace-origin";
+
+/** A studio's path without a trailing slash, as an origin names it. */
+function bare(pathname: string): string {
+  return pathname.replace(/(.)\/$/, "$1");
+}
+
+/** Where an undo or a redo takes the person, and how to get there. */
+export interface UndoMove {
+  href: string;
+  /**
+   * Another view of the studio that is already open, such as the Colour
+   * studio's Semantics tab from its shade generator. Reached by telling the
+   * studio, as a tab click does: a route change to the same path would change
+   * the address and leave the tab where it was.
+   */
+  withinPage: boolean;
+}
 
 /**
  * Where an undo or a redo should take the person, or null to stay.
@@ -10,23 +27,28 @@ import type { WorkspaceOrigin, WorkspaceTarget } from "./workspace-history";
  * on that view. Otherwise the studio's own link: the view it was last left on,
  * unless the origin names one, which wins since that is where the control is.
  */
-export function undoDestination(
+export function undoMove(
   origin: WorkspaceOrigin | null,
   here: { pathname: string; search: string },
   memory: StudioViewMemory,
-): string | null {
+): UndoMove | null {
   if (!origin) return null;
-  const pathname = here.pathname.replace(/(.)\/$/, "$1");
-  if (pathname === origin.path) {
+  const withinPage = bare(here.pathname) === origin.path;
+  if (withinPage) {
     if (origin.query === undefined) return null;
     const have = new URLSearchParams(here.search);
     const named = new URLSearchParams(origin.query);
-    const onIt = [...named].every(([key, value]) => have.get(key) === value);
-    if (onIt) return null;
+    if ([...named].every(([key, value]) => have.get(key) === value)) {
+      return null;
+    }
   }
-  return origin.query === undefined
-    ? studioHref(memory, origin.path)
-    : `${origin.path}?${origin.query}`;
+  return {
+    href:
+      origin.query === undefined
+        ? studioHref(memory, origin.path)
+        : `${origin.path}?${origin.query}`,
+    withinPage,
+  };
 }
 
 /** An undo or a redo that has just been taken, and where its edit was made. */

@@ -1,5 +1,12 @@
 import { createHistory, type History } from "../history";
 import type { WorkspaceProject } from "./types";
+import { undoableParts } from "./undoable-parts";
+import {
+  changedSemanticTargets,
+  originOfChange,
+  type WorkspaceOrigin,
+  type WorkspaceTarget,
+} from "./workspace-origin";
 
 /**
  * Undo for the workspace: one history for every studio.
@@ -22,153 +29,6 @@ import type { WorkspaceProject } from "./types";
 export const WORKSPACE_HISTORY_LIMIT = 50;
 
 export type WorkspaceEditKey = string | undefined;
-
-/**
- * The parts of a document an undo owns.
- *
- * The type system (not its name, which is the workspace's, nor the preview
- * text and settings beside it in the same slice), the scales and the layout uses that point at them, the device
- * ratios the system's own mirrors, and the semantic layer with what goes
- * with it. The palette, the name and the view settings are not here.
- */
-/**
- * The semantic layer as an undo compares it: a reference with an alpha of 1
- * is the same colour as one with none.
- *
- * Both mean opaque, and some write paths spell it one way and some the other,
- * so the layer written back after leaving the Semantics tab differed from the
- * one before it by `alpha: 1` on a token nobody had touched. That counted as
- * an edit and took a step, so the first undo after leaving did nothing that
- * could be seen, and now that an undo goes to where its edit was made, it
- * would have taken the person to the Semantics tab to show nothing.
- */
-function comparableSemantics(
-  semantics: WorkspaceProject["semantics"],
-): unknown {
-  return JSON.parse(
-    JSON.stringify(semantics, (key, value) =>
-      key === "alpha" && value === 1 ? undefined : value,
-    ),
-  );
-}
-
-function undoableParts(project: WorkspaceProject) {
-  /* Without its name: the workspace's name is mirrored into the system, so a
-     rename would otherwise read as an edit of the type scale. */
-  const system = project.typography?.system;
-  return {
-    typographySystem: system ? { ...system, name: undefined } : null,
-    spacing: project.spacing,
-    radius: project.radius,
-    elevation: project.elevation,
-    layout: project.layout,
-    previewDevices: project.previewDevices,
-    semantics: comparableSemantics(project.semantics),
-    removedSeedRoles: project.removedSeedRoles,
-    buttonSchemes: project.buttonSchemes,
-  };
-}
-
-/**
- * Where in the app an edit was made: a studio's path, and the view of it that
- * holds the control when the studio has more than one.
- *
- * What an undo or a redo takes the person back to, so that what is reverted is
- * on screen when it happens, as Figma moves to what an undo changed.
- */
-export interface WorkspaceOrigin {
-  path: string;
-  /** The studio's own view, such as `view=semantics`; absent for its default. */
-  query?: string;
-}
-
-/**
- * One thing an undo or a redo changed, to be pointed at: a semantic token, and
- * the cell of its row when only one cell moved.
- */
-export interface WorkspaceTarget {
-  id: string;
-  cell?: "name" | "description" | "light" | "dark";
-}
-
-/** The most targets one step points at: a bulk edit would flash the table. */
-const MAX_TARGETS = 12;
-
-/**
- * The semantic tokens, and cells, that differ between two documents.
- *
- * Read off the document an undo or redo arrives at, so a row that comes back
- * is a target and a row that has gone is not. A token with no counterpart is
- * a target as a whole; otherwise one target per cell that differs, so the
- * flash lands on the reference that was restored and not the whole row.
- */
-export function changedSemanticTargets(
-  from: WorkspaceProject,
-  to: WorkspaceProject,
-): WorkspaceTarget[] {
-  const was = new Map((from.semantics ?? []).map((token) => [token.id, token]));
-  const targets: WorkspaceTarget[] = [];
-  for (const token of to.semantics ?? []) {
-    const before = was.get(token.id);
-    if (!before) {
-      targets.push({ id: token.id });
-      continue;
-    }
-    const cells = {
-      name: token.name,
-      description: token.description,
-      light: token.light,
-      dark: token.dark,
-    } as const;
-    for (const cell of Object.keys(cells) as (keyof typeof cells)[]) {
-      if (JSON.stringify(cells[cell]) !== JSON.stringify(before[cell])) {
-        targets.push({ id: token.id, cell });
-      }
-    }
-  }
-  return targets.slice(0, MAX_TARGETS);
-}
-
-/**
- * The studio an edit belongs to, read from which undoable part it changed.
- *
- * The first part to differ decides, in the order the studios are listed, so a
- * step that moved a spacing step and the uses pointing at it is a Spacing
- * edit. Layout uses are Spacing's, or Radius's when only radius uses moved.
- * Device ratios are no studio's (the Settings dialog edits them from any), so
- * a step that changed nothing else has no origin and does not move anyone.
- */
-export function originOfChange(
-  from: WorkspaceProject,
-  to: WorkspaceProject,
-): WorkspaceOrigin | null {
-  const before = undoableParts(from);
-  const after = undoableParts(to);
-  const differs = (part: keyof typeof before) =>
-    JSON.stringify(before[part]) !== JSON.stringify(after[part]);
-
-  if (differs("typographySystem")) return { path: "/typography" };
-  if (differs("spacing")) return { path: "/spacing" };
-  if (differs("radius")) return { path: "/radius" };
-  if (differs("elevation")) return { path: "/elevation" };
-  if (differs("layout")) {
-    const was = new Map(from.layout.map((token) => [token.id, token]));
-    const moved = to.layout.filter(
-      (token) => JSON.stringify(token) !== JSON.stringify(was.get(token.id)),
-    );
-    const onlyRadius =
-      moved.length > 0 && moved.every((token) => token.kind === "radius");
-    return { path: onlyRadius ? "/radius" : "/spacing" };
-  }
-  if (
-    differs("semantics") ||
-    differs("removedSeedRoles") ||
-    differs("buttonSchemes")
-  ) {
-    return { path: "/colour", query: "view=semantics" };
-  }
-  return null;
-}
 
 /**
  * A comparable form of the undoable parts.
