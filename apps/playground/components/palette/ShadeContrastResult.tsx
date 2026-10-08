@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { ArrowLeftRight } from "lucide-react";
 import {
@@ -11,6 +10,8 @@ import {
   WCAG_CONTRAST,
   type ShadeItem,
 } from "@blueprint/ui";
+import { ContrastStatusIcon } from "./ContrastStatusIcon";
+import { ShadeApcaResult } from "./ShadeApcaResult";
 import { usePaletteView } from "./PaletteViewContext";
 import styles from "./palette-workspace.module.css";
 
@@ -24,28 +25,6 @@ function contrastGrade(aaa: boolean, aa: boolean): "AAA" | "AA" | "Fail" {
   if (aaa) return "AAA";
   if (aa) return "AA";
   return "Fail";
-}
-
-function ContrastStatusIcon({ passes }: { passes: boolean }) {
-  return (
-    <svg
-      aria-hidden="true"
-      fill="none"
-      height="16"
-      viewBox="0 0 16 16"
-      width="16"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d={
-          passes
-            ? "M8 13.875C6.02344 13.875 4.21875 12.8438 3.23047 11.125C2.24219 9.42773 2.24219 7.34375 3.23047 5.625C4.21875 3.92773 6.02344 2.875 8 2.875C9.95508 2.875 11.7598 3.92773 12.748 5.625C13.7363 7.34375 13.7363 9.42773 12.748 11.125C11.7598 12.8438 9.95508 13.875 8 13.875ZM10.4277 7.36523H10.4062C10.6211 7.17188 10.6211 6.84961 10.4062 6.63477C10.2129 6.44141 9.89062 6.44141 9.69727 6.63477L7.3125 9.04102L6.30273 8.03125C6.08789 7.81641 5.76562 7.81641 5.57227 8.03125C5.35742 8.22461 5.35742 8.54688 5.57227 8.74023L6.94727 10.1152C7.14062 10.3301 7.46289 10.3301 7.67773 10.1152L10.4277 7.36523Z"
-            : "M11.2227 6.11914L8.9668 8.375L11.2227 10.6523C11.502 10.9102 11.502 11.3613 11.2227 11.6191C10.9648 11.8984 10.5137 11.8984 10.2559 11.6191L8 9.36328L5.72266 11.6191C5.46484 11.8984 5.01367 11.8984 4.75586 11.6191C4.47656 11.3613 4.47656 10.9102 4.75586 10.6523L7.01172 8.375L4.75586 6.11914C4.47656 5.86133 4.47656 5.41016 4.75586 5.15234C5.01367 4.87305 5.46484 4.87305 5.72266 5.15234L8 7.4082L10.2559 5.15234C10.5137 4.87305 10.9648 4.87305 11.2227 5.15234C11.502 5.41016 11.502 5.86133 11.2227 6.11914Z"
-        }
-        fill="currentColor"
-      />
-    </svg>
-  );
 }
 
 function capitalise(word: string): string {
@@ -67,12 +46,26 @@ export function ShadeContrastResult({
   comparisonHex,
   comparisonLabel,
 }: ShadeContrastResultProps) {
-  const { seen, view } = usePaletteView();
-  const [isSwapped, setIsSwapped] = useState(false);
+  const { seen, view, contrastStandard, contrastPolarity, togglePolarity } =
+    usePaletteView();
+  /* One choice for the matrix, the toolbar and every shade's details, so
+     turning the pair round anywhere turns it round everywhere. */
+  const isSwapped = contrastPolarity === "under";
   /* What the sample shows, said in words, so the swap is not a mystery. */
   const caption = isSwapped
     ? `${capitalise(comparisonLabel)} on Shade`
     : `Shade on ${capitalise(comparisonLabel)}`;
+  if (contrastStandard === "wcag3") {
+    return (
+      <ShadeApcaResult
+        caption={caption}
+        comparisonHex={comparisonHex}
+        isSwapped={isSwapped}
+        shade={shade}
+        onSwap={togglePolarity}
+      />
+    );
+  }
   const textContrast = assessTextContrast(shade.hex, comparisonHex);
   const graphicContrast = assessNonTextContrast(shade.hex, comparisonHex);
   const largeTextGrade = contrastGrade(
@@ -119,7 +112,7 @@ export function ShadeContrastResult({
           label="Swap text and background"
           size="sm"
           variant="ghost"
-          onClick={() => setIsSwapped((current) => !current)}
+          onClick={togglePolarity}
         />
         <strong>{textContrast.ratio.toFixed(2)}:1</strong>
       </p>

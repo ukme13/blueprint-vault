@@ -128,7 +128,7 @@ test.describe("The Vision chip", () => {
     const boxes = await Promise.all(
       [
         page.getByRole("button", { name: "Add colour" }),
-        page.getByRole("button", { name: "WCAG 2" }),
+        page.getByRole("group", { name: "Contrast", exact: true }),
         visionChip(page),
         page
           .getByLabel("Vision type")
@@ -370,9 +370,14 @@ test.describe("The Vision chip", () => {
     await turnVisionOn(page);
     await chooseDeficiency(page, "Tritanopia (blue-blind)");
 
-    const contrastMode = page.getByRole("button", { name: "WCAG 2" });
+    const contrastMode = page.getByRole("button", {
+      name: "Contrast",
+      exact: true,
+    });
     await contrastMode.click();
-    await expect(contrastMode).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      page.getByRole("button", { name: "WCAG 2", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
 
     await page.reload();
     await expect(
@@ -382,10 +387,9 @@ test.describe("The Vision chip", () => {
     /* Both modes, in one test, because the reason they were moved into one
        store is that they used to disagree: the simulation would survive a
        reload and the contrast panel beside it would not. */
-    await expect(page.getByRole("button", { name: "WCAG 2" })).toHaveAttribute(
-      "aria-pressed",
-      "true",
-    );
+    await expect(
+      page.getByRole("button", { name: "WCAG 2", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
     await expect(visionChip(page)).toHaveAttribute("aria-pressed", "true");
     await expect(page.getByLabel("Vision type")).toContainText("Tritanopia");
   });
@@ -605,7 +609,7 @@ test.describe("Where the simulated numbers show", () => {
        read first. They stayed on the real colours while the swatches beneath
        them were simulated, which is how somebody ends up asking whether the
        contrast changes at all. */
-    await page.getByRole("button", { name: "WCAG 2" }).click();
+    await page.getByRole("button", { name: "Contrast", exact: true }).click();
 
     /* The whole error track rather than one shade. The extremes barely move —
        near-black stays near-black under any deficiency — so picking a single
@@ -637,7 +641,7 @@ test.describe("Where the simulated numbers show", () => {
   }) => {
     /* A screen reader gets the same number as a sighted reader, and the same
        reason for it. */
-    await page.getByRole("button", { name: "WCAG 2" }).click();
+    await page.getByRole("button", { name: "Contrast", exact: true }).click();
     const shade = page
       .getByRole("button", { name: /^Select error 950/ })
       .first();

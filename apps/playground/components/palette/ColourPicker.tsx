@@ -19,6 +19,7 @@ import {
   hsvToHex,
   isOklchInSrgb,
   oklchToHex,
+  isWholeColourDraft,
   parseColour,
   rgbToHex,
   rgbToOklch,
@@ -295,6 +296,10 @@ function ColourPickerPanel({
 
   const updateDraft = (nextValue: string) => {
     setDraft(nextValue);
+    /* A HEX waits for six digits: `#111` on the way to `#111000` is not a
+       colour yet, and applying it would put `#111111` over what is being
+       typed. Shorthand is applied by Enter or leaving the field. */
+    if (!isWholeColourDraft(nextValue, colourFormat)) return;
     try {
       onChange(parseColour(nextValue, colourFormat));
     } catch {

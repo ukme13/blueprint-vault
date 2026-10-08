@@ -19,6 +19,39 @@ import {
 
 export const PALETTE_VIEW_STORAGE_KEY = "blueprint.palette-view.v1";
 
+/** Which contrast model the Contrast tool measures with. */
+export const CONTRAST_STANDARDS = ["wcag2", "wcag3"] as const;
+export type ContrastStandard = (typeof CONTRAST_STANDARDS)[number];
+
+export const CONTRAST_STANDARD_LABELS: Record<ContrastStandard, string> = {
+  wcag2: "WCAG 2",
+  wcag3: "WCAG 3",
+};
+
+export function isContrastStandard(value: unknown): value is ContrastStandard {
+  return CONTRAST_STANDARDS.includes(value as ContrastStandard);
+}
+
+/**
+ * Which colour is the text in a contrast pair.
+ *
+ * `on`: the shade is the text, on the comparison colour: "Shade on White".
+ * `under`: the comparison colour is the text, over the shade: "White on
+ * Shade", the way a white label sits on a coloured button. WCAG 2 gives the
+ * same ratio either way; APCA does not, so for WCAG 3 it changes the number.
+ */
+export const CONTRAST_POLARITIES = ["on", "under"] as const;
+export type ContrastPolarity = (typeof CONTRAST_POLARITIES)[number];
+
+export function isContrastPolarity(value: unknown): value is ContrastPolarity {
+  return CONTRAST_POLARITIES.includes(value as ContrastPolarity);
+}
+
+/** The other way round. */
+export function swappedPolarity(polarity: ContrastPolarity): ContrastPolarity {
+  return polarity === "on" ? "under" : "on";
+}
+
 export interface PaletteViewPreferences {
   /**
    * Which deficiency the Vision chip shows while it is on.
@@ -41,8 +74,18 @@ export interface PaletteViewPreferences {
   severity: number;
   /** Whether the Vision chip is active. */
   isSimulationOn: boolean;
-  /** Whether the WCAG contrast comparison panel is open. */
+  /** Whether the contrast comparison panel is open. */
   isContrastModeOpen: boolean;
+  /**
+   * The model contrast is measured with: WCAG 2's ratio, or WCAG 3's APCA Lc.
+   * Kept while the tool is off, so turning it on returns to the one in use.
+   */
+  contrastStandard: ContrastStandard;
+  /**
+   * Which of the pair is the text, for the matrix and every shade's details at
+   * once: one choice, so the toolbar and a popover cannot disagree.
+   */
+  contrastPolarity: ContrastPolarity;
 }
 
 export const DEFAULT_PALETTE_VIEW: PaletteViewPreferences = {
@@ -52,6 +95,8 @@ export const DEFAULT_PALETTE_VIEW: PaletteViewPreferences = {
   severity: 1,
   isSimulationOn: false,
   isContrastModeOpen: false,
+  contrastStandard: "wcag2",
+  contrastPolarity: "on",
 };
 
 /** What to render through, given the chip's state. */
@@ -103,6 +148,12 @@ export function readPaletteView(raw: string | null): PaletteViewPreferences {
       value.isContrastModeOpen,
       DEFAULT_PALETTE_VIEW.isContrastModeOpen,
     ),
+    contrastStandard: isContrastStandard(value.contrastStandard)
+      ? value.contrastStandard
+      : DEFAULT_PALETTE_VIEW.contrastStandard,
+    contrastPolarity: isContrastPolarity(value.contrastPolarity)
+      ? value.contrastPolarity
+      : DEFAULT_PALETTE_VIEW.contrastPolarity,
   };
 }
 
@@ -182,9 +233,10 @@ export function visionDraftToOpen(
 /** What the WCAG contrast is measured against. */
 export type ContrastTarget = "white" | "black" | "custom";
 
-/** What the WCAG sheet edits. */
+/** What the Contrast sheet edits. */
 export interface ContrastSettings {
   isOn: boolean;
+  standard: ContrastStandard;
   target: ContrastTarget;
   /** Used when `target` is `custom`, and kept when it is not. */
   customColour: string;
@@ -193,6 +245,7 @@ export interface ContrastSettings {
 /** Where Reset takes the WCAG sheet, and what a studio opens with. */
 export const DEFAULT_CONTRAST_SETTINGS: ContrastSettings = {
   isOn: DEFAULT_PALETTE_VIEW.isContrastModeOpen,
+  standard: DEFAULT_PALETTE_VIEW.contrastStandard,
   target: "white",
   customColour: "#7646ab",
 };

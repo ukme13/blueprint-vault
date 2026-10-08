@@ -1,7 +1,8 @@
 import { Popover } from "@astryxdesign/core/Popover";
 import {
-  contrastRatio,
   recommendTextColour,
+  isContrastWarning,
+  swatchContrast,
   type ShadeItem,
 } from "@blueprint/ui";
 import { ShadeDetailPopover } from "./ShadeDetailPopover";
@@ -44,7 +45,8 @@ export function PaletteShade({
   onNicknameChange,
   hasPopover = true,
 }: PaletteShadeProps) {
-  const { seen, simulation } = usePaletteView();
+  const { seen, simulation, contrastStandard, contrastPolarity } =
+    usePaletteView();
   const displayBackground = seen(shade.hex);
 
   /* The ratio is measured on the colours being shown, so the number on a
@@ -56,16 +58,21 @@ export function PaletteShade({
 
      The verdict is elsewhere. This is a number on a swatch, not a WCAG pass —
      the AA and AAA badges live in the preview and stay on the real palette. */
-  const ratio = contrastReferenceHex
-    ? contrastRatio(displayBackground, seen(contrastReferenceHex))
+  const reading = contrastReferenceHex
+    ? swatchContrast(
+        contrastStandard,
+        displayBackground,
+        seen(contrastReferenceHex),
+        contrastPolarity,
+      )
     : null;
   /* Ink follows the swatch on screen. Recommending from the real hex and then
      painting it on a simulated one is how a dark primary that turns lighter
      under deuteranopia still got white text. */
   const foreground = recommendTextColour(displayBackground).colour;
-  const ratioLabel = ratio?.toFixed(1);
-  const ratioDescription = ratioLabel
-    ? `, contrast ${ratioLabel} to 1${
+  const ratioLabel = reading?.label;
+  const ratioDescription = reading
+    ? `, ${reading.description}${
         simulation === "normal" ? "" : ` under ${simulation}`
       }`
     : "";
@@ -77,7 +84,10 @@ export function PaletteShade({
       className={styles.shade}
       data-anchor={shade.isAnchor}
       data-contrast-ratio={ratioLabel}
-      data-has-contrast={ratio !== null}
+      data-contrast-polarity={reading ? contrastPolarity : undefined}
+      data-contrast-standard={reading ? contrastStandard : undefined}
+      data-contrast-status={reading?.status}
+      data-has-contrast={reading !== null}
       data-selected={isSelected}
       /* Simulated for the eye only. The label, the title and the contrast
          ratio above all keep the real hex, because that is the token this
@@ -88,6 +98,16 @@ export function PaletteShade({
       /* With a popover, the popover opens itself from this trigger. */
       onClick={hasPopover ? undefined : () => onSelect(!isSelected)}
     >
+      {reading && isContrastWarning(reading.status) && (
+        /* A warning, for the eye: red short of the first line, amber between
+           the two. A pair that passes has no bar: silence is the good news.
+           The words, passes included, are in the button's name. */
+        <span
+          aria-hidden="true"
+          className={styles.shadeContrastStatus}
+          data-status={reading.status}
+        />
+      )}
       <span className={styles.shadeContent}>
         {ratioLabel && (
           <span aria-hidden="true" className={styles.shadeContrastRatio}>

@@ -172,7 +172,7 @@ test.describe("on a phone", () => {
        either pushed them off a scrolling strip or wrapped it onto three rows.
        On a phone the options are in a sheet, so tapping a chip must leave the
        line as it was: one row, nothing inline. */
-    await page.getByRole("button", { name: "WCAG 2", exact: true }).click();
+    await page.getByRole("button", { name: "Contrast", exact: true }).click();
     await page.getByRole("button", { name: "Apply" }).click();
 
     const toolbar = page.getByLabel("Palette toolbar");
@@ -202,10 +202,10 @@ test.describe("on a phone", () => {
   test("sets WCAG checks in a sheet, and fills the chip once they are on", async ({
     seededPage: page,
   }) => {
-    const chip = page.getByRole("button", { name: "WCAG 2", exact: true });
+    const chip = page.getByRole("button", { name: "Contrast", exact: true });
     await chip.click();
 
-    const sheet = page.getByRole("dialog", { name: "WCAG contrast" });
+    const sheet = page.getByRole("dialog", { name: "Contrast", exact: true });
     await expect(sheet).toBeVisible();
     await expect(sheet.getByRole("button", { name: "Reset" })).toBeVisible();
     /* No Cancel and no close button: the scrim, a swipe and Escape are how a
@@ -266,8 +266,8 @@ test.describe("on a phone", () => {
     /* From a device: the divider between settings was padding on the control
        itself, which went inside its grey track — 16px more above the segments
        than below. */
-    await page.getByRole("button", { name: "WCAG 2", exact: true }).click();
-    const sheet = page.getByRole("dialog", { name: "WCAG contrast" });
+    await page.getByRole("button", { name: "Contrast", exact: true }).click();
+    const sheet = page.getByRole("dialog", { name: "Contrast", exact: true });
     const track = await sheet
       .getByRole("radiogroup", { name: "Measure against" })
       .boundingBox();
@@ -888,8 +888,8 @@ test.describe("on a phone", () => {
     await expect(track).toBeHidden();
 
     /* The picker for the WCAG custom colour. */
-    await page.getByRole("button", { name: "WCAG 2", exact: true }).click();
-    const wcag = page.getByRole("dialog", { name: "WCAG contrast" });
+    await page.getByRole("button", { name: "Contrast", exact: true }).click();
+    const wcag = page.getByRole("dialog", { name: "Contrast", exact: true });
     await wcag.getByRole("radio", { name: "Custom" }).click();
     await wcag
       .getByRole("button", { name: /^Choose custom contrast colour$/i })

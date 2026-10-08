@@ -34,6 +34,24 @@ export function formatColour(hex: string, format: ColourFormat): string {
   return `oklch(${(lightness * 100).toFixed(1)}% ${chroma.toFixed(3)} ${hue.toFixed(1)})`;
 }
 
+/**
+ * Whether what has been typed so far is a whole colour, and so can be applied
+ * as the person types.
+ *
+ * A HEX is whole at six digits. At three it is also valid, as shorthand, but a
+ * person typing `#111000` passes through `#111` on the way, and applying that
+ * as `#111111` replaces what they are typing with a colour they did not mean.
+ * Shorthand is applied when they finish (Enter, or leaving the field) instead.
+ * The other formats have no such midpoint: a value either parses or does not.
+ */
+export function isWholeColourDraft(
+  value: string,
+  format: ColourFormat,
+): boolean {
+  if (format !== "hex") return true;
+  return /^#?[0-9a-f]{6}$/i.test(value.trim());
+}
+
 export function parseColour(value: string, format: ColourFormat): string {
   if (format === "hex") return normalizeHex(value);
 

@@ -23,6 +23,8 @@ const ON: PaletteViewPreferences = {
   severity: 0.6,
   isSimulationOn: true,
   isContrastModeOpen: true,
+  contrastStandard: "wcag2",
+  contrastPolarity: "on",
 };
 
 describe("applying Vision settings", () => {
@@ -88,15 +90,17 @@ describe("opening a sheet", () => {
     expect(draft.deficiency).toBe(DEFAULT_PALETTE_VIEW.deficiency);
   });
 
-  it("starts the WCAG draft on, keeping the target", () => {
+  it("starts the contrast draft on, keeping the standard and the target", () => {
     const draft = contrastDraftToOpen({
       isOn: false,
+      standard: "wcag3",
       target: "black",
       customColour: "#123456",
     });
 
     expect(draft).toEqual({
       isOn: true,
+      standard: "wcag3",
       target: "black",
       customColour: "#123456",
     });

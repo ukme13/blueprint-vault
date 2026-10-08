@@ -11,18 +11,19 @@ import {
   contrastDraftToOpen,
   DEFAULT_CONTRAST_SETTINGS,
   type ContrastSettings,
+  type ContrastStandard,
   type ContrastTarget,
 } from "@blueprint/ui";
 import { SettingsSheet } from "../SettingsSheet";
 import { ColourPicker } from "./ColourPicker";
 
 /**
- * WCAG contrast checks, as a phone sets them.
+ * Contrast checks, as a phone sets them.
  *
- * The same choices the desktop shows beside the WCAG 2 button — on or off, and
- * what every shade is measured against — in a sheet. Nothing is invented for
- * the phone: the thresholds are WCAG's own and are not settings, so the sheet
- * does not pretend they are.
+ * The same choices the desktop shows beside the Contrast button — on or off,
+ * WCAG 2 or WCAG 3, and what every shade is measured against — in a sheet.
+ * Nothing is invented for the phone: the thresholds belong to each standard
+ * and are not settings, so the sheet does not pretend they are.
  *
  * The switch is here for the reason it is in the Vision sheet: on a phone the
  * button opens this, so the switch is the only way to turn checks off again.
@@ -57,7 +58,7 @@ export function ContrastSheet({
   return (
     <SettingsSheet
       isOpen={isOpen}
-      title="WCAG contrast"
+      title="Contrast"
       onApply={() => {
         onApply(draft);
         onClose();
@@ -71,6 +72,22 @@ export function ContrastSheet({
         value={draft.isOn}
         onChange={(isOn) => update({ isOn })}
       />
+
+      <>
+        <Text aria-hidden type="label">
+          Standard
+        </Text>
+        <SegmentedControl
+          label="Standard"
+          layout="fill"
+          size="sm"
+          value={draft.standard}
+          onChange={(value) => update({ standard: value as ContrastStandard })}
+        >
+          <SegmentedControlItem label="WCAG 2" value="wcag2" />
+          <SegmentedControlItem label="WCAG 3" value="wcag3" />
+        </SegmentedControl>
+      </>
 
       {/* One setting: what to measure against, and the colour when it is
           custom. The segmented control never draws its label — it is an

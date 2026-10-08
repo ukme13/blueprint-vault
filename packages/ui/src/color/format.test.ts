@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatColour, isColourFormat, parseColour } from "./format";
+import {
+  formatColour,
+  isColourFormat,
+  isWholeColourDraft,
+  parseColour,
+} from "./format";
 
 describe("colour formats", () => {
   it("formats one colour as HEX, RGB, and OKLCH", () => {
@@ -14,6 +19,21 @@ describe("colour formats", () => {
     expect(parseColour("oklch(55% 0.201 284)", "oklch")).toMatch(
       /^#[0-9a-f]{6}$/,
     );
+  });
+
+  it("applies a HEX as typed only once it has six digits", () => {
+    expect(isWholeColourDraft("#111", "hex")).toBe(false);
+    expect(isWholeColourDraft("111", "hex")).toBe(false);
+    expect(isWholeColourDraft("#11100", "hex")).toBe(false);
+    expect(isWholeColourDraft("#111000", "hex")).toBe(true);
+    expect(isWholeColourDraft("111000", "hex")).toBe(true);
+    expect(isWholeColourDraft(" #D8C65A ", "hex")).toBe(true);
+    expect(isWholeColourDraft("#11100g", "hex")).toBe(false);
+  });
+
+  it("leaves the other formats to parse or not", () => {
+    expect(isWholeColourDraft("rgb(1 2 3)", "rgb")).toBe(true);
+    expect(isWholeColourDraft("oklch(10% 0 0", "oklch")).toBe(true);
   });
 
   it("rejects invalid values and recognises supported formats", () => {

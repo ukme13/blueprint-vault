@@ -160,7 +160,7 @@ test.describe("Shade details", () => {
     await expect(contrastRatios).toHaveCount(0);
 
     const contrastMode = page.getByRole("button", {
-      name: "WCAG 2",
+      name: "Contrast",
       exact: true,
     });
     await contrastMode.hover();
@@ -171,7 +171,11 @@ test.describe("Shade details", () => {
       ),
     ).toBeVisible();
     await contrastMode.click();
-    await expect(contrastMode).toHaveAttribute("aria-pressed", "true");
+    /* Contrast names the group and is never lit; the standard in use is. */
+    await expect(contrastMode).not.toHaveAttribute("aria-pressed");
+    await expect(
+      page.getByRole("button", { name: "WCAG 2", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
     await expect(contrastRatios).toHaveCount(140);
 
     const ratioAgainstWhite = await shade.getAttribute("data-contrast-ratio");
@@ -256,7 +260,10 @@ test.describe("Shade details", () => {
     await expect(shade).toBeFocused();
 
     await contrastMode.click();
-    await expect(contrastMode).toHaveAttribute("aria-pressed", "false");
+    /* Off, only Contrast is left in the group. */
+    await expect(
+      page.getByRole("button", { name: "WCAG 2", exact: true }),
+    ).toHaveCount(0);
     await expect(contrastRatios).toHaveCount(0);
 
     await page.reload();
@@ -266,6 +273,43 @@ test.describe("Shade details", () => {
         .getByRole("dialog", { name: "primary 500 shade details" })
         .getByLabel("Shade colour format"),
     ).toContainText("OKLCH");
+  });
+
+  test("types a HEX through its shorthand without it being filled in early", async ({
+    seededPage: page,
+  }) => {
+    await page.getByRole("button", { name: /Select primary 200,/ }).click();
+    await page
+      .getByRole("dialog", { name: "primary 200 shade details" })
+      .getByRole("button", { name: "Edit primary 200 colour" })
+      .click();
+    const picker = page.getByRole("dialog", {
+      name: "primary 200 manual colour picker",
+    });
+    const hexInput = picker.getByLabel("primary 200 manual colour HEX value");
+
+    /* #111 is a valid shorthand, but a person typing #111000 is not done: it
+       stays as typed and the next digits land after it. */
+    await hexInput.fill("");
+    await hexInput.pressSequentially("#111");
+    await expect(hexInput).toHaveValue("#111");
+    await hexInput.pressSequentially("000");
+    await expect(hexInput).toHaveValue("#111000");
+
+    /* Shorthand is still welcome, once finished. */
+    await hexInput.fill("#abc");
+    await expect(hexInput).toHaveValue("#abc");
+    await hexInput.press("Enter");
+    await expect(picker).toBeHidden();
+    await page
+      .getByRole("dialog", { name: "primary 200 shade details" })
+      .getByRole("button", { name: "Edit primary 200 colour" })
+      .click();
+    await expect(
+      page
+        .getByRole("dialog", { name: "primary 200 manual colour picker" })
+        .getByLabel("primary 200 manual colour HEX value"),
+    ).toHaveValue("#AABBCC");
   });
 
   test("manually edits a shade, promotes it to an anchor, and resets it", async ({

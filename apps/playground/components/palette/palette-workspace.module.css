@@ -121,8 +121,8 @@
 /* Accessibility keeps Vision; bench-only controls stay on Shade generator. */
 .toolbar[data-tools="vision-only"] .addButton,
 .toolbar[data-tools="vision-only"] .contrastModeButton,
+.toolbar[data-tools="vision-only"] .contrastGroup,
 .toolbar[data-tools="vision-only"] .contrastOptions,
-.toolbar[data-tools="vision-only"] .toolbarDivider,
 .toolbar[data-tools="vision-only"] .resetButton,
 .toolbar[data-tools="vision-only"] .resetIconButton {
   display: none;
@@ -131,13 +131,6 @@
 /* The phone's Reset preset; the label is the desktop's. */
 .toolbar .resetIconButton {
   display: none;
-}
-
-.toolbarDivider {
-  width: 1px;
-  height: 22px;
-  margin: 0 4px;
-  background: var(--color-surface-overlay);
 }
 
 .toolbar .resetButton {
@@ -150,6 +143,45 @@
   color: var(--color-fg-accent);
 }
 
+/* Contrast and its two standards in a row: the toolbar's outlined buttons,
+   joined. Contrast names the group and is never lit; the standard measuring
+   is, and it is filled, with the colour that reads on that fill (5.6:1 in
+   light, 5.0:1 in dark). */
+.contrastGroup {
+  display: inline-flex;
+  align-items: center;
+}
+
+.contrastSegment {
+  flex: none;
+  white-space: nowrap;
+}
+
+/* One rule between neighbours, and the corners squared where they meet. */
+.contrastSegment[data-place="between"],
+.contrastSegment[data-place="last"] {
+  margin-left: -1px;
+}
+
+.contrastSegment[data-place="first"],
+.contrastSegment[data-place="between"] {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.contrastSegment[data-place="between"],
+.contrastSegment[data-place="last"] {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.contrastSegment[data-active="true"] {
+  position: relative;
+  border-color: var(--color-action-primary);
+  background: var(--color-action-primary);
+  color: var(--color-fg-on-action);
+}
+
 .contrastOptions {
   display: flex;
   align-items: center;
@@ -157,13 +189,59 @@
   white-space: nowrap;
 }
 
-.contrastOptions > small {
+/* The word that stands where "against" did, and turns the pair round. A word
+   at rest; reached for, the word gives way to the swap arrow in its place. One
+   grid cell holds both, so hovering moves nothing. The button is as wide as
+   its word, so "on" sits snug; it is wider for "under", and that is fine. */
+.contrastPolarity {
+  display: inline-grid;
+  place-items: center;
+  height: var(--size-element-sm);
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--radius-inner);
+  background: transparent;
   color: var(--color-fg-muted);
-  font-size: 11px;
+  font: inherit;
+  font-size: var(--font-size-sm, 0.75rem);
+  cursor: pointer;
 }
 
+.contrastPolarityWord,
+.contrastPolarityArrow {
+  grid-area: 1 / 1;
+  transition: opacity 120ms ease;
+}
+
+.contrastPolarityArrow {
+  opacity: 0;
+}
+
+.contrastPolarity:hover,
+.contrastPolarity:focus-visible,
+.contrastPolarity[aria-pressed="true"] {
+  color: var(--color-fg-primary);
+}
+
+.contrastPolarity:hover .contrastPolarityWord,
+.contrastPolarity:focus-visible .contrastPolarityWord {
+  opacity: 0;
+}
+
+.contrastPolarity:hover .contrastPolarityArrow,
+.contrastPolarity:focus-visible .contrastPolarityArrow {
+  opacity: 1;
+}
+
+.contrastPolarity:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
+/* Wide enough for the longest label when it is the active, bold one: at 190px
+   "Custom" was cut to "Cust…" as soon as it was chosen. */
 .contrastTargetControl {
-  width: 190px;
+  width: 232px;
 }
 
 /* The Vision chip and its selector read as one control: the chip is the
@@ -833,6 +911,28 @@
   align-items: center;
   justify-content: center;
   gap: 0px;
+}
+
+/* The contrast warning: a 2px line along the foot of the swatch, only where
+   there is something to warn of. Sharp, saturated colours of their own, not the
+   studio's status tones, so they stay clear on a light shade and a dark one. */
+.shadeContrastStatus {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  border-bottom-left-radius: inherit;
+  border-bottom-right-radius: inherit;
+  pointer-events: none;
+}
+
+.shadeContrastStatus[data-status="fail"] {
+  background: oklch(0.65 0.24 25);
+}
+
+.shadeContrastStatus[data-status="partial"] {
+  background: oklch(0.78 0.18 75);
 }
 
 .shadeContrastRatio {
@@ -1677,8 +1777,7 @@
     flex-shrink: 0;
   }
 
-  .toolbar .resetButton,
-  .toolbarDivider {
+  .toolbar .resetButton {
     display: none;
   }
 
