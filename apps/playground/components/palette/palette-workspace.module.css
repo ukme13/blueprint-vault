@@ -664,6 +664,18 @@
   color: var(--color-fg-primary);
 }
 
+/* The handle a wider screen can move the panel by: the header's own space,
+   not the controls in it. */
+.colourPickerHeader[data-draggable] {
+  cursor: grab;
+  touch-action: none;
+}
+
+.colourPickerHeader[data-dragging] {
+  cursor: grabbing;
+  user-select: none;
+}
+
 .colourPickerHeader {
   min-height: 42px;
   display: flex;
@@ -838,6 +850,9 @@
 }
 
 .colourPickerFooter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin: 0 -16px;
   padding: 16px 16px 2px;
   border-top: 1px solid var(--color-border-strong);
@@ -845,6 +860,8 @@
 
 .colourHexInput {
   display: block;
+  flex: 1;
+  min-width: 0;
 }
 
 .colourHexInput input {
