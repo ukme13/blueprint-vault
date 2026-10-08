@@ -22,10 +22,13 @@
   flex: none;
 }
 
+/* On, said plainly: filled, with the colour that reads on that fill (5.6:1 in
+   light, 5.0:1 in dark). The tint it had, accent text on the muted accent, was
+   2.4:1 in light. The icon is drawn in currentColor and follows. */
 .visionModeButton[data-active="true"] {
   border-color: var(--color-action-primary);
-  background: var(--color-action-muted);
-  color: var(--color-fg-accent);
+  background: var(--color-action-primary);
+  color: var(--color-fg-on-action);
 }
 
 .visionGroup[data-open="true"] .visionModeButton {
@@ -62,6 +65,9 @@
 }
 
 .visionOptions :global(.astryx-selector) > button {
+  /* Ordinary text on the muted accent behind it: 5.0:1 in light, 17.9:1 in
+     dark. */
+  color: var(--color-fg-primary);
   /* Base size 0 so the label can shrink. Default min-width: auto is the
      string, which left no room for the chevron and overflow clipped it. */
   flex: 1 1 0%;
@@ -114,12 +120,5 @@
   .visionGroup[data-open="true"] .visionModeButton {
     border-top-right-radius: revert-layer;
     border-bottom-right-radius: revert-layer;
-  }
-
-  /* On, said plainly: a filled chip, for the reason the WCAG chip is. */
-  .visionModeButton[data-active="true"] {
-    border-color: var(--color-action-primary);
-    background: var(--color-action-primary);
-    color: var(--color-fg-on-action);
   }
 }

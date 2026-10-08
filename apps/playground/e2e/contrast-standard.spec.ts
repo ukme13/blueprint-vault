@@ -281,6 +281,17 @@ const contrastOf = (page: Page, selector: string, within?: string) =>
       return (Math.max(text, ground) + 0.05) / (Math.min(text, ground) + 0.05);
     }, within);
 
+/** Settled, not in flight: buttons ease their colours over 200ms. */
+const expectReadable = (
+  page: Page,
+  selector: string,
+  within?: string,
+  minimum = 4.5,
+) =>
+  expect
+    .poll(() => contrastOf(page, selector, within))
+    .toBeGreaterThanOrEqual(minimum);
+
 for (const theme of ["Light", "Dark"] as const) {
   test.describe(`Text that sits on a fill, in ${theme.toLowerCase()} mode`, () => {
     test("the standard measuring reads on its fill", async ({
@@ -295,11 +306,30 @@ for (const theme of ["Light", "Dark"] as const) {
         "aria-pressed",
         "true",
       );
-      const ratio = await contrastOf(
+      await expectReadable(
         page,
         'button[aria-pressed="true"]:has-text("WCAG 2")',
       );
-      expect(ratio).toBeGreaterThanOrEqual(4.5);
+    });
+
+    test("Vision, switched on, and the type beside it read on their fills", async ({
+      seededPage: page,
+    }) => {
+      const themes = await openTheme(page);
+      await themes.getByRole("radio", { name: theme }).click();
+      await page.keyboard.press("Escape");
+
+      const vision = page.getByRole("button", { name: "Vision", exact: true });
+      await vision.click();
+      await expect(vision).toHaveAttribute("aria-pressed", "true");
+      await expectReadable(
+        page,
+        'button[aria-pressed="true"]:has-text("Vision")',
+      );
+
+      /* The type chosen sits on the joined option strip behind it. */
+      const strip = '[class*="visionOptions"]';
+      await expectReadable(page, `${strip} .astryx-selector > button`, strip);
     });
 
     test("the selected group in the semantic sidebar, and its count, read on theirs", async ({
@@ -314,13 +344,12 @@ for (const theme of ["Light", "Dark"] as const) {
       ).toBeVisible({ timeout: 20_000 });
 
       const item = '[aria-label="Token groups"] [aria-current="true"]';
-      expect(await contrastOf(page, item)).toBeGreaterThanOrEqual(4.5);
-      const count = await contrastOf(
+      await expectReadable(page, item);
+      await expectReadable(
         page,
         `${item} [class*="count"]`,
         '[aria-current="true"]',
       );
-      expect(count).toBeGreaterThanOrEqual(4.5);
     });
   });
 }
