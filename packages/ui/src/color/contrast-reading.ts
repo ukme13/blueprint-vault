@@ -1,6 +1,6 @@
 import { APCA_LC, apcaContrast } from "./apca";
 import { contrastRatio } from "./accessibility";
-import type { ContrastStandard } from "./palette-view";
+import type { ContrastPolarity, ContrastStandard } from "./palette-view";
 
 /**
  * How a pair does, in three steps a swatch can show without a number: it
@@ -52,11 +52,11 @@ export interface ContrastReading {
 /**
  * A shade's contrast against the comparison colour, under a standard.
  *
- * The same pairing in both: the shade as the text and the comparison colour as
- * the ground, which is how the detail popover first shows it. WCAG 2 does not
- * care which is which. APCA does, and gives the size of its Lc here with the
- * sign left out: the swatch is a number to compare down a ramp, and the
- * polarity is in the popover, where the pair can be turned round.
+ * The same pairing in both, set by `polarity`: the shade as the text on the
+ * comparison colour (`on`, the default) or the comparison colour as the text
+ * over the shade (`under`). WCAG 2 does not care which is which. APCA does,
+ * and gives the size of its Lc here with the sign left out: the swatch is a
+ * number to compare down a ramp, and the sign is in the popover.
  *
  * The status is judged on the exact figure, not the one shown: WCAG does not
  * round, so a swatch reading 7.0 can be a 6.96 and short of 7.
@@ -65,9 +65,12 @@ export function swatchContrast(
   standard: ContrastStandard,
   shadeHex: string,
   referenceHex: string,
+  polarity: ContrastPolarity = "on",
 ): ContrastReading {
   if (standard === "wcag3") {
-    const exact = Math.abs(apcaContrast(shadeHex, referenceHex));
+    const [text, ground] =
+      polarity === "on" ? [shadeHex, referenceHex] : [referenceHex, shadeHex];
+    const exact = Math.abs(apcaContrast(text, ground));
     const lc = Math.round(exact);
     const status = contrastStatus(standard, exact);
     return {

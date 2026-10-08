@@ -15,6 +15,7 @@ import {
   activeSimulation,
   readPaletteView,
   simulateHex,
+  swappedPolarity,
   withVisionSettings,
   writePaletteView,
   type ColourVisionDeficiency,
@@ -42,6 +43,8 @@ interface PaletteViewContextValue extends PaletteViewPreferences {
   setContrastStandard: (standard: ContrastStandard) => void;
   /** A standard, and the tool on in it: one press from the Contrast group. */
   chooseContrastStandard: (standard: ContrastStandard) => void;
+  /** Turn the contrast pair round, for the matrix and every shade's details. */
+  togglePolarity: () => void;
 }
 
 const PaletteViewContext = createContext<PaletteViewContextValue | null>(null);
@@ -121,6 +124,11 @@ export function PaletteViewProvider({ children }: { children: ReactNode }) {
           setView((current) => ({ ...current, isContrastModeOpen: isOpen })),
         setContrastStandard: (contrastStandard) =>
           setView((current) => ({ ...current, contrastStandard })),
+        togglePolarity: () =>
+          setView((current) => ({
+            ...current,
+            contrastPolarity: swappedPolarity(current.contrastPolarity),
+          })),
         chooseContrastStandard: (contrastStandard) =>
           setView((current) => ({
             ...current,

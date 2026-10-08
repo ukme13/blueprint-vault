@@ -58,6 +58,7 @@ import { StudioSliceEmpty } from "../shell/StudioSliceEmpty";
 import { PaletteControls } from "./PaletteControls";
 import { ColourPicker } from "./ColourPicker";
 import { ContrastControl } from "./ContrastControl";
+import { ContrastPolarityToggle } from "./ContrastPolarityToggle";
 import { ContrastSheet } from "./ContrastSheet";
 import { PaletteMatrix } from "./PaletteMatrix";
 import { PalettePreview } from "./PalettePreview";
@@ -214,6 +215,8 @@ function PaletteStudioContent() {
     contrastStandard,
     setContrastStandard,
     chooseContrastStandard,
+    contrastPolarity,
+    togglePolarity,
   } = usePaletteView();
   const [contrastTarget, setContrastTarget] = useState<ContrastTarget>(
     DEFAULT_CONTRAST_SETTINGS.target,
@@ -820,7 +823,10 @@ function PaletteStudioContent() {
             aria-label="Contrast comparison"
             className={styles.contrastOptions}
           >
-            <small>against</small>
+            <ContrastPolarityToggle
+              polarity={contrastPolarity}
+              onToggle={togglePolarity}
+            />
             <span className={styles.contrastTargetControl}>
               <SegmentedControl
                 label="Contrast comparison colour"

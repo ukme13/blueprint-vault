@@ -55,6 +55,22 @@ describe("swatchContrast", () => {
   });
 });
 
+describe("swatchContrast by polarity", () => {
+  it("leaves a WCAG 2 ratio as it is when the pair is turned round", () => {
+    expect(swatchContrast("wcag2", "#6b57e1", "#ffffff", "under")).toEqual(
+      swatchContrast("wcag2", "#6b57e1", "#ffffff", "on"),
+    );
+  });
+
+  it("measures a WCAG 3 pair the other way round under", () => {
+    /* The same two colours, the other one as the text: a different Lc. */
+    const on = swatchContrast("wcag3", "#6b57e1", "#ffffff", "on");
+    const under = swatchContrast("wcag3", "#6b57e1", "#ffffff", "under");
+    expect(on.label).not.toBe(under.label);
+    expect(swatchContrast("wcag3", "#6b57e1", "#ffffff").label).toBe(on.label);
+  });
+});
+
 describe("isContrastWarning", () => {
   it("warns of a fail and a partial pass, and says nothing of a pass", () => {
     expect(isContrastWarning("fail")).toBe(true);

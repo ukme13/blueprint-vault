@@ -45,7 +45,8 @@ export function PaletteShade({
   onNicknameChange,
   hasPopover = true,
 }: PaletteShadeProps) {
-  const { seen, simulation, contrastStandard } = usePaletteView();
+  const { seen, simulation, contrastStandard, contrastPolarity } =
+    usePaletteView();
   const displayBackground = seen(shade.hex);
 
   /* The ratio is measured on the colours being shown, so the number on a
@@ -62,6 +63,7 @@ export function PaletteShade({
         contrastStandard,
         displayBackground,
         seen(contrastReferenceHex),
+        contrastPolarity,
       )
     : null;
   /* Ink follows the swatch on screen. Recommending from the real hex and then
@@ -82,6 +84,7 @@ export function PaletteShade({
       className={styles.shade}
       data-anchor={shade.isAnchor}
       data-contrast-ratio={ratioLabel}
+      data-contrast-polarity={reading ? contrastPolarity : undefined}
       data-contrast-standard={reading ? contrastStandard : undefined}
       data-contrast-status={reading?.status}
       data-has-contrast={reading !== null}

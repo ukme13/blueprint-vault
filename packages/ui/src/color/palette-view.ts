@@ -32,6 +32,26 @@ export function isContrastStandard(value: unknown): value is ContrastStandard {
   return CONTRAST_STANDARDS.includes(value as ContrastStandard);
 }
 
+/**
+ * Which colour is the text in a contrast pair.
+ *
+ * `on`: the shade is the text, on the comparison colour: "Shade on White".
+ * `under`: the comparison colour is the text, over the shade: "White on
+ * Shade", the way a white label sits on a coloured button. WCAG 2 gives the
+ * same ratio either way; APCA does not, so for WCAG 3 it changes the number.
+ */
+export const CONTRAST_POLARITIES = ["on", "under"] as const;
+export type ContrastPolarity = (typeof CONTRAST_POLARITIES)[number];
+
+export function isContrastPolarity(value: unknown): value is ContrastPolarity {
+  return CONTRAST_POLARITIES.includes(value as ContrastPolarity);
+}
+
+/** The other way round. */
+export function swappedPolarity(polarity: ContrastPolarity): ContrastPolarity {
+  return polarity === "on" ? "under" : "on";
+}
+
 export interface PaletteViewPreferences {
   /**
    * Which deficiency the Vision chip shows while it is on.
@@ -61,6 +81,11 @@ export interface PaletteViewPreferences {
    * Kept while the tool is off, so turning it on returns to the one in use.
    */
   contrastStandard: ContrastStandard;
+  /**
+   * Which of the pair is the text, for the matrix and every shade's details at
+   * once: one choice, so the toolbar and a popover cannot disagree.
+   */
+  contrastPolarity: ContrastPolarity;
 }
 
 export const DEFAULT_PALETTE_VIEW: PaletteViewPreferences = {
@@ -71,6 +96,7 @@ export const DEFAULT_PALETTE_VIEW: PaletteViewPreferences = {
   isSimulationOn: false,
   isContrastModeOpen: false,
   contrastStandard: "wcag2",
+  contrastPolarity: "on",
 };
 
 /** What to render through, given the chip's state. */
@@ -125,6 +151,9 @@ export function readPaletteView(raw: string | null): PaletteViewPreferences {
     contrastStandard: isContrastStandard(value.contrastStandard)
       ? value.contrastStandard
       : DEFAULT_PALETTE_VIEW.contrastStandard,
+    contrastPolarity: isContrastPolarity(value.contrastPolarity)
+      ? value.contrastPolarity
+      : DEFAULT_PALETTE_VIEW.contrastPolarity,
   };
 }
 

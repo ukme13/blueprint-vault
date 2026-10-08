@@ -24,6 +24,7 @@ const ON: PaletteViewPreferences = {
   isSimulationOn: true,
   isContrastModeOpen: true,
   contrastStandard: "wcag2",
+  contrastPolarity: "on",
 };
 
 describe("applying Vision settings", () => {

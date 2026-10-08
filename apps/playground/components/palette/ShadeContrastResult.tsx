@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { ArrowLeftRight } from "lucide-react";
 import {
@@ -47,8 +46,11 @@ export function ShadeContrastResult({
   comparisonHex,
   comparisonLabel,
 }: ShadeContrastResultProps) {
-  const { seen, view, contrastStandard } = usePaletteView();
-  const [isSwapped, setIsSwapped] = useState(false);
+  const { seen, view, contrastStandard, contrastPolarity, togglePolarity } =
+    usePaletteView();
+  /* One choice for the matrix, the toolbar and every shade's details, so
+     turning the pair round anywhere turns it round everywhere. */
+  const isSwapped = contrastPolarity === "under";
   /* What the sample shows, said in words, so the swap is not a mystery. */
   const caption = isSwapped
     ? `${capitalise(comparisonLabel)} on Shade`
@@ -60,7 +62,7 @@ export function ShadeContrastResult({
         comparisonHex={comparisonHex}
         isSwapped={isSwapped}
         shade={shade}
-        onSwap={() => setIsSwapped((current) => !current)}
+        onSwap={togglePolarity}
       />
     );
   }
@@ -110,7 +112,7 @@ export function ShadeContrastResult({
           label="Swap text and background"
           size="sm"
           variant="ghost"
-          onClick={() => setIsSwapped((current) => !current)}
+          onClick={togglePolarity}
         />
         <strong>{textContrast.ratio.toFixed(2)}:1</strong>
       </p>

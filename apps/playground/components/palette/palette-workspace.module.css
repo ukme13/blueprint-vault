@@ -189,6 +189,55 @@
   white-space: nowrap;
 }
 
+/* The word that stands where "against" did, and turns the pair round. A word
+   at rest; reached for, the word gives way to the swap arrow in its place. One
+   grid cell holds both, so hovering moves nothing. The button is as wide as
+   its word, so "on" sits snug; it is wider for "under", and that is fine. */
+.contrastPolarity {
+  display: inline-grid;
+  place-items: center;
+  height: var(--size-element-sm);
+  padding: 0 6px;
+  border: 0;
+  border-radius: var(--radius-inner);
+  background: transparent;
+  color: var(--color-fg-muted);
+  font: inherit;
+  font-size: var(--font-size-sm, 0.75rem);
+  cursor: pointer;
+}
+
+.contrastPolarityWord,
+.contrastPolarityArrow {
+  grid-area: 1 / 1;
+  transition: opacity 120ms ease;
+}
+
+.contrastPolarityArrow {
+  opacity: 0;
+}
+
+.contrastPolarity:hover,
+.contrastPolarity:focus-visible,
+.contrastPolarity[aria-pressed="true"] {
+  color: var(--color-fg-primary);
+}
+
+.contrastPolarity:hover .contrastPolarityWord,
+.contrastPolarity:focus-visible .contrastPolarityWord {
+  opacity: 0;
+}
+
+.contrastPolarity:hover .contrastPolarityArrow,
+.contrastPolarity:focus-visible .contrastPolarityArrow {
+  opacity: 1;
+}
+
+.contrastPolarity:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -2px;
+}
+
 .contrastOptions > small {
   color: var(--color-fg-muted);
   font-size: 11px;

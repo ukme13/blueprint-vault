@@ -295,6 +295,125 @@ test.describe("The Contrast tool", () => {
     await expect(page.locator("[data-status]")).toHaveCount(0);
   });
 
+  test("turns the pair round from the toolbar, and the matrix follows", async ({
+    seededPage: page,
+  }) => {
+    await contrastButton(page).click();
+    const toggle = comparison(page).getByRole("button", {
+      name: /Swap text and background/,
+    });
+    /* A word until it is reached for: the arrow is not showing at rest. */
+    const word = toggle.locator('[class*="contrastPolarityWord"]');
+    const arrow = toggle.locator("svg");
+    await expect(toggle).toHaveText("on");
+    await expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await expect(arrow).toHaveCSS("opacity", "0");
+    await expect(word).toHaveCSS("opacity", "1");
+    const width = async () => (await toggle.boundingBox())!.width;
+    const resting = await width();
+
+    /* Reached for, the word gives way to the arrow in its place, and nothing
+       moves: not the button, not the arrow from where the word was. */
+    const wordBox = (await word.boundingBox())!;
+    await toggle.hover();
+    await expect(arrow).toHaveCSS("opacity", "1");
+    await expect(word).toHaveCSS("opacity", "0");
+    expect(await width()).toBeCloseTo(resting, 1);
+    const arrowBox = (await arrow.boundingBox())!;
+    expect(arrowBox.x + arrowBox.width / 2).toBeCloseTo(
+      wordBox.x + wordBox.width / 2,
+      0,
+    );
+    expect(arrowBox.y + arrowBox.height / 2).toBeCloseTo(
+      wordBox.y + wordBox.height / 2,
+      0,
+    );
+    await page.mouse.move(0, 0);
+
+    /* WCAG 2 is the same ratio either way round. */
+    const ratios = await readings(page);
+    await toggle.click();
+    await expect(toggle).toHaveText("under");
+    await expect(toggle).toHaveAttribute("aria-pressed", "true");
+    expect(await readings(page)).toEqual(ratios);
+    /* As wide as its word: snug for on, wider for under. */
+    await page.mouse.move(0, 0);
+    expect(await width()).toBeGreaterThan(resting + 4);
+
+    /* WCAG 3 is not: the other colour is the text, so the Lc moves. */
+    await standard(page, "WCAG 3").click();
+    const under = await readings(page);
+    await toggle.click();
+    await expect(toggle).toHaveText("on");
+    const on = await readings(page);
+    expect(on).toHaveLength(under.length);
+    expect(on).not.toEqual(under);
+    await toggle.click();
+    expect(await readings(page)).toEqual(under);
+
+    /* Kept across a reload, as the standard is. */
+    await page.reload();
+    await expect(
+      comparison(page).getByRole("button", {
+        name: /Swap text and background/,
+      }),
+    ).toHaveText("under");
+  });
+
+  test("the toolbar and every shade's details turn the pair round together", async ({
+    seededPage: page,
+  }) => {
+    await contrastButton(page).click();
+    await standard(page, "WCAG 3").click();
+    const toggle = comparison(page).getByRole("button", {
+      name: /Swap text and background/,
+    });
+    const shade = page.getByRole("button", { name: /Select primary 500,/ });
+    const details = page.getByRole("dialog", {
+      name: "primary 500 shade details",
+    });
+    const result = details.getByRole("region", {
+      name: "WCAG 3 contrast result",
+    });
+    const swapInside = result.getByRole("button", {
+      name: "Swap text and background",
+    });
+
+    /* One icon for the swap, Lucide's arrow-left-right, in the toolbar and in
+       every shade's details. */
+    await expect(toggle.locator("svg")).toHaveClass(/lucide-arrow-left-right/);
+
+    /* From inside a popover: it turns the toolbar and the matrix round. */
+    await shade.first().click();
+    await expect(swapInside.locator("svg")).toHaveClass(
+      /lucide-arrow-left-right/,
+    );
+    await expect(result).toContainText("Shade on White");
+    await expect(swapInside).toHaveAttribute("aria-pressed", "false");
+    const before = await readings(page);
+    await swapInside.click();
+    await expect(result).toContainText("White on Shade");
+    await expect(swapInside).toHaveAttribute("aria-pressed", "true");
+    await details.getByRole("button", { name: "Close shade details" }).click();
+    await expect(toggle).toHaveText("under");
+    expect(await readings(page)).not.toEqual(before);
+
+    /* From the toolbar: a popover opened afterwards is already turned round. */
+    await toggle.click();
+    await expect(toggle).toHaveText("on");
+    expect(await readings(page)).toEqual(before);
+    await toggle.click();
+    await shade.first().click();
+    await expect(result).toContainText("White on Shade");
+    await expect(swapInside).toHaveAttribute("aria-pressed", "true");
+
+    /* And with the popover open, the toolbar's word is the popover's state. */
+    await swapInside.click();
+    await expect(result).toContainText("Shade on White");
+    await details.getByRole("button", { name: "Close shade details" }).click();
+    await expect(toggle).toHaveText("on");
+  });
+
   test("grades a shade by the standard in force: AA and AAA, or Body, Large and UI", async ({
     seededPage: page,
   }) => {
