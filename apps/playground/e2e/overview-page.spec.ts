@@ -232,7 +232,41 @@ test.describe("The overview follows the radius scale", () => {
       "Design System",
       "Tokens",
       "Active",
+      "Beta",
     ]);
+
+    /* The chips carry the project's colours, not one grey: a variant each,
+       and a colour each. */
+    const variants = await chips
+      .locator("[data-chip]")
+      .evaluateAll((nodes) =>
+        nodes.map((node) => [
+          node.getAttribute("data-variant"),
+          getComputedStyle(node).color,
+        ]),
+      );
+    expect(variants.map(([variant]) => variant)).toEqual([
+      "primary",
+      "neutral",
+      "success",
+      "warning",
+    ]);
+    expect(new Set(variants.map(([, colour]) => colour)).size).toBe(4);
+
+    /* The board resolves its tokens from the project's semantic layer: set
+       on the canvas as the project's own colour, where the studio's theme
+       would have left a light-dark() pair. */
+    const scoped = await page
+      .locator("[data-overview-grid]")
+      .evaluate((node) => {
+        const canvas = node.parentElement!;
+        return [
+          canvas.style.getPropertyValue("--color-fg-muted"),
+          canvas.style.getPropertyValue("--color-action-primary"),
+          canvas.style.getPropertyValue("--color-status-success"),
+        ];
+      });
+    for (const value of scoped) expect(value.trim()).toMatch(/^#[0-9a-f]{6}/i);
 
     const radius = (selector: string) =>
       page

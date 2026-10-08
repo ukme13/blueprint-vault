@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, type CSSProperties } from "react";
 import {
   defaultLayoutTokens,
   generatePalettes,
   recommendTextColour,
   seedTypographyProject,
+  semanticCssVariables,
   useWorkspaceStore,
   type TypeFont,
   type TypeRole,
@@ -20,12 +21,15 @@ import {
   User,
   Wand2,
 } from "lucide-react";
+import { useThemeMode } from "../../app/theme-provider";
 import { usePaletteView } from "../palette/PaletteViewContext";
 import { useGoogleFontsLink } from "../typography/use-google-fonts";
 import { useLocalFonts } from "../typography/use-local-fonts";
 import { VisionControl } from "../VisionControl";
 import { OverviewComponentSpecimens } from "./OverviewComponentSpecimens";
 import styles from "./overview.module.css";
+
+const EMPTY_TOKENS: never[] = [];
 
 function fontCssFamily(font: TypeFont | null, fallback: string): string {
   if (!font?.families?.length) return fallback;
@@ -53,10 +57,25 @@ function fontDisplayName(font: TypeFont | null, fallback: string): string {
 export function OverviewStudio() {
   const { project, hasLoaded } = useWorkspaceStore();
   const { seen } = usePaletteView();
+  const { resolved: mode } = useThemeMode();
 
   const palettes = useMemo(
     () => (project?.palette ? generatePalettes(project.palette) : []),
     [project],
+  );
+
+  /* The project's own semantic layer, as the Preview sets it, so the cards
+     resolve --color-fg-muted, the action and the status colours from its
+     tracks and not the studio's. */
+  const semanticVariables = useMemo(
+    (): CSSProperties =>
+      semanticCssVariables(
+        project?.semantics ?? EMPTY_TOKENS,
+        mode,
+        palettes,
+        seen,
+      ) as CSSProperties,
+    [project?.semantics, mode, palettes, seen],
   );
 
   const typography =
@@ -229,7 +248,7 @@ export function OverviewStudio() {
         </div>
       </header>
 
-      <main className={styles.canvas}>
+      <main className={styles.canvas} style={semanticVariables}>
         <div className={styles.bentoGrid} data-overview-grid="true">
           {/* Column 1: Color Families */}
           <div className={styles.column} data-column="colors">

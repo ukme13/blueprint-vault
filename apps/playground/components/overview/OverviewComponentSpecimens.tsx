@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { Check, Layers, Package } from "lucide-react";
+import { Check, Layers, Package, Tag } from "lucide-react";
 import { layoutCssVariablesForDevice, type LayoutToken } from "@blueprint/ui";
 import styles from "./overview.module.css";
 
@@ -7,9 +7,15 @@ import styles from "./overview.module.css";
 const SPECIMEN_FRAME = "desktop";
 
 const CHIPS = [
-  { id: "design-system", label: "Design System", icon: Layers },
-  { id: "tokens", label: "Tokens", icon: Package },
-  { id: "active", label: "Active", icon: Check },
+  {
+    id: "design-system",
+    label: "Design System",
+    icon: Layers,
+    variant: "primary",
+  },
+  { id: "tokens", label: "Tokens", icon: Package, variant: "neutral" },
+  { id: "active", label: "Active", icon: Check, variant: "success" },
+  { id: "beta", label: "Beta", icon: Tag, variant: "warning" },
 ] as const;
 
 /**
@@ -68,8 +74,13 @@ export function OverviewComponentSpecimens({
           <h3 className={styles.specimenTitle}>Chips</h3>
         </header>
         <ul className={styles.chipRow}>
-          {CHIPS.map(({ id, label, icon: Icon }) => (
-            <li key={id} className={styles.chip} data-chip={id}>
+          {CHIPS.map(({ id, label, icon: Icon, variant }) => (
+            <li
+              key={id}
+              className={styles.chip}
+              data-chip={id}
+              data-variant={variant}
+            >
               <Icon aria-hidden="true" size={14} strokeWidth={2} />
               {label}
             </li>
