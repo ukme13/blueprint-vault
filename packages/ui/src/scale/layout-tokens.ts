@@ -74,6 +74,13 @@ export const DEFAULT_LAYOUT_TOKENS: readonly LayoutToken[] = [
     byDevice: { phone: "4", tablet: "6", desktop: "10" },
   },
   {
+    id: "inset-section",
+    name: "Section inset",
+    description: "Vertical padding for page sections and footer.",
+    kind: "spacing",
+    byDevice: { phone: "8", tablet: "12", desktop: "16" },
+  },
+  {
     id: "gap-section",
     name: "Section gap",
     description: "Space between page sections.",

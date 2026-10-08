@@ -2291,6 +2291,7 @@ test.describe("Layout uses", () => {
       .toEqual([
         "gap-section",
         "inset-container",
+        "inset-section",
         "inset-control-x",
         "inset-control-y",
         "gap-grid",

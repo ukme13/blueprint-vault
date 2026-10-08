@@ -8,7 +8,12 @@ import styles from "../preview/landing.module.css";
 
 /** The layout uses the landing reads: the ones a badge can rebind. */
 export type LayoutUseId =
-  "inset-container" | "gap-section" | "gap-grid" | "gap-nav" | "inset-card";
+  | "inset-container"
+  | "inset-section"
+  | "gap-section"
+  | "gap-grid"
+  | "gap-nav"
+  | "inset-card";
 
 /**
  * Which use pads an element, and on which sides: a wrap's inset is its
@@ -29,7 +34,7 @@ const INSET_USES: readonly {
     matches: (element) =>
       hasAny(element, [styles.footer]) ||
       hasAny(element.parentElement, [styles.main]),
-    use: "gap-section",
+    use: "inset-section",
     axis: "block",
   },
   {

@@ -242,14 +242,17 @@ test.describe("The preview's device frame", () => {
       const art = hero?.querySelector("svg");
       const title = features?.querySelector("h1, h2, h3, h4");
       if (!hero || !features || !art || !title) return null;
-      const probe = document.createElement("div");
-      probe.style.cssText =
-        "position:absolute;flex:none;height:var(--gap-section);width:1px;";
-      node.appendChild(probe);
-      const gap = probe.getBoundingClientRect().height;
-      probe.remove();
+      const size = (variable: string) => {
+        const probe = document.createElement("div");
+        probe.style.cssText = `position:absolute;flex:none;height:var(${variable});width:1px;`;
+        node.appendChild(probe);
+        const height = probe.getBoundingClientRect().height;
+        probe.remove();
+        return height;
+      };
       return {
-        gap,
+        gap: size("--gap-section"),
+        inset: size("--inset-section"),
         betweenSections:
           features.getBoundingClientRect().top -
           hero.getBoundingClientRect().bottom,
@@ -261,8 +264,14 @@ test.describe("The preview's device frame", () => {
 
     expect(metrics).not.toBeNull();
     expect(metrics!.gap).toBeGreaterThanOrEqual(64);
-    expect(metrics!.betweenSections).toBeCloseTo(2.5 * metrics!.gap, 0);
-    expect(metrics!.belowArt).toBeGreaterThanOrEqual(metrics!.gap);
+    /* Each band pads its own top and bottom by Section inset, so two bands
+       sit twice that apart: a use the Uses table names, not a multiple of
+       another one. */
+    expect(metrics!.inset).toBeGreaterThan(0);
+    expect(metrics!.betweenSections).toBeCloseTo(2 * metrics!.inset, 0);
+    expect(metrics!.belowArt).toBeGreaterThanOrEqual(
+      metrics!.betweenSections - 1,
+    );
   });
 });
 
@@ -1540,6 +1549,50 @@ test.describe("The preview's spacing overlay", () => {
     expect(look.selectedFill).not.toBe(look.heavyFill);
     expect(look.ruleColour).toBe(look.searchColour);
     expect(Math.abs(look.chipLeft - look.iconLeft)).toBeLessThanOrEqual(1);
+  });
+
+  test("tags section bands as Section inset, at a size the system has", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await page.getByRole("button", { name: "Show spacing" }).click();
+    const overlay = page.getByRole("group", { name: "Spacing overlay" });
+    const stored = async (id: string) =>
+      (await readStoredWorkspace(page)).layout.find(
+        (token: { id: string }) => token.id === id,
+      )?.byDevice.desktop;
+    const bandPadding = () =>
+      page
+        .locator("[data-frame] main > *")
+        .first()
+        .evaluate((node) => getComputedStyle(node).paddingTop);
+
+    /* The band's own padding was Section gap times 1.25: 80px against a gap
+       of 64px, a size no use named. It is a use of its own now. */
+    const slot = overlay
+      .locator('[data-spacing-badge="inset-section"]')
+      .first();
+    await expect(slot).toHaveAttribute(
+      "aria-label",
+      /^Section inset on Desktop: 64px/,
+    );
+    expect(await stored("inset-section")).toBe("16");
+    await expect.poll(bandPadding).toBe("64px");
+
+    /* Set from the tag, it is the Section inset use that changes. */
+    await slot.click();
+    await page
+      .getByRole("tab", { name: "Steps" })
+      .filter({ visible: true })
+      .click();
+    await page
+      .getByRole("listbox", { name: "Section inset on Desktop" })
+      .filter({ visible: true })
+      .getByRole("option", { name: /^--spacing-8\b/ })
+      .click();
+    await expect.poll(() => stored("inset-section")).toBe("8");
+    expect(await stored("gap-section")).toBe("16");
+    await expect.poll(bandPadding).toBe("32px");
   });
 
   test("rebinds the grid gap and card inset, and explains other spaces", async ({
