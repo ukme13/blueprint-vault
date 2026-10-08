@@ -1,6 +1,7 @@
 import { Popover } from "@astryxdesign/core/Popover";
 import {
   recommendTextColour,
+  isContrastWarning,
   swatchContrast,
   type ShadeItem,
 } from "@blueprint/ui";
@@ -94,10 +95,10 @@ export function PaletteShade({
       /* With a popover, the popover opens itself from this trigger. */
       onClick={hasPopover ? undefined : () => onSelect(!isSelected)}
     >
-      {reading && (
-        /* How the pair does, without reading the number: red short of the
-           first line, amber between, green past the second. The words are in
-           the button's name; this is for the eye. */
+      {reading && isContrastWarning(reading.status) && (
+        /* A warning, for the eye: red short of the first line, amber between
+           the two. A pair that passes has no bar: silence is the good news.
+           The words, passes included, are in the button's name. */
         <span
           aria-hidden="true"
           className={styles.shadeContrastStatus}

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { contrastStatus, swatchContrast } from "./contrast-reading";
+import {
+  contrastStatus,
+  isContrastWarning,
+  swatchContrast,
+} from "./contrast-reading";
 
 describe("swatchContrast", () => {
   it("reads a WCAG 2 ratio to one place", () => {
@@ -48,6 +52,14 @@ describe("swatchContrast", () => {
     expect(swatchContrast("wcag3", "#eeeeee", "#ffffff").description).toContain(
       "fails",
     );
+  });
+});
+
+describe("isContrastWarning", () => {
+  it("warns of a fail and a partial pass, and says nothing of a pass", () => {
+    expect(isContrastWarning("fail")).toBe(true);
+    expect(isContrastWarning("partial")).toBe(true);
+    expect(isContrastWarning("pass")).toBe(false);
   });
 });
 

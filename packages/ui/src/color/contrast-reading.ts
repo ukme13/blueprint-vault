@@ -8,6 +8,13 @@ import type { ContrastStandard } from "./palette-view";
  */
 export type ContrastStatus = "fail" | "partial" | "pass";
 
+/** The steps a swatch warns about: a pair that passes has nothing to say. */
+export function isContrastWarning(
+  status: ContrastStatus,
+): status is "fail" | "partial" {
+  return status !== "pass";
+}
+
 /** The three steps in words, for assistive tech. */
 export const CONTRAST_STATUS_WORDS: Record<ContrastStatus, string> = {
   fail: "fails",
