@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type CSSProperties,
   type KeyboardEvent,
@@ -11,6 +13,7 @@ import {
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Popover } from "@astryxdesign/core/Popover";
 import { TextInput } from "@astryxdesign/core/TextInput";
+import { Pipette } from "lucide-react";
 import {
   COLOUR_FORMAT_LABELS,
   formatColour,
@@ -30,6 +33,8 @@ import { useIsPhone } from "../use-is-phone";
 import { useIsolatedTouch } from "../use-isolated-touch";
 import { useColourFormat } from "./ColourFormatContext";
 import { ColourFormatSelector } from "./ColourFormatSelector";
+import { useDraggablePanel } from "./use-draggable-panel";
+import { useEyeDropper } from "./use-eye-dropper";
 import styles from "./palette-workspace.module.css";
 
 interface ColourPickerProps {
@@ -101,6 +106,7 @@ export function ColourPicker({
       width={340}
       content={
         <ColourPickerPanel
+          isOpen={isOpen}
           label={label}
           value={value}
           onChange={onChange}
@@ -116,6 +122,11 @@ export function ColourPicker({
 
 interface ColourPickerPanelProps extends ColourPickerProps {
   onClose: () => void;
+  /**
+   * Whether the popover this is in is open, on a wider screen. A panel moved
+   * by hand goes back to where it opens when it closes.
+   */
+  isOpen?: boolean;
   /**
    * In a sheet on a phone: a drag on the field must not move the sheet, and
    * the sheet has no close button of its own.
@@ -233,8 +244,16 @@ function ColourPickerPanel({
   value,
   onChange,
   onClose,
+  isOpen,
   inSheet = false,
 }: ColourPickerPanelProps) {
+  const panelRef = useRef<HTMLElement>(null);
+  /* On a wider screen the panel can be picked up by its header and moved off
+     the shades it covers; a sheet on a phone has nowhere to go. */
+  const { handleProps, reset } = useDraggablePanel(panelRef, !inSheet);
+  useEffect(() => {
+    if (isOpen === false) reset();
+  }, [isOpen, reset]);
   /* A drag on the field is choosing a colour, not swiping the sheet shut. */
   const fieldRef = useIsolatedTouch<HTMLButtonElement>(inSheet);
   const { colourFormat } = useColourFormat();
@@ -320,6 +339,17 @@ function ColourPickerPanel({
     window.setTimeout(() => onClose(), 0);
   };
 
+  /* A colour sampled from anywhere on screen, a shade in the matrix included,
+     is applied and shown in the field at once. */
+  const {
+    isSupported: isEyeDropperSupported,
+    isSampling,
+    sample,
+  } = useEyeDropper((hex) => {
+    setDraft(formatColour(hex, colourFormat));
+    onChange(hex);
+  });
+
   const updateRgb = (index: number, channel: number) => {
     const next = [...rgb] as [number, number, number];
     next[index] = Math.min(255, Math.max(0, channel));
@@ -327,8 +357,8 @@ function ColourPickerPanel({
   };
 
   return (
-    <section className={styles.colourPicker}>
-      <header className={styles.colourPickerHeader}>
+    <section ref={panelRef} className={styles.colourPicker}>
+      <header className={styles.colourPickerHeader} {...handleProps}>
         <ColourFormatSelector label="Colour format" width={112} />
         {/* A phone's sheet closes from its backdrop, a swipe down or Escape, so it carries no close button of its own. */}
         {!inSheet && (
@@ -424,6 +454,16 @@ function ColourPickerPanel({
       )}
 
       <footer className={styles.colourPickerFooter}>
+        {isEyeDropperSupported && (
+          <IconButton
+            icon={<Pipette aria-hidden className="size-4" />}
+            isDisabled={isSampling}
+            label={`Pick ${label} from the screen`}
+            size="lg"
+            variant="secondary"
+            onClick={sample}
+          />
+        )}
         <span className={styles.colourHexInput}>
           <TextInput
             isLabelHidden
