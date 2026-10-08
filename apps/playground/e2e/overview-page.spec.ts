@@ -212,68 +212,65 @@ test.describe("The overview follows the radius scale", () => {
     await expect.poll(() => toolIconRadius(page)).toBe("10px");
   });
 
-  test("shows the radius nested and the spacing as bars, from the scales", async ({
+  test("shows a field with its button and a row of chips, on their radius uses", async ({
     page,
   }) => {
     await seedProject(page);
     await page.goto("/overview");
     await expect(page.locator("[data-overview-studio]")).toBeVisible();
 
-    /* Spacing sits under the type cards, and shows the base unit and the
-       steps from 4px to 64px. */
-    const spacing = page.locator("[data-column='typography'] [data-specimen]");
-    await expect(spacing).toHaveAttribute("data-specimen", "spacing");
+    const tools = page.locator("[data-column='tools']");
+    const field = tools.locator("[data-specimen='field']");
+    const chips = tools.locator("[data-specimen='chips']");
+    await expect(field.getByRole("heading", { name: "Input" })).toBeVisible();
+    await expect(field.getByLabel("Email address")).toBeVisible();
     await expect(
-      spacing.getByRole("heading", { name: "Spacing" }),
+      field.getByRole("button", { name: "Subscribe" }),
     ).toBeVisible();
-    await expect(spacing).toContainText("Base unit: 4px");
-    await expect(spacing.locator("[data-spacing-step]")).toHaveCount(8);
-    await expect(spacing.locator("[data-spacing-step='16']")).toContainText(
-      "64px",
-    );
+    await expect(chips.getByRole("heading", { name: "Chips" })).toBeVisible();
+    await expect(chips.locator("[data-chip]")).toHaveText([
+      "Design System",
+      "Tokens",
+      "Active",
+    ]);
 
-    /* Radius sits under the action icons: each corner inside the larger. */
-    const radius = page.locator(
-      "[data-column='tools'] [data-specimen='radius']",
-    );
-    await expect(radius.getByRole("heading", { name: "Radius" })).toBeVisible();
-    await expect(radius).toContainText("Concentric nesting");
-    const corner = (id: string) =>
-      radius
-        .locator(`[data-radius-level='${id}']`)
+    const radius = (selector: string) =>
+      page
+        .locator(selector)
+        .first()
         .evaluate((node) => getComputedStyle(node).borderTopLeftRadius);
-    await expect(radius.locator("[data-radius-level]")).toHaveCount(5);
-    for (const [id, px] of [
-      ["page", "28px"],
-      ["container", "12px"],
-      ["element", "8px"],
-      ["inner", "4px"],
-      ["none", "0px"],
-    ] as const) {
-      await expect.poll(() => corner(id)).toBe(px);
-    }
-    /* Each one is inside the one before it. */
-    await expect(
-      radius.locator(
-        "[data-radius-level='page'] [data-radius-level='container'] [data-radius-level='element'] [data-radius-level='inner'] [data-radius-level='none']",
-      ),
-    ).toHaveCount(1);
-    await expect(
-      radius.locator("[data-radius-level='container']"),
-    ).toContainText("Container12px");
+    const frame = "[data-column='tools'] [data-specimen='field'] [data-field]";
+    const button = "[data-column='tools'] [data-specimen='field'] button";
+    const chip = "[data-column='tools'] [data-chip]";
 
-    /* It follows the scale: rounder cards, rounder specimen. */
+    /* Input and Button radius are Element (8px), Chip radius is Inner (4px). */
+    await expect.poll(() => radius(frame)).toBe("8px");
+    await expect.poll(() => radius(button)).toBe("8px");
+    await expect.poll(() => radius(chip)).toBe("4px");
+
+    /* Each follows its own use: Full on Button radius leaves the field and
+       the chips as they were. */
     await showScaleView(page, "Radius");
-    const slider = page.getByRole("slider", { name: /Roundness/ });
-    await slider.focus();
-    await slider.press("ArrowRight");
+    await page
+      .getByRole("navigation", { name: "Scale sections" })
+      .getByRole("button", { name: "Uses" })
+      .click();
+    await page
+      .getByRole("region", { name: "Radius uses" })
+      .getByLabel("Button radius on Desktop")
+      .click();
+    await page
+      .getByRole("listbox", { name: "Radius tokens" })
+      .getByRole("option", { name: /^Full/ })
+      .click();
     await page
       .getByRole("navigation", { name: "Blueprint workspaces" })
       .getByRole("link", { name: "Overview", exact: true })
       .click();
     await expect(page.locator("[data-overview-studio]")).toBeVisible();
-    await expect.poll(() => corner("container")).toBe("15px");
-    await expect.poll(() => corner("element")).toBe("10px");
-    await expect.poll(() => corner("none")).toBe("0px");
+
+    await expect.poll(() => radius(button)).toBe("9999px");
+    await expect.poll(() => radius(frame)).toBe("8px");
+    await expect.poll(() => radius(chip)).toBe("4px");
   });
 });
