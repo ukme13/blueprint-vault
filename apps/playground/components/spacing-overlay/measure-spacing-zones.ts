@@ -6,7 +6,7 @@ import {
 } from "@blueprint/ui";
 import styles from "../preview/landing.module.css";
 
-/** The layout uses the landing reads: the ones a badge can rebind. */
+/** The landing's slots: the layout uses it reads, each a space a tag can bind. */
 export type LayoutUseId =
   | "inset-container"
   | "inset-section"
@@ -16,9 +16,9 @@ export type LayoutUseId =
   | "inset-card";
 
 /**
- * Which use pads an element, and on which sides: a wrap's inset is its
- * inline padding; a band of the page (each child of main, and the footer)
- * its block padding; a card's all four.
+ * Which use pads an element, and on which sides: a wrap's container inset is
+ * its inline padding; a band of the page (each child of main, and the footer)
+ * takes its block padding from the section inset; a card's inset is all four.
  */
 const INSET_USES: readonly {
   matches: (element: Element) => boolean;

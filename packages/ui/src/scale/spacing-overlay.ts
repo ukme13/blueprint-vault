@@ -142,8 +142,7 @@ export function gapBands(
 
 /**
  * The spacing step a measured size lands on, or null when it lands on none:
- * a size set in px, or a step times a factor, such as a section's padding
- * at 1.25 of its gap.
+ * a size typed in px, or one that has been scaled by a factor.
  */
 export function spacingTokenForPx(
   scale: SpacingScale,

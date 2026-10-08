@@ -21,11 +21,50 @@ const TABS: readonly { id: PickerTab; label: string }[] = [
   { id: "steps", label: "Steps" },
 ];
 
+/** Uses and Steps, over a rule: the head of the picker, in either shape of it. */
+function PickerTabs({
+  tab,
+  isInSheet,
+  onChange,
+}: {
+  tab: PickerTab;
+  /** A phone sheet pads the head itself, so the chips and rule drop theirs. */
+  isInSheet: boolean;
+  onChange: (tab: PickerTab) => void;
+}) {
+  const inSheet = isInSheet ? styles.inSheet : "";
+  return (
+    <>
+      <span className={`${styles.tabHeader} ${inSheet}`}>
+        <span
+          aria-label="Pick from"
+          className={styles.chipGroup}
+          role="tablist"
+        >
+          {TABS.map((each) => (
+            <button
+              key={each.id}
+              aria-selected={tab === each.id}
+              className={styles.chip}
+              role="tab"
+              type="button"
+              onClick={() => onChange(each.id)}
+            >
+              {each.label}
+            </button>
+          ))}
+        </span>
+      </span>
+      <hr className={`${styles.tabDivider} ${inSheet}`} />
+    </>
+  );
+}
+
 /**
- * A size tag on a space a layout use sizes: Container inset, Section gap,
- * Grid gap, Navigation gap or Card inset. A click opens a popover or, on a
- * phone, a sheet, with two ways to pick: Uses, to take the size another use
- * has on this frame, and Steps, the spacing steps themselves.
+ * A size tag on a space a layout use sizes: Container inset, Section inset,
+ * Section gap, Grid gap, Navigation gap or Card inset. A click opens a popover
+ * or, on a phone, a sheet, with two ways to pick: Uses, to bind the space to
+ * another use, and Steps, the spacing steps themselves.
  *
  * The tag is on a slot, and shows the use the slot is bound to. Picking a use
  * binds the slot to it, as Figma binds a field to a variable, and leaves the
@@ -61,38 +100,19 @@ export function SpacingUseBadge({
   const [tab, setTab] = useState<PickerTab>("uses");
   const isPhone = useIsPhone();
   const label = `${token.name} on ${deviceName}`;
-  const uses = spacingUses(spacing, layout, deviceId);
-  const chips = (
-    <>
-      <span className={`${styles.tabHeader} ${isPhone ? styles.inSheet : ""}`}>
-        <span
-          aria-label="Pick from"
-          className={styles.chipGroup}
-          role="tablist"
-        >
-          {TABS.map((each) => (
-            <button
-              key={each.id}
-              aria-selected={tab === each.id}
-              className={styles.chip}
-              role="tab"
-              type="button"
-              onClick={() => {
-                setTab(each.id);
-                setQuery("");
-              }}
-            >
-              {each.label}
-            </button>
-          ))}
-        </span>
-      </span>
-      <hr className={`${styles.tabDivider} ${isPhone ? styles.inSheet : ""}`} />
-    </>
+  const tabs = (
+    <PickerTabs
+      isInSheet={isPhone}
+      tab={tab}
+      onChange={(next) => {
+        setTab(next);
+        setQuery("");
+      }}
+    />
   );
   const options =
     tab === "uses"
-      ? uses.map((use) => ({
+      ? spacingUses(spacing, layout, deviceId).map((use) => ({
           value: use.id,
           label: use.name,
           description: `${Math.round(use.px)}px`,
@@ -129,10 +149,10 @@ export function SpacingUseBadge({
       }}
     >
       <span className={styles.picker}>
-        {!isPhone && chips}
+        {!isPhone && tabs}
         <SelectorOptionList
           key={tab}
-          header={isPhone ? chips : undefined}
+          header={isPhone ? tabs : undefined}
           density="compact"
           hasAutoFocus
           hasDescriptions

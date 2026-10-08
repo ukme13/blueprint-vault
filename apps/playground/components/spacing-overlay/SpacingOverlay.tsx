@@ -23,10 +23,14 @@ import styles from "./spacing-overlay.module.css";
  * Laid inside the site as its last child, absolutely placed over the whole
  * scrolled height, so it scrolls with the page and needs no scroll
  * listener. It takes no pointer events itself, so a click still reaches
- * the text beneath it to inspect; only the tags take clicks. A tag on
- * Container inset or Section gap opens the spacing steps and rebinds that
- * use on the frame in view; any other tag opens what step it is, with the
- * way to the Spacing studio to change that step's size.
+ * the text beneath it to inspect; only the tags take clicks.
+ *
+ * A tag on a space a layout use sizes (Container inset, Section inset,
+ * Section gap, Grid gap, Navigation gap, Card inset) is on a slot, and shows
+ * the use that slot is bound to. Its picker binds the slot to another use, or
+ * sets a step on the bound use for the frame in view. Any other tag opens
+ * what step its size is, with the way to the Spacing studio to change that
+ * step's size.
  */
 export function SpacingOverlay({
   spacing,
