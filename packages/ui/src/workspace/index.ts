@@ -13,4 +13,6 @@ export * from "./semantics-history";
 export * from "./scale-history";
 export * from "./workspace-history";
 export * from "./preview-shortcut";
+export * from "./undo-shortcut";
+export * from "./undo-navigation";
 export * from "./format-time";

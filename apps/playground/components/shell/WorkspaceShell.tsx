@@ -37,6 +37,7 @@ import { STUDIO_VERSION } from "../../lib/studio-version";
 import { ThemeControl } from "../ThemeControl";
 import { readStudioViewMemory } from "../studio-view-memory";
 import { useStudioViewMemory } from "../use-studio-view-memory";
+import { useUndoNavigation } from "../use-undo-navigation";
 import { useUndoShortcut } from "../use-undo-shortcut";
 import { NewTabLink } from "./NewTabLink";
 import { RailBrand } from "./RailBrand";
@@ -120,6 +121,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     isHome ? noop : workspace.undo,
     isHome ? noop : workspace.redo,
   );
+  useUndoNavigation(workspace, pathname, isHome);
   const [collapsed, setCollapsed] = useState(false);
   const [drawerOpenedOn, setDrawerOpenedOn] = useState(pathname);
   const [isNavCollapsed, setIsNavCollapsed] = useState(false);

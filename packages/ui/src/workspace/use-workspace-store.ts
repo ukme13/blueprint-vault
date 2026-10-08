@@ -33,6 +33,7 @@ import {
   createWorkspaceHistory,
   restoreUndoable,
   type WorkspaceHistory,
+  type WorkspaceOrigin,
 } from "./workspace-history";
 
 export interface WorkspaceLibraryView {
@@ -61,10 +62,13 @@ export interface WorkspaceStore {
    * An edit to the parts of the document an undo owns takes a step, and `key`
    * coalesces consecutive writes of one control into a single step; anything
    * else (a rename, the colours, a view setting) takes none.
+   *
+   * `origin` says where the edit was made when what changed would not say so,
+   * such as the Preview's tags, which set layout uses; an undo returns there.
    */
   update: (
     apply: (current: WorkspaceProject | null) => WorkspaceProject,
-    options?: { key?: string },
+    options?: { key?: string; origin?: WorkspaceOrigin },
   ) => void;
   /**
    * Undo and redo, for every studio at once.
@@ -84,6 +88,13 @@ export interface WorkspaceStore {
    * an undo changes the stored document under it.
    */
   revision: number;
+  /**
+   * Where the edit the latest undo or redo moved over was made, or null.
+   *
+   * Changes with `revision`. For the shell, which takes the person there so
+   * that what was reverted is on screen.
+   */
+  undoOrigin: WorkspaceOrigin | null;
   /** Read again, for a tab that has learnt storage changed under it. */
   reload: () => void;
   /** Make this id current. Unknown ids are ignored. */
@@ -148,6 +159,7 @@ function useWorkspaceStoreState(): WorkspaceStore {
     canRedo: false,
   });
   const [revision, setRevision] = useState(0);
+  const [undoOrigin, setUndoOrigin] = useState<WorkspaceOrigin | null>(null);
 
   const refreshAvailable = useCallback(() => {
     const history = historyRef.current?.history;
@@ -234,7 +246,7 @@ function useWorkspaceStoreState(): WorkspaceStore {
   const update = useCallback(
     (
       apply: (current: WorkspaceProject | null) => WorkspaceProject,
-      options?: { key?: string },
+      options?: { key?: string; origin?: WorkspaceOrigin },
     ) => {
       const storage = browserWorkspaceStorage();
       const next = updateStoredWorkspace(storage, apply);
@@ -253,7 +265,10 @@ function useWorkspaceStoreState(): WorkspaceStore {
             : entry,
         ),
       }));
-      historyRef.current?.history.commit(next, { key: options?.key });
+      historyRef.current?.history.commit(next, {
+        key: options?.key,
+        origin: options?.origin,
+      });
       refreshAvailable();
     },
     [applySnapshot, refreshAvailable],
@@ -283,6 +298,7 @@ function useWorkspaceStoreState(): WorkspaceStore {
                 : entry,
             ),
           }));
+          setUndoOrigin(history.lastOrigin);
           setRevision((count) => count + 1);
         }
       }
@@ -388,6 +404,7 @@ function useWorkspaceStoreState(): WorkspaceStore {
     canUndo: available.canUndo,
     canRedo: available.canRedo,
     revision,
+    undoOrigin,
     reload,
     switchTo,
     add,

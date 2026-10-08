@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import type { SemanticToken } from "@blueprint/ui";
+import { undoShortcut, type SemanticToken } from "@blueprint/ui";
 import type { SemanticCell } from "./SemanticRow";
 
 interface SemanticKeyboardOptions {
@@ -34,9 +34,10 @@ export function useSemanticKeyboard({
       const target = event.target as HTMLElement;
       const typing = !!target.closest("input, textarea, [role='combobox']");
       const meta = event.ctrlKey || event.metaKey;
-      if (meta && event.key.toLowerCase() === "z") {
+      const undoAction = undoShortcut(event);
+      if (undoAction) {
         event.preventDefault();
-        (event.shiftKey ? onRedo : onUndo)?.();
+        (undoAction === "redo" ? onRedo : onUndo)?.();
         return;
       }
       if (typing) return;

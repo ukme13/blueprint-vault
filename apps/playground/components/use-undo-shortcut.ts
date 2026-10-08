@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect } from "react";
+import { undoShortcut } from "@blueprint/ui";
 
 /** What a shortcut leaves to its own owner: text, choices and dialogs. */
 const OWN_UNDO =
   "input, textarea, select, [contenteditable], [role='combobox'], [role='dialog'], dialog";
 
 /**
- * Ctrl or Cmd+Z undoes, with Shift redoes, while the studio is on screen.
+ * Ctrl or Cmd+Z undoes, with Shift (or Ctrl+Y) redoes, while the studio is on
+ * screen. The Z key is found by its position as well as its letter, so it
+ * works under a Thai layout, where it types another character.
  *
  * On the window, not on the studio's root element. After Remove or Delete the
  * button that had focus is gone and focus falls to the body, outside every
@@ -19,17 +22,13 @@ const OWN_UNDO =
 export function useUndoShortcut(undo: () => void, redo: () => void): void {
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
-      if (
-        !(event.metaKey || event.ctrlKey) ||
-        event.key.toLowerCase() !== "z"
-      ) {
-        return;
-      }
+      const action = undoShortcut(event);
+      if (!action) return;
       if (event.defaultPrevented) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest?.(OWN_UNDO)) return;
       event.preventDefault();
-      if (event.shiftKey) redo();
+      if (action === "redo") redo();
       else undo();
     };
     window.addEventListener("keydown", onKeyDown);

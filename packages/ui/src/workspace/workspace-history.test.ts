@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { withTypographySlice, emptyWorkspace } from "./workspace";
-import { seedTypographyProject } from "./seed-project";
+import { seedTypographyProject, seedWorkspaceProject } from "./seed-project";
 import {
   WORKSPACE_HISTORY_LIMIT,
   createWorkspaceHistory,
+  originOfChange,
   restoreUndoable,
   undoableKey,
 } from "./workspace-history";
@@ -188,5 +189,137 @@ describe("restoreUndoable", () => {
     expect(restoreUndoable(withType, without).typography).toBe(
       withType.typography,
     );
+  });
+});
+
+describe("where an edit was made", () => {
+  const withRadius = (project: WorkspaceProject, multiplier: number) => ({
+    ...project,
+    radius: { ...project.radius, multiplier },
+  });
+  const withLayoutCell = (
+    project: WorkspaceProject,
+    id: string,
+    cell: string,
+  ) => ({
+    ...project,
+    layout: project.layout.map((token) =>
+      token.id === id
+        ? { ...token, byDevice: { ...token.byDevice, desktop: cell } }
+        : token,
+    ),
+  });
+
+  it("reads the studio from what changed", () => {
+    const start = base();
+    expect(originOfChange(start, withLineHeight(start, 1.9))).toEqual({
+      path: "/typography",
+    });
+    expect(originOfChange(start, withBaseUnit(start, 8))).toEqual({
+      path: "/spacing",
+    });
+    expect(originOfChange(start, withRadius(start, 1.5))).toEqual({
+      path: "/radius",
+    });
+    expect(
+      originOfChange(start, {
+        ...start,
+        elevation: { ...start.elevation, levels: [] },
+      }),
+    ).toEqual({ path: "/elevation" });
+    expect(
+      originOfChange(start, { ...start, removedSeedRoles: ["fg.muted"] }),
+    ).toEqual({ path: "/colour", query: "view=semantics" });
+  });
+
+  it("puts layout uses in Spacing, or in Radius when only radius uses moved", () => {
+    const start = base();
+    expect(
+      originOfChange(start, withLayoutCell(start, "inset-card", "8")),
+    ).toEqual({ path: "/spacing" });
+    expect(
+      originOfChange(start, withLayoutCell(start, "radius-button", "full")),
+    ).toEqual({ path: "/radius" });
+  });
+
+  it("names no studio for a step that only moved the device ratios", () => {
+    const start = base();
+    expect(
+      originOfChange(start, {
+        ...start,
+        previewDevices: start.previewDevices.map((device) => ({
+          ...device,
+          widthPx: device.widthPx + 1,
+        })),
+      }),
+    ).toBeNull();
+  });
+
+  it("hands back the place of the edit being undone, and of the one redone", () => {
+    const start = base();
+    const history = createWorkspaceHistory(start);
+    const typed = withLineHeight(start, 1.9);
+    const spaced = withBaseUnit(typed, 8);
+    history.commit(typed);
+    history.commit(spaced);
+
+    history.undo();
+    expect(history.lastOrigin).toEqual({ path: "/spacing" });
+    history.undo();
+    expect(history.lastOrigin).toEqual({ path: "/typography" });
+    history.redo();
+    expect(history.lastOrigin).toEqual({ path: "/typography" });
+    history.redo();
+    expect(history.lastOrigin).toEqual({ path: "/spacing" });
+  });
+
+  it("prefers an origin the edit was given, and forgets it after a commit", () => {
+    const start = base();
+    const history = createWorkspaceHistory(start);
+    history.commit(withLayoutCell(start, "inset-card", "8"), {
+      origin: { path: "/preview" },
+    });
+    history.undo();
+    expect(history.lastOrigin).toEqual({ path: "/preview" });
+    history.redo();
+    history.commit(withBaseUnit(start, 8));
+    expect(history.lastOrigin).toBeNull();
+  });
+
+  it("has no place when there is nothing to undo", () => {
+    const history = createWorkspaceHistory(base());
+    expect(history.undo()).toBeNull();
+    expect(history.lastOrigin).toBeNull();
+  });
+});
+
+describe("opaque is opaque however it is written", () => {
+  it("takes no step for an alpha of 1 where there was none", () => {
+    const start = seedWorkspaceProject("T");
+    const history = createWorkspaceHistory(start);
+    const respelled: WorkspaceProject = {
+      ...start,
+      semantics: start.semantics!.map((token) =>
+        token.id === "border.muted"
+          ? { ...token, light: { ...token.light, alpha: 1 } }
+          : token,
+      ),
+    };
+    expect(history.commit(respelled)).toBe(false);
+    expect(history.canUndo).toBe(false);
+  });
+
+  it("still takes a step for a real change of alpha", () => {
+    const start = seedWorkspaceProject("T");
+    const history = createWorkspaceHistory(start);
+    const edited: WorkspaceProject = {
+      ...start,
+      semantics: start.semantics!.map((token) =>
+        token.id === "border.subtle"
+          ? { ...token, light: { ...token.light, alpha: 0.65 } }
+          : token,
+      ),
+    };
+    expect(history.commit(edited)).toBe(true);
   });
 });

@@ -209,6 +209,35 @@ test.describe("Reference transparency", () => {
     await expect(alpha).toHaveValue("12%");
   });
 
+  test("an undo from another studio returns to the Semantics tab", async ({
+    seededPage: page,
+  }) => {
+    const editor = await openSemantics(page);
+    await showBorders(editor);
+    const alpha = editor
+      .locator('tr:has([data-semantic-token="border.subtle"])')
+      .getByRole("textbox", { name: /border subtle light transparency/i });
+    await alpha.fill("65%");
+    await alpha.press("Enter");
+    await expect(alpha).toHaveValue("65%");
+
+    /* Off to Typography, then the undo: it lands where the edit was made. */
+    await page.getByRole("link", { name: "Typography", exact: true }).click();
+    await expect(page).toHaveURL(/\/typography/);
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(page).toHaveURL(/\/colour\?.*view=semantics/);
+
+    /* Already on the tab: the address names it, so no click is needed. */
+    const back = page.getByRole("region", { name: "Semantic tokens" });
+    await expect(back).toBeVisible({ timeout: 20_000 });
+    await showBorders(back);
+    await expect(
+      back
+        .locator('tr:has([data-semantic-token="border.subtle"])')
+        .getByRole("textbox", { name: /border subtle light transparency/i }),
+    ).toHaveValue("12%");
+  });
+
   test("keeps alpha docked, exposes opaque values on focus, and tabs from reference", async ({
     seededPage: page,
   }) => {
