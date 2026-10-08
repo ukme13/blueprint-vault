@@ -38,12 +38,16 @@ export function RoleGroupMenu({
   label,
   roleCount,
   alwaysConfirm,
+  isProtected = false,
   onDuplicate,
   onDelete,
 }: {
   label: string;
   roleCount: number;
   alwaysConfirm: boolean;
+  /** A core group: it can be duplicated, but there is no way to delete it. */
+  isProtected?: boolean;
+
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
@@ -62,14 +66,18 @@ export function RoleGroupMenu({
         hasChevron={false}
         items={[
           { label: "Duplicate group", onClick: onDuplicate },
-          {
-            label: "Delete group",
-            onClick: () =>
-              alwaysConfirm || roleCount > 0
-                ? setIsConfirming(true)
-                : onDelete(),
-            variant: "destructive" as const,
-          },
+          ...(isProtected
+            ? []
+            : [
+                {
+                  label: "Delete group",
+                  onClick: () =>
+                    alwaysConfirm || roleCount > 0
+                      ? setIsConfirming(true)
+                      : onDelete(),
+                  variant: "destructive" as const,
+                },
+              ]),
         ]}
         menuWidth={180}
         placement="below"

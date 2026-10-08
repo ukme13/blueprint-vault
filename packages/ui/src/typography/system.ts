@@ -377,6 +377,17 @@ export function isHeadingGroup(group: Pick<TypeGroup, "id">): boolean {
   return group.id.trim().toLowerCase() === HEADING_GROUP_ID;
 }
 
+/**
+ * The groups every system is built on: headings and body text.
+ *
+ * Matched by id, as `isHeadingGroup` is. Renaming a group re-slugs its id, so
+ * a group renamed away from `h` is an ordinary one from then on.
+ */
+export function isCoreGroup(group: Pick<TypeGroup, "id">): boolean {
+  const id = group.id.trim().toLowerCase();
+  return id === HEADING_GROUP_ID || id === BODY_GROUP_ID;
+}
+
 /** Where a family comes from, which decides how it is loaded. */
 export type TypeFontSource = "google" | "local" | "system";
 
@@ -1235,7 +1246,23 @@ export function addRole(system: TypeSystem, group: TypeGroup): TypeSystem {
   return reindexGroup(withRole, group.id);
 }
 
+/**
+ * Whether a role can be removed: not the last one in a core group, which would
+ * leave headings or body text with nothing to style them.
+ */
+export function canRemoveRole(system: TypeSystem, id: string): boolean {
+  const role = system.roles.find((each) => each.id === id);
+  if (!role) return false;
+  const group = system.groups.find((each) => each.id === role.groupId);
+  return !(
+    group &&
+    isCoreGroup(group) &&
+    rolesInGroup(system, group.id).length <= 1
+  );
+}
+
 export function removeRole(system: TypeSystem, id: string): TypeSystem {
+  if (!canRemoveRole(system, id)) return system;
   const groupId = system.roles.find((role) => role.id === id)?.groupId;
 
   const without: TypeSystem = {
@@ -1350,8 +1377,12 @@ export function duplicateGroup(
   };
 }
 
-/** Removes the group and the roles that belonged to it. */
+/**
+ * Removes the group and the roles that belonged to it. A core group stays:
+ * the system is returned as it was.
+ */
 export function removeGroup(system: TypeSystem, groupId: string): TypeSystem {
+  if (isCoreGroup({ id: groupId })) return system;
   return {
     ...system,
     groups: system.groups.filter((group) => group.id !== groupId),

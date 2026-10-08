@@ -1176,8 +1176,18 @@ test.describe("on a phone", () => {
 
     /* The group's menu is beside the name, and Delete group asks first. */
     const trash = group.getByRole("button", { name: `${name} group actions` });
+    /* H and Body are core groups with no Delete group, so the question is
+       asked of Caption. */
+    const doomedName = "Caption";
+    const doomed = sheet.getByRole("group", { name: doomedName, exact: true });
     const askToDelete = async () => {
-      await trash.click();
+      const toggle = doomed.locator("[aria-controls]").first();
+      if ((await toggle.getAttribute("aria-expanded")) === "false") {
+        await toggle.click();
+      }
+      await doomed
+        .getByRole("button", { name: `${doomedName} group actions` })
+        .click();
       await page.getByRole("menuitem", { name: "Delete group" }).click();
     };
     const nameField = group.getByRole("textbox").first();
@@ -1192,7 +1202,7 @@ test.describe("on a phone", () => {
     ).toBeLessThanOrEqual(4);
 
     const confirm = page.getByRole("dialog", {
-      name: `Delete group "${name}"?`,
+      name: `Delete group "${doomedName}"?`,
     });
     await askToDelete();
     await expect(confirm).toBeVisible();
@@ -1206,13 +1216,13 @@ test.describe("on a phone", () => {
     await confirm.getByRole("button", { name: "Cancel" }).click();
     await expect(confirm).toBeHidden();
     await expect(
-      sheet.locator("[class*=roleGroupName]", { hasText: name }),
+      sheet.locator("[class*=roleGroupName]", { hasText: doomedName }),
     ).toHaveCount(1);
 
     await askToDelete();
     await confirm.getByRole("button", { name: "Delete group" }).click();
     await expect(
-      sheet.locator("[class*=roleGroupName]", { hasText: name }),
+      sheet.locator("[class*=roleGroupName]", { hasText: doomedName }),
     ).toHaveCount(0);
     await expect(sheet).toBeVisible();
   });

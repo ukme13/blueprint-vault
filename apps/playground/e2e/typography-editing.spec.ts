@@ -744,13 +744,18 @@ test.describe("Typography scale editing", () => {
     ).toBeVisible();
   });
 
-  test("every group can be renamed, moved and removed", async ({
+  test("H and Body can be moved and duplicated but not deleted, and say so", async ({
     seededPage: page,
   }) => {
     await showInspectorPanel(page, "Groups");
-    // H and Body are only defaults now, not locked.
     const settings = page.getByRole("region", { name: "Type scale settings" });
+    const lock = settings.getByRole("img", {
+      name: "Core system group: cannot be deleted",
+    });
+    await expect(lock).toHaveCount(2);
+
     for (const group of ["H", "Body"]) {
+      const card = settings.getByRole("group", { name: group, exact: true });
       await expect(
         settings.getByLabel(`${group.toLowerCase()} name`),
       ).toBeVisible();
@@ -758,9 +763,60 @@ test.describe("Typography scale editing", () => {
         settings.getByRole("button", { name: `Reorder ${group} group` }),
       ).toBeVisible();
       await expect(
-        settings.getByRole("button", { name: `${group} group actions` }),
+        card.getByRole("img", { name: /^Core system/ }),
+      ).toHaveAttribute("title", "Core system group: cannot be deleted.");
+
+      await settings
+        .getByRole("button", { name: `${group} group actions` })
+        .click();
+      await expect(
+        page.getByRole("menuitem", { name: "Duplicate group" }),
       ).toBeVisible();
+      await expect(
+        page.getByRole("menuitem", { name: "Delete group" }),
+      ).toHaveCount(0);
+      await page.keyboard.press("Escape");
     }
+
+    // The name stops short of the lock rather than running under it.
+    const field = settings.getByLabel("body name");
+    await expect
+      .poll(() => field.evaluate((node) => getComputedStyle(node).paddingRight))
+      .not.toBe("0px");
+
+    // Any other group still has Delete group, and carries no lock.
+    await settings
+      .getByRole("button", { name: "Caption group actions" })
+      .click();
+    await expect(
+      page.getByRole("menuitem", { name: "Delete group" }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(
+      settings
+        .getByRole("group", { name: "Caption", exact: true })
+        .getByRole("img", { name: /^Core system/ }),
+    ).toHaveCount(0);
+  });
+
+  test("keeps the last role of a core group", async ({ seededPage: page }) => {
+    await showInspectorPanel(page, "Groups");
+    const settings = page.getByRole("region", { name: "Type scale settings" });
+    const body = settings.getByRole("group", { name: "Body", exact: true });
+    const names = body.locator("[class*=roleSettingLabel]");
+    const removers = body.getByRole("button", { name: /^Remove / });
+
+    for (let step = 0; step < 12 && (await removers.count()) > 1; step += 1) {
+      await removers.first().click();
+      await page
+        .getByRole("alertdialog")
+        .getByRole("button", { name: "Delete role" })
+        .click();
+    }
+
+    await expect(names).toHaveCount(1);
+    await expect(removers).toHaveCount(1);
+    await expect(removers.first()).toBeDisabled();
   });
 
   test("duplicates a group and its roles directly under it", async ({

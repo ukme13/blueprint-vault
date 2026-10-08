@@ -14,6 +14,8 @@ import {
   removeFont,
   renameFont,
   reindexGroup,
+  canRemoveRole,
+  isCoreGroup,
   removeGroup,
   removeRole,
   renameGroup,
@@ -801,13 +803,13 @@ describe("addRole", () => {
 describe("removeRole", () => {
   it("unlinks anything that followed the removed role", () => {
     const before = system({
-      groups: [free("body", "number"), free("lead", "number")],
+      groups: [free("title", "number"), free("lead", "number")],
       roles: [
-        role("body", "body"),
-        role("lead", "lead", { sameAsRoleId: "body" }),
+        role("title", "title"),
+        role("lead", "lead", { sameAsRoleId: "title" }),
       ],
     });
-    const after = removeRole(before, "body");
+    const after = removeRole(before, "title");
     expect(after.roles.map((r) => r.id)).toEqual(["lead"]);
     // Kept its own size rather than following an id that is gone.
     expect(after.roles[0]!.sameAsRoleId).toBeNull();
@@ -815,15 +817,15 @@ describe("removeRole", () => {
 
   it("unlinks every follower, not just the first", () => {
     const before = system({
-      groups: [free("body", "number"), free("lead", "number")],
+      groups: [free("title", "number"), free("lead", "number")],
       roles: [
-        role("body", "body"),
-        role("lead-1", "lead", { sameAsRoleId: "body" }),
-        role("lead-2", "lead", { sameAsRoleId: "body" }),
+        role("title", "title"),
+        role("lead-1", "lead", { sameAsRoleId: "title" }),
+        role("lead-2", "lead", { sameAsRoleId: "title" }),
       ],
     });
     expect(
-      removeRole(before, "body").roles.every((r) => r.sameAsRoleId === null),
+      removeRole(before, "title").roles.every((r) => r.sameAsRoleId === null),
     ).toBe(true);
   });
 
@@ -842,6 +844,36 @@ describe("removeRole", () => {
   it("ignores an id that is not there", () => {
     const before = system();
     expect(removeRole(before, "nope").roles).toEqual(before.roles);
+  });
+
+  it("keeps the last role of a core group", () => {
+    const before = system({
+      groups: [free("h", "number"), free("body", "number")],
+      roles: [role("h1", "h"), role("body", "body")],
+    });
+    expect(canRemoveRole(before, "body")).toBe(false);
+    expect(removeRole(before, "body")).toBe(before);
+    expect(removeRole(before, "h1")).toBe(before);
+  });
+
+  it("removes a core group's role while it has company", () => {
+    const before = system({
+      groups: [free("body", "number")],
+      roles: [role("body-1", "body"), role("body-2", "body")],
+    });
+    expect(canRemoveRole(before, "body-2")).toBe(true);
+    expect(removeRole(before, "body-2").roles.map((r) => r.id)).toEqual([
+      "body",
+    ]);
+  });
+});
+
+describe("isCoreGroup", () => {
+  it("is headings and body text, by id", () => {
+    expect(isCoreGroup({ id: "h" })).toBe(true);
+    expect(isCoreGroup({ id: "body" })).toBe(true);
+    expect(isCoreGroup({ id: "caption" })).toBe(false);
+    expect(isCoreGroup({ id: "body-copy" })).toBe(false);
   });
 });
 
@@ -1246,6 +1278,15 @@ describe("removeGroup", () => {
     const after = removeGroup(before, "caption");
     expect(after.groups.map((g) => g.id)).toEqual(["body"]);
     expect(after.roles.map((r) => r.id)).toEqual(["body"]);
+  });
+
+  it("will not remove a core group", () => {
+    const before = system({
+      groups: [free("h", "number"), free("body", "number")],
+      roles: [role("h1", "h"), role("body", "body")],
+    });
+    expect(removeGroup(before, "body")).toBe(before);
+    expect(removeGroup(before, "h")).toBe(before);
   });
 });
 
