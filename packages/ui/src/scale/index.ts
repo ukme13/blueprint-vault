@@ -12,6 +12,7 @@ export * from "./radius";
 export * from "./radius-edit";
 export * from "./spacing";
 export * from "./spacing-overlay";
+export * from "./overview-specimens";
 export * from "./spacing-presets";
 export * from "./scale-export";
 export * from "./scale-preview";

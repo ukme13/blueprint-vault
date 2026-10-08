@@ -2,6 +2,8 @@
 
 import { useMemo } from "react";
 import {
+  defaultRadiusScale,
+  defaultSpacingScale,
   generatePalettes,
   recommendTextColour,
   seedTypographyProject,
@@ -23,6 +25,8 @@ import { usePaletteView } from "../palette/PaletteViewContext";
 import { useGoogleFontsLink } from "../typography/use-google-fonts";
 import { useLocalFonts } from "../typography/use-local-fonts";
 import { VisionControl } from "../VisionControl";
+import { OverviewRadiusSpecimen } from "./OverviewRadiusSpecimen";
+import { OverviewSpacingSpecimen } from "./OverviewSpacingSpecimen";
 import styles from "./overview.module.css";
 
 function fontCssFamily(font: TypeFont | null, fallback: string): string {
@@ -322,6 +326,9 @@ export function OverviewStudio() {
                 </div>
               </div>
             )}
+            <OverviewSpacingSpecimen
+              scale={project?.spacing ?? defaultSpacingScale()}
+            />
           </div>
 
           {/* Column 3: UI Specimens */}
@@ -541,6 +548,9 @@ export function OverviewStudio() {
                 ) : null}
               </div>
             </div>
+            <OverviewRadiusSpecimen
+              scale={project?.radius ?? defaultRadiusScale()}
+            />
           </div>
         </div>
       </main>

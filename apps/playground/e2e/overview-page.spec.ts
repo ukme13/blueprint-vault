@@ -211,4 +211,69 @@ test.describe("The overview follows the radius scale", () => {
     await expect.poll(() => navActiveRadius(page)).toBe("10px");
     await expect.poll(() => toolIconRadius(page)).toBe("10px");
   });
+
+  test("shows the radius nested and the spacing as bars, from the scales", async ({
+    page,
+  }) => {
+    await seedProject(page);
+    await page.goto("/overview");
+    await expect(page.locator("[data-overview-studio]")).toBeVisible();
+
+    /* Spacing sits under the type cards, and shows the base unit and the
+       steps from 4px to 64px. */
+    const spacing = page.locator("[data-column='typography'] [data-specimen]");
+    await expect(spacing).toHaveAttribute("data-specimen", "spacing");
+    await expect(
+      spacing.getByRole("heading", { name: "Spacing" }),
+    ).toBeVisible();
+    await expect(spacing).toContainText("Base unit: 4px");
+    await expect(spacing.locator("[data-spacing-step]")).toHaveCount(8);
+    await expect(spacing.locator("[data-spacing-step='16']")).toContainText(
+      "64px",
+    );
+
+    /* Radius sits under the action icons: each corner inside the larger. */
+    const radius = page.locator(
+      "[data-column='tools'] [data-specimen='radius']",
+    );
+    await expect(radius.getByRole("heading", { name: "Radius" })).toBeVisible();
+    await expect(radius).toContainText("Concentric nesting");
+    const corner = (id: string) =>
+      radius
+        .locator(`[data-radius-level='${id}']`)
+        .evaluate((node) => getComputedStyle(node).borderTopLeftRadius);
+    await expect(radius.locator("[data-radius-level]")).toHaveCount(5);
+    for (const [id, px] of [
+      ["page", "28px"],
+      ["container", "12px"],
+      ["element", "8px"],
+      ["inner", "4px"],
+      ["none", "0px"],
+    ] as const) {
+      await expect.poll(() => corner(id)).toBe(px);
+    }
+    /* Each one is inside the one before it. */
+    await expect(
+      radius.locator(
+        "[data-radius-level='page'] [data-radius-level='container'] [data-radius-level='element'] [data-radius-level='inner'] [data-radius-level='none']",
+      ),
+    ).toHaveCount(1);
+    await expect(
+      radius.locator("[data-radius-level='container']"),
+    ).toContainText("Container12px");
+
+    /* It follows the scale: rounder cards, rounder specimen. */
+    await showScaleView(page, "Radius");
+    const slider = page.getByRole("slider", { name: /Roundness/ });
+    await slider.focus();
+    await slider.press("ArrowRight");
+    await page
+      .getByRole("navigation", { name: "Blueprint workspaces" })
+      .getByRole("link", { name: "Overview", exact: true })
+      .click();
+    await expect(page.locator("[data-overview-studio]")).toBeVisible();
+    await expect.poll(() => corner("container")).toBe("15px");
+    await expect.poll(() => corner("element")).toBe("10px");
+    await expect.poll(() => corner("none")).toBe("0px");
+  });
 });
