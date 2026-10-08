@@ -55,7 +55,7 @@ export function SpacingUseBadge({
   const uses = spacingUses(spacing, layout, deviceId);
   const chips = (
     <>
-      <span className={styles.tabHeader}>
+      <span className={`${styles.tabHeader} ${isPhone ? styles.inSheet : ""}`}>
         <span
           aria-label="Pick from"
           className={styles.chipGroup}
@@ -78,7 +78,7 @@ export function SpacingUseBadge({
           ))}
         </span>
       </span>
-      <hr className={styles.tabDivider} />
+      <hr className={`${styles.tabDivider} ${isPhone ? styles.inSheet : ""}`} />
     </>
   );
   const options =
@@ -119,32 +119,34 @@ export function SpacingUseBadge({
         }
       }}
     >
-      {!isPhone && chips}
-      <SelectorOptionList
-        key={tab}
-        header={isPhone ? chips : undefined}
-        density="compact"
-        hasAutoFocus
-        hasDescriptions
-        hasSearch
-        label={label}
-        options={options}
-        query={query}
-        searchPlaceholder={tab === "uses" ? "Search uses" : "Search steps"}
-        /* Own entry on Uses: another use may sit on the same step, and one
+      <span className={styles.picker}>
+        {!isPhone && chips}
+        <SelectorOptionList
+          key={tab}
+          header={isPhone ? chips : undefined}
+          density="compact"
+          hasAutoFocus
+          hasDescriptions
+          hasSearch
+          label={label}
+          options={options}
+          query={query}
+          searchPlaceholder={tab === "uses" ? "Search uses" : "Search steps"}
+          /* Own entry on Uses: another use may sit on the same step, and one
            check is clearer than several. */
-        value={tab === "uses" ? token.id : token.byDevice[deviceId]}
-        onChoose={(option) => {
-          const chosen =
-            tab === "uses"
-              ? uses.find((use) => use.id === option.value)?.value
-              : option.value;
-          if (chosen !== undefined) onRebind(token.id as LayoutUseId, chosen);
-          setIsOpen(false);
-          setQuery("");
-        }}
-        onQueryChange={setQuery}
-      />
+          value={tab === "uses" ? token.id : token.byDevice[deviceId]}
+          onChoose={(option) => {
+            const chosen =
+              tab === "uses"
+                ? uses.find((use) => use.id === option.value)?.value
+                : option.value;
+            if (chosen !== undefined) onRebind(token.id as LayoutUseId, chosen);
+            setIsOpen(false);
+            setQuery("");
+          }}
+          onQueryChange={setQuery}
+        />
+      </span>
     </PopoverOrSheet>
   );
 }

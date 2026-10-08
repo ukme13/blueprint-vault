@@ -93,7 +93,9 @@ button.badge:focus-visible {
    them that sets them apart from the search and the list. */
 .tabHeader {
   display: flex;
-  padding: var(--spacing-2) var(--spacing-2) var(--spacing-1);
+  /* The search below pads its content 16px from each edge; the chips start
+     where its icon does. */
+  padding: var(--spacing-3) var(--spacing-4) var(--spacing-1);
 }
 
 .chipGroup {
@@ -133,5 +135,27 @@ button.badge:focus-visible {
   height: 0;
   margin: var(--spacing-1) 0 0;
   border: 0;
-  border-top: 1px solid var(--color-border-default);
+  border-top: var(--border-width, 1px) solid var(--color-border-subtle);
+}
+
+/* In a phone sheet the head sits inside the sheet's own padding, which the
+   search line reaches past, so the chips lose theirs and the rule follows it. */
+.tabHeader.inSheet {
+  padding-inline: 0;
+  padding-top: 0;
+}
+
+.tabDivider.inSheet {
+  margin-inline: calc(-1 * var(--spacing-4));
+}
+
+/* This picker's chosen option is a faint tint, with its weight and check to
+   say so, rather than the heavier fill other selectors give theirs. The
+   wrapper takes no box of its own. */
+.picker {
+  display: contents;
+}
+
+.picker [role="option"][aria-selected="true"] {
+  background: var(--color-overlay-hover);
 }

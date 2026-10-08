@@ -1424,6 +1424,79 @@ test.describe("The preview's spacing overlay", () => {
     await expect.poll(() => stored("inset-card")).toBe(sectionGap);
   });
 
+  test("keeps the picker's order, softens its selection and lines up its head", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await page.getByRole("button", { name: "Show spacing" }).click();
+    const overlay = page.getByRole("group", { name: "Spacing overlay" });
+    const open = () =>
+      overlay
+        .getByRole("button", { name: /^Card inset on Desktop: \d+px/ })
+        .first()
+        .click();
+    const listbox = () =>
+      page
+        .getByRole("listbox", { name: "Card inset on Desktop" })
+        .filter({ visible: true });
+    const names = () =>
+      listbox()
+        .getByRole("option")
+        .evaluateAll((nodes) =>
+          nodes.map((node) => node.querySelector("span")?.textContent),
+        );
+
+    await open();
+    const before = await names();
+    expect(before[0]).toBe("Container inset");
+
+    /* The chosen option stays where the layout lists it, with its check,
+       rather than moving up the list. */
+    const chosen = listbox().getByRole("option", { selected: true });
+    await expect(chosen).toContainText("Card inset");
+    expect(before.indexOf("Card inset")).toBe(before.length - 1);
+    await listbox()
+      .getByRole("option", { name: /^Grid gap/ })
+      .click();
+    await open();
+    expect(await names()).toEqual(before);
+    await expect(
+      listbox().getByRole("option", { selected: true }),
+    ).toContainText("Card inset");
+    await expect(listbox().getByRole("option").last()).toContainText(
+      "Card inset",
+    );
+
+    const look = await listbox().evaluate((node) => {
+      const css = (el: Element) => getComputedStyle(el);
+      const probe = (value: string) => {
+        const el = document.createElement("i");
+        el.style.background = value;
+        node.append(el);
+        const resolved = css(el).backgroundColor;
+        el.remove();
+        return resolved;
+      };
+      const picker = node.parentElement!;
+      const search = picker.querySelector("label")!;
+      const rule = picker.querySelector("hr")!;
+      const chip = picker.querySelector('[role="tab"]')!;
+      const icon = search.querySelector("svg")!;
+      const selected = node.querySelector('[aria-selected="true"]')!;
+      return {
+        selectedFill: css(selected).backgroundColor,
+        heavyFill: probe("var(--color-surface-subtle)"),
+        ruleColour: css(rule).borderTopColor,
+        searchColour: css(search).borderBottomColor,
+        chipLeft: chip.getBoundingClientRect().left,
+        iconLeft: icon.getBoundingClientRect().left,
+      };
+    });
+    expect(look.selectedFill).not.toBe(look.heavyFill);
+    expect(look.ruleColour).toBe(look.searchColour);
+    expect(Math.abs(look.chipLeft - look.iconLeft)).toBeLessThanOrEqual(1);
+  });
+
   test("rebinds the grid gap and card inset, and explains other spaces", async ({
     page,
   }) => {
