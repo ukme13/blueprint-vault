@@ -1207,7 +1207,7 @@ test.describe("The elevation editor", () => {
     expect(await fillOf("Low on dark")).not.toBe(await fillOf("Low on light"));
   });
 
-  test("previews each level on a card, a button or a dialog", async ({
+  test("previews each level on a button, a card or a dialog", async ({
     seededPage: page,
   }) => {
     await showScaleView(page, "Elevation");
@@ -1217,14 +1217,16 @@ test.describe("The elevation editor", () => {
     const shadow = () =>
       sample.evaluate((node) => getComputedStyle(node).boxShadow);
 
-    await expect.poll(shape).toBe("card");
-    const before = await shadow();
-
-    /* Each context is a real shape carrying the same shadow: a button
-       element for Button, a framed box for Dialog. */
-    await canvas.getByRole("radio", { name: "Button" }).click();
+    /* Button is the first tab and the one a visit opens on: a button
+       element, so it presses as one. */
     await expect.poll(shape).toBe("button");
     expect(await sample.evaluate((node) => node.tagName)).toBe("BUTTON");
+    const before = await shadow();
+
+    /* Each context is a real shape carrying the same shadow: a framed
+       box for Dialog. */
+    await canvas.getByRole("radio", { name: "Card" }).click();
+    await expect.poll(shape).toBe("card");
     await expect.poll(shadow).toBe(before);
 
     await canvas.getByRole("radio", { name: "Dialog" }).click();

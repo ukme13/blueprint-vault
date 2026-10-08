@@ -55,7 +55,7 @@ export function ElevationCanvas({
   const surfaces = elevationPreviewSurfaces(palettes);
   const { resolved: studioMode } = useThemeMode();
   /* What the shadows are shown on. A view setting, not part of the scale. */
-  const [context, setContext] = useState<ElevationPreviewContext>("card");
+  const [context, setContext] = useState<ElevationPreviewContext>("button");
   /* A custom level asks before it goes: its variable may already be in
      somebody's stylesheet. */
   const [pendingDelete, setPendingDelete] = useState<ElevationLevel | null>(

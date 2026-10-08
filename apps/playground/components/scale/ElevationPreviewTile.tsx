@@ -4,14 +4,14 @@ import { X } from "lucide-react";
 import type { ColourMode } from "@blueprint/ui";
 import styles from "./scale-workspace.module.css";
 
-export type ElevationPreviewContext = "card" | "button" | "dialog";
+export type ElevationPreviewContext = "button" | "card" | "dialog";
 
 export const ELEVATION_PREVIEW_CONTEXTS: readonly {
   value: ElevationPreviewContext;
   label: string;
 }[] = [
-  { value: "card", label: "Card" },
   { value: "button", label: "Button" },
+  { value: "card", label: "Card" },
   { value: "dialog", label: "Dialog" },
 ];
 
