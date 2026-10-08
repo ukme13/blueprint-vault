@@ -38,9 +38,9 @@ and is called Blueprint AI.
 - **An outline's weight is a decision.** The composer first took `border-default`
   while everything around it used `border-subtle`, and read as the heaviest thing
   on the card.
-- **A hover rule can fight a focus rule.** A hover border on the composer would
-  have beaten the focus border when a focused field was hovered, because
-  Tailwind may order hover after focus-within. It was dropped.
+- **A hover rule can fight a focus rule.** A hover border on the composer could
+  beat the focus border when a focused field was hovered, since Tailwind may
+  order hover after focus-within. It was dropped.
 
 ## Not done
 
