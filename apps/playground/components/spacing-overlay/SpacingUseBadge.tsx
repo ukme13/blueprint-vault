@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import {
-  activeSpacingUse,
   resolveSpacing,
   spacingStepName,
   spacingUses,
@@ -26,19 +25,27 @@ const TABS: readonly { id: PickerTab; label: string }[] = [
  * A size tag on a space a layout use sizes: Container inset, Section gap,
  * Grid gap, Navigation gap or Card inset. A click opens a popover or, on a
  * phone, a sheet, with two ways to pick: Uses, to take the size another use
- * has on this frame, and Steps, the spacing steps themselves. Either pick
- * rebinds that use on the frame being previewed.
+ * has on this frame, and Steps, the spacing steps themselves.
+ *
+ * The tag is on a slot, and shows the use the slot is bound to. Picking a use
+ * binds the slot to it, as Figma binds a field to a variable, and leaves the
+ * use the slot started on as the table has it. Picking a step sets the bound
+ * use itself, on the frame being previewed.
  */
 export function SpacingUseBadge({
+  slotId,
   token,
   px,
   spacing,
   layout,
   deviceId,
   deviceName,
-  onRebind,
+  onBindSlot,
+  onRebindStep,
 }: {
-  /** The use, named as the Uses table names it, bound per frame. */
+  /** The space on the page this tag sizes. */
+  slotId: LayoutUseId;
+  /** The use the slot is bound to, named as the Uses table names it. */
   token: LayoutToken;
   px: number;
   spacing: SpacingScale;
@@ -46,15 +53,12 @@ export function SpacingUseBadge({
   layout: readonly LayoutToken[];
   deviceId: string;
   deviceName: string;
-  onRebind: (use: LayoutUseId, step: string) => void;
+  onBindSlot: (slot: LayoutUseId, tokenId: string) => void;
+  onRebindStep: (tokenId: string, step: string) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<PickerTab>("uses");
-  /* The use last taken a size from. The layout keeps the step, not where it
-     came from, so without this the check would fall back to the token
-     itself, whichever use was picked. */
-  const [chosenUseId, setChosenUseId] = useState<string>();
   const isPhone = useIsPhone();
   const label = `${token.name} on ${deviceName}`;
   const uses = spacingUses(spacing, layout, deviceId);
@@ -109,7 +113,7 @@ export function SpacingUseBadge({
           aria-label={`${label}: ${Math.round(px)}px. Change step`}
           className={styles.badge}
           data-editable=""
-          data-spacing-badge={token.id}
+          data-spacing-badge={slotId}
           type="button"
         >
           {Math.round(px)}px
@@ -137,18 +141,10 @@ export function SpacingUseBadge({
           options={options}
           query={query}
           searchPlaceholder={tab === "uses" ? "Search uses" : "Search steps"}
-          value={
-            tab === "uses"
-              ? activeSpacingUse(uses, token.id, chosenUseId)
-              : token.byDevice[deviceId]
-          }
+          value={tab === "uses" ? token.id : token.byDevice[deviceId]}
           onChoose={(option) => {
-            const chosen =
-              tab === "uses"
-                ? uses.find((use) => use.id === option.value)?.value
-                : option.value;
-            if (chosen !== undefined) onRebind(token.id as LayoutUseId, chosen);
-            if (tab === "uses") setChosenUseId(option.value);
+            if (tab === "uses") onBindSlot(slotId, option.value);
+            else onRebindStep(token.id, option.value);
             setIsOpen(false);
             setQuery("");
           }}

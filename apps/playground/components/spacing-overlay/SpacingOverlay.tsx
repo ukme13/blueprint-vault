@@ -1,7 +1,12 @@
 "use client";
 
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
-import { type LayoutToken, type SpacingScale } from "@blueprint/ui";
+import {
+  boundLayoutToken,
+  type LayoutBindings,
+  type LayoutToken,
+  type SpacingScale,
+} from "@blueprint/ui";
 import {
   measureSpacingZones,
   type LayoutUseId,
@@ -26,15 +31,22 @@ import styles from "./spacing-overlay.module.css";
 export function SpacingOverlay({
   spacing,
   layout,
+  bindings,
   deviceId,
   deviceName,
-  onRebind,
+  onBindSlot,
+  onRebindStep,
 }: {
   spacing: SpacingScale;
   layout: readonly LayoutToken[];
+  /** Which use each slot reads, where it is not its own. */
+  bindings: LayoutBindings;
   deviceId: string;
   deviceName: string;
-  onRebind: (use: LayoutUseId, step: string) => void;
+  /** Take the size of another use for a slot, leaving that use as it is. */
+  onBindSlot: (slot: LayoutUseId, tokenId: string) => void;
+  /** Set a use's step on the frame in view. */
+  onRebindStep: (tokenId: string, step: string) => void;
 }) {
   const layerRef = useRef<HTMLDivElement>(null);
   const [zones, setZones] = useState<SpacingZone[]>([]);
@@ -60,7 +72,7 @@ export function SpacingOverlay({
     }
     void document.fonts?.ready.then(() => measure());
     return () => observer.disconnect();
-  }, [measure, spacing, layout, deviceId]);
+  }, [measure, spacing, layout, bindings, deviceId]);
 
   return (
     <div
@@ -72,8 +84,9 @@ export function SpacingOverlay({
       style={{ width: size.width, height: size.height }}
     >
       {zones.map(({ key, kind, band, use, hasBadge }) => {
-        /* The layout use this space is sized by, as the workspace holds it. */
-        const token = use ? layout.find((each) => each.id === use) : undefined;
+        /* The layout use this space reads: its own, unless it was bound to
+           another. */
+        const token = use ? boundLayoutToken(layout, bindings, use) : undefined;
         return (
           <div
             key={key}
@@ -88,15 +101,17 @@ export function SpacingOverlay({
           >
             {hasBadge ? (
               <span className={styles.badgeAnchor}>
-                {token ? (
+                {use && token ? (
                   <SpacingUseBadge
                     deviceId={deviceId}
                     deviceName={deviceName}
                     layout={layout}
                     px={band.px}
+                    slotId={use}
                     spacing={spacing}
                     token={token}
-                    onRebind={onRebind}
+                    onBindSlot={onBindSlot}
+                    onRebindStep={onRebindStep}
                   />
                 ) : (
                   <SpacingInfoBadge px={band.px} spacing={spacing} />

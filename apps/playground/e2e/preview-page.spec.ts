@@ -1376,10 +1376,8 @@ test.describe("The preview's spacing overlay", () => {
         (token: { id: string }) => token.id === id,
       )?.byDevice.desktop;
 
-    await overlay
-      .getByRole("button", { name: /^Card inset on Desktop: \d+px/ })
-      .first()
-      .click();
+    const slot = overlay.locator('[data-spacing-badge="inset-card"]').first();
+    await slot.click();
     const list = page
       .getByRole("listbox", { name: "Card inset on Desktop" })
       .filter({ visible: true });
@@ -1417,11 +1415,58 @@ test.describe("The preview's spacing overlay", () => {
       page.getByPlaceholder("Search uses").filter({ visible: true }),
     ).toHaveValue("");
 
-    /* Picking a use gives this one that use's step. */
-    const sectionGap = await stored("gap-section");
-    expect(sectionGap).not.toBe(await stored("inset-card"));
+    /* Picking a use binds the slot to it, as Figma binds a field to a
+       variable. The use it started on is not edited. */
+    const insetBefore = await stored("inset-card");
+    const gapBefore = await stored("gap-section");
+    const cardPadding = () =>
+      page
+        .locator("[data-frame] article")
+        .first()
+        .evaluate((node) => getComputedStyle(node).paddingTop);
+    const sectionGap = () =>
+      page
+        .locator("[data-frame] section")
+        .first()
+        .evaluate((node) => getComputedStyle(node).rowGap);
+    await expect.poll(cardPadding).not.toBe(await sectionGap());
+
     await list.getByRole("option", { name: /^Section gap/ }).click();
-    await expect.poll(() => stored("inset-card")).toBe(sectionGap);
+
+    /* The page reads Section gap's size for the card, and the tag says so. */
+    await expect.poll(cardPadding).toBe(await sectionGap());
+    await expect(slot).toHaveAttribute(
+      "aria-label",
+      /^Section gap on Desktop: \d+px/,
+    );
+    expect(await stored("inset-card")).toBe(insetBefore);
+    expect(await stored("gap-section")).toBe(gapBefore);
+
+    /* Reopened it is Section gap's picker: checked on Uses, and on Steps the
+       step Section gap holds. */
+    await slot.click();
+    const bound = page
+      .getByRole("listbox", { name: "Section gap on Desktop" })
+      .filter({ visible: true });
+    await expect(bound.getByRole("option", { selected: true })).toContainText(
+      "Section gap",
+    );
+    await page
+      .getByRole("tab", { name: "Steps" })
+      .filter({ visible: true })
+      .click();
+    await expect(
+      bound.getByRole("option", {
+        name: new RegExp(`^--spacing-${gapBefore}\\b`),
+        selected: true,
+      }),
+    ).toHaveCount(1);
+
+    /* A step changes the use the slot is bound to, not the one it left. */
+    await bound.getByRole("option", { name: /^--spacing-4\b/ }).click();
+    await expect.poll(() => stored("gap-section")).toBe("4");
+    expect(await stored("inset-card")).toBe(insetBefore);
+    await expect.poll(cardPadding).toBe("16px");
   });
 
   test("keeps the picker's order, softens its selection and lines up its head", async ({
@@ -1431,13 +1476,10 @@ test.describe("The preview's spacing overlay", () => {
     await page.getByRole("button", { name: "Show spacing" }).click();
     const overlay = page.getByRole("group", { name: "Spacing overlay" });
     const open = () =>
-      overlay
-        .getByRole("button", { name: /^Card inset on Desktop: \d+px/ })
-        .first()
-        .click();
+      overlay.locator('[data-spacing-badge="inset-card"]').first().click();
     const listbox = () =>
       page
-        .getByRole("listbox", { name: "Card inset on Desktop" })
+        .getByRole("listbox", { name: / on Desktop$/ })
         .filter({ visible: true });
     const names = () =>
       listbox()
