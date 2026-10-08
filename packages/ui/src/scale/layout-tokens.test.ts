@@ -35,10 +35,11 @@ const extra = {
 };
 
 describe("layout tokens", () => {
-  it("seeds eleven uses against the required frames", () => {
+  it("seeds twelve uses against the required frames", () => {
     const tokens = defaultLayoutTokens();
     expect(tokens.map((token) => token.id)).toEqual([
       "inset-container",
+      "inset-section",
       "gap-section",
       "inset-control-x",
       "inset-control-y",
@@ -117,6 +118,7 @@ describe("layout tokens", () => {
       ),
     ).toEqual([
       "inset-container",
+      "inset-section",
       "gap-section",
       "inset-control-x",
       "inset-control-y",
@@ -135,6 +137,7 @@ describe("layout tokens", () => {
       ),
     ).toEqual([
       "inset-container",
+      "inset-section",
       "gap-section",
       "inset-control-x",
       "inset-control-y",
@@ -172,6 +175,7 @@ describe("layout tokens", () => {
       ),
     ).toEqual([
       "inset-container",
+      "inset-section",
       "gap-section",
       "inset-control-x",
       "inset-control-y",
@@ -321,7 +325,9 @@ describe("layout tokens", () => {
       },
     ];
     const tokens = normalizeLayoutTokens(stored, defaultPreviewDevices());
-    expect(tokens[1]?.byDevice).toEqual({
+    expect(
+      tokens.find((token) => token.id === "gap-section")?.byDevice,
+    ).toEqual({
       phone: "16",
       tablet: "16",
       desktop: "16",
@@ -353,6 +359,7 @@ describe("layout tokens", () => {
     );
     expect(next.map((token) => token.id)).toEqual([
       "inset-container",
+      "inset-section",
       "gap-section",
       "inset-control-x",
       "inset-control-y",
@@ -416,6 +423,7 @@ describe("layout tokens", () => {
       removeLayoutToken(withHero, "hero-inset").map((token) => token.id),
     ).toEqual([
       "inset-container",
+      "inset-section",
       "gap-section",
       "inset-control-x",
       "inset-control-y",
@@ -438,6 +446,7 @@ describe("layout tokens", () => {
     expect(moved.map((token) => token.id)).toEqual([
       "gap-section",
       "inset-container",
+      "inset-section",
       "inset-control-x",
       "inset-control-y",
       "gap-grid",
@@ -456,6 +465,7 @@ describe("layout tokens", () => {
       ).map((token) => token.id),
     ).toEqual([
       "inset-container",
+      "inset-section",
       "gap-section",
       "inset-control-x",
       "inset-control-y",
@@ -476,7 +486,9 @@ describe("layout tokens", () => {
       "phone",
       "16px",
     );
-    expect(next[1]?.byDevice.phone).toBe("16px");
+    expect(
+      next.find((token) => token.id === "gap-section")?.byDevice.phone,
+    ).toBe("16px");
     expect(formatLayoutCss(next, defaultPreviewDevices())).toContain(
       "--gap-section: 16px;",
     );
@@ -520,7 +532,7 @@ describe("tokensUsingSpacingStep", () => {
       "inset-card",
     ]);
     expect(names(10)).toEqual(["inset-container"]);
-    expect(names(16)).toEqual(["gap-section"]);
+    expect(names(16)).toEqual(["inset-section", "gap-section"]);
   });
 
   it("finds none for a step no use points at", () => {

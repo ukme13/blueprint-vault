@@ -214,6 +214,7 @@
   --color-status-info-surface-hover: color-mix(in oklab, var(--color-info-100) 18%, transparent);
   --color-status-info-fg: var(--color-info-900);
   --color-status-info-border: var(--color-info-450);
+  --color-fg-muted: var(--color-neutral-550);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -290,6 +291,7 @@
     --color-status-info-surface-hover: color-mix(in oklab, var(--color-info-900) 22%, transparent);
     --color-status-info-fg: var(--color-info-100);
     --color-status-info-border: var(--color-info-450);
+    --color-fg-muted: var(--color-neutral-500);
   }
 }
 
@@ -366,6 +368,7 @@
   --color-status-info-surface-hover: color-mix(in oklab, var(--color-info-900) 22%, transparent);
   --color-status-info-fg: var(--color-info-100);
   --color-status-info-border: var(--color-info-450);
+  --color-fg-muted: var(--color-neutral-500);
 }
 
 @theme static {
@@ -413,6 +416,7 @@
 
 @theme static {
   --inset-container: var(--spacing-4);
+  --inset-section: var(--spacing-8);
   --gap-section: var(--spacing-16);
   --inset-control-x: var(--spacing-3);
   --inset-control-y: var(--spacing-1-5);
@@ -428,6 +432,7 @@
 @media (min-width: 768px) {
   :root {
     --inset-container: var(--spacing-6);
+    --inset-section: var(--spacing-12);
     --gap-section: var(--spacing-16);
     --inset-control-x: var(--spacing-4);
     --inset-control-y: var(--spacing-2);
@@ -444,6 +449,7 @@
 @media (min-width: 1120px) {
   :root {
     --inset-container: var(--spacing-10);
+    --inset-section: var(--spacing-16);
     --gap-section: var(--spacing-16);
     --inset-control-x: var(--spacing-4);
     --inset-control-y: var(--spacing-2);

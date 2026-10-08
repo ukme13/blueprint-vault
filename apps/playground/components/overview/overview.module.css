@@ -45,6 +45,15 @@
 }
 
 .canvas {
+  /* Three tones from the project's surface roles: the canvas is sunken, a
+     card is lifted off it by its fill, and a well inside a card (a track, a
+     field, a pill) sits a step below the card. The seeded roles run the other
+     way round in dark, where overlay is the darkest and subtle the lightest,
+     so the pairing follows the mode. */
+  --overview-ground: var(--color-surface-subtle);
+  --overview-card: var(--color-surface-overlay);
+  --overview-well: var(--color-surface-base);
+  background-color: var(--overview-ground);
   flex: 1;
   overflow-y: auto;
   padding: 2rem 2.5rem;
@@ -68,6 +77,12 @@
   min-width: 0;
 }
 
+.canvas[data-mode="dark"] {
+  --overview-ground: var(--color-surface-overlay);
+  --overview-card: var(--color-surface-subtle);
+  --overview-well: var(--color-surface-base);
+}
+
 .card,
 .colorCard,
 .typeCard,
@@ -77,7 +92,8 @@
 .searchCard,
 .navCard,
 .actionIconsCard {
-  background-color: var(--color-surface-overlay, var(--color-surface-raised));
+  /* Lifted off the canvas by fill alone; the border stays as quiet as it was. */
+  background-color: var(--overview-card);
   border-radius: var(--radius-container, 12px);
   border: 1px solid var(--color-border-subtle);
   display: flex;
@@ -220,7 +236,7 @@
   width: 100%;
   height: 10px;
   border-radius: var(--radius-full, 9999px);
-  background-color: var(--color-surface-subtle, var(--color-surface-base));
+  background-color: var(--overview-well);
   border: 1px solid var(--color-border-default, var(--color-border-subtle));
   overflow: hidden;
 }
@@ -286,7 +302,7 @@
   border: 1px solid var(--color-border-default, var(--color-border-subtle));
   border-radius: var(--radius-element, 8px);
   padding: 0.625rem 0.875rem;
-  background-color: var(--color-surface-subtle, var(--color-surface-base));
+  background-color: var(--overview-well);
   color: var(--color-fg-muted, var(--color-fg-secondary));
 }
 
@@ -316,7 +332,7 @@
   gap: 1.25rem;
   padding: 0.5rem 0.875rem;
   border-radius: var(--radius-element, 8px);
-  background-color: var(--color-surface-subtle, var(--color-surface-base));
+  background-color: var(--overview-well);
   border: 1px solid var(--color-border-default, var(--color-border-subtle));
 }
 
@@ -386,4 +402,134 @@
   .canvas {
     padding: 1.25rem 1rem;
   }
+}
+
+/* Component specimens: a field with its button, and a row of chips */
+.specimenHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.specimenTitle {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* The field is a frame, and the button sits inside it a little way in, so the
+   field's corner and the button's corner can be judged against each other. */
+.field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-input, var(--radius-element));
+  background-color: var(--overview-well);
+}
+
+.fieldInput {
+  flex: 1;
+  min-width: 0;
+  padding: 0.375rem 0.5rem;
+  border: 0;
+  background: transparent;
+  color: var(--color-fg-primary, currentColor);
+  font: inherit;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.fieldInput::placeholder {
+  color: var(--color-fg-muted, var(--color-fg-secondary));
+}
+
+.fieldAction {
+  flex-shrink: 0;
+  padding: 0.375rem 0.875rem;
+  border: 0;
+  border-radius: var(--radius-button, var(--radius-element));
+  background-color: var(--color-action-primary);
+  color: var(--color-fg-on-action, var(--color-surface-base));
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: default;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-chip, var(--radius-inner));
+  background-color: var(--overview-well);
+  color: var(--color-fg-secondary, currentColor);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* A chip takes its colour from the project's semantic layer: a tint of the
+   colour for its fill and rule, the colour itself for the text and icon. */
+.chip[data-variant="primary"] {
+  background-color: color-mix(
+    in srgb,
+    var(--color-action-primary) 12%,
+    transparent
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--color-action-primary) 25%,
+    transparent
+  );
+  color: var(--color-action-primary);
+}
+
+.chip[data-variant="neutral"] {
+  background-color: var(--overview-well);
+  border-color: var(--color-border-subtle);
+  color: var(--color-fg-secondary);
+}
+
+.chip[data-variant="success"] {
+  background-color: color-mix(
+    in srgb,
+    var(--color-status-success) 14%,
+    transparent
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--color-status-success) 30%,
+    transparent
+  );
+  color: var(--color-status-success);
+}
+
+.chip[data-variant="warning"] {
+  background-color: color-mix(
+    in srgb,
+    var(--color-status-warning) 14%,
+    transparent
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--color-status-warning) 30%,
+    transparent
+  );
+  color: var(--color-status-warning);
 }

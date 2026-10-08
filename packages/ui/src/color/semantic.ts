@@ -564,6 +564,15 @@ const SEED_ROLES: readonly SeedRole[] = [
     position: 0.68,
   },
   {
+    id: "fg.muted",
+    name: "Foreground muted",
+    description: "Placeholders, subtle captions and de-emphasized text.",
+    track: "neutral",
+    position: 0.55,
+    preferWeight: 550,
+    preferDarkWeight: 500,
+  },
+  {
     id: "fg.disabled",
     name: "Foreground disabled",
     description: "Text and icons on a control that cannot be used.",

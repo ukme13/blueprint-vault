@@ -196,6 +196,13 @@
   min-width: 0;
 }
 
+/* What an option adds to its name, such as a size, quieter than the name and
+   in figures that line up down the list. */
+.optionDescription {
+  color: var(--color-fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
 .check {
   width: var(--spacing-4, 16px);
   height: var(--spacing-4, 16px);

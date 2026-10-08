@@ -118,8 +118,11 @@ describe("createScaleHistory", () => {
       ),
     });
 
-    expect(history.present.layout[1]?.byDevice.phone).toBe("8");
-    expect(history.undo()?.layout[1]?.byDevice.phone).toBe("16");
+    const phoneGap = (
+      layout: readonly { id: string; byDevice: Record<string, string> }[],
+    ) => layout.find((token) => token.id === "gap-section")?.byDevice.phone;
+    expect(phoneGap(history.present.layout)).toBe("8");
+    expect(phoneGap(history.undo()?.layout ?? [])).toBe("16");
     expect(history.present.spacing.steps).toEqual(defaultSpacingScale().steps);
   });
 });

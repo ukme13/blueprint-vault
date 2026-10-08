@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { defaultSpacingScale } from "./spacing";
-import { gapBands, paddingBands, spacingTokenForPx } from "./spacing-overlay";
+import {
+  gapBands,
+  paddingBands,
+  spacingTokenForPx,
+  spacingUses,
+} from "./spacing-overlay";
+import type { LayoutToken } from "./layout-tokens";
 
 describe("paddingBands", () => {
   it("gives one band per padded side, inside the box", () => {
@@ -97,5 +103,59 @@ describe("spacingTokenForPx", () => {
 
   it("names none for a size between steps", () => {
     expect(spacingTokenForPx(defaultSpacingScale(), 30)).toBeNull();
+  });
+});
+
+describe("spacingUses", () => {
+  const use = (
+    id: string,
+    kind: LayoutToken["kind"],
+    value: string,
+  ): LayoutToken => ({
+    id,
+    name: id,
+    description: "",
+    kind,
+    byDevice: { desktop: value },
+  });
+
+  it("lists the spacing uses with their size on the frame", () => {
+    const uses = spacingUses(
+      defaultSpacingScale(),
+      [use("inset", "spacing", "6"), use("gap", "spacing", "20px")],
+      "desktop",
+    );
+    expect(uses.map((each) => [each.id, each.value, each.px])).toEqual([
+      ["inset", "6", 24],
+      ["gap", "20px", 20],
+    ]);
+  });
+
+  it("leaves out radius uses, even where they hold a value", () => {
+    const uses = spacingUses(
+      defaultSpacingScale(),
+      [use("corner", "radius", "6"), use("inset", "spacing", "6")],
+      "desktop",
+    );
+    expect(uses.map((each) => each.id)).toEqual(["inset"]);
+  });
+
+  it("leaves out a use with no value on the frame", () => {
+    const uses = spacingUses(
+      defaultSpacingScale(),
+      [use("inset", "spacing", "6")],
+      "phone",
+    );
+    expect(uses).toEqual([]);
+  });
+
+  it("leaves out a step the scale does not have", () => {
+    expect(
+      spacingUses(
+        defaultSpacingScale(),
+        [use("inset", "spacing", "999")],
+        "desktop",
+      ),
+    ).toEqual([]);
   });
 });

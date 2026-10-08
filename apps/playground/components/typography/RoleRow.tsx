@@ -8,6 +8,7 @@ import {
   HybridTokenizedInput,
   hybridPresetsFromTypeSteps,
   hybridValueFromStepOffset,
+  canRemoveRole,
   canonicalSizeDeviceId,
   isRoleUnlinkedOnDevice,
   isLineHeightUnlinkedOnDevice,
@@ -239,9 +240,16 @@ export function RoleRow({
       </div>
       <Button
         aria-label={`Remove ${role.id}`}
+        className={styles.removeRoleButton}
+        disabled={!canRemoveRole(system, role.id)}
         scheme="neutral"
         size="icon"
-        variant="outlined"
+        title={
+          canRemoveRole(system, role.id)
+            ? undefined
+            : "A core group keeps at least one role."
+        }
+        variant="text"
         onClick={() => setIsConfirmingRemove(true)}
       >
         {/* The icon is the label. `size="icon"` takes children as the

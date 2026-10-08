@@ -637,6 +637,9 @@
         },
         "on-info": {
           "$value": "{palette.neutral.25}"
+        },
+        "muted": {
+          "$value": "{palette.neutral.550}"
         }
       },
       "focus": {
@@ -969,6 +972,9 @@
         },
         "on-info": {
           "$value": "{palette.neutral.950}"
+        },
+        "muted": {
+          "$value": "{palette.neutral.500}"
         }
       },
       "focus": {
@@ -1306,6 +1312,9 @@
       "inset-container": {
         "$value": "{spacing.4}"
       },
+      "inset-section": {
+        "$value": "{spacing.8}"
+      },
       "gap-section": {
         "$value": "{spacing.16}"
       },
@@ -1341,6 +1350,9 @@
       "inset-container": {
         "$value": "{spacing.6}"
       },
+      "inset-section": {
+        "$value": "{spacing.12}"
+      },
       "gap-section": {
         "$value": "{spacing.16}"
       },
@@ -1375,6 +1387,9 @@
     "desktop": {
       "inset-container": {
         "$value": "{spacing.10}"
+      },
+      "inset-section": {
+        "$value": "{spacing.16}"
       },
       "gap-section": {
         "$value": "{spacing.16}"

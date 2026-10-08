@@ -1,5 +1,7 @@
+import { parseLayoutRawPx, type LayoutToken } from "./layout-tokens";
 import {
   resolveSpacing,
+  spacingStepName,
   type SpacingScale,
   type SpacingToken,
 } from "./spacing";
@@ -140,8 +142,7 @@ export function gapBands(
 
 /**
  * The spacing step a measured size lands on, or null when it lands on none:
- * a size set in px, or a step times a factor, such as a section's padding
- * at 1.25 of its gap.
+ * a size typed in px, or one that has been scaled by a factor.
  */
 export function spacingTokenForPx(
   scale: SpacingScale,
@@ -150,4 +151,36 @@ export function spacingTokenForPx(
   return (
     resolveSpacing(scale).find((token) => Math.abs(token.px - px) < 0.5) ?? null
   );
+}
+
+/** A layout use that sizes space, with the size it has on one frame. */
+export interface SpacingUse {
+  id: string;
+  name: string;
+  /** What the use holds on that frame: a step name, or a typed length. */
+  value: string;
+  px: number;
+}
+
+/**
+ * The layout uses that size space (Container inset, Section gap, Grid gap),
+ * each with its size on a frame, in the order the layout lists them.
+ *
+ * A use whose value on the frame is neither a step the scale has nor a typed
+ * length is left out, since there is no size to show for it.
+ */
+export function spacingUses(
+  scale: SpacingScale,
+  layout: readonly LayoutToken[],
+  deviceId: string,
+): SpacingUse[] {
+  const tokens = resolveSpacing(scale);
+  return layout.flatMap((use) => {
+    const value = use.byDevice[deviceId];
+    if (use.kind !== "spacing" || value === undefined) return [];
+    const px =
+      parseLayoutRawPx(value) ??
+      tokens.find((token) => spacingStepName(token.step) === value)?.px;
+    return px === undefined ? [] : [{ id: use.id, name: use.name, value, px }];
+  });
 }

@@ -50,6 +50,6 @@ test.describe("A leftover type-only workspace", () => {
       page
         .getByRole("region", { name: "Semantic tokens" })
         .locator("tr:has([data-token])"),
-    ).toHaveCount(72);
+    ).toHaveCount(73);
   });
 });

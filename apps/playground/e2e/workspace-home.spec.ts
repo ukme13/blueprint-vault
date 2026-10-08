@@ -49,10 +49,10 @@ test.describe("Workspace home", () => {
       page
         .getByRole("region", { name: "Semantic tokens" })
         .locator("tr:has([data-token])"),
-    ).toHaveCount(72);
+    ).toHaveCount(73);
 
     const stored = await readStoredWorkspace(page);
-    expect(stored?.semantics).toHaveLength(72);
+    expect(stored?.semantics).toHaveLength(73);
     expect(stored?.typography).not.toBeNull();
 
     await page.goto("/typography");

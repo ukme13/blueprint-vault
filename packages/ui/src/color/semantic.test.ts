@@ -59,10 +59,10 @@ function tokenById(tokens: SemanticToken[], id: string): SemanticToken {
 }
 
 describe("seedSemanticTokens", () => {
-  it("seeds the seventy-two roles the page needs", () => {
+  it("seeds the seventy-three roles the page needs", () => {
     const tokens = seedSemanticTokens(fullPalette());
-    expect(tokens).toHaveLength(72);
-    expect(new Set(tokens.map((token) => token.id)).size).toBe(72);
+    expect(tokens).toHaveLength(73);
+    expect(new Set(tokens.map((token) => token.id)).size).toBe(73);
   });
 
   /* The guard against the layer drifting away from the preview it came from.
@@ -103,7 +103,7 @@ describe("seedSemanticTokens", () => {
     ]);
     const tokens = seedSemanticTokens(tracks);
 
-    expect(tokens).toHaveLength(72);
+    expect(tokens).toHaveLength(73);
     for (const token of tokens) {
       /* Every role lands on the one track there is — except the second brand
          colour, which keeps the name it asked for. See the test below. */
@@ -257,7 +257,7 @@ describe("resolveSemantic", () => {
   it("resolves every token in a mode", () => {
     const tracks = fullPalette();
     const tokens = seedSemanticTokens(tracks);
-    expect(resolveSemantics(tokens, "dark", tracks)).toHaveLength(72);
+    expect(resolveSemantics(tokens, "dark", tracks)).toHaveLength(73);
     expect(resolveSemantics(tokens, "dark", [])).toEqual([]);
   });
 });
@@ -372,6 +372,24 @@ describe("a reference with an alpha", () => {
     expect(opaque["--color-fg-primary"]).toMatch(/^#[0-9a-f]{6}$/i);
   });
 
+  it("seeds Foreground muted from the neutral track, between secondary and disabled", () => {
+    const tracks = fullPalette();
+    const tokens = seedSemanticTokens(tracks);
+    const ids = tokens.map((token) => token.id);
+    expect(ids.indexOf("fg.muted")).toBe(ids.indexOf("fg.secondary") + 1);
+    expect(ids.indexOf("fg.disabled")).toBe(ids.indexOf("fg.muted") + 1);
+
+    const muted = tokens.find((token) => token.id === "fg.muted");
+    expect(muted?.name).toBe("Foreground muted");
+    /* Its own tone in each mode: 550 on light, 500 on dark, not the mirror. */
+    const light = semanticCssVariables(tokens, "light", tracks);
+    const dark = semanticCssVariables(tokens, "dark", tracks);
+    expect(light["--color-fg-muted"]).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(dark["--color-fg-muted"]).toMatch(/^#[0-9a-f]{6}$/i);
+    expect(light["--color-fg-muted"]).not.toBe(dark["--color-fg-muted"]);
+    expect(light["--color-fg-muted"]).not.toBe(light["--color-fg-secondary"]);
+  });
+
   it("builds a semantic color map keyed by id and variable name", () => {
     const tracks = fullPalette();
     const tokens = seedSemanticTokens(tracks);
@@ -448,7 +466,7 @@ describe("editing a layer", () => {
     const tracks = fullPalette();
     const tokens = addSemanticToken(seedSemanticTokens(tracks), tracks, "Chip");
 
-    expect(tokens).toHaveLength(73);
+    expect(tokens).toHaveLength(74);
     const added = tokenById(tokens, "chip");
     expect(resolveSemantic(added, "light", tracks)!.hex).toMatch(
       /^#[0-9a-f]{6}$/i,
@@ -474,7 +492,7 @@ describe("editing a layer", () => {
     const tokens = seedSemanticTokens(fullPalette());
     const next = removeSemanticToken(tokens, "status.info");
 
-    expect(next).toHaveLength(71);
+    expect(next).toHaveLength(72);
     expect(next.some((token) => token.id === "status.info")).toBe(false);
   });
 
@@ -574,6 +592,7 @@ describe("the first names, carried forward", () => {
       "border.strong",
       "fg.primary",
       "fg.secondary",
+      "fg.muted",
       "fg.disabled",
       "fg.accent",
       "fg.on-action",
@@ -731,7 +750,7 @@ describe("fillSeedRoles", () => {
     expect(tokenById(migrated, "action.primary-hover").light.weight).toBe(500);
 
     const filled = fillSeedRoles(migrated, tracks);
-    expect(filled).toHaveLength(72);
+    expect(filled).toHaveLength(73);
 
     /* The label on a fill is measured against that fill rather than declared,
        so it lands on whichever end of the neutral ramp reads on it. */

@@ -943,6 +943,56 @@
   color: var(--preview-ink);
 }
 
+/* The name field, with room at its end for the lock a core group carries, so
+   a long name stops short of the icon rather than running under it. */
+.groupNameField {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+
+.groupNameField[data-core] input {
+  padding-inline-end: var(--spacing-8);
+}
+
+.coreNameLock {
+  position: absolute;
+  inset-inline-end: var(--spacing-3);
+  top: 50%;
+  display: inline-flex;
+  transform: translateY(-50%);
+  color: var(--color-fg-muted);
+  opacity: 0.7;
+}
+
+/* A remove button repeats on every row, so at rest it is a quiet glyph with no
+   box; it speaks up only under the pointer or keyboard focus. */
+.removeRoleButton {
+  color: var(--color-fg-muted);
+}
+
+.removeRoleButton:hover:not(:disabled),
+.removeRoleButton:focus-visible {
+  color: var(--color-status-error);
+}
+
+/* The last role of a core group cannot go, so it reads as unavailable. */
+.removeRoleButton:disabled {
+  color: var(--color-fg-disabled);
+  opacity: 1;
+}
+
+/* Add role is a primary button, but when the group cannot take another role it
+   is grey rather than a faded green: a dimmed brand colour still looks like an
+   action, and this one is not on offer. */
+.addRoleButton:disabled,
+.addRoleButton[aria-disabled="true"] {
+  background: var(--color-surface-subtle);
+  border-color: transparent;
+  color: var(--color-fg-disabled);
+  opacity: 1;
+}
+
 /* "Add font" and "Add group" are siblings in the reader's mind, so they are one
    size and one width wherever they appear. Left to a grid child's default
    stretch they ran the full width of a panel that opens to 900px. */

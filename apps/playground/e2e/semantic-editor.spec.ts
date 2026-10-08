@@ -43,7 +43,7 @@ test.describe("The semantic editor", () => {
     seededPage: page,
   }) => {
     const editor = await openSemantics(page);
-    await expect(editor.locator("tr:has([data-token])")).toHaveCount(72);
+    await expect(editor.locator("tr:has([data-token])")).toHaveCount(73);
     await expect(
       editor.getByText("--color-action-primary", { exact: true }),
     ).toBeVisible();
@@ -143,7 +143,7 @@ test.describe("The semantic editor", () => {
     const editor = await openSemantics(page);
 
     await editor.getByRole("button", { name: "Add", exact: true }).click();
-    await expect(editor.locator("tr:has([data-token])")).toHaveCount(73);
+    await expect(editor.locator("tr:has([data-token])")).toHaveCount(74);
 
     /* Through the row menu since stage 4a: the per-row Remove button became
        one Delete that applies to a selection. */
@@ -153,7 +153,7 @@ test.describe("The semantic editor", () => {
       .getByRole("alertdialog", { name: /^Delete token / })
       .getByRole("button", { name: "Delete token" })
       .click();
-    await expect(editor.locator("tr:has([data-token])")).toHaveCount(72);
+    await expect(editor.locator("tr:has([data-token])")).toHaveCount(73);
   });
 
   test("keeps the layer across a reload", async ({ seededPage: page }) => {

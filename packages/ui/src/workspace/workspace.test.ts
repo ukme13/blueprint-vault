@@ -366,7 +366,7 @@ describe("withSeededPaletteSlice", () => {
     );
     const next = withSeededPaletteSlice(typeOnly);
     expect(next.palette?.tracks).toHaveLength(7);
-    expect(next.semantics).toHaveLength(72);
+    expect(next.semantics).toHaveLength(73);
     expect(next.typography?.system.name).toBe("Type first");
   });
 
@@ -434,7 +434,7 @@ describe("workspaceHasStudios", () => {
     expect(workspaceHasStudios(seeded)).toBe(true);
     expect(seeded.palette).not.toBeNull();
     expect(seeded.typography).not.toBeNull();
-    expect(seeded.semantics).toHaveLength(72);
+    expect(seeded.semantics).toHaveLength(73);
   });
 });
 
@@ -547,7 +547,7 @@ describe("the semantic slice", () => {
       typography: null,
     })!;
 
-    expect(stored.semantics).toHaveLength(72);
+    expect(stored.semantics).toHaveLength(73);
     expect(stored.semantics!.every((token) => token.light && token.dark)).toBe(
       true,
     );
@@ -580,7 +580,7 @@ describe("the semantic slice", () => {
       semantics: chosen,
     })!;
 
-    expect(stored.semantics).toHaveLength(72);
+    expect(stored.semantics).toHaveLength(73);
     expect(stored.semantics![0]!.light.weight).toBe(100);
   });
 
@@ -607,18 +607,18 @@ describe("the semantic slice", () => {
       ],
     })!;
 
-    expect(stored.semantics).toHaveLength(72);
+    expect(stored.semantics).toHaveLength(73);
     expect(stored.semantics![0]!.id).toBe("action.primary");
   });
 
   it("seeds a layer when the workspace is rebuilt from the old keys", () => {
     const project = workspaceFromLegacy(legacyPalette(), legacyTypography())!;
-    expect(project.semantics).toHaveLength(72);
+    expect(project.semantics).toHaveLength(73);
   });
 
   it("gives a first palette a layer, and leaves an edited one alone", () => {
     const first = withPaletteSlice(null, legacyPalette() as never);
-    expect(first.semantics).toHaveLength(72);
+    expect(first.semantics).toHaveLength(73);
 
     const edited = withPaletteSlice(
       { ...first, semantics: [] },
@@ -659,7 +659,7 @@ describe("a layer stored under the first names", () => {
       ],
     })!;
 
-    expect(stored.semantics).toHaveLength(72);
+    expect(stored.semantics).toHaveLength(73);
     expect(stored.semantics![0]!.id).toBe("fg.primary");
     expect(stored.semantics![0]!.light.weight).toBe(950);
   });
@@ -838,6 +838,7 @@ describe("preview devices live on the workspace", () => {
     ]);
     expect(next.layout.map((token) => token.id)).toEqual([
       "inset-container",
+      "inset-section",
       "gap-section",
       "inset-control-x",
       "inset-control-y",

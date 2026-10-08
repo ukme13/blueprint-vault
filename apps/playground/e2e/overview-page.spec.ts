@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { seedProject } from "./fixtures";
+import { openTheme, seedProject } from "./fixtures";
 import { showScaleView } from "./scale-fixtures";
 
 test.describe("Bento Overview Studio", () => {
@@ -211,4 +211,136 @@ test.describe("The overview follows the radius scale", () => {
     await expect.poll(() => navActiveRadius(page)).toBe("10px");
     await expect.poll(() => toolIconRadius(page)).toBe("10px");
   });
+
+  test("shows a field with its button and a row of chips, on their radius uses", async ({
+    page,
+  }) => {
+    await seedProject(page);
+    await page.goto("/overview");
+    await expect(page.locator("[data-overview-studio]")).toBeVisible();
+
+    const tools = page.locator("[data-column='tools']");
+    const field = tools.locator("[data-specimen='field']");
+    const chips = tools.locator("[data-specimen='chips']");
+    await expect(field.getByRole("heading", { name: "Input" })).toBeVisible();
+    await expect(field.getByLabel("Email address")).toBeVisible();
+    await expect(
+      field.getByRole("button", { name: "Subscribe" }),
+    ).toBeVisible();
+    await expect(chips.getByRole("heading", { name: "Chips" })).toBeVisible();
+    await expect(chips.locator("[data-chip]")).toHaveText([
+      "Design System",
+      "Tokens",
+      "Active",
+      "Beta",
+    ]);
+
+    /* The chips carry the project's colours, not one grey: a variant each,
+       and a colour each. */
+    const variants = await chips
+      .locator("[data-chip]")
+      .evaluateAll((nodes) =>
+        nodes.map((node) => [
+          node.getAttribute("data-variant"),
+          getComputedStyle(node).color,
+        ]),
+      );
+    expect(variants.map(([variant]) => variant)).toEqual([
+      "primary",
+      "neutral",
+      "success",
+      "warning",
+    ]);
+    expect(new Set(variants.map(([, colour]) => colour)).size).toBe(4);
+
+    /* The board resolves its tokens from the project's semantic layer: set
+       on the canvas as the project's own colour, where the studio's theme
+       would have left a light-dark() pair. */
+    const scoped = await page
+      .locator("[data-overview-grid]")
+      .evaluate((node) => {
+        const canvas = node.parentElement!;
+        return [
+          canvas.style.getPropertyValue("--color-fg-muted"),
+          canvas.style.getPropertyValue("--color-action-primary"),
+          canvas.style.getPropertyValue("--color-status-success"),
+        ];
+      });
+    for (const value of scoped) expect(value.trim()).toMatch(/^#[0-9a-f]{6}/i);
+
+    const radius = (selector: string) =>
+      page
+        .locator(selector)
+        .first()
+        .evaluate((node) => getComputedStyle(node).borderTopLeftRadius);
+    const frame = "[data-column='tools'] [data-specimen='field'] [data-field]";
+    const button = "[data-column='tools'] [data-specimen='field'] button";
+    const chip = "[data-column='tools'] [data-chip]";
+
+    /* Input and Button radius are Element (8px), Chip radius is Inner (4px). */
+    await expect.poll(() => radius(frame)).toBe("8px");
+    await expect.poll(() => radius(button)).toBe("8px");
+    await expect.poll(() => radius(chip)).toBe("4px");
+
+    /* Each follows its own use: Full on Button radius leaves the field and
+       the chips as they were. */
+    await showScaleView(page, "Radius");
+    await page
+      .getByRole("navigation", { name: "Scale sections" })
+      .getByRole("button", { name: "Uses" })
+      .click();
+    await page
+      .getByRole("region", { name: "Radius uses" })
+      .getByLabel("Button radius on Desktop")
+      .click();
+    await page
+      .getByRole("listbox", { name: "Radius tokens" })
+      .getByRole("option", { name: /^Full/ })
+      .click();
+    await page
+      .getByRole("navigation", { name: "Blueprint workspaces" })
+      .getByRole("link", { name: "Overview", exact: true })
+      .click();
+    await expect(page.locator("[data-overview-studio]")).toBeVisible();
+
+    await expect.poll(() => radius(button)).toBe("9999px");
+    await expect.poll(() => radius(frame)).toBe("8px");
+    await expect.poll(() => radius(chip)).toBe("4px");
+  });
+
+  for (const theme of ["Light", "Dark"] as const) {
+    test(`lifts the cards off the canvas by fill alone in ${theme.toLowerCase()} mode`, async ({
+      page,
+    }) => {
+      await seedProject(page);
+      await page.goto("/overview");
+      await expect(page.locator("[data-overview-studio]")).toBeVisible();
+      const themes = await openTheme(page);
+      await themes.getByRole("radio", { name: theme }).click();
+      await page.keyboard.press("Escape");
+
+      /* The lightness each paints, whatever colour space it is written in. */
+      const { ground, card, well } = await page
+        .locator("[data-overview-grid]")
+        .evaluate((grid) => {
+          const lightness = (node: Element) => {
+            const context = document.createElement("canvas").getContext("2d")!;
+            context.fillStyle = getComputedStyle(node).backgroundColor;
+            context.fillRect(0, 0, 1, 1);
+            const [r, g, b] = context.getImageData(0, 0, 1, 1).data;
+            return (0.2126 * r! + 0.7152 * g! + 0.0722 * b!) / 255;
+          };
+          return {
+            ground: lightness(grid.parentElement!),
+            card: lightness(grid.querySelector("[data-specimen='field']")!),
+            well: lightness(grid.querySelector("[data-field]")!),
+          };
+        });
+
+      /* Lighter than the ground it sits on, by enough to see without a rule. */
+      expect(card - ground).toBeGreaterThan(0.06);
+      /* And what is set into a card sits below it, not level with it. */
+      expect(well).toBeLessThan(card);
+    });
+  }
 });

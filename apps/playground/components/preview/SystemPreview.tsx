@@ -21,7 +21,10 @@ import {
   defaultSpacingScale,
   elevationCssVariables,
   generatePalettes,
+  bindLayoutSlot,
+  layoutBindingVariables,
   layoutCssVariablesForDevice,
+  type LayoutBindings,
   previewSection,
   radiusCssVariables,
   resolvePreviewDevice,
@@ -84,6 +87,10 @@ export function SystemPreview() {
   const [deviceId, setDeviceId] = useState("desktop");
   /* The spacing overlay: a way of looking, so not saved and not undone. */
   const [showSpacing, setShowSpacing] = useState(false);
+  /* Which use each space on the page reads, where it is not its own. Like
+     the overlay it belongs to, a way of looking: not saved, not undone, and
+     the Uses table is not touched by it. */
+  const [layoutBindings, setLayoutBindings] = useState<LayoutBindings>({});
   const [inspecting, setInspecting] = useState<InspectTarget | null>(null);
   const [sectionError, setSectionError] = useState<PreviewImageError | null>(
     null,
@@ -129,6 +136,11 @@ export function SystemPreview() {
         project?.layout ?? defaultLayoutTokens(),
         frame.id,
       ),
+      ...layoutBindingVariables(
+        project?.layout ?? defaultLayoutTokens(),
+        layoutBindings,
+        frame.id,
+      ),
       ...typeCssVariablesForDevice(
         system,
         frame,
@@ -146,6 +158,7 @@ export function SystemPreview() {
     project?.radius,
     project?.elevation,
     project?.layout,
+    layoutBindings,
     frame,
     system,
     typography.unit,
@@ -306,6 +319,7 @@ export function SystemPreview() {
   }, [inspecting, patchSectionFill]);
 
   const resetAllToDefault = useCallback(() => {
+    setLayoutBindings({});
     setInspecting(null);
     setSectionError(null);
     update((current) => {
@@ -391,15 +405,21 @@ export function SystemPreview() {
             <SpacingOverlay
               deviceId={frame.id}
               deviceName={frame.name}
+              bindings={layoutBindings}
               layout={project?.layout ?? defaultLayoutTokens()}
               spacing={project?.spacing ?? defaultSpacingScale()}
-              onRebind={(use, step) =>
+              onBindSlot={(slot, tokenId) =>
+                setLayoutBindings((current) =>
+                  bindLayoutSlot(current, slot, tokenId),
+                )
+              }
+              onRebindStep={(tokenId, step) =>
                 update((current) =>
                   withLayoutTokens(
                     current,
                     setLayoutReference(
                       current?.layout ?? defaultLayoutTokens(),
-                      use,
+                      tokenId,
                       frame.id,
                       step,
                     ),

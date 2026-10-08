@@ -5,6 +5,7 @@ import {
   ChevronDown,
   ChevronUp,
   GripVertical,
+  Lock,
   Plus,
 } from "lucide-react";
 import { useEffect, useRef, type CSSProperties } from "react";
@@ -18,6 +19,7 @@ import {
   MIN_LINE_HEIGHT_RATIO,
   TYPE_INDEXING_LABELS,
   hybridPresetsFromTypeSteps,
+  isCoreGroup,
   isHeadingGroup,
   type TypeFont,
   type TypeGroup,
@@ -32,6 +34,9 @@ import { RoleRow } from "./RoleRow";
 import { useAddedRoleId } from "./use-added-role";
 import styles from "./typography-workspace.module.css";
 import { SheetSelector } from "../SheetSelector";
+
+/** Said by the lock beside a core group's name. */
+const CORE_GROUP_MESSAGE = "Core system group: cannot be deleted";
 
 export interface RoleGroupEditorProps {
   group: TypeGroup;
@@ -133,6 +138,7 @@ export function RoleGroupEditor({
   const sizePresets = hybridPresetsFromTypeSteps(steps);
   const addedRoleId = useAddedRoleId(group, roles);
   const isHeading = isHeadingGroup(group);
+  const isCore = isCoreGroup(group);
 
   return (
     <div
@@ -226,25 +232,40 @@ export function RoleGroupEditor({
             )}
 
             <div className={styles.roleGroupMeta}>
-              <TextInput
-                label={`${group.id} name`}
-                isLabelHidden
-                value={group.label}
-                /* Typing changes the label only. Renaming re-slugs the group id,
-               which is this row's React key, so doing it per keystroke
-               remounted the field and dropped focus after one character. It
-               also renamed every role in the group on each letter typed. */
-                onChange={onLabelChange}
-                onBlur={onLabelCommit}
-                /* Enter blurs rather than renaming directly, so both paths commit
-               through the same handler. */
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    event.currentTarget.blur();
-                  }
-                }}
-              />
+              <span
+                className={styles.groupNameField}
+                data-core={isCore || undefined}
+              >
+                <TextInput
+                  label={`${group.id} name`}
+                  isLabelHidden
+                  value={group.label}
+                  /* Typing changes the label only. Renaming re-slugs the group id,
+                 which is this row's React key, so doing it per keystroke
+                 remounted the field and dropped focus after one character. It
+                 also renamed every role in the group on each letter typed. */
+                  onChange={onLabelChange}
+                  onBlur={onLabelCommit}
+                  /* Enter blurs rather than renaming directly, so both paths commit
+                 through the same handler. */
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      event.currentTarget.blur();
+                    }
+                  }}
+                />
+                {isCore && (
+                  <span
+                    aria-label={CORE_GROUP_MESSAGE}
+                    className={styles.coreNameLock}
+                    role="img"
+                    title={`${CORE_GROUP_MESSAGE}.`}
+                  >
+                    <Lock aria-hidden="true" size={14} />
+                  </span>
+                )}
+              </span>
               {/* Beside the name: the ratio `auto` line height uses for every
               role in this group. */}
               <NumberInput
@@ -282,10 +303,11 @@ export function RoleGroupEditor({
               {!accordion && (
                 <Button
                   aria-label={`Add a role to ${group.label}`}
+                  className={styles.addRoleButton}
                   disabled={!canAddRole}
-                  scheme="neutral"
+                  scheme="primary"
                   size="icon"
-                  variant="outlined"
+                  variant="contained"
                   onClick={onAddRole}
                 >
                   <Plus aria-hidden="true" />
@@ -293,6 +315,7 @@ export function RoleGroupEditor({
               )}
               <RoleGroupMenu
                 alwaysConfirm={Boolean(accordion)}
+                isProtected={isCore}
                 label={group.label}
                 roleCount={roles.length}
                 onDelete={() => leave(cardRef.current)}

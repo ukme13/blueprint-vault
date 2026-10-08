@@ -242,14 +242,17 @@ test.describe("The preview's device frame", () => {
       const art = hero?.querySelector("svg");
       const title = features?.querySelector("h1, h2, h3, h4");
       if (!hero || !features || !art || !title) return null;
-      const probe = document.createElement("div");
-      probe.style.cssText =
-        "position:absolute;flex:none;height:var(--gap-section);width:1px;";
-      node.appendChild(probe);
-      const gap = probe.getBoundingClientRect().height;
-      probe.remove();
+      const size = (variable: string) => {
+        const probe = document.createElement("div");
+        probe.style.cssText = `position:absolute;flex:none;height:var(${variable});width:1px;`;
+        node.appendChild(probe);
+        const height = probe.getBoundingClientRect().height;
+        probe.remove();
+        return height;
+      };
       return {
-        gap,
+        gap: size("--gap-section"),
+        inset: size("--inset-section"),
         betweenSections:
           features.getBoundingClientRect().top -
           hero.getBoundingClientRect().bottom,
@@ -261,8 +264,14 @@ test.describe("The preview's device frame", () => {
 
     expect(metrics).not.toBeNull();
     expect(metrics!.gap).toBeGreaterThanOrEqual(64);
-    expect(metrics!.betweenSections).toBeCloseTo(2.5 * metrics!.gap, 0);
-    expect(metrics!.belowArt).toBeGreaterThanOrEqual(metrics!.gap);
+    /* Each band pads its own top and bottom by Section inset, so two bands
+       sit twice that apart: a use the Uses table names, not a multiple of
+       another one. */
+    expect(metrics!.inset).toBeGreaterThan(0);
+    expect(metrics!.betweenSections).toBeCloseTo(2 * metrics!.inset, 0);
+    expect(metrics!.belowArt).toBeGreaterThanOrEqual(
+      metrics!.betweenSections - 1,
+    );
   });
 });
 
@@ -1332,6 +1341,10 @@ test.describe("The preview's spacing overlay", () => {
     ).toBeVisible();
     await sectionGap.click();
     await page
+      .getByRole("tab", { name: "Steps" })
+      .filter({ visible: true })
+      .click();
+    await page
       .getByRole("listbox", { name: "Section gap on Desktop" })
       .getByRole("option", { name: /--spacing-8\b/ })
       .click();
@@ -1361,6 +1374,227 @@ test.describe("The preview's spacing overlay", () => {
     await expect(overlay).toHaveCount(0);
   });
 
+  test("opens on Uses, takes another use's size, and switches to Steps", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await page.getByRole("button", { name: "Show spacing" }).click();
+    const overlay = page.getByRole("group", { name: "Spacing overlay" });
+    const stored = async (id: string) =>
+      (await readStoredWorkspace(page)).layout.find(
+        (token: { id: string }) => token.id === id,
+      )?.byDevice.desktop;
+
+    const slot = overlay.locator('[data-spacing-badge="inset-card"]').first();
+    await slot.click();
+    const list = page
+      .getByRole("listbox", { name: "Card inset on Desktop" })
+      .filter({ visible: true });
+    const uses = page
+      .getByRole("tab", { name: "Uses" })
+      .filter({ visible: true });
+    const steps = page
+      .getByRole("tab", { name: "Steps" })
+      .filter({ visible: true });
+
+    /* Uses first: each named, with its size on this frame, and the use
+       being edited checked. */
+    await expect(uses).toHaveAttribute("aria-selected", "true");
+    await expect(steps).toHaveAttribute("aria-selected", "false");
+    await expect(list).toContainText(/Section gap\s*\d+px/);
+    await expect(
+      list.getByRole("option", { name: /^Card inset/ }),
+    ).toHaveAttribute("aria-selected", "true");
+    await expect(list.getByRole("option", { name: /^--spacing-/ })).toHaveCount(
+      0,
+    );
+
+    /* Searching narrows by name, and a tab switch clears it. */
+    const search = page
+      .getByPlaceholder("Search uses")
+      .filter({ visible: true });
+    await search.fill("grid");
+    await expect(list.getByRole("option")).toHaveCount(1);
+    await steps.click();
+    await expect(
+      list.getByRole("option", { name: /^--spacing-/ }).first(),
+    ).toBeVisible();
+    await uses.click();
+    await expect(
+      page.getByPlaceholder("Search uses").filter({ visible: true }),
+    ).toHaveValue("");
+
+    /* Picking a use binds the slot to it, as Figma binds a field to a
+       variable. The use it started on is not edited. */
+    const insetBefore = await stored("inset-card");
+    const gapBefore = await stored("gap-section");
+    const cardPadding = () =>
+      page
+        .locator("[data-frame] article")
+        .first()
+        .evaluate((node) => getComputedStyle(node).paddingTop);
+    const sectionGap = () =>
+      page
+        .locator("[data-frame] section")
+        .first()
+        .evaluate((node) => getComputedStyle(node).rowGap);
+    await expect.poll(cardPadding).not.toBe(await sectionGap());
+
+    await list.getByRole("option", { name: /^Section gap/ }).click();
+
+    /* The page reads Section gap's size for the card, and the tag says so. */
+    await expect.poll(cardPadding).toBe(await sectionGap());
+    await expect(slot).toHaveAttribute(
+      "aria-label",
+      /^Section gap on Desktop: \d+px/,
+    );
+    expect(await stored("inset-card")).toBe(insetBefore);
+    expect(await stored("gap-section")).toBe(gapBefore);
+
+    /* Reopened it is Section gap's picker: checked on Uses, and on Steps the
+       step Section gap holds. */
+    await slot.click();
+    const bound = page
+      .getByRole("listbox", { name: "Section gap on Desktop" })
+      .filter({ visible: true });
+    await expect(bound.getByRole("option", { selected: true })).toContainText(
+      "Section gap",
+    );
+    await page
+      .getByRole("tab", { name: "Steps" })
+      .filter({ visible: true })
+      .click();
+    await expect(
+      bound.getByRole("option", {
+        name: new RegExp(`^--spacing-${gapBefore}\\b`),
+        selected: true,
+      }),
+    ).toHaveCount(1);
+
+    /* A step changes the use the slot is bound to, not the one it left. */
+    await bound.getByRole("option", { name: /^--spacing-4\b/ }).click();
+    await expect.poll(() => stored("gap-section")).toBe("4");
+    expect(await stored("inset-card")).toBe(insetBefore);
+    await expect.poll(cardPadding).toBe("16px");
+  });
+
+  test("keeps the picker's order, softens its selection and lines up its head", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await page.getByRole("button", { name: "Show spacing" }).click();
+    const overlay = page.getByRole("group", { name: "Spacing overlay" });
+    const open = () =>
+      overlay.locator('[data-spacing-badge="inset-card"]').first().click();
+    const listbox = () =>
+      page
+        .getByRole("listbox", { name: / on Desktop$/ })
+        .filter({ visible: true });
+    const names = () =>
+      listbox()
+        .getByRole("option")
+        .evaluateAll((nodes) =>
+          nodes.map((node) => node.querySelector("span")?.textContent),
+        );
+
+    await open();
+    const before = await names();
+    expect(before[0]).toBe("Container inset");
+
+    /* The check is on the use the size was taken from, and each use stays
+       where the layout lists it: nothing moves up the list. */
+    const checked = () => listbox().getByRole("option", { selected: true });
+    await expect(checked()).toHaveCount(1);
+    await expect(checked()).toContainText("Card inset");
+    expect(before.indexOf("Card inset")).toBe(before.length - 1);
+
+    for (const use of ["Grid gap", "Section gap"]) {
+      await listbox()
+        .getByRole("option", { name: new RegExp(`^${use}`) })
+        .click();
+      await open();
+      expect(await names()).toEqual(before);
+      await expect(checked()).toHaveCount(1);
+      await expect(checked()).toContainText(use);
+      await expect(
+        listbox().getByRole("option", { name: /^Card inset/ }),
+      ).toHaveAttribute("aria-selected", "false");
+    }
+
+    const look = await listbox().evaluate((node) => {
+      const css = (el: Element) => getComputedStyle(el);
+      const probe = (value: string) => {
+        const el = document.createElement("i");
+        el.style.background = value;
+        node.append(el);
+        const resolved = css(el).backgroundColor;
+        el.remove();
+        return resolved;
+      };
+      const picker = node.parentElement!;
+      const search = picker.querySelector("label")!;
+      const rule = picker.querySelector("hr")!;
+      const chip = picker.querySelector('[role="tab"]')!;
+      const icon = search.querySelector("svg")!;
+      const selected = node.querySelector('[aria-selected="true"]')!;
+      return {
+        selectedFill: css(selected).backgroundColor,
+        heavyFill: probe("var(--color-surface-subtle)"),
+        ruleColour: css(rule).borderTopColor,
+        searchColour: css(search).borderBottomColor,
+        chipLeft: chip.getBoundingClientRect().left,
+        iconLeft: icon.getBoundingClientRect().left,
+      };
+    });
+    expect(look.selectedFill).not.toBe(look.heavyFill);
+    expect(look.ruleColour).toBe(look.searchColour);
+    expect(Math.abs(look.chipLeft - look.iconLeft)).toBeLessThanOrEqual(1);
+  });
+
+  test("tags section bands as Section inset, at a size the system has", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await page.getByRole("button", { name: "Show spacing" }).click();
+    const overlay = page.getByRole("group", { name: "Spacing overlay" });
+    const stored = async (id: string) =>
+      (await readStoredWorkspace(page)).layout.find(
+        (token: { id: string }) => token.id === id,
+      )?.byDevice.desktop;
+    const bandPadding = () =>
+      page
+        .locator("[data-frame] main > *")
+        .first()
+        .evaluate((node) => getComputedStyle(node).paddingTop);
+
+    /* The band's own padding was Section gap times 1.25: 80px against a gap
+       of 64px, a size no use named. It is a use of its own now. */
+    const slot = overlay
+      .locator('[data-spacing-badge="inset-section"]')
+      .first();
+    await expect(slot).toHaveAttribute(
+      "aria-label",
+      /^Section inset on Desktop: 64px/,
+    );
+    expect(await stored("inset-section")).toBe("16");
+    await expect.poll(bandPadding).toBe("64px");
+
+    /* Set from the tag, it is the Section inset use that changes. */
+    await slot.click();
+    await page
+      .getByRole("tab", { name: "Steps" })
+      .filter({ visible: true })
+      .click();
+    await page
+      .getByRole("listbox", { name: "Section inset on Desktop" })
+      .filter({ visible: true })
+      .getByRole("option", { name: /^--spacing-8\b/ })
+      .click();
+    await expect.poll(() => stored("inset-section")).toBe("8");
+    expect(await stored("gap-section")).toBe("16");
+    await expect.poll(bandPadding).toBe("32px");
+  });
+
   test("rebinds the grid gap and card inset, and explains other spaces", async ({
     page,
   }) => {
@@ -1386,6 +1620,10 @@ test.describe("The preview's spacing overlay", () => {
         })
         .first()
         .click();
+      await page
+        .getByRole("tab", { name: "Steps" })
+        .filter({ visible: true })
+        .click();
       const list = page
         .getByRole("listbox", { name: `${use} on Desktop` })
         .filter({ visible: true });
@@ -1400,7 +1638,7 @@ test.describe("The preview's spacing overlay", () => {
       });
       expect(Math.max(...inset)).toBeLessThanOrEqual(1);
       await list
-        .getByRole("option", { name: `--spacing-${step}`, exact: true })
+        .getByRole("option", { name: new RegExp(`^--spacing-${step}\\b`) })
         .click();
     };
     const grid = '[class*="cols"]';
