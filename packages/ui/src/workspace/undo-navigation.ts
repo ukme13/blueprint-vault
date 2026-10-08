@@ -1,5 +1,5 @@
 import { studioHref, type StudioViewMemory } from "../studio-view";
-import type { WorkspaceOrigin } from "./workspace-history";
+import type { WorkspaceOrigin, WorkspaceTarget } from "./workspace-history";
 
 /**
  * Where an undo or a redo should take the person, or null to stay.
@@ -33,6 +33,10 @@ export function undoDestination(
 export interface WorkspaceStep {
   direction: "undo" | "redo";
   origin: WorkspaceOrigin | null;
+  /** What it changed, to flash; empty when the studio has nothing to point at. */
+  targets: readonly WorkspaceTarget[];
+  /** When it was taken, so a studio opened later can tell it is still fresh. */
+  at: number;
 }
 
 const STUDIO_LABELS: Readonly<Record<string, string>> = {

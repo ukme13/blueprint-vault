@@ -299,7 +299,12 @@ function useWorkspaceStoreState(): WorkspaceStore {
                 : entry,
             ),
           }));
-          setLastStep({ direction, origin: history.lastOrigin });
+          setLastStep({
+            direction,
+            origin: history.lastOrigin,
+            targets: history.lastTargets,
+            at: Date.now(),
+          });
           setRevision((count) => count + 1);
         }
       }

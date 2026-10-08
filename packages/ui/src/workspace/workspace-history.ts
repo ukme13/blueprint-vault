@@ -83,6 +83,53 @@ export interface WorkspaceOrigin {
 }
 
 /**
+ * One thing an undo or a redo changed, to be pointed at: a semantic token, and
+ * the cell of its row when only one cell moved.
+ */
+export interface WorkspaceTarget {
+  id: string;
+  cell?: "name" | "description" | "light" | "dark";
+}
+
+/** The most targets one step points at: a bulk edit would flash the table. */
+const MAX_TARGETS = 12;
+
+/**
+ * The semantic tokens, and cells, that differ between two documents.
+ *
+ * Read off the document an undo or redo arrives at, so a row that comes back
+ * is a target and a row that has gone is not. A token with no counterpart is
+ * a target as a whole; otherwise one target per cell that differs, so the
+ * flash lands on the reference that was restored and not the whole row.
+ */
+export function changedSemanticTargets(
+  from: WorkspaceProject,
+  to: WorkspaceProject,
+): WorkspaceTarget[] {
+  const was = new Map((from.semantics ?? []).map((token) => [token.id, token]));
+  const targets: WorkspaceTarget[] = [];
+  for (const token of to.semantics ?? []) {
+    const before = was.get(token.id);
+    if (!before) {
+      targets.push({ id: token.id });
+      continue;
+    }
+    const cells = {
+      name: token.name,
+      description: token.description,
+      light: token.light,
+      dark: token.dark,
+    } as const;
+    for (const cell of Object.keys(cells) as (keyof typeof cells)[]) {
+      if (JSON.stringify(cells[cell]) !== JSON.stringify(before[cell])) {
+        targets.push({ id: token.id, cell });
+      }
+    }
+  }
+  return targets.slice(0, MAX_TARGETS);
+}
+
+/**
  * The studio an edit belongs to, read from which undoable part it changed.
  *
  * The first part to differ decides, in the order the studios are listed, so a
@@ -207,6 +254,11 @@ export interface WorkspaceHistory {
    * the call. Null after a commit or a sync.
    */
   readonly lastOrigin: WorkspaceOrigin | null;
+  /**
+   * What the last undo or redo changed in the semantic layer, to point at.
+   * Empty when it changed nothing there, and after a commit or a sync.
+   */
+  readonly lastTargets: readonly WorkspaceTarget[];
   readonly canUndo: boolean;
   readonly canRedo: boolean;
   readonly size: number;
@@ -239,6 +291,7 @@ export function createWorkspaceHistory(
 
   let openEdit: WorkspaceEditKey;
   let lastOrigin: WorkspaceOrigin | null = null;
+  let lastTargets: readonly WorkspaceTarget[] = [];
 
   return {
     commit(project, options) {
@@ -246,6 +299,7 @@ export function createWorkspaceHistory(
       const entry = entryOf(project);
       if (entry.key === previous?.key) return false;
       lastOrigin = null;
+      lastTargets = [];
       entry.origin =
         options?.origin ??
         (previous ? originOfChange(previous.project, project) : null);
@@ -260,6 +314,7 @@ export function createWorkspaceHistory(
     sync(project) {
       openEdit = undefined;
       lastOrigin = null;
+      lastTargets = [];
       history.sync(entryOf(project));
     },
 
@@ -267,20 +322,30 @@ export function createWorkspaceHistory(
       openEdit = undefined;
       /* The version being left is the edit being taken back. */
       const leaving = history.present?.origin ?? null;
+      const left = history.present?.project;
       const target = history.undo();
       lastOrigin = target ? leaving : null;
+      lastTargets =
+        left && target ? changedSemanticTargets(left, target.project) : [];
       return target?.project ?? null;
     },
 
     redo() {
       openEdit = undefined;
+      const left = history.present?.project;
       const target = history.redo();
       lastOrigin = target?.origin ?? null;
+      lastTargets =
+        left && target ? changedSemanticTargets(left, target.project) : [];
       return target?.project ?? null;
     },
 
     get lastOrigin() {
       return lastOrigin;
+    },
+
+    get lastTargets() {
+      return lastTargets;
     },
 
     get canUndo() {

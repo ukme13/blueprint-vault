@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { stepMessage, undoDestination } from "./undo-navigation";
+import {
+  stepMessage,
+  undoDestination,
+  type WorkspaceStep,
+} from "./undo-navigation";
 
 const at = (pathname: string, search = "") => ({ pathname, search });
 
@@ -61,33 +65,33 @@ describe("undoDestination", () => {
 });
 
 describe("stepMessage", () => {
+  const step = (
+    direction: "undo" | "redo",
+    origin: WorkspaceStep["origin"],
+  ): WorkspaceStep => ({ direction, origin, targets: [], at: 0 });
+
   it("says what was done and where", () => {
     expect(
-      stepMessage({
-        direction: "undo",
-        origin: { path: "/colour", query: "view=semantics" },
-      }),
+      stepMessage(step("undo", { path: "/colour", query: "view=semantics" })),
     ).toBe("Undid edit in Semantics");
-    expect(
-      stepMessage({ direction: "redo", origin: { path: "/typography" } }),
-    ).toBe("Redid edit in Typography");
-    expect(
-      stepMessage({ direction: "undo", origin: { path: "/preview" } }),
-    ).toBe("Undid edit in Preview");
+    expect(stepMessage(step("redo", { path: "/typography" }))).toBe(
+      "Redid edit in Typography",
+    );
+    expect(stepMessage(step("undo", { path: "/preview" }))).toBe(
+      "Undid edit in Preview",
+    );
   });
 
   it("names the studio for the Colour studio's other tabs", () => {
-    expect(
-      stepMessage({ direction: "undo", origin: { path: "/colour" } }),
-    ).toBe("Undid edit in Colour");
+    expect(stepMessage(step("undo", { path: "/colour" }))).toBe(
+      "Undid edit in Colour",
+    );
   });
 
   it("says only what was done when it is not known where", () => {
-    expect(stepMessage({ direction: "undo", origin: null })).toBe(
-      "Undid the last edit",
+    expect(stepMessage(step("undo", null))).toBe("Undid the last edit");
+    expect(stepMessage(step("redo", { path: "/elsewhere" }))).toBe(
+      "Redid the last edit",
     );
-    expect(
-      stepMessage({ direction: "redo", origin: { path: "/elsewhere" } }),
-    ).toBe("Redid the last edit");
   });
 });

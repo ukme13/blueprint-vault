@@ -3,6 +3,7 @@ import { withTypographySlice, emptyWorkspace } from "./workspace";
 import { seedTypographyProject, seedWorkspaceProject } from "./seed-project";
 import {
   WORKSPACE_HISTORY_LIMIT,
+  changedSemanticTargets,
   createWorkspaceHistory,
   originOfChange,
   restoreUndoable,
@@ -321,5 +322,80 @@ describe("opaque is opaque however it is written", () => {
       ),
     };
     expect(history.commit(edited)).toBe(true);
+  });
+});
+
+describe("what an undo changed in the semantic layer", () => {
+  const seeded = () => seedWorkspaceProject("T");
+  const withAlpha = (project: WorkspaceProject, id: string, alpha: number) => ({
+    ...project,
+    semantics: project.semantics!.map((token) =>
+      token.id === id ? { ...token, light: { ...token.light, alpha } } : token,
+    ),
+  });
+
+  it("points at the cell that differs, and at nothing else", () => {
+    const start = seeded();
+    expect(
+      changedSemanticTargets(start, withAlpha(start, "border.subtle", 0.65)),
+    ).toEqual([{ id: "border.subtle", cell: "light" }]);
+    expect(changedSemanticTargets(start, start)).toEqual([]);
+  });
+
+  it("points at a row that comes back, not at one that has gone", () => {
+    const start = seeded();
+    const without = {
+      ...start,
+      semantics: start.semantics!.filter((token) => token.id !== "fg.muted"),
+    };
+    expect(changedSemanticTargets(without, start)).toEqual([
+      { id: "fg.muted" },
+    ]);
+    expect(changedSemanticTargets(start, without)).toEqual([]);
+  });
+
+  it("names a name or a description that was edited", () => {
+    const start = seeded();
+    const renamed = {
+      ...start,
+      semantics: start.semantics!.map((token) =>
+        token.id === "fg.muted"
+          ? { ...token, description: "Changed.", name: "Muted text" }
+          : token,
+      ),
+    };
+    expect(changedSemanticTargets(start, renamed)).toEqual([
+      { id: "fg.muted", cell: "name" },
+      { id: "fg.muted", cell: "description" },
+    ]);
+  });
+
+  it("stops at a dozen, so a bulk edit does not light the table", () => {
+    const start = seeded();
+    const everything = {
+      ...start,
+      semantics: start.semantics!.map((token) => ({
+        ...token,
+        description: `${token.description}!`,
+      })),
+    };
+    expect(changedSemanticTargets(start, everything)).toHaveLength(12);
+  });
+
+  it("hands the history's targets back after an undo and a redo", () => {
+    const start = seeded();
+    const history = createWorkspaceHistory(start);
+    history.commit(withAlpha(start, "border.subtle", 0.65));
+
+    history.undo();
+    expect(history.lastTargets).toEqual([
+      { id: "border.subtle", cell: "light" },
+    ]);
+    history.redo();
+    expect(history.lastTargets).toEqual([
+      { id: "border.subtle", cell: "light" },
+    ]);
+    history.commit(withAlpha(start, "border.subtle", 0.3));
+    expect(history.lastTargets).toEqual([]);
   });
 });

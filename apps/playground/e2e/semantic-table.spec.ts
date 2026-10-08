@@ -209,6 +209,49 @@ test.describe("Reference transparency", () => {
     await expect(alpha).toHaveValue("12%");
   });
 
+  test("an undo flashes the cell it restored, then lets it go", async ({
+    seededPage: page,
+  }) => {
+    const editor = await openSemantics(page);
+    await showBorders(editor);
+    const alpha = editor
+      .locator('tr:has([data-semantic-token="border.subtle"])')
+      .getByRole("textbox", { name: /border subtle light transparency/i });
+    await alpha.fill("65%");
+    await alpha.press("Enter");
+    await expect(alpha).toHaveValue("65%");
+
+    /* Nothing is lit before the undo, and then only the reference that moved. */
+    const lit = page.locator("[data-undo-highlight]");
+    await expect(lit).toHaveCount(0);
+    await page.keyboard.press("ControlOrMeta+z");
+    const cell = lit.filter({
+      has: page.locator(
+        '[data-semantic-token="border.subtle"][data-semantic-cell="light"]',
+      ),
+    });
+    await expect(cell).toHaveCount(1);
+    await expect(lit).toHaveCount(1);
+
+    /* These runs reduce motion, so the mark is a ring that holds. */
+    const look = () =>
+      cell.evaluate((node) => {
+        const style = getComputedStyle(node);
+        return [style.animationName, style.outlineStyle];
+      });
+    await expect.poll(look).toEqual(["none", "solid"]);
+
+    /* It goes, and the value is the restored one. */
+    await expect(lit).toHaveCount(0, { timeout: 5000 });
+    await expect(alpha).toHaveValue("12%");
+
+    /* With motion allowed, a redo lights the same cell as a fade instead. */
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.keyboard.press("ControlOrMeta+Shift+z");
+    await expect(cell).toHaveCount(1);
+    await expect.poll(look).toEqual(["undo-flash", "none"]);
+  });
+
   test("an undo from another studio returns to the Semantics tab", async ({
     seededPage: page,
   }) => {
@@ -259,8 +302,13 @@ test.describe("Reference transparency", () => {
     await expect(editor).toBeHidden();
     await page.keyboard.press("ControlOrMeta+z");
 
-    /* The tab follows the edit, and says why. */
+    /* The tab follows the edit, points at it, and says why. */
     await expect(page).toHaveURL(/\/colour\?.*view=semantics/);
+    await expect(
+      page.locator(
+        '[data-undo-highlight]:has([data-semantic-token="border.subtle"][data-semantic-cell="light"])',
+      ),
+    ).toHaveCount(1);
     await expect(
       page.getByText("Undid edit in Semantics").first(),
     ).toBeVisible();
