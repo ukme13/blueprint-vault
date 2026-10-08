@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
-import { Mic, Plus, Sparkles } from "lucide-react";
+import { Mic, Plus } from "lucide-react";
 import { useThemeMode } from "../../app/theme-provider";
 import { useGoogleFontsLink } from "../typography/use-google-fonts";
 import { useLocalFonts } from "../typography/use-local-fonts";
@@ -133,7 +133,7 @@ export function RadiusPreviewTab({
 
       <div className="flex w-full justify-center" style={scopedStyle}>
         <article
-          aria-label="Verba AI Preview"
+          aria-label="Blueprint AI Preview"
           className="flex w-full max-w-md flex-col gap-5 border border-border-subtle bg-surface-base p-6"
           data-radius-sample="radius-surface"
           style={{ borderRadius: componentRadiusCss("radius-surface") }}
@@ -141,7 +141,7 @@ export function RadiusPreviewTab({
           <header className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 flex-col gap-1">
               <h2 className="m-0 text-xl font-semibold tracking-tight text-fg-primary">
-                Verba AI
+                Blueprint AI
               </h2>
               <p className="m-0 text-sm text-fg-muted">
                 Your AI-powered text assistant.
@@ -164,18 +164,15 @@ export function RadiusPreviewTab({
             className="flex flex-col gap-5 rounded-container border border-border-subtle p-5"
             style={PANEL}
           >
-            <div className="flex flex-col gap-2 pt-2">
-              <Sparkles aria-hidden className="size-5 text-action-primary" />
-              <h3
-                className="m-0 text-2xl font-medium text-fg-primary"
-                style={{
-                  fontFamily:
-                    "var(--font-display-1-family, var(--font-body-family, serif))",
-                }}
-              >
-                How can I help you?
-              </h3>
-            </div>
+            <h3
+              className="m-0 pt-2 text-2xl font-medium text-fg-primary"
+              style={{
+                fontFamily:
+                  "var(--font-display-1-family, var(--font-body-family, serif))",
+              }}
+            >
+              How can I help you?
+            </h3>
 
             <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
               {SUGGESTIONS.map((suggestion) => (
