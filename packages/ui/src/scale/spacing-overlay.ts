@@ -185,3 +185,23 @@ export function spacingUses(
     return px === undefined ? [] : [{ id: use.id, name: use.name, value, px }];
   });
 }
+
+/**
+ * The use a picker marks as the current one on a frame.
+ *
+ * Several uses can sit on one step, and the layout does not record which of
+ * them a use was set from, so the picker remembers the last one it was given.
+ * That one is marked for as long as it still holds the step; otherwise the use
+ * being edited is, then any use on the step. None when nothing holds it.
+ */
+export function activeSpacingUse(
+  uses: readonly SpacingUse[],
+  ownId: string,
+  chosenId?: string,
+): string | undefined {
+  const own = uses.find((use) => use.id === ownId);
+  if (!own) return undefined;
+  const chosen = uses.find((use) => use.id === chosenId);
+  if (chosen && chosen.value === own.value) return chosen.id;
+  return own.id;
+}

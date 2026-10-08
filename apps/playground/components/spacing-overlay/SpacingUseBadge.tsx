@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import {
+  activeSpacingUse,
   resolveSpacing,
   spacingStepName,
   spacingUses,
@@ -50,6 +51,10 @@ export function SpacingUseBadge({
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState<PickerTab>("uses");
+  /* The use last taken a size from. The layout keeps the step, not where it
+     came from, so without this the check would fall back to the token
+     itself, whichever use was picked. */
+  const [chosenUseId, setChosenUseId] = useState<string>();
   const isPhone = useIsPhone();
   const label = `${token.name} on ${deviceName}`;
   const uses = spacingUses(spacing, layout, deviceId);
@@ -132,15 +137,18 @@ export function SpacingUseBadge({
           options={options}
           query={query}
           searchPlaceholder={tab === "uses" ? "Search uses" : "Search steps"}
-          /* Own entry on Uses: another use may sit on the same step, and one
-           check is clearer than several. */
-          value={tab === "uses" ? token.id : token.byDevice[deviceId]}
+          value={
+            tab === "uses"
+              ? activeSpacingUse(uses, token.id, chosenUseId)
+              : token.byDevice[deviceId]
+          }
           onChoose={(option) => {
             const chosen =
               tab === "uses"
                 ? uses.find((use) => use.id === option.value)?.value
                 : option.value;
             if (chosen !== undefined) onRebind(token.id as LayoutUseId, chosen);
+            if (tab === "uses") setChosenUseId(option.value);
             setIsOpen(false);
             setQuery("");
           }}

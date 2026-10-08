@@ -3,6 +3,7 @@ import { defaultSpacingScale } from "./spacing";
 import {
   gapBands,
   paddingBands,
+  activeSpacingUse,
   spacingTokenForPx,
   spacingUses,
 } from "./spacing-overlay";
@@ -157,5 +158,31 @@ describe("spacingUses", () => {
         "desktop",
       ),
     ).toEqual([]);
+  });
+});
+
+describe("activeSpacingUse", () => {
+  const uses = [
+    { id: "inset", name: "Inset", value: "6", px: 24 },
+    { id: "gap", name: "Gap", value: "6", px: 24 },
+    { id: "wide", name: "Wide", value: "8", px: 32 },
+  ];
+
+  it("marks the use being edited when nothing was chosen", () => {
+    expect(activeSpacingUse(uses, "gap")).toBe("gap");
+  });
+
+  it("marks the use that was chosen while it still holds the step", () => {
+    // `inset` was set from `gap`, and both sit on 6 now.
+    expect(activeSpacingUse(uses, "inset", "gap")).toBe("gap");
+  });
+
+  it("returns to the use being edited once the chosen one no longer matches", () => {
+    expect(activeSpacingUse(uses, "inset", "wide")).toBe("inset");
+    expect(activeSpacingUse(uses, "inset", "gone")).toBe("inset");
+  });
+
+  it("marks nothing for a use the frame has no size for", () => {
+    expect(activeSpacingUse(uses, "missing", "gap")).toBeUndefined();
   });
 });

@@ -1450,22 +1450,25 @@ test.describe("The preview's spacing overlay", () => {
     const before = await names();
     expect(before[0]).toBe("Container inset");
 
-    /* The chosen option stays where the layout lists it, with its check,
-       rather than moving up the list. */
-    const chosen = listbox().getByRole("option", { selected: true });
-    await expect(chosen).toContainText("Card inset");
+    /* The check is on the use the size was taken from, and each use stays
+       where the layout lists it: nothing moves up the list. */
+    const checked = () => listbox().getByRole("option", { selected: true });
+    await expect(checked()).toHaveCount(1);
+    await expect(checked()).toContainText("Card inset");
     expect(before.indexOf("Card inset")).toBe(before.length - 1);
-    await listbox()
-      .getByRole("option", { name: /^Grid gap/ })
-      .click();
-    await open();
-    expect(await names()).toEqual(before);
-    await expect(
-      listbox().getByRole("option", { selected: true }),
-    ).toContainText("Card inset");
-    await expect(listbox().getByRole("option").last()).toContainText(
-      "Card inset",
-    );
+
+    for (const use of ["Grid gap", "Section gap"]) {
+      await listbox()
+        .getByRole("option", { name: new RegExp(`^${use}`) })
+        .click();
+      await open();
+      expect(await names()).toEqual(before);
+      await expect(checked()).toHaveCount(1);
+      await expect(checked()).toContainText(use);
+      await expect(
+        listbox().getByRole("option", { name: /^Card inset/ }),
+      ).toHaveAttribute("aria-selected", "false");
+    }
 
     const look = await listbox().evaluate((node) => {
       const css = (el: Element) => getComputedStyle(el);
