@@ -85,6 +85,30 @@ test.describe("The Contrast tool", () => {
     ).toBeVisible();
   });
 
+  test("shows every comparison label whole, the chosen one included", async ({
+    seededPage: page,
+  }) => {
+    await contrastButton(page).click();
+    const target = page.getByRole("radiogroup", {
+      name: "Contrast comparison colour",
+    });
+    /* Bold once chosen, which is wider: Custom was cut to Cust… when it was. */
+    for (const name of ["White", "Black", "Custom"]) {
+      await target.getByRole("radio", { name }).click();
+      const cut = await target.evaluate((group) =>
+        [...group.querySelectorAll("*")]
+          .filter(
+            (node) =>
+              node.children.length === 0 &&
+              node.textContent?.trim() &&
+              node.scrollWidth > node.clientWidth,
+          )
+          .map((node) => node.textContent),
+      );
+      expect(cut, name + " chosen").toEqual([]);
+    }
+  });
+
   test("a press on the lit standard or on Contrast turns it off", async ({
     seededPage: page,
   }) => {
