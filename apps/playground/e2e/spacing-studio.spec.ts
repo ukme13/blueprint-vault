@@ -212,7 +212,9 @@ test.describe("The spacing studio", () => {
     const rem = page
       .getByRole("radiogroup", { name: "Value unit" })
       .getByRole("radio", { name: "rem" });
-    const undo = page.getByRole("button", { name: "Undo" });
+    const undo = page
+      .getByRole("region", { name: "Scale toolbar" })
+      .getByRole("button", { name: "Undo" });
 
     await expect(undo).toBeDisabled();
     await inset.click();
@@ -541,9 +543,15 @@ test.describe("The spacing studio", () => {
     await expect(preset).toContainText("Custom");
 
     /* Undo takes back the chip, then the preset, as one step each. */
-    await page.getByRole("button", { name: "Undo" }).click();
+    await page
+      .getByRole("region", { name: "Scale toolbar" })
+      .getByRole("button", { name: "Undo" })
+      .click();
     await expect(preset).toContainText("8pt Standard Grid");
-    await page.getByRole("button", { name: "Undo" }).click();
+    await page
+      .getByRole("region", { name: "Scale toolbar" })
+      .getByRole("button", { name: "Undo" })
+      .click();
     await expect(preset).toContainText("Custom");
     await expect(kept).toHaveCount(seededCount);
     await expect.poll(async () => (await stored())?.baseUnitPx).toBe(4);
@@ -730,7 +738,10 @@ test.describe("The spacing studio", () => {
     ).toHaveText("12(3)");
 
     /* One undo puts back the step and the use on it. */
-    await page.getByRole("button", { name: "Undo" }).click();
+    await page
+      .getByRole("region", { name: "Scale toolbar" })
+      .getByRole("button", { name: "Undo" })
+      .click();
     await expect.poll(insetOnPhone).toBe("4");
   });
 
@@ -825,7 +836,10 @@ test.describe("The spacing studio", () => {
     );
 
     /* Undo keeps the step again, and the preview goes back to it. */
-    await page.getByRole("button", { name: "Undo" }).click();
+    await page
+      .getByRole("region", { name: "Scale toolbar" })
+      .getByRole("button", { name: "Undo" })
+      .click();
     await expect(
       page.getByRole("button", { name: "Keep step 6", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
@@ -1854,10 +1868,16 @@ test.describe("The scale studio's chrome", () => {
     await toggle.click();
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
 
-    await page.getByRole("button", { name: "Undo" }).click();
+    await page
+      .getByRole("region", { name: "Scale toolbar" })
+      .getByRole("button", { name: "Undo" })
+      .click();
     await expect(toggle).toHaveAttribute("aria-pressed", "true");
 
-    await page.getByRole("button", { name: "Redo" }).click();
+    await page
+      .getByRole("region", { name: "Scale toolbar" })
+      .getByRole("button", { name: "Redo" })
+      .click();
     await expect(toggle).toHaveAttribute("aria-pressed", "false");
   });
 
@@ -1935,7 +1955,10 @@ test.describe("The scale studio's chrome", () => {
 
     await showScaleView(page, "Spacing");
     await openSpacingSteps(page);
-    await page.getByRole("button", { name: "Undo" }).click();
+    await page
+      .getByRole("region", { name: "Scale toolbar" })
+      .getByRole("button", { name: "Undo" })
+      .click();
     await expect(toggle).toHaveAttribute("aria-pressed", "true");
   });
 

@@ -1,5 +1,12 @@
 import { createHistory, type History } from "../history";
 import type { WorkspaceProject } from "./types";
+import { undoableParts } from "./undoable-parts";
+import {
+  changedSemanticTargets,
+  originOfChange,
+  type WorkspaceOrigin,
+  type WorkspaceTarget,
+} from "./workspace-origin";
 
 /**
  * Undo for the workspace: one history for every studio.
@@ -22,31 +29,6 @@ import type { WorkspaceProject } from "./types";
 export const WORKSPACE_HISTORY_LIMIT = 50;
 
 export type WorkspaceEditKey = string | undefined;
-
-/**
- * The parts of a document an undo owns.
- *
- * The type system (not its name, which is the workspace's, nor the preview
- * text and settings beside it in the same slice), the scales and the layout uses that point at them, the device
- * ratios the system's own mirrors, and the semantic layer with what goes
- * with it. The palette, the name and the view settings are not here.
- */
-function undoableParts(project: WorkspaceProject) {
-  /* Without its name: the workspace's name is mirrored into the system, so a
-     rename would otherwise read as an edit of the type scale. */
-  const system = project.typography?.system;
-  return {
-    typographySystem: system ? { ...system, name: undefined } : null,
-    spacing: project.spacing,
-    radius: project.radius,
-    elevation: project.elevation,
-    layout: project.layout,
-    previewDevices: project.previewDevices,
-    semantics: project.semantics,
-    removedSeedRoles: project.removedSeedRoles,
-    buttonSchemes: project.buttonSchemes,
-  };
-}
 
 /**
  * A comparable form of the undoable parts.
@@ -104,10 +86,14 @@ export interface WorkspaceHistory {
    * tick would otherwise put each tick in the stack. A write with no key never
    * coalesces, and neither does the first after an undo, a redo or a sync.
    * Returns whether it was recorded.
+   *
+   * `origin` is where the edit was made, for a place that is not a studio the
+   * change would name (the Preview's tags set layout uses). Without it the
+   * origin is read from what changed.
    */
   commit(
     project: WorkspaceProject,
-    options?: { key?: WorkspaceEditKey },
+    options?: { key?: WorkspaceEditKey; origin?: WorkspaceOrigin },
   ): boolean;
   /**
    * Adopt a document this session did not produce, as no step.
@@ -120,6 +106,19 @@ export interface WorkspaceHistory {
   undo(): WorkspaceProject | null;
   /** The document to put forward one step, or null. */
   redo(): WorkspaceProject | null;
+  /**
+   * Where the edit the last undo or redo moved over was made, or null.
+   *
+   * Undoing takes back the edit that was made last, so it is that edit's
+   * place; redoing puts one back, and it is that one's. Read straight after
+   * the call. Null after a commit or a sync.
+   */
+  readonly lastOrigin: WorkspaceOrigin | null;
+  /**
+   * What the last undo or redo changed in the semantic layer, to point at.
+   * Empty when it changed nothing there, and after a commit or a sync.
+   */
+  readonly lastTargets: readonly WorkspaceTarget[];
   readonly canUndo: boolean;
   readonly canRedo: boolean;
   readonly size: number;
@@ -128,11 +127,17 @@ export interface WorkspaceHistory {
 interface Entry {
   project: WorkspaceProject;
   key: string;
+  /** Where the edit that made this version was made. */
+  origin: WorkspaceOrigin | null;
 }
 
-const entryOf = (project: WorkspaceProject): Entry => ({
+const entryOf = (
+  project: WorkspaceProject,
+  origin: WorkspaceOrigin | null = null,
+): Entry => ({
   project,
   key: undoableKey(project),
+  origin,
 });
 
 export function createWorkspaceHistory(
@@ -145,11 +150,19 @@ export function createWorkspaceHistory(
   });
 
   let openEdit: WorkspaceEditKey;
+  let lastOrigin: WorkspaceOrigin | null = null;
+  let lastTargets: readonly WorkspaceTarget[] = [];
 
   return {
     commit(project, options) {
+      const previous = history.present;
       const entry = entryOf(project);
-      if (entry.key === history.present?.key) return false;
+      if (entry.key === previous?.key) return false;
+      lastOrigin = null;
+      lastTargets = [];
+      entry.origin =
+        options?.origin ??
+        (previous ? originOfChange(previous.project, project) : null);
       const key = options?.key;
       const coalesces = key !== undefined && key === openEdit;
       openEdit = key;
@@ -160,17 +173,39 @@ export function createWorkspaceHistory(
 
     sync(project) {
       openEdit = undefined;
+      lastOrigin = null;
+      lastTargets = [];
       history.sync(entryOf(project));
     },
 
     undo() {
       openEdit = undefined;
-      return history.undo()?.project ?? null;
+      /* The version being left is the edit being taken back. */
+      const leaving = history.present?.origin ?? null;
+      const left = history.present?.project;
+      const target = history.undo();
+      lastOrigin = target ? leaving : null;
+      lastTargets =
+        left && target ? changedSemanticTargets(left, target.project) : [];
+      return target?.project ?? null;
     },
 
     redo() {
       openEdit = undefined;
-      return history.redo()?.project ?? null;
+      const left = history.present?.project;
+      const target = history.redo();
+      lastOrigin = target?.origin ?? null;
+      lastTargets =
+        left && target ? changedSemanticTargets(left, target.project) : [];
+      return target?.project ?? null;
+    },
+
+    get lastOrigin() {
+      return lastOrigin;
+    },
+
+    get lastTargets() {
+      return lastTargets;
     },
 
     get canUndo() {

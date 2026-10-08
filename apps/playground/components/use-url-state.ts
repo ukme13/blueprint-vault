@@ -35,6 +35,19 @@ function notify(): void {
 
 const NO_PARAMS: readonly string[] = [];
 
+/**
+ * Moves to another view of the studio that is already open, as a tab click
+ * does: the address is pushed and every `useUrlState` is told to read it.
+ *
+ * For a navigation made in code. `router.push` to the same path with another
+ * query changes the address but nothing here is told, because the pathname is
+ * the same and no `popstate` fires, so the tab stayed where it was.
+ */
+export function pushStudioUrl(url: string): void {
+  window.history.pushState(null, "", url);
+  notify();
+}
+
 const clientSearch = () => window.location.search;
 const serverSearch = () => "";
 

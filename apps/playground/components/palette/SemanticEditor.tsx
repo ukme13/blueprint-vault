@@ -6,6 +6,7 @@ import { ContextMenu } from "@astryxdesign/core/ContextMenu";
 import { useMediaQuery } from "@astryxdesign/core/hooks";
 import { useIsPhone } from "../use-is-phone";
 import { useScrollMemory } from "../use-scroll-memory";
+import { useUndoHighlight } from "../use-undo-highlight";
 import {
   deleteTokens,
   moveToGroup,
@@ -14,6 +15,8 @@ import {
   type ButtonScheme,
   type ColorTrack,
   type SemanticToken,
+  type WorkspaceTarget,
+  useWorkspaceStore,
 } from "@blueprint/ui";
 import { SemanticNewGroupDialog } from "./SemanticNewGroupDialog";
 import { SemanticDeleteDialog } from "./SemanticDeleteDialog";
@@ -42,6 +45,22 @@ interface SemanticEditorProps {
   onRedo?: () => void;
 }
 
+/**
+ * The cell of the table an undo changed, or its row when no one cell is named.
+ * The cell is the one that holds the control, so it is its box that flashes.
+ */
+function findSemanticTarget(target: WorkspaceTarget): Element | null {
+  const token = CSS.escape(target.id);
+  if (target.cell) {
+    const control = document.querySelector(
+      `[data-semantic-token="${token}"][data-semantic-cell="${target.cell}"]`,
+    );
+    if (control) return control.closest("td, [role='cell']") ?? control;
+  }
+  const row = document.querySelector(`[data-token="${token}"]`);
+  return row?.closest("tr, [role='row']") ?? null;
+}
+
 export function SemanticEditor({
   tokens,
   palettes,
@@ -50,6 +69,9 @@ export function SemanticEditor({
   onUndo,
   onRedo,
 }: SemanticEditorProps) {
+  /* An undo or redo of an edit here, or one that brought the person here,
+     points at the cell it restored. */
+  useUndoHighlight(useWorkspaceStore(), findSemanticTarget);
   const [editing, setEditing] = useState<{
     id: string;
     cell: SemanticCell;

@@ -414,16 +414,19 @@ export function SystemPreview() {
                 )
               }
               onRebindStep={(tokenId, step) =>
-                update((current) =>
-                  withLayoutTokens(
-                    current,
-                    setLayoutReference(
-                      current?.layout ?? defaultLayoutTokens(),
-                      tokenId,
-                      frame.id,
-                      step,
+                update(
+                  (current) =>
+                    withLayoutTokens(
+                      current,
+                      setLayoutReference(
+                        current?.layout ?? defaultLayoutTokens(),
+                        tokenId,
+                        frame.id,
+                        step,
+                      ),
                     ),
-                  ),
+                  /* Made on this page, whatever it changed: an undo returns here. */
+                  { origin: { path: "/preview" } },
                 )
               }
             />
