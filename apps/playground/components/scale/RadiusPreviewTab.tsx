@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
-import { Mic, Plus } from "lucide-react";
+import { Mic, Plus, Sparkles } from "lucide-react";
 import { useThemeMode } from "../../app/theme-provider";
 import { useGoogleFontsLink } from "../typography/use-google-fonts";
 import { useLocalFonts } from "../typography/use-local-fonts";
@@ -30,14 +30,13 @@ const SUGGESTIONS = [
 ] as const;
 
 /*
- * The prompt panel: cream at the top to a soft orange at the bottom. Mixed
- * from the project's warning and error colours into its own surface, not
- * written as hex, so it stays a tint of the project and turns to a warm dark
- * in dark mode.
+ * The assistant panel: the project's subtle surface with a breath of its
+ * primary at the top, fading out. Mixed from semantic tokens, not written as
+ * hex, so it follows the project's primary and turns with the theme.
  */
 const PANEL: CSSProperties = {
   backgroundImage:
-    "linear-gradient(to bottom, color-mix(in oklch, var(--color-status-warning) 6%, var(--color-surface-base)), color-mix(in oklch, color-mix(in oklch, var(--color-status-warning) 65%, var(--color-status-error)) 22%, var(--color-surface-base)))",
+    "linear-gradient(to bottom, color-mix(in oklch, var(--color-action-primary) 7%, var(--color-surface-subtle)), var(--color-surface-subtle) 70%)",
 };
 
 /**
@@ -47,9 +46,11 @@ const PANEL: CSSProperties = {
  * they sit well together: the card on Surface radius, the chips on Chip, the
  * field on Input, and the buttons on Button: a text button, which Full turns
  * into a pill, beside a square icon button, which Full turns into a circle.
- * Minimal on purpose: flat controls, no shadow inside the card and almost
- * no borders, on a grey stage, so the corners are what the eye reads. Ask
- * is the one filled primary, New chat the one outlined button.
+ * Minimal on purpose: flat controls, no shadow inside the card and hairline
+ * borders, on a grey stage, so the corners are what the eye reads. Ask is the
+ * one filled primary, New chat the one outlined button. The composer is one
+ * bar on Input radius, with the mic and Ask set inside it on Button radius,
+ * so the field's corner and its buttons' corners are read together.
  *
  * Everything is scoped to this card the way the site preview scopes it: the
  * project's palette and semantic colours in the studio's current mode, its
@@ -133,21 +134,21 @@ export function RadiusPreviewTab({
       <div className="flex w-full justify-center" style={scopedStyle}>
         <article
           aria-label="Verba AI Preview"
-          className="flex w-full max-w-md flex-col gap-6 border border-border-subtle/30 bg-surface-base p-6"
+          className="flex w-full max-w-md flex-col gap-5 border border-border-subtle bg-surface-base p-6"
           data-radius-sample="radius-surface"
           style={{ borderRadius: componentRadiusCss("radius-surface") }}
         >
-          <header className="flex items-start justify-between gap-4 px-2 pt-2">
+          <header className="flex items-start justify-between gap-4">
             <div className="flex min-w-0 flex-col gap-1">
-              <h2 className="m-0 text-2xl font-semibold text-fg-primary">
+              <h2 className="m-0 text-xl font-semibold tracking-tight text-fg-primary">
                 Verba AI
               </h2>
-              <p className="m-0 text-xs text-fg-muted">
+              <p className="m-0 text-sm text-fg-muted">
                 Your AI-powered text assistant.
               </p>
             </div>
             <button
-              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 border border-border-default bg-surface-base px-3 py-1.5 text-xs font-medium text-fg-secondary transition-colors select-none hover:bg-surface-subtle"
+              className="inline-flex shrink-0 cursor-pointer items-center gap-1.5 border border-border-default bg-surface-base px-3 py-1.5 text-xs font-medium text-fg-secondary transition-colors select-none hover:bg-surface-subtle hover:text-fg-primary"
               data-radius-sample="radius-button"
               style={{ borderRadius: componentRadiusCss("radius-button") }}
               type="button"
@@ -160,24 +161,27 @@ export function RadiusPreviewTab({
 
           <section
             aria-label="Assistant"
-            className="flex flex-col gap-4 rounded-container p-5"
+            className="flex flex-col gap-5 rounded-container border border-border-subtle p-5"
             style={PANEL}
           >
-            <h3
-              className="m-0 mt-16 text-2xl font-medium text-fg-secondary"
-              style={{
-                fontFamily:
-                  "var(--font-display-1-family, var(--font-body-family, serif))",
-              }}
-            >
-              How can I help you?
-            </h3>
+            <div className="flex flex-col gap-2 pt-2">
+              <Sparkles aria-hidden className="size-5 text-action-primary" />
+              <h3
+                className="m-0 text-2xl font-medium text-fg-primary"
+                style={{
+                  fontFamily:
+                    "var(--font-display-1-family, var(--font-body-family, serif))",
+                }}
+              >
+                How can I help you?
+              </h3>
+            </div>
 
             <ul className="m-0 flex list-none flex-wrap gap-2 p-0">
               {SUGGESTIONS.map((suggestion) => (
                 <li key={suggestion}>
                   <button
-                    className="inline-flex cursor-pointer items-center border-0 bg-surface-base/40 px-3.5 py-1.5 text-xs font-medium text-fg-secondary backdrop-blur-sm transition-all select-none hover:bg-surface-base/70"
+                    className="inline-flex cursor-pointer items-center border border-border-subtle bg-surface-base px-3 py-1.5 text-xs font-medium text-fg-secondary transition-colors select-none hover:border-border-default hover:bg-surface-raised hover:text-fg-primary"
                     data-radius-sample="radius-chip"
                     style={{ borderRadius: componentRadiusCss("radius-chip") }}
                     type="button"
@@ -189,20 +193,22 @@ export function RadiusPreviewTab({
               ))}
             </ul>
 
-            <div className="flex items-center gap-2">
+            <div
+              className="flex items-center gap-1.5 border border-border-default bg-surface-base p-1.5 transition-colors focus-within:border-fg-accent"
+              data-radius-sample="radius-input"
+              style={{ borderRadius: componentRadiusCss("radius-input") }}
+            >
               <input
                 aria-label="Ask something"
-                className="h-12 min-w-0 flex-1 border-0 bg-surface-base px-4 text-sm text-fg-primary placeholder:text-fg-muted focus:ring-1 focus:ring-fg-accent/20 focus:outline-none"
-                data-radius-sample="radius-input"
+                className="h-9 min-w-0 flex-1 border-0 bg-transparent px-3 text-sm text-fg-primary placeholder:text-fg-muted focus:outline-none"
                 placeholder="Ask something..."
-                style={{ borderRadius: componentRadiusCss("radius-input") }}
                 type="text"
                 value={prompt}
                 onChange={(event) => setPrompt(event.target.value)}
               />
               <button
                 aria-label="Voice input"
-                className="inline-flex size-12 shrink-0 cursor-pointer items-center justify-center border-0 bg-surface-base text-action-primary transition-all select-none hover:bg-surface-base/90"
+                className="inline-flex size-9 shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent text-fg-muted transition-colors select-none hover:bg-surface-subtle hover:text-action-primary"
                 data-radius-sample="radius-button"
                 style={{ borderRadius: componentRadiusCss("radius-button") }}
                 type="button"
@@ -210,7 +216,7 @@ export function RadiusPreviewTab({
                 <Mic aria-hidden className="size-4" />
               </button>
               <button
-                className="inline-flex h-12 shrink-0 cursor-pointer items-center justify-center border-0 bg-action-primary px-5 text-sm font-semibold text-fg-on-action transition-opacity select-none hover:opacity-90"
+                className="inline-flex h-9 shrink-0 cursor-pointer items-center justify-center border-0 bg-action-primary px-4 text-sm font-semibold text-fg-on-action transition-opacity select-none hover:opacity-90"
                 data-radius-sample="radius-button"
                 style={{ borderRadius: componentRadiusCss("radius-button") }}
                 type="button"
