@@ -3,6 +3,7 @@ import {
   assessSandboxTarget,
   assignSandboxColour,
   DEFAULT_SANDBOX_COLOURS,
+  pressedSandboxTarget,
   resolveSandbox,
   resolveSandboxColour,
   SANDBOX_TARGETS,
@@ -276,5 +277,49 @@ describe("assessSandboxTarget", () => {
     )[0];
 
     expect(darkOnLight?.value).not.toBe(lightOnDark?.value);
+  });
+});
+
+describe("pressedSandboxTarget", () => {
+  const pointer = { isDeepModifier: false, isTouch: false };
+  const touch = { isDeepModifier: false, isTouch: true };
+
+  it("takes the fill first, and the text with a modifier", () => {
+    expect(
+      pressedSandboxTarget(null, "buttonFill", "buttonText", pointer),
+    ).toBe("buttonFill");
+    expect(
+      pressedSandboxTarget("buttonFill", "buttonFill", "buttonText", pointer),
+    ).toBe("buttonFill");
+    expect(
+      pressedSandboxTarget(null, "buttonFill", "buttonText", {
+        ...pointer,
+        isDeepModifier: true,
+      }),
+    ).toBe("buttonText");
+  });
+
+  it("cycles fill, text, fill on a touch screen", () => {
+    expect(
+      pressedSandboxTarget("body", "buttonFill", "buttonText", touch),
+    ).toBe("buttonFill");
+    expect(
+      pressedSandboxTarget("buttonFill", "buttonFill", "buttonText", touch),
+    ).toBe("buttonText");
+    expect(
+      pressedSandboxTarget("buttonText", "buttonFill", "buttonText", touch),
+    ).toBe("buttonFill");
+  });
+
+  it("selects a layer with no text inside as itself, however it is pressed", () => {
+    expect(pressedSandboxTarget("heading", "heading", undefined, touch)).toBe(
+      "heading",
+    );
+    expect(
+      pressedSandboxTarget(null, "heading", undefined, {
+        isDeepModifier: true,
+        isTouch: false,
+      }),
+    ).toBe("heading");
   });
 });

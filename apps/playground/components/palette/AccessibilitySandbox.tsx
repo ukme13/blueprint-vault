@@ -10,6 +10,7 @@ import {
 import {
   assessSandboxTarget,
   assignSandboxColour,
+  pressedSandboxTarget,
   DEFAULT_SANDBOX_COLOURS,
   resolveSandbox,
   resolveSandboxColour,
@@ -104,7 +105,12 @@ export function AccessibilitySandbox({
       : { role: "button" as const, "aria-pressed": target === shallow }),
     tabIndex: 0,
     onClick: (event: MouseEvent) =>
-      select(deep && (event.ctrlKey || event.metaKey) ? deep : shallow)(event),
+      select(
+        pressedSandboxTarget(target, shallow, deep, {
+          isDeepModifier: event.ctrlKey || event.metaKey,
+          isTouch: isPhone,
+        }),
+      )(event),
     onDoubleClick: deep ? select(deep) : undefined,
     onKeyDown: (event: KeyboardEvent) => {
       if (event.key !== "Enter" && event.key !== " ") return;

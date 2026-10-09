@@ -256,3 +256,28 @@ export function assessSandboxTarget(
     },
   ];
 }
+
+/**
+ * What a press on a layer selects.
+ *
+ * A container (a button, a badge) has two things to colour: its fill, which a
+ * press takes first, and the text inside it. A pointer goes in for the text
+ * with a modifier or a double click. A finger has neither, so a tap on a
+ * container already held goes in, and a tap on its text comes back out: the
+ * same press cycles fill, text, fill. A layer with no text inside (the
+ * heading, the body) always selects itself.
+ */
+export function pressedSandboxTarget(
+  current: SandboxTarget | null,
+  shallow: SandboxTarget,
+  deep: SandboxTarget | undefined,
+  how: { isDeepModifier: boolean; isTouch: boolean },
+): SandboxTarget {
+  if (!deep) return shallow;
+  if (how.isDeepModifier) return deep;
+  if (how.isTouch) {
+    if (current === shallow) return deep;
+    if (current === deep) return shallow;
+  }
+  return shallow;
+}

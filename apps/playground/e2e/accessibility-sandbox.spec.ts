@@ -541,4 +541,29 @@ test.describe("The standard toggle", () => {
       .click();
     await expect.poll(() => colourOf(page, "body")).not.toBe(before);
   });
+
+  test("goes into a button for its text with a second tap, and back out with a third", async ({
+    seededPage: page,
+  }) => {
+    /* A finger has no Ctrl and a double tap zooms, so a tap on a container
+       already held goes in. */
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openAccessibility(page);
+
+    await layer(page, "buttonFill").click();
+    await expect(controlBar(page)).toContainText("Button Fill");
+    await layer(page, "buttonFill").click();
+    await expect(controlBar(page)).toContainText("Button Text");
+    await expect(card(page, "WCAG 2", "Button Text")).toBeVisible();
+    await layer(page, "buttonFill").click();
+    await expect(controlBar(page)).toContainText("Button Fill");
+
+    /* The badge, the same. A heading has no text of its own to go into. */
+    await layer(page, "badgeFill").click();
+    await layer(page, "badgeFill").click();
+    await expect(controlBar(page)).toContainText("Badge Text");
+    await layer(page, "heading").click();
+    await layer(page, "heading").click();
+    await expect(controlBar(page)).toContainText("Heading Text");
+  });
 });
