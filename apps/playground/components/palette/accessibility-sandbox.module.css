@@ -176,7 +176,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 40px;
+  gap: 24px;
   min-height: 560px;
   padding: 44px 64px 80px;
   /* A selection's handles reach past the layer, so they must not be clipped. */
@@ -359,7 +359,7 @@
 
   .stage {
     min-height: 0;
-    padding: 32px 20px;
+    padding: 64px 20px;
   }
 
   .copy h2 {
