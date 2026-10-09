@@ -1,0 +1,338 @@
+import { gradeContrast, type ContrastJob } from "./accessibility-standard";
+import type { ContrastStandard } from "./palette-view";
+import {
+  resolveSemantic,
+  type ColourMode,
+  type SemanticToken,
+} from "./semantic";
+import type { ColorTrack } from "./types";
+
+/**
+ * The accessibility sandbox: a small hero whose colours can each be picked,
+ * and a verdict on the pair that the selection makes.
+ *
+ * Every part of the hero that takes a colour is a target. A target holds one
+ * colour, either a semantic role, which follows the theme, or a primitive
+ * shade, which does not. What the sandbox measures is decided here, so the
+ * card on screen and the tests read the same rules.
+ */
+export const SANDBOX_TARGETS = [
+  "background",
+  "badgeFill",
+  "badgeText",
+  "heading",
+  "body",
+  "buttonFill",
+  "buttonText",
+] as const;
+
+export type SandboxTarget = (typeof SANDBOX_TARGETS)[number];
+
+export const SANDBOX_TARGET_LABELS: Record<SandboxTarget, string> = {
+  background: "Background",
+  badgeFill: "Badge Fill",
+  badgeText: "Badge Text",
+  heading: "Heading Text",
+  body: "Body Text",
+  buttonFill: "Button Fill",
+  buttonText: "Button Text",
+};
+
+/** A colour a target holds: a role of the layer, or a shade of a track. */
+export type SandboxColour =
+  | { kind: "semantic"; id: string }
+  | { kind: "primitive"; trackId: string; weight: number };
+
+export type SandboxColours = Record<SandboxTarget, SandboxColour>;
+
+/** The hero as it opens: every part on a role, so it follows the theme. */
+export const DEFAULT_SANDBOX_COLOURS: SandboxColours = {
+  background: { kind: "semantic", id: "surface.subtle" },
+  badgeFill: { kind: "semantic", id: "surface.raised" },
+  badgeText: { kind: "semantic", id: "fg.accent" },
+  heading: { kind: "semantic", id: "fg.primary" },
+  body: { kind: "semantic", id: "fg.secondary" },
+  buttonFill: { kind: "semantic", id: "action.primary" },
+  buttonText: { kind: "semantic", id: "fg.on-action" },
+};
+
+/** The page the hero sits on, which a fill is measured against. */
+export const SANDBOX_PAGE_ROLE = "surface.base";
+
+/** A colour as the sandbox shows it. */
+export interface ResolvedSandboxColour {
+  hex: string;
+  name: string;
+  /** The track and weight it comes to, for the shade ramp to light. */
+  trackId: string;
+  weight: number;
+}
+
+/**
+ * A colour's hex in a mode.
+ *
+ * A role is resolved through the layer in the mode asked for, which is how one
+ * assignment is light in light and dark in dark. A shade is the shade, in both.
+ * Null for a role the layer no longer has or a track that is gone.
+ */
+export function resolveSandboxColour(
+  colour: SandboxColour,
+  tokens: readonly SemanticToken[],
+  tracks: ColorTrack[],
+  mode: ColourMode,
+): ResolvedSandboxColour | null {
+  if (colour.kind === "primitive") {
+    const track = tracks.find((each) => each.id === colour.trackId);
+    const shade = track?.shades.find((each) => each.weight === colour.weight);
+    return track && shade
+      ? {
+          hex: shade.hex,
+          name: `${track.name} ${shade.weight}`,
+          trackId: track.id,
+          weight: shade.weight,
+        }
+      : null;
+  }
+  const token = tokens.find((each) => each.id === colour.id);
+  const resolved = token ? resolveSemantic(token, mode, tracks) : null;
+  return token && resolved
+    ? {
+        hex: resolved.hex,
+        name: token.name,
+        trackId: resolved.trackId,
+        weight: resolved.weight,
+      }
+    : null;
+}
+
+/** The hexes of every target, and of the page, in a mode. Null if one is gone. */
+export function resolveSandbox(
+  colours: SandboxColours,
+  tokens: readonly SemanticToken[],
+  tracks: ColorTrack[],
+  mode: ColourMode,
+): { hexes: Record<SandboxTarget, string>; page: string } | null {
+  const hexes = {} as Record<SandboxTarget, string>;
+  for (const target of SANDBOX_TARGETS) {
+    const resolved = resolveSandboxColour(
+      colours[target],
+      tokens,
+      tracks,
+      mode,
+    );
+    if (!resolved) return null;
+    hexes[target] = resolved.hex;
+  }
+  const page = resolveSandboxColour(
+    { kind: "semantic", id: SANDBOX_PAGE_ROLE },
+    tokens,
+    tracks,
+    mode,
+  );
+  return page ? { hexes, page: page.hex } : null;
+}
+
+/**
+ * Hand a target a new colour: `SandboxColours -> SandboxColours`.
+ *
+ * Choosing a colour for the background keeps the hero's other parts as they
+ * are; it is the person's job to see whether they still read.
+ */
+export function assignSandboxColour(
+  colours: SandboxColours,
+  target: SandboxTarget,
+  colour: SandboxColour,
+): SandboxColours {
+  return { ...colours, [target]: colour };
+}
+
+/**
+ * What a row is about, drawn as a small mark ahead of it: a bold A for
+ * heading text, a plain a for body text, a square for a fill, a UI component
+ * or a graphic.
+ */
+export type SandboxGlyph = "heading" | "body" | "ui";
+
+/** One line of the card: a pair, its figure, and whether it does the job. */
+export interface SandboxRow {
+  label: "Text on Fill" | "Fill on Page";
+  value: string;
+  grade: string;
+  /** Null where there is no requirement to meet: an advisory figure. */
+  passes: boolean | null;
+  glyph: SandboxGlyph;
+  /**
+   * The pair measured, so the mark can be drawn in it: the ink (the text, or
+   * the fill) on its ground. The row's figure is the contrast between them.
+   */
+  foreground: string;
+  background: string;
+}
+
+/** A piece of text a target is read against its fill. */
+interface TextPair {
+  text: SandboxTarget;
+  /** The job it does, which sets the line it has to clear. */
+  job: ContrastJob;
+  glyph: "heading" | "body";
+}
+
+/** The parts a target stands for: its texts, its fill, and what is behind it. */
+interface Pairing {
+  texts: TextPair[];
+  fill: SandboxTarget;
+  /** What the fill sits on: another target, or the page itself. */
+  behind: SandboxTarget | "page";
+  /** Whether the fill is a component, and so has a line to clear. */
+  fillIsComponent: boolean;
+}
+
+const HEADING_TEXT: TextPair = {
+  text: "heading",
+  job: "large",
+  glyph: "heading",
+};
+const BODY_TEXT: TextPair = { text: "body", job: "body", glyph: "body" };
+/* A control's label is the job "label": short and heavy, so not held to
+   body text's line. Its mark stays the small a, as it is small text. */
+const BADGE_TEXT: TextPair = { text: "badgeText", job: "label", glyph: "body" };
+const BUTTON_TEXT: TextPair = {
+  text: "buttonText",
+  job: "label",
+  glyph: "body",
+};
+
+const PAIRINGS: Record<SandboxTarget, Pairing> = {
+  /* The hero's own fill is read against both texts that sit on it. */
+  background: {
+    texts: [HEADING_TEXT, BODY_TEXT],
+    fill: "background",
+    behind: "page",
+    fillIsComponent: false,
+  },
+  heading: {
+    texts: [HEADING_TEXT],
+    fill: "background",
+    behind: "page",
+    fillIsComponent: false,
+  },
+  body: {
+    texts: [BODY_TEXT],
+    fill: "background",
+    behind: "page",
+    fillIsComponent: false,
+  },
+  badgeFill: {
+    texts: [BADGE_TEXT],
+    fill: "badgeFill",
+    behind: "background",
+    fillIsComponent: true,
+  },
+  badgeText: {
+    texts: [BADGE_TEXT],
+    fill: "badgeFill",
+    behind: "background",
+    fillIsComponent: true,
+  },
+  buttonFill: {
+    texts: [BUTTON_TEXT],
+    fill: "buttonFill",
+    behind: "background",
+    fillIsComponent: true,
+  },
+  buttonText: {
+    texts: [BUTTON_TEXT],
+    fill: "buttonFill",
+    behind: "background",
+    fillIsComponent: true,
+  },
+};
+
+/**
+ * The card for a selected target: each text on its fill, and its fill on what
+ * is behind it.
+ *
+ * Text is judged for the job it does (a heading is large text, the rest body
+ * text) and a component's fill as a UI component. A background is not a
+ * component: it has no line to clear against the page, so that figure is
+ * given and not judged. Each row says which kind of thing it reads, and the
+ * colours it drew from, so the card can show the pair itself.
+ */
+export function assessSandboxTarget(
+  standard: ContrastStandard,
+  target: SandboxTarget,
+  hexes: Record<SandboxTarget, string>,
+  page: string,
+): SandboxRow[] {
+  const pairing = PAIRINGS[target];
+  const fill = hexes[pairing.fill];
+  const behind = pairing.behind === "page" ? page : hexes[pairing.behind];
+
+  const texts = pairing.texts.map((pair): SandboxRow => {
+    const ink = hexes[pair.text];
+    const graded = gradeContrast(standard, pair.job, ink, fill);
+    return {
+      label: "Text on Fill",
+      value: graded.value,
+      grade: graded.grade,
+      passes: graded.passes,
+      glyph: pair.glyph,
+      foreground: ink,
+      background: fill,
+    };
+  });
+
+  const onPage = gradeContrast(standard, "ui", fill, behind);
+  return [
+    ...texts,
+    {
+      label: "Fill on Page",
+      value: onPage.value,
+      grade: pairing.fillIsComponent ? onPage.grade : "Advisory",
+      passes: pairing.fillIsComponent ? onPage.passes : null,
+      glyph: "ui",
+      foreground: fill,
+      background: behind,
+    },
+  ];
+}
+
+/**
+ * What a press on a layer selects.
+ *
+ * A container (a button, a badge) has two things to colour: its fill, which a
+ * press takes first, and the text inside it. A pointer goes in for the text
+ * with a modifier or a double click. A finger has neither, so a tap on a
+ * container already held goes in, and a tap on its text comes back out: the
+ * same press cycles fill, text, fill. A layer with no text inside (the
+ * heading, the body) always selects itself.
+ */
+export function pressedSandboxTarget(
+  current: SandboxTarget | null,
+  shallow: SandboxTarget,
+  deep: SandboxTarget | undefined,
+  how: { isDeepModifier: boolean; isTouch: boolean },
+): SandboxTarget {
+  if (!deep) return shallow;
+  if (how.isDeepModifier) return deep;
+  if (how.isTouch) {
+    if (current === shallow) return deep;
+    if (current === deep) return shallow;
+  }
+  return shallow;
+}
+
+/** Whether every layer is on the colour the sandbox opened with. */
+export function isDefaultSandboxColours(colours: SandboxColours): boolean {
+  return SANDBOX_TARGETS.every((target) => {
+    const have = colours[target];
+    const want = DEFAULT_SANDBOX_COLOURS[target];
+    if (have.kind === "semantic" && want.kind === "semantic") {
+      return have.id === want.id;
+    }
+    if (have.kind === "primitive" && want.kind === "primitive") {
+      return have.trackId === want.trackId && have.weight === want.weight;
+    }
+    return false;
+  });
+}

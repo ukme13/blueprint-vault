@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   contrastStatus,
+  cutRatio,
   isContrastWarning,
+  ratioText,
+  shownLc,
   swatchContrast,
 } from "./contrast-reading";
 
@@ -27,7 +30,8 @@ describe("swatchContrast", () => {
   it("is the same pair in both, so the two figures can be compared", () => {
     const wcag2 = swatchContrast("wcag2", "#777777", "#ffffff");
     const wcag3 = swatchContrast("wcag3", "#777777", "#ffffff");
-    expect(wcag2.label).toBe("4.5");
+    /* 4.478 is cut to 4.4, not rounded up to the 4.5 it is short of. */
+    expect(wcag2.label).toBe("4.4");
     expect(wcag3.label).toBe("71");
     /* Between the lines in both: clears some, not all. */
     expect(wcag2.status).toBe("partial");
@@ -35,14 +39,41 @@ describe("swatchContrast", () => {
   });
 
   it("changes step on the line, as the figure crosses it", () => {
-    /* #595959 on white is 7.005:1, which clears AAA; #5a5a5a is 6.897:1. */
+    /* #595959 on white is 7.005:1, which clears AAA; #5a5a5a is 6.897:1,
+       cut to 6.8 and not rounded up to the 6.9 it is read as. */
     expect(swatchContrast("wcag2", "#595959", "#ffffff")).toMatchObject({
       label: "7.0",
       status: "pass",
     });
     expect(swatchContrast("wcag2", "#5a5a5a", "#ffffff")).toMatchObject({
-      label: "6.9",
+      label: "6.8",
       status: "partial",
+    });
+  });
+
+  it("judges an Lc on the whole number it shows", () => {
+    /* #acacac is Lc 44.78: shown as 45, which is the UI line, so it clears it. */
+    expect(swatchContrast("wcag3", "#acacac", "#ffffff")).toMatchObject({
+      label: "45",
+      status: "partial",
+    });
+    /* #b0b0b0 is Lc 43: under it. */
+    expect(swatchContrast("wcag3", "#b0b0b0", "#ffffff")).toMatchObject({
+      label: "43",
+      status: "fail",
+    });
+    /* #6f6f6f is Lc 74.76: shown as 75, which is the body line. */
+    expect(swatchContrast("wcag3", "#6f6f6f", "#ffffff")).toMatchObject({
+      label: "75",
+      status: "pass",
+    });
+  });
+
+  it("never shows a ratio that is at a line it is under", () => {
+    /* 2.995:1 is under 3, and reads 2.9, not 3.0. */
+    expect(swatchContrast("wcag2", "#959595", "#ffffff")).toMatchObject({
+      label: "2.9",
+      status: "fail",
     });
   });
 
@@ -94,5 +125,28 @@ describe("contrastStatus", () => {
     expect(contrastStatus("wcag3", 74)).toBe("partial");
     expect(contrastStatus("wcag3", 75)).toBe("pass");
     expect(contrastStatus("wcag3", 106)).toBe("pass");
+  });
+});
+
+describe("the figure shown is the figure judged", () => {
+  it("shows a whole Lc, signless", () => {
+    expect(shownLc(44.78)).toBe(45);
+    expect(shownLc(-74.6)).toBe(75);
+    expect(shownLc(44.4)).toBe(44);
+  });
+
+  it("cuts a ratio to its places and never up", () => {
+    expect(cutRatio(4.478)).toBe("4.4");
+    expect(cutRatio(2.995)).toBe("2.9");
+    expect(cutRatio(4.499, 2)).toBe("4.49");
+    expect(ratioText(7.004)).toBe("7.0:1");
+    expect(ratioText(4.478, 2)).toBe("4.47:1");
+  });
+
+  it("does not cut a whole ratio below itself", () => {
+    expect(cutRatio(21)).toBe("21.0");
+    expect(cutRatio(7)).toBe("7.0");
+    expect(cutRatio(4.5)).toBe("4.5");
+    expect(cutRatio(3, 2)).toBe("3.00");
   });
 });

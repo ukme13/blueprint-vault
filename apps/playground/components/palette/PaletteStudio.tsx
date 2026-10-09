@@ -48,6 +48,7 @@ import {
 import { ConfirmDialog } from "../ConfirmDialog";
 import { SystemExportDialog } from "../SystemExportDialog";
 import { VisionControl } from "../VisionControl";
+import { AccessibilityStandardToggle } from "./AccessibilityStandardToggle";
 import { StudioSliceEmpty } from "../shell/StudioSliceEmpty";
 import { PaletteControls } from "./PaletteControls";
 import { ContrastToolbar } from "./ContrastToolbar";
@@ -760,6 +761,9 @@ function PaletteStudioContent() {
           onCustomColourChange={setCustomContrastColour}
           onTargetChange={setContrastTarget}
         />
+        {activeSection === "accessibility" ? (
+          <AccessibilityStandardToggle />
+        ) : null}
         <VisionControl />
         {/* On a phone Reset preset is an icon beside Vision rather than a
             label at the far end of a strip that scrolls. Both are rendered and

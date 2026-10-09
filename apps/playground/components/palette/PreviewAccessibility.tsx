@@ -1,9 +1,19 @@
-import { describeSemanticPair, type PreviewAssessment } from "@blueprint/ui";
+import {
+  describeSemanticPair,
+  readBoundary,
+  readFocus,
+  readTextCheck,
+  readTextChoice,
+  type ContrastStandard,
+  type PreviewAssessment,
+} from "@blueprint/ui";
 import { AccessibilityRow } from "./AccessibilityRow";
 import styles from "./palette-workspace.module.css";
 
 interface PreviewAccessibilityProps {
   assessment: PreviewAssessment;
+  /** Whose figures and tiers the rows are worded in. */
+  standard: ContrastStandard;
 }
 
 /**
@@ -19,6 +29,7 @@ interface PreviewAccessibilityProps {
  */
 export function PreviewAccessibility({
   assessment,
+  standard,
 }: PreviewAccessibilityProps) {
   const {
     shades,
@@ -29,39 +40,42 @@ export function PreviewAccessibility({
     semanticPairs,
   } = assessment;
 
+  const focus = readFocus(
+    standard,
+    shades["focus.ring"]!.hex,
+    shades["fg.primary"]!.hex,
+    focusCheck,
+  );
+
   return (
     <div className={styles.previewPanel}>
       <section className={styles.accessibilityGrid}>
         <section aria-labelledby="text-contrast-heading">
           <h2 id="text-contrast-heading">Text contrast</h2>
           <p className={styles.accessibilityNote}>
-            Checks each foreground and background pair for normal and large text
-            requirements.
+            {standard === "wcag3"
+              ? "Reads each foreground and background pair as an APCA Lc: 75 for body text, 60 for large text, 45 for UI."
+              : "Checks each foreground and background pair for normal and large text requirements."}
           </p>
           <section className={styles.contrastList}>
-            {textChecks.map((check) => (
-              <AccessibilityRow
-                key={check.label}
-                background={check.background}
-                badge={
-                  check.result.normalText.aaa
-                    ? "AAA"
-                    : check.result.normalText.aa
-                      ? "AA"
-                      : check.result.largeText.aa
-                        ? "Large AA"
-                        : "Fail"
-                }
-                detail={`${check.foreground} on ${check.background}`}
-                foreground={check.foreground}
-                label={check.label}
-                ratioLabel={`${check.result.ratio.toFixed(1)}:1`}
-                status={check.result.status}
-                summary={check.result.summary}
-                simulated={check.simulated}
-                weakensUnder={check.weakensUnder}
-              />
-            ))}
+            {textChecks.map((check) => {
+              const reading = readTextCheck(standard, check);
+              return (
+                <AccessibilityRow
+                  key={check.label}
+                  background={check.background}
+                  badge={reading.badge}
+                  detail={`${check.foreground} on ${check.background}`}
+                  foreground={check.foreground}
+                  label={check.label}
+                  ratioLabel={reading.figure}
+                  status={reading.status}
+                  summary={reading.summary}
+                  simulated={check.simulated}
+                  weakensUnder={check.weakensUnder}
+                />
+              );
+            })}
           </section>
         </section>
 
@@ -73,26 +87,18 @@ export function PreviewAccessibility({
           </p>
           <section className={styles.contrastList}>
             {textColourChoices.map((check) => {
-              const isWhite = check.recommendation.colour === "#ffffff";
+              const choice = readTextChoice(standard, check);
               return (
                 <AccessibilityRow
                   key={check.label}
                   background={check.background}
-                  badge={isWhite ? "Use white" : "Use dark"}
-                  detail={`White ${
-                    isWhite
-                      ? check.recommendation.ratio.toFixed(1)
-                      : check.recommendation.alternativeRatio.toFixed(1)
-                  }:1 · Dark ${
-                    isWhite
-                      ? check.recommendation.alternativeRatio.toFixed(1)
-                      : check.recommendation.ratio.toFixed(1)
-                  }:1`}
-                  foreground={check.recommendation.colour}
+                  badge={choice.isWhite ? "Use white" : "Use dark"}
+                  detail={choice.detail}
+                  foreground={choice.colour}
                   label={check.label}
-                  ratioLabel={`${check.recommendation.ratio.toFixed(1)}:1`}
+                  ratioLabel={choice.figure}
                   status="pass"
-                  summary={`${isWhite ? "White" : "Dark"} text gives stronger contrast.`}
+                  summary={`${choice.isWhite ? "White" : "Dark"} text gives stronger contrast.`}
                 />
               );
             })}
@@ -102,47 +108,41 @@ export function PreviewAccessibility({
         <section aria-labelledby="non-text-heading">
           <h2 id="non-text-heading">Controls and focus</h2>
           <p className={styles.accessibilityNote}>
-            Checks the 3:1 requirement for visible boundaries and keyboard focus
-            colours. Decorative surfaces are advisory only.
+            {standard === "wcag3"
+              ? "Checks Lc 45 for visible boundaries and keyboard focus colours. Decorative surfaces are advisory only."
+              : "Checks the 3:1 requirement for visible boundaries and keyboard focus colours. Decorative surfaces are advisory only."}
           </p>
           <section className={styles.contrastList}>
-            {nonTextChecks.map((check) => (
-              <AccessibilityRow
-                key={check.label}
-                background={check.background}
-                badge={
-                  check.countsTowardWarnings
-                    ? check.result.passes
-                      ? "Pass"
-                      : "Fail"
-                    : "Advisory"
-                }
-                detail={`${check.foreground} against ${check.background}`}
-                foreground={check.foreground}
-                label={check.label}
-                ratioLabel={`${check.result.ratio.toFixed(1)}:1`}
-                status={
-                  check.countsTowardWarnings ? check.result.status : "partial"
-                }
-                summary={
-                  check.countsTowardWarnings
-                    ? check.result.summary
-                    : "Optional design check; increase contrast only when this boundary communicates meaning."
-                }
-                simulated={check.countsTowardWarnings ? check.simulated : null}
-                weakensUnder={check.weakensUnder}
-                swatchType="border"
-              />
-            ))}
+            {nonTextChecks.map((check) => {
+              const reading = readBoundary(standard, check);
+              return (
+                <AccessibilityRow
+                  key={check.label}
+                  background={check.background}
+                  badge={reading.badge}
+                  detail={`${check.foreground} against ${check.background}`}
+                  foreground={check.foreground}
+                  label={check.label}
+                  ratioLabel={reading.figure}
+                  status={reading.status}
+                  summary={reading.summary}
+                  simulated={
+                    check.countsTowardWarnings ? check.simulated : null
+                  }
+                  weakensUnder={check.weakensUnder}
+                  swatchType="border"
+                />
+              );
+            })}
             <AccessibilityRow
               background={shades["fg.primary"]!.hex}
-              badge={focusCheck.status === "pass" ? "Pass" : "Fail"}
+              badge={focus.badge}
               detail={`${shades["focus.ring"]!.hex} against ${shades["fg.primary"]!.hex}`}
               foreground={shades["focus.ring"]!.hex}
               label="Keyboard focus colour"
-              ratioLabel={`${focusCheck.adjacentContrast.toFixed(1)}:1`}
-              status={focusCheck.status}
-              summary={focusCheck.summary}
+              ratioLabel={focus.figure}
+              status={focus.status}
+              summary={focus.summary}
               swatchType="focus"
             />
           </section>

@@ -6,6 +6,7 @@ import {
   assessNonTextContrast,
   assessTextContrast,
   colourVisionLabel,
+  ratioText,
   simulatedContrast,
   WCAG_CONTRAST,
   type ShadeItem,
@@ -114,7 +115,7 @@ export function ShadeContrastResult({
           variant="ghost"
           onClick={togglePolarity}
         />
-        <strong>{textContrast.ratio.toFixed(2)}:1</strong>
+        <strong>{ratioText(textContrast.ratio, 2)}</strong>
       </p>
       {simulated && (
         /* A ratio and no verdict, as everywhere else: WCAG defines AA on the
@@ -124,7 +125,7 @@ export function ShadeContrastResult({
           className={styles.contrastSimulated}
           data-weakens={simulated.weakens}
         >
-          {simulated.ratio.toFixed(2)}:1 under{" "}
+          {ratioText(simulated.ratio, 2)} under{" "}
           {colourVisionLabel(simulated.deficiency).toLowerCase()}
           {simulated.severity < 1 &&
             ` at ${Math.round(simulated.severity * 100)}%`}

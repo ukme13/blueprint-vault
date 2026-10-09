@@ -1,0 +1,493 @@
+/* The accessibility sandbox: a control bar in the toolbar's own style, and
+   under it a hero that runs edge to edge. The hero's colours are inline, being
+   whatever was picked; everything else here is the studio's chrome and uses
+   the semantic tokens. */
+
+.sandbox {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- Control bar ---------- */
+
+.controlBar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 50px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--color-border-default);
+  background: var(--color-surface-raised);
+  overflow-x: auto;
+}
+
+.controlBar strong {
+  flex: none;
+  color: var(--color-fg-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Far right of the bar, beside the ramp on a wide screen. */
+.resetButton {
+  flex: none;
+  margin-left: auto;
+}
+
+.controlHint {
+  color: var(--color-fg-secondary);
+  font-size: 13px;
+}
+
+/* The bar scrolls sideways, so the slot keeps its size: as a flex item it
+   shrank to nothing beside the ramp, and on a phone the trigger, the only
+   way to choose a colour from a list, was not there. */
+.pickerSlot {
+  flex: none;
+}
+
+.pickerTrigger {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 3px 12px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--color-fg-primary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pickerTrigger:hover {
+  background: var(--color-surface-subtle);
+}
+
+.pickerTrigger:focus-visible,
+.rampStep:focus-visible,
+.pickerTab:focus-visible,
+.stage:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.stage :focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.pickerPanel {
+  display: flex;
+  flex-direction: column;
+}
+
+/* In a sheet, the gap a selector sheet has between its held head and its
+   list. The head's negative margin assumes it: without it the list begins
+   under the head, and the first group's title was cut off. */
+@media (max-width: 640px) {
+  .pickerPanel {
+    gap: var(--spacing-3, 12px);
+  }
+}
+
+.pickerTabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 8px 0;
+}
+
+/* In a sheet the tabs are held under the title, with the sheet's own side
+   space around them rather than the popover's. */
+.pickerTabsSheet {
+  display: flex;
+  gap: 4px;
+}
+
+.sheetTitle {
+  margin: 0;
+  font-size: var(--font-size-lg, 1rem);
+  font-weight: 600;
+}
+
+.pickerTab {
+  flex: 1;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-fg-secondary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pickerTab[aria-selected="true"] {
+  border-color: var(--color-action-primary);
+  background: var(--color-action-primary);
+  color: var(--color-fg-on-action);
+}
+
+/* ---------- Shade ramp ---------- */
+
+/* One strip, 28px tall, the steps sharing its width, the ends rounded. The
+   labels are the weights, in the mono face the swatches use. */
+.ramp {
+  display: flex;
+  flex: 1 1 800px;
+  max-width: 800px;
+  min-width: 560px;
+  height: 28px;
+  border-radius: 8px;
+}
+
+.rampStep {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 11px;
+  cursor: pointer;
+}
+
+.rampStep:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+.rampStep:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+/* The one held, in a heavy outline that rises over its neighbours. */
+.rampStep[aria-pressed="true"] {
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 0 3px var(--color-fg-primary);
+}
+
+/* ---------- Stage and hero ---------- */
+
+.stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  min-height: 560px;
+  padding: 44px 64px 80px;
+  /* A selection's handles reach past the layer, so they must not be clipped. */
+  overflow: visible;
+}
+
+.copy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: center;
+}
+
+.copy h2 {
+  margin: 0;
+  font-size: 44px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.333;
+}
+
+.copy p {
+  max-width: 320px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.block {
+  display: block;
+}
+
+.badge,
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge {
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.button {
+  height: 42px;
+  min-width: 141px;
+  padding: 0 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.stage [data-sandbox-target] {
+  cursor: default;
+}
+
+/* ---------- Selection ---------- */
+
+.selection {
+  position: absolute;
+  z-index: 1;
+  box-sizing: border-box;
+  border: 2px solid var(--color-action-primary);
+  pointer-events: none;
+}
+
+.selection i {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--color-action-primary);
+  background: var(--color-surface-base);
+}
+
+.selection i:nth-of-type(1) {
+  top: -5px;
+  left: -5px;
+}
+.selection i:nth-of-type(2) {
+  top: -5px;
+  right: -5px;
+}
+.selection i:nth-of-type(3) {
+  bottom: -5px;
+  left: -5px;
+}
+.selection i:nth-of-type(4) {
+  right: -5px;
+  bottom: -5px;
+}
+
+.selection small {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--color-action-primary);
+  color: var(--color-fg-on-action);
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+/* ---------- Contrast score ---------- */
+
+.heroFrame {
+  position: relative;
+}
+
+/* On a wide screen a card floating over the hero's top left corner. */
+.hud {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  left: 12px;
+  min-width: 220px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-default);
+  border-radius: 10px;
+  background: var(--color-surface-raised);
+  color: var(--color-fg-primary);
+  font-size: 12px;
+}
+
+.hud h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.hud h3 span {
+  color: var(--color-fg-secondary);
+  font-weight: 500;
+}
+
+.hud ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hud li {
+  display: grid;
+  grid-template-columns: 18px 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud li > span:nth-child(2) {
+  color: var(--color-fg-secondary);
+}
+
+/* The mark ahead of a row: an 18px box in the pair's ground, and in it the
+   pair's ink as an A, an a or a square. Its colours are inline. */
+.glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.glyph[data-glyph="heading"] {
+  font-weight: 700;
+}
+
+.glyph[data-glyph="body"] {
+  font-weight: 400;
+}
+
+.glyph i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+/* Read by a screen reader and not drawn. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.hudGrade {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 72px;
+  justify-content: flex-end;
+  font-weight: 600;
+}
+
+.hud li[data-passes="true"] svg {
+  color: var(--color-status-success);
+}
+
+.hud li[data-passes="false"] svg {
+  color: var(--color-status-error);
+}
+
+/* Between a phone and a wide screen the card would sit over the hero's
+   content, so the stage leaves it a band of its own above. */
+@media (min-width: 641px) and (max-width: 1100px) {
+  .stage {
+    padding-top: 128px;
+  }
+}
+
+@media (max-width: 640px) {
+  /* The target on the left and its colour on the right; the ramp is for a
+     pointer, and a phone chooses from the sheet. */
+  .controlBar {
+    padding: 0 12px;
+  }
+
+  /* The target on the left, then its colour and Reset pushed to the right:
+     the free space goes before the colour, so Reset stays the far edge. */
+  .pickerSlot {
+    margin-left: auto;
+    /* The colour's name gives way, with an ellipsis, so a long role name
+       never pushes Reset off the bar. There is no ramp to hold it open. */
+    flex: 0 1 auto;
+    min-width: 0;
+    /* The slot is a grid, whose one column would not go under its button's
+       own width without this. */
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pickerTrigger {
+    max-width: 100%;
+  }
+
+  .pickerTrigger span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Tucked in beside the colour's name: the bar's gap is tighter here. */
+  .controlBar {
+    gap: 4px;
+  }
+
+  .resetButton {
+    margin-left: 0;
+  }
+
+  .stage {
+    min-height: 0;
+    padding: 64px 20px;
+  }
+
+  .copy h2 {
+    font-size: 32px;
+  }
+
+  /* On a phone the score is one strip the sandbox's width under the hero:
+     a card over a small hero would cover it. */
+  .hud {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 32px;
+    width: 100%;
+    padding: 12px;
+    border: 0;
+    border-bottom: 1px solid var(--color-border-default);
+    border-radius: 0;
+    font-size: 13px;
+  }
+
+  .hud h3 {
+    margin: 0;
+    font-size: 13px;
+  }
+
+  .hud ul {
+    width: 100%;
+    gap: 6px;
+  }
+
+  .hud li {
+    grid-template-columns: 18px 1fr auto auto;
+  }
+}

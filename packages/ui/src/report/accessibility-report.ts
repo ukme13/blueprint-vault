@@ -3,6 +3,7 @@ import {
   assessTextContrastAtSize,
   type AccessibilityStatus,
 } from "../color/accessibility";
+import { ratioText } from "../color/contrast-reading";
 import {
   assessPreview,
   previewShadesFor,
@@ -282,7 +283,7 @@ function semanticRow(check: SemanticContrastCheck): string {
      them and its composited colour by the other. */
   const resolved = describeSemanticContrast(check);
 
-  return `| ${check.mode} | ${check.foreground.id} | ${check.background.id} | ${resolved} | ${check.ratio.toFixed(2)}:1 | ${required}:1 | ${check.passes ? "Pass" : "Fail"} |`;
+  return `| ${check.mode} | ${check.foreground.id} | ${check.background.id} | ${resolved} | ${ratioText(check.ratio, 2)} | ${required}:1 | ${check.passes ? "Pass" : "Fail"} |`;
 }
 
 export function formatAccessibilityReportMarkdown(
@@ -309,7 +310,7 @@ export function formatAccessibilityReportMarkdown(
   lines.push("| --- | --- | --- | --- | --- | --- |");
   for (const check of colour.textChecks) {
     lines.push(
-      `| ${check.label} | ${check.foreground} | ${check.background} | ${check.result.ratio.toFixed(2)}:1 | ${verdict(check.result.status)} | ${weakensList(check.weakensUnder)} |`,
+      `| ${check.label} | ${check.foreground} | ${check.background} | ${ratioText(check.result.ratio, 2)} | ${verdict(check.result.status)} | ${weakensList(check.weakensUnder)} |`,
     );
   }
   lines.push("");
@@ -322,11 +323,11 @@ export function formatAccessibilityReportMarkdown(
   lines.push("| --- | --- | --- | --- | --- | --- |");
   for (const check of colour.nonTextChecks) {
     lines.push(
-      `| ${check.label} | ${check.foreground} on ${check.background} | ${check.result.ratio.toFixed(2)}:1 | ${WCAG_CONTRAST.nonText}:1 | ${check.countsTowardWarnings ? verdict(check.result.status) : "Advisory"} | ${weakensList(check.weakensUnder)} |`,
+      `| ${check.label} | ${check.foreground} on ${check.background} | ${ratioText(check.result.ratio, 2)} | ${WCAG_CONTRAST.nonText}:1 | ${check.countsTowardWarnings ? verdict(check.result.status) : "Advisory"} | ${weakensList(check.weakensUnder)} |`,
     );
   }
   lines.push(
-    `| Keyboard focus | ${colour.shades["focus.ring"]!.hex} on ${colour.shades["fg.primary"]!.hex} | ${colour.focusCheck.adjacentContrast.toFixed(2)}:1 | ${WCAG_CONTRAST.focusIndicator}:1 | ${verdict(colour.focusCheck.status)} | — |`,
+    `| Keyboard focus | ${colour.shades["focus.ring"]!.hex} on ${colour.shades["fg.primary"]!.hex} | ${ratioText(colour.focusCheck.adjacentContrast, 2)} | ${WCAG_CONTRAST.focusIndicator}:1 | ${verdict(colour.focusCheck.status)} | — |`,
   );
   lines.push("");
 
@@ -371,7 +372,7 @@ export function formatAccessibilityReportMarkdown(
     lines.push("| --- | --- | --- | --- | --- | --- | --- | --- |");
     for (const role of typography.roles) {
       lines.push(
-        `| ${role.name} | ${role.fontFamilies.join(", ") || "—"} | ${role.fontSizePx.toFixed(1)}px | ${role.fontWeight} | ${role.isLargeText ? "Large" : "Normal"} | ${role.ratio.toFixed(2)}:1 | ${role.requiredAA}:1 | ${verdict(role.status)} |`,
+        `| ${role.name} | ${role.fontFamilies.join(", ") || "—"} | ${role.fontSizePx.toFixed(1)}px | ${role.fontWeight} | ${role.isLargeText ? "Large" : "Normal"} | ${ratioText(role.ratio, 2)} | ${role.requiredAA}:1 | ${verdict(role.status)} |`,
       );
     }
     lines.push("");

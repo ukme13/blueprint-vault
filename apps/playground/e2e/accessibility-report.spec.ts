@@ -155,7 +155,10 @@ test.describe("The accessibility report", () => {
 
     for (const check of json.colour.textChecks) {
       expect(markdown.text).toContain(check.label);
-      expect(markdown.text).toContain(`${check.result.ratio.toFixed(2)}:1`);
+      /* The Markdown cuts a ratio to its two places, as the page does: 4.498
+         is 4.49, never a 4.50 that reads as AA and is not. */
+      const cut = Math.floor(check.result.ratio * 100 + 1e-9) / 100;
+      expect(markdown.text).toContain(`${cut.toFixed(2)}:1`);
     }
   });
 });
