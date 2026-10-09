@@ -901,6 +901,61 @@ test.describe("on a phone", () => {
     await expect(wcagPicker).toBeVisible();
   });
 
+  test("sets the contrast sheet's custom colour in a HEX field, not a bare swatch", async ({
+    seededPage: page,
+  }) => {
+    await page.getByRole("button", { name: "Contrast", exact: true }).click();
+    const sheet = page.getByRole("dialog", { name: "Contrast", exact: true });
+    await expect(
+      sheet.getByRole("textbox", { name: /custom contrast colour hex value/i }),
+    ).toHaveCount(0);
+    await sheet.getByRole("radio", { name: "Custom" }).click();
+
+    /* A field the sheet's width, holding the swatch and the HEX. */
+    const field = sheet.getByRole("textbox", {
+      name: /custom contrast colour hex value/i,
+    });
+    await expect(field).toBeVisible();
+    await expect(field).toHaveValue(/^#[0-9A-F]{6}$/);
+    const box = (await field.boundingBox())!;
+    const panel = (await sheet
+      .locator(".astryx-bottom-sheet")
+      .first()
+      .boundingBox())!;
+    expect(box.width).toBeGreaterThan(panel.width / 2);
+    const swatch = sheet
+      .getByRole("button", { name: /^Choose custom contrast colour$/i })
+      .locator("i");
+    await expect(swatch).toBeVisible();
+    const swatchBox = (await swatch.boundingBox())!;
+    expect(swatchBox.x).toBeLessThan(box.x + box.width / 3);
+    const colourOfSwatch = () =>
+      swatch.evaluate((el) => getComputedStyle(el).backgroundColor);
+
+    /* Typing a whole HEX applies it, and the swatch follows. */
+    await field.fill("#00563F");
+    await expect.poll(colourOfSwatch).toBe("rgb(0, 86, 63)");
+
+    /* Shorthand waits for Enter, then is read whole. */
+    await field.fill("#abc");
+    expect(await colourOfSwatch()).toBe("rgb(0, 86, 63)");
+    await field.press("Enter");
+    await expect.poll(colourOfSwatch).toBe("rgb(170, 187, 204)");
+    await expect(field).toHaveValue("#AABBCC");
+
+    /* Something that is not a colour goes back to the one held. */
+    await field.fill("not a colour");
+    await field.blur();
+    await expect(field).toHaveValue("#AABBCC");
+    expect(await colourOfSwatch()).toBe("rgb(170, 187, 204)");
+
+    /* The swatch still opens the full picker, as a sheet over this one. */
+    await swatch.click();
+    await expect(
+      page.getByRole("dialog", { name: /custom contrast colour picker$/i }),
+    ).toBeVisible();
+  });
+
   test("opens a track's details in a sheet", async ({ seededPage: page }) => {
     await page
       .getByRole("button", { name: /^Open .* colour details$/ })

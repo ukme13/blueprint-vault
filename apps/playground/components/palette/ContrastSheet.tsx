@@ -15,7 +15,7 @@ import {
   type ContrastTarget,
 } from "@blueprint/ui";
 import { SettingsSheet } from "../SettingsSheet";
-import { ColourPicker } from "./ColourPicker";
+import { ContrastColourField } from "./ContrastColourField";
 
 /**
  * Contrast checks, as a phone sets them.
@@ -111,7 +111,7 @@ export function ContrastSheet({
         </SegmentedControl>
 
         {draft.target === "custom" && (
-          <ColourPicker
+          <ContrastColourField
             label="Custom contrast colour"
             value={draft.customColour}
             onChange={(customColour) => update({ customColour })}
