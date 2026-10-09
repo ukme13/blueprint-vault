@@ -25,6 +25,9 @@ const standardButton = (page: Page, name: "WCAG 2" | "WCAG 3") =>
 const colourOf = (page: Page, name: string) =>
   layer(page, name).evaluate((el) => getComputedStyle(el).color);
 
+const fillOfLayer = (page: Page, name: string) =>
+  layer(page, name).evaluate((el) => getComputedStyle(el).backgroundColor);
+
 const openAccessibility = async (page: Page) => {
   await page.getByRole("button", { name: "Accessibility" }).click();
   await expect(sandbox(page)).toBeVisible();
@@ -323,6 +326,82 @@ test.describe("The contrast card", () => {
     );
   });
 
+  test("marks each row: A for heading text, a for body text, a square for a fill", async ({
+    seededPage: page,
+  }) => {
+    await openAccessibility(page);
+    await layer(page, "background").click({ position: { x: 8, y: 8 } });
+
+    const hud = card(page, "WCAG 2", "Background");
+    await expect(hud.locator("li")).toHaveCount(3);
+    const mark = (glyph: string) => hud.locator(`[data-glyph="${glyph}"]`);
+    await expect(mark("heading")).toHaveText("A");
+    await expect(mark("body")).toHaveText("a");
+    await expect(mark("ui")).toHaveText("");
+    await expect(mark("ui").locator("i")).toBeVisible();
+    await expect(mark("heading")).toHaveAttribute("aria-label", "Heading text");
+    await expect(mark("body")).toHaveAttribute(
+      "aria-label",
+      "Body or small text",
+    );
+    await expect(mark("ui")).toHaveAttribute(
+      "aria-label",
+      "UI component or graphic",
+    );
+
+    /* Each mark is drawn in the pair its row measures: the text's colour on
+       the fill it sits on, and the fill on the page behind it. */
+    const colourOfMark = (glyph: string) =>
+      mark(glyph).evaluate((el) => {
+        const style = getComputedStyle(el);
+        return { ink: style.color, ground: style.backgroundColor };
+      });
+    const fill = await fillOfLayer(page, "background");
+    expect(await colourOfMark("heading")).toEqual({
+      ink: await colourOf(page, "heading"),
+      ground: fill,
+    });
+    expect(await colourOfMark("body")).toEqual({
+      ink: await colourOf(page, "body"),
+      ground: fill,
+    });
+    expect(
+      await mark("ui")
+        .locator("i")
+        .evaluate((el) => getComputedStyle(el).backgroundColor),
+    ).toBe(fill);
+
+    /* The glyph's size is the design's: an 18px box with a 10px square. */
+    expect((await mark("heading").boundingBox())!.width).toBe(18);
+    expect((await mark("ui").locator("i").boundingBox())!.width).toBe(10);
+  });
+
+  test("a button's row is a body mark in its text and fill, and its fill sits on the hero", async ({
+    seededPage: page,
+  }) => {
+    await openAccessibility(page);
+    await layer(page, "buttonFill").click();
+
+    const hud = card(page, "WCAG 2", "Button Fill");
+    await expect(hud.locator("li")).toHaveCount(2);
+    const body = hud.locator('[data-glyph="body"]');
+    expect(
+      await body.evaluate((el) => {
+        const style = getComputedStyle(el);
+        return { ink: style.color, ground: style.backgroundColor };
+      }),
+    ).toEqual({
+      ink: await colourOf(page, "buttonText"),
+      ground: await fillOfLayer(page, "buttonFill"),
+    });
+    /* Its ground is the hero it sits on. */
+    expect(
+      await hud
+        .locator('[data-glyph="ui"]')
+        .evaluate((el) => getComputedStyle(el).backgroundColor),
+    ).toBe(await fillOfLayer(page, "background"));
+  });
+
   test("reads the pair in WCAG 2 as ratios with a grade", async ({
     seededPage: page,
   }) => {
@@ -334,7 +413,43 @@ test.describe("The contrast card", () => {
     await expect(hud).toContainText("Text on Fill");
     await expect(hud).toContainText("Fill on Page");
     await expect(hud).toContainText(/\d+\.\d:1/);
-    await expect(hud).toContainText(/(AAA|AA) Pass|Fail|Advisory/);
+    await expect(hud).toContainText(/AAA|AA|Fail|Advisory/);
+    /* The tick says pass, so the word is not repeated beside it. */
+    await expect(hud).not.toContainText("Pass");
+  });
+
+  test("shows a tick with its grade, not the word Pass, and a cross with Fail", async ({
+    seededPage: page,
+  }) => {
+    await openAccessibility(page);
+    await layer(page, "body").click();
+
+    /* Light, where the darkest shade is the one that reads. */
+    const theme = await openTheme(page);
+    await theme.getByRole("radio", { name: "Light" }).click();
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+
+    /* The darkest shade of its track, so it passes in both standards. */
+    await controlBar(page)
+      .getByRole("group", { name: /shades for Body Text/ })
+      .getByRole("button", { name: /^\S+ 950$/ })
+      .click();
+
+    /* Readable on its fill: a tick and AA or AAA. */
+    const hud = card(page, "WCAG 2", "Body Text");
+    const first = hud.locator("li").first();
+    await expect(first.locator("svg")).toHaveCount(1);
+    await expect(first.locator("[class*='hudGrade']")).toHaveText(/^(AAA|AA)$/);
+
+    /* Under WCAG 3 a pass is the tick alone, still named for a screen reader. */
+    await standardButton(page, "WCAG 3").click();
+    const lc = card(page, "WCAG 3", "Body Text").locator("li").first();
+    await expect(lc.locator("svg")).toHaveCount(1);
+    await expect(lc.locator("[class*='hudGrade']")).toHaveText("Pass");
+    /* The word is there for a screen reader and is not drawn. */
+    expect(
+      (await lc.locator("[class*='srOnly']").boundingBox())!.width,
+    ).toBeLessThanOrEqual(1);
   });
 
   test("turns into Lc and Pass or Fail under WCAG 3", async ({
@@ -380,7 +495,7 @@ test.describe("The contrast card", () => {
 
     const hud = card(page, "WCAG 2", "Background");
     await expect(hud).toContainText("Advisory");
-    await expect(hud.locator("li").nth(1).locator("svg")).toHaveCount(0);
+    await expect(hud.locator("li").last().locator("svg")).toHaveCount(0);
   });
 
   test("shows the same figure as the sandbox when the view is simulated", async ({

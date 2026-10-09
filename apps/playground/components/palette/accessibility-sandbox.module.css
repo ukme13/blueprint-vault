@@ -306,8 +306,6 @@
   border: 1px solid var(--color-border-default);
   border-radius: 10px;
   background: var(--color-surface-raised);
-  box-shadow: 0 4px 16px
-    color-mix(in oklch, var(--color-fg-primary) 14%, transparent);
   color: var(--color-fg-primary);
   font-size: 12px;
 }
@@ -337,13 +335,51 @@
 
 .hud li {
   display: grid;
-  grid-template-columns: 1fr auto auto;
+  grid-template-columns: 18px 1fr auto auto;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
-.hud li > span:first-child {
+.hud li > span:nth-child(2) {
   color: var(--color-fg-secondary);
+}
+
+/* The mark ahead of a row: an 18px box in the pair's ground, and in it the
+   pair's ink as an A, an a or a square. Its colours are inline. */
+.glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.glyph[data-glyph="heading"] {
+  font-weight: 700;
+}
+
+.glyph[data-glyph="body"] {
+  font-weight: 400;
+}
+
+.glyph i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+/* Read by a screen reader and not drawn. */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .hudGrade {
@@ -401,7 +437,6 @@
     border: 0;
     border-bottom: 1px solid var(--color-border-default);
     border-radius: 0;
-    box-shadow: none;
     font-size: 13px;
   }
 
@@ -416,6 +451,6 @@
   }
 
   .hud li {
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: 18px 1fr auto auto;
   }
 }

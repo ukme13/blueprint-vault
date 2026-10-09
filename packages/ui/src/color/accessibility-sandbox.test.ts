@@ -239,13 +239,70 @@ describe("assessSandboxTarget", () => {
     /* A canvas is not a component: nothing says it has to stand out from the
        page, so the figure is advisory in either standard. */
     for (const standard of ["wcag2", "wcag3"] as const) {
-      const [, fillOnPage] = assessSandboxTarget(
+      const fillOnPage = assessSandboxTarget(
         standard,
         "background",
         hexes({ background: "#fafafa" }),
         WHITE,
-      );
+      ).at(-1);
       expect(fillOnPage).toMatchObject({ grade: "Advisory", passes: null });
+    }
+  });
+
+  it("reads the background against both texts that sit on it, then the page", () => {
+    const rows = assessSandboxTarget(
+      "wcag2",
+      "background",
+      hexes({
+        background: "#eeeeee",
+        heading: "#111111",
+        body: "#333333",
+      }),
+      WHITE,
+    );
+
+    expect(rows.map((row) => [row.label, row.glyph])).toEqual([
+      ["Text on Fill", "heading"],
+      ["Text on Fill", "body"],
+      ["Fill on Page", "ui"],
+    ]);
+  });
+
+  it("gives each row the pair it measured, so the mark can be drawn in it", () => {
+    const rows = assessSandboxTarget(
+      "wcag2",
+      "buttonFill",
+      hexes({
+        background: "#eeeeee",
+        buttonFill: "#1a8917",
+        buttonText: "#ffffff",
+      }),
+      WHITE,
+    );
+
+    /* The text is the ink on the fill; the fill is the ink on what is behind. */
+    expect(rows[0]).toMatchObject({
+      glyph: "body",
+      foreground: "#ffffff",
+      background: "#1a8917",
+    });
+    expect(rows[1]).toMatchObject({
+      glyph: "ui",
+      foreground: "#1a8917",
+      background: "#eeeeee",
+    });
+  });
+
+  it("marks a heading's text as a heading and anything else as body", () => {
+    expect(
+      assessSandboxTarget("wcag2", "heading", hexes(), WHITE).map(
+        (row) => row.glyph,
+      ),
+    ).toEqual(["heading", "ui"]);
+    for (const target of ["body", "badgeText", "buttonText"] as const) {
+      expect(
+        assessSandboxTarget("wcag2", target, hexes(), WHITE)[0]!.glyph,
+      ).toBe("body");
     }
   });
 

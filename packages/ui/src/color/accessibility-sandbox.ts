@@ -146,6 +146,13 @@ export function assignSandboxColour(
   return { ...colours, [target]: colour };
 }
 
+/**
+ * What a row is about, drawn as a small mark ahead of it: a bold A for
+ * heading text, a plain a for body text, a square for a fill, a UI component
+ * or a graphic.
+ */
+export type SandboxGlyph = "heading" | "body" | "ui";
+
 /** One line of the card: a pair, its figure, and whether it does the job. */
 export interface SandboxRow {
   label: "Text on Fill" | "Fill on Page";
@@ -153,80 +160,101 @@ export interface SandboxRow {
   grade: string;
   /** Null where there is no requirement to meet: an advisory figure. */
   passes: boolean | null;
+  glyph: SandboxGlyph;
+  /**
+   * The pair measured, so the mark can be drawn in it: the ink (the text, or
+   * the fill) on its ground. The row's figure is the contrast between them.
+   */
+  foreground: string;
+  background: string;
 }
 
-/** The parts a target stands for: its text, its fill, and what is behind it. */
-interface Pairing {
+/** A piece of text a target is read against its fill. */
+interface TextPair {
   text: SandboxTarget;
+  /** The job it does, which sets the line it has to clear. */
+  job: ContrastJob;
+  glyph: "heading" | "body";
+}
+
+/** The parts a target stands for: its texts, its fill, and what is behind it. */
+interface Pairing {
+  texts: TextPair[];
   fill: SandboxTarget;
   /** What the fill sits on: another target, or the page itself. */
   behind: SandboxTarget | "page";
-  /** The job the text does, which sets the line it has to clear. */
-  job: ContrastJob;
   /** Whether the fill is a component, and so has a line to clear. */
   fillIsComponent: boolean;
 }
 
+const HEADING_TEXT: TextPair = {
+  text: "heading",
+  job: "large",
+  glyph: "heading",
+};
+const BODY_TEXT: TextPair = { text: "body", job: "body", glyph: "body" };
+const BADGE_TEXT: TextPair = { text: "badgeText", job: "body", glyph: "body" };
+const BUTTON_TEXT: TextPair = {
+  text: "buttonText",
+  job: "body",
+  glyph: "body",
+};
+
 const PAIRINGS: Record<SandboxTarget, Pairing> = {
+  /* The hero's own fill is read against both texts that sit on it. */
   background: {
-    text: "body",
+    texts: [HEADING_TEXT, BODY_TEXT],
     fill: "background",
     behind: "page",
-    job: "body",
     fillIsComponent: false,
   },
   heading: {
-    text: "heading",
+    texts: [HEADING_TEXT],
     fill: "background",
     behind: "page",
-    job: "large",
     fillIsComponent: false,
   },
   body: {
-    text: "body",
+    texts: [BODY_TEXT],
     fill: "background",
     behind: "page",
-    job: "body",
     fillIsComponent: false,
   },
   badgeFill: {
-    text: "badgeText",
+    texts: [BADGE_TEXT],
     fill: "badgeFill",
     behind: "background",
-    job: "body",
     fillIsComponent: true,
   },
   badgeText: {
-    text: "badgeText",
+    texts: [BADGE_TEXT],
     fill: "badgeFill",
     behind: "background",
-    job: "body",
     fillIsComponent: true,
   },
   buttonFill: {
-    text: "buttonText",
+    texts: [BUTTON_TEXT],
     fill: "buttonFill",
     behind: "background",
-    job: "body",
     fillIsComponent: true,
   },
   buttonText: {
-    text: "buttonText",
+    texts: [BUTTON_TEXT],
     fill: "buttonFill",
     behind: "background",
-    job: "body",
     fillIsComponent: true,
   },
 };
 
 /**
- * The card for a selected target: its text on its fill, and its fill on what
+ * The card for a selected target: each text on its fill, and its fill on what
  * is behind it.
  *
  * Text is judged for the job it does (a heading is large text, the rest body
  * text) and a component's fill as a UI component. A background is not a
  * component: it has no line to clear against the page, so that figure is
- * given and not judged.
+ * given and not judged. Each row says which kind of thing it reads, and the
+ * colours it drew from, so the card can show the pair itself.
  */
 export function assessSandboxTarget(
   standard: ContrastStandard,
@@ -235,24 +263,34 @@ export function assessSandboxTarget(
   page: string,
 ): SandboxRow[] {
   const pairing = PAIRINGS[target];
-  const text = hexes[pairing.text];
   const fill = hexes[pairing.fill];
   const behind = pairing.behind === "page" ? page : hexes[pairing.behind];
 
-  const onFill = gradeContrast(standard, pairing.job, text, fill);
+  const texts = pairing.texts.map((pair): SandboxRow => {
+    const ink = hexes[pair.text];
+    const graded = gradeContrast(standard, pair.job, ink, fill);
+    return {
+      label: "Text on Fill",
+      value: graded.value,
+      grade: graded.grade,
+      passes: graded.passes,
+      glyph: pair.glyph,
+      foreground: ink,
+      background: fill,
+    };
+  });
+
   const onPage = gradeContrast(standard, "ui", fill, behind);
   return [
-    {
-      label: "Text on Fill",
-      value: onFill.value,
-      grade: onFill.grade,
-      passes: onFill.passes,
-    },
+    ...texts,
     {
       label: "Fill on Page",
       value: onPage.value,
       grade: pairing.fillIsComponent ? onPage.grade : "Advisory",
       passes: pairing.fillIsComponent ? onPage.passes : null,
+      glyph: "ui",
+      foreground: fill,
+      background: behind,
     },
   ];
 }

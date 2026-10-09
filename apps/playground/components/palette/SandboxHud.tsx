@@ -1,14 +1,54 @@
 import {
   CONTRAST_STANDARD_LABELS,
   type ContrastStandard,
+  type SandboxGlyph,
   type SandboxRow,
 } from "@blueprint/ui";
 import { ContrastStatusIcon } from "./ContrastStatusIcon";
 import styles from "./accessibility-sandbox.module.css";
 
-/** `AA Pass` for a graded pass, and the plain word otherwise. */
-function gradeLabel(row: SandboxRow): string {
-  return row.passes && row.grade !== "Pass" ? `${row.grade} Pass` : row.grade;
+/**
+ * The word beside a row's tick or cross.
+ *
+ * The tick already says pass, so a graded pass is its grade alone (`AAA`,
+ * `AA`), and a pass with no grade under it, WCAG 3's, is the tick alone, named
+ * for a screen reader. A fail keeps its word, and so does advisory.
+ */
+function GradeLabel({ row }: { row: SandboxRow }) {
+  if (row.passes && row.grade === "Pass") {
+    return <span className={styles.srOnly}>Pass</span>;
+  }
+  return <>{row.grade}</>;
+}
+
+const GLYPH_LABELS: Record<SandboxGlyph, string> = {
+  heading: "Heading text",
+  body: "Body or small text",
+  ui: "UI component or graphic",
+};
+
+/**
+ * What a row is about, drawn in the pair it measured: a bold A for heading
+ * text, a plain a for body text, a square for a fill. The box is the ground
+ * and the mark the ink, so the row shows the very colours its figure is for.
+ * Real colours, like the figure, however the sandbox is being looked at.
+ */
+function Glyph({ row }: { row: SandboxRow }) {
+  return (
+    <span
+      aria-label={GLYPH_LABELS[row.glyph]}
+      className={styles.glyph}
+      data-glyph={row.glyph}
+      role="img"
+      style={{ backgroundColor: row.background, color: row.foreground }}
+    >
+      {row.glyph === "heading" ? "A" : null}
+      {row.glyph === "body" ? "a" : null}
+      {row.glyph === "ui" ? (
+        <i aria-hidden="true" style={{ backgroundColor: row.foreground }} />
+      ) : null}
+    </span>
+  );
 }
 
 interface SandboxHudProps {
@@ -37,14 +77,15 @@ export function SandboxHud({ standard, targetLabel, rows }: SandboxHudProps) {
       </h3>
       <ul>
         {rows.map((row) => (
-          <li key={row.label} data-passes={row.passes ?? undefined}>
+          <li key={row.glyph} data-passes={row.passes ?? undefined}>
+            <Glyph row={row} />
             <span>{row.label}</span>
             <strong>{row.value}</strong>
             <span className={styles.hudGrade}>
               {row.passes === null ? null : (
                 <ContrastStatusIcon passes={row.passes} />
               )}
-              {gradeLabel(row)}
+              <GradeLabel row={row} />
             </span>
           </li>
         ))}
