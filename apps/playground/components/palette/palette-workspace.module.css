@@ -1882,3 +1882,15 @@
     height: var(--size-element-lg, 36px);
   }
 }
+
+/* The contrast sheet's custom colour as a field: the swatch and the HEX, the
+   HEX in the mono face the picker's own field uses. */
+.contrastColourField {
+  display: block;
+  min-width: 0;
+}
+
+.contrastColourField input {
+  font-family: var(--font-mono);
+  font-size: 16px;
+}
