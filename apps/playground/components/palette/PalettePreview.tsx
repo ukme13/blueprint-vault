@@ -1,10 +1,12 @@
 import { Badge } from "@astryxdesign/core/Badge";
 import {
+  assessmentIssueCount,
   assessPreview,
   previewShadesFor,
   type ColorTrack,
   type SemanticToken,
 } from "@blueprint/ui";
+import { AccessibilitySandbox } from "./AccessibilitySandbox";
 import { PreviewAccessibility } from "./PreviewAccessibility";
 import { usePaletteView } from "./PaletteViewContext";
 import styles from "./palette-workspace.module.css";
@@ -22,11 +24,13 @@ interface PalettePreviewProps {
 }
 
 export function PalettePreview({ palettes, semantics }: PalettePreviewProps) {
-  const { simulation, view } = usePaletteView();
+  const { contrastStandard, simulation, view } = usePaletteView();
   const shades = previewShadesFor(semantics, palettes);
   const isSimulating = simulation !== "normal";
   const assessment = shades ? assessPreview(shades, view) : null;
-  const issueCount = assessment?.issueCount ?? 0;
+  const issueCount = assessment
+    ? assessmentIssueCount(assessment, contrastStandard)
+    : 0;
 
   return (
     <section
@@ -37,7 +41,6 @@ export function PalettePreview({ palettes, semantics }: PalettePreviewProps) {
         className={`${styles.sectionPageHeader} ${styles.previewPageHeader}`}
       >
         <span>
-          <Badge label="WCAG 2.2" variant="purple" />
           <h1 id="accessibility-title">Accessibility</h1>
           <p>
             Contrast checks for the semantic pairs this palette produces.
@@ -55,7 +58,13 @@ export function PalettePreview({ palettes, semantics }: PalettePreviewProps) {
       </header>
 
       {assessment ? (
-        <PreviewAccessibility assessment={assessment} />
+        <>
+          <AccessibilitySandbox palettes={palettes} semantics={semantics} />
+          <PreviewAccessibility
+            assessment={assessment}
+            standard={contrastStandard}
+          />
+        </>
       ) : (
         <p className={styles.previewEmptyState} role="status">
           {palettes.length === 0

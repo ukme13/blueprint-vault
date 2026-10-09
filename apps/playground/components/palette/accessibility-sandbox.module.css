@@ -1,0 +1,321 @@
+/* The accessibility sandbox: a control bar, and a stage with a hero on it.
+   The hero's own colours are inline, being whatever was picked; everything
+   else here is the studio's chrome, and uses the semantic tokens. */
+
+.sandbox {
+  display: flex;
+  flex-direction: column;
+  max-width: 1280px;
+  margin: 0 auto 32px;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--color-surface-raised);
+  overflow: hidden;
+}
+
+/* ---------- Control bar ---------- */
+
+.controlBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  overflow-x: auto;
+}
+
+.controlBar strong {
+  flex: none;
+  color: var(--color-fg-primary);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.controlHint {
+  color: var(--color-fg-secondary);
+  font-size: 13px;
+}
+
+.pickerTrigger {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border-default);
+  border-radius: 6px;
+  background: var(--color-surface-base);
+  color: var(--color-fg-primary);
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pickerTrigger:hover {
+  border-color: var(--color-border-strong);
+}
+
+.pickerTrigger:focus-visible,
+.rampStep:focus-visible,
+.pickerTab:focus-visible,
+.canvas:focus-visible,
+.canvas :focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.pickerPanel {
+  display: flex;
+  flex-direction: column;
+}
+
+.pickerTabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 8px 0;
+}
+
+.pickerTab {
+  flex: 1;
+  height: 28px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-fg-secondary);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.pickerTab[aria-selected="true"] {
+  border-color: var(--color-action-primary);
+  background: var(--color-action-primary);
+  color: var(--color-fg-on-action);
+}
+
+/* ---------- Shade ramp ---------- */
+
+.ramp {
+  display: flex;
+  flex: none;
+  gap: 2px;
+}
+
+.rampStep {
+  flex: none;
+  width: 18px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.rampStep[aria-pressed="true"] {
+  border-color: var(--color-fg-primary);
+  box-shadow:
+    0 0 0 2px var(--color-surface-base),
+    0 0 0 4px var(--color-fg-primary);
+}
+
+/* ---------- Stage and hero ---------- */
+
+.stage {
+  position: relative;
+  padding: clamp(24px, 6vw, 56px);
+  /* A selection's handles reach past the layer, so they must not be clipped. */
+  overflow: visible;
+}
+
+.canvas {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: clamp(20px, 5vw, 40px);
+  border-radius: 16px;
+}
+
+.canvas h2 {
+  width: 100%;
+  margin: 0;
+  font-size: clamp(28px, 6vw, 44px);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.canvas p {
+  width: 100%;
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.block {
+  display: block;
+}
+
+.badge,
+.button {
+  display: inline-flex;
+  align-items: center;
+}
+
+.badge {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.canvas [data-sandbox-target] {
+  cursor: default;
+}
+
+/* ---------- Selection ---------- */
+
+.selection {
+  position: absolute;
+  z-index: 1;
+  box-sizing: border-box;
+  border: 2px solid var(--color-action-primary);
+  pointer-events: none;
+}
+
+.selection i {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--color-action-primary);
+  background: var(--color-surface-base);
+}
+
+.selection i:nth-of-type(1) {
+  top: -5px;
+  left: -5px;
+}
+.selection i:nth-of-type(2) {
+  top: -5px;
+  right: -5px;
+}
+.selection i:nth-of-type(3) {
+  bottom: -5px;
+  left: -5px;
+}
+.selection i:nth-of-type(4) {
+  right: -5px;
+  bottom: -5px;
+}
+
+.selection small {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--color-action-primary);
+  color: var(--color-fg-on-action);
+  font-size: 11px;
+  line-height: 16px;
+  white-space: nowrap;
+  transform: translateX(-50%);
+}
+
+/* ---------- Contrast card ---------- */
+
+.hud {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  left: 12px;
+  min-width: 220px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-default);
+  border-radius: 10px;
+  background: var(--color-surface-raised);
+  box-shadow: 0 4px 16px
+    color-mix(in oklch, var(--color-fg-primary) 14%, transparent);
+  color: var(--color-fg-primary);
+  font-size: 12px;
+}
+
+.hud h3 {
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.hud ul {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hud li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.hud li > span:first-child {
+  color: var(--color-fg-secondary);
+}
+
+.hudGrade {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 72px;
+  justify-content: flex-end;
+  font-weight: 600;
+}
+
+.hud li[data-passes="true"] svg {
+  color: var(--color-status-success);
+}
+
+.hud li[data-passes="false"] svg {
+  color: var(--color-status-error);
+}
+
+@media (max-width: 640px) {
+  .controlBar {
+    padding: 8px 12px;
+  }
+
+  /* The card moves under the hero rather than over the top of a small one. */
+  .hud {
+    position: static;
+    margin: 0 12px 12px;
+  }
+
+  .stage {
+    display: flex;
+    flex-direction: column;
+    padding: 20px 12px 0;
+  }
+}
+
+/* Between a phone and a wide screen the card would sit over the hero's corner,
+   so the stage leaves it a band of its own above. */
+@media (min-width: 641px) and (max-width: 1100px) {
+  .stage {
+    padding-top: 128px;
+  }
+}
