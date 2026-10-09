@@ -356,7 +356,7 @@ test.describe("The accessibility sandbox", () => {
     expect(reset.height).toBe(28);
   });
 
-  test("keeps Reset in reach on a phone, at the right edge", async ({
+  test("makes Reset an icon on a phone, close beside the colour", async ({
     seededPage: page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -380,8 +380,16 @@ test.describe("The accessibility sandbox", () => {
     const trigger = (await controlBar(page)
       .getByRole("button", { name: /^Body Text colour:/ })
       .boundingBox())!;
-    expect(bar.x + bar.width - (box.x + box.width)).toBeCloseTo(12, 0);
+    /* The icon alone: no word, named in full for a screen reader, and as
+       tall as the other 28px controls. */
+    await expect(reset).toHaveText("");
+    await expect(reset.locator("svg")).toHaveCount(1);
+    expect(box.width).toBeLessThanOrEqual(36);
+    expect(box.height).toBe(28);
+    /* At the bar's right edge, and close to the colour's name. */
+    expect(bar.x + bar.width - (box.x + box.width)).toBeLessThanOrEqual(16);
     expect(trigger.x + trigger.width).toBeLessThanOrEqual(box.x + 1);
+    expect(box.x - (trigger.x + trigger.width)).toBeLessThanOrEqual(8);
     expect(
       await controlBar(page).evaluate((el) => el.scrollWidth - el.clientWidth),
     ).toBeLessThanOrEqual(0);

@@ -443,6 +443,11 @@
     text-overflow: ellipsis;
   }
 
+  /* Tucked in beside the colour's name: the bar's gap is tighter here. */
+  .controlBar {
+    gap: 4px;
+  }
+
   .resetButton {
     margin-left: 0;
   }

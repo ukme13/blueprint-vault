@@ -20,15 +20,14 @@ import {
   type ContrastStandard,
   type SandboxTarget,
   type SemanticToken,
-  Button,
 } from "@blueprint/ui";
-import { RotateCcw } from "lucide-react";
 import { useThemeMode } from "../../app/theme-provider";
 import { useIsPhone } from "../use-is-phone";
 import { usePaletteView } from "./PaletteViewContext";
 import { SandboxColourPicker } from "./SandboxColourPicker";
 import { SandboxHud } from "./SandboxHud";
 import { SandboxRamp } from "./SandboxRamp";
+import { SandboxReset } from "./SandboxReset";
 import { useElementBox } from "./use-element-box";
 import styles from "./accessibility-sandbox.module.css";
 
@@ -173,20 +172,11 @@ export function AccessibilitySandbox({
             Select a layer to recolour it
           </span>
         )}
-        {/* Back to the roles the sandbox opened on. Nothing to put back while
-            it is still on them. */}
-        <Button
-          aria-label="Reset sandbox colours"
-          className={styles.resetButton}
-          disabled={isDefaultSandboxColours(colours)}
-          leftIcon={<RotateCcw aria-hidden className="size-3.5" />}
-          scheme="neutral"
-          size="small"
-          variant="text"
-          onClick={() => setColours(DEFAULT_SANDBOX_COLOURS)}
-        >
-          Reset
-        </Button>
+        {/* Back to the roles the sandbox opened on. */}
+        <SandboxReset
+          isAtDefault={isDefaultSandboxColours(colours)}
+          onReset={() => setColours(DEFAULT_SANDBOX_COLOURS)}
+        />
       </header>
 
       {/* The hero is the background layer: it runs edge to edge under the
