@@ -3,6 +3,7 @@ import {
   assessSandboxTarget,
   assignSandboxColour,
   DEFAULT_SANDBOX_COLOURS,
+  isDefaultSandboxColours,
   pressedSandboxTarget,
   resolveSandbox,
   resolveSandboxColour,
@@ -434,5 +435,49 @@ describe("assessSandboxTarget: labels", () => {
       value: "Lc 45",
       passes: true,
     });
+  });
+});
+
+describe("isDefaultSandboxColours", () => {
+  it("is true as the sandbox opens, and for a copy of it", () => {
+    expect(isDefaultSandboxColours(DEFAULT_SANDBOX_COLOURS)).toBe(true);
+    expect(isDefaultSandboxColours({ ...DEFAULT_SANDBOX_COLOURS })).toBe(true);
+  });
+
+  it("is false once any one layer is on another role or a shade", () => {
+    expect(
+      isDefaultSandboxColours(
+        assignSandboxColour(DEFAULT_SANDBOX_COLOURS, "body", {
+          kind: "semantic",
+          id: "fg.muted",
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isDefaultSandboxColours(
+        assignSandboxColour(DEFAULT_SANDBOX_COLOURS, "buttonFill", {
+          kind: "primitive",
+          trackId: "t-primary",
+          weight: 500,
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it("is true again after the defaults are put back", () => {
+    const changed = assignSandboxColour(DEFAULT_SANDBOX_COLOURS, "heading", {
+      kind: "semantic",
+      id: "fg.muted",
+    });
+    expect(isDefaultSandboxColours(changed)).toBe(false);
+    expect(
+      isDefaultSandboxColours(
+        assignSandboxColour(
+          changed,
+          "heading",
+          DEFAULT_SANDBOX_COLOURS.heading,
+        ),
+      ),
+    ).toBe(true);
   });
 });

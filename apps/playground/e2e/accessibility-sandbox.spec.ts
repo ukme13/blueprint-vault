@@ -256,6 +256,140 @@ test.describe("The accessibility sandbox", () => {
     ).toBeVisible();
   });
 
+  test("resets every layer to the roles it opened on", async ({
+    seededPage: page,
+  }) => {
+    await openAccessibility(page);
+    const reset = controlBar(page).getByRole("button", {
+      name: "Reset sandbox colours",
+    });
+    /* Nothing to put back yet. */
+    await expect(reset).toBeVisible();
+    await expect(reset).toBeDisabled();
+
+    const initial = {
+      body: await colourOf(page, "body"),
+      heading: await colourOf(page, "heading"),
+      button: await fillOfLayer(page, "buttonFill"),
+      background: await fillOfLayer(page, "background"),
+    };
+    const roleName = async (name: string) => {
+      await layer(page, name).click();
+      return controlBar(page)
+        .getByRole("button", { name: /colour: / })
+        .getAttribute("aria-label");
+    };
+    const defaultNames = {
+      body: await roleName("body"),
+      button: await roleName("buttonFill"),
+    };
+
+    /* Change four layers, some to shades and one to another role. */
+    await layer(page, "body").click();
+    await controlBar(page)
+      .getByRole("group", { name: /shades for Body Text/ })
+      .getByRole("button", { name: /^\S+ 500$/ })
+      .click();
+    await layer(page, "heading").click();
+    await controlBar(page)
+      .getByRole("group", { name: /shades for Heading Text/ })
+      .getByRole("button", { name: /^\S+ 200$/ })
+      .click();
+    await layer(page, "buttonFill").click();
+    await controlBar(page)
+      .getByRole("group", { name: /shades for Button Fill/ })
+      .getByRole("button", { name: /^\S+ 800$/ })
+      .click();
+    await layer(page, "background").click({ position: { x: 8, y: 8 } });
+    await controlBar(page)
+      .getByRole("group", { name: /shades for Background/ })
+      .getByRole("button", { name: /^\S+ 300$/ })
+      .click();
+
+    await expect(reset).toBeEnabled();
+    expect(await colourOf(page, "body")).not.toBe(initial.body);
+    await expect
+      .poll(() => fillOfLayer(page, "background"))
+      .not.toBe(initial.background);
+
+    await reset.click();
+
+    /* Every layer is back, the button has nothing left to do, and the layer
+       that was held is still held. */
+    await expect.poll(() => colourOf(page, "body")).toBe(initial.body);
+    expect(await colourOf(page, "heading")).toBe(initial.heading);
+    expect(await fillOfLayer(page, "buttonFill")).toBe(initial.button);
+    expect(await fillOfLayer(page, "background")).toBe(initial.background);
+    await expect(reset).toBeDisabled();
+    await expect(controlBar(page)).toContainText("Background");
+
+    /* They are on their roles again, not on a shade that looks the same. */
+    expect(await roleName("body")).toBe(defaultNames.body);
+    expect(await roleName("buttonFill")).toBe(defaultNames.button);
+    await controlBar(page)
+      .getByRole("button", { name: /^Button Fill colour:/ })
+      .click();
+    await expect(
+      page
+        .getByRole("dialog", { name: "Button Fill colour" })
+        .getByRole("tab", { name: "Semantic" }),
+    ).toHaveAttribute("aria-selected", "true");
+  });
+
+  test("keeps Reset at the far right of the bar, past the ramp", async ({
+    seededPage: page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openAccessibility(page);
+    await layer(page, "body").click();
+
+    const bar = (await controlBar(page).boundingBox())!;
+    const reset = (await controlBar(page)
+      .getByRole("button", { name: "Reset sandbox colours" })
+      .boundingBox())!;
+    const ramp = (await controlBar(page)
+      .getByRole("group", { name: /shades for/ })
+      .boundingBox())!;
+    /* The bar's own 18px of padding from the edge, and clear of the ramp. */
+    expect(bar.x + bar.width - (reset.x + reset.width)).toBeCloseTo(18, 0);
+    expect(reset.x).toBeGreaterThanOrEqual(ramp.x + ramp.width);
+    expect(reset.height).toBe(28);
+  });
+
+  test("keeps Reset in reach on a phone, at the right edge", async ({
+    seededPage: page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openAccessibility(page);
+    await layer(page, "body").click();
+    await controlBar(page)
+      .getByRole("button", { name: /^Body Text colour:/ })
+      .click();
+    const sheet = page.getByRole("dialog", { name: "Body Text colour" });
+    await sheet.getByRole("tab", { name: "Primitive" }).click();
+    await sheet
+      .getByRole("option", { name: "primary 500", exact: true })
+      .click();
+
+    const reset = controlBar(page).getByRole("button", {
+      name: "Reset sandbox colours",
+    });
+    await expect(reset).toBeEnabled();
+    const bar = (await controlBar(page).boundingBox())!;
+    const box = (await reset.boundingBox())!;
+    const trigger = (await controlBar(page)
+      .getByRole("button", { name: /^Body Text colour:/ })
+      .boundingBox())!;
+    expect(bar.x + bar.width - (box.x + box.width)).toBeCloseTo(12, 0);
+    expect(trigger.x + trigger.width).toBeLessThanOrEqual(box.x + 1);
+    expect(
+      await controlBar(page).evaluate((el) => el.scrollWidth - el.clientWidth),
+    ).toBeLessThanOrEqual(0);
+
+    await reset.click();
+    await expect(reset).toBeDisabled();
+  });
+
   test("a role follows the theme and a shade does not", async ({
     seededPage: page,
   }) => {
@@ -642,16 +776,21 @@ test.describe("The standard toggle", () => {
       barBox.x + barBox.width,
     );
 
-    /* No long ramp on a phone: the target on the left, its colour on the
-       right, and the bar does not scroll. */
+    /* No long ramp on a phone: the target on the left, its colour and Reset
+       on the right, and the bar does not scroll. */
     await expect(
       controlBar(page).getByRole("group", { name: /shades for/ }),
     ).toHaveCount(0);
     const label = (await controlBar(page).locator("strong").boundingBox())!;
     expect(label.x - barBox.x).toBeLessThan(24);
+    /* Its colour sits just before Reset, which is the far edge. */
+    const resetBox = (await controlBar(page)
+      .getByRole("button", { name: "Reset sandbox colours" })
+      .boundingBox())!;
     expect(
-      barBox.x + barBox.width - (triggerBox.x + triggerBox.width),
+      barBox.x + barBox.width - (resetBox.x + resetBox.width),
     ).toBeLessThan(24);
+    expect(triggerBox.x + triggerBox.width).toBeLessThanOrEqual(resetBox.x + 1);
     expect(
       await controlBar(page).evaluate((el) => el.scrollWidth - el.clientWidth),
     ).toBeLessThanOrEqual(0);

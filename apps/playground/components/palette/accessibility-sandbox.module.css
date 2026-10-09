@@ -29,6 +29,12 @@
   white-space: nowrap;
 }
 
+/* Far right of the bar, beside the ramp on a wide screen. */
+.resetButton {
+  flex: none;
+  margin-left: auto;
+}
+
 .controlHint {
   color: var(--color-fg-secondary);
   font-size: 13px;
@@ -411,8 +417,34 @@
   /* The target on the left and its colour on the right; the ramp is for a
      pointer, and a phone chooses from the sheet. */
   .controlBar {
-    justify-content: space-between;
     padding: 0 12px;
+  }
+
+  /* The target on the left, then its colour and Reset pushed to the right:
+     the free space goes before the colour, so Reset stays the far edge. */
+  .pickerSlot {
+    margin-left: auto;
+    /* The colour's name gives way, with an ellipsis, so a long role name
+       never pushes Reset off the bar. There is no ramp to hold it open. */
+    flex: 0 1 auto;
+    min-width: 0;
+    /* The slot is a grid, whose one column would not go under its button's
+       own width without this. */
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pickerTrigger {
+    max-width: 100%;
+  }
+
+  .pickerTrigger span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .resetButton {
+    margin-left: 0;
   }
 
   .stage {

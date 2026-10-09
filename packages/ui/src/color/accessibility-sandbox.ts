@@ -321,3 +321,18 @@ export function pressedSandboxTarget(
   }
   return shallow;
 }
+
+/** Whether every layer is on the colour the sandbox opened with. */
+export function isDefaultSandboxColours(colours: SandboxColours): boolean {
+  return SANDBOX_TARGETS.every((target) => {
+    const have = colours[target];
+    const want = DEFAULT_SANDBOX_COLOURS[target];
+    if (have.kind === "semantic" && want.kind === "semantic") {
+      return have.id === want.id;
+    }
+    if (have.kind === "primitive" && want.kind === "primitive") {
+      return have.trackId === want.trackId && have.weight === want.weight;
+    }
+    return false;
+  });
+}
