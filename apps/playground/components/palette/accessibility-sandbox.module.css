@@ -291,28 +291,33 @@
 
 /* ---------- Contrast score ---------- */
 
-/* One strip the sandbox's width, under the hero: the standard and the layer
-   on the left, the pairs beside it. It sits in the flow, so it never covers
-   the hero it is reading. */
+.heroFrame {
+  position: relative;
+}
+
+/* On a wide screen a card floating over the hero's top left corner. */
 .hud {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 32px;
-  width: 100%;
-  padding: 12px 18px;
-  border-bottom: 1px solid var(--color-border-default);
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  left: 12px;
+  min-width: 220px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border-default);
+  border-radius: 10px;
   background: var(--color-surface-raised);
+  box-shadow: 0 4px 16px
+    color-mix(in oklch, var(--color-fg-primary) 14%, transparent);
   color: var(--color-fg-primary);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .hud h3 {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  margin: 0;
-  font-size: 13px;
+  margin: 0 0 6px;
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -323,17 +328,16 @@
 }
 
 .hud ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 32px;
+  display: grid;
+  gap: 4px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .hud li {
-  display: inline-grid;
-  grid-template-columns: auto auto auto;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
   gap: 10px;
 }
@@ -346,6 +350,8 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  min-width: 72px;
+  justify-content: flex-end;
   font-weight: 600;
 }
 
@@ -355,6 +361,14 @@
 
 .hud li[data-passes="false"] svg {
   color: var(--color-status-error);
+}
+
+/* Between a phone and a wide screen the card would sit over the hero's
+   content, so the stage leaves it a band of its own above. */
+@media (min-width: 641px) and (max-width: 1100px) {
+  .stage {
+    padding-top: 128px;
+  }
 }
 
 @media (max-width: 640px) {
@@ -374,15 +388,31 @@
     font-size: 32px;
   }
 
+  /* On a phone the score is one strip the sandbox's width under the hero:
+     a card over a small hero would cover it. */
   .hud {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 32px;
+    width: 100%;
     padding: 12px;
+    border: 0;
+    border-bottom: 1px solid var(--color-border-default);
+    border-radius: 0;
+    box-shadow: none;
+    font-size: 13px;
+  }
+
+  .hud h3 {
+    margin: 0;
+    font-size: 13px;
   }
 
   .hud ul {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
     width: 100%;
+    gap: 6px;
   }
 
   .hud li {

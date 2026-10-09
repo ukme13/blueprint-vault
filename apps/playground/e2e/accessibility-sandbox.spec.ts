@@ -282,29 +282,45 @@ test.describe("The accessibility sandbox", () => {
 });
 
 test.describe("The contrast card", () => {
-  test("is one strip the sandbox's width under the hero, not floating over it", async ({
+  test("floats over the hero's top left on a wide screen", async ({
     seededPage: page,
   }) => {
-    for (const width of [1280, 390]) {
-      await page.setViewportSize({ width, height: 900 });
-      await openAccessibility(page);
-      await layer(page, "body").click();
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await openAccessibility(page);
+    await layer(page, "body").click();
 
-      const hud = card(page, "WCAG 2", "Body Text");
-      const strip = (await hud.boundingBox())!;
-      const hero = (await layer(page, "background").boundingBox())!;
-      const box = (await sandbox(page).boundingBox())!;
-      expect(strip.width).toBeCloseTo(box.width, 0);
-      expect(strip.x).toBeCloseTo(box.x, 0);
-      /* Below the hero's bottom edge, so nothing of the hero is covered. */
-      expect(strip.y).toBeGreaterThanOrEqual(hero.y + hero.height - 1);
-      expect(await hud.evaluate((el) => getComputedStyle(el).position)).toBe(
-        "static",
-      );
-      /* Names the standard and the layer it is reading. */
-      await expect(hud).toContainText("WCAG 2 contrast");
-      await expect(hud).toContainText("Body Text");
-    }
+    const hud = card(page, "WCAG 2", "Body Text");
+    const card_ = (await hud.boundingBox())!;
+    const hero = (await layer(page, "background").boundingBox())!;
+    expect(await hud.evaluate((el) => getComputedStyle(el).position)).toBe(
+      "absolute",
+    );
+    /* Inside the hero, near its top left, and not as wide as it. */
+    expect(card_.x - hero.x).toBeCloseTo(12, 0);
+    expect(card_.y - hero.y).toBeCloseTo(12, 0);
+    expect(card_.width).toBeLessThan(hero.width / 2);
+    await expect(hud).toContainText("WCAG 2 contrast");
+    await expect(hud).toContainText("Body Text");
+  });
+
+  test("is one strip the sandbox's width under the hero on a phone", async ({
+    seededPage: page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 900 });
+    await openAccessibility(page);
+    await layer(page, "body").click();
+
+    const hud = card(page, "WCAG 2", "Body Text");
+    const strip = (await hud.boundingBox())!;
+    const hero = (await layer(page, "background").boundingBox())!;
+    const box = (await sandbox(page).boundingBox())!;
+    expect(strip.width).toBeCloseTo(box.width, 0);
+    expect(strip.x).toBeCloseTo(box.x, 0);
+    /* Below the hero's bottom edge, so nothing of the hero is covered. */
+    expect(strip.y).toBeGreaterThanOrEqual(hero.y + hero.height - 1);
+    expect(await hud.evaluate((el) => getComputedStyle(el).position)).toBe(
+      "static",
+    );
   });
 
   test("reads the pair in WCAG 2 as ratios with a grade", async ({

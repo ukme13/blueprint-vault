@@ -173,84 +173,88 @@ export function AccessibilitySandbox({
       </header>
 
       {/* The hero is the background layer: it runs edge to edge under the
-          control bar, and what is not another layer is it. */}
-      <div
-        {...layer("background")}
-        ref={stage}
-        className={styles.stage}
-        style={{ backgroundColor: paint("background") }}
-      >
-        <span
-          {...layer("badgeFill", "badgeText")}
-          className={styles.badge}
-          style={{ backgroundColor: paint("badgeFill") }}
+          control bar, and what is not another layer is it. The score floats
+          over its corner on a wide screen and is a strip under it on a phone,
+          so the two share a box to be placed against. */}
+      <div className={styles.heroFrame}>
+        <div
+          {...layer("background")}
+          ref={stage}
+          className={styles.stage}
+          style={{ backgroundColor: paint("background") }}
         >
           <span
-            data-sandbox-target="badgeText"
-            style={{ color: paint("badgeText") }}
+            {...layer("badgeFill", "badgeText")}
+            className={styles.badge}
+            style={{ backgroundColor: paint("badgeFill") }}
           >
-            Accessibility
+            <span
+              data-sandbox-target="badgeText"
+              style={{ color: paint("badgeText") }}
+            >
+              Accessibility
+            </span>
           </span>
-        </span>
-        <div className={styles.copy}>
-          <h2>
-            <span
-              {...layer("heading")}
-              className={styles.block}
-              style={{ color: paint("heading") }}
-            >
-              {HERO_COPY[contrastStandard].title}
-            </span>
-          </h2>
-          <p>
-            <span
-              {...layer("body")}
-              className={styles.block}
-              style={{ color: paint("body") }}
-            >
-              {HERO_COPY[contrastStandard].body}
-            </span>
-          </p>
-        </div>
-        <span
-          {...layer("buttonFill", "buttonText")}
-          className={styles.button}
-          style={{ backgroundColor: paint("buttonFill") }}
-        >
+          <div className={styles.copy}>
+            <h2>
+              <span
+                {...layer("heading")}
+                className={styles.block}
+                style={{ color: paint("heading") }}
+              >
+                {HERO_COPY[contrastStandard].title}
+              </span>
+            </h2>
+            <p>
+              <span
+                {...layer("body")}
+                className={styles.block}
+                style={{ color: paint("body") }}
+              >
+                {HERO_COPY[contrastStandard].body}
+              </span>
+            </p>
+          </div>
           <span
-            data-sandbox-target="buttonText"
-            style={{ color: paint("buttonText") }}
+            {...layer("buttonFill", "buttonText")}
+            className={styles.button}
+            style={{ backgroundColor: paint("buttonFill") }}
           >
-            Primary
+            <span
+              data-sandbox-target="buttonText"
+              style={{ color: paint("buttonText") }}
+            >
+              Primary
+            </span>
           </span>
-        </span>
 
-        {box && target && target !== "background" ? (
-          <span
-            aria-hidden="true"
-            className={styles.selection}
-            data-testid="sandbox-selection"
-            style={box}
-          >
-            <i />
-            <i />
-            <i />
-            <i />
-            <small>
-              {Math.round(box.width)} × {Math.round(box.height)} ·{" "}
-              {SIZING[target]}
-            </small>
-          </span>
+          {box && target && target !== "background" ? (
+            <span
+              aria-hidden="true"
+              className={styles.selection}
+              data-testid="sandbox-selection"
+              style={box}
+            >
+              <i />
+              <i />
+              <i />
+              <i />
+              <small>
+                {Math.round(box.width)} × {Math.round(box.height)} ·{" "}
+                {SIZING[target]}
+              </small>
+            </span>
+          ) : null}
+        </div>
+
+        {target ? (
+          <SandboxHud
+            rows={assessSandboxTarget(contrastStandard, target, hexes, page)}
+            standard={contrastStandard}
+            targetLabel={SANDBOX_TARGET_LABELS[target]}
+          />
         ) : null}
       </div>
-
-      {target ? (
-        <SandboxHud
-          rows={assessSandboxTarget(contrastStandard, target, hexes, page)}
-          standard={contrastStandard}
-          targetLabel={SANDBOX_TARGET_LABELS[target]}
-        />
-      ) : null}
     </section>
   );
 }
