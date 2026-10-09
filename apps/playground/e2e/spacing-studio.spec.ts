@@ -2129,7 +2129,7 @@ test.describe("Layout uses", () => {
       .getByRole("navigation", { name: "Scale sections" })
       .getByRole("button", { name: "Preview" })
       .click();
-    const card = page.getByRole("article", { name: "Verba AI Preview" });
+    const card = page.getByRole("article", { name: "Blueprint AI Preview" });
     await expect(card).toBeVisible();
     const radiusOf = (id: string) =>
       page
