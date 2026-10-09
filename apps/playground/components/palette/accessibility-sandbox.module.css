@@ -88,6 +88,19 @@
   padding: 8px 8px 0;
 }
 
+/* In a sheet the tabs are held under the title, with the sheet's own side
+   space around them rather than the popover's. */
+.pickerTabsSheet {
+  display: flex;
+  gap: 4px;
+}
+
+.sheetTitle {
+  margin: 0;
+  font-size: var(--font-size-lg, 1rem);
+  font-weight: 600;
+}
+
 .pickerTab {
   flex: 1;
   height: 28px;
@@ -328,7 +341,10 @@
 }
 
 @media (max-width: 640px) {
+  /* The target on the left and its colour on the right; the ramp is for a
+     pointer, and a phone chooses from the sheet. */
   .controlBar {
+    justify-content: space-between;
     padding: 0 12px;
   }
 

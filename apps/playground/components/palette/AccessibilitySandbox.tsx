@@ -20,6 +20,7 @@ import {
   type SemanticToken,
 } from "@blueprint/ui";
 import { useThemeMode } from "../../app/theme-provider";
+import { useIsPhone } from "../use-is-phone";
 import { usePaletteView } from "./PaletteViewContext";
 import { SandboxColourPicker } from "./SandboxColourPicker";
 import { SandboxHud } from "./SandboxHud";
@@ -71,6 +72,7 @@ export function AccessibilitySandbox({
 }: AccessibilitySandboxProps) {
   const { contrastStandard, seen } = usePaletteView();
   const { resolved: mode } = useThemeMode();
+  const isPhone = useIsPhone();
   const [colours, setColours] = useState(DEFAULT_SANDBOX_COLOURS);
   const [target, setTarget] = useState<SandboxTarget | null>("background");
   const stage = useRef<HTMLDivElement>(null);
@@ -140,20 +142,22 @@ export function AccessibilitySandbox({
                 setColours((all) => assignSandboxColour(all, target, next))
               }
             />
-            <SandboxRamp
-              palettes={palettes}
-              resolved={current}
-              targetLabel={SANDBOX_TARGET_LABELS[target]}
-              onChoose={(trackId, weight) =>
-                setColours((all) =>
-                  assignSandboxColour(all, target, {
-                    kind: "primitive",
-                    trackId,
-                    weight,
-                  }),
-                )
-              }
-            />
+            {isPhone ? null : (
+              <SandboxRamp
+                palettes={palettes}
+                resolved={current}
+                targetLabel={SANDBOX_TARGET_LABELS[target]}
+                onChoose={(trackId, weight) =>
+                  setColours((all) =>
+                    assignSandboxColour(all, target, {
+                      kind: "primitive",
+                      trackId,
+                      weight,
+                    }),
+                  )
+                }
+              />
+            )}
           </>
         ) : (
           <span className={styles.controlHint}>

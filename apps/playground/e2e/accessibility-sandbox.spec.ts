@@ -486,13 +486,41 @@ test.describe("The standard toggle", () => {
       barBox.x + barBox.width,
     );
 
+    /* No long ramp on a phone: the target on the left, its colour on the
+       right, and the bar does not scroll. */
+    await expect(
+      controlBar(page).getByRole("group", { name: /shades for/ }),
+    ).toHaveCount(0);
+    const label = (await controlBar(page).locator("strong").boundingBox())!;
+    expect(label.x - barBox.x).toBeLessThan(24);
+    expect(
+      barBox.x + barBox.width - (triggerBox.x + triggerBox.width),
+    ).toBeLessThan(24);
+    expect(
+      await controlBar(page).evaluate((el) => el.scrollWidth - el.clientWidth),
+    ).toBeLessThanOrEqual(0);
+
     const before = await colourOf(page, "body");
     await trigger.click();
     const sheet = page.getByRole("dialog", { name: "Body Text colour" });
+    /* The title and both tabs are in view, and stay there as the list scrolls. */
+    await expect(
+      sheet.getByRole("heading", { name: "Body Text colour" }),
+    ).toBeVisible();
     await expect(sheet.getByRole("tab", { name: "Semantic" })).toBeVisible();
     await expect(sheet.getByRole("tab", { name: "Primitive" })).toBeVisible();
+    await sheet.getByRole("tab", { name: "Primitive" }).click();
+    await expect(
+      sheet.getByRole("option", { name: "primary 25", exact: true }),
+    ).toBeVisible();
+    /* Scrolled to the end of a long list, the tabs are still in view. */
+    await sheet.getByRole("option").last().scrollIntoViewIfNeeded();
+    await expect(
+      sheet.getByRole("tab", { name: "Primitive" }),
+    ).toBeInViewport();
+    await sheet.getByRole("tab", { name: "Semantic" }).click();
     await sheet
-      .getByRole("option", { name: /fg.primary|Foreground primary/i })
+      .getByRole("option", { name: /fg\.primary|Foreground primary/i })
       .first()
       .click();
     await expect.poll(() => colourOf(page, "body")).not.toBe(before);

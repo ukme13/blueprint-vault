@@ -16,6 +16,7 @@ import {
 } from "@blueprint/ui";
 import { PopoverOrSheet } from "../PopoverOrSheet";
 import { SelectorOptionList } from "../SelectorOptionList";
+import { useIsPhone } from "../use-is-phone";
 import { usePaletteView } from "./PaletteViewContext";
 import { TransparencySwatch } from "./TransparencySwatch";
 import styles from "./accessibility-sandbox.module.css";
@@ -56,6 +57,7 @@ export function SandboxColourPicker({
   onChange,
 }: SandboxColourPickerProps) {
   const { seen } = usePaletteView();
+  const isPhone = useIsPhone();
   const [isOpen, setIsOpen] = useState(false);
   const [tab, setTab] = useState<PickerTab>(colour.kind);
   const [query, setQuery] = useState("");
@@ -97,10 +99,34 @@ export function SandboxColourPicker({
     close();
   };
 
+  const tabs = (
+    <div
+      aria-label="Colour source"
+      className={isPhone ? styles.pickerTabsSheet : styles.pickerTabs}
+      role="tablist"
+    >
+      {TABS.map((each) => (
+        <button
+          key={each.id}
+          aria-selected={tab === each.id}
+          className={styles.pickerTab}
+          role="tab"
+          type="button"
+          onClick={() => {
+            setTab(each.id);
+            setQuery("");
+          }}
+        >
+          {each.label}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <PopoverOrSheet
       className={styles.pickerSlot}
-      isFlush
+      isPopoverFlush
       isOpen={isOpen}
       label={`${targetLabel} colour`}
       trigger={
@@ -118,31 +144,21 @@ export function SandboxColourPicker({
       onOpenChange={(open) => (open ? setIsOpen(true) : close())}
     >
       <section className={styles.pickerPanel}>
-        <div
-          aria-label="Colour source"
-          className={styles.pickerTabs}
-          role="tablist"
-        >
-          {TABS.map((each) => (
-            <button
-              key={each.id}
-              aria-selected={tab === each.id}
-              className={styles.pickerTab}
-              role="tab"
-              type="button"
-              onClick={() => {
-                setTab(each.id);
-                setQuery("");
-              }}
-            >
-              {each.label}
-            </button>
-          ))}
-        </div>
+        {/* On a desktop the tabs sit over the list; in a sheet they are held
+            with the title and the search, so scrolling never carries them off. */}
+        {isPhone ? null : tabs}
         <SelectorOptionList
           density="compact"
           hasAutoFocus
           hasSearch
+          header={
+            isPhone ? (
+              <>
+                <h2 className={styles.sheetTitle}>{targetLabel} colour</h2>
+                {tabs}
+              </>
+            ) : undefined
+          }
           label={`${targetLabel} ${tab} colours`}
           options={tab === "semantic" ? semanticOptions : primitiveOptions}
           query={query}
