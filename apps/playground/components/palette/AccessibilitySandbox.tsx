@@ -224,7 +224,7 @@ export function AccessibilitySandbox({
               data-sandbox-target="buttonText"
               style={{ color: paint("buttonText") }}
             >
-              Primary
+              Get started
             </span>
           </span>
 

@@ -44,7 +44,7 @@ test.describe("The accessibility sandbox", () => {
     await expect(layer(page, "body")).toContainText(
       "Web Content Accessibility Guidelines",
     );
-    await expect(layer(page, "buttonFill")).toContainText("Primary");
+    await expect(layer(page, "buttonFill")).toContainText("Get started");
 
     /* The background is what is held at first, so the bar is never empty. The
        hero is the background, so it has no outline of its own to draw. */
