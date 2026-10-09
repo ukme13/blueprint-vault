@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { apcaContrast } from "./apca";
 import {
   assessTextContrastAtSize,
   isLargeText,
@@ -41,6 +42,55 @@ describe("WCAG contrast", () => {
   it("recommends the stronger black or white text colour", () => {
     expect(recommendTextColour("#7646ab").colour).toBe("#ffffff");
     expect(recommendTextColour("#f8f5fc").colour).toBe("#000000");
+  });
+
+  it("chooses by APCA: white on the mid-tones where WCAG 2 leans to black", () => {
+    /* Each of these has the higher WCAG 2 ratio in black, and the higher Lc in
+       white, which is the one that reads on the fill. */
+    for (const fill of [
+      "#f97316",
+      "#a855f7",
+      "#808080",
+      "#3b82f6",
+      "#e8590c",
+    ]) {
+      const byRatio =
+        contrastRatio("#ffffff", fill) >= contrastRatio("#000000", fill)
+          ? "#ffffff"
+          : "#000000";
+      expect(byRatio, fill).toBe("#000000");
+      expect(recommendTextColour(fill).colour, fill).toBe("#ffffff");
+    }
+  });
+
+  it("still chooses black where black is the one that reads", () => {
+    for (const fill of ["#eab308", "#22c55e", "#f59e0b", "#14b8a6"]) {
+      expect(recommendTextColour(fill).colour, fill).toBe("#000000");
+    }
+  });
+
+  it("picks whichever colour has the larger Lc, and reports WCAG 2 ratios", () => {
+    const fill = "#f97316";
+    const result = recommendTextColour(fill);
+    expect(Math.abs(apcaContrast(result.colour, fill))).toBeGreaterThan(
+      Math.abs(apcaContrast(result.alternative, fill)),
+    );
+    /* The ratios stay WCAG 2's, so the pick can be the lower of the two. */
+    expect(result.ratio).toBeCloseTo(contrastRatio(result.colour, fill), 5);
+    expect(result.alternativeRatio).toBeCloseTo(
+      contrastRatio(result.alternative, fill),
+      5,
+    );
+    expect(result.ratio).toBeLessThan(result.alternativeRatio);
+  });
+
+  it("takes the light colour on a tie, and honours other colours given", () => {
+    expect(recommendTextColour("#808080", "#ffffff", "#ffffff").colour).toBe(
+      "#ffffff",
+    );
+    expect(recommendTextColour("#f97316", "#fefefe", "#010101").colour).toBe(
+      "#fefefe",
+    );
   });
 });
 

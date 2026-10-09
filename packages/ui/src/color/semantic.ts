@@ -1,3 +1,4 @@
+import { apcaContrast } from "./apca";
 import { contrastRatio } from "./accessibility";
 import { alphaHex } from "./composite";
 import {
@@ -780,6 +781,10 @@ function seedToken(
 /**
  * The end of a track that reads best on a fill, per mode.
  *
+ * Judged by APCA, with each end as the text on the fill: WCAG 2's ratio leans
+ * toward the dark end on a mid-tone fill, where the light end is the more
+ * legible.
+ *
  * Null when the fill is not in the layer, which leaves the caller on its
  * declared weights: a seed that cannot measure should fall back to a stated
  * choice rather than to a guess about a colour that is not there.
@@ -796,8 +801,8 @@ function readableEnds(
   const better = (mode: ColourMode): ShadeItem => {
     const on = resolveSemantic(fill, mode, tracks);
     if (!on) return mode === "light" ? lightest : darkest;
-    return contrastRatio(lightest.hex, on.hex) >=
-      contrastRatio(darkest.hex, on.hex)
+    return Math.abs(apcaContrast(lightest.hex, on.hex)) >=
+      Math.abs(apcaContrast(darkest.hex, on.hex))
       ? lightest
       : darkest;
   };
