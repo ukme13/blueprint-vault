@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Paintbrush } from "lucide-react";
+import { ChevronDown, PaintBucket } from "lucide-react";
 import {
   groupSemanticTokens,
   parseShadeOptionValue,
@@ -108,10 +108,9 @@ export function SandboxColourPicker({
           className={styles.pickerTrigger}
           type="button"
         >
-          <Paintbrush aria-hidden className="size-3.5" />
-          <TransparencySwatch alpha={1} colour={seen(resolved.hex)} />
+          <PaintBucket aria-hidden className="size-3.5" />
           <span>{resolved.name}</span>
-          <ChevronDown aria-hidden className="size-3.5" />
+          <ChevronDown aria-hidden className="size-4 text-fg-muted" />
         </button>
       }
       width={300}

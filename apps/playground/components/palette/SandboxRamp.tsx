@@ -1,6 +1,10 @@
 "use client";
 
-import type { ColorTrack, ResolvedSandboxColour } from "@blueprint/ui";
+import {
+  recommendTextColour,
+  type ColorTrack,
+  type ResolvedSandboxColour,
+} from "@blueprint/ui";
 import { usePaletteView } from "./PaletteViewContext";
 import styles from "./accessibility-sandbox.module.css";
 
@@ -35,18 +39,26 @@ export function SandboxRamp({
       className={styles.ramp}
       role="group"
     >
-      {track.shades.map((shade) => (
-        <button
-          key={shade.weight}
-          aria-label={`${track.name} ${shade.weight}`}
-          aria-pressed={shade.weight === resolved.weight}
-          className={styles.rampStep}
-          style={{ backgroundColor: seen(shade.hex) }}
-          title={`${track.name} ${shade.weight}`}
-          type="button"
-          onClick={() => onChoose(track.id, shade.weight)}
-        />
-      ))}
+      {track.shades.map((shade) => {
+        const hex = seen(shade.hex);
+        return (
+          <button
+            key={shade.weight}
+            aria-label={`${track.name} ${shade.weight}`}
+            aria-pressed={shade.weight === resolved.weight}
+            className={styles.rampStep}
+            style={{
+              backgroundColor: hex,
+              color: recommendTextColour(hex).colour,
+            }}
+            title={`${track.name} ${shade.weight}`}
+            type="button"
+            onClick={() => onChoose(track.id, shade.weight)}
+          >
+            {shade.weight}
+          </button>
+        );
+      })}
     </div>
   );
 }

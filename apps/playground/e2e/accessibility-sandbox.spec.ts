@@ -31,21 +31,59 @@ const openAccessibility = async (page: Page) => {
 };
 
 test.describe("The accessibility sandbox", () => {
-  test("shows the four layers with nothing selected", async ({
+  test("opens on the four layers with the background selected", async ({
     seededPage: page,
   }) => {
     await openAccessibility(page);
 
     await expect(layer(page, "badgeFill")).toContainText("Accessibility");
-    await expect(layer(page, "heading")).toHaveText("WCAG 2.2 / 3.0");
-    await expect(layer(page, "body")).toBeVisible();
+    await expect(layer(page, "heading")).toHaveText("WCAG 2.2");
+    await expect(layer(page, "body")).toContainText(
+      "Web Content Accessibility Guidelines",
+    );
     await expect(layer(page, "buttonFill")).toContainText("Primary");
 
-    await expect(controlBar(page)).toContainText(
-      "Select a layer to recolour it",
-    );
+    /* The background is what is held at first, so the bar is never empty. The
+       hero is the background, so it has no outline of its own to draw. */
+    await expect(controlBar(page)).toContainText("Background");
     await expect(page.getByTestId("sandbox-selection")).toHaveCount(0);
-    await expect(sandbox(page).getByRole("complementary")).toHaveCount(0);
+    await expect(card(page, "WCAG 2", "Background")).toBeVisible();
+  });
+
+  test("runs edge to edge under the control bar, as designed", async ({
+    seededPage: page,
+  }) => {
+    await openAccessibility(page);
+
+    const hero = (await layer(page, "background").boundingBox())!;
+    const bar = (await controlBar(page).boundingBox())!;
+    const viewport = page.viewportSize()!;
+    /* From the bar's left edge to the window's right, with no card around it. */
+    expect(hero.x).toBeCloseTo(bar.x, 0);
+    expect(hero.width).toBeCloseTo(bar.width, 0);
+    expect(hero.x + hero.width).toBeLessThanOrEqual(viewport.width);
+    expect(hero.y).toBeCloseTo(bar.y + bar.height, 0);
+    expect(hero.height).toBeGreaterThanOrEqual(560);
+    expect(
+      await layer(page, "background").evaluate(
+        (el) => getComputedStyle(el).borderRadius,
+      ),
+    ).toBe("0px");
+
+    /* Its content is centred. */
+    const heading = (await layer(page, "heading").boundingBox())!;
+    expect(heading.x + heading.width / 2).toBeCloseTo(
+      hero.x + hero.width / 2,
+      -1,
+    );
+  });
+
+  test("says WCAG 3 in the hero under WCAG 3", async ({ seededPage: page }) => {
+    await openAccessibility(page);
+    await standardButton(page, "WCAG 3").click();
+
+    await expect(layer(page, "heading")).toHaveText("WCAG 3");
+    await expect(layer(page, "body")).toContainText("APCA");
   });
 
   test("selects a layer with an outline, corner handles and a size tag", async ({
@@ -117,16 +155,15 @@ test.describe("The accessibility sandbox", () => {
     await expect(controlBar(page)).toContainText("Select a layer");
   });
 
-  test("clicking the stage around the hero lets go of the selection", async ({
+  test("clicking the hero around its layers selects the background", async ({
     seededPage: page,
   }) => {
     await openAccessibility(page);
     await layer(page, "body").click();
     await expect(page.getByTestId("sandbox-selection")).toBeVisible();
 
-    await sandbox(page)
-      .locator("header + div")
-      .click({ position: { x: 4, y: 4 } });
+    await layer(page, "background").click({ position: { x: 8, y: 8 } });
+    await expect(controlBar(page)).toContainText("Background");
     await expect(page.getByTestId("sandbox-selection")).toHaveCount(0);
   });
 
@@ -182,6 +219,27 @@ test.describe("The accessibility sandbox", () => {
     const steps = ramp.getByRole("button");
     expect(await steps.count()).toBeGreaterThan(10);
     await expect(ramp.locator('[aria-pressed="true"]')).toHaveCount(1);
+
+    /* Each step is labelled with its weight, first to last. */
+    const labels = await steps.allInnerTexts();
+    expect(labels[0]).toBe("25");
+    expect(labels.at(-1)).toBe("950");
+    expect(labels.map(Number)).toEqual(
+      [...labels.map(Number)].sort((a, b) => a - b),
+    );
+
+    /* One strip, 28px tall, the ends rounded and the one held outlined. */
+    expect((await ramp.boundingBox())!.height).toBe(28);
+    expect(
+      await steps
+        .first()
+        .evaluate((el) => getComputedStyle(el).borderTopLeftRadius),
+    ).toBe("8px");
+    expect(
+      await ramp
+        .locator('[aria-pressed="true"]')
+        .evaluate((el) => getComputedStyle(el).boxShadow),
+    ).not.toBe("none");
 
     await ramp.getByRole("button", { name: /^\S+ 50$/ }).click();
     await expect(

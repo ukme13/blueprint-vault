@@ -1,16 +1,11 @@
-/* The accessibility sandbox: a control bar, and a stage with a hero on it.
-   The hero's own colours are inline, being whatever was picked; everything
-   else here is the studio's chrome, and uses the semantic tokens. */
+/* The accessibility sandbox: a control bar in the toolbar's own style, and
+   under it a hero that runs edge to edge. The hero's colours are inline, being
+   whatever was picked; everything else here is the studio's chrome and uses
+   the semantic tokens. */
 
 .sandbox {
   display: flex;
   flex-direction: column;
-  max-width: 1280px;
-  margin: 0 auto 32px;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: var(--radius-lg, 12px);
-  background: var(--color-surface-raised);
-  overflow: hidden;
 }
 
 /* ---------- Control bar ---------- */
@@ -18,18 +13,19 @@
 .controlBar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-height: 52px;
-  padding: 8px 14px;
-  border-bottom: 1px solid var(--color-border-subtle);
+  gap: 8px;
+  min-height: 50px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--color-border-default);
+  background: var(--color-surface-raised);
   overflow-x: auto;
 }
 
 .controlBar strong {
   flex: none;
-  color: var(--color-fg-primary);
-  font-size: 13px;
-  font-weight: 600;
+  color: var(--color-fg-secondary);
+  font-size: 12px;
+  font-weight: 500;
   white-space: nowrap;
 }
 
@@ -43,27 +39,33 @@
   flex: none;
   align-items: center;
   gap: 8px;
-  height: 28px;
-  padding: 0 10px;
-  border: 1px solid var(--color-border-default);
-  border-radius: 6px;
-  background: var(--color-surface-base);
+  min-height: 28px;
+  padding: 3px 12px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
   color: var(--color-fg-primary);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 20px;
   white-space: nowrap;
   cursor: pointer;
 }
 
 .pickerTrigger:hover {
-  border-color: var(--color-border-strong);
+  background: var(--color-surface-subtle);
 }
 
 .pickerTrigger:focus-visible,
 .rampStep:focus-visible,
 .pickerTab:focus-visible,
-.canvas:focus-visible,
-.canvas :focus-visible {
+.stage:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.stage :focus-visible {
   outline: 2px solid var(--color-focus-ring);
   outline-offset: 2px;
 }
@@ -99,62 +101,81 @@
 
 /* ---------- Shade ramp ---------- */
 
+/* One strip, 28px tall, the steps sharing its width, the ends rounded. The
+   labels are the weights, in the mono face the swatches use. */
 .ramp {
   display: flex;
-  flex: none;
-  gap: 2px;
+  flex: 1 1 800px;
+  max-width: 800px;
+  min-width: 560px;
+  height: 28px;
+  border-radius: 8px;
 }
 
 .rampStep {
-  flex: none;
-  width: 18px;
-  height: 28px;
+  flex: 1 1 0;
+  min-width: 0;
   padding: 0;
-  border: 1px solid var(--color-border-subtle);
-  border-radius: 4px;
+  border: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 11px;
   cursor: pointer;
 }
 
+.rampStep:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+.rampStep:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
+/* The one held, in a heavy outline that rises over its neighbours. */
 .rampStep[aria-pressed="true"] {
-  border-color: var(--color-fg-primary);
-  box-shadow:
-    0 0 0 2px var(--color-surface-base),
-    0 0 0 4px var(--color-fg-primary);
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 0 0 3px var(--color-fg-primary);
 }
 
 /* ---------- Stage and hero ---------- */
 
 .stage {
   position: relative;
-  padding: clamp(24px, 6vw, 56px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  min-height: 560px;
+  padding: 44px 64px 80px;
   /* A selection's handles reach past the layer, so they must not be clipped. */
   overflow: visible;
 }
 
-.canvas {
+.copy {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 16px;
-  max-width: 560px;
-  margin: 0 auto;
-  padding: clamp(20px, 5vw, 40px);
-  border-radius: 16px;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: center;
 }
 
-.canvas h2 {
-  width: 100%;
+.copy h2 {
   margin: 0;
-  font-size: clamp(28px, 6vw, 44px);
-  font-weight: 700;
-  line-height: 1.1;
+  font-size: 44px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.333;
 }
 
-.canvas p {
-  width: 100%;
+.copy p {
+  max-width: 320px;
   margin: 0;
-  font-size: 16px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .block {
@@ -165,23 +186,28 @@
 .button {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
 }
 
 .badge {
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 600;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 20px;
 }
 
 .button {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 15px;
-  font-weight: 600;
+  height: 42px;
+  min-width: 141px;
+  padding: 0 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
 }
 
-.canvas [data-sandbox-target] {
+.stage [data-sandbox-target] {
   cursor: default;
 }
 
@@ -296,19 +322,23 @@
 
 @media (max-width: 640px) {
   .controlBar {
-    padding: 8px 12px;
+    padding: 0 12px;
+  }
+
+  .stage {
+    min-height: 0;
+    padding: 32px 20px;
+  }
+
+  .copy h2 {
+    font-size: 32px;
   }
 
   /* The card moves under the hero rather than over the top of a small one. */
   .hud {
     position: static;
-    margin: 0 12px 12px;
-  }
-
-  .stage {
-    display: flex;
-    flex-direction: column;
-    padding: 20px 12px 0;
+    align-self: stretch;
+    margin: 0;
   }
 }
 

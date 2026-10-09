@@ -15,6 +15,7 @@ import {
   resolveSandboxColour,
   SANDBOX_TARGET_LABELS,
   type ColorTrack,
+  type ContrastStandard,
   type SandboxTarget,
   type SemanticToken,
 } from "@blueprint/ui";
@@ -42,8 +43,20 @@ const SIZING: Record<SandboxTarget, string> = {
   buttonText: "Hug × Hug",
 };
 
+/** What the hero says, in each standard. */
+const HERO_COPY: Record<ContrastStandard, { title: string; body: string }> = {
+  wcag2: {
+    title: "WCAG 2.2",
+    body: "the Web Content Accessibility Guidelines (WCAG) 2.2, an international standard published by the World Wide Web Consortium (W3C) on October 5, 2023, and approved as an ISO/IEC international standard (ISO/IEC 40500:2025) in October 2025.",
+  },
+  wcag3: {
+    title: "WCAG 3",
+    body: "WCAG 3.0 is the W3C's draft successor to 2.2. It reads a pair by APCA's Lc, which depends on which colour is the text: 75 for body text, 60 for large text and 45 for UI components.",
+  },
+};
+
 /**
- * A small hero whose every colour can be picked, and the contrast it makes.
+ * A hero whose every colour can be picked, and the contrast it makes.
  *
  * Clicking a layer selects it, as in Figma: a container selects its fill, and
  * Ctrl or Cmd click, a double click, or Ctrl Enter from the keyboard goes into
@@ -59,7 +72,7 @@ export function AccessibilitySandbox({
   const { contrastStandard, seen } = usePaletteView();
   const { resolved: mode } = useThemeMode();
   const [colours, setColours] = useState(DEFAULT_SANDBOX_COLOURS);
-  const [target, setTarget] = useState<SandboxTarget | null>(null);
+  const [target, setTarget] = useState<SandboxTarget | null>("background");
   const stage = useRef<HTMLDivElement>(null);
   const box = useElementBox(
     stage,
@@ -149,36 +162,34 @@ export function AccessibilitySandbox({
         )}
       </header>
 
+      {/* The hero is the background layer: it runs edge to edge under the
+          control bar, and what is not another layer is it. */}
       <div
+        {...layer("background")}
         ref={stage}
         className={styles.stage}
-        style={{ backgroundColor: seen(page) }}
-        onClick={() => setTarget(null)}
+        style={{ backgroundColor: paint("background") }}
       >
-        <div
-          {...layer("background")}
-          className={styles.canvas}
-          style={{ backgroundColor: paint("background") }}
+        <span
+          {...layer("badgeFill", "badgeText")}
+          className={styles.badge}
+          style={{ backgroundColor: paint("badgeFill") }}
         >
           <span
-            {...layer("badgeFill", "badgeText")}
-            className={styles.badge}
-            style={{ backgroundColor: paint("badgeFill") }}
+            data-sandbox-target="badgeText"
+            style={{ color: paint("badgeText") }}
           >
-            <span
-              data-sandbox-target="badgeText"
-              style={{ color: paint("badgeText") }}
-            >
-              Accessibility
-            </span>
+            Accessibility
           </span>
+        </span>
+        <div className={styles.copy}>
           <h2>
             <span
               {...layer("heading")}
               className={styles.block}
               style={{ color: paint("heading") }}
             >
-              WCAG 2.2 / 3.0
+              {HERO_COPY[contrastStandard].title}
             </span>
           </h2>
           <p>
@@ -187,24 +198,24 @@ export function AccessibilitySandbox({
               className={styles.block}
               style={{ color: paint("body") }}
             >
-              Pick any layer to recolour it, and read how the pair holds up.
+              {HERO_COPY[contrastStandard].body}
             </span>
           </p>
-          <span
-            {...layer("buttonFill", "buttonText")}
-            className={styles.button}
-            style={{ backgroundColor: paint("buttonFill") }}
-          >
-            <span
-              data-sandbox-target="buttonText"
-              style={{ color: paint("buttonText") }}
-            >
-              Primary
-            </span>
-          </span>
         </div>
+        <span
+          {...layer("buttonFill", "buttonText")}
+          className={styles.button}
+          style={{ backgroundColor: paint("buttonFill") }}
+        >
+          <span
+            data-sandbox-target="buttonText"
+            style={{ color: paint("buttonText") }}
+          >
+            Primary
+          </span>
+        </span>
 
-        {box && target ? (
+        {box && target && target !== "background" ? (
           <span
             aria-hidden="true"
             className={styles.selection}
