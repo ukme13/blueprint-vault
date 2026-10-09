@@ -509,6 +509,22 @@ test.describe("The standard toggle", () => {
     ).toBeVisible();
     await expect(sheet.getByRole("tab", { name: "Semantic" })).toBeVisible();
     await expect(sheet.getByRole("tab", { name: "Primitive" })).toBeVisible();
+
+    /* At the top of the list, the first group's title is clear of the held
+       head and not cut off under it. (The list opens centred on the colour
+       held, so it is scrolled there first.) */
+    await sheet.getByRole("listbox").evaluate((list) => {
+      for (let node = list.parentElement; node; node = node.parentElement) {
+        if (node.scrollHeight > node.clientHeight) node.scrollTop = 0;
+      }
+    });
+    const head = (await sheet.locator("[class*='stickyHead']").boundingBox())!;
+    const groupTitle = sheet.locator("[class*='groupTitle']").first();
+    await expect(groupTitle).toHaveText("Actions");
+    await expect
+      .poll(async () => (await groupTitle.boundingBox())!.y)
+      .toBeGreaterThanOrEqual(head.y + head.height);
+
     await sheet.getByRole("tab", { name: "Primitive" }).click();
     await expect(
       sheet.getByRole("option", { name: "primary 25", exact: true }),

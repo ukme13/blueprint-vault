@@ -82,6 +82,15 @@
   flex-direction: column;
 }
 
+/* In a sheet, the gap a selector sheet has between its held head and its
+   list. The head's negative margin assumes it: without it the list begins
+   under the head, and the first group's title was cut off. */
+@media (max-width: 640px) {
+  .pickerPanel {
+    gap: var(--spacing-3, 12px);
+  }
+}
+
 .pickerTabs {
   display: flex;
   gap: 4px;
