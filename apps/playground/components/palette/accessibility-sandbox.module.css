@@ -289,41 +289,51 @@
   transform: translateX(-50%);
 }
 
-/* ---------- Contrast card ---------- */
+/* ---------- Contrast score ---------- */
 
+/* One strip the sandbox's width, under the hero: the standard and the layer
+   on the left, the pairs beside it. It sits in the flow, so it never covers
+   the hero it is reading. */
 .hud {
-  position: absolute;
-  z-index: 2;
-  top: 12px;
-  left: 12px;
-  min-width: 220px;
-  padding: 10px 12px;
-  border: 1px solid var(--color-border-default);
-  border-radius: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 32px;
+  width: 100%;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--color-border-default);
   background: var(--color-surface-raised);
-  box-shadow: 0 4px 16px
-    color-mix(in oklch, var(--color-fg-primary) 14%, transparent);
   color: var(--color-fg-primary);
-  font-size: 12px;
+  font-size: 13px;
 }
 
 .hud h3 {
-  margin: 0 0 6px;
-  font-size: 12px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
+}
+
+.hud h3 span {
+  color: var(--color-fg-secondary);
+  font-weight: 500;
 }
 
 .hud ul {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 32px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
 .hud li {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
+  display: inline-grid;
+  grid-template-columns: auto auto auto;
   align-items: center;
   gap: 10px;
 }
@@ -336,8 +346,6 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  min-width: 72px;
-  justify-content: flex-end;
   font-weight: 600;
 }
 
@@ -366,18 +374,18 @@
     font-size: 32px;
   }
 
-  /* The card moves under the hero rather than over the top of a small one. */
   .hud {
-    position: static;
-    align-self: stretch;
-    margin: 0;
+    padding: 12px;
   }
-}
 
-/* Between a phone and a wide screen the card would sit over the hero's corner,
-   so the stage leaves it a band of its own above. */
-@media (min-width: 641px) and (max-width: 1100px) {
-  .stage {
-    padding-top: 128px;
+  .hud ul {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .hud li {
+    grid-template-columns: 1fr auto auto;
   }
 }

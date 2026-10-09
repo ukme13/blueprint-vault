@@ -18,7 +18,7 @@ interface SandboxHudProps {
 }
 
 /**
- * The live reading for the selected layer, held over the corner of the sandbox.
+ * The live reading for the selected layer, held in a strip under the sandbox.
  *
  * Measured on the real colours, however the sandbox is being looked at: a
  * simulated pair would report a pass the design does not have. A figure with
@@ -32,7 +32,9 @@ export function SandboxHud({ standard, targetLabel, rows }: SandboxHudProps) {
       className={styles.hud}
       data-standard={standard}
     >
-      <h3>{CONTRAST_STANDARD_LABELS[standard]} contrast</h3>
+      <h3>
+        {CONTRAST_STANDARD_LABELS[standard]} contrast <span>{targetLabel}</span>
+      </h3>
       <ul>
         {rows.map((row) => (
           <li key={row.label} data-passes={row.passes ?? undefined}>

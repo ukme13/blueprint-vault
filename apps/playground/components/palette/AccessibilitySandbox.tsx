@@ -242,15 +242,15 @@ export function AccessibilitySandbox({
             </small>
           </span>
         ) : null}
-
-        {target ? (
-          <SandboxHud
-            rows={assessSandboxTarget(contrastStandard, target, hexes, page)}
-            standard={contrastStandard}
-            targetLabel={SANDBOX_TARGET_LABELS[target]}
-          />
-        ) : null}
       </div>
+
+      {target ? (
+        <SandboxHud
+          rows={assessSandboxTarget(contrastStandard, target, hexes, page)}
+          standard={contrastStandard}
+          targetLabel={SANDBOX_TARGET_LABELS[target]}
+        />
+      ) : null}
     </section>
   );
 }

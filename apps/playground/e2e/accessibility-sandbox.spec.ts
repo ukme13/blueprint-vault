@@ -282,6 +282,31 @@ test.describe("The accessibility sandbox", () => {
 });
 
 test.describe("The contrast card", () => {
+  test("is one strip the sandbox's width under the hero, not floating over it", async ({
+    seededPage: page,
+  }) => {
+    for (const width of [1280, 390]) {
+      await page.setViewportSize({ width, height: 900 });
+      await openAccessibility(page);
+      await layer(page, "body").click();
+
+      const hud = card(page, "WCAG 2", "Body Text");
+      const strip = (await hud.boundingBox())!;
+      const hero = (await layer(page, "background").boundingBox())!;
+      const box = (await sandbox(page).boundingBox())!;
+      expect(strip.width).toBeCloseTo(box.width, 0);
+      expect(strip.x).toBeCloseTo(box.x, 0);
+      /* Below the hero's bottom edge, so nothing of the hero is covered. */
+      expect(strip.y).toBeGreaterThanOrEqual(hero.y + hero.height - 1);
+      expect(await hud.evaluate((el) => getComputedStyle(el).position)).toBe(
+        "static",
+      );
+      /* Names the standard and the layer it is reading. */
+      await expect(hud).toContainText("WCAG 2 contrast");
+      await expect(hud).toContainText("Body Text");
+    }
+  });
+
   test("reads the pair in WCAG 2 as ratios with a grade", async ({
     seededPage: page,
   }) => {
