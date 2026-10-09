@@ -130,3 +130,87 @@ describe("assessmentIssueCount", () => {
     expect(Math.abs(wcag3 - report.issueCount)).toBeLessThanOrEqual(judged);
   });
 });
+
+describe("what is shown is what is judged", () => {
+  /* Pairs found by scanning greys on white for an Lc a hair under a line. */
+  it("passes an Lc that is shown as the line it reaches", () => {
+    /* Lc 44.78 is shown as Lc 45, and is a pass for UI. */
+    expect(gradeContrast("wcag3", "ui", "#acacac", "#ffffff")).toMatchObject({
+      value: "Lc 45",
+      grade: "Pass",
+      passes: true,
+    });
+    /* Lc 59.63 is shown as Lc 60: the line for large text and labels. */
+    expect(gradeContrast("wcag3", "large", "#8f8f8f", "#ffffff")).toMatchObject(
+      {
+        value: "Lc 60",
+        passes: true,
+      },
+    );
+    /* Lc 74.76 is shown as Lc 75: the line for body text. */
+    expect(gradeContrast("wcag3", "body", "#6f6f6f", "#ffffff")).toMatchObject({
+      value: "Lc 75",
+      passes: true,
+    });
+  });
+
+  it("still fails an Lc that is shown under the line", () => {
+    /* Lc 44.4 would be shown as 44: one grey step lighter than #acacac. */
+    expect(gradeContrast("wcag3", "ui", "#b0b0b0", "#ffffff")).toMatchObject({
+      value: "Lc 43",
+      passes: false,
+    });
+  });
+
+  it("cuts a ratio to one place instead of rounding it up to the line", () => {
+    /* 4.478 is not 4.5, and no longer reads as it. */
+    expect(gradeContrast("wcag2", "body", "#777777", "#ffffff")).toMatchObject({
+      value: "4.4:1",
+      grade: "Fail",
+      passes: false,
+    });
+    /* 2.995 is not 3. */
+    expect(gradeContrast("wcag2", "ui", "#959595", "#ffffff")).toMatchObject({
+      value: "2.9:1",
+      passes: false,
+    });
+    /* A whole ratio is not cut below itself by the arithmetic. */
+    expect(gradeContrast("wcag2", "body", "#000000", "#ffffff").value).toBe(
+      "21.0:1",
+    );
+  });
+});
+
+describe("the label job", () => {
+  it("holds a label to large text's Lc 60 and not body text's 75", () => {
+    /* #777 on white is Lc 71: a body-text fail, and fine for a label. */
+    expect(gradeContrast("wcag3", "body", "#777777", "#ffffff").passes).toBe(
+      false,
+    );
+    expect(gradeContrast("wcag3", "label", "#777777", "#ffffff")).toMatchObject(
+      {
+        value: "Lc 71",
+        passes: true,
+      },
+    );
+    /* Under 60 it fails. */
+    expect(gradeContrast("wcag3", "label", "#999999", "#ffffff").passes).toBe(
+      false,
+    );
+  });
+
+  it("is body text's line in WCAG 2, which has no relaxed line for small text", () => {
+    expect(gradeContrast("wcag2", "label", "#777777", "#ffffff")).toMatchObject(
+      {
+        grade: "Fail",
+        passes: false,
+      },
+    );
+    expect(gradeContrast("wcag2", "label", "#767676", "#ffffff")).toMatchObject(
+      {
+        grade: "AA",
+        passes: true,
+      },
+    );
+  });
+});

@@ -193,10 +193,12 @@ const HEADING_TEXT: TextPair = {
   glyph: "heading",
 };
 const BODY_TEXT: TextPair = { text: "body", job: "body", glyph: "body" };
-const BADGE_TEXT: TextPair = { text: "badgeText", job: "body", glyph: "body" };
+/* A control's label is the job "label": short and heavy, so not held to
+   body text's line. Its mark stays the small a, as it is small text. */
+const BADGE_TEXT: TextPair = { text: "badgeText", job: "label", glyph: "body" };
 const BUTTON_TEXT: TextPair = {
   text: "buttonText",
-  job: "body",
+  job: "label",
   glyph: "body",
 };
 

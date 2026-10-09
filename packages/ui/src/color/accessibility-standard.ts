@@ -10,12 +10,12 @@ import type { PreviewAssessment } from "./preview-assessment";
 /**
  * What a pair has to clear, and how each standard words the result.
  *
- * A job is the thing the colours do: body text, large text (a heading), or a
- * UI component and other non-text. Each standard has its own line for each job
+ * A job is the thing the colours do: body text, large text (a heading), the
+ * label of a control, or a UI component and other non-text. Each standard has its own line for each job
  * and its own words for passing it. The sandbox's card and the accessibility
  * report both read these, so they cannot disagree.
  */
-export type ContrastJob = "body" | "large" | "ui";
+export type ContrastJob = "body" | "large" | "label" | "ui";
 
 export interface JobGrade {
   /** The figure as it is shown: `7.4:1`, or `Lc 87`. */
@@ -25,11 +25,20 @@ export interface JobGrade {
   passes: boolean;
 }
 
-/** A WCAG 2 ratio against a job: AAA, AA or Fail. */
+/**
+ * A WCAG 2 ratio against a job: AAA, AA or Fail.
+ *
+ * Shown cut to one place, not rounded to it: 4.478 reads 4.4:1, under the 4.5
+ * it fails, where rounding showed 4.5:1 beside a Fail. WCAG's own rule is that
+ * a ratio is not rounded up to reach a line.
+ *
+ * A label has no relaxed line in WCAG 2, which only lowers it for text of 18pt
+ * or 14pt bold, so it is held to body text's.
+ */
 function gradeRatio(ratio: number, job: ContrastJob): JobGrade {
-  const value = `${ratio.toFixed(1)}:1`;
+  const value = `${(Math.floor(ratio * 10 + 1e-9) / 10).toFixed(1)}:1`;
   const [aa, aaa] =
-    job === "body"
+    job === "body" || job === "label"
       ? [WCAG_CONTRAST.normalTextAA, WCAG_CONTRAST.normalTextAAA]
       : job === "large"
         ? [WCAG_CONTRAST.largeTextAA, WCAG_CONTRAST.largeTextAAA]
@@ -39,18 +48,29 @@ function gradeRatio(ratio: number, job: ContrastJob): JobGrade {
   return { value, grade: "Fail", passes: false };
 }
 
-/** An APCA Lc against a job: its size must reach the job's line. */
+/**
+ * An APCA Lc against a job: its size, as it is shown, must reach the job's
+ * line.
+ *
+ * Judged on the figure on screen. Lc 44.8 is shown as Lc 45, and a card that
+ * said "Lc 45, Fail" against a line of 45 contradicted itself. APCA's own
+ * tables are in whole numbers, so the whole number is the figure.
+ *
+ * A label, the text of a button or a badge, is short, heavy and set large
+ * for its job, so it takes large text's line and not the fluent-reading one
+ * body text is held to.
+ */
 function gradeLc(lc: number, job: ContrastJob): JobGrade {
-  const magnitude = Math.abs(lc);
+  const shown = Math.round(Math.abs(lc));
   const line =
     job === "body"
       ? APCA_LC.bodyText
-      : job === "large"
+      : job === "large" || job === "label"
         ? APCA_LC.largeText
         : APCA_LC.uiComponent;
-  const passes = magnitude >= line;
+  const passes = shown >= line;
   return {
-    value: `Lc ${Math.round(magnitude)}`,
+    value: `Lc ${shown}`,
     grade: passes ? "Pass" : "Fail",
     passes,
   };

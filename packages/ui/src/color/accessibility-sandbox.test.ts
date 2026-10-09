@@ -380,3 +380,59 @@ describe("pressedSandboxTarget", () => {
     ).toBe("heading");
   });
 });
+
+describe("assessSandboxTarget: labels", () => {
+  const grey = hexes({
+    buttonText: "#777777",
+    buttonFill: WHITE,
+    badgeText: "#777777",
+    badgeFill: WHITE,
+    body: "#777777",
+    background: WHITE,
+  });
+
+  it("holds a button's and a badge's text to Lc 60 in WCAG 3, where body text fails at Lc 71", () => {
+    for (const target of [
+      "buttonFill",
+      "buttonText",
+      "badgeFill",
+      "badgeText",
+    ] as const) {
+      expect(
+        assessSandboxTarget("wcag3", target, grey, WHITE)[0],
+      ).toMatchObject({
+        value: "Lc 71",
+        grade: "Pass",
+        passes: true,
+      });
+    }
+    /* The same pair as body text still fails. */
+    expect(assessSandboxTarget("wcag3", "body", grey, WHITE)[0]).toMatchObject({
+      value: "Lc 71",
+      passes: false,
+    });
+  });
+
+  it("keeps a label at 4.5:1 in WCAG 2", () => {
+    expect(
+      assessSandboxTarget("wcag2", "buttonFill", grey, WHITE)[0],
+    ).toMatchObject({
+      grade: "Fail",
+      passes: false,
+    });
+  });
+
+  it("passes a fill whose Lc is shown as 45", () => {
+    const rows = assessSandboxTarget(
+      "wcag3",
+      "buttonFill",
+      hexes({ background: WHITE, buttonFill: "#acacac", buttonText: BLACK }),
+      WHITE,
+    );
+    expect(rows.at(-1)).toMatchObject({
+      label: "Fill on Page",
+      value: "Lc 45",
+      passes: true,
+    });
+  });
+});
