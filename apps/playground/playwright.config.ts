@@ -75,6 +75,8 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+      /* WebKit-only specs run from playwright.webkit.config.ts. */
+      testIgnore: /\.webkit\.spec\.ts$/,
     },
   ],
   webServer: useDevServer
