@@ -464,4 +464,37 @@ test.describe("The standard toggle", () => {
     );
     expect(overflow).toBeLessThanOrEqual(0);
   });
+
+  test("keeps the colour picker in reach on a phone, and opens it as a sheet", async ({
+    seededPage: page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openAccessibility(page);
+    await layer(page, "body").click();
+
+    /* The bar scrolls sideways beside the ramp; the trigger must not be the
+       thing that gives way. */
+    const trigger = controlBar(page).getByRole("button", {
+      name: /^Body Text colour:/,
+    });
+    await expect(trigger).toBeVisible();
+    const triggerBox = (await trigger.boundingBox())!;
+    const barBox = (await controlBar(page).boundingBox())!;
+    expect(triggerBox.width).toBeGreaterThan(60);
+    expect(triggerBox.x).toBeGreaterThanOrEqual(barBox.x);
+    expect(triggerBox.x + triggerBox.width).toBeLessThanOrEqual(
+      barBox.x + barBox.width,
+    );
+
+    const before = await colourOf(page, "body");
+    await trigger.click();
+    const sheet = page.getByRole("dialog", { name: "Body Text colour" });
+    await expect(sheet.getByRole("tab", { name: "Semantic" })).toBeVisible();
+    await expect(sheet.getByRole("tab", { name: "Primitive" })).toBeVisible();
+    await sheet
+      .getByRole("option", { name: /fg.primary|Foreground primary/i })
+      .first()
+      .click();
+    await expect.poll(() => colourOf(page, "body")).not.toBe(before);
+  });
 });

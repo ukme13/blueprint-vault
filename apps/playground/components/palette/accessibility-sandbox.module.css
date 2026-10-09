@@ -34,6 +34,13 @@
   font-size: 13px;
 }
 
+/* The bar scrolls sideways, so the slot keeps its size: as a flex item it
+   shrank to nothing beside the ramp, and on a phone the trigger, the only
+   way to choose a colour from a list, was not there. */
+.pickerSlot {
+  flex: none;
+}
+
 .pickerTrigger {
   display: inline-flex;
   flex: none;

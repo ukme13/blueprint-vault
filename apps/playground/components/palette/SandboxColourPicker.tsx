@@ -99,6 +99,7 @@ export function SandboxColourPicker({
 
   return (
     <PopoverOrSheet
+      className={styles.pickerSlot}
       isFlush
       isOpen={isOpen}
       label={`${targetLabel} colour`}
