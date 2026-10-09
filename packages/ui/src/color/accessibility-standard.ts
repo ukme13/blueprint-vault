@@ -4,6 +4,7 @@ import {
   type AccessibilityStatus,
 } from "./accessibility";
 import { APCA_LC, apcaContrast } from "./apca";
+import { cutRatio, shownLc } from "./contrast-reading";
 import type { ContrastStandard } from "./palette-view";
 import type { PreviewAssessment } from "./preview-assessment";
 
@@ -36,7 +37,7 @@ export interface JobGrade {
  * or 14pt bold, so it is held to body text's.
  */
 function gradeRatio(ratio: number, job: ContrastJob): JobGrade {
-  const value = `${(Math.floor(ratio * 10 + 1e-9) / 10).toFixed(1)}:1`;
+  const value = `${cutRatio(ratio)}:1`;
   const [aa, aaa] =
     job === "body" || job === "label"
       ? [WCAG_CONTRAST.normalTextAA, WCAG_CONTRAST.normalTextAAA]
@@ -61,7 +62,7 @@ function gradeRatio(ratio: number, job: ContrastJob): JobGrade {
  * body text is held to.
  */
 function gradeLc(lc: number, job: ContrastJob): JobGrade {
-  const shown = Math.round(Math.abs(lc));
+  const shown = shownLc(lc);
   const line =
     job === "body"
       ? APCA_LC.bodyText
@@ -97,7 +98,7 @@ export function gradeContrast(
 export type ApcaTier = "Body" | "Large" | "UI" | "Fail";
 
 export function apcaTier(lc: number): ApcaTier {
-  const magnitude = Math.abs(lc);
+  const magnitude = shownLc(lc);
   if (magnitude >= APCA_LC.bodyText) return "Body";
   if (magnitude >= APCA_LC.largeText) return "Large";
   if (magnitude >= APCA_LC.uiComponent) return "UI";
@@ -149,7 +150,7 @@ export function assessmentIssueCount(
   const apcaBoundaries = assessment.nonTextChecks.filter(
     (check) =>
       check.countsTowardWarnings &&
-      Math.abs(pairLc(check)) < APCA_LC.uiComponent,
+      shownLc(pairLc(check)) < APCA_LC.uiComponent,
   ).length;
 
   return (

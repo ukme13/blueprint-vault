@@ -71,11 +71,17 @@ describe("gradeContrast", () => {
 describe("apcaTier", () => {
   it("sorts a size of Lc into Body, Large, UI or Fail on the boundaries", () => {
     expect(apcaTier(75)).toBe("Body");
-    expect(apcaTier(74.9)).toBe("Large");
+    expect(apcaTier(74.4)).toBe("Large");
     expect(apcaTier(60)).toBe("Large");
-    expect(apcaTier(59.9)).toBe("UI");
+    expect(apcaTier(59.4)).toBe("UI");
     expect(apcaTier(45)).toBe("UI");
-    expect(apcaTier(44.9)).toBe("Fail");
+    expect(apcaTier(44.4)).toBe("Fail");
+  });
+
+  it("sorts the Lc as it is shown: 74.6 reads Lc 75, so it is Body", () => {
+    expect(apcaTier(74.6)).toBe("Body");
+    expect(apcaTier(59.5)).toBe("Large");
+    expect(apcaTier(44.5)).toBe("UI");
   });
 
   it("reads light-on-dark by its size", () => {

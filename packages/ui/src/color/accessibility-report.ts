@@ -1,5 +1,6 @@
 import type { AccessibilityStatus } from "./accessibility";
 import { APCA_LC, apcaContrast } from "./apca";
+import { ratioText, shownLc } from "./contrast-reading";
 import {
   apcaTextStatus,
   apcaTier,
@@ -39,7 +40,7 @@ const TIER_SUMMARY: Record<ApcaTier, string> = {
 
 /** `Lc 87`, the size of the Lc to a whole number. */
 export function lcLabel(lc: number): string {
-  return `Lc ${Math.round(Math.abs(lc))}`;
+  return `Lc ${shownLc(lc)}`;
 }
 
 /** A text sample: its foreground as the text on its background. */
@@ -57,7 +58,7 @@ export function readTextCheck(
           : result.largeText.aa
             ? "Large AA"
             : "Fail",
-      figure: `${result.ratio.toFixed(1)}:1`,
+      figure: ratioText(result.ratio),
       status: result.status,
       summary: result.summary,
     };
@@ -81,9 +82,9 @@ export function readBoundary(
   const passes =
     standard === "wcag2"
       ? check.result.passes
-      : Math.abs(lc) >= APCA_LC.uiComponent;
+      : shownLc(lc) >= APCA_LC.uiComponent;
   const figure =
-    standard === "wcag2" ? `${check.result.ratio.toFixed(1)}:1` : lcLabel(lc);
+    standard === "wcag2" ? ratioText(check.result.ratio) : lcLabel(lc);
 
   if (!check.countsTowardWarnings) {
     return {
@@ -117,13 +118,13 @@ export function readFocus(
   if (standard === "wcag2") {
     return {
       badge: wcag2.status === "pass" ? "Pass" : "Fail",
-      figure: `${wcag2.adjacentContrast.toFixed(1)}:1`,
+      figure: ratioText(wcag2.adjacentContrast),
       status: wcag2.status,
       summary: wcag2.summary,
     };
   }
   const lc = apcaContrast(ring, against);
-  const passes = Math.abs(lc) >= APCA_LC.uiComponent;
+  const passes = shownLc(lc) >= APCA_LC.uiComponent;
   return {
     badge: passes ? "Pass" : "Fail",
     figure: lcLabel(lc),
@@ -173,8 +174,8 @@ export function readTextChoice(
     return {
       colour: recommendation.colour,
       isWhite,
-      figure: `${recommendation.ratio.toFixed(1)}:1`,
-      detail: `White ${whiteRatio.toFixed(1)}:1 · Dark ${darkRatio.toFixed(1)}:1`,
+      figure: ratioText(recommendation.ratio),
+      detail: `White ${ratioText(whiteRatio)} · Dark ${ratioText(darkRatio)}`,
     };
   }
 

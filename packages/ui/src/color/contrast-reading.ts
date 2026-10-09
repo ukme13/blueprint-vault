@@ -8,6 +8,31 @@ import type { ContrastPolarity, ContrastStandard } from "./palette-view";
  */
 export type ContrastStatus = "fail" | "partial" | "pass";
 
+/**
+ * The figure on screen, and the figure judged: one and the same.
+ *
+ * A pair that shows "Lc 45" and "Fail" against a line of 45, or "4.5:1" and
+ * "Fail" against 4.5, contradicts itself. So an Lc is judged as the whole
+ * number it is shown as (APCA's own tables are whole numbers), and a WCAG 2
+ * ratio is shown cut to its places, never rounded up: WCAG does not round a
+ * ratio up to a line, so 4.478 reads 4.4:1, and 4.5:1 is only ever a pass.
+ */
+export function shownLc(lc: number): number {
+  return Math.round(Math.abs(lc));
+}
+
+/** A ratio cut, not rounded, to a number of places: `4.4` for 4.478. */
+export function cutRatio(ratio: number, places = 1): string {
+  const scale = 10 ** places;
+  /* The small add keeps a whole ratio such as 21 from falling to 20.99. */
+  return (Math.floor(ratio * scale + 1e-9) / scale).toFixed(places);
+}
+
+/** `4.4:1`: a ratio as it is written, cut to its places. */
+export function ratioText(ratio: number, places = 1): string {
+  return `${cutRatio(ratio, places)}:1`;
+}
+
 /** The steps a swatch warns about: a pair that passes has nothing to say. */
 export function isContrastWarning(
   status: ContrastStatus,
@@ -58,8 +83,9 @@ export interface ContrastReading {
  * and gives the size of its Lc here with the sign left out: the swatch is a
  * number to compare down a ramp, and the sign is in the popover.
  *
- * The status is judged on the exact figure, not the one shown: WCAG does not
- * round, so a swatch reading 7.0 can be a 6.96 and short of 7.
+ * The status is judged on the figure shown. An Lc is shown, and judged, as a
+ * whole number. A WCAG 2 ratio is shown cut and judged exact, so a swatch
+ * reading 7.0 is never a 6.96: that one reads 6.9.
  */
 export function swatchContrast(
   standard: ContrastStandard,
@@ -70,9 +96,8 @@ export function swatchContrast(
   if (standard === "wcag3") {
     const [text, ground] =
       polarity === "on" ? [shadeHex, referenceHex] : [referenceHex, shadeHex];
-    const exact = Math.abs(apcaContrast(text, ground));
-    const lc = Math.round(exact);
-    const status = contrastStatus(standard, exact);
+    const lc = shownLc(apcaContrast(text, ground));
+    const status = contrastStatus(standard, lc);
     return {
       label: String(lc),
       description: `APCA contrast Lc ${lc}, ${CONTRAST_STATUS_WORDS[status]}`,
@@ -80,7 +105,7 @@ export function swatchContrast(
     };
   }
   const exact = contrastRatio(shadeHex, referenceHex);
-  const ratio = exact.toFixed(1);
+  const ratio = cutRatio(exact);
   const status = contrastStatus(standard, exact);
   return {
     label: ratio,

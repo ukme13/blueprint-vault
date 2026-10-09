@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { ratioText } from "./contrast-reading";
 import {
   lcLabel,
   readBoundary,
@@ -41,7 +42,8 @@ describe("readTextCheck", () => {
   it("keeps WCAG 2's own badge, ratio and verdict", () => {
     for (const check of assessment().textChecks) {
       const reading = readTextCheck("wcag2", check);
-      expect(reading.figure).toBe(`${check.result.ratio.toFixed(1)}:1`);
+      /* Cut to a place, never rounded up to a line it is short of. */
+      expect(reading.figure).toBe(ratioText(check.result.ratio));
       expect(reading.status).toBe(check.result.status);
       expect(reading.summary).toBe(check.result.summary);
       expect(["AAA", "AA", "Large AA", "Fail"]).toContain(reading.badge);
@@ -131,5 +133,55 @@ describe("readTextChoice", () => {
         .map((part) => Number(part.replace(/\D/g, "")));
       expect(reading.isWhite).toBe(white! >= dark!);
     }
+  });
+});
+
+describe("the report judges the Lc it shows", () => {
+  const pair = (foreground: string) => ({
+    label: "Boundary",
+    foreground,
+    background: "#ffffff",
+    countsTowardWarnings: true,
+    simulated: null,
+    weakensUnder: [],
+    result: {
+      ratio: 2,
+      passes: false,
+      status: "fail" as const,
+      summary: "",
+    },
+  });
+
+  it("passes a boundary at Lc 44.78, which reads Lc 45", () => {
+    const reading = readBoundary("wcag3", pair("#acacac"));
+    expect(reading).toMatchObject({
+      figure: "Lc 45",
+      badge: "Pass",
+      status: "pass",
+    });
+  });
+
+  it("fails one at Lc 43", () => {
+    expect(readBoundary("wcag3", pair("#b0b0b0"))).toMatchObject({
+      figure: "Lc 43",
+      badge: "Fail",
+    });
+  });
+
+  it("passes a focus ring at Lc 44.78 and tiers a text pair on its shown Lc", () => {
+    expect(
+      readFocus("wcag3", "#acacac", "#ffffff", {
+        adjacentContrast: 2,
+        status: "fail",
+        summary: "",
+      }),
+    ).toMatchObject({ figure: "Lc 45", status: "pass" });
+    /* Lc 74.76 reads Lc 75: body grade. */
+    expect(
+      readTextCheck("wcag3", {
+        foreground: "#6f6f6f",
+        background: "#ffffff",
+      } as never),
+    ).toMatchObject({ figure: "Lc 75", badge: "Body", status: "pass" });
   });
 });

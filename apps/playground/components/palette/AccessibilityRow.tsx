@@ -1,6 +1,7 @@
 import { Badge, type BadgeVariant } from "@astryxdesign/core/Badge";
 import {
   colourVisionLabel,
+  ratioText,
   type AccessibilityStatus,
   type ColourVisionDeficiency,
   type SimulatedContrast,
@@ -93,7 +94,7 @@ export function AccessibilityRow({
             className={styles.contrastSimulated}
             data-weakens={simulated.weakens}
           >
-            {simulated.ratio.toFixed(2)}:1 under{" "}
+            {ratioText(simulated.ratio, 2)} under{" "}
             {colourVisionLabel(simulated.deficiency).toLowerCase()}
             {simulated.severity < 1 &&
               ` at ${Math.round(simulated.severity * 100)}%`}
