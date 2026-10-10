@@ -842,6 +842,34 @@ test.describe("A stroke is the one edge", () => {
   });
 });
 
+test.describe("A list's chosen and hovered row", () => {
+  test("is a light wash of the text colour, the same for both", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await seeThePreview(page).click();
+    await section(page, "Auto layout")
+      .getByRole("button", { name: "Padding horizontal", exact: true })
+      .click();
+    const chosen = page.getByRole("option", { selected: true }).first();
+    await expect(chosen).toBeVisible();
+
+    /* Parsed to its alpha: a wash is translucent, a grey fill is not. */
+    const alpha = (colour: string) => {
+      if (colour.includes("/")) return parseFloat(colour.split("/")[1]!);
+      if (colour.startsWith("rgba")) return parseFloat(colour.split(",")[3]!);
+      return 1;
+    };
+    const chosenFill = await style(chosen, "background-color");
+    expect(alpha(chosenFill)).toBeLessThan(0.1);
+    expect(alpha(chosenFill)).toBeGreaterThan(0);
+
+    const other = page.getByRole("option", { selected: false }).first();
+    await other.hover();
+    await expect.poll(() => style(other, "background-color")).toBe(chosenFill);
+  });
+});
+
 test.describe("The Popular tag is a chip", () => {
   const tag = (page: Page) =>
     page.locator('[data-preview-slot="landing-plan-2-tag"]');
