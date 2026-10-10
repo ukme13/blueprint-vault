@@ -4,6 +4,7 @@ import { elevationVariableName } from "../scale/elevation";
 import { radiusVariableName } from "../scale/radius";
 import { spacingVariableName } from "../scale/spacing";
 import { isPreviewButton } from "./preview-shell";
+import type { PreviewNative } from "./preview-native";
 
 /**
  * What the inspector can change about one element of the preview page, beyond
@@ -30,11 +31,21 @@ export const PREVIEW_STROKE_POSITIONS: readonly PreviewStrokePosition[] = [
 
 export const PREVIEW_STROKE_WEIGHTS = [1, 2, 3, 4] as const;
 
+/** The edges a stroke can be drawn on alone: a divider's. */
+export type PreviewEdgeSide = "top" | "bottom";
+
+export const PREVIEW_EDGE_SIDES: readonly PreviewEdgeSide[] = ["top", "bottom"];
+
 export interface PreviewStroke {
   /** A semantic token id, usually a border: `border.default`. */
   tokenId: string;
   position: PreviewStrokePosition;
   weight: number;
+  /**
+   * On one edge only, as a divider has it: the line between two bands. Absent,
+   * the stroke goes all the way round and is drawn by `position`.
+   */
+  side?: PreviewEdgeSide;
 }
 
 export const PREVIEW_PADDING_SIDES = [
@@ -69,15 +80,20 @@ export interface PreviewSlotStyle {
    * takes the one that reads on its fill.
    */
   labelColor?: string;
-  stroke?: PreviewStroke;
-  /** An elevation level id. */
-  shadow?: string;
+  /**
+   * The edge. Absent, the element has the one it was drawn with; `null`, it
+   * has none, which is the person taking it away.
+   */
+  stroke?: PreviewStroke | null;
+  /** An elevation level id. Absent, the element's own; `null`, none. */
+  shadow?: string | null;
 }
 
 export type PreviewStyles = Record<string, PreviewSlotStyle>;
 
 /** What the inspector shows for an element. */
-export type PreviewInspectKind = "text" | "button" | "band" | "card";
+export type PreviewInspectKind =
+  "text" | "button" | "band" | "card" | "chip" | "divider";
 
 /**
  * The groups of cards on the page, each styled as one: every feature card
@@ -89,6 +105,7 @@ export const PREVIEW_CARD_IDS = [
   "card-quad-card",
   "card-pricing",
   "card-pricing-featured",
+  "card-newsletter-field",
 ] as const;
 
 export type PreviewCardId = (typeof PREVIEW_CARD_IDS)[number];
@@ -98,10 +115,50 @@ export const PREVIEW_CARD_LABEL: Record<PreviewCardId, string> = {
   "card-quad-card": "Quad cards",
   "card-pricing": "Pricing cards",
   "card-pricing-featured": "Featured plan",
+  "card-newsletter-field": "Newsletter field",
 };
 
 export function isPreviewCard(id: string): id is PreviewCardId {
   return (PREVIEW_CARD_IDS as readonly string[]).includes(id);
+}
+
+/**
+ * The lines between parts of the page that can be picked as what they are.
+ * The row at the foot of the footer owns the line above it.
+ */
+export const PREVIEW_DIVIDER_IDS = ["divider-footer-base"] as const;
+
+export type PreviewDividerId = (typeof PREVIEW_DIVIDER_IDS)[number];
+
+export const PREVIEW_DIVIDER_LABEL: Record<PreviewDividerId, string> = {
+  "divider-footer-base": "Footer divider",
+};
+
+export function isPreviewDivider(id: string): id is PreviewDividerId {
+  return (PREVIEW_DIVIDER_IDS as readonly string[]).includes(id);
+}
+
+/** An element that is no slot of copy: a card, a field or a divider. */
+export function isPreviewSurface(id: string): boolean {
+  return isPreviewCard(id) || isPreviewDivider(id);
+}
+
+/** What the inspector calls a card, a divider or a chip; nothing for text. */
+export function previewSurfaceLabel(id: string): string | null {
+  if (isPreviewCard(id)) return PREVIEW_CARD_LABEL[id];
+  if (isPreviewDivider(id)) return PREVIEW_DIVIDER_LABEL[id];
+  if (isPreviewChip(id)) return "Plan tag";
+  return null;
+}
+
+/**
+ * Tags that are a small filled shape of their own, with copy in it: the
+ * plan's "Popular". A slot of text that is also a surface.
+ */
+export const PREVIEW_CHIP_IDS: readonly string[] = ["landing-plan-2-tag"];
+
+export function isPreviewChip(id: string): boolean {
+  return PREVIEW_CHIP_IDS.includes(id);
 }
 
 /**
@@ -116,6 +173,8 @@ export function previewInspectKind(
 ): PreviewInspectKind {
   if (isBand) return "band";
   if (isPreviewCard(id)) return "card";
+  if (isPreviewDivider(id)) return "divider";
+  if (isPreviewChip(id)) return "chip";
   return isPreviewButton(id) ? "button" : "text";
 }
 
@@ -169,6 +228,19 @@ export const PREVIEW_INSPECT_FIELDS: Record<
   /* A card is a surface that holds copy: the room it keeps, how round and how
      opaque it is, what it is filled with, its edge and its shadow. */
   card: ["gap", "padding", "opacity", "radius", "fill", "stroke", "effects"],
+  /* A chip is text in a small shape: its copy and type, the room it keeps, how
+     round it is, what it is filled with, the colour of its text and its edge. */
+  chip: [
+    "copy",
+    "typography",
+    "padding",
+    "radius",
+    "fill",
+    "labelColor",
+    "stroke",
+  ],
+  /* A divider is a line, and the room around it. */
+  divider: ["padding", "stroke"],
 };
 
 export function previewInspectOffers(
@@ -202,7 +274,12 @@ function readStroke(value: unknown): PreviewStroke | undefined {
   )
     ? (raw.weight as number)
     : 1;
-  return { tokenId: raw.tokenId, position, weight };
+  const side = PREVIEW_EDGE_SIDES.includes(raw.side as PreviewEdgeSide)
+    ? (raw.side as PreviewEdgeSide)
+    : undefined;
+  return side
+    ? { tokenId: raw.tokenId, position, weight, side }
+    : { tokenId: raw.tokenId, position, weight };
 }
 
 function readSlotStyle(value: unknown): PreviewSlotStyle | null {
@@ -236,9 +313,13 @@ function readSlotStyle(value: unknown): PreviewSlotStyle | null {
 
   if (isId(raw.fill)) style.fill = raw.fill;
   if (isId(raw.labelColor)) style.labelColor = raw.labelColor;
-  const stroke = readStroke(raw.stroke);
-  if (stroke) style.stroke = stroke;
-  if (isId(raw.shadow)) style.shadow = raw.shadow;
+  if (raw.stroke === null) style.stroke = null;
+  else {
+    const stroke = readStroke(raw.stroke);
+    if (stroke) style.stroke = stroke;
+  }
+  if (raw.shadow === null) style.shadow = null;
+  else if (isId(raw.shadow)) style.shadow = raw.shadow;
 
   return Object.keys(style).length > 0 ? style : null;
 }
@@ -402,9 +483,11 @@ export function previewButtonLabelToken(
 export function previewButtonLabelOf(
   style: PreviewSlotStyle,
   tokens: readonly SemanticToken[],
+  kind: "button" | "chip" = "button",
 ): { tokenId: string; isChosen: boolean } | null {
   if (style.labelColor) return { tokenId: style.labelColor, isChosen: true };
-  if (style.fill) {
+  /* A chip's text is not derived from its fill; it is what it was. */
+  if (kind === "button" && style.fill) {
     return {
       tokenId: previewButtonLabelToken(style.fill, tokens),
       isChosen: false,
@@ -441,6 +524,7 @@ export function previewStyleDeclarations(
   style: PreviewSlotStyle,
   tokens: readonly SemanticToken[] = [],
   kind: PreviewInspectKind = "band",
+  native: PreviewNative = {},
 ): PreviewStyleDeclarations {
   const out: PreviewStyleDeclarations = {};
 
@@ -474,7 +558,7 @@ export function previewStyleDeclarations(
     if (id) out[corners[corner]] = `var(${radiusVariableName(id)})`;
   }
 
-  if (style.fill && (kind === "button" || kind === "card")) {
+  if (style.fill && (kind === "button" || kind === "card" || kind === "chip")) {
     out.backgroundColor = `var(${semanticVariableName(style.fill)})`;
     /* A button's label has to read on what it is now filled with. A card's
        copy is its own slots', set where each is drawn. */
@@ -487,26 +571,44 @@ export function previewStyleDeclarations(
 
   /* A label colour of its own is the person's and wins over the one derived
      from the fill. */
-  if (kind === "button" && style.labelColor) {
+  if ((kind === "button" || kind === "chip") && style.labelColor) {
     out.color = `var(${semanticVariableName(style.labelColor)})`;
   }
 
+  /* An edge on one side alone is a border of that side; all the way round it
+     is a shadow, so it can sit inside, outside or on the edge. */
+  const { stroke } = style;
+  const ringed = stroke && !stroke.side ? strokeShadow(stroke) : [];
   const shadows = [
-    ...(style.stroke ? strokeShadow(style.stroke) : []),
-    ...(style.shadow ? [`var(${elevationVariableName(style.shadow)})`] : []),
+    ...ringed,
+    ...(typeof style.shadow === "string"
+      ? [`var(${elevationVariableName(style.shadow)})`]
+      : []),
+    /* With an edge drawn as a shadow, the shadow the element already had must
+       be said too, or it is lost: the library keeps it in a variable. */
+    ...(style.shadow === undefined && native.hasShadow && ringed.length > 0
+      ? ["var(--tw-shadow, 0 0 #0000)"]
+      : []),
   ];
   if (shadows.length > 0) out.boxShadow = shadows.join(", ");
+  else if (style.shadow === null) out.boxShadow = "none";
 
-  /* A stroke is the element's edge, so the edge it already has gives way: an
-     outlined button, a card and a section keep a border of their own, and with
-     a stroke on top the element would show two outlines. Longhands, since the
-     base styles set border colours as longhands and a shorthand beside them
-     is what React warns of when one is removed. */
-  if (style.stroke) {
+  /* A stroke, or the taking away of one, is the element's edge, so the edge it
+     already has gives way: an outlined button, a card and a section keep a
+     border of their own, and with a stroke on top the element would show two
+     outlines. Longhands, since the base styles set border colours as longhands
+     and a shorthand beside them is what React warns of when one is removed. */
+  if (stroke !== undefined) {
     out.borderTopWidth = 0;
     out.borderRightWidth = 0;
     out.borderBottomWidth = 0;
     out.borderLeftWidth = 0;
+  }
+  if (stroke?.side) {
+    const edge = stroke.side === "top" ? "Top" : "Bottom";
+    out[`border${edge}Width`] = stroke.weight;
+    out[`border${edge}Style`] = "solid";
+    out[`border${edge}Color`] = `var(${semanticVariableName(stroke.tokenId)})`;
   }
 
   return out;

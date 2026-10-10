@@ -1,10 +1,11 @@
 "use client";
 
-import type { KeyboardEvent, ReactNode } from "react";
+import type { FormEventHandler, KeyboardEvent, ReactNode } from "react";
 import { usePreviewSlotStyle } from "./preview-styles-context";
 
 /**
  * A card on the page: the surface that holds some copy, and can be picked.
+ * A field and a divider are surfaces of the same kind.
  *
  * Every card of a group takes the group's style, so the three feature cards
  * or the three plans change together, and every one is marked with the
@@ -20,12 +21,14 @@ export function CardSurface({
   onInspect,
   ...rest
 }: {
-  as: "article" | "div";
+  as: "article" | "div" | "form";
   cardId: string;
   className?: string;
   children: ReactNode;
   onInspect: (id: string) => void;
   "data-plan"?: number;
+  "aria-label"?: string;
+  onSubmit?: FormEventHandler<HTMLElement>;
 }) {
   const overrides = usePreviewSlotStyle(cardId);
   const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
@@ -42,7 +45,13 @@ export function CardSurface({
       data-preview-slot={cardId}
       style={overrides}
       tabIndex={0}
-      onClick={() => onInspect(cardId)}
+      onClick={(event) => {
+        /* A field is typed in: the press that lands in it is not a pick. */
+        if ((event.target as HTMLElement).closest("input, textarea, select")) {
+          return;
+        }
+        onInspect(cardId);
+      }}
       onKeyDown={onKeyDown}
     >
       {children}

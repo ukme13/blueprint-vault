@@ -3,6 +3,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from "react";
 import {
   previewInspectKind,
+  previewNativeStyle,
   previewStyleDeclarations,
   previewStyleKey,
   previewStyleOf,
@@ -47,13 +48,13 @@ export function PreviewStylesProvider({
  */
 export function usePreviewSlotStyle(id: string, isBand = false): CSSProperties {
   const { styles, tokens } = useContext(PreviewStylesContext);
-  return useMemo(
-    () =>
-      previewStyleDeclarations(
-        previewStyleOf(styles, previewStyleKey(id, isBand)),
-        tokens,
-        previewInspectKind(id, isBand),
-      ) as CSSProperties,
-    [styles, tokens, id, isBand],
-  );
+  return useMemo(() => {
+    const kind = previewInspectKind(id, isBand);
+    return previewStyleDeclarations(
+      previewStyleOf(styles, previewStyleKey(id, isBand)),
+      tokens,
+      kind,
+      previewNativeStyle(id, kind),
+    ) as CSSProperties;
+  }, [styles, tokens, id, isBand]);
 }

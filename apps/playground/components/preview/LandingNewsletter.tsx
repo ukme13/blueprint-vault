@@ -3,6 +3,7 @@ import {
   InspectableSlot,
   type LandingSectionProps,
 } from "./Inspectable";
+import { CardSurface } from "./CardSurface";
 import styles from "./landing.module.css";
 
 /**
@@ -48,9 +49,12 @@ export function LandingNewsletter({
           system={system}
           onInspect={onInspect}
         />
-        <form
+        <CardSurface
           aria-label="Newsletter sign-up"
+          as="form"
+          cardId="card-newsletter-field"
           className={styles.newsletterForm}
+          onInspect={onInspect}
           onSubmit={(event) => event.preventDefault()}
         >
           <input
@@ -66,7 +70,7 @@ export function LandingNewsletter({
             system={system}
             onInspect={onInspect}
           />
-        </form>
+        </CardSurface>
         <InspectableSlot
           as="p"
           className={styles.small}

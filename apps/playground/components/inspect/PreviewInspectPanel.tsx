@@ -5,6 +5,7 @@ import { Button as ResetButton } from "@blueprint/ui";
 import { PanelRightClose } from "lucide-react";
 import {
   PREVIEW_INSPECT_FIELDS,
+  previewNativeStyle,
   previewInspectorCopyField,
   type PreviewDocumentBlock,
   type PreviewInspectKind,
@@ -101,6 +102,7 @@ export function PreviewInspectPanel(props: PreviewInspectPanelProps) {
   }
 
   const fields = PREVIEW_INSPECT_FIELDS[target.kind];
+  const native = previewNativeStyle(target.id, target.kind);
   const has = (...wanted: (typeof fields)[number][]) =>
     wanted.some((field) => fields.includes(field));
   const { block, style } = props;
@@ -157,21 +159,24 @@ export function PreviewInspectPanel(props: PreviewInspectPanelProps) {
         />
       ) : null}
 
-      <FillSection
-        bandFill={props.bandFill}
-        colourTokenId={block?.colorTokenId}
-        kind={target.kind}
-        style={style}
-        tokenColors={props.tokenColors}
-        tokens={props.tokens}
-        onBandFillChange={props.onBandFillChange}
-        onColourChange={props.onColourChange}
-        onStyleChange={props.onStyleChange}
-      />
+      {has("fill") ? (
+        <FillSection
+          bandFill={props.bandFill}
+          colourTokenId={block?.colorTokenId}
+          kind={target.kind}
+          native={native}
+          style={style}
+          tokenColors={props.tokenColors}
+          tokens={props.tokens}
+          onBandFillChange={props.onBandFillChange}
+          onColourChange={props.onColourChange}
+          onStyleChange={props.onStyleChange}
+        />
+      ) : null}
 
       {has("stroke") ? (
         <StrokeSection
-          kind={target.kind}
+          native={native}
           style={style}
           tokenColors={props.tokenColors}
           tokens={props.tokens}
@@ -182,6 +187,7 @@ export function PreviewInspectPanel(props: PreviewInspectPanelProps) {
       {has("effects") ? (
         <EffectsSection
           elevation={props.elevation}
+          native={native}
           style={style}
           onStyleChange={props.onStyleChange}
         />

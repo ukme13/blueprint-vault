@@ -25,6 +25,7 @@ import { LandingHero } from "./LandingHero";
 import { LandingNewsletter } from "./LandingNewsletter";
 import { LandingPricing } from "./LandingPricing";
 import { LandingQuote } from "./LandingQuote";
+import { CardSurface } from "./CardSurface";
 import styles from "./landing.module.css";
 
 const NAV_IDS = PREVIEW_NAV_LINK_IDS.filter((id) => id !== "shell-login");
@@ -307,7 +308,12 @@ export function PreviewSite({
               ))}
             </div>
           </div>
-          <div className={styles.footerBase}>
+          <CardSurface
+            as="div"
+            cardId="divider-footer-base"
+            className={styles.footerBase}
+            onInspect={onInspectLanding}
+          >
             <InspectableSlot
               as="p"
               className={styles.small}
@@ -324,7 +330,7 @@ export function PreviewSite({
               system={system}
               onInspect={onInspectShell}
             />
-          </div>
+          </CardSurface>
         </div>
       </Band>
       {children}

@@ -1,7 +1,9 @@
 "use client";
 
+import type { ReactNode } from "react";
 import {
   previewButtonLabelOf,
+  type PreviewNative,
   PREVIEW_FILL_TOKEN_GROUPS,
   PREVIEW_TEXT_COLOR_GROUPS,
   type PreviewSectionFill,
@@ -28,12 +30,15 @@ export function FillSection({
   tokenColors,
   colourTokenId,
   bandFill,
+  native,
   onColourChange,
   onBandFillChange,
   onStyleChange,
 }: StyleSectionProps & {
   /** The text's colour token, for a text slot. */
   colourTokenId?: string;
+  /** What the element is drawn with before it is changed. */
+  native: PreviewNative;
   /** A band's own fill, which may be an image. */
   bandFill?: PreviewSectionFill | null;
   onColourChange: (tokenId: string | undefined) => void;
@@ -74,16 +79,23 @@ export function FillSection({
     );
   }
 
-  /* A button and a card are filled with a token of their own; a text is
-     coloured. */
-  const isFilled = kind === "button" || kind === "card";
+  /* A button, a card and a chip are filled with a token of their own; a text
+     is coloured. */
+  const isFilled = kind === "button" || kind === "card" || kind === "chip";
   const value = isFilled ? style.fill : colourTokenId;
+  /* What the page fills it with, until that is changed: shown, and marked. */
+  const shown = tokenDisplay(
+    tokens,
+    tokenColors,
+    value ?? (isFilled ? native.fill : undefined),
+  );
+  const display = shown && value === undefined ? withDefaultMark(shown) : shown;
   return (
     <InspectSection title="Fill">
       <div className={styles.item}>
         <TokenSelect
           clearLabel="Default"
-          display={tokenDisplay(tokens, tokenColors, value)}
+          display={display}
           hasSearch
           label="Fill"
           options={isFilled ? fillOptions : textOptions}
@@ -105,8 +117,9 @@ export function FillSection({
           }
         />
       </div>
-      {kind === "button" ? (
+      {kind === "button" || kind === "chip" ? (
         <LabelColour
+          kind={kind}
           options={textOptions}
           style={style}
           tokenColors={tokenColors}
@@ -123,6 +136,7 @@ export function FillSection({
  * it is the token chosen, and removing it hands the label back to the fill.
  */
 function LabelColour({
+  kind,
   style,
   tokens,
   tokenColors,
@@ -132,9 +146,10 @@ function LabelColour({
   StyleSectionProps,
   "style" | "tokens" | "tokenColors" | "onStyleChange"
 > & {
+  kind: "button" | "chip";
   options: ReturnType<typeof useTokenOptions>;
 }) {
-  const label = previewButtonLabelOf(style, tokens);
+  const label = previewButtonLabelOf(style, tokens, kind);
   const shown = label ? tokenDisplay(tokens, tokenColors, label.tokenId) : null;
   return (
     <div className={styles.item}>
@@ -166,4 +181,16 @@ function LabelColour({
       />
     </div>
   );
+}
+
+/** A value the page has by itself, said so: the token, and that it is the default. */
+function withDefaultMark(shown: { icon: ReactNode; text: ReactNode }) {
+  return {
+    ...shown,
+    text: (
+      <>
+        {shown.text} <small>Default</small>
+      </>
+    ),
+  };
 }

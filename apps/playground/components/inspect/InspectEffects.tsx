@@ -1,6 +1,6 @@
 "use client";
 
-import type { ResolvedElevation } from "@blueprint/ui";
+import type { PreviewNative, ResolvedElevation } from "@blueprint/ui";
 import { InspectSection } from "./InspectPrimitives";
 import {
   AddButton,
@@ -10,17 +10,26 @@ import {
 import styles from "./inspect-panel.module.css";
 import { TokenSelect } from "./TokenSelect";
 
-/** A shadow: a level of the elevation scale. */
+/**
+ * A shadow: a level of the elevation scale.
+ *
+ * An element that casts one of its own, a contained button, shows it as
+ * "Default" until a level is chosen; removing it is the person choosing none.
+ */
 export function EffectsSection({
   style,
+  native,
   elevation,
   onStyleChange,
 }: Pick<StyleSectionProps, "style" | "onStyleChange"> & {
+  native: PreviewNative;
   elevation: readonly ResolvedElevation[];
 }) {
-  const level = elevation.find((each) => each.id === style.shadow);
+  const own = typeof style.shadow === "string" ? style.shadow : undefined;
+  const isDefault = style.shadow === undefined && native.hasShadow === true;
+  const level = elevation.find((each) => each.id === own);
 
-  if (!style.shadow) {
+  if (!own && !isDefault) {
     return (
       <InspectSection
         action={
@@ -48,7 +57,7 @@ export function EffectsSection({
         <TokenSelect
           display={{
             icon: <i aria-hidden className={styles.effectIcon} />,
-            text: `shadow-${level?.id ?? style.shadow}`,
+            text: isDefault ? "Default shadow" : `shadow-${level?.id ?? own}`,
           }}
           label="Shadow"
           options={elevation.map((each) => ({
@@ -56,12 +65,17 @@ export function EffectsSection({
             label: `shadow-${each.id}`,
             description: each.name,
           }))}
-          value={style.shadow}
+          value={own}
           onChange={(next) => onStyleChange({ ...style, shadow: next })}
         />
         <RemoveButton
           label="Remove effect"
-          onClick={() => onStyleChange({ ...style, shadow: undefined })}
+          onClick={() =>
+            onStyleChange({
+              ...style,
+              shadow: native.hasShadow ? null : undefined,
+            })
+          }
         />
       </div>
     </InspectSection>

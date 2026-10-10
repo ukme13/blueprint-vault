@@ -5,7 +5,7 @@ import {
   applyColorToBlocks,
   applyRoleToBlocks,
   clearPreviewStyle,
-  isPreviewCard,
+  isPreviewSurface,
   PREVIEW_SECTION_SEED_TOKEN,
   previewStyleKey,
   seedPreviewLanding,
@@ -171,8 +171,9 @@ export function usePreviewEdits({
   /* Back to what the seed gives: copy, type and colour, and whatever the
      inspector set, in one step. */
   const resetSlotToDefault = useCallback(() => {
-    /* A card has no copy or type to put back: only what was set on it. */
-    if (inspecting && isPreviewCard(inspecting.id)) {
+    /* A card, a field or a divider has no copy or type to put back: only
+       what was set on it. */
+    if (inspecting && isPreviewSurface(inspecting.id)) {
       patchStyle(inspecting.id, {});
       return;
     }

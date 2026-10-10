@@ -354,3 +354,9 @@ button.control {
   letter-spacing: 0.03em;
   line-height: 14px;
 }
+
+/* A value that is shown and not chosen: an edge that sits on one side. */
+.staticValue {
+  padding-inline: 8px;
+  color: var(--color-fg-secondary);
+}
