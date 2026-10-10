@@ -40,7 +40,9 @@ describe("what kind of element an id is", () => {
     expect(previewInspectKind("card-feature-card")).toBe("card");
     expect(previewInspectKind("card-quad-card")).toBe("card");
     expect(previewInspectKind("card-pricing")).toBe("card");
+    expect(previewInspectKind("card-pricing-featured")).toBe("card");
     expect(isPreviewCard("card-pricing")).toBe(true);
+    expect(PREVIEW_CARD_LABEL["card-pricing-featured"]).toBe("Featured plan");
     expect(isPreviewCard("landing-hero")).toBe(false);
     expect(PREVIEW_CARD_LABEL["card-pricing"]).toBe("Pricing cards");
     for (const id of PREVIEW_CARD_IDS) {

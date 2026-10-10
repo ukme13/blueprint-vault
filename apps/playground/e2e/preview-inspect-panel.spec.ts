@@ -761,22 +761,28 @@ test.describe("Card groups and plans", () => {
   }) => {
     await openPreview(page);
     const plans = cards(page, "card-pricing");
-    await expect(plans).toHaveCount(3);
+    /* The featured plan is dressed differently, so it is not of the group. */
+    await expect(plans).toHaveCount(2);
+    await expect(cards(page, "card-pricing-featured")).toHaveCount(1);
     const before = await style(plans.first(), "background-color");
+    const featured = cards(page, "card-pricing-featured");
+    const featuredBefore = await style(featured, "background-color");
 
     await plans.first().click({ position: { x: 60, y: 6 } });
     await expect(
       panel(page).getByRole("heading", { name: "Pricing cards", level: 2 }),
     ).toBeVisible();
-    await expect(page.getByTestId("preview-selection")).toHaveCount(3);
+    await expect(page.getByTestId("preview-selection")).toHaveCount(2);
 
     await choose(section(page, "Fill"), page, "Fill", "Surface subtle");
     await expect
       .poll(() => style(plans.first(), "background-color"))
       .not.toBe(before);
-    expect(await style(plans.nth(2), "background-color")).toBe(
+    expect(await style(plans.nth(1), "background-color")).toBe(
       await style(plans.first(), "background-color"),
     );
+    /* The featured plan keeps its own ground. */
+    expect(await style(featured, "background-color")).toBe(featuredBefore);
 
     await panel(page).getByRole("button", { name: "Reset to default" }).click();
     await expect
@@ -785,6 +791,20 @@ test.describe("Card groups and plans", () => {
     expect(
       (await readStoredWorkspace(page))?.typography?.previewStyles,
     ).toBeUndefined();
+  });
+});
+
+test.describe("The featured plan", () => {
+  test("is picked on its own, not with the other plans", async ({ page }) => {
+    await openPreview(page);
+    const featured = page.locator(
+      '[data-preview-slot="card-pricing-featured"]',
+    );
+    await featured.click({ position: { x: 60, y: 6 } });
+    await expect(
+      panel(page).getByRole("heading", { name: "Featured plan", level: 2 }),
+    ).toBeVisible();
+    await expect(page.getByTestId("preview-selection")).toHaveCount(1);
   });
 });
 

@@ -21,7 +21,7 @@ function Plan({
   return (
     <CardSurface
       as="div"
-      cardId="card-pricing"
+      cardId={featured ? "card-pricing-featured" : "card-pricing"}
       className={`${styles.plan}${featured ? ` ${styles.planFeatured}` : ""}`}
       data-plan={n}
       onInspect={onInspect}

@@ -83,6 +83,7 @@ export const PREVIEW_CARD_IDS = [
   "card-feature-card",
   "card-quad-card",
   "card-pricing",
+  "card-pricing-featured",
 ] as const;
 
 export type PreviewCardId = (typeof PREVIEW_CARD_IDS)[number];
@@ -91,6 +92,7 @@ export const PREVIEW_CARD_LABEL: Record<PreviewCardId, string> = {
   "card-feature-card": "Feature cards",
   "card-quad-card": "Quad cards",
   "card-pricing": "Pricing cards",
+  "card-pricing-featured": "Featured plan",
 };
 
 export function isPreviewCard(id: string): id is PreviewCardId {
