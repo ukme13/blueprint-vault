@@ -1,4 +1,5 @@
 import { contrastRatio } from "./accessibility";
+import { APCA_LC, apcaContrast } from "./apca";
 import { alphaHex } from "./composite";
 import {
   CONTRAST_PROFILE_SPECS,
@@ -8,6 +9,15 @@ import {
   type ContrastProfileSpec,
   type ToneWeights,
 } from "./contrast-profiles";
+import { shownLc } from "./contrast-reading";
+import {
+  isStaticTrackId,
+  nearestStaticColour,
+  STATIC_BLACK,
+  STATIC_TRACK_NAME,
+  STATIC_WHITE,
+  staticColourAt,
+} from "./static-colours";
 import type { ColorTrack, ShadeItem } from "./types";
 
 /**
@@ -765,20 +775,49 @@ function seedToken(
     name: role.name,
     description: role.description,
     light: {
-      trackId: referencedTrackId,
+      trackId: measured?.light.trackId ?? referencedTrackId,
       weight: measured?.light.weight ?? light.weight,
       ...(role.alpha === undefined ? {} : { alpha: role.alpha[0] }),
     },
     dark: {
-      trackId: referencedTrackId,
+      trackId: measured?.dark.trackId ?? referencedTrackId,
       weight: measured?.dark.weight ?? dark.weight,
       ...(role.alpha === undefined ? {} : { alpha: role.alpha[1] }),
     },
   };
 }
 
+/** Where a label lands: a shade of the role's own track, or white or black. */
+interface LabelReference {
+  trackId: string;
+  weight: number;
+}
+
 /**
- * The end of a track that reads best on a fill, per mode.
+ * How well a colour reads as the label of a filled control, on that fill.
+ *
+ * Two lines, the two a label is held to: WCAG 2's 4.5:1 for text, and APCA's
+ * Lc 60 (the line for a short, heavy label), judged on the Lc as it is shown.
+ * 2 clears both, 1 clears only the ratio, 0 clears neither. They disagree on a
+ * mid-tone fill: the ratio favours the dark end where APCA, which weighs
+ * light text on a saturated colour more kindly, wants the light one.
+ */
+function labelTier(label: string, fill: string): 0 | 1 | 2 {
+  if (contrastRatio(label, fill) < 4.5) return 0;
+  return shownLc(apcaContrast(label, fill)) >= APCA_LC.largeText ? 2 : 1;
+}
+
+/**
+ * The label for a fill, per mode: a shade of the role's own track, or white or
+ * black.
+ *
+ * Four candidates in an order of preference: the ends of the role's own
+ * track, the better by ratio first, then pure white and pure black on the same
+ * footing. The first to clear both lines wins, so a palette whose neutral ends
+ * already read is seeded exactly as it always was. Failing that, the first to
+ * clear the ratio, which is where this stood before Lc was a line. Failing
+ * that, nothing reads, and the answer is whichever pure colour gives the more
+ * contrast: no shade of a track can give more than white or black.
  *
  * Null when the fill is not in the layer, which leaves the caller on its
  * declared weights: a seed that cannot measure should fall back to a stated
@@ -788,18 +827,41 @@ function readableEnds(
   track: ColorTrack,
   fill: SemanticToken | undefined,
   tracks: ColorTrack[],
-): { light: ShadeItem; dark: ShadeItem } | null {
+): { light: LabelReference; dark: LabelReference } | null {
   if (!fill) return null;
   const lightest = track.shades[0]!;
   const darkest = track.shades[track.shades.length - 1]!;
 
-  const better = (mode: ColourMode): ShadeItem => {
+  const better = (mode: ColourMode): LabelReference => {
     const on = resolveSemantic(fill, mode, tracks);
-    if (!on) return mode === "light" ? lightest : darkest;
-    return contrastRatio(lightest.hex, on.hex) >=
-      contrastRatio(darkest.hex, on.hex)
-      ? lightest
-      : darkest;
+    const own = (shade: ShadeItem): LabelReference => ({
+      trackId: track.id,
+      weight: shade.weight,
+    });
+    if (!on) return own(mode === "light" ? lightest : darkest);
+
+    const isLightBetter =
+      contrastRatio(lightest.hex, on.hex) >= contrastRatio(darkest.hex, on.hex);
+    const candidates: { reference: LabelReference; hex: string }[] = [
+      ...(isLightBetter ? [lightest, darkest] : [darkest, lightest]).map(
+        (shade) => ({ reference: own(shade), hex: shade.hex }),
+      ),
+      ...(isLightBetter
+        ? [STATIC_WHITE, STATIC_BLACK]
+        : [STATIC_BLACK, STATIC_WHITE]
+      ).map((reference) => ({
+        reference: { ...reference },
+        hex: staticColourAt(reference.weight)!.hex,
+      })),
+    ];
+
+    for (const wanted of [2, 1] as const) {
+      const found = candidates.find(
+        (candidate) => labelTier(candidate.hex, on.hex) >= wanted,
+      );
+      if (found) return found.reference;
+    }
+    return candidates[2]!.reference;
   };
 
   return { light: better("light"), dark: better("dark") };
@@ -887,9 +949,26 @@ export function resolveSemantic(
   mode: ColourMode,
   tracks: ColorTrack[],
 ): ResolvedSemantic | null {
+  const reference = token[mode];
+  /* White and black are not in the palette and cannot be missing from it, so
+     a reference to them resolves with no tracks at all. */
+  if (isStaticTrackId(reference.trackId)) {
+    const exact = staticColourAt(reference.weight);
+    const colour = exact ?? nearestStaticColour(reference.weight);
+    const alpha = resolveAlpha(reference.alpha);
+    return {
+      id: token.id,
+      mode,
+      trackId: reference.trackId,
+      trackName: STATIC_TRACK_NAME,
+      weight: colour.weight,
+      hex: colour.hex,
+      alpha: alpha.value,
+      missing: exact ? (alpha.outOfRange ? "alpha" : null) : "weight",
+    };
+  }
   if (tracks.length === 0) return null;
 
-  const reference = token[mode];
   const referenced = tracks.find((track) => track.id === reference.trackId);
   const track = referenced ?? tracks[0]!;
   const exact = track.shades.find((shade) => shade.weight === reference.weight);

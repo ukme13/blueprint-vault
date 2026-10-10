@@ -8,6 +8,9 @@ import {
   resolveSemantic,
   shadeOptionSections,
   shadeOptionValue,
+  staticOptionSection,
+  isStaticTrackId,
+  primitiveReferenceLabel,
   type ColorTrack,
   type ColourMode,
   type SemanticMiss,
@@ -62,8 +65,12 @@ export function ReferenceField({
   const resolved = resolveSemantic(token, mode, palettes);
   if (!resolved) return null;
 
+  /* White and black are in no track; the chip names them and the list holds
+     them. Any other reference reads from the track it points at. */
+  const isStatic = isStaticTrackId(resolved.trackId);
   const track =
     palettes.find((item) => item.id === resolved.trackId) ?? palettes[0]!;
+  const trackId = isStatic ? resolved.trackId : track.id;
   const repoint = (reference: { trackId: string; weight: number }) =>
     onChange(
       repointSemanticToken(tokens, token.id, mode, {
@@ -79,12 +86,17 @@ export function ReferenceField({
      been opened. */
   const options =
     isPhone || hasOpened
-      ? shadeOptionSections(palettes, (hex) => (
-          <TransparencySwatch alpha={1} colour={seen(hex)} />
-        ))
+      ? [
+          ...shadeOptionSections(palettes, (hex) => (
+            <TransparencySwatch alpha={1} colour={seen(hex)} />
+          )),
+          staticOptionSection((hex) => (
+            <TransparencySwatch alpha={1} colour={seen(hex)} />
+          )),
+        ]
       : [];
   const value = shadeOptionValue({
-    trackId: track.id,
+    trackId,
     weight: resolved.weight,
   });
   const choose = (next: string) => {
@@ -119,7 +131,7 @@ export function ReferenceField({
     >
       <TransparencySwatch alpha={resolved.alpha} colour={seen(resolved.hex)} />
       <span>
-        {track.name}/{resolved.weight}
+        {primitiveReferenceLabel(track.name, trackId, resolved.weight)}
       </span>
     </button>
   );

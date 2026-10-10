@@ -1,3 +1,4 @@
+import { STATIC_COLOURS, STATIC_TRACK_NAME } from "./static-colours";
 import { formatColour, type ColourFormat } from "./format";
 import { shadeExportComment } from "./shade-label";
 import type { ColorTrack, ColorTrackInput } from "./types";
@@ -44,12 +45,20 @@ function tokenLines(
   colourFormat: ColourFormat,
   indentation = "  ",
 ): string[] {
-  return palettes.flatMap((palette) =>
-    palette.shades.map((shade) => {
-      const comment = shadeExportComment(shade, palette.adjustments);
-      return `${indentation}--color-${paletteTokenName(palette.name)}-${shade.weight}: ${formatColour(shade.hex, colourFormat)};${comment ? ` /* ${comment} */` : ""}`;
-    }),
-  );
+  return [
+    ...palettes.flatMap((palette) =>
+      palette.shades.map((shade) => {
+        const comment = shadeExportComment(shade, palette.adjustments);
+        return `${indentation}--color-${paletteTokenName(palette.name)}-${shade.weight}: ${formatColour(shade.hex, colourFormat)};${comment ? ` /* ${comment} */` : ""}`;
+      }),
+    ),
+    /* White and black, after the tracks, in every export: a role may point at
+       them, and an alias to a variable nothing declares is a broken page. */
+    ...STATIC_COLOURS.map(
+      (colour) =>
+        `${indentation}${colour.variable}: ${formatColour(colour.hex, colourFormat)}; /* static */`,
+    ),
+  ];
 }
 
 export function formatPaletteCssExport(
@@ -97,6 +106,12 @@ export function paletteDesignTokenGroup(
             ];
           }),
         ),
+      ]),
+    ),
+    [STATIC_TRACK_NAME]: Object.fromEntries(
+      STATIC_COLOURS.map((colour) => [
+        colour.name,
+        { $value: formatColour(colour.hex, colourFormat) },
       ]),
     ),
   };

@@ -7,6 +7,11 @@ import {
   type ResolvedSemantic,
   type SemanticToken,
 } from "./semantic";
+import {
+  isStaticTrackId,
+  nearestStaticColour,
+  STATIC_TRACK_NAME,
+} from "./static-colours";
 import type { ColorTrack } from "./types";
 
 /**
@@ -36,6 +41,9 @@ export const BLUEPRINT_TOKENS_EXTENSION = "co.designally.blueprint";
 
 /** `action.primary` in the primary track at 550 → `var(--color-primary-550)`. */
 function paletteVariable(resolved: ResolvedSemantic): string {
+  if (isStaticTrackId(resolved.trackId)) {
+    return `var(${nearestStaticColour(resolved.weight).variable})`;
+  }
   return `var(--color-${paletteTokenName(resolved.trackName)}-${resolved.weight})`;
 }
 
@@ -66,6 +74,9 @@ function cssAlias(resolved: ResolvedSemantic): string {
 
 /** The same reference in the Design Tokens format's own alias syntax. */
 function tokensAlias(resolved: ResolvedSemantic): string {
+  if (isStaticTrackId(resolved.trackId)) {
+    return `{palette.${STATIC_TRACK_NAME}.${nearestStaticColour(resolved.weight).name}}`;
+  }
   return `{palette.${paletteTokenName(resolved.trackName)}.${resolved.weight}}`;
 }
 

@@ -1,4 +1,9 @@
 import {
+  isStaticTrackId,
+  nearestStaticColour,
+  staticShade,
+} from "./static-colours";
+import {
   WCAG_CONTRAST,
   assessColourSimilarity,
   assessFocusContrast,
@@ -167,7 +172,9 @@ export function previewShadesFor(
     /* The resolver already fell back to a real track and weight, so this
        lookup cannot miss — but a shade the palette does not hold would be a
        colour nobody chose, so it is skipped rather than invented. */
-    const shade = byWeight.get(`${token.trackId}:${token.weight}`);
+    const shade = isStaticTrackId(token.trackId)
+      ? staticShade(nearestStaticColour(token.weight))
+      : byWeight.get(`${token.trackId}:${token.weight}`);
     if (!shade) continue;
 
     /* Composited here, once, so every check downstream measures what the eye

@@ -442,6 +442,14 @@
       "950": {
         "$value": "#000003"
       }
+    },
+    "static": {
+      "white": {
+        "$value": "#FFFFFF"
+      },
+      "black": {
+        "$value": "#000000"
+      }
     }
   },
   "semantic": {
