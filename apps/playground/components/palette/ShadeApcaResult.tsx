@@ -2,6 +2,7 @@ import { Fragment } from "react";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { ArrowLeftRight } from "lucide-react";
 import { apcaContrast, assessApca, type ShadeItem } from "@blueprint/ui";
+import { ContrastScoreInfo } from "./ContrastScoreInfo";
 import { ContrastStatusIcon } from "./ContrastStatusIcon";
 import { usePaletteView } from "./PaletteViewContext";
 import styles from "./palette-workspace.module.css";
@@ -71,6 +72,7 @@ export function ShadeApcaResult({
         <strong data-apca-lc={assessment.lc.toFixed(1)}>
           Lc {assessment.lc.toFixed(1)}
         </strong>
+        <ContrastScoreInfo standard="wcag3" />
       </p>
       {isSimulated && (
         /* A figure and no verdict, as for WCAG 2: the grades are for the real
