@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@astryxdesign/core/Button";
+import { Button as ResetButton } from "@blueprint/ui";
 import { PanelRightClose } from "lucide-react";
 import {
   PREVIEW_INSPECT_FIELDS,
@@ -29,15 +30,7 @@ export interface InspectTarget {
   kind: PreviewInspectKind;
   /** What the element is part of, or "Inspect": "Nav links", "Hero". */
   title: string;
-  /** The element itself: "Home", "Hero title". Blank for a band. */
-  subtitle: string;
 }
-
-const KIND_LABEL: Record<PreviewInspectKind, string> = {
-  text: "Text",
-  button: "Button",
-  band: "Band",
-};
 
 export interface PreviewInspectPanelProps {
   /** What is selected, or null for nothing. */
@@ -122,10 +115,7 @@ export function PreviewInspectPanel(props: PreviewInspectPanelProps) {
       key={target.id}
     >
       <header className={styles.title}>
-        <div>
-          <h2>{target.title}</h2>
-          <small>{target.subtitle || KIND_LABEL[target.kind]}</small>
-        </div>
+        <h2>{target.title}</h2>
         <InspectIconButton
           icon={<PanelRightClose aria-hidden className="size-4" />}
           label="Hide inspector"
@@ -205,26 +195,31 @@ export function PreviewInspectPanel(props: PreviewInspectPanelProps) {
           {props.isGrouped ? (
             <Button
               label="Apply to group"
-              size="sm"
+              size="md"
               variant="secondary"
+              width="100%"
               onClick={props.onApplyToGroup}
             />
           ) : null}
           {props.isButton ? (
             <Button
               label="Apply to all buttons"
-              size="sm"
+              size="md"
               variant="secondary"
+              width="100%"
               onClick={props.onApplyToAllButtons}
             />
           ) : null}
           {props.isOverridden ? (
-            <Button
-              label="Reset to default"
-              size="sm"
-              variant="ghost"
+            <ResetButton
+              className={styles.fullWidth}
+              scheme="neutral"
+              size="medium"
+              variant="outlined"
               onClick={props.onResetToDefault}
-            />
+            >
+              Reset to default
+            </ResetButton>
           ) : null}
         </div>
       ) : null}

@@ -126,6 +126,59 @@ test.describe("The inspect panel's place on the page", () => {
     ).toBe("1px");
   });
 
+  test("has a title and nothing under it", async ({ page }) => {
+    await openPreview(page);
+    await page
+      .getByRole("navigation", { name: "Site" })
+      .getByText("Home", { exact: true })
+      .click();
+
+    const head = panel(page).locator("header").first();
+    await expect(head.getByRole("heading", { level: 2 })).toHaveText(
+      "Nav links",
+    );
+    /* No subtitle: the title and its hide button are all the bar holds. */
+    await expect(head.locator("small")).toHaveCount(0);
+    await expect(head).toHaveText("Nav links");
+  });
+
+  test("stacks its buttons full width, medium, 8px apart, with Reset outlined", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openPreview(page);
+    await page
+      .getByRole("navigation", { name: "Site" })
+      .getByText("Home", { exact: true })
+      .click();
+    await panel(page).getByRole("textbox", { name: "Copy" }).fill("Home page");
+
+    const column = (await panel(page).boundingBox())!;
+    const group = panel(page).getByRole("button", { name: "Apply to group" });
+    const reset = panel(page).getByRole("button", { name: "Reset to default" });
+    await expect(reset).toBeVisible();
+
+    /* Each fills the column between its 16px sides (and its 1px edge). */
+    const first = (await group.boundingBox())!;
+    const second = (await reset.boundingBox())!;
+    for (const box of [first, second]) {
+      expect(box.width).toBeCloseTo(column.width - 33, 0);
+      expect(box.x).toBeCloseTo(column.x + 17, 0);
+    }
+
+    /* One under the next, 8px apart, and the same medium height. */
+    expect(second.y - (first.y + first.height)).toBeCloseTo(8, 0);
+    expect(second.height).toBeCloseTo(first.height, 0);
+    expect(second.height).toBeGreaterThanOrEqual(32);
+    expect(second.height).toBeLessThanOrEqual(40);
+
+    /* Reset is the outlined one: an edge of its own and no fill. */
+    expect(await style(reset, "border-top-width")).not.toBe("0px");
+    expect(await style(reset, "background-color")).toMatch(
+      /rgba\(0, 0, 0, 0\)|transparent/,
+    );
+  });
+
   test("hides on its own button and comes back from the bar", async ({
     page,
   }) => {

@@ -324,9 +324,10 @@ export function SystemPreview() {
       ? {
           id: inspecting.id,
           kind: previewInspectKind(inspecting.id, isBandSelected),
-          ...(inspecting.source === "section"
-            ? { title: PREVIEW_SECTION_LABEL[inspecting.id], subtitle: "" }
-            : previewInspectorChrome(inspecting.id)),
+          title:
+            inspecting.source === "section"
+              ? PREVIEW_SECTION_LABEL[inspecting.id]
+              : previewInspectorChrome(inspecting.id).title,
         }
       : null,
     style: styleKey ? previewStyleOf(previewStyles, styleKey) : {},
