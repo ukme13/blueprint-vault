@@ -625,6 +625,193 @@ test.describe("What is changed is kept and can be taken back", () => {
   });
 });
 
+test.describe("The outline keeps to what it outlines", () => {
+  test("follows a button as its padding grows", async ({ page }) => {
+    await openPreview(page);
+    /* The outlined one beside it, where the outline was seen to lag. */
+    const button = page.getByRole("button", { name: "Open the studio" });
+    await button.click();
+    await choose(
+      section(page, "Auto layout"),
+      page,
+      "Padding horizontal",
+      "64px",
+    );
+
+    /* The button grew by its padding, and the outline grew with it. */
+    await expect
+      .poll(async () => {
+        const outline = (await page
+          .getByTestId("preview-selection")
+          .boundingBox())!;
+        const target = (await button.boundingBox())!;
+        return Math.abs(outline.width - target.width);
+      })
+      .toBeLessThan(1.5);
+    const outline = (await page
+      .getByTestId("preview-selection")
+      .boundingBox())!;
+    const target = (await button.boundingBox())!;
+    expect(outline.x).toBeCloseTo(target.x, 0);
+    expect(outline.height).toBeCloseTo(target.height, 0);
+  });
+
+  test("is drawn over the sticky nav, and stays on it as the page scrolls", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openPreview(page);
+    const nav = page.locator('[data-preview-section="shell-nav"]');
+    const site = page.locator("[data-preview-ready]");
+
+    await site.evaluate((node) => node.scrollTo(0, 600));
+    await nav.click({ position: { x: 6, y: 6 } });
+    await expect(
+      panel(page).getByRole("heading", { name: "Nav", level: 2 }),
+    ).toBeVisible();
+
+    const align = async () => {
+      const outline = (await page
+        .getByTestId("preview-selection")
+        .boundingBox())!;
+      const box = (await nav.boundingBox())!;
+      return {
+        y: Math.abs(outline.y - box.y),
+        h: Math.abs(outline.height - box.height),
+      };
+    };
+    await expect.poll(async () => (await align()).y).toBeLessThan(1.5);
+    expect((await align()).h).toBeLessThan(1.5);
+
+    /* Scrolled again, it keeps to the nav. */
+    await site.evaluate((node) => node.scrollTo(0, 1400));
+    await expect.poll(async () => (await align()).y).toBeLessThan(1.5);
+
+    /* Above the nav in the stack, so the nav does not hide its own outline. */
+    const z = await page
+      .getByTestId("preview-selection")
+      .evaluate((node) => Number(getComputedStyle(node).zIndex));
+    const navZ = await style(nav, "z-index");
+    expect(z).toBeGreaterThan(Number(navZ === "auto" ? 0 : navZ));
+  });
+});
+
+test.describe("Card groups and plans", () => {
+  const cards = (page: Page, id: string) =>
+    page.locator(`[data-preview-slot="${id}"]`);
+
+  test("a group of feature cards is picked together and outlined card by card", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const all = cards(page, "card-feature-card");
+    const count = await all.count();
+    expect(count).toBeGreaterThanOrEqual(3);
+
+    await all.first().click({ position: { x: 60, y: 6 } });
+    await expect(
+      panel(page).getByRole("heading", { name: "Feature cards", level: 2 }),
+    ).toBeVisible();
+    await expect(page.getByTestId("preview-selection")).toHaveCount(count);
+
+    /* A surface: room, shape, fill, edge and shadow, and no copy or type. */
+    for (const name of [
+      "Auto layout",
+      "Appearance",
+      "Fill",
+      "Stroke",
+      "Effects",
+    ]) {
+      await expect(section(page, name)).toBeVisible();
+    }
+    await expect(section(page, "Typography")).toHaveCount(0);
+    await expect(
+      panel(page).getByRole("textbox", { name: "Copy" }),
+    ).toHaveCount(0);
+
+    /* One radius, and every card of the group takes it. */
+    const radius = section(page, "Appearance").getByRole("button", {
+      name: "Corner radius",
+      exact: true,
+    });
+    await radius.click();
+    await page.getByRole("option").nth(2).click();
+    const said = (await radius.innerText()).match(/(\d+)px/);
+    expect(said).not.toBeNull();
+    for (let index = 0; index < count; index += 1) {
+      await expect
+        .poll(() => style(all.nth(index), "border-top-left-radius"))
+        .toBe(`${said![1]}px`);
+    }
+  });
+
+  test("a card's own text still picks the text, not the card", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await page.getByRole("heading", { name: "Shared palettes" }).click();
+    await expect(
+      panel(page).getByRole("textbox", { name: "Copy" }),
+    ).toHaveValue("Shared palettes");
+    await expect(page.getByTestId("preview-selection")).toHaveCount(1);
+  });
+
+  test("the pricing plans are picked together, filled and put back", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const plans = cards(page, "card-pricing");
+    await expect(plans).toHaveCount(3);
+    const before = await style(plans.first(), "background-color");
+
+    await plans.first().click({ position: { x: 60, y: 6 } });
+    await expect(
+      panel(page).getByRole("heading", { name: "Pricing cards", level: 2 }),
+    ).toBeVisible();
+    await expect(page.getByTestId("preview-selection")).toHaveCount(3);
+
+    await choose(section(page, "Fill"), page, "Fill", "Surface subtle");
+    await expect
+      .poll(() => style(plans.first(), "background-color"))
+      .not.toBe(before);
+    expect(await style(plans.nth(2), "background-color")).toBe(
+      await style(plans.first(), "background-color"),
+    );
+
+    await panel(page).getByRole("button", { name: "Reset to default" }).click();
+    await expect
+      .poll(() => style(plans.first(), "background-color"))
+      .toBe(before);
+    expect(
+      (await readStoredWorkspace(page))?.typography?.previewStyles,
+    ).toBeUndefined();
+  });
+});
+
+test.describe("The copy field's label", () => {
+  test("is as small as the other labels, and the field is still named Copy", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await heroTitle(page).click();
+    const copy = panel(page).getByRole("textbox", { name: "Copy" });
+    await expect(copy).toHaveValue(HERO_TITLE);
+
+    const label = panel(page)
+      .locator("span", { hasText: /^Copy$/ })
+      .first();
+    expect(await style(label, "font-size")).toBe("9px");
+    expect(await style(label, "font-size")).toBe(
+      await style(
+        section(page, "Appearance")
+          .locator("span", { hasText: /^Opacity$/ })
+          .first(),
+        "font-size",
+      ),
+    );
+  });
+});
+
 test.describe("Taking a value away again", () => {
   /* React warns, in development only, when a style property is removed while a
      shorthand for it is set, and the style then does not come back. The

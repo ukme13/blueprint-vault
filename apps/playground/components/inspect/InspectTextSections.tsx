@@ -20,8 +20,14 @@ export function CopySection({
 }) {
   return (
     <div className={styles.copy}>
+      {/* The label is the panel's own small one: the field's default is the
+          size of body text and made this the loudest thing in the column. */}
+      <span aria-hidden="true" className={styles.copyLabel}>
+        Copy
+      </span>
       {field === "area" ? (
         <TextArea
+          isLabelHidden
           label="Copy"
           value={text}
           width="100%"
@@ -29,6 +35,7 @@ export function CopySection({
         />
       ) : (
         <TextInput
+          isLabelHidden
           label="Copy"
           value={text}
           width="100%"

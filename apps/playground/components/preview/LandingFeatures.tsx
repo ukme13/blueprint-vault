@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { landingCardSlots, type LandingCardComponent } from "@blueprint/ui";
+import { CardSurface } from "./CardSurface";
 import {
   InspectableButton,
   InspectableSlot,
@@ -10,6 +11,7 @@ import { SplitFitArt, SplitSupportArt } from "./LandingArt";
 import styles from "./landing.module.css";
 
 function FeatureCard({
+  cardId,
   titleId,
   bodyId,
   heading,
@@ -17,13 +19,19 @@ function FeatureCard({
   system,
   onInspect,
 }: LandingSectionProps & {
+  cardId: string;
   titleId: string;
   bodyId: string;
   heading: "h3" | "h4";
 }) {
   if (!slot(landing, titleId) && !slot(landing, bodyId)) return null;
   return (
-    <article className={styles.card}>
+    <CardSurface
+      as="article"
+      cardId={cardId}
+      className={styles.card}
+      onInspect={onInspect}
+    >
       <InspectableSlot
         as={heading}
         document={landing}
@@ -38,7 +46,7 @@ function FeatureCard({
         system={system}
         onInspect={onInspect}
       />
-    </article>
+    </CardSurface>
   );
 }
 
@@ -82,6 +90,7 @@ function CardBand({
           <FeatureCard
             key={card.titleId}
             bodyId={card.bodyId}
+            cardId={`card-${component}`}
             heading={heading}
             landing={landing}
             system={system}

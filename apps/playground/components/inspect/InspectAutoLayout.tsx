@@ -2,16 +2,15 @@
 
 import { useState } from "react";
 import {
-  AlignVerticalSpaceBetween,
-  ArrowLeftRight,
-  ArrowUpDown,
-  PanelBottom,
-  PanelLeft,
-  PanelRight,
-  PanelTop,
-  SquareDashed,
-} from "lucide-react";
-import {
+  GapIcon,
+  IndividualPaddingIcon,
+  PaddingBottomIcon,
+  PaddingHorizontalIcon,
+  PaddingLeftIcon,
+  PaddingRightIcon,
+  PaddingTopIcon,
+  PaddingVerticalIcon,
+  TokenIcon,
   readPadding,
   withPadding,
   type PreviewPaddingTarget,
@@ -22,7 +21,6 @@ import {
   InspectSection,
 } from "./InspectPrimitives";
 import {
-  icon,
   sameOf,
   spacingOptions,
   stepDisplay,
@@ -31,13 +29,14 @@ import {
 import styles from "./inspect-panel.module.css";
 import { TokenSelect } from "./TokenSelect";
 
+/* Figma's own, each drawn in the 24px box a leading mark sits in. */
 const PADDING_ICONS = {
-  x: <ArrowLeftRight aria-hidden className={icon} />,
-  y: <ArrowUpDown aria-hidden className={icon} />,
-  top: <PanelTop aria-hidden className={icon} />,
-  right: <PanelRight aria-hidden className={icon} />,
-  bottom: <PanelBottom aria-hidden className={icon} />,
-  left: <PanelLeft aria-hidden className={icon} />,
+  x: <PaddingHorizontalIcon />,
+  y: <PaddingVerticalIcon />,
+  top: <PaddingTopIcon />,
+  right: <PaddingRightIcon />,
+  bottom: <PaddingBottomIcon />,
+  left: <PaddingLeftIcon />,
 } as const;
 
 /** Gap and padding: the room an element holds, as steps of the spacing scale. */
@@ -70,6 +69,7 @@ export function AutoLayoutSection({
         label={label}
         leading={PADDING_ICONS[target as keyof typeof PADDING_ICONS]}
         options={options}
+        trailing={<TokenIcon />}
         value={step === undefined ? undefined : String(step)}
         onChange={(next) =>
           onStyleChange(
@@ -93,10 +93,9 @@ export function AutoLayoutSection({
               clearLabel="Default"
               display={stepDisplay(spacing, style.gap)}
               label="Gap"
-              leading={
-                <AlignVerticalSpaceBetween aria-hidden className={icon} />
-              }
+              leading={<GapIcon />}
               options={options}
+              trailing={<TokenIcon />}
               value={style.gap === undefined ? undefined : String(style.gap)}
               onChange={(next) =>
                 onStyleChange({
@@ -119,7 +118,7 @@ export function AutoLayoutSection({
                 {paddingField("right", "Padding right")}
               </InspectField>
               <InspectIconButton
-                icon={<SquareDashed aria-hidden className={icon} />}
+                icon={<IndividualPaddingIcon />}
                 isPressed
                 label="Individual padding"
                 onClick={() => setIsIndividual(false)}
@@ -141,7 +140,7 @@ export function AutoLayoutSection({
                 {paddingField("y", "Padding vertical")}
               </InspectField>
               <InspectIconButton
-                icon={<SquareDashed aria-hidden className={icon} />}
+                icon={<IndividualPaddingIcon />}
                 isPressed={false}
                 label="Individual padding"
                 onClick={() => setIsIndividual(true)}

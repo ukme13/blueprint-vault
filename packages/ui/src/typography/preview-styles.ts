@@ -72,7 +72,30 @@ export interface PreviewSlotStyle {
 export type PreviewStyles = Record<string, PreviewSlotStyle>;
 
 /** What the inspector shows for an element. */
-export type PreviewInspectKind = "text" | "button" | "band";
+export type PreviewInspectKind = "text" | "button" | "band" | "card";
+
+/**
+ * The groups of cards on the page, each styled as one: every feature card
+ * together, every card of the quad, every plan. A card is not a slot of copy,
+ * so these ids are of their own and cannot meet a slot's or a band's.
+ */
+export const PREVIEW_CARD_IDS = [
+  "card-feature-card",
+  "card-quad-card",
+  "card-pricing",
+] as const;
+
+export type PreviewCardId = (typeof PREVIEW_CARD_IDS)[number];
+
+export const PREVIEW_CARD_LABEL: Record<PreviewCardId, string> = {
+  "card-feature-card": "Feature cards",
+  "card-quad-card": "Quad cards",
+  "card-pricing": "Pricing cards",
+};
+
+export function isPreviewCard(id: string): id is PreviewCardId {
+  return (PREVIEW_CARD_IDS as readonly string[]).includes(id);
+}
 
 /**
  * What an element is, by its id and whether it is a band.
@@ -85,6 +108,7 @@ export function previewInspectKind(
   isBand = false,
 ): PreviewInspectKind {
   if (isBand) return "band";
+  if (isPreviewCard(id)) return "card";
   return isPreviewButton(id) ? "button" : "text";
 }
 
@@ -114,9 +138,9 @@ export type PreviewInspectField =
  *
  * Text: its copy, its type and its colour (the Fill), and how opaque it is.
  * A button: its copy and type, the room and shape it has, what it is filled
- * with, its edge and its shadow. A band: the room it holds, its fill, how
- * opaque and how round it is, its edge and its shadow; its copy is its
- * children's, not its own.
+ * with, its edge and its shadow. A band or a card: the room it holds, its
+ * fill, how opaque and how round it is, its edge and its shadow; its copy is
+ * its children's, not its own.
  */
 export const PREVIEW_INSPECT_FIELDS: Record<
   PreviewInspectKind,
@@ -133,6 +157,9 @@ export const PREVIEW_INSPECT_FIELDS: Record<
     "effects",
   ],
   band: ["gap", "padding", "opacity", "radius", "fill", "stroke", "effects"],
+  /* A card is a surface that holds copy: the room it keeps, how round and how
+     opaque it is, what it is filled with, its edge and its shadow. */
+  card: ["gap", "padding", "opacity", "radius", "fill", "stroke", "effects"],
 };
 
 export function previewInspectOffers(
@@ -379,7 +406,7 @@ function strokeShadow(stroke: PreviewStroke): string[] {
  * it. The stroke goes first so it is drawn over the shadow.
  *
  * A band's fill is not here: it is the band's own, and is drawn by its own
- * code, which also paints an image.
+ * code, which also paints an image. A card's is, as a button's is.
  */
 export function previewStyleDeclarations(
   style: PreviewSlotStyle,
@@ -418,12 +445,15 @@ export function previewStyleDeclarations(
     if (id) out[corners[corner]] = `var(${radiusVariableName(id)})`;
   }
 
-  if (style.fill && kind === "button") {
+  if (style.fill && (kind === "button" || kind === "card")) {
     out.backgroundColor = `var(${semanticVariableName(style.fill)})`;
-    /* A button's label has to read on what it is now filled with. */
-    out.color = `var(${semanticVariableName(
-      previewButtonLabelToken(style.fill, tokens),
-    )})`;
+    /* A button's label has to read on what it is now filled with. A card's
+       copy is its own slots', set where each is drawn. */
+    if (kind === "button") {
+      out.color = `var(${semanticVariableName(
+        previewButtonLabelToken(style.fill, tokens),
+      )})`;
+    }
   }
 
   const shadows = [

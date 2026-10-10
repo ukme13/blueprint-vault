@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
-import { Minus, Plus } from "lucide-react";
 import {
+  MinusIcon,
+  PlusIcon,
   previewTokenSelectorOptions,
   semanticVariableName,
   type PreviewGroupReading,
@@ -142,11 +143,7 @@ export function AddButton({
   onClick: () => void;
 }) {
   return (
-    <InspectIconButton
-      icon={<Plus aria-hidden className={icon} />}
-      label={label}
-      onClick={onClick}
-    />
+    <InspectIconButton icon={<PlusIcon />} label={label} onClick={onClick} />
   );
 }
 
@@ -161,7 +158,7 @@ export function RemoveButton({
 }) {
   return (
     <InspectIconButton
-      icon={<Minus aria-hidden className={icon} />}
+      icon={<MinusIcon />}
       isDisabled={isDisabled}
       label={label}
       onClick={onClick}

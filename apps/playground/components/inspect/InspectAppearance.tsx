@@ -2,15 +2,13 @@
 
 import { useState, type ReactNode } from "react";
 import {
-  Blend,
-  CornerDownLeft,
-  CornerDownRight,
-  CornerUpLeft,
-  CornerUpRight,
-  Scan,
-  SquareRoundCorner,
-} from "lucide-react";
-import {
+  CornerBottomLeftIcon,
+  CornerBottomRightIcon,
+  CornerRadiusIcon,
+  CornerTopLeftIcon,
+  CornerTopRightIcon,
+  OpacityIcon,
+  TokenIcon,
   readRadius,
   withRadius,
   type PreviewRadiusCorner,
@@ -22,7 +20,6 @@ import {
   InspectSection,
 } from "./InspectPrimitives";
 import {
-  icon,
   radiusDisplay,
   radiusOptions,
   sameOf,
@@ -32,10 +29,10 @@ import styles from "./inspect-panel.module.css";
 import { TokenSelect } from "./TokenSelect";
 
 const CORNER_ICONS: Record<PreviewRadiusCorner, ReactNode> = {
-  topLeft: <CornerUpLeft aria-hidden className={icon} />,
-  topRight: <CornerUpRight aria-hidden className={icon} />,
-  bottomRight: <CornerDownRight aria-hidden className={icon} />,
-  bottomLeft: <CornerDownLeft aria-hidden className={icon} />,
+  topLeft: <CornerTopLeftIcon />,
+  topRight: <CornerTopRightIcon />,
+  bottomRight: <CornerBottomRightIcon />,
+  bottomLeft: <CornerBottomLeftIcon />,
 };
 
 const CORNER_LABELS: Record<PreviewRadiusCorner, string> = {
@@ -70,6 +67,7 @@ export function AppearanceSection({
           label={`Radius ${CORNER_LABELS[corner]}`}
           leading={CORNER_ICONS[corner]}
           options={options}
+          trailing={<TokenIcon />}
           value={id}
           onChange={(next) => onStyleChange(withRadius(style, corner, next))}
         />
@@ -89,7 +87,7 @@ export function AppearanceSection({
         {hasOpacity ? (
           <InspectField label="Opacity">
             <InspectNumber
-              icon={<Blend aria-hidden className={icon} />}
+              icon={<OpacityIcon />}
               label="Opacity"
               max={100}
               min={0}
@@ -112,8 +110,9 @@ export function AppearanceSection({
                 display={radiusDisplay(radius, sameOf(all))}
                 isMixed={all.kind === "mixed"}
                 label="Corner radius"
-                leading={<Scan aria-hidden className={icon} />}
+                leading={<CornerRadiusIcon />}
                 options={options}
+                trailing={<TokenIcon />}
                 value={sameOf(all)}
                 onChange={(next) =>
                   onStyleChange(withRadius(style, "all", next))
@@ -121,7 +120,7 @@ export function AppearanceSection({
               />
             </InspectField>
             <InspectIconButton
-              icon={<SquareRoundCorner aria-hidden className={icon} />}
+              icon={<CornerRadiusIcon />}
               isPressed={isIndividual}
               label="Individual corners"
               onClick={() => setIsIndividual((current) => !current)}

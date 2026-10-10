@@ -207,6 +207,16 @@ button.control {
   color: var(--color-fg-muted);
 }
 
+/* The token mark: 12px, in the 24px a mark takes. */
+.trail {
+  display: grid;
+  flex: none;
+  width: 16px;
+  height: 24px;
+  place-items: center;
+  color: var(--color-fg-muted);
+}
+
 .input {
   flex: 1;
   min-width: 0;
@@ -302,6 +312,9 @@ button.control {
 }
 
 .copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   padding: 12px 16px;
   border-bottom: 1px solid var(--color-border-subtle);
 }
@@ -331,4 +344,13 @@ button.control {
 .list {
   display: flex;
   flex-direction: column;
+}
+
+/* The label over the copy field, as small as the labels over every other. */
+.copyLabel {
+  color: var(--color-fg-secondary);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  line-height: 14px;
 }

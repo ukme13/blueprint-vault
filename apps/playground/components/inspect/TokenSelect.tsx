@@ -1,8 +1,11 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { ChevronDown } from "lucide-react";
-import type { SheetOption, SheetOptionInput } from "@blueprint/ui";
+import {
+  DropdownIcon,
+  type SheetOption,
+  type SheetOptionInput,
+} from "@blueprint/ui";
 import { PopoverOrSheet } from "../PopoverOrSheet";
 import { SelectorOptionList } from "../SelectorOptionList";
 import styles from "./inspect-panel.module.css";
@@ -22,6 +25,8 @@ interface TokenSelectProps {
   isMixed?: boolean;
   /** A mark ahead of the words, whatever the value. */
   leading?: ReactNode;
+  /** A mark after the words, ahead of the chevron: that the value is a token. */
+  trailing?: ReactNode;
   /** Adds a first choice that puts the value back to nothing. */
   clearLabel?: string;
   hasSearch?: boolean;
@@ -45,6 +50,7 @@ export function TokenSelect({
   placeholder = "Default",
   isMixed = false,
   leading,
+  trailing,
   clearLabel,
   hasSearch = false,
   onChange,
@@ -93,8 +99,11 @@ export function TokenSelect({
         >
           {leading ? <span className={styles.lead}>{leading}</span> : null}
           {shown}
+          {trailing && value !== undefined && !isMixed ? (
+            <span className={styles.trail}>{trailing}</span>
+          ) : null}
           <span aria-hidden className={styles.chevron}>
-            <ChevronDown className="size-3" />
+            <DropdownIcon />
           </span>
         </button>
       }

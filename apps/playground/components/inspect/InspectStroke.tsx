@@ -1,7 +1,7 @@
 "use client";
 
-import { Equal } from "lucide-react";
 import {
+  StrokeWeightIcon,
   PREVIEW_STROKE_POSITIONS,
   PREVIEW_STROKE_WEIGHTS,
   type PreviewStrokePosition,
@@ -9,7 +9,6 @@ import {
 import { InspectField, InspectSection } from "./InspectPrimitives";
 import {
   AddButton,
-  icon,
   RemoveButton,
   tokenDisplay,
   useTokenOptions,
@@ -103,7 +102,7 @@ export function StrokeSection({
           <TokenSelect
             display={{ text: stroke.weight }}
             label="Stroke weight"
-            leading={<Equal aria-hidden className={icon} />}
+            leading={<StrokeWeightIcon />}
             options={PREVIEW_STROKE_WEIGHTS.map((weight) => ({
               value: String(weight),
               label: String(weight),

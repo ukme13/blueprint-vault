@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import type { SemanticToken } from "../color/semantic";
 import {
   clearPreviewStyle,
+  isPreviewCard,
+  PREVIEW_CARD_IDS,
+  PREVIEW_CARD_LABEL,
   PREVIEW_INSPECT_FIELDS,
   previewButtonLabelToken,
   previewInspectKind,
@@ -33,6 +36,19 @@ describe("what kind of element an id is", () => {
     expect(previewInspectKind("shell-brand")).toBe("text");
   });
 
+  it("is a card for the three groups of cards, which no slot or band shares", () => {
+    expect(previewInspectKind("card-feature-card")).toBe("card");
+    expect(previewInspectKind("card-quad-card")).toBe("card");
+    expect(previewInspectKind("card-pricing")).toBe("card");
+    expect(isPreviewCard("card-pricing")).toBe(true);
+    expect(isPreviewCard("landing-hero")).toBe(false);
+    expect(PREVIEW_CARD_LABEL["card-pricing"]).toBe("Pricing cards");
+    for (const id of PREVIEW_CARD_IDS) {
+      expect(previewInspectKind(id, true)).toBe("band");
+      expect(previewStyleKey(id)).toBe(id);
+    }
+  });
+
   it("tells a band from a slot that shares its id", () => {
     /* The quote is both: a band, and the text in it. */
     expect(previewInspectKind("landing-quote")).toBe("text");
@@ -60,6 +76,7 @@ describe("what kind of element an id is", () => {
       "stroke",
       "effects",
     ]);
+    expect(PREVIEW_INSPECT_FIELDS.card).toEqual(PREVIEW_INSPECT_FIELDS.band);
     expect(PREVIEW_INSPECT_FIELDS.band).toEqual([
       "gap",
       "padding",
@@ -258,6 +275,17 @@ describe("previewStyleDeclarations", () => {
     );
     expect(declared.backgroundColor).toBe("var(--color-action-primary)");
     expect(declared.color).toBe("var(--color-fg-on-action)");
+  });
+
+  it("fills a card with its token and leaves its copy's colour alone", () => {
+    const declared = previewStyleDeclarations(
+      { fill: "surface.raised" },
+      [],
+      "card",
+    );
+    expect(declared).toEqual({
+      backgroundColor: "var(--color-surface-raised)",
+    });
   });
 
   it("leaves a band's fill and a text's colour to what draws them", () => {

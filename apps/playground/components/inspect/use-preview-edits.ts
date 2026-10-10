@@ -5,6 +5,7 @@ import {
   applyColorToBlocks,
   applyRoleToBlocks,
   clearPreviewStyle,
+  isPreviewCard,
   PREVIEW_SECTION_SEED_TOKEN,
   previewStyleKey,
   seedPreviewLanding,
@@ -173,6 +174,11 @@ export function usePreviewEdits({
   /* Back to what the seed gives: copy, type and colour, and whatever the
      inspector set, in one step. */
   const resetSlotToDefault = useCallback(() => {
+    /* A card has no copy or type to put back: only what was set on it. */
+    if (inspecting && isPreviewCard(inspecting.id)) {
+      patchStyle(inspecting.id, {});
+      return;
+    }
     if (
       !slotSource ||
       !inspecting ||
@@ -212,7 +218,7 @@ export function usePreviewEdits({
       },
       { origin: { path: "/preview" } },
     );
-  }, [defaultBlock, inspecting, slotSource, update]);
+  }, [defaultBlock, inspecting, patchStyle, slotSource, update]);
 
   const resetSectionToDefault = useCallback(() => {
     if (!inspecting || inspecting.source !== "section") return;

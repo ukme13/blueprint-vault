@@ -10,6 +10,8 @@ import {
 } from "react";
 import {
   PREVIEW_SECTION_LABEL,
+  isPreviewCard,
+  PREVIEW_CARD_LABEL,
   previewInspectKind,
   previewStyleKey,
   previewInspectorChrome,
@@ -327,7 +329,9 @@ export function SystemPreview() {
           title:
             inspecting.source === "section"
               ? PREVIEW_SECTION_LABEL[inspecting.id]
-              : previewInspectorChrome(inspecting.id).title,
+              : isPreviewCard(inspecting.id)
+                ? PREVIEW_CARD_LABEL[inspecting.id]
+                : previewInspectorChrome(inspecting.id).title,
         }
       : null,
     style: styleKey ? previewStyleOf(previewStyles, styleKey) : {},

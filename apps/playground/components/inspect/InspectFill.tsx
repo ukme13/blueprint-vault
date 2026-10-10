@@ -81,7 +81,10 @@ export function FillSection({
     );
   }
 
-  const value = kind === "button" ? style.fill : colourTokenId;
+  /* A button and a card are filled with a token of their own; a text is
+     coloured. */
+  const isFilled = kind === "button" || kind === "card";
+  const value = isFilled ? style.fill : colourTokenId;
   return (
     <InspectSection title="Fill">
       <div className={styles.item}>
@@ -90,11 +93,11 @@ export function FillSection({
           display={tokenDisplay(tokens, tokenColors, value)}
           hasSearch
           label="Fill"
-          options={kind === "button" ? fillOptions : textOptions}
+          options={isFilled ? fillOptions : textOptions}
           placeholder="Default"
           value={value}
           onChange={(next) =>
-            kind === "button"
+            isFilled
               ? onStyleChange({ ...style, fill: next })
               : onColourChange(next)
           }
@@ -103,7 +106,7 @@ export function FillSection({
           isDisabled={value === undefined}
           label="Remove fill"
           onClick={() =>
-            kind === "button"
+            isFilled
               ? onStyleChange({ ...style, fill: undefined })
               : onColourChange(undefined)
           }

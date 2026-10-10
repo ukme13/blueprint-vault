@@ -3,7 +3,8 @@
 
 .box {
   position: absolute;
-  z-index: 3;
+  /* Above the page's sticky nav, which is at 5. */
+  z-index: 20;
   box-sizing: border-box;
   border: 2px solid var(--color-action-primary);
   pointer-events: none;

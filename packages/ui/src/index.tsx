@@ -2,6 +2,7 @@ export * from "./button";
 export * from "./components/icons/brand";
 export * from "./components/icons/colour";
 export * from "./components/icons/elevation";
+export * from "./components/icons/inspect";
 export * from "./button-tones";
 export type {
   HybridTokenPreset,
