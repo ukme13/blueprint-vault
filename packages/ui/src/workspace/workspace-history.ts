@@ -56,16 +56,11 @@ export function restoreUndoable(
     ...current,
     typography: target.typography
       ? current.typography
-        ? {
-            ...current.typography,
-            /* The name it has now: it follows the workspace's, not a step. */
-            system: {
-              ...target.typography.system,
-              name: current.typography.system.name,
-            },
-          }
+        ? restoreTypography(current.typography, target.typography)
         : target.typography
-      : current.typography,
+      : current.typography
+        ? withoutStyles(current.typography)
+        : current.typography,
     spacing: target.spacing,
     radius: target.radius,
     elevation: target.elevation,
@@ -75,6 +70,41 @@ export function restoreUndoable(
     removedSeedRoles: target.removedSeedRoles,
     buttonSchemes: target.buttonSchemes,
   };
+}
+
+/**
+ * The typography slice with an earlier one's undoable parts put back: its
+ * system, under the name it has now, and what the inspector set on the preview.
+ * The styles are put back as they were, including as none, which is the field
+ * absent and not an empty map.
+ */
+function restoreTypography(
+  current: NonNullable<WorkspaceProject["typography"]>,
+  target: NonNullable<WorkspaceProject["typography"]>,
+): NonNullable<WorkspaceProject["typography"]> {
+  const { previewStyles: previous, ...rest } = current;
+  void previous;
+  return {
+    ...rest,
+    /* The name it has now: it follows the workspace's, not a step. */
+    system: { ...target.system, name: current.system.name },
+    ...(target.previewStyles ? { previewStyles: target.previewStyles } : {}),
+  };
+}
+
+/**
+ * The slice as it was before there was one: the styles gone and the rest, which
+ * is not an undo's to change, left. An earlier document with no typography at
+ * all had no styles, and the first edit of this kind is what created the slice.
+ */
+function withoutStyles(
+  current: NonNullable<WorkspaceProject["typography"]>,
+): NonNullable<WorkspaceProject["typography"]> {
+  /* The same slice when there was nothing to take out. */
+  if (!current.previewStyles) return current;
+  const { previewStyles: previous, ...rest } = current;
+  void previous;
+  return rest;
 }
 
 export interface WorkspaceHistory {

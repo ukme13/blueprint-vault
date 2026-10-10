@@ -16,12 +16,11 @@ import {
   type TypeRoleRowGroup,
 } from "@blueprint/ui";
 import { InspectIconButton } from "./InspectPrimitives";
-import { AppearanceSection, AutoLayoutSection } from "./InspectLayoutSections";
-import {
-  EffectsSection,
-  FillSection,
-  StrokeSection,
-} from "./InspectStyleSections";
+import { AppearanceSection } from "./InspectAppearance";
+import { AutoLayoutSection } from "./InspectAutoLayout";
+import { EffectsSection } from "./InspectEffects";
+import { FillSection } from "./InspectFill";
+import { StrokeSection } from "./InspectStroke";
 import { CopySection, TypographySection } from "./InspectTextSections";
 import styles from "./inspect-panel.module.css";
 

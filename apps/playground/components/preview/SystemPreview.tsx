@@ -9,7 +9,6 @@ import {
   type CSSProperties,
 } from "react";
 import {
-  clearPreviewStyle,
   PREVIEW_SECTION_LABEL,
   previewInspectKind,
   previewStyleKey,
@@ -18,12 +17,9 @@ import {
   resolveElevation,
   resolveRadius,
   resolveSpacing,
-  setPreviewStyle,
   typeRoleRowGroups,
-  type PreviewSlotStyle,
   type PreviewStyles,
   applyColorToBlocks,
-  applyRoleToBlocks,
   applyRoleToButtons,
   applyStyleToGroup,
   defaultElevationScale,
@@ -50,17 +46,10 @@ import {
   semanticCssVariables,
   spacingCssVariables,
   typeCssVariablesForDevice,
-  updateBlockText,
-  updateSectionFill,
-  withSeededTypographySlice,
-  seedWorkspaceProject,
   PREVIEW_SECTION_SEED_TOKEN,
   idsSharingStyle,
   isPreviewButton,
   type PreviewDocumentBlock,
-  type PreviewDocument,
-  type PreviewSectionFill,
-  type PreviewSectionId,
   useWorkspaceStore,
 } from "@blueprint/ui";
 import { useIsPhone } from "../use-is-phone";
@@ -75,6 +64,10 @@ import {
   previewImageErrorCopy,
   type PreviewImageError,
 } from "../PreviewSectionMenu";
+import {
+  usePreviewEdits,
+  type InspectTarget,
+} from "../inspect/use-preview-edits";
 import { PreviewStylesProvider } from "./preview-styles-context";
 import { PreviewChrome } from "../PreviewChrome";
 import { usePaletteView } from "../palette/PaletteViewContext";
@@ -86,11 +79,6 @@ import { SpacingOverlay } from "../spacing-overlay/SpacingOverlay";
 const EMPTY_TOKENS: never[] = [];
 const EMPTY_PALETTES: never[] = [];
 const EMPTY_STYLES: PreviewStyles = {};
-
-type InspectTarget =
-  | { source: "landing"; id: string }
-  | { source: "shell"; id: string }
-  | { source: "section"; id: PreviewSectionId };
 
 /**
  * The whole system on one page, as a landing site.
@@ -208,86 +196,6 @@ export function SystemPreview() {
       ? (previewSection(sections, inspecting.id) ?? null)
       : null;
 
-  const patchSlot = useCallback(
-    (apply: (block: PreviewDocumentBlock) => PreviewDocumentBlock) => {
-      if (!inspecting || inspecting.source === "section") return;
-      update((current) => {
-        if (!current) return seedWorkspaceProject("Workspace");
-        const next = current.typography
-          ? current
-          : withSeededTypographySlice(current);
-        const slice = next.typography;
-        if (!slice) return next;
-        const key =
-          inspecting.source === "shell" ? "previewShell" : "previewLanding";
-        const document = slice[key];
-        const currentBlock = document.find(
-          (block) => block.id === inspecting.id,
-        );
-        if (!currentBlock) return next;
-        const patched = apply(currentBlock);
-        const withText = updateBlockText(document, inspecting.id, patched.text);
-        const withRole = applyRoleToBlocks(
-          withText,
-          [inspecting.id],
-          patched.roleId,
-        );
-        return {
-          ...next,
-          typography: { ...slice, [key]: withRole },
-        };
-      });
-    },
-    [inspecting, update],
-  );
-
-  const patchDocument = useCallback(
-    (
-      source: "landing" | "shell",
-      apply: (document: PreviewDocument) => PreviewDocument,
-    ) => {
-      update((current) => {
-        if (!current) return seedWorkspaceProject("Workspace");
-        const next = current.typography
-          ? current
-          : withSeededTypographySlice(current);
-        const slice = next.typography;
-        if (!slice) return next;
-        const key = source === "shell" ? "previewShell" : "previewLanding";
-        return {
-          ...next,
-          typography: { ...slice, [key]: apply(slice[key]) },
-        };
-      });
-    },
-    [update],
-  );
-
-  const patchSectionFill = useCallback(
-    (id: PreviewSectionId, fill: PreviewSectionFill) => {
-      update((current) => {
-        if (!current) return seedWorkspaceProject("Workspace");
-        const next = current.typography
-          ? current
-          : withSeededTypographySlice(current);
-        const slice = next.typography;
-        if (!slice) return next;
-        return {
-          ...next,
-          typography: {
-            ...slice,
-            previewSections: updateSectionFill(
-              slice.previewSections ?? seedPreviewSections(),
-              id,
-              fill,
-            ),
-          },
-        };
-      });
-    },
-    [update],
-  );
-
   const onDeviceChange = useCallback((id: string) => {
     /* Close the inspector first: its <dialog> is on the top layer, and the
        canvas remounts when the overflow ancestor changes. Unmounting that
@@ -334,141 +242,24 @@ export function SystemPreview() {
     return null;
   }, [inspecting, system]);
 
-  /* One write for a change to an element's style: an undo takes back the
-     change, and goes to this page. A style left empty is dropped, and with it
-     the field, so a project with none is as it was. */
-  const patchStyle = useCallback(
-    (id: string, next: PreviewSlotStyle) => {
-      update(
-        (current) => {
-          if (!current) return seedWorkspaceProject("Workspace");
-          const withSlice = current.typography
-            ? current
-            : withSeededTypographySlice(current);
-          const slice = withSlice.typography;
-          if (!slice) return withSlice;
-          const styles = setPreviewStyle(slice.previewStyles, id, next);
-          const { previewStyles: previous, ...rest } = slice;
-          void previous;
-          return {
-            ...withSlice,
-            typography:
-              Object.keys(styles).length > 0
-                ? { ...rest, previewStyles: styles }
-                : rest,
-          };
-        },
-        { origin: { path: "/preview" } },
-      );
-    },
-    [update],
-  );
-
-  /* Back to what the seed gives: copy, type and colour, and whatever the
-     inspector set, in one step. */
-  const resetSlotToDefault = useCallback(() => {
-    if (
-      !slotSource ||
-      !inspecting ||
-      inspecting.source === "section" ||
-      !defaultBlock
-    ) {
-      return;
-    }
-    const id = inspecting.id;
-    update(
-      (current) => {
-        if (!current) return seedWorkspaceProject("Workspace");
-        const withSlice = current.typography
-          ? current
-          : withSeededTypographySlice(current);
-        const slice = withSlice.typography;
-        if (!slice) return withSlice;
-        const key = slotSource === "shell" ? "previewShell" : "previewLanding";
-        const withText = updateBlockText(slice[key], id, defaultBlock.text);
-        const withRole = applyRoleToBlocks(withText, [id], defaultBlock.roleId);
-        const styles = clearPreviewStyle(
-          slice.previewStyles,
-          previewStyleKey(id),
-        );
-        const { previewStyles: previous, ...rest } = slice;
-        void previous;
-        return {
-          ...withSlice,
-          typography: {
-            ...rest,
-            [key]: applyColorToBlocks(withRole, [id], undefined),
-            ...(Object.keys(styles).length > 0
-              ? { previewStyles: styles }
-              : {}),
-          },
-        };
-      },
-      { origin: { path: "/preview" } },
-    );
-  }, [defaultBlock, inspecting, slotSource, update]);
-
-  const resetSectionToDefault = useCallback(() => {
-    if (!inspecting || inspecting.source !== "section") return;
-    const id = inspecting.id;
-    const defaultTokenId = PREVIEW_SECTION_SEED_TOKEN[id];
-    update(
-      (current) => {
-        if (!current) return seedWorkspaceProject("Workspace");
-        const withSlice = current.typography
-          ? current
-          : withSeededTypographySlice(current);
-        const slice = withSlice.typography;
-        if (!slice) return withSlice;
-        const styles = clearPreviewStyle(
-          slice.previewStyles,
-          previewStyleKey(id, true),
-        );
-        const { previewStyles: previous, ...rest } = slice;
-        void previous;
-        return {
-          ...withSlice,
-          typography: {
-            ...rest,
-            previewSections: updateSectionFill(
-              slice.previewSections ?? seedPreviewSections(),
-              id,
-              { kind: "token", tokenId: defaultTokenId },
-            ),
-            ...(Object.keys(styles).length > 0
-              ? { previewStyles: styles }
-              : {}),
-          },
-        };
-      },
-      { origin: { path: "/preview" } },
-    );
-  }, [inspecting, update]);
-
-  const resetAllToDefault = useCallback(() => {
-    setLayoutBindings({});
-    setInspecting(null);
-    setSectionError(null);
-    update((current) => {
-      if (!current) return seedWorkspaceProject("Workspace");
-      const next = current.typography
-        ? current
-        : withSeededTypographySlice(current);
-      const slice = next.typography;
-      if (!slice) return next;
-      const { previewStyles: previous, ...rest } = slice;
-      void previous;
-      return {
-        ...next,
-        typography: {
-          ...rest,
-          previewLanding: seedPreviewLanding(system),
-          previewShell: seedPreviewShell(system),
-          previewSections: seedPreviewSections(),
-        },
-      };
-    });
-  }, [system, update]);
+  const {
+    patchSlot,
+    patchDocument,
+    patchSectionFill,
+    patchStyle,
+    resetSlotToDefault,
+    resetSectionToDefault,
+    resetAllToDefault,
+  } = usePreviewEdits({
+    update,
+    system,
+    inspecting,
+    slotSource,
+    defaultBlock,
+    setInspecting,
+    setSectionError,
+    setLayoutBindings,
+  });
 
   /* What the panel's token lists are drawn from: the project's own scales. */
   const spacingTokens = useMemo(

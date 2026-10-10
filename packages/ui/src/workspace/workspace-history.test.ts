@@ -398,3 +398,93 @@ describe("what an undo changed in the semantic layer", () => {
     expect(history.lastTargets).toEqual([]);
   });
 });
+
+describe("what the inspector sets on the preview page", () => {
+  const withStyles = (
+    project: WorkspaceProject,
+    previewStyles: Record<string, Record<string, unknown>> | undefined,
+  ): WorkspaceProject => {
+    const { previewStyles: previous, ...rest } = project.typography!;
+    void previous;
+    return {
+      ...project,
+      typography: previewStyles ? { ...rest, previewStyles } : { ...rest },
+    } as WorkspaceProject;
+  };
+
+  it("is an edit an undo owns: it takes a step, and an undo puts it back", () => {
+    const start = base();
+    const history = createWorkspaceHistory(start);
+    const styled = withStyles(start, { "landing-hero": { opacity: 40 } });
+
+    expect(history.commit(styled)).toBe(true);
+    expect(undoableKey(styled)).not.toBe(undoableKey(start));
+
+    const undone = history.undo()!;
+    expect(undone.typography?.previewStyles).toBeUndefined();
+    expect(history.redo()!.typography?.previewStyles).toEqual({
+      "landing-hero": { opacity: 40 },
+    });
+  });
+
+  it("is taken back one step at a time", () => {
+    const start = base();
+    const history = createWorkspaceHistory(start);
+    const first = withStyles(start, { "landing-hero": { opacity: 40 } });
+    const second = withStyles(first, { "landing-hero": { opacity: 70 } });
+    history.commit(first);
+    history.commit(second);
+
+    expect(history.undo()?.typography?.previewStyles).toEqual({
+      "landing-hero": { opacity: 40 },
+    });
+    expect(history.undo()?.typography?.previewStyles).toBeUndefined();
+  });
+
+  it("is restored without disturbing the copy, the type or the name beside it", () => {
+    const start = base();
+    const styled = withStyles(start, { "landing-hero": { gap: 4 } });
+    const renamed = {
+      ...styled,
+      typography: {
+        ...styled.typography!,
+        specimenText: "Typed since",
+        system: { ...styled.typography!.system, name: "Renamed" },
+      },
+    };
+
+    const restored = restoreUndoable(renamed, start);
+    expect(restored.typography?.previewStyles).toBeUndefined();
+    expect(restored.typography?.specimenText).toBe("Typed since");
+    expect(restored.typography?.system.name).toBe("Renamed");
+  });
+
+  it("is taken back to nothing even when the slice did not exist until the first edit", () => {
+    /* A project with only a palette has no typography until something edits
+       it, and the first style is that edit. */
+    const start = emptyWorkspace();
+    const history = createWorkspaceHistory(start);
+    const edited = withStyles(base(), { "landing-hero": { opacity: 40 } });
+
+    expect(history.commit(edited)).toBe(true);
+    const undone = history.undo()!;
+    expect(undone.typography?.previewStyles).toBeUndefined();
+    expect(
+      restoreUndoable(edited, start).typography?.previewStyles,
+    ).toBeUndefined();
+  });
+
+  it("keeps the styles when an undo of something else puts the rest back", () => {
+    const start = base();
+    const styled = withStyles(start, { "landing-hero": { gap: 4 } });
+    const spaced = withBaseUnit(styled, 8);
+    const history = createWorkspaceHistory(styled);
+    history.commit(spaced);
+
+    const undone = history.undo()!;
+    expect(undone.typography?.previewStyles).toEqual({
+      "landing-hero": { gap: 4 },
+    });
+    expect(undone.spacing.baseUnitPx).toBe(start.spacing.baseUnitPx);
+  });
+});
