@@ -4,6 +4,7 @@ import {
   PREVIEW_CARD_IDS,
   PREVIEW_CHIP_IDS,
   PREVIEW_DIVIDER_IDS,
+  PREVIEW_INSPECT_FIELDS,
   clearPreviewStyle,
   isPreviewChip,
   isPreviewDivider,
@@ -206,8 +207,7 @@ describe("taking an edge or a shadow away", () => {
 });
 
 describe("what a chip and a divider offer", () => {
-  it("gives a chip its copy, type, room, shape, fill, text colour and edge", async () => {
-    const { PREVIEW_INSPECT_FIELDS } = await import("./preview-styles");
+  it("gives a chip its copy, type, room, shape, fill, text colour and edge", () => {
     expect(PREVIEW_INSPECT_FIELDS.chip).toEqual([
       "copy",
       "typography",

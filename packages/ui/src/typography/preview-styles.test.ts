@@ -80,9 +80,19 @@ describe("what kind of element an id is", () => {
       "stroke",
       "effects",
     ]);
-    expect(PREVIEW_INSPECT_FIELDS.card).toEqual(PREVIEW_INSPECT_FIELDS.band);
-    expect(PREVIEW_INSPECT_FIELDS.band).toEqual([
+    expect(PREVIEW_INSPECT_FIELDS.card).toEqual([
       "gap",
+      "padding",
+      "opacity",
+      "radius",
+      "fill",
+      "stroke",
+      "effects",
+    ]);
+    /* A band has no gap: nothing in it to put a space between. */
+    expect(previewInspectOffers("band", "gap")).toBe(false);
+    expect(previewInspectOffers("card", "gap")).toBe(true);
+    expect(PREVIEW_INSPECT_FIELDS.band).toEqual([
       "padding",
       "opacity",
       "radius",
@@ -237,18 +247,31 @@ describe("previewButtonLabelToken", () => {
 });
 
 describe("previewStyleDeclarations", () => {
+  it("draws no gap where an element has nothing to space, whatever is stored", () => {
+    for (const kind of ["band", "button", "text", "chip", "divider"] as const) {
+      expect(previewStyleDeclarations({ gap: 4 }, [], kind)).toEqual({});
+    }
+    expect(previewStyleDeclarations({ gap: 4 }, [], "card").gap).toBe(
+      "var(--spacing-4)",
+    );
+  });
+
   it("draws nothing for nothing", () => {
     expect(previewStyleDeclarations({})).toEqual({});
   });
 
   it("writes every length as a variable and opacity as a fraction", () => {
     expect(
-      previewStyleDeclarations({
-        gap: 2.5,
-        padding: { top: 4, left: 8 },
-        opacity: 40,
-        radius: { topLeft: "container", bottomRight: "full" },
-      }),
+      previewStyleDeclarations(
+        {
+          gap: 2.5,
+          padding: { top: 4, left: 8 },
+          opacity: 40,
+          radius: { topLeft: "container", bottomRight: "full" },
+        },
+        [],
+        "card",
+      ),
     ).toEqual({
       gap: "var(--spacing-2-5)",
       paddingTop: "var(--spacing-4)",

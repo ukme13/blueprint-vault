@@ -299,7 +299,7 @@ test.describe("What each kind of element offers", () => {
     ).toContainText("Default shadow");
   });
 
-  test("band: gap, padding, opacity, radius, fill, stroke and effects; no copy or type", async ({
+  test("band: padding, opacity, radius, fill, stroke and effects; no gap, copy or type", async ({
     page,
   }) => {
     await openPreview(page);
@@ -318,15 +318,34 @@ test.describe("What each kind of element offers", () => {
     await expect(
       panel(page).getByRole("textbox", { name: "Copy" }),
     ).toHaveCount(0);
+    /* A band has nothing in it to put a space between: no Gap to set. */
     await expect(
       section(page, "Auto layout").getByRole("button", {
         name: "Gap",
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    await expect(
+      section(page, "Auto layout").getByRole("button", {
+        name: "Padding vertical",
         exact: true,
       }),
     ).toBeVisible();
     await expect(
       section(page, "Appearance").getByRole("textbox", { name: "Opacity" }),
     ).toBeVisible();
+  });
+
+  test("a card keeps its gap, which does space what is in it", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const card = page
+      .locator('[data-preview-slot="card-feature-card"]')
+      .first();
+    await card.click({ position: { x: 60, y: 6 } });
+    await choose(section(page, "Auto layout"), page, "Gap", "64px");
+    await expect.poll(() => style(card, "row-gap")).toBe("64px");
   });
 });
 
@@ -499,13 +518,11 @@ test.describe("Changing a token redraws the page", () => {
     await expect.poll(() => style(button, "box-shadow")).toBe(own);
   });
 
-  test("a band's gap, padding and opacity", async ({ page }) => {
+  test("a band's padding and opacity", async ({ page }) => {
     await openPreview(page);
     const band = heroBand(page);
     await selectHeroBand(page);
 
-    await choose(section(page, "Auto layout"), page, "Gap", "64px");
-    await expect.poll(() => style(band, "row-gap")).not.toBe("normal");
     await choose(
       section(page, "Auto layout"),
       page,
@@ -570,7 +587,12 @@ test.describe("What is changed is kept and can be taken back", () => {
     await expect.poll(() => style(title, "opacity")).toBe("0.4");
 
     await selectHeroBand(page);
-    await choose(section(page, "Auto layout"), page, "Gap", "64px");
+    await choose(
+      section(page, "Auto layout"),
+      page,
+      "Padding vertical",
+      "64px",
+    );
 
     await expect
       .poll(async () => {
@@ -580,8 +602,10 @@ test.describe("What is changed is kept and can be taken back", () => {
       .toMatchObject({ [id!]: { opacity: 40 } });
     const stored = (await readStoredWorkspace(page))!.typography!
       .previewStyles as Record<string, Record<string, unknown>>;
-    /* The band is under its own key, and its gap is a step, not a length. */
-    expect(typeof stored["band:landing-hero"]?.gap).toBe("number");
+    /* The band is under its own key, and its padding is a step, not a length. */
+    const padding = stored["band:landing-hero"]?.padding as
+      { top?: unknown } | undefined;
+    expect(typeof padding?.top).toBe("number");
 
     await page.reload();
     await expect(page.locator("[data-preview-ready]")).toBeVisible();

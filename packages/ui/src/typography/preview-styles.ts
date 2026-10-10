@@ -224,7 +224,9 @@ export const PREVIEW_INSPECT_FIELDS: Record<
     "stroke",
     "effects",
   ],
-  band: ["gap", "padding", "opacity", "radius", "fill", "stroke", "effects"],
+  /* No gap: a band is a block with one wrapper inside it, which has nothing
+     to put a space between. The room inside it is its padding. */
+  band: ["padding", "opacity", "radius", "fill", "stroke", "effects"],
   /* A card is a surface that holds copy: the room it keeps, how round and how
      opaque it is, what it is filled with, its edge and its shadow. */
   card: ["gap", "padding", "opacity", "radius", "fill", "stroke", "effects"],
@@ -528,7 +530,9 @@ export function previewStyleDeclarations(
 ): PreviewStyleDeclarations {
   const out: PreviewStyleDeclarations = {};
 
-  if (style.gap !== undefined) {
+  /* Only where it does something: a gap stored on a band before it was taken
+     away stays in the file and draws nothing. */
+  if (style.gap !== undefined && previewInspectOffers(kind, "gap")) {
     out.gap = `var(${spacingVariableName(style.gap)})`;
   }
 
