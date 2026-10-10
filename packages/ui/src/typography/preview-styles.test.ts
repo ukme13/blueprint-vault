@@ -285,6 +285,47 @@ describe("previewStyleDeclarations", () => {
     );
   });
 
+  it("gives way the element's own border to a stroke, so there is one edge", () => {
+    const stroke = {
+      tokenId: "border.default",
+      position: "inside",
+      weight: 2,
+    } as const;
+    for (const kind of ["button", "card", "band"] as const) {
+      const declared = previewStyleDeclarations({ stroke }, [], kind);
+      expect(declared).toMatchObject({
+        borderTopWidth: 0,
+        borderRightWidth: 0,
+        borderBottomWidth: 0,
+        borderLeftWidth: 0,
+      });
+    }
+  });
+
+  it("leaves the element's own border alone with no stroke", () => {
+    for (const kind of ["button", "card", "band"] as const) {
+      const declared = previewStyleDeclarations(
+        { shadow: "low", fill: "surface.raised" },
+        [],
+        kind,
+      );
+      expect(
+        Object.keys(declared).some((key) => key.startsWith("border")),
+      ).toBe(false);
+    }
+  });
+
+  it("sets no shorthand border beside the longhands", () => {
+    const declared = previewStyleDeclarations(
+      { stroke: { tokenId: "border.default", position: "outside", weight: 1 } },
+      [],
+      "button",
+    );
+    for (const shorthand of ["border", "borderWidth", "borderColor"]) {
+      expect(declared).not.toHaveProperty(shorthand);
+    }
+  });
+
   it("fills a button, and labels it so it reads", () => {
     const declared = previewStyleDeclarations(
       { fill: "action.primary" },

@@ -696,6 +696,58 @@ test.describe("The outline keeps to what it outlines", () => {
   });
 });
 
+test.describe("A stroke is the one edge", () => {
+  test("an outlined button gives up its own border while it has a stroke", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const button = page.getByRole("button", { name: "Open the studio" });
+    const own = await style(button, "border-top-width");
+    expect(own).not.toBe("0px");
+    const ownShadow = await style(button, "box-shadow");
+
+    await button.click();
+    await section(page, "Stroke")
+      .getByRole("button", { name: "Add stroke" })
+      .click();
+
+    /* The stroke is drawn, and the border that was there is not. */
+    await expect.poll(() => style(button, "border-top-width")).toBe("0px");
+    for (const side of ["right", "bottom", "left"]) {
+      expect(await style(button, `border-${side}-width`)).toBe("0px");
+    }
+    expect(await style(button, "box-shadow")).not.toBe(ownShadow);
+
+    /* Taken away, the button has its own edge again. */
+    await section(page, "Stroke")
+      .getByRole("button", { name: "Remove stroke" })
+      .click();
+    await expect.poll(() => style(button, "border-top-width")).toBe(own);
+    /* The button eases between its shadows; read it once it has arrived. */
+    await expect.poll(() => style(button, "box-shadow")).toBe(ownShadow);
+  });
+
+  test("a card gives up its border for a stroke too", async ({ page }) => {
+    await openPreview(page);
+    const card = page
+      .locator('[data-preview-slot="card-feature-card"]')
+      .first();
+    const own = await style(card, "border-top-width");
+    expect(own).not.toBe("0px");
+
+    await card.click({ position: { x: 60, y: 6 } });
+    await section(page, "Stroke")
+      .getByRole("button", { name: "Add stroke" })
+      .click();
+    await expect.poll(() => style(card, "border-top-width")).toBe("0px");
+
+    await section(page, "Stroke")
+      .getByRole("button", { name: "Remove stroke" })
+      .click();
+    await expect.poll(() => style(card, "border-top-width")).toBe(own);
+  });
+});
+
 test.describe("The outline follows what it outlines", () => {
   const nav = (page: Page, n: number) =>
     page.locator(`[data-preview-slot="shell-nav-${n}"]`);

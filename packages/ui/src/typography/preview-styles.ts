@@ -497,5 +497,17 @@ export function previewStyleDeclarations(
   ];
   if (shadows.length > 0) out.boxShadow = shadows.join(", ");
 
+  /* A stroke is the element's edge, so the edge it already has gives way: an
+     outlined button, a card and a section keep a border of their own, and with
+     a stroke on top the element would show two outlines. Longhands, since the
+     base styles set border colours as longhands and a shorthand beside them
+     is what React warns of when one is removed. */
+  if (style.stroke) {
+    out.borderTopWidth = 0;
+    out.borderRightWidth = 0;
+    out.borderBottomWidth = 0;
+    out.borderLeftWidth = 0;
+  }
+
   return out;
 }
