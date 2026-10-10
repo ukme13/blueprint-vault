@@ -625,6 +625,69 @@ test.describe("What is changed is kept and can be taken back", () => {
   });
 });
 
+test.describe("Taking a value away again", () => {
+  /* React warns, in development only, when a style property is removed while a
+     shorthand for it is set, and the style then does not come back. The
+     production build this suite normally runs against never says so: run it
+     with E2E_DEV=1 to see it. */
+  test("a fill, a padding and a radius come off without a styling warning", async ({
+    page,
+  }) => {
+    const warnings: string[] = [];
+    page.on("console", (message) => {
+      if (
+        message.type() === "error" &&
+        /style property|conflicting property/i.test(message.text())
+      ) {
+        warnings.push(message.text());
+      }
+    });
+    await openPreview(page);
+    const button = seeThePreview(page);
+    const own = {
+      background: await style(button, "background-color"),
+      padding: await style(button, "padding-left"),
+    };
+    await button.click();
+
+    await choose(section(page, "Fill"), page, "Fill", "Surface raised");
+    await expect
+      .poll(() => style(button, "background-color"))
+      .not.toBe(own.background);
+    await section(page, "Fill")
+      .getByRole("button", { name: "Remove fill" })
+      .click();
+    await expect
+      .poll(() => style(button, "background-color"))
+      .toBe(own.background);
+
+    await choose(
+      section(page, "Auto layout"),
+      page,
+      "Padding horizontal",
+      "64px",
+    );
+    await expect
+      .poll(() => style(button, "padding-left"))
+      .not.toBe(own.padding);
+    /* Astryx ignores a press on a trigger for a beat after its list closes. */
+    await page.waitForTimeout(400);
+    await choose(
+      section(page, "Auto layout"),
+      page,
+      "Padding horizontal",
+      "Default",
+    );
+    await expect.poll(() => style(button, "padding-left")).toBe(own.padding);
+
+    await choose(section(page, "Appearance"), page, "Corner radius", /px/);
+    await page.waitForTimeout(400);
+    await choose(section(page, "Appearance"), page, "Corner radius", "Default");
+
+    expect(warnings).toEqual([]);
+  });
+});
+
 test.describe("On a phone", () => {
   test("a selection opens the panel as a sheet, and a change reaches the page", async ({
     page,

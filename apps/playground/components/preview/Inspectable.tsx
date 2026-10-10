@@ -28,7 +28,10 @@ const SURFACE = "var(--color-surface-base)";
 
 /**
  * A button's padding is the layout's control insets, and its height is what
- * they make: a line of the label, the block inset twice and the border. The
+ * they make: a line of the label, the block inset twice and the border. Set as
+ * the four sides, never as the shorthands: the inspector overrides a side at a
+ * time, and removing a side while a shorthand is set is a styling bug React
+ * warns of. The
  * Button's own size class fixes a height and no block padding, so both are
  * set here, in place of it, and an inset changed in the Uses table changes the
  * button. The fallbacks are the defaults the layout seeds, for a preview with
@@ -36,8 +39,10 @@ const SURFACE = "var(--color-surface-base)";
  */
 const CONTROL_INSET_STYLE: CSSProperties = {
   height: "auto",
-  paddingBlock: "var(--inset-control-y, var(--spacing-2))",
-  paddingInline: "var(--inset-control-x, var(--spacing-4))",
+  paddingTop: "var(--inset-control-y, var(--spacing-2))",
+  paddingBottom: "var(--inset-control-y, var(--spacing-2))",
+  paddingLeft: "var(--inset-control-x, var(--spacing-4))",
+  paddingRight: "var(--inset-control-x, var(--spacing-4))",
 };
 
 export function slot(
@@ -187,11 +192,11 @@ export function SlotButton({
   invert?: boolean;
 }): ReactElement {
   const fill = invert
-    ? { background: SURFACE, color: TEXT, borderColor: SURFACE }
+    ? { backgroundColor: SURFACE, color: TEXT, borderColor: SURFACE }
     : variant === "contained"
-      ? { background: ACTION, color: ON_ACTION }
+      ? { backgroundColor: ACTION, color: ON_ACTION }
       : {
-          background: "transparent",
+          backgroundColor: "transparent",
           color: TEXT,
           borderColor: BORDER,
         };
