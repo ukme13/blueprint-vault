@@ -2,42 +2,25 @@
 
 import { useState } from "react";
 import { DropdownMenu } from "@astryxdesign/core/DropdownMenu";
-import type { PreviewSectionFill } from "@blueprint/ui";
 import { Ellipsis } from "lucide-react";
 import styles from "./PreviewSectionBand.module.css";
 
 /**
- * Studio ⋯ on a frozen `/preview` band. Lives outside `components/preview/`
- * so the canvas scanners do not have to exempt chrome.
+ * Studio ⋯ on a frozen `/preview` band that still has an image, to let it go.
  *
- * Choosing a background opens the inspector on the band. Putting an image up
- * is not offered, but a band that already has one can still let it go.
+ * Nothing puts an image up any more, and a band's colour is chosen by
+ * picking the band, so a band without an image has no menu at all. Lives
+ * outside `components/preview/` so the canvas scanners do not have to exempt
+ * chrome.
  */
 export function PreviewSectionMenu({
   label,
-  fill,
-  onPickColour,
-  onFillChange,
+  onRemoveImage,
 }: {
   label: string;
-  fill: PreviewSectionFill;
-  onPickColour: () => void;
-  onFillChange: (fill: PreviewSectionFill) => void;
+  onRemoveImage: () => void;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
-
-  const items = [
-    { label: "Background colour…", onClick: onPickColour },
-    ...(fill.kind === "image"
-      ? [
-          {
-            label: "Remove image",
-            onClick: () =>
-              onFillChange({ kind: "token", tokenId: fill.fallbackTokenId }),
-          },
-        ]
-      : []),
-  ];
 
   return (
     <div
@@ -57,7 +40,7 @@ export function PreviewSectionMenu({
         }}
         hasChevron={false}
         isMenuOpen={menuOpen}
-        items={items}
+        items={[{ label: "Remove image", onClick: onRemoveImage }]}
         menuWidth={200}
         onOpenChange={setMenuOpen}
         placement="below"

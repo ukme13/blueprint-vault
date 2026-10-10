@@ -95,12 +95,14 @@ export function PreviewSectionBand({
         onPickColour();
       }}
     >
-      <PreviewSectionMenu
-        fill={fill}
-        label={label}
-        onFillChange={onFillChange}
-        onPickColour={onPickColour}
-      />
+      {fill.kind === "image" ? (
+        <PreviewSectionMenu
+          label={label}
+          onRemoveImage={() =>
+            onFillChange({ kind: "token", tokenId: fill.fallbackTokenId })
+          }
+        />
+      ) : null}
       {children}
     </Tag>
   );

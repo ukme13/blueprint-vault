@@ -731,9 +731,7 @@ test.describe("The slot inspector", () => {
   }) => {
     await openPreview(page);
     const hero = page.locator('[data-preview-section="landing-hero"]');
-    await hero.hover();
-    await hero.getByRole("button", { name: "Section fill for Hero" }).click();
-    await page.getByRole("menuitem", { name: "Background colour…" }).click();
+    await hero.click({ position: { x: 6, y: 6 } });
 
     const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
@@ -786,9 +784,7 @@ test.describe("Preview section fill and token colour", () => {
       (node) => getComputedStyle(node).backgroundColor,
     );
 
-    await hero.hover();
-    await hero.getByRole("button", { name: "Section fill for Hero" }).click();
-    await page.getByRole("menuitem", { name: "Background colour…" }).click();
+    await hero.click({ position: { x: 6, y: 6 } });
 
     const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
@@ -844,31 +840,23 @@ test.describe("Preview section fill and token colour", () => {
       .not.toBe(before);
   });
 
-  test("offers a background colour on the band menu, and no image upload", async ({
+  test("has no ⋯ menu on a band without an image, and no image upload", async ({
     page,
   }) => {
     await openPreview(page);
     const hero = page.locator('[data-preview-section="landing-hero"]');
     await hero.hover();
-    await hero.getByRole("button", { name: "Section fill for Hero" }).click();
     await expect(
-      page.getByRole("menuitem", { name: "Background colour…" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("menuitem", { name: "Upload image…" }),
+      hero.getByRole("button", { name: "Section fill for Hero" }),
     ).toHaveCount(0);
-    await expect(
-      page.getByRole("menuitem", { name: "Remove image" }),
-    ).toHaveCount(0);
+    await expect(page.getByRole("menuitem")).toHaveCount(0);
   });
 
   test("lets a band that already has an image let it go", async ({ page }) => {
     await openPreview(page);
     /* An edit first, so the project has the page's sections to change. */
     const band = page.locator('[data-preview-section="landing-hero"]');
-    await band.hover();
-    await band.getByRole("button", { name: "Section fill for Hero" }).click();
-    await page.getByRole("menuitem", { name: "Background colour…" }).click();
+    await band.click({ position: { x: 6, y: 6 } });
     await page
       .getByRole("complementary", { name: "Inspect" })
       .getByRole("button", { name: "Fill", exact: true })
@@ -917,33 +905,6 @@ test.describe("Preview section fill and token colour", () => {
     await expect(splitB).toBeVisible();
     await expect(quad).toBeVisible();
 
-    const splitBMenu = splitB.getByRole("button", {
-      name: "Section fill for Split B",
-    });
-    const quadMenu = quad.getByRole("button", {
-      name: "Section fill for Quad",
-    });
-
-    const splitBMenuWrapper = splitB.locator('[class*="menu"]').first();
-    const quadMenuWrapper = quad.locator('[class*="menu"]').first();
-
-    const opacityOf = (locator: typeof splitBMenuWrapper) =>
-      locator.evaluate((node) => getComputedStyle(node).opacity);
-
-    // Menus are hidden (opacity: 0) until hover/focus on that band
-    expect(await opacityOf(splitBMenuWrapper)).toBe("0");
-    expect(await opacityOf(quadMenuWrapper)).toBe("0");
-
-    await splitB.hover();
-    expect(await opacityOf(splitBMenuWrapper)).toBe("1");
-    expect(await opacityOf(quadMenuWrapper)).toBe("0");
-    await expect(splitBMenu).toBeAttached();
-
-    await quad.hover();
-    expect(await opacityOf(quadMenuWrapper)).toBe("1");
-    expect(await opacityOf(splitBMenuWrapper)).toBe("0");
-    await expect(quadMenu).toBeAttached();
-
     const splitBBefore = await splitB.evaluate(
       (node) => getComputedStyle(node).backgroundColor,
     );
@@ -951,8 +912,7 @@ test.describe("Preview section fill and token colour", () => {
       (node) => getComputedStyle(node).backgroundColor,
     );
 
-    await quadMenu.click();
-    await page.getByRole("menuitem", { name: "Background colour…" }).click();
+    await quad.click({ position: { x: 6, y: 6 } });
 
     const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
