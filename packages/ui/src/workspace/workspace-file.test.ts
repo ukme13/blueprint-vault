@@ -547,6 +547,7 @@ describe("a version 5 file still opens, and a version 6 file carries alpha", () 
       "inset-control-y",
       "gap-grid",
       "gap-nav",
+      "inset-nav-y",
       "inset-card",
       "radius-surface",
       "radius-button",

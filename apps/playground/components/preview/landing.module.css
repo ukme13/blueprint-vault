@@ -78,7 +78,9 @@
      before it gained one. */
   gap: var(--gap-nav, var(--spacing-6));
   min-width: 0;
-  padding-block: var(--spacing-4);
+  /* Navigation block inset, a layout use: the fallback is a stored workspace's
+     before it gained one, and the size the bar always was. */
+  padding-block: var(--inset-nav-y, var(--spacing-4));
 }
 
 .brand {

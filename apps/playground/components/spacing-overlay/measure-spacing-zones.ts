@@ -13,6 +13,7 @@ export type LayoutUseId =
   | "gap-section"
   | "gap-grid"
   | "gap-nav"
+  | "inset-nav-y"
   | "inset-card";
 
 /**
@@ -29,6 +30,11 @@ const INSET_USES: readonly {
     matches: (element) => hasAny(element, [styles.wrap, styles.navInner]),
     use: "inset-container",
     axis: "inline",
+  },
+  {
+    matches: (element) => hasAny(element, [styles.navInner]),
+    use: "inset-nav-y",
+    axis: "block",
   },
   {
     matches: (element) =>

@@ -844,6 +844,7 @@ describe("preview devices live on the workspace", () => {
       "inset-control-y",
       "gap-grid",
       "gap-nav",
+      "inset-nav-y",
       "inset-card",
       "radius-surface",
       "radius-button",

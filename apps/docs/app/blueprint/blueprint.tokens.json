@@ -1330,6 +1330,9 @@
       "gap-nav": {
         "$value": "{spacing.3}"
       },
+      "inset-nav-y": {
+        "$value": "{spacing.4}"
+      },
       "inset-card": {
         "$value": "{spacing.4}"
       },
@@ -1366,6 +1369,9 @@
         "$value": "{spacing.6}"
       },
       "gap-nav": {
+        "$value": "{spacing.4}"
+      },
+      "inset-nav-y": {
         "$value": "{spacing.4}"
       },
       "inset-card": {
@@ -1405,6 +1411,9 @@
       },
       "gap-nav": {
         "$value": "{spacing.6}"
+      },
+      "inset-nav-y": {
+        "$value": "{spacing.4}"
       },
       "inset-card": {
         "$value": "{spacing.6}"

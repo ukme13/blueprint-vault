@@ -119,6 +119,15 @@ export const DEFAULT_LAYOUT_TOKENS: readonly LayoutToken[] = [
     byDevice: { phone: "3", tablet: "4", desktop: "6" },
   },
   {
+    id: "inset-nav-y",
+    name: "Navigation block inset",
+    description: "Vertical padding of the navigation bar.",
+    kind: "spacing",
+    /* The bar was padded by a bare step 4 on every frame: the same size, and
+       the one the layout kept before this was a use. */
+    byDevice: { phone: "4", tablet: "4", desktop: "4" },
+  },
+  {
     id: "inset-card",
     name: "Card inset",
     description: "Padding inside cards and panels.",
