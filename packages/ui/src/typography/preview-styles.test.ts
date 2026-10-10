@@ -1,0 +1,262 @@
+import { describe, expect, it } from "vitest";
+import type { SemanticToken } from "../color/semantic";
+import {
+  clearPreviewStyle,
+  PREVIEW_INSPECT_FIELDS,
+  previewButtonLabelToken,
+  previewInspectKind,
+  previewInspectOffers,
+  previewStyleDeclarations,
+  previewStyleOf,
+  readPadding,
+  readPreviewStyles,
+  readRadius,
+  setPreviewStyle,
+  withPadding,
+  withRadius,
+} from "./preview-styles";
+
+const token = (id: string): SemanticToken => ({
+  id,
+  name: id,
+  description: "",
+  light: { trackId: "t", weight: 500 },
+  dark: { trackId: "t", weight: 500 },
+});
+
+describe("what kind of element an id is", () => {
+  it("is a band for a section, a button for a button, and text for the rest", () => {
+    expect(previewInspectKind("landing-hero")).toBe("band");
+    expect(previewInspectKind("shell-footer")).toBe("band");
+    expect(previewInspectKind("shell-action")).toBe("button");
+    expect(previewInspectKind("landing-title")).toBe("text");
+    expect(previewInspectKind("shell-brand")).toBe("text");
+  });
+
+  it("offers each kind what the design gives it", () => {
+    expect(PREVIEW_INSPECT_FIELDS.text).toEqual([
+      "copy",
+      "typography",
+      "fill",
+      "opacity",
+    ]);
+    expect(PREVIEW_INSPECT_FIELDS.button).toEqual([
+      "copy",
+      "typography",
+      "padding",
+      "radius",
+      "fill",
+      "stroke",
+      "effects",
+    ]);
+    expect(PREVIEW_INSPECT_FIELDS.band).toEqual([
+      "gap",
+      "padding",
+      "opacity",
+      "radius",
+      "fill",
+      "stroke",
+      "effects",
+    ]);
+    expect(previewInspectOffers("shell-action", "gap")).toBe(false);
+    expect(previewInspectOffers("shell-action", "opacity")).toBe(false);
+    expect(previewInspectOffers("landing-hero", "typography")).toBe(false);
+    expect(previewInspectOffers("landing-title", "stroke")).toBe(false);
+  });
+});
+
+describe("readPreviewStyles", () => {
+  it("is empty for nothing, and for what is not a map", () => {
+    for (const value of [undefined, null, 4, "x", []]) {
+      expect(readPreviewStyles(value)).toEqual({});
+    }
+  });
+
+  it("keeps what is well formed", () => {
+    const stored = {
+      "landing-hero": {
+        gap: 4,
+        padding: { top: 8, bottom: 8 },
+        opacity: 80,
+        radius: { topLeft: "container" },
+        stroke: { tokenId: "border.default", position: "outside", weight: 2 },
+        shadow: "low",
+      },
+    };
+    expect(readPreviewStyles(stored)).toEqual(stored);
+  });
+
+  it("drops what cannot be read, and an element left with nothing", () => {
+    expect(
+      readPreviewStyles({
+        a: { gap: -1, padding: { top: "x" }, radius: { topLeft: "" } },
+        b: "nope",
+        c: { shadow: 5 },
+        d: { opacity: 40 },
+      }),
+    ).toEqual({ d: { opacity: 40 } });
+  });
+
+  it("clamps an opacity, and makes a stroke that is not one an inside 1px", () => {
+    expect(readPreviewStyles({ a: { opacity: 240 } }).a?.opacity).toBe(100);
+    expect(readPreviewStyles({ a: { opacity: -5 } }).a?.opacity).toBe(0);
+    expect(
+      readPreviewStyles({
+        a: { stroke: { tokenId: "border.default", position: "x", weight: 17 } },
+      }).a?.stroke,
+    ).toEqual({ tokenId: "border.default", position: "inside", weight: 1 });
+  });
+});
+
+describe("editing an element's style", () => {
+  it("sets, reads and clears, leaving no empty entry", () => {
+    const set = setPreviewStyle({}, "landing-hero", { gap: 2 });
+    expect(previewStyleOf(set, "landing-hero")).toEqual({ gap: 2 });
+    expect(previewStyleOf(set, "landing-cta")).toEqual({});
+    expect(clearPreviewStyle(set, "landing-hero")).toEqual({});
+    expect(setPreviewStyle(set, "landing-hero", {})).toEqual({});
+  });
+
+  it("leaves the other elements, and the map it was given, as they were", () => {
+    const first = { "landing-cta": { opacity: 50 } };
+    const next = setPreviewStyle(first, "landing-hero", { gap: 2 });
+    expect(next["landing-cta"]).toEqual({ opacity: 50 });
+    expect(first).toEqual({ "landing-cta": { opacity: 50 } });
+  });
+});
+
+describe("padding", () => {
+  it("sets an axis, a side or all four, and puts them back", () => {
+    let style = withPadding({}, "x", 4);
+    expect(style.padding).toEqual({ left: 4, right: 4 });
+    style = withPadding(style, "y", 2);
+    expect(style.padding).toEqual({ left: 4, right: 4, top: 2, bottom: 2 });
+    style = withPadding(style, "top", 6);
+    expect(style.padding?.top).toBe(6);
+    expect(withPadding(style, "all", 1).padding).toEqual({
+      top: 1,
+      right: 1,
+      bottom: 1,
+      left: 1,
+    });
+    expect(withPadding(withPadding({}, "all", 3), "all", undefined)).toEqual(
+      {},
+    );
+  });
+
+  it("reads none, the same, or mixed", () => {
+    expect(readPadding({}, "x")).toEqual({ kind: "none" });
+    expect(readPadding(withPadding({}, "x", 4), "x")).toEqual({
+      kind: "same",
+      value: 4,
+    });
+    expect(readPadding(withPadding({}, "left", 4), "x")).toEqual({
+      kind: "mixed",
+    });
+    const uneven = withPadding(withPadding({}, "x", 4), "top", 6);
+    expect(readPadding(uneven, "all")).toEqual({ kind: "mixed" });
+  });
+});
+
+describe("radius", () => {
+  it("sets a corner or all four, and reads Mixed when they differ", () => {
+    const all = withRadius({}, "all", "element");
+    expect(readRadius(all, "all")).toEqual({ kind: "same", value: "element" });
+    const mixed = withRadius(all, "topRight", "container");
+    expect(readRadius(mixed, "all")).toEqual({ kind: "mixed" });
+    expect(readRadius(mixed, "topLeft")).toEqual({
+      kind: "same",
+      value: "element",
+    });
+    expect(withRadius(mixed, "all", undefined)).toEqual({});
+    expect(readRadius({}, "all")).toEqual({ kind: "none" });
+  });
+});
+
+describe("previewButtonLabelToken", () => {
+  it("is the role the seed measures a label against the fill with", () => {
+    expect(previewButtonLabelToken("action.primary", [])).toBe("fg.on-action");
+    expect(previewButtonLabelToken("status.success", [])).toBe("fg.on-success");
+  });
+
+  it("is a tone family's own label role when it has one", () => {
+    expect(
+      previewButtonLabelToken("action.accent", [token("fg.on-accent")]),
+    ).toBe("fg.on-accent");
+  });
+
+  it("is ordinary text on a surface, which has no label role", () => {
+    expect(previewButtonLabelToken("surface.raised", [])).toBe("fg.primary");
+  });
+});
+
+describe("previewStyleDeclarations", () => {
+  it("draws nothing for nothing", () => {
+    expect(previewStyleDeclarations({})).toEqual({});
+  });
+
+  it("writes every length as a variable and opacity as a fraction", () => {
+    expect(
+      previewStyleDeclarations({
+        gap: 2.5,
+        padding: { top: 4, left: 8 },
+        opacity: 40,
+        radius: { topLeft: "container", bottomRight: "full" },
+      }),
+    ).toEqual({
+      gap: "var(--spacing-2-5)",
+      paddingTop: "var(--spacing-4)",
+      paddingLeft: "var(--spacing-8)",
+      opacity: 0.4,
+      borderTopLeftRadius: "var(--radius-container)",
+      borderBottomRightRadius: "var(--radius-full)",
+    });
+  });
+
+  it("draws a stroke as a shadow, inside, outside or centred", () => {
+    const stroke = (position: "inside" | "center" | "outside") =>
+      previewStyleDeclarations({
+        stroke: { tokenId: "border.default", position, weight: 2 },
+      }).boxShadow;
+    expect(stroke("inside")).toBe(
+      "inset 0 0 0 2px var(--color-border-default)",
+    );
+    expect(stroke("outside")).toBe("0 0 0 2px var(--color-border-default)");
+    expect(stroke("center")).toBe(
+      "inset 0 0 0 1px var(--color-border-default), 0 0 0 1px var(--color-border-default)",
+    );
+  });
+
+  it("puts a stroke over a shadow in the one box-shadow", () => {
+    expect(
+      previewStyleDeclarations({
+        shadow: "low",
+        stroke: { tokenId: "border.default", position: "inside", weight: 1 },
+      }).boxShadow,
+    ).toBe("inset 0 0 0 1px var(--color-border-default), var(--shadow-low)");
+    expect(previewStyleDeclarations({ shadow: "med" }).boxShadow).toBe(
+      "var(--shadow-med)",
+    );
+  });
+
+  it("fills a button, and labels it so it reads", () => {
+    const declared = previewStyleDeclarations(
+      { fill: "action.primary" },
+      [],
+      "button",
+    );
+    expect(declared.backgroundColor).toBe("var(--color-action-primary)");
+    expect(declared.color).toBe("var(--color-fg-on-action)");
+  });
+
+  it("leaves a band's fill and a text's colour to what draws them", () => {
+    for (const kind of ["band", "text"] as const) {
+      const declared = previewStyleDeclarations(
+        { fill: "surface.raised" },
+        [],
+        kind,
+      );
+      expect(declared).toEqual({});
+    }
+  });
+});

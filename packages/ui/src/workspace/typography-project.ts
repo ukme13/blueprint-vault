@@ -4,6 +4,7 @@ import {
   readPreviewShell,
 } from "../typography/preview-document";
 import { readPreviewSections } from "../typography/preview-sections";
+import { readPreviewStyles } from "../typography/preview-styles";
 import { readPreviewTemplate } from "../typography/preview-template-shared";
 import {
   migrateLegacyProject,
@@ -31,6 +32,7 @@ function readPreferences(
   | "previewShell"
   | "previewLanding"
   | "previewSections"
+  | "previewStyles"
 > {
   return {
     unit:
@@ -52,6 +54,19 @@ function readPreferences(
         ? clampRemRootPx(value.remRootPx)
         : ROOT_FONT_SIZE_PX,
   };
+}
+
+/**
+ * The inspector's overrides, only where there are some: a project with none
+ * reads back exactly as it did before they existed.
+ */
+function storedStyles(
+  value: object,
+): Pick<TypographyProjectData, "previewStyles"> {
+  const styles = readPreviewStyles(
+    "previewStyles" in value ? value.previewStyles : undefined,
+  );
+  return Object.keys(styles).length > 0 ? { previewStyles: styles } : {};
 }
 
 /**
@@ -110,6 +125,7 @@ export function readTypographyProjectData(
       previewSections: readPreviewSections(
         "previewSections" in value ? value.previewSections : undefined,
       ),
+      ...storedStyles(value),
     };
   }
 
@@ -136,5 +152,6 @@ export function readTypographyProjectData(
     previewSections: readPreviewSections(
       "previewSections" in value ? value.previewSections : undefined,
     ),
+    ...storedStyles(value),
   };
 }

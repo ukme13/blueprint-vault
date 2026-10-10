@@ -15,6 +15,7 @@ import {
   type PreviewTemplateId,
   type PreviewDocument,
   type PreviewSection,
+  type PreviewStyles,
   type WorkspaceProject,
 } from "@blueprint/ui";
 
@@ -40,6 +41,8 @@ export interface TypographyProject {
   previewLanding: PreviewDocument;
   /** Per-band fill on `/preview`. */
   previewSections: PreviewSection[];
+  /** What the inspector changed about an element of `/preview`. */
+  previewStyles?: PreviewStyles;
   /** Last specimen or article view. Email and documentation become article. */
   template: PreviewTemplateId;
 }
