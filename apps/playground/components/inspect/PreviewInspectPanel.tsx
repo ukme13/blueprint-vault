@@ -2,6 +2,7 @@
 
 import { Button } from "@astryxdesign/core/Button";
 import { Button as ResetButton } from "@blueprint/ui";
+import { useMemo } from "react";
 import { PanelRightClose } from "lucide-react";
 import {
   PREVIEW_INSPECT_FIELDS,
@@ -24,6 +25,7 @@ import { EffectsSection } from "./InspectEffects";
 import { FillSection } from "./InspectFill";
 import { StrokeSection } from "./InspectStroke";
 import { CopySection, TypographySection } from "./InspectTextSections";
+import { readNativeMetrics } from "./native-metrics";
 import styles from "./inspect-panel.module.css";
 
 export interface InspectTarget {
@@ -77,6 +79,15 @@ export interface PreviewInspectPanelProps {
  */
 export function PreviewInspectPanel(props: PreviewInspectPanelProps) {
   const { target, isInSheet } = props;
+  const targetId = target?.id;
+  const isBand = target?.kind === "band";
+  /* What the page draws the element with before anything is set, read from the
+     page; again when a scale it is measured in is changed. */
+  const metrics = useMemo(
+    () => (targetId ? readNativeMetrics(targetId, isBand) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [targetId, isBand, props.spacing, props.radius],
+  );
 
   if (!target) {
     return (
@@ -134,6 +145,7 @@ export function PreviewInspectPanel(props: PreviewInspectPanelProps) {
       {has("gap", "padding") ? (
         <AutoLayoutSection
           fields={fields}
+          metrics={metrics}
           radius={props.radius}
           spacing={props.spacing}
           style={style}
@@ -144,6 +156,7 @@ export function PreviewInspectPanel(props: PreviewInspectPanelProps) {
       {has("opacity", "radius") ? (
         <AppearanceSection
           fields={fields}
+          metrics={metrics}
           radius={props.radius}
           spacing={props.spacing}
           style={style}

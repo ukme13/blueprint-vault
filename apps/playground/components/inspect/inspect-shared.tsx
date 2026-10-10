@@ -16,8 +16,11 @@ import {
 } from "@blueprint/ui";
 import { PreviewColourSwatch } from "../PreviewColourSwatch";
 import { InspectIconButton } from "./InspectPrimitives";
+import type { NativeMetrics } from "./native-metrics";
 
 export interface LayoutSectionProps {
+  /** What the page draws the element with by itself, in pixels. */
+  metrics: NativeMetrics | null;
   style: PreviewSlotStyle;
   fields: readonly PreviewInspectField[];
   spacing: readonly SpacingToken[];

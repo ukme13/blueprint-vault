@@ -2,7 +2,6 @@
 
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { Icon } from "@astryxdesign/core/Icon";
-import { Check } from "lucide-react";
 import {
   sheetOptionGroups,
   type SheetOption,
@@ -191,7 +190,6 @@ export function SelectorOptionList({
                         {option.description}
                       </span>
                     )}
-                  {isSelected && <Check aria-hidden className={styles.check} />}
                 </button>
               );
             })}

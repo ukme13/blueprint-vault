@@ -26,6 +26,7 @@ import {
   stepDisplay,
   type LayoutSectionProps,
 } from "./inspect-shared";
+import { describePx } from "./native-metrics";
 import styles from "./inspect-panel.module.css";
 import { TokenSelect } from "./TokenSelect";
 
@@ -44,6 +45,7 @@ export function AutoLayoutSection({
   style,
   fields,
   spacing,
+  metrics,
   onStyleChange,
 }: LayoutSectionProps) {
   const hasGap = fields.includes("gap");
@@ -58,12 +60,31 @@ export function AutoLayoutSection({
   if (!hasGap && !hasPadding) return null;
   const options = spacingOptions(spacing);
 
+  const paddingHint = (target: PreviewPaddingTarget) => {
+    const sides = {
+      x: [metrics?.paddingLeft, metrics?.paddingRight],
+      y: [metrics?.paddingTop, metrics?.paddingBottom],
+      top: [metrics?.paddingTop],
+      right: [metrics?.paddingRight],
+      bottom: [metrics?.paddingBottom],
+      left: [metrics?.paddingLeft],
+      all: [
+        metrics?.paddingTop,
+        metrics?.paddingRight,
+        metrics?.paddingBottom,
+        metrics?.paddingLeft,
+      ],
+    }[target];
+    return describePx(sides);
+  };
+
   const paddingField = (target: PreviewPaddingTarget, label: string) => {
     const reading = readPadding(style, target);
     const step = sameOf(reading);
     return (
       <TokenSelect
         clearLabel="Default"
+        defaultHint={paddingHint(target)}
         display={stepDisplay(spacing, step)}
         isMixed={reading.kind === "mixed"}
         label={label}
@@ -91,6 +112,7 @@ export function AutoLayoutSection({
           <InspectField label="Gap">
             <TokenSelect
               clearLabel="Default"
+              defaultHint={describePx([metrics?.gap])}
               display={stepDisplay(spacing, style.gap)}
               label="Gap"
               leading={<GapIcon />}

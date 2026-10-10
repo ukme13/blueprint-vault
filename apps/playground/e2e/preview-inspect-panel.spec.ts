@@ -29,7 +29,13 @@ const style = (locator: Locator, property: string) =>
 
 /** Picks from the list a control has just opened, by what an option says. */
 const pick = async (page: Page, hasText: string | RegExp) => {
-  await page.getByRole("option").filter({ hasText }).first().click();
+  const options = page.getByRole("option").filter({ hasText });
+  /* The Default row carries the number the page has, so "8px" would match it:
+     it is picked by name only. */
+  const wantsDefault = typeof hasText === "string" && hasText === "Default";
+  await (wantsDefault ? options : options.filter({ hasNotText: /^Default/ }))
+    .first()
+    .click();
 };
 
 /** Opens a control by its name and picks an option. */
@@ -867,6 +873,127 @@ test.describe("A list's chosen and hovered row", () => {
     const other = page.getByRole("option", { selected: false }).first();
     await other.hover();
     await expect.poll(() => style(other, "background-color")).toBe(chosenFill);
+  });
+});
+
+test.describe("A list says what is chosen, and what Default comes to", () => {
+  const px = (value: string) =>
+    `${Math.round(parseFloat(value) * 100) / 100}px`;
+
+  test("the chosen row is marked by its wash and weight, with no check mark", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await seeThePreview(page).click();
+    await choose(
+      section(page, "Auto layout"),
+      page,
+      "Padding horizontal",
+      "64px",
+    );
+    await page.waitForTimeout(400);
+    await section(page, "Auto layout")
+      .getByRole("button", { name: "Padding horizontal", exact: true })
+      .click();
+    const chosen = page.getByRole("option", { selected: true });
+    await expect(chosen).toHaveCount(1);
+    await expect(chosen).toContainText("64px");
+    expect(await style(chosen, "font-weight")).toBe("600");
+    /* Nothing but the name and the number: no icon in the row. */
+    await expect(page.getByRole("option").locator("svg")).toHaveCount(0);
+  });
+
+  test("Default has the number the page draws, before and after it is changed", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const button = seeThePreview(page);
+    const own = px(await style(button, "padding-left"));
+    await button.click();
+
+    const field = section(page, "Auto layout").getByRole("button", {
+      name: "Padding horizontal",
+      exact: true,
+    });
+    /* Said on the control while nothing is set. */
+    await expect(field).toContainText("Default");
+    await expect(field).toContainText(own);
+
+    await field.click();
+    const row = page.getByRole("option", { name: /^Default/ });
+    await expect(row).toContainText(own);
+    await page.getByRole("option").filter({ hasText: "64px" }).first().click();
+    await expect.poll(() => style(button, "padding-left")).toBe("64px");
+
+    /* The number is what it was, not what it was changed to, also when the
+       element is picked again with its change already on it. */
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("preview-selection")).toHaveCount(0);
+    await button.click();
+    await page.waitForTimeout(400);
+    await field.click();
+    await expect(page.getByRole("option", { name: /^Default/ })).toContainText(
+      own,
+    );
+    await expect(
+      page.getByRole("option", { name: /^Default/ }),
+    ).not.toContainText("64px");
+  });
+
+  test("a card picked again with a padding already on it still says what Default is", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const card = page
+      .locator('[data-preview-slot="card-feature-card"]')
+      .first();
+    const own = px(await style(card, "padding-left"));
+    await card.click({ position: { x: 60, y: 6 } });
+    await choose(
+      section(page, "Auto layout"),
+      page,
+      "Padding horizontal",
+      "64px",
+    );
+    await expect.poll(() => style(card, "padding-left")).toBe("64px");
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("preview-selection")).toHaveCount(0);
+    await card.click({ position: { x: 60, y: 6 } });
+    await page.waitForTimeout(400);
+    await section(page, "Auto layout")
+      .getByRole("button", { name: "Padding horizontal", exact: true })
+      .click();
+    const row = page.getByRole("option", { name: /^Default/ });
+    await expect(row).toContainText(own);
+    await expect(row).not.toContainText("64px");
+  });
+
+  test("Default has the number for a gap and for a radius", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const card = page
+      .locator('[data-preview-slot="card-feature-card"]')
+      .first();
+    const radius = px(await style(card, "border-top-left-radius"));
+    const gap = px(await style(card, "row-gap"));
+    await card.click({ position: { x: 60, y: 6 } });
+
+    await expect(
+      section(page, "Appearance").getByRole("button", {
+        name: "Corner radius",
+        exact: true,
+      }),
+    ).toContainText(radius);
+    if (gap !== "NaNpx") {
+      await expect(
+        section(page, "Auto layout").getByRole("button", {
+          name: "Gap",
+          exact: true,
+        }),
+      ).toContainText(gap);
+    }
   });
 });
 

@@ -29,6 +29,8 @@ interface TokenSelectProps {
   trailing?: ReactNode;
   /** Adds a first choice that puts the value back to nothing. */
   clearLabel?: string;
+  /** What that choice comes to, in words: the number the page has by default. */
+  defaultHint?: string;
   hasSearch?: boolean;
   /** `undefined` is the clear choice. */
   onChange: (value: string | undefined) => void;
@@ -52,6 +54,7 @@ export function TokenSelect({
   leading,
   trailing,
   clearLabel,
+  defaultHint,
   hasSearch = false,
   onChange,
 }: TokenSelectProps) {
@@ -63,7 +66,10 @@ export function TokenSelect({
     setQuery("");
   };
   const list: SheetOptionInput[] = clearLabel
-    ? [{ value: CLEAR, label: clearLabel }, ...options]
+    ? [
+        { value: CLEAR, label: clearLabel, description: defaultHint },
+        ...options,
+      ]
     : [...options];
   const choose = (option: SheetOption) => {
     onChange(option.value === CLEAR ? undefined : option.value);
@@ -82,6 +88,7 @@ export function TokenSelect({
   ) : (
     <span className={`${styles.value} ${styles.placeholder}`}>
       {placeholder}
+      {defaultHint ? <small>{defaultHint}</small> : null}
     </span>
   );
 

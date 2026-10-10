@@ -206,12 +206,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.check {
-  width: var(--spacing-4, 16px);
-  height: var(--spacing-4, 16px);
-  color: var(--color-action-primary);
-}
-
 .empty {
   margin: 0;
   color: var(--color-fg-muted);

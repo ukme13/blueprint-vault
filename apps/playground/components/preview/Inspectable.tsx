@@ -37,7 +37,7 @@ const SURFACE = "var(--color-surface-base)";
  * button. The fallbacks are the defaults the layout seeds, for a preview with
  * no layout scope around it. `controlHeightPx` is this sum, for the hint.
  */
-const CONTROL_INSET_STYLE: CSSProperties = {
+export const CONTROL_INSET_STYLE: CSSProperties = {
   height: "auto",
   paddingTop: "var(--inset-control-y, var(--spacing-2))",
   paddingBottom: "var(--inset-control-y, var(--spacing-2))",

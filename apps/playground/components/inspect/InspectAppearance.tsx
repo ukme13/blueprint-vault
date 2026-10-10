@@ -25,6 +25,7 @@ import {
   sameOf,
   type LayoutSectionProps,
 } from "./inspect-shared";
+import { describePx, type NativeMetrics } from "./native-metrics";
 import styles from "./inspect-panel.module.css";
 import { TokenSelect } from "./TokenSelect";
 
@@ -33,6 +34,13 @@ const CORNER_ICONS: Record<PreviewRadiusCorner, ReactNode> = {
   topRight: <CornerTopRightIcon />,
   bottomRight: <CornerBottomRightIcon />,
   bottomLeft: <CornerBottomLeftIcon />,
+};
+
+const CORNER_METRIC: Record<PreviewRadiusCorner, keyof NativeMetrics> = {
+  topLeft: "radiusTopLeft",
+  topRight: "radiusTopRight",
+  bottomRight: "radiusBottomRight",
+  bottomLeft: "radiusBottomLeft",
 };
 
 const CORNER_LABELS: Record<PreviewRadiusCorner, string> = {
@@ -47,6 +55,7 @@ export function AppearanceSection({
   style,
   fields,
   radius,
+  metrics,
   onStyleChange,
 }: LayoutSectionProps) {
   const hasOpacity = fields.includes("opacity");
@@ -63,6 +72,7 @@ export function AppearanceSection({
       <InspectField>
         <TokenSelect
           clearLabel="Default"
+          defaultHint={describePx([metrics?.[CORNER_METRIC[corner]]])}
           display={radiusDisplay(radius, id)}
           label={`Radius ${CORNER_LABELS[corner]}`}
           leading={CORNER_ICONS[corner]}
@@ -107,6 +117,9 @@ export function AppearanceSection({
             <InspectField label="Corner radius">
               <TokenSelect
                 clearLabel="Default"
+                defaultHint={describePx(
+                  Object.values(CORNER_METRIC).map((key) => metrics?.[key]),
+                )}
                 display={radiusDisplay(radius, sameOf(all))}
                 isMixed={all.kind === "mixed"}
                 label="Corner radius"
