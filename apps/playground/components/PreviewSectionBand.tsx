@@ -14,10 +14,7 @@ import {
   type PreviewSectionFill,
 } from "@blueprint/ui";
 import { usePreviewSlotStyle } from "./preview/preview-styles-context";
-import {
-  PreviewSectionMenu,
-  type PreviewImageError,
-} from "./PreviewSectionMenu";
+import { PreviewSectionMenu } from "./PreviewSectionMenu";
 import styles from "./PreviewSectionBand.module.css";
 
 /**
@@ -31,23 +28,19 @@ export function PreviewSectionBand({
   sectionId,
   label,
   fill,
-  workspaceId,
   className,
   children,
   onPickColour,
   onFillChange,
-  onError,
 }: {
   as?: ElementType;
   sectionId: string;
   label: string;
   fill: PreviewSectionFill;
-  workspaceId: string | null;
   className?: string;
   children: ReactNode;
   onPickColour: () => void;
   onFillChange: (fill: PreviewSectionFill) => void;
-  onError: (error: PreviewImageError) => void;
 }) {
   const imageId = fill.kind === "image" ? fill.imageId : null;
   const [loaded, setLoaded] = useState<{ id: string; url: string } | null>(
@@ -105,9 +98,6 @@ export function PreviewSectionBand({
       <PreviewSectionMenu
         fill={fill}
         label={label}
-        sectionId={sectionId}
-        workspaceId={workspaceId}
-        onError={onError}
         onFillChange={onFillChange}
         onPickColour={onPickColour}
       />

@@ -40,8 +40,6 @@ export interface PreviewInspectPanelProps {
   block: PreviewDocumentBlock | null;
   /** A band's fill. */
   bandFill: PreviewSectionFill | null;
-  /** Why the last image for the band could not be used, in words. */
-  bandError?: string | null;
   spacing: readonly SpacingToken[];
   radius: readonly ResolvedRadius[];
   elevation: readonly ResolvedElevation[];
@@ -160,7 +158,6 @@ export function PreviewInspectPanel(props: PreviewInspectPanelProps) {
       ) : null}
 
       <FillSection
-        bandError={props.bandError}
         bandFill={props.bandFill}
         colourTokenId={block?.colorTokenId}
         kind={target.kind}

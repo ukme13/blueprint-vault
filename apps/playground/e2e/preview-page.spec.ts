@@ -1,4 +1,10 @@
-import { expect, test, openTheme, readStoredWorkspace } from "./fixtures";
+import {
+  expect,
+  test,
+  openTheme,
+  readStoredWorkspace,
+  writeStoredWorkspace,
+} from "./fixtures";
 import { openPreview } from "./preview-fixtures";
 import { showScaleView } from "./scale-fixtures";
 
@@ -770,11 +776,6 @@ test.describe("The slot inspector", () => {
   });
 });
 
-const PNG_PIXEL = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-  "base64",
-);
-
 test.describe("Preview section fill and token colour", () => {
   test("paints the hero from a surface token chosen on the band menu", async ({
     page,
@@ -843,42 +844,67 @@ test.describe("Preview section fill and token colour", () => {
       .not.toBe(before);
   });
 
-  test("shows an uploaded hero image and restores the token when removed", async ({
+  test("offers a background colour on the band menu, and no image upload", async ({
     page,
   }) => {
     await openPreview(page);
     const hero = page.locator('[data-preview-section="landing-hero"]');
-    const before = await hero.evaluate(
-      (node) => getComputedStyle(node).backgroundImage,
-    );
-
     await hero.hover();
     await hero.getByRole("button", { name: "Section fill for Hero" }).click();
-    const [chooser] = await Promise.all([
-      page.waitForEvent("filechooser"),
-      page.getByRole("menuitem", { name: "Upload image…" }).click(),
-    ]);
-    await chooser.setFiles({
-      name: "hero.png",
-      mimeType: "image/png",
-      buffer: PNG_PIXEL,
-    });
+    await expect(
+      page.getByRole("menuitem", { name: "Background colour…" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("menuitem", { name: "Upload image…" }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("menuitem", { name: "Remove image" }),
+    ).toHaveCount(0);
+  });
 
+  test("lets a band that already has an image let it go", async ({ page }) => {
+    await openPreview(page);
+    /* An edit first, so the project has the page's sections to change. */
+    const band = page.locator('[data-preview-section="landing-hero"]');
+    await band.hover();
+    await band.getByRole("button", { name: "Section fill for Hero" }).click();
+    await page.getByRole("menuitem", { name: "Background colour…" }).click();
+    await page
+      .getByRole("complementary", { name: "Inspect" })
+      .getByRole("button", { name: "Fill", exact: true })
+      .click();
+    await page.getByRole("option").nth(1).click();
     await expect
-      .poll(() =>
-        hero.evaluate((node) => getComputedStyle(node).backgroundImage),
-      )
-      .not.toBe(before);
+      .poll(async () => (await readStoredWorkspace(page))?.typography)
+      .toBeTruthy();
 
+    const stored = await readStoredWorkspace(page);
+    const section = stored.typography.previewSections.find(
+      (each: { id: string }) => each.id === "landing-hero",
+    );
+    const token =
+      section.fill.kind === "token" ? section.fill.tokenId : "surface.base";
+    section.fill = {
+      kind: "image",
+      imageId: "an-image-from-an-earlier-version",
+      fallbackTokenId: token,
+    };
+    await writeStoredWorkspace(page, stored);
+    await page.reload();
+
+    const hero = page.locator('[data-preview-section="landing-hero"]');
     await hero.hover();
     await hero.getByRole("button", { name: "Section fill for Hero" }).click();
     await page.getByRole("menuitem", { name: "Remove image" }).click();
 
     await expect
-      .poll(() =>
-        hero.evaluate((node) => getComputedStyle(node).backgroundImage),
+      .poll(
+        async () =>
+          (await readStoredWorkspace(page)).typography.previewSections.find(
+            (each: { id: string }) => each.id === "landing-hero",
+          ).fill,
       )
-      .toBe(before);
+      .toEqual({ kind: "token", tokenId: token });
   });
 
   test("separates Split B and Quad into distinct bands with their own fills", async ({

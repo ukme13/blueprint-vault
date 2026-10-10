@@ -25,7 +25,6 @@ import {
   type TypeSystem,
   useWorkspaceStore,
 } from "@blueprint/ui";
-import type { PreviewImageError } from "../PreviewSectionMenu";
 
 /** What is selected on the page: a slot of the landing or the shell, or a band. */
 export type InspectTarget =
@@ -41,7 +40,6 @@ interface PreviewEditsArgs {
   /** The selected slot as the seed gives it, for putting it back. */
   defaultBlock: PreviewDocumentBlock | null;
   setInspecting: Dispatch<SetStateAction<InspectTarget | null>>;
-  setSectionError: Dispatch<SetStateAction<PreviewImageError | null>>;
   setLayoutBindings: Dispatch<SetStateAction<LayoutBindings>>;
 }
 
@@ -58,7 +56,6 @@ export function usePreviewEdits({
   slotSource,
   defaultBlock,
   setInspecting,
-  setSectionError,
   setLayoutBindings,
 }: PreviewEditsArgs) {
   const patchSlot = useCallback(
@@ -260,7 +257,6 @@ export function usePreviewEdits({
   const resetAllToDefault = useCallback(() => {
     setLayoutBindings({});
     setInspecting(null);
-    setSectionError(null);
     update((current) => {
       if (!current) return seedWorkspaceProject("Workspace");
       const next = current.typography
@@ -280,7 +276,7 @@ export function usePreviewEdits({
         },
       };
     });
-  }, [setInspecting, setLayoutBindings, setSectionError, system, update]);
+  }, [setInspecting, setLayoutBindings, system, update]);
 
   return {
     patchSlot,

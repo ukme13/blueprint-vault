@@ -27,7 +27,6 @@ export function FillSection({
   tokenColors,
   colourTokenId,
   bandFill,
-  bandError,
   onColourChange,
   onBandFillChange,
   onStyleChange,
@@ -36,7 +35,6 @@ export function FillSection({
   colourTokenId?: string;
   /** A band's own fill, which may be an image. */
   bandFill?: PreviewSectionFill | null;
-  bandError?: string | null;
   onColourChange: (tokenId: string | undefined) => void;
   onBandFillChange: (tokenId: string) => void;
 }) {
@@ -66,15 +64,9 @@ export function FillSection({
             onChange={(next) => next && onBandFillChange(next)}
           />
         </div>
-        {bandError ? (
-          <p className={styles.note} role="alert">
-            {bandError}
-          </p>
-        ) : null}
         {bandFill?.kind === "image" ? (
           <p className={styles.note}>
-            An image is laid over this colour. Replace or remove it from the ⋯
-            on the band.
+            An image is laid over this colour. Remove it from the ⋯ on the band.
           </p>
         ) : null}
       </InspectSection>

@@ -63,10 +63,6 @@ import {
 import { PreviewSelectionBox } from "../inspect/PreviewSelectionBox";
 import { Sheet } from "../Sheet";
 import {
-  previewImageErrorCopy,
-  type PreviewImageError,
-} from "../PreviewSectionMenu";
-import {
   usePreviewEdits,
   type InspectTarget,
 } from "../inspect/use-preview-edits";
@@ -96,7 +92,7 @@ const EMPTY_STYLES: PreviewStyles = {};
 
 export function SystemPreview() {
   const { seen } = usePaletteView();
-  const { project, hasLoaded, update, library } = useWorkspaceStore();
+  const { project, hasLoaded, update } = useWorkspaceStore();
   const { resolved: mode } = useThemeMode();
   const canvasRef = useRef<HTMLDivElement>(null);
   const [deviceId, setDeviceId] = useState("desktop");
@@ -110,9 +106,6 @@ export function SystemPreview() {
   /* The panel beside the page: opened by a selection, hidden by its own
      button. A way of looking, so not saved. */
   const [isInspectorOpen, setIsInspectorOpen] = useState(false);
-  const [sectionError, setSectionError] = useState<PreviewImageError | null>(
-    null,
-  );
 
   const tokens = project?.semantics ?? EMPTY_TOKENS;
   const typography =
@@ -204,7 +197,6 @@ export function SystemPreview() {
        node while it is still open throws removeChild on null. The timeout
        lets Dialog's close() effect run; an rAF can fire before that effect. */
     setInspecting(null);
-    setSectionError(null);
     window.setTimeout(() => setDeviceId(id), 0);
   }, []);
 
@@ -220,7 +212,6 @@ export function SystemPreview() {
         return;
       }
       setInspecting(null);
-      setSectionError(null);
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -259,7 +250,6 @@ export function SystemPreview() {
     slotSource,
     defaultBlock,
     setInspecting,
-    setSectionError,
     setLayoutBindings,
   });
 
@@ -337,7 +327,6 @@ export function SystemPreview() {
     style: styleKey ? previewStyleOf(previewStyles, styleKey) : {},
     block: inspectedBlock,
     bandFill: inspectedSection?.fill ?? null,
-    bandError: sectionError ? previewImageErrorCopy(sectionError) : null,
     spacing: spacingTokens,
     radius: radiusTokens,
     elevation: elevationLevels,
@@ -403,7 +392,6 @@ export function SystemPreview() {
     onClose: () => {
       setIsInspectorOpen(false);
       setInspecting(null);
-      setSectionError(null);
     },
   };
 
@@ -421,25 +409,16 @@ export function SystemPreview() {
             shell={typography.previewShell}
             system={system}
             variables={variables}
-            workspaceId={library.currentId}
             onInspectLanding={(id) => {
-              setSectionError(null);
               setInspecting({ source: "landing", id });
               setIsInspectorOpen(true);
             }}
             onInspectSection={(id) => {
-              setSectionError(null);
               setInspecting({ source: "section", id });
               setIsInspectorOpen(true);
             }}
             onInspectShell={(id) => {
-              setSectionError(null);
               setInspecting({ source: "shell", id });
-              setIsInspectorOpen(true);
-            }}
-            onSectionError={(id, error) => {
-              setSectionError(error);
-              setInspecting({ source: "section", id });
               setIsInspectorOpen(true);
             }}
             onSectionFill={patchSectionFill}
@@ -502,7 +481,6 @@ export function SystemPreview() {
           padding="flush"
           onClose={() => {
             setInspecting(null);
-            setSectionError(null);
           }}
         >
           <PreviewInspectPanel {...panelProps} isInSheet />
