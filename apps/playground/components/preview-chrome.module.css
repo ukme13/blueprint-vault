@@ -1,3 +1,19 @@
+/* The page and, beside it, the inspect panel. The page takes what the panel
+   leaves, so nothing is covered. */
+.workArea {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.mainColumn {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+}
+
 .stage {
   flex: 1;
   min-height: 0;
@@ -95,6 +111,11 @@
 
   .resetIcon {
     display: inline-flex;
+  }
+
+  /* A phone's selection opens a sheet, so there is no column to show. */
+  .inspectToggle {
+    display: none;
   }
 
   /* 24px either side of a 342px frame is a lot of a 390px screen. */

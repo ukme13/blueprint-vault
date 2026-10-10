@@ -4,6 +4,7 @@ import {
   createElement,
   type CSSProperties,
   type KeyboardEvent,
+  type MouseEvent,
   type ReactElement,
   type ReactNode,
 } from "react";
@@ -17,6 +18,7 @@ import {
   type TypeSystem,
 } from "@blueprint/ui";
 import { typeRoleStyle } from "./preview-role-style";
+import { usePreviewSlotStyle } from "./preview-styles-context";
 
 const ACTION = "var(--color-action-primary)";
 const ON_ACTION = "var(--color-fg-on-action)";
@@ -134,6 +136,7 @@ export function Inspectable({
 }): ReactElement {
   const role = resolveDocumentRole(system, block.roleId);
   const roleStyle = role ? typeRoleStyle(role.id) : undefined;
+  const overrides = usePreviewSlotStyle(block.id);
   const colorStyle = block.colorTokenId
     ? { color: `var(${semanticVariableName(block.colorTokenId)})` }
     : undefined;
@@ -143,21 +146,27 @@ export function Inspectable({
     event.preventDefault();
     onInspect();
   };
+  /* A slot inside a band is the slot that is picked, not the band too. */
+  const onClick = (event: MouseEvent<HTMLElement>) => {
+    event.stopPropagation();
+    onInspect();
+  };
 
   return createElement(
     as,
     {
-      "aria-haspopup": "dialog" as const,
       className,
+      "data-preview-slot": block.id,
       style: {
         ...roleStyle,
         ...colorStyle,
         ...style,
+        ...overrides,
         margin: 0,
         cursor: "pointer",
       },
       tabIndex: 0,
-      onClick: onInspect,
+      onClick,
       onKeyDown,
     },
     children ?? block.text,
@@ -194,15 +203,19 @@ export function SlotButton({
      same way in both. */
   const role = resolveDocumentRole(system, block.roleId);
   const roleStyle = role ? typeRoleStyle(role.id) : undefined;
+  const overrides = usePreviewSlotStyle(block.id);
 
   return (
     <Button
-      aria-haspopup="dialog"
+      data-preview-slot={block.id}
       scheme="primary"
       size="medium"
-      style={{ ...CONTROL_INSET_STYLE, ...roleStyle, ...fill }}
+      style={{ ...CONTROL_INSET_STYLE, ...roleStyle, ...fill, ...overrides }}
       variant={variant}
-      onClick={onInspect}
+      onClick={(event) => {
+        event.stopPropagation();
+        onInspect();
+      }}
     >
       {block.text}
     </Button>

@@ -1,0 +1,341 @@
+/* The inspect panel: a Figma-style right column for /preview.
+
+   Drawn from the studio's semantic tokens so it is the light or the dark
+   panel the theme asks for. The measures are the design's: a 317px column,
+   a 50px title, 40px section headings, 24px controls with a 5px radius. */
+
+.panel {
+  --inspect-control: color-mix(
+    in oklch,
+    var(--color-fg-primary) 7%,
+    var(--color-surface-base)
+  );
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  width: 317px;
+  min-height: 0;
+  overflow-y: auto;
+  border-left: 1px solid var(--color-border-default);
+  background: var(--color-surface-base);
+  color: var(--color-fg-primary);
+  font-size: 11px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-default) transparent;
+}
+
+/* In a phone's sheet the column is the sheet's width and has no edge. */
+.panel[data-in-sheet] {
+  width: 100%;
+  overflow-y: visible;
+  border-left: 0;
+}
+
+.title {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 50px;
+  padding: 0 8px 0 16px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.title h2 {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.0025em;
+  line-height: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.title > div {
+  min-width: 0;
+}
+
+.title small {
+  display: block;
+  color: var(--color-fg-muted);
+  font-size: 11px;
+  font-weight: 450;
+  line-height: 14px;
+}
+
+.empty {
+  margin: 0;
+  padding: 16px;
+  color: var(--color-fg-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* ---- a section ---- */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.section[data-empty] {
+  padding-bottom: 0;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+  padding: 0 8px 0 16px;
+}
+
+.sectionHead h3 {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 16px;
+}
+
+/* A row of fields: a label over each control. */
+.row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 4px 8px 4px 16px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 24px;
+  align-items: end;
+  gap: 8px;
+  padding: 4px 8px 4px 16px;
+}
+
+.field {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 126px;
+}
+
+.field > label,
+.field > span:first-child {
+  color: var(--color-fg-secondary);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  line-height: 14px;
+  white-space: nowrap;
+}
+
+/* ---- controls ---- */
+
+.control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: 24px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 5px;
+  background: var(--inspect-control);
+  color: var(--color-fg-primary);
+  font: inherit;
+  font-size: 11px;
+  font-weight: 450;
+  letter-spacing: 0.005em;
+  text-align: start;
+}
+
+button.control {
+  cursor: pointer;
+}
+
+.control:hover {
+  background: color-mix(
+    in oklch,
+    var(--color-fg-primary) 11%,
+    var(--color-surface-base)
+  );
+}
+
+.control:focus-visible,
+.iconButton:focus-visible,
+.input:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -1px;
+}
+
+.control[disabled] {
+  color: var(--color-fg-disabled);
+  cursor: default;
+}
+
+.lead {
+  display: grid;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  color: var(--color-fg-secondary);
+}
+
+.value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.value small {
+  margin-left: 4px;
+  color: var(--color-fg-muted);
+  font-size: 10px;
+}
+
+.placeholder {
+  color: var(--color-fg-muted);
+}
+
+.chevron {
+  display: grid;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  color: var(--color-fg-muted);
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.input:focus-visible {
+  outline: none;
+}
+
+.control:focus-within {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: -1px;
+}
+
+.iconButton {
+  display: grid;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  place-items: center;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--color-fg-secondary);
+  cursor: pointer;
+}
+
+.iconButton:hover:not([disabled]) {
+  background: var(--inspect-control);
+  color: var(--color-fg-primary);
+}
+
+.iconButton[aria-pressed="true"] {
+  background: color-mix(
+    in oklch,
+    var(--color-action-primary) 28%,
+    var(--color-surface-base)
+  );
+  color: var(--color-fg-primary);
+}
+
+.iconButton[disabled] {
+  color: var(--color-fg-disabled);
+  cursor: default;
+}
+
+/* ---- a fill, a stroke, an effect: a token as one row ---- */
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 8px 0 16px;
+}
+
+.item > :first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.item .control {
+  border: 1px solid var(--color-border-subtle);
+  background: transparent;
+}
+
+.item .control:hover {
+  background: var(--inspect-control);
+}
+
+.effectIcon {
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--color-fg-primary);
+  border-radius: 3px;
+  box-shadow: 0 2px 0 0 var(--color-fg-muted);
+}
+
+.note {
+  margin: 0;
+  padding: 4px 16px 0;
+  color: var(--color-fg-muted);
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.copy {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+/* A copy field is an input of the system's own, so it takes the element
+   radius: never the pill a tall field would otherwise be rounded into. */
+.copy :global(.astryx-textarea),
+.copy :global(.astryx-text-input),
+.copy :global(textarea),
+.copy :global(input) {
+  border-radius: var(--radius-element, 8px);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 16px 16px;
+}
+
+/* The list a control opens. */
+.list {
+  display: flex;
+  flex-direction: column;
+}

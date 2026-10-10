@@ -3,7 +3,6 @@ import type { SemanticToken } from "../color/semantic";
 import { elevationVariableName } from "../scale/elevation";
 import { radiusVariableName } from "../scale/radius";
 import { spacingVariableName } from "../scale/spacing";
-import { PREVIEW_SECTION_IDS } from "./preview-sections";
 import { isPreviewButton } from "./preview-shell";
 
 /**
@@ -75,9 +74,27 @@ export type PreviewStyles = Record<string, PreviewSlotStyle>;
 /** What the inspector shows for an element. */
 export type PreviewInspectKind = "text" | "button" | "band";
 
-export function previewInspectKind(id: string): PreviewInspectKind {
-  if ((PREVIEW_SECTION_IDS as readonly string[]).includes(id)) return "band";
+/**
+ * What an element is, by its id and whether it is a band.
+ *
+ * Told by the caller and not by the id, because a band and a slot can share
+ * one: the quote is a band called `landing-quote` and a slot called that too.
+ */
+export function previewInspectKind(
+  id: string,
+  isBand = false,
+): PreviewInspectKind {
+  if (isBand) return "band";
   return isPreviewButton(id) ? "button" : "text";
+}
+
+/**
+ * Where an element's style is kept. A slot is under its own id; a band is
+ * under `band:` and its id, so the quote's text and the quote's band are two
+ * entries and not one.
+ */
+export function previewStyleKey(id: string, isBand = false): string {
+  return isBand ? `band:${id}` : id;
 }
 
 /** One thing the inspector can set. */
@@ -119,10 +136,10 @@ export const PREVIEW_INSPECT_FIELDS: Record<
 };
 
 export function previewInspectOffers(
-  id: string,
+  kind: PreviewInspectKind,
   field: PreviewInspectField,
 ): boolean {
-  return PREVIEW_INSPECT_FIELDS[previewInspectKind(id)].includes(field);
+  return PREVIEW_INSPECT_FIELDS[kind].includes(field);
 }
 
 /* ---- reading ---- */

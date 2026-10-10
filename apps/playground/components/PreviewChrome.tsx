@@ -3,7 +3,7 @@
 import type { ReactNode } from "react";
 import { Button } from "@astryxdesign/core/Button";
 import { IconButton } from "@astryxdesign/core/IconButton";
-import { RotateCcw, Ruler } from "lucide-react";
+import { PanelRight, RotateCcw, Ruler } from "lucide-react";
 import type { ColourMode, PreviewDevice } from "@blueprint/ui";
 import { VisionControl } from "./VisionControl";
 import { PreviewDeviceBar } from "./typography/PreviewDeviceBar";
@@ -53,6 +53,13 @@ interface PreviewChromeProps {
   /** The spacing overlay: shown or not, and the switch for it. */
   showSpacing?: boolean;
   onShowSpacingChange?: (next: boolean) => void;
+  /**
+   * The inspect panel, which sits beside the page rather than over it. Left
+   * out on a phone, where the selection opens a sheet instead.
+   */
+  inspector?: ReactNode;
+  isInspectorOpen?: boolean;
+  onInspectorOpenChange?: (next: boolean) => void;
 }
 
 export function PreviewChrome({
@@ -65,6 +72,9 @@ export function PreviewChrome({
   onResetToDefault,
   showSpacing = false,
   onShowSpacingChange,
+  inspector,
+  isInspectorOpen = false,
+  onInspectorOpenChange,
 }: PreviewChromeProps) {
   const framed = device.kind === "phone" || device.kind === "tablet";
 
@@ -91,6 +101,17 @@ export function PreviewChrome({
               onClick={() => onShowSpacingChange(!showSpacing)}
             />
           ) : null}
+          {onInspectorOpenChange ? (
+            <IconButton
+              aria-pressed={isInspectorOpen}
+              className={styles.inspectToggle}
+              icon={<PanelRight aria-hidden className="size-4" />}
+              label={isInspectorOpen ? "Hide inspector" : "Show inspector"}
+              size="sm"
+              variant={isInspectorOpen ? "secondary" : "ghost"}
+              onClick={() => onInspectorOpenChange(!isInspectorOpen)}
+            />
+          ) : null}
           <VisionControl />
           {onResetToDefault ? (
             <>
@@ -114,22 +135,27 @@ export function PreviewChrome({
         </div>
       </header>
 
-      <div className={framed ? styles.stage : styles.desktopStage}>
-        <div
-          className={framed ? `${styles.device} shadow-lg` : styles.desktop}
-          data-device-chrome={framed ? "true" : undefined}
-          data-kind={device.kind}
-          data-preview-device={device.id}
-          style={
-            framed ? { width: `min(100%, ${device.widthPx}px)` } : undefined
-          }
-        >
-          {framed ? (
-            <div className={styles.deviceScroll}>{canvas}</div>
-          ) : (
-            canvas
-          )}
+      <div className={styles.workArea}>
+        <div className={styles.mainColumn}>
+          <div className={framed ? styles.stage : styles.desktopStage}>
+            <div
+              className={framed ? `${styles.device} shadow-lg` : styles.desktop}
+              data-device-chrome={framed ? "true" : undefined}
+              data-kind={device.kind}
+              data-preview-device={device.id}
+              style={
+                framed ? { width: `min(100%, ${device.widthPx}px)` } : undefined
+              }
+            >
+              {framed ? (
+                <div className={styles.deviceScroll}>{canvas}</div>
+              ) : (
+                canvas
+              )}
+            </div>
+          </div>
         </div>
+        {isInspectorOpen ? inspector : null}
       </div>
 
       {children}

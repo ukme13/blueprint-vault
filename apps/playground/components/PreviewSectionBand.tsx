@@ -5,6 +5,7 @@ import {
   useState,
   type CSSProperties,
   type ElementType,
+  type MouseEvent,
   type ReactNode,
 } from "react";
 import {
@@ -12,6 +13,7 @@ import {
   previewSectionFillStyle,
   type PreviewSectionFill,
 } from "@blueprint/ui";
+import { usePreviewSlotStyle } from "./preview/preview-styles-context";
 import {
   PreviewSectionMenu,
   type PreviewImageError,
@@ -80,12 +82,25 @@ export function PreviewSectionBand({
   const imageUrl = loaded?.id === imageId ? loaded.url : null;
 
   const fillStyle = previewSectionFillStyle(fill, imageUrl);
+  const overrides = usePreviewSlotStyle(sectionId, true);
 
   return (
     <Tag
       className={className ? `${styles.band} ${className}` : styles.band}
       data-preview-section={sectionId}
-      style={fillStyle as CSSProperties}
+      style={{ ...fillStyle, ...overrides } as CSSProperties}
+      onClick={(event: MouseEvent<HTMLElement>) => {
+        /* The band itself, not a slot, a control or the menu inside it. */
+        const target = event.target as HTMLElement;
+        if (
+          target.closest(
+            "[data-preview-slot], button, a, input, textarea, select, [role='menu'], form",
+          )
+        ) {
+          return;
+        }
+        onPickColour();
+      }}
     >
       <PreviewSectionMenu
         fill={fill}

@@ -6,6 +6,7 @@ import {
   previewButtonLabelToken,
   previewInspectKind,
   previewInspectOffers,
+  previewStyleKey,
   previewStyleDeclarations,
   previewStyleOf,
   readPadding,
@@ -25,12 +26,22 @@ const token = (id: string): SemanticToken => ({
 });
 
 describe("what kind of element an id is", () => {
-  it("is a band for a section, a button for a button, and text for the rest", () => {
-    expect(previewInspectKind("landing-hero")).toBe("band");
-    expect(previewInspectKind("shell-footer")).toBe("band");
+  it("is a band when told so, a button for a button, and text for the rest", () => {
+    expect(previewInspectKind("landing-hero", true)).toBe("band");
     expect(previewInspectKind("shell-action")).toBe("button");
     expect(previewInspectKind("landing-title")).toBe("text");
     expect(previewInspectKind("shell-brand")).toBe("text");
+  });
+
+  it("tells a band from a slot that shares its id", () => {
+    /* The quote is both: a band, and the text in it. */
+    expect(previewInspectKind("landing-quote")).toBe("text");
+    expect(previewInspectKind("landing-quote", true)).toBe("band");
+    expect(previewStyleKey("landing-quote")).toBe("landing-quote");
+    expect(previewStyleKey("landing-quote", true)).toBe("band:landing-quote");
+    expect(previewStyleKey("shell-footer", true)).not.toBe(
+      previewStyleKey("shell-footer"),
+    );
   });
 
   it("offers each kind what the design gives it", () => {
@@ -58,10 +69,10 @@ describe("what kind of element an id is", () => {
       "stroke",
       "effects",
     ]);
-    expect(previewInspectOffers("shell-action", "gap")).toBe(false);
-    expect(previewInspectOffers("shell-action", "opacity")).toBe(false);
-    expect(previewInspectOffers("landing-hero", "typography")).toBe(false);
-    expect(previewInspectOffers("landing-title", "stroke")).toBe(false);
+    expect(previewInspectOffers("button", "gap")).toBe(false);
+    expect(previewInspectOffers("button", "opacity")).toBe(false);
+    expect(previewInspectOffers("band", "typography")).toBe(false);
+    expect(previewInspectOffers("text", "stroke")).toBe(false);
   });
 });
 
