@@ -1,6 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useState, type RefObject } from "react";
+import { createPortal } from "react-dom";
 import styles from "./selection-box.module.css";
 
 interface Box {
@@ -8,6 +9,28 @@ interface Box {
   top: number;
   width: number;
   height: number;
+  /**
+   * What the box is drawn inside, when its element sticks: the sticky element
+   * itself. Inside it the box is carried by the same scroll that carries what
+   * it outlines, and so cannot fall behind it.
+   */
+  host: HTMLElement | null;
+}
+
+/** The nearest element, itself included, that holds its place as the page scrolls. */
+function stickyHost(
+  target: HTMLElement,
+  site: HTMLElement,
+): HTMLElement | null {
+  for (
+    let node: HTMLElement | null = target;
+    node && node !== site;
+    node = node.parentElement
+  ) {
+    const { position } = getComputedStyle(node);
+    if (position === "sticky" || position === "fixed") return node;
+  }
+  return null;
 }
 
 /** Whether two sets of boxes are one: to a hundredth of a pixel. */
@@ -20,7 +43,8 @@ function sameBoxes(a: readonly Box[], b: readonly Box[]): boolean {
         Math.abs(box.left - other.left) < 0.01 &&
         Math.abs(box.top - other.top) < 0.01 &&
         Math.abs(box.width - other.width) < 0.01 &&
-        Math.abs(box.height - other.height) < 0.01
+        Math.abs(box.height - other.height) < 0.01 &&
+        box.host === other.host
       );
     })
   );
@@ -45,8 +69,14 @@ function sameBoxes(a: readonly Box[], b: readonly Box[]): boolean {
  * anew is followed and not the one it replaced. A frame in which nothing
  * moved sets nothing, so a still page costs a few rectangle reads.
  *
- * Laid over the page and passing clicks through, as the spacing overlay is,
- * and above the sticky nav, which would otherwise draw over its own outline.
+ * A sticky element, the nav, and what is in it, hold their place while the
+ * page scrolls, and a box that script moves is always a frame behind: the page
+ * scrolls on its own thread and the script hears of it afterwards. So their
+ * boxes are drawn inside the sticky element, where the same scroll carries
+ * them, and are placed there once. Every other box is under the nav, as what
+ * it outlines is when the page has scrolled it away beneath.
+ *
+ * Laid over the page and passing clicks through, as the spacing overlay is.
  */
 export function PreviewSelectionBox({
   canvasRef,
@@ -74,11 +104,25 @@ export function PreviewSelectionBox({
       const outer = site?.getBoundingClientRect();
       const next = targets.map((target): Box => {
         const inner = target.getBoundingClientRect();
+        const host = stickyHost(target, site!);
+        if (host) {
+          /* Where it sits in the sticky element, which does not change as the
+             page scrolls: inside the host's border. */
+          const from = host.getBoundingClientRect();
+          return {
+            left: inner.left - from.left - host.clientLeft,
+            top: inner.top - from.top - host.clientTop,
+            width: inner.width,
+            height: inner.height,
+            host,
+          };
+        }
         return {
           left: inner.left - outer!.left + site!.scrollLeft,
           top: inner.top - outer!.top + site!.scrollTop,
           width: inner.width,
           height: inner.height,
+          host: null,
         };
       });
       if (!sameBoxes(last, next)) {
@@ -97,23 +141,27 @@ export function PreviewSelectionBox({
 
   return (
     <>
-      {boxes.map((box, index) => (
-        <span
-          key={index}
-          aria-hidden="true"
-          className={styles.box}
-          data-testid="preview-selection"
-          style={box}
-        >
-          <i />
-          <i />
-          <i />
-          <i />
-          <small>
-            {Math.round(box.width)} × {Math.round(box.height)}
-          </small>
-        </span>
-      ))}
+      {boxes.map((box, index) => {
+        const { host, ...place } = box;
+        const outline = (
+          <span
+            key={index}
+            aria-hidden="true"
+            className={host ? `${styles.box} ${styles.hosted}` : styles.box}
+            data-testid="preview-selection"
+            style={place}
+          >
+            <i />
+            <i />
+            <i />
+            <i />
+            <small>
+              {Math.round(box.width)} × {Math.round(box.height)}
+            </small>
+          </span>
+        );
+        return host ? createPortal(outline, host, String(index)) : outline;
+      })}
     </>
   );
 }

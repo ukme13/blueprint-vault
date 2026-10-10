@@ -3,8 +3,9 @@
 
 .box {
   position: absolute;
-  /* Above the page's sticky nav, which is at 5. */
-  z-index: 20;
+  /* Above the page, and below its sticky nav, which is at 5: what has scrolled
+     away under the nav is under it, and so is its outline. */
+  z-index: 1;
   box-sizing: border-box;
   border: 2px solid var(--color-action-primary);
   pointer-events: none;
@@ -51,4 +52,10 @@
   line-height: 16px;
   white-space: nowrap;
   transform: translateX(-50%);
+}
+
+/* Inside a sticky element, an outline of that element or of what is in it: above
+   what else the element holds, which would draw over it. */
+.hosted {
+  z-index: 20;
 }
