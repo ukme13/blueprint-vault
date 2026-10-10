@@ -1,4 +1,10 @@
-import { expect, test, openTheme, readStoredWorkspace } from "./fixtures";
+import {
+  expect,
+  test,
+  openTheme,
+  readStoredWorkspace,
+  writeStoredWorkspace,
+} from "./fixtures";
 import { openPreview } from "./preview-fixtures";
 import { showScaleView } from "./scale-fixtures";
 
@@ -386,7 +392,7 @@ test.describe("The slot inspector", () => {
     await openPreview(page);
     await page.getByRole("heading", { name: HERO_TITLE, level: 1 }).click();
 
-    const dialog = page.getByRole("dialog", { name: "Inspect" });
+    const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
     await dialog.getByRole("textbox", { name: "Copy" }).fill("My headline");
 
@@ -428,9 +434,9 @@ test.describe("The slot inspector", () => {
     );
 
     await title.click();
-    const dialog = page.getByRole("dialog", { name: "Inspect" });
-    await dialog.getByRole("combobox", { name: "Type role" }).click();
-    await page.getByRole("option", { name: "caption", exact: true }).click();
+    const dialog = page.getByRole("complementary", { name: "Inspect" });
+    await dialog.getByRole("button", { name: "Type role" }).click();
+    await page.getByRole("option", { name: /^caption/ }).click();
 
     const painted = page.getByText(HERO_TITLE).first();
     await expect
@@ -450,14 +456,14 @@ test.describe("The slot inspector", () => {
     );
 
     await home.click();
-    const dialog = page.getByRole("dialog", { name: "Nav links" });
+    const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByRole("textbox", { name: "Copy" })).toHaveValue(
       "Home",
     );
 
-    await dialog.getByRole("combobox", { name: "Type role" }).click();
-    await page.getByRole("option", { name: "h1", exact: true }).click();
+    await dialog.getByRole("button", { name: "Type role" }).click();
+    await page.getByRole("option", { name: /^h1/ }).click();
 
     // Only home changed; features unchanged
     await expect
@@ -489,10 +495,10 @@ test.describe("The slot inspector", () => {
     const before = await Promise.all(others.map(size));
 
     await page.getByRole("button", { name: "See the preview" }).click();
-    const dialog = page.getByRole("dialog", { name: "Inspect" });
+    const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
-    await dialog.getByRole("combobox", { name: "Type role" }).click();
-    await page.getByRole("option", { name: "h1", exact: true }).click();
+    await dialog.getByRole("button", { name: "Type role" }).click();
+    await page.getByRole("option", { name: /^h1/ }).click();
 
     // Only the hero's button changed.
     await expect.poll(() => size("Sign up")).toBe(before[0]);
@@ -512,7 +518,7 @@ test.describe("The slot inspector", () => {
       .getByRole("navigation", { name: "Site" })
       .getByText("Home", { exact: true })
       .click();
-    const dialog = page.getByRole("dialog", { name: "Nav links" });
+    const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
     await expect(
       dialog.getByRole("button", { name: "Apply to all buttons" }),
@@ -522,7 +528,7 @@ test.describe("The slot inspector", () => {
   test("uses a single-line field for a button label", async ({ page }) => {
     await openPreview(page);
     await page.getByRole("button", { name: "Book a walkthrough" }).click();
-    const dialog = page.getByRole("dialog", { name: "Inspect" });
+    const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
     const copy = dialog.getByRole("textbox", { name: "Copy" });
     await expect(copy).toHaveValue("Book a walkthrough");
@@ -541,7 +547,7 @@ test.describe("The slot inspector", () => {
     await page
       .getByText("We stopped guessing hex in three files", { exact: false })
       .click();
-    const dialog = page.getByRole("dialog", { name: "Inspect" });
+    const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
     const copy = dialog.getByRole("textbox", { name: "Copy" });
     await expect
@@ -567,14 +573,14 @@ test.describe("The slot inspector", () => {
     );
 
     await planning.click();
-    const dialog = page.getByRole("dialog", { name: "Feature card titles" });
+    const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByRole("textbox", { name: "Copy" })).toHaveValue(
       "Shared palettes",
     );
 
-    await dialog.getByRole("combobox", { name: "Type role" }).click();
-    await page.getByRole("option", { name: "h1", exact: true }).click();
+    await dialog.getByRole("button", { name: "Type role" }).click();
+    await page.getByRole("option", { name: /^h1/ }).click();
 
     // Only planning changed; management unchanged
     await expect
@@ -610,14 +616,14 @@ test.describe("The slot inspector", () => {
     );
 
     await planning.click();
-    const dialog = page.getByRole("dialog", { name: "Feature card bodies" });
+    const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
     await expect(dialog.getByRole("textbox", { name: "Copy" })).toHaveValue(
       /Colour, type and spacing live as one set/,
     );
 
-    await dialog.getByRole("combobox", { name: "Type role" }).click();
-    await page.getByRole("option", { name: "h1", exact: true }).click();
+    await dialog.getByRole("button", { name: "Type role" }).click();
+    await page.getByRole("option", { name: /^h1/ }).click();
 
     // Only planning changed; management unchanged
     await expect
@@ -654,11 +660,11 @@ test.describe("The slot inspector", () => {
       "© 2026 Blueprint. Placeholder content for typography preview.",
     );
     await copy.click();
-    const dialog = page.getByRole("dialog", { name: "Footer baseline" });
+    const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
-    await expect(
-      dialog.getByRole("combobox", { name: "Type role" }),
-    ).toHaveText(/caption/);
+    await expect(dialog.getByRole("button", { name: "Type role" })).toHaveText(
+      /caption/,
+    );
     await dialog
       .getByRole("textbox", { name: "Copy" })
       .fill("© 2026 Blueprint");
@@ -668,15 +674,26 @@ test.describe("The slot inspector", () => {
     await expect(page.getByText("Made for type testing")).toBeVisible();
   });
 
-  test("closes when the backdrop is clicked", async ({ page }) => {
+  test("lets go of the selection on Escape, and hides on its own button", async ({
+    page,
+  }) => {
     const pageErrors: string[] = [];
     page.on("pageerror", (error) => pageErrors.push(error.message));
     await openPreview(page);
     await page.getByRole("heading", { name: HERO_TITLE, level: 1 }).click();
-    const dialog = page.getByRole("dialog", { name: "Inspect" });
-    await expect(dialog).toBeVisible();
-    await page.mouse.click(8, 8);
-    await expect(dialog).toBeHidden();
+    const panel = page.getByRole("complementary", { name: "Inspect" });
+    await expect(panel).toBeVisible();
+    await expect(page.getByTestId("preview-selection")).toBeVisible();
+
+    /* Escape lets go of what is selected. The panel stays, saying so. */
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("preview-selection")).toHaveCount(0);
+    await expect(panel).toContainText("Select text, a button or a band");
+
+    /* Its own button hides the column, and the page takes the room. */
+    await page.getByRole("heading", { name: HERO_TITLE, level: 1 }).click();
+    await panel.getByRole("button", { name: "Hide inspector" }).click();
+    await expect(panel).toBeHidden();
     expect(pageErrors).toEqual([]);
   });
 
@@ -687,7 +704,7 @@ test.describe("The slot inspector", () => {
     const title = page.getByRole("heading", { name: HERO_TITLE, level: 1 });
     await title.click();
 
-    const dialog = page.getByRole("dialog", { name: "Inspect" });
+    const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
     await expect(
       dialog.getByRole("button", { name: "Reset to default" }),
@@ -714,17 +731,15 @@ test.describe("The slot inspector", () => {
   }) => {
     await openPreview(page);
     const hero = page.locator('[data-preview-section="landing-hero"]');
-    await hero.hover();
-    await hero.getByRole("button", { name: "Section fill for Hero" }).click();
-    await page.getByRole("menuitem", { name: "Background colour…" }).click();
+    await hero.click({ position: { x: 6, y: 6 } });
 
-    const dialog = page.getByRole("dialog", { name: "Hero" });
+    const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
     await expect(
       dialog.getByRole("button", { name: "Reset to default" }),
     ).toHaveCount(0);
 
-    await dialog.getByRole("combobox", { name: "Background colour" }).click();
+    await dialog.getByRole("button", { name: "Fill", exact: true }).click();
     await page
       .getByRole("option", { name: "Surface raised", exact: true })
       .click();
@@ -737,7 +752,7 @@ test.describe("The slot inspector", () => {
       dialog.getByRole("button", { name: "Reset to default" }),
     ).toHaveCount(0);
     await expect(
-      dialog.getByRole("combobox", { name: "Background colour" }),
+      dialog.getByRole("button", { name: "Fill", exact: true }),
     ).toHaveText(/Surface base/);
   });
 
@@ -746,10 +761,10 @@ test.describe("The slot inspector", () => {
     page.on("pageerror", (error) => pageErrors.push(error.message));
     await openPreview(page);
     await page.getByRole("heading", { name: HERO_TITLE, level: 1 }).click();
-    const dialog = page.getByRole("dialog", { name: "Inspect" });
+    const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
     await page.keyboard.press("Escape");
-    await expect(dialog).toBeHidden();
+    await expect(page.getByTestId("preview-selection")).toHaveCount(0);
     await page
       .getByRole("navigation", { name: "Preview devices" })
       .getByRole("button", { name: "Phone" })
@@ -758,11 +773,6 @@ test.describe("The slot inspector", () => {
     expect(pageErrors).toEqual([]);
   });
 });
-
-const PNG_PIXEL = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
-  "base64",
-);
 
 test.describe("Preview section fill and token colour", () => {
   test("paints the hero from a surface token chosen on the band menu", async ({
@@ -774,22 +784,20 @@ test.describe("Preview section fill and token colour", () => {
       (node) => getComputedStyle(node).backgroundColor,
     );
 
-    await hero.hover();
-    await hero.getByRole("button", { name: "Section fill for Hero" }).click();
-    await page.getByRole("menuitem", { name: "Background colour…" }).click();
+    await hero.click({ position: { x: 6, y: 6 } });
 
-    const dialog = page.getByRole("dialog", { name: "Hero" });
+    const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
-    const combobox = dialog.getByRole("combobox", {
-      name: "Background colour",
-    });
+    const combobox = dialog.getByRole("button", { name: "Fill", exact: true });
     await combobox.click();
 
     const menuGeometry = await page.evaluate(() => {
       const popover = [...document.querySelectorAll("[popover]")].find((el) =>
         (el as HTMLElement).matches(":popover-open"),
       ) as HTMLElement | undefined;
-      const combo = document.querySelector('dialog [role="combobox"]');
+      const combo = document.querySelector(
+        'aside[aria-label="Inspect"] button[aria-label="Fill"]',
+      );
       if (!popover || !combo) return null;
       const pRect = popover.getBoundingClientRect();
       const cRect = combo.getBoundingClientRect();
@@ -811,13 +819,13 @@ test.describe("Preview section fill and token colour", () => {
     expect(menuGeometry!.popoverTop).toBeGreaterThan(0);
 
     const sectionSwatches = page.locator(
-      'dialog [role="listbox"] i[class*="previewColourSwatch"]',
+      '[popover] [role="listbox"] i[class*="previewColourSwatch"]',
     );
     await expect(sectionSwatches.first()).toBeVisible();
     expect(await sectionSwatches.count()).toBeGreaterThan(3);
 
     const triggerSwatch = page.locator(
-      'dialog [role="combobox"] i[class*="previewColourSwatch"]',
+      'aside[aria-label="Inspect"] button[aria-label="Fill"] i[class*="previewColourSwatch"]',
     );
     await expect(triggerSwatch).toBeVisible();
 
@@ -832,42 +840,59 @@ test.describe("Preview section fill and token colour", () => {
       .not.toBe(before);
   });
 
-  test("shows an uploaded hero image and restores the token when removed", async ({
+  test("has no ⋯ menu on a band without an image, and no image upload", async ({
     page,
   }) => {
     await openPreview(page);
     const hero = page.locator('[data-preview-section="landing-hero"]');
-    const before = await hero.evaluate(
-      (node) => getComputedStyle(node).backgroundImage,
-    );
-
     await hero.hover();
-    await hero.getByRole("button", { name: "Section fill for Hero" }).click();
-    const [chooser] = await Promise.all([
-      page.waitForEvent("filechooser"),
-      page.getByRole("menuitem", { name: "Upload image…" }).click(),
-    ]);
-    await chooser.setFiles({
-      name: "hero.png",
-      mimeType: "image/png",
-      buffer: PNG_PIXEL,
-    });
+    await expect(
+      hero.getByRole("button", { name: "Section fill for Hero" }),
+    ).toHaveCount(0);
+    await expect(page.getByRole("menuitem")).toHaveCount(0);
+  });
 
+  test("lets a band that already has an image let it go", async ({ page }) => {
+    await openPreview(page);
+    /* An edit first, so the project has the page's sections to change. */
+    const band = page.locator('[data-preview-section="landing-hero"]');
+    await band.click({ position: { x: 6, y: 6 } });
+    await page
+      .getByRole("complementary", { name: "Inspect" })
+      .getByRole("button", { name: "Fill", exact: true })
+      .click();
+    await page.getByRole("option").nth(1).click();
     await expect
-      .poll(() =>
-        hero.evaluate((node) => getComputedStyle(node).backgroundImage),
-      )
-      .not.toBe(before);
+      .poll(async () => (await readStoredWorkspace(page))?.typography)
+      .toBeTruthy();
 
+    const stored = await readStoredWorkspace(page);
+    const section = stored.typography.previewSections.find(
+      (each: { id: string }) => each.id === "landing-hero",
+    );
+    const token =
+      section.fill.kind === "token" ? section.fill.tokenId : "surface.base";
+    section.fill = {
+      kind: "image",
+      imageId: "an-image-from-an-earlier-version",
+      fallbackTokenId: token,
+    };
+    await writeStoredWorkspace(page, stored);
+    await page.reload();
+
+    const hero = page.locator('[data-preview-section="landing-hero"]');
     await hero.hover();
     await hero.getByRole("button", { name: "Section fill for Hero" }).click();
     await page.getByRole("menuitem", { name: "Remove image" }).click();
 
     await expect
-      .poll(() =>
-        hero.evaluate((node) => getComputedStyle(node).backgroundImage),
+      .poll(
+        async () =>
+          (await readStoredWorkspace(page)).typography.previewSections.find(
+            (each: { id: string }) => each.id === "landing-hero",
+          ).fill,
       )
-      .toBe(before);
+      .toEqual({ kind: "token", tokenId: token });
   });
 
   test("separates Split B and Quad into distinct bands with their own fills", async ({
@@ -880,33 +905,6 @@ test.describe("Preview section fill and token colour", () => {
     await expect(splitB).toBeVisible();
     await expect(quad).toBeVisible();
 
-    const splitBMenu = splitB.getByRole("button", {
-      name: "Section fill for Split B",
-    });
-    const quadMenu = quad.getByRole("button", {
-      name: "Section fill for Quad",
-    });
-
-    const splitBMenuWrapper = splitB.locator('[class*="menu"]').first();
-    const quadMenuWrapper = quad.locator('[class*="menu"]').first();
-
-    const opacityOf = (locator: typeof splitBMenuWrapper) =>
-      locator.evaluate((node) => getComputedStyle(node).opacity);
-
-    // Menus are hidden (opacity: 0) until hover/focus on that band
-    expect(await opacityOf(splitBMenuWrapper)).toBe("0");
-    expect(await opacityOf(quadMenuWrapper)).toBe("0");
-
-    await splitB.hover();
-    expect(await opacityOf(splitBMenuWrapper)).toBe("1");
-    expect(await opacityOf(quadMenuWrapper)).toBe("0");
-    await expect(splitBMenu).toBeAttached();
-
-    await quad.hover();
-    expect(await opacityOf(quadMenuWrapper)).toBe("1");
-    expect(await opacityOf(splitBMenuWrapper)).toBe("0");
-    await expect(quadMenu).toBeAttached();
-
     const splitBBefore = await splitB.evaluate(
       (node) => getComputedStyle(node).backgroundColor,
     );
@@ -914,12 +912,11 @@ test.describe("Preview section fill and token colour", () => {
       (node) => getComputedStyle(node).backgroundColor,
     );
 
-    await quadMenu.click();
-    await page.getByRole("menuitem", { name: "Background colour…" }).click();
+    await quad.click({ position: { x: 6, y: 6 } });
 
-    const dialog = page.getByRole("dialog", { name: "Quad" });
+    const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
-    await dialog.getByRole("combobox", { name: "Background colour" }).click();
+    await dialog.getByRole("button", { name: "Fill", exact: true }).click();
     await page
       .getByRole("option", { name: "Surface raised", exact: true })
       .click();
@@ -968,9 +965,9 @@ test.describe("Preview section fill and token colour", () => {
     const initialColor = await colorOf(management);
 
     await planning.click();
-    const dialog = page.getByRole("dialog", { name: "Feature card titles" });
+    const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
-    await dialog.getByRole("combobox", { name: "Colour" }).click();
+    await dialog.getByRole("button", { name: "Fill", exact: true }).click();
     await page
       .getByRole("option", { name: "Foreground accent", exact: true })
       .click();
@@ -995,9 +992,9 @@ test.describe("Preview section fill and token colour", () => {
     await openPreview(page);
     const heading = page.getByRole("heading", { name: "Shared palettes" });
     await heading.click();
-    const dialog = page.getByRole("dialog", { name: "Feature card titles" });
+    const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
-    const combo = dialog.getByRole("combobox", { name: "Colour" });
+    const combo = dialog.getByRole("button", { name: "Fill", exact: true });
     await combo.click();
 
     // Select an action token that is positioned deep down the options list
@@ -1006,7 +1003,7 @@ test.describe("Preview section fill and token colour", () => {
       .click();
 
     // Close dialog and reopen
-    await dialog.getByRole("button", { name: "Close" }).click();
+    await dialog.getByRole("button", { name: "Hide inspector" }).click();
     await expect(dialog).toBeHidden();
 
     await heading.click();
@@ -1018,8 +1015,8 @@ test.describe("Preview section fill and token colour", () => {
         (el as HTMLElement).matches(":popover-open"),
       ) as HTMLElement | undefined;
       const comboEl = document.querySelectorAll(
-        'dialog [role="combobox"]',
-      )[1] as HTMLElement | undefined;
+        'aside[aria-label="Inspect"] button[aria-label="Fill"]',
+      )[0] as HTMLElement | undefined;
       if (!popover || !comboEl) return null;
       const pRect = popover.getBoundingClientRect();
       const cRect = comboEl.getBoundingClientRect();
@@ -1039,15 +1036,15 @@ test.describe("Preview section fill and token colour", () => {
 
     // Color options display the swatch square
     const swatches = page.locator(
-      'dialog [role="listbox"] i[class*="previewColourSwatch"]',
+      '[popover] [role="listbox"] i[class*="previewColourSwatch"]',
     );
     await expect(swatches.first()).toBeVisible();
     expect(await swatches.count()).toBeGreaterThan(5);
 
     // Trigger button also displays the swatch square for the selected color
     const triggerSwatch = page
-      .locator('dialog [role="combobox"]')
-      .nth(1)
+      .locator('aside[aria-label="Inspect"] button[aria-label="Fill"]')
+      .first()
       .locator('i[class*="previewColourSwatch"]');
     await expect(triggerSwatch).toBeVisible();
 
@@ -1118,13 +1115,13 @@ test.describe("Preview section fill and token colour", () => {
     // Edit a slot first
     const title = page.getByRole("heading", { name: HERO_TITLE, level: 1 });
     await title.click();
-    const dialog = page.getByRole("dialog", { name: "Inspect" });
+    const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
     await dialog
       .getByRole("textbox", { name: "Copy" })
       .fill("Overridden Headline for Global Reset");
     await page.keyboard.press("Escape");
-    await expect(dialog).toBeHidden();
+    await expect(page.getByTestId("preview-selection")).toHaveCount(0);
 
     await expect(
       page.getByRole("heading", {
@@ -1367,7 +1364,9 @@ test.describe("The preview's spacing overlay", () => {
 
     /* Clicks pass through the overlay to the page beneath. */
     await page.getByRole("heading", { level: 1 }).first().click();
-    await expect(page.getByRole("dialog", { name: "Inspect" })).toBeVisible();
+    await expect(
+      page.getByRole("complementary", { name: "Inspect" }),
+    ).toBeVisible();
     await page.keyboard.press("Escape");
 
     await page.getByRole("button", { name: "Hide spacing" }).click();

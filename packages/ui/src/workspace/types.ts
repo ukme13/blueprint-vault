@@ -8,6 +8,7 @@ import type { SpacingPreviewSettings, SpacingScale } from "../scale/spacing";
 import type { PreviewDevice } from "../typography/preview-devices";
 import type { PreviewDocument } from "../typography/preview-document";
 import type { PreviewSection } from "../typography/preview-sections";
+import type { PreviewStyles } from "../typography/preview-styles";
 import type { TypeScaleUnit } from "../typography/types";
 import type { TypeSystem } from "../typography/system";
 
@@ -47,6 +48,14 @@ export interface TypographyProjectData {
    * bytes live in IndexedDB. Missing on an older save is the seed.
    */
   previewSections: PreviewSection[];
+  /**
+   * What the inspector has changed about an element of `/preview` beyond its
+   * copy, type and colour: room, shape, edge, shadow, opacity. By slot or
+   * band id, token references only. Absent when nothing has been changed, which
+   * is every project saved before it existed, and the page then draws as it
+   * always did.
+   */
+  previewStyles?: PreviewStyles;
   /**
    * Last specimen or article view.
    *

@@ -4,6 +4,7 @@ import {
   slot,
   type LandingSectionProps,
 } from "./Inspectable";
+import { CardSurface } from "./CardSurface";
 import styles from "./landing.module.css";
 
 function Plan({
@@ -18,9 +19,12 @@ function Plan({
     .filter((id) => slot(landing, id));
 
   return (
-    <div
+    <CardSurface
+      as="div"
+      cardId={featured ? "card-pricing-featured" : "card-pricing"}
       className={`${styles.plan}${featured ? ` ${styles.planFeatured}` : ""}`}
       data-plan={n}
+      onInspect={onInspect}
     >
       <div className={styles.planHead}>
         <InspectableSlot
@@ -88,7 +92,7 @@ function Plan({
         variant={featured ? "contained" : "outlined"}
         onInspect={onInspect}
       />
-    </div>
+    </CardSurface>
   );
 }
 

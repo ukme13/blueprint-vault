@@ -13,7 +13,6 @@ import {
   type TypeSystem,
 } from "@blueprint/ui";
 import { PreviewSectionBand } from "../PreviewSectionBand";
-import type { PreviewImageError } from "../PreviewSectionMenu";
 import { InspectableButton, InspectableSlot, slot } from "./Inspectable";
 import { LandingCta } from "./LandingCta";
 import {
@@ -26,6 +25,7 @@ import { LandingHero } from "./LandingHero";
 import { LandingNewsletter } from "./LandingNewsletter";
 import { LandingPricing } from "./LandingPricing";
 import { LandingQuote } from "./LandingQuote";
+import { CardSurface } from "./CardSurface";
 import styles from "./landing.module.css";
 
 const NAV_IDS = PREVIEW_NAV_LINK_IDS.filter((id) => id !== "shell-login");
@@ -58,21 +58,17 @@ function Band({
   as,
   className,
   sections,
-  workspaceId,
   children,
   onInspectSection,
   onSectionFill,
-  onSectionError,
 }: {
   id: PreviewSectionId;
   as?: "header" | "footer" | "div";
   className?: string;
   sections: readonly PreviewSection[];
-  workspaceId: string | null;
   children: ReactNode;
   onInspectSection: (id: PreviewSectionId) => void;
   onSectionFill: (id: PreviewSectionId, fill: PreviewSectionFill) => void;
-  onSectionError: (id: PreviewSectionId, error: PreviewImageError) => void;
 }) {
   const fill = previewSection(sections, id)?.fill ?? {
     kind: "token" as const,
@@ -85,8 +81,6 @@ function Band({
       fill={fill}
       label={PREVIEW_SECTION_LABEL[id]}
       sectionId={id}
-      workspaceId={workspaceId}
-      onError={(error) => onSectionError(id, error)}
       onFillChange={(next) => onSectionFill(id, next)}
       onPickColour={() => onInspectSection(id)}
     >
@@ -101,7 +95,6 @@ export function PreviewSite({
   landing,
   shell,
   sections,
-  workspaceId,
   variables,
   frameId,
   ready = false,
@@ -109,7 +102,6 @@ export function PreviewSite({
   onInspectShell,
   onInspectSection,
   onSectionFill,
-  onSectionError,
   children,
 }: {
   canvasRef: Ref<HTMLDivElement>;
@@ -117,7 +109,6 @@ export function PreviewSite({
   landing: PreviewDocument;
   shell: PreviewDocument;
   sections: readonly PreviewSection[];
-  workspaceId: string | null;
   variables: CSSProperties;
   frameId: string;
   ready?: boolean;
@@ -125,7 +116,6 @@ export function PreviewSite({
   onInspectShell: (id: string) => void;
   onInspectSection: (id: PreviewSectionId) => void;
   onSectionFill: (id: PreviewSectionId, fill: PreviewSectionFill) => void;
-  onSectionError: (id: PreviewSectionId, error: PreviewImageError) => void;
   /** Laid over the page, inside it, so it scrolls with it: the overlay. */
   children?: ReactNode;
 }) {
@@ -148,9 +138,7 @@ export function PreviewSite({
         className={styles.nav}
         id="shell-nav"
         sections={sections}
-        workspaceId={workspaceId}
         onInspectSection={onInspectSection}
-        onSectionError={onSectionError}
         onSectionFill={onSectionFill}
       >
         <div className={styles.navInner}>
@@ -194,9 +182,7 @@ export function PreviewSite({
         <Band
           id="landing-hero"
           sections={sections}
-          workspaceId={workspaceId}
           onInspectSection={onInspectSection}
-          onSectionError={onSectionError}
           onSectionFill={onSectionFill}
         >
           <LandingHero {...landingProps} />
@@ -204,9 +190,7 @@ export function PreviewSite({
         <Band
           id="landing-features"
           sections={sections}
-          workspaceId={workspaceId}
           onInspectSection={onInspectSection}
-          onSectionError={onSectionError}
           onSectionFill={onSectionFill}
         >
           <LandingFeatureCards {...landingProps} />
@@ -214,9 +198,7 @@ export function PreviewSite({
         <Band
           id="landing-split-a"
           sections={sections}
-          workspaceId={workspaceId}
           onInspectSection={onInspectSection}
-          onSectionError={onSectionError}
           onSectionFill={onSectionFill}
         >
           <LandingSplitA {...landingProps} />
@@ -224,9 +206,7 @@ export function PreviewSite({
         <Band
           id="landing-split-b"
           sections={sections}
-          workspaceId={workspaceId}
           onInspectSection={onInspectSection}
-          onSectionError={onSectionError}
           onSectionFill={onSectionFill}
         >
           <LandingSplitB {...landingProps} />
@@ -234,9 +214,7 @@ export function PreviewSite({
         <Band
           id="landing-quad"
           sections={sections}
-          workspaceId={workspaceId}
           onInspectSection={onInspectSection}
-          onSectionError={onSectionError}
           onSectionFill={onSectionFill}
         >
           <LandingQuadCards {...landingProps} />
@@ -244,9 +222,7 @@ export function PreviewSite({
         <Band
           id="landing-quote"
           sections={sections}
-          workspaceId={workspaceId}
           onInspectSection={onInspectSection}
-          onSectionError={onSectionError}
           onSectionFill={onSectionFill}
         >
           <LandingQuote {...landingProps} />
@@ -254,9 +230,7 @@ export function PreviewSite({
         <Band
           id="landing-pricing"
           sections={sections}
-          workspaceId={workspaceId}
           onInspectSection={onInspectSection}
-          onSectionError={onSectionError}
           onSectionFill={onSectionFill}
         >
           <LandingPricing {...landingProps} />
@@ -264,9 +238,7 @@ export function PreviewSite({
         <Band
           id="landing-cta"
           sections={sections}
-          workspaceId={workspaceId}
           onInspectSection={onInspectSection}
-          onSectionError={onSectionError}
           onSectionFill={onSectionFill}
         >
           <LandingCta {...landingProps} />
@@ -274,9 +246,7 @@ export function PreviewSite({
         <Band
           id="landing-newsletter"
           sections={sections}
-          workspaceId={workspaceId}
           onInspectSection={onInspectSection}
-          onSectionError={onSectionError}
           onSectionFill={onSectionFill}
         >
           <LandingNewsletter {...landingProps} />
@@ -288,9 +258,7 @@ export function PreviewSite({
         className={styles.footer}
         id="shell-footer"
         sections={sections}
-        workspaceId={workspaceId}
         onInspectSection={onInspectSection}
-        onSectionError={onSectionError}
         onSectionFill={onSectionFill}
       >
         <div className={styles.wrap}>
@@ -340,7 +308,12 @@ export function PreviewSite({
               ))}
             </div>
           </div>
-          <div className={styles.footerBase}>
+          <CardSurface
+            as="div"
+            cardId="divider-footer-base"
+            className={styles.footerBase}
+            onInspect={onInspectLanding}
+          >
             <InspectableSlot
               as="p"
               className={styles.small}
@@ -357,7 +330,7 @@ export function PreviewSite({
               system={system}
               onInspect={onInspectShell}
             />
-          </div>
+          </CardSurface>
         </div>
       </Band>
       {children}

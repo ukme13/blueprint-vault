@@ -4,6 +4,7 @@ import {
   createElement,
   type CSSProperties,
   type KeyboardEvent,
+  type MouseEvent,
   type ReactElement,
   type ReactNode,
 } from "react";
@@ -17,6 +18,7 @@ import {
   type TypeSystem,
 } from "@blueprint/ui";
 import { typeRoleStyle } from "./preview-role-style";
+import { usePreviewSlotStyle } from "./preview-styles-context";
 
 const ACTION = "var(--color-action-primary)";
 const ON_ACTION = "var(--color-fg-on-action)";
@@ -26,16 +28,21 @@ const SURFACE = "var(--color-surface-base)";
 
 /**
  * A button's padding is the layout's control insets, and its height is what
- * they make: a line of the label, the block inset twice and the border. The
+ * they make: a line of the label, the block inset twice and the border. Set as
+ * the four sides, never as the shorthands: the inspector overrides a side at a
+ * time, and removing a side while a shorthand is set is a styling bug React
+ * warns of. The
  * Button's own size class fixes a height and no block padding, so both are
  * set here, in place of it, and an inset changed in the Uses table changes the
  * button. The fallbacks are the defaults the layout seeds, for a preview with
  * no layout scope around it. `controlHeightPx` is this sum, for the hint.
  */
-const CONTROL_INSET_STYLE: CSSProperties = {
+export const CONTROL_INSET_STYLE: CSSProperties = {
   height: "auto",
-  paddingBlock: "var(--inset-control-y, var(--spacing-2))",
-  paddingInline: "var(--inset-control-x, var(--spacing-4))",
+  paddingTop: "var(--inset-control-y, var(--spacing-2))",
+  paddingBottom: "var(--inset-control-y, var(--spacing-2))",
+  paddingLeft: "var(--inset-control-x, var(--spacing-4))",
+  paddingRight: "var(--inset-control-x, var(--spacing-4))",
 };
 
 export function slot(
@@ -134,6 +141,7 @@ export function Inspectable({
 }): ReactElement {
   const role = resolveDocumentRole(system, block.roleId);
   const roleStyle = role ? typeRoleStyle(role.id) : undefined;
+  const overrides = usePreviewSlotStyle(block.id);
   const colorStyle = block.colorTokenId
     ? { color: `var(${semanticVariableName(block.colorTokenId)})` }
     : undefined;
@@ -143,21 +151,27 @@ export function Inspectable({
     event.preventDefault();
     onInspect();
   };
+  /* A slot inside a band is the slot that is picked, not the band too. */
+  const onClick = (event: MouseEvent<HTMLElement>) => {
+    event.stopPropagation();
+    onInspect();
+  };
 
   return createElement(
     as,
     {
-      "aria-haspopup": "dialog" as const,
       className,
+      "data-preview-slot": block.id,
       style: {
         ...roleStyle,
         ...colorStyle,
         ...style,
+        ...overrides,
         margin: 0,
         cursor: "pointer",
       },
       tabIndex: 0,
-      onClick: onInspect,
+      onClick,
       onKeyDown,
     },
     children ?? block.text,
@@ -178,11 +192,11 @@ export function SlotButton({
   invert?: boolean;
 }): ReactElement {
   const fill = invert
-    ? { background: SURFACE, color: TEXT, borderColor: SURFACE }
+    ? { backgroundColor: SURFACE, color: TEXT, borderColor: SURFACE }
     : variant === "contained"
-      ? { background: ACTION, color: ON_ACTION }
+      ? { backgroundColor: ACTION, color: ON_ACTION }
       : {
-          background: "transparent",
+          backgroundColor: "transparent",
           color: TEXT,
           borderColor: BORDER,
         };
@@ -194,15 +208,19 @@ export function SlotButton({
      same way in both. */
   const role = resolveDocumentRole(system, block.roleId);
   const roleStyle = role ? typeRoleStyle(role.id) : undefined;
+  const overrides = usePreviewSlotStyle(block.id);
 
   return (
     <Button
-      aria-haspopup="dialog"
+      data-preview-slot={block.id}
       scheme="primary"
       size="medium"
-      style={{ ...CONTROL_INSET_STYLE, ...roleStyle, ...fill }}
+      style={{ ...CONTROL_INSET_STYLE, ...roleStyle, ...fill, ...overrides }}
       variant={variant}
-      onClick={onInspect}
+      onClick={(event) => {
+        event.stopPropagation();
+        onInspect();
+      }}
     >
       {block.text}
     </Button>

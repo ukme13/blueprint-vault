@@ -1433,3 +1433,15 @@ export function toneFamilyContrast(
     dark: ratio("dark"),
   };
 }
+
+/**
+ * The role a label on a fill is read from, for a fill that is a role.
+ *
+ * `action.primary` is labelled by `fg.on-action`. The table is the one the
+ * seed measures with, so a page that puts a label on a fill of its own
+ * choosing reads the same role a seeded button does. Null for a fill with no
+ * label role of its own, a surface, which is labelled by ordinary text.
+ */
+export function labelRoleForFill(fillId: string): string | null {
+  return SEED_ROLES.find((role) => role.readableOn === fillId)?.id ?? null;
+}

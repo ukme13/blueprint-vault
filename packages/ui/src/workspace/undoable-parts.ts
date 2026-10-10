@@ -25,7 +25,8 @@ function comparableSemantics(
  * The parts of a document an undo owns.
  *
  * The type system (not its name, which is the workspace's, nor the preview
- * text and settings beside it in the same slice), the scales and the layout
+ * text and settings beside it in the same slice), what the inspector set on
+ * the elements of the preview page, the scales and the layout
  * uses that point at them, the device ratios the system's own mirrors, and the
  * semantic layer with what goes with it. The palette, the name and the view
  * settings are not here.
@@ -36,6 +37,9 @@ export function undoableParts(project: WorkspaceProject) {
   const system = project.typography?.system;
   return {
     typographySystem: system ? { ...system, name: undefined } : null,
+    /* Room, shape, edge, shadow and opacity chosen in the inspect panel. The
+       copy, type and colour beside them in the same slice are not owned. */
+    previewStyles: project.typography?.previewStyles ?? null,
     spacing: project.spacing,
     radius: project.radius,
     elevation: project.elevation,

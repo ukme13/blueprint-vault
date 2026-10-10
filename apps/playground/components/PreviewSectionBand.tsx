@@ -5,6 +5,7 @@ import {
   useState,
   type CSSProperties,
   type ElementType,
+  type MouseEvent,
   type ReactNode,
 } from "react";
 import {
@@ -12,10 +13,8 @@ import {
   previewSectionFillStyle,
   type PreviewSectionFill,
 } from "@blueprint/ui";
-import {
-  PreviewSectionMenu,
-  type PreviewImageError,
-} from "./PreviewSectionMenu";
+import { usePreviewSlotStyle } from "./preview/preview-styles-context";
+import { PreviewSectionMenu } from "./PreviewSectionMenu";
 import styles from "./PreviewSectionBand.module.css";
 
 /**
@@ -29,23 +28,19 @@ export function PreviewSectionBand({
   sectionId,
   label,
   fill,
-  workspaceId,
   className,
   children,
   onPickColour,
   onFillChange,
-  onError,
 }: {
   as?: ElementType;
   sectionId: string;
   label: string;
   fill: PreviewSectionFill;
-  workspaceId: string | null;
   className?: string;
   children: ReactNode;
   onPickColour: () => void;
   onFillChange: (fill: PreviewSectionFill) => void;
-  onError: (error: PreviewImageError) => void;
 }) {
   const imageId = fill.kind === "image" ? fill.imageId : null;
   const [loaded, setLoaded] = useState<{ id: string; url: string } | null>(
@@ -80,22 +75,34 @@ export function PreviewSectionBand({
   const imageUrl = loaded?.id === imageId ? loaded.url : null;
 
   const fillStyle = previewSectionFillStyle(fill, imageUrl);
+  const overrides = usePreviewSlotStyle(sectionId, true);
 
   return (
     <Tag
       className={className ? `${styles.band} ${className}` : styles.band}
       data-preview-section={sectionId}
-      style={fillStyle as CSSProperties}
+      style={{ ...fillStyle, ...overrides } as CSSProperties}
+      onClick={(event: MouseEvent<HTMLElement>) => {
+        /* The band itself, not a slot, a control or the menu inside it. */
+        const target = event.target as HTMLElement;
+        if (
+          target.closest(
+            "[data-preview-slot], button, a, input, textarea, select, [role='menu'], form",
+          )
+        ) {
+          return;
+        }
+        onPickColour();
+      }}
     >
-      <PreviewSectionMenu
-        fill={fill}
-        label={label}
-        sectionId={sectionId}
-        workspaceId={workspaceId}
-        onError={onError}
-        onFillChange={onFillChange}
-        onPickColour={onPickColour}
-      />
+      {fill.kind === "image" ? (
+        <PreviewSectionMenu
+          label={label}
+          onRemoveImage={() =>
+            onFillChange({ kind: "token", tokenId: fill.fallbackTokenId })
+          }
+        />
+      ) : null}
       {children}
     </Tag>
   );

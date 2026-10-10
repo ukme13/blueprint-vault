@@ -1,0 +1,32 @@
+import type { SVGProps } from "react";
+
+/**
+ * A stroke's weight.
+ *
+ * From the Figma inspect panel, as drawn there: the paths are Figma's, and
+ * only the colour is changed, from the panel's white to `currentColor`, so
+ * it follows whatever text colour its parent sets. Filled rather than
+ * stroked. Its box is 24 by 24; it takes a size from its caller
+ * like any other.
+ */
+export function StrokeWeightIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      aria-hidden="true"
+      fill="none"
+      height="24"
+      viewBox="0 0 24 24"
+      width="24"
+      xmlns="http://www.w3.org/2000/svg"
+      {...props}
+    >
+      <path
+        d="M6 6.5C6 6.36739 6.05268 6.24021 6.14645 6.14645C6.24021 6.05268 6.36739 6 6.5 6H17.5C17.6326 6 17.7598 6.05268 17.8536 6.14645C17.9473 6.24021 18 6.36739 18 6.5C18 6.63261 17.9473 6.75979 17.8536 6.85355C17.7598 6.94732 17.6326 7 17.5 7H6.5C6.36739 7 6.24021 6.94732 6.14645 6.85355C6.05268 6.75979 6 6.63261 6 6.5ZM7 10V11H17V10H7ZM6.75 9C6.55109 9 6.36032 9.07902 6.21967 9.21967C6.07902 9.36032 6 9.55109 6 9.75V11.25C6 11.664 6.336 12 6.75 12H17.25C17.4489 12 17.6397 11.921 17.7803 11.7803C17.921 11.6397 18 11.4489 18 11.25V9.75C18 9.55109 17.921 9.36032 17.7803 9.21967C17.6397 9.07902 17.4489 9 17.25 9H6.75ZM7 17V15H17V17H7ZM6 14.75C6 14.5511 6.07902 14.3603 6.21967 14.2197C6.36032 14.079 6.55109 14 6.75 14H17.25C17.4489 14 17.6397 14.079 17.7803 14.2197C17.921 14.3603 18 14.5511 18 14.75V17.25C18 17.4489 17.921 17.6397 17.7803 17.7803C17.6397 17.921 17.4489 18 17.25 18H6.75C6.55109 18 6.36032 17.921 6.21967 17.7803C6.07902 17.6397 6 17.4489 6 17.25V14.75Z"
+        fillRule="evenodd"
+        clipRule="evenodd"
+        fill="currentColor"
+        fillOpacity="0.698"
+      />
+    </svg>
+  );
+}

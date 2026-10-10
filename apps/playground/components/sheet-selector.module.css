@@ -134,6 +134,9 @@
 }
 
 .list {
+  /* What a chosen or hovered row is washed with: a little of the text colour
+     over whatever the list sits on, so it is as light on a popover as on a sheet. */
+  --option-tint: color-mix(in oklch, var(--color-fg-primary) 6%, transparent);
   display: flex;
   flex-direction: column;
   gap: var(--spacing-3, 12px);
@@ -168,7 +171,7 @@
 }
 
 .option[aria-selected="true"] {
-  background: var(--color-surface-subtle);
+  background: var(--option-tint);
   font-weight: 600;
 }
 
@@ -203,12 +206,6 @@
   font-variant-numeric: tabular-nums;
 }
 
-.check {
-  width: var(--spacing-4, 16px);
-  height: var(--spacing-4, 16px);
-  color: var(--color-action-primary);
-}
-
 .empty {
   margin: 0;
   color: var(--color-fg-muted);
@@ -241,7 +238,7 @@
 }
 
 .list[data-density="compact"] .option:hover {
-  background: var(--color-surface-subtle);
+  background: var(--option-tint);
 }
 
 /* A desktop Selector without its chevron: see SheetSelector. */

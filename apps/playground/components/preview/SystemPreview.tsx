@@ -2,14 +2,25 @@
 
 import {
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   useState,
   type CSSProperties,
 } from "react";
 import {
+  PREVIEW_SECTION_LABEL,
+  previewSurfaceLabel,
+  previewInspectKind,
+  previewStyleKey,
+  previewInspectorChrome,
+  previewStyleOf,
+  resolveElevation,
+  resolveRadius,
+  resolveSpacing,
+  typeRoleRowGroups,
+  type PreviewStyles,
   applyColorToBlocks,
-  applyRoleToBlocks,
   applyRoleToButtons,
   applyStyleToGroup,
   defaultElevationScale,
@@ -36,22 +47,25 @@ import {
   semanticCssVariables,
   spacingCssVariables,
   typeCssVariablesForDevice,
-  updateBlockText,
-  updateSectionFill,
-  withSeededTypographySlice,
-  seedWorkspaceProject,
   PREVIEW_SECTION_SEED_TOKEN,
+  idsSharingStyle,
+  isPreviewButton,
   type PreviewDocumentBlock,
-  type PreviewDocument,
-  type PreviewSectionFill,
-  type PreviewSectionId,
   useWorkspaceStore,
 } from "@blueprint/ui";
 import { useIsPhone } from "../use-is-phone";
 import { useThemeMode } from "../../app/theme-provider";
-import { PreviewInspector } from "../PreviewInspector";
-import { PreviewSectionInspector } from "../PreviewSectionInspector";
-import type { PreviewImageError } from "../PreviewSectionMenu";
+import {
+  PreviewInspectPanel,
+  type PreviewInspectPanelProps,
+} from "../inspect/PreviewInspectPanel";
+import { PreviewSelectionBox } from "../inspect/PreviewSelectionBox";
+import { Sheet } from "../Sheet";
+import {
+  usePreviewEdits,
+  type InspectTarget,
+} from "../inspect/use-preview-edits";
+import { PreviewStylesProvider } from "./preview-styles-context";
 import { PreviewChrome } from "../PreviewChrome";
 import { usePaletteView } from "../palette/PaletteViewContext";
 import { useGoogleFontsLink } from "../typography/use-google-fonts";
@@ -61,11 +75,7 @@ import { SpacingOverlay } from "../spacing-overlay/SpacingOverlay";
 
 const EMPTY_TOKENS: never[] = [];
 const EMPTY_PALETTES: never[] = [];
-
-type InspectTarget =
-  | { source: "landing"; id: string }
-  | { source: "shell"; id: string }
-  | { source: "section"; id: PreviewSectionId };
+const EMPTY_STYLES: PreviewStyles = {};
 
 /**
  * The whole system on one page, as a landing site.
@@ -81,7 +91,7 @@ type InspectTarget =
 
 export function SystemPreview() {
   const { seen } = usePaletteView();
-  const { project, hasLoaded, update, library } = useWorkspaceStore();
+  const { project, hasLoaded, update } = useWorkspaceStore();
   const { resolved: mode } = useThemeMode();
   const canvasRef = useRef<HTMLDivElement>(null);
   const [deviceId, setDeviceId] = useState("desktop");
@@ -92,9 +102,9 @@ export function SystemPreview() {
      the Uses table is not touched by it. */
   const [layoutBindings, setLayoutBindings] = useState<LayoutBindings>({});
   const [inspecting, setInspecting] = useState<InspectTarget | null>(null);
-  const [sectionError, setSectionError] = useState<PreviewImageError | null>(
-    null,
-  );
+  /* The panel beside the page: opened by a selection, hidden by its own
+     button. A way of looking, so not saved. */
+  const [isInspectorOpen, setIsInspectorOpen] = useState(false);
 
   const tokens = project?.semantics ?? EMPTY_TOKENS;
   const typography =
@@ -180,95 +190,31 @@ export function SystemPreview() {
       ? (previewSection(sections, inspecting.id) ?? null)
       : null;
 
-  const patchSlot = useCallback(
-    (apply: (block: PreviewDocumentBlock) => PreviewDocumentBlock) => {
-      if (!inspecting || inspecting.source === "section") return;
-      update((current) => {
-        if (!current) return seedWorkspaceProject("Workspace");
-        const next = current.typography
-          ? current
-          : withSeededTypographySlice(current);
-        const slice = next.typography;
-        if (!slice) return next;
-        const key =
-          inspecting.source === "shell" ? "previewShell" : "previewLanding";
-        const document = slice[key];
-        const currentBlock = document.find(
-          (block) => block.id === inspecting.id,
-        );
-        if (!currentBlock) return next;
-        const patched = apply(currentBlock);
-        const withText = updateBlockText(document, inspecting.id, patched.text);
-        const withRole = applyRoleToBlocks(
-          withText,
-          [inspecting.id],
-          patched.roleId,
-        );
-        return {
-          ...next,
-          typography: { ...slice, [key]: withRole },
-        };
-      });
-    },
-    [inspecting, update],
-  );
-
-  const patchDocument = useCallback(
-    (
-      source: "landing" | "shell",
-      apply: (document: PreviewDocument) => PreviewDocument,
-    ) => {
-      update((current) => {
-        if (!current) return seedWorkspaceProject("Workspace");
-        const next = current.typography
-          ? current
-          : withSeededTypographySlice(current);
-        const slice = next.typography;
-        if (!slice) return next;
-        const key = source === "shell" ? "previewShell" : "previewLanding";
-        return {
-          ...next,
-          typography: { ...slice, [key]: apply(slice[key]) },
-        };
-      });
-    },
-    [update],
-  );
-
-  const patchSectionFill = useCallback(
-    (id: PreviewSectionId, fill: PreviewSectionFill) => {
-      update((current) => {
-        if (!current) return seedWorkspaceProject("Workspace");
-        const next = current.typography
-          ? current
-          : withSeededTypographySlice(current);
-        const slice = next.typography;
-        if (!slice) return next;
-        return {
-          ...next,
-          typography: {
-            ...slice,
-            previewSections: updateSectionFill(
-              slice.previewSections ?? seedPreviewSections(),
-              id,
-              fill,
-            ),
-          },
-        };
-      });
-    },
-    [update],
-  );
-
   const onDeviceChange = useCallback((id: string) => {
     /* Close the inspector first: its <dialog> is on the top layer, and the
        canvas remounts when the overflow ancestor changes. Unmounting that
        node while it is still open throws removeChild on null. The timeout
        lets Dialog's close() effect run; an rAF can fire before that effect. */
     setInspecting(null);
-    setSectionError(null);
     window.setTimeout(() => setDeviceId(id), 0);
   }, []);
+
+  /* Escape lets go of the selection, unless something over the page has it
+     open: a list closes on Escape before the selection does. */
+  useEffect(() => {
+    if (!inspecting) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (
+        document.querySelector('dialog[open], :popover-open [role="listbox"]')
+      ) {
+        return;
+      }
+      setInspecting(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [inspecting]);
 
   const slotSource =
     inspecting && inspecting.source !== "section" ? inspecting.source : null;
@@ -288,58 +234,46 @@ export function SystemPreview() {
     return null;
   }, [inspecting, system]);
 
-  const resetSlotToDefault = useCallback(() => {
-    if (
-      !slotSource ||
-      !inspecting ||
-      inspecting.source === "section" ||
-      !defaultBlock
-    ) {
-      return;
-    }
-    patchDocument(slotSource, (document) => {
-      const withText = updateBlockText(
-        document,
-        inspecting.id,
-        defaultBlock.text,
-      );
-      const withRole = applyRoleToBlocks(
-        withText,
-        [inspecting.id],
-        defaultBlock.roleId,
-      );
-      return applyColorToBlocks(withRole, [inspecting.id], undefined);
-    });
-  }, [defaultBlock, inspecting, patchDocument, slotSource]);
+  const {
+    patchSlot,
+    patchDocument,
+    patchSectionFill,
+    patchStyle,
+    resetSlotToDefault,
+    resetSectionToDefault,
+    resetAllToDefault,
+  } = usePreviewEdits({
+    update,
+    system,
+    inspecting,
+    slotSource,
+    defaultBlock,
+    setInspecting,
+    setLayoutBindings,
+  });
 
-  const resetSectionToDefault = useCallback(() => {
-    if (!inspecting || inspecting.source !== "section") return;
-    const defaultTokenId = PREVIEW_SECTION_SEED_TOKEN[inspecting.id];
-    patchSectionFill(inspecting.id, { kind: "token", tokenId: defaultTokenId });
-  }, [inspecting, patchSectionFill]);
-
-  const resetAllToDefault = useCallback(() => {
-    setLayoutBindings({});
-    setInspecting(null);
-    setSectionError(null);
-    update((current) => {
-      if (!current) return seedWorkspaceProject("Workspace");
-      const next = current.typography
-        ? current
-        : withSeededTypographySlice(current);
-      const slice = next.typography;
-      if (!slice) return next;
-      return {
-        ...next,
-        typography: {
-          ...slice,
-          previewLanding: seedPreviewLanding(system),
-          previewShell: seedPreviewShell(system),
-          previewSections: seedPreviewSections(),
-        },
-      };
-    });
-  }, [system, update]);
+  /* What the panel's token lists are drawn from: the project's own scales. */
+  const spacingTokens = useMemo(
+    () => resolveSpacing(project?.spacing ?? defaultSpacingScale()),
+    [project?.spacing],
+  );
+  const radiusTokens = useMemo(
+    () => resolveRadius(project?.radius ?? defaultRadiusScale()),
+    [project?.radius],
+  );
+  const elevationLevels = useMemo(
+    () =>
+      resolveElevation(
+        project?.elevation ?? defaultElevationScale(),
+        palettes,
+        mode,
+      ),
+    [project?.elevation, palettes, mode],
+  );
+  const roleGroups = useMemo(
+    () => typeRoleRowGroups(system, frame.id),
+    [system, frame.id],
+  );
 
   if (!hasLoaded) {
     return <div aria-busy="true" className="h-full min-h-0" />;
@@ -369,150 +303,187 @@ export function SystemPreview() {
     );
   }
 
+  const previewStyles = typography.previewStyles ?? EMPTY_STYLES;
+  const inspectedId = inspecting?.id ?? null;
+  const isBandSelected = inspecting?.source === "section";
+  /* A band and a slot can share an id, so a band's style has a key of its own. */
+  const styleKey = inspectedId
+    ? previewStyleKey(inspectedId, isBandSelected)
+    : null;
+  const panelProps: PreviewInspectPanelProps = {
+    target: inspecting
+      ? {
+          id: inspecting.id,
+          kind: previewInspectKind(inspecting.id, isBandSelected),
+          title:
+            inspecting.source === "section"
+              ? PREVIEW_SECTION_LABEL[inspecting.id]
+              : (previewSurfaceLabel(inspecting.id) ??
+                previewInspectorChrome(inspecting.id).title),
+        }
+      : null,
+    style: styleKey ? previewStyleOf(previewStyles, styleKey) : {},
+    block: inspectedBlock,
+    bandFill: inspectedSection?.fill ?? null,
+    spacing: spacingTokens,
+    radius: radiusTokens,
+    elevation: elevationLevels,
+    tokens,
+    tokenColors,
+    roleGroups,
+    isGrouped: inspectedId ? idsSharingStyle(inspectedId).length > 1 : false,
+    isButton: inspectedId ? isPreviewButton(inspectedId) : false,
+    isOverridden:
+      (styleKey !== null && styleKey in previewStyles) ||
+      (defaultBlock
+        ? inspectedBlock?.text !== defaultBlock.text ||
+          inspectedBlock?.roleId !== defaultBlock.roleId ||
+          inspectedBlock?.colorTokenId !== defaultBlock.colorTokenId
+        : Boolean(inspectedBlock?.colorTokenId)) ||
+      (inspecting?.source === "section" &&
+        (inspectedSection?.fill.kind === "image" ||
+          inspectedSection?.fill.tokenId !==
+            PREVIEW_SECTION_SEED_TOKEN[inspecting.id])),
+    onStyleChange: (next) => {
+      if (styleKey) patchStyle(styleKey, next);
+    },
+    onTextChange: (text) => patchSlot((block) => ({ ...block, text })),
+    onRoleChange: (roleId) => patchSlot((block) => ({ ...block, roleId })),
+    onColourChange: (colorTokenId) => {
+      if (!slotSource || !inspecting || inspecting.source === "section") return;
+      patchDocument(slotSource, (document) =>
+        applyColorToBlocks(document, [inspecting.id], colorTokenId),
+      );
+    },
+    onBandFillChange: (tokenId) => {
+      if (inspecting?.source !== "section") return;
+      const current = previewSection(sections, inspecting.id)?.fill;
+      patchSectionFill(
+        inspecting.id,
+        current?.kind === "image"
+          ? { ...current, fallbackTokenId: tokenId }
+          : { kind: "token", tokenId },
+      );
+    },
+    onApplyToGroup: () => {
+      if (!slotSource || !inspecting || inspecting.source === "section") return;
+      patchDocument(slotSource, (document) =>
+        applyStyleToGroup(document, inspecting.id),
+      );
+    },
+    onApplyToAllButtons: () => {
+      const roleId = inspectedBlock?.roleId;
+      if (!roleId) return;
+      /* The shell's sign-up and the landing buttons live in two documents;
+         both take the role. */
+      patchDocument("landing", (document) =>
+        applyRoleToButtons(document, roleId),
+      );
+      patchDocument("shell", (document) =>
+        applyRoleToButtons(document, roleId),
+      );
+    },
+    onResetToDefault:
+      inspecting?.source === "section"
+        ? resetSectionToDefault
+        : resetSlotToDefault,
+    onClose: () => {
+      setIsInspectorOpen(false);
+      setInspecting(null);
+    },
+  };
+
   return (
     <PreviewChrome
       canvas={
-        <PreviewSite
-          key={frame.kind === "desktop" ? "desktop" : "framed"}
-          canvasRef={canvasRef}
-          frameId={frame.id}
-          landing={typography.previewLanding}
-          ready={tokens.length > 0}
-          sections={sections}
-          shell={typography.previewShell}
-          system={system}
-          variables={variables}
-          workspaceId={library.currentId}
-          onInspectLanding={(id) => {
-            setSectionError(null);
-            setInspecting({ source: "landing", id });
-          }}
-          onInspectSection={(id) => {
-            setSectionError(null);
-            setInspecting({ source: "section", id });
-          }}
-          onInspectShell={(id) => {
-            setSectionError(null);
-            setInspecting({ source: "shell", id });
-          }}
-          onSectionError={(id, error) => {
-            setSectionError(error);
-            setInspecting({ source: "section", id });
-          }}
-          onSectionFill={patchSectionFill}
-        >
-          {showSpacing ? (
-            <SpacingOverlay
-              deviceId={frame.id}
-              deviceName={frame.name}
-              bindings={layoutBindings}
-              layout={project?.layout ?? defaultLayoutTokens()}
-              spacing={project?.spacing ?? defaultSpacingScale()}
-              onBindSlot={(slot, tokenId) =>
-                setLayoutBindings((current) =>
-                  bindLayoutSlot(current, slot, tokenId),
-                )
-              }
-              onRebindStep={(tokenId, step) =>
-                update(
-                  (current) =>
-                    withLayoutTokens(
-                      current,
-                      setLayoutReference(
-                        current?.layout ?? defaultLayoutTokens(),
-                        tokenId,
-                        frame.id,
-                        step,
+        <PreviewStylesProvider styles={previewStyles} tokens={tokens}>
+          <PreviewSite
+            key={frame.kind === "desktop" ? "desktop" : "framed"}
+            canvasRef={canvasRef}
+            frameId={frame.id}
+            landing={typography.previewLanding}
+            ready={tokens.length > 0}
+            sections={sections}
+            shell={typography.previewShell}
+            system={system}
+            variables={variables}
+            onInspectLanding={(id) => {
+              setInspecting({ source: "landing", id });
+              setIsInspectorOpen(true);
+            }}
+            onInspectSection={(id) => {
+              setInspecting({ source: "section", id });
+              setIsInspectorOpen(true);
+            }}
+            onInspectShell={(id) => {
+              setInspecting({ source: "shell", id });
+              setIsInspectorOpen(true);
+            }}
+            onSectionFill={patchSectionFill}
+          >
+            {showSpacing ? (
+              <SpacingOverlay
+                deviceId={frame.id}
+                deviceName={frame.name}
+                bindings={layoutBindings}
+                layout={project?.layout ?? defaultLayoutTokens()}
+                spacing={project?.spacing ?? defaultSpacingScale()}
+                onBindSlot={(slot, tokenId) =>
+                  setLayoutBindings((current) =>
+                    bindLayoutSlot(current, slot, tokenId),
+                  )
+                }
+                onRebindStep={(tokenId, step) =>
+                  update(
+                    (current) =>
+                      withLayoutTokens(
+                        current,
+                        setLayoutReference(
+                          current?.layout ?? defaultLayoutTokens(),
+                          tokenId,
+                          frame.id,
+                          step,
+                        ),
                       ),
-                    ),
-                  /* Made on this page, whatever it changed: an undo returns here. */
-                  { origin: { path: "/preview" } },
-                )
-              }
-            />
-          ) : null}
-        </PreviewSite>
+                    /* Made on this page, whatever it changed: an undo returns here. */
+                    { origin: { path: "/preview" } },
+                  )
+                }
+              />
+            ) : null}
+            {inspecting ? (
+              <PreviewSelectionBox
+                canvasRef={canvasRef}
+                id={inspecting.id}
+                isBand={inspecting.source === "section"}
+              />
+            ) : null}
+          </PreviewSite>
+        </PreviewStylesProvider>
       }
       device={frame}
       devices={devices}
+      inspector={isPhone ? undefined : <PreviewInspectPanel {...panelProps} />}
+      isInspectorOpen={isInspectorOpen}
+      onInspectorOpenChange={setIsInspectorOpen}
       mode={mode}
       onDeviceChange={onDeviceChange}
       showSpacing={showSpacing}
       onResetToDefault={resetAllToDefault}
       onShowSpacingChange={setShowSpacing}
     >
-      <PreviewInspector
-        block={inspectedBlock}
-        defaultBlock={defaultBlock}
-        isOpen={slotSource !== null && inspectedBlock !== null}
-        slotId={
-          inspecting?.source === "section" ? null : (inspecting?.id ?? null)
-        }
-        system={system}
-        tokenColors={tokenColors}
-        tokens={tokens}
-        onApplyToGroup={() => {
-          if (!slotSource || !inspecting || inspecting.source === "section") {
-            return;
-          }
-          patchDocument(slotSource, (document) =>
-            applyStyleToGroup(document, inspecting.id),
-          );
-        }}
-        onApplyToAllButtons={() => {
-          const roleId = inspectedBlock?.roleId;
-          if (!roleId) return;
-          /* The shell's sign-up and the landing buttons live in two
-             documents; both take the role. */
-          patchDocument("landing", (document) =>
-            applyRoleToButtons(document, roleId),
-          );
-          patchDocument("shell", (document) =>
-            applyRoleToButtons(document, roleId),
-          );
-        }}
-        onColorChange={(colorTokenId) => {
-          if (!slotSource || !inspecting || inspecting.source === "section") {
-            return;
-          }
-          patchDocument(slotSource, (document) =>
-            applyColorToBlocks(document, [inspecting.id], colorTokenId),
-          );
-        }}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) setInspecting(null);
-        }}
-        onResetToDefault={resetSlotToDefault}
-        onRoleChange={(roleId) => patchSlot((block) => ({ ...block, roleId }))}
-        onTextChange={(text) => patchSlot((block) => ({ ...block, text }))}
-      />
-      <PreviewSectionInspector
-        error={sectionError}
-        fill={inspectedSection?.fill ?? null}
-        isOpen={inspecting?.source === "section"}
-        sectionId={inspecting?.source === "section" ? inspecting.id : null}
-        tokenColors={tokenColors}
-        tokens={tokens}
-        onOpenChange={(isOpen) => {
-          if (!isOpen) {
+      {isPhone ? (
+        <Sheet
+          isOpen={inspecting !== null}
+          label="Inspect"
+          padding="flush"
+          onClose={() => {
             setInspecting(null);
-            setSectionError(null);
-          }
-        }}
-        onResetToDefault={resetSectionToDefault}
-        onTokenChange={(tokenId) => {
-          if (inspecting?.source !== "section") return;
-          const current = previewSection(sections, inspecting.id)?.fill;
-          if (current?.kind === "image") {
-            patchSectionFill(inspecting.id, {
-              ...current,
-              fallbackTokenId: tokenId,
-            });
-            return;
-          }
-          patchSectionFill(inspecting.id, { kind: "token", tokenId });
-        }}
-      />
+          }}
+        >
+          <PreviewInspectPanel {...panelProps} isInSheet />
+        </Sheet>
+      ) : null}
     </PreviewChrome>
   );
 }
