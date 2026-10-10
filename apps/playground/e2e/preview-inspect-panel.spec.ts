@@ -696,6 +696,120 @@ test.describe("The outline keeps to what it outlines", () => {
   });
 });
 
+test.describe("The outline follows what it outlines", () => {
+  const nav = (page: Page, n: number) =>
+    page.locator(`[data-preview-slot="shell-nav-${n}"]`);
+
+  /** The outline and the element, one over the other. */
+  const gap = async (page: Page, target: Locator) => {
+    const outline = (await page
+      .getByTestId("preview-selection")
+      .boundingBox())!;
+    const box = (await target.boundingBox())!;
+    return {
+      x: Math.abs(outline.x - box.x),
+      y: Math.abs(outline.y - box.y),
+      w: Math.abs(outline.width - box.width),
+      h: Math.abs(outline.height - box.height),
+    };
+  };
+
+  const follows = async (page: Page, target: Locator) => {
+    await expect
+      .poll(async () => {
+        const g = await gap(page, target);
+        return Math.max(g.x, g.y, g.w, g.h);
+      })
+      .toBeLessThan(1.5);
+  };
+
+  test("a text, as its copy is rewritten and wraps", async ({ page }) => {
+    await openPreview(page);
+    const link = nav(page, 1);
+    await link.click();
+    await follows(page, link);
+
+    const copy = panel(page).getByRole("textbox", { name: "Copy" });
+    await copy.fill("Home sweet home and then some");
+    await follows(page, link);
+    const wide = (await link.boundingBox())!.width;
+
+    await copy.fill("Hi");
+    await follows(page, link);
+    expect((await link.boundingBox())!.width).toBeLessThan(wide);
+  });
+
+  test("a text, as its type role changes size", async ({ page }) => {
+    await openPreview(page);
+    const title = heroTitle(page);
+    await title.click();
+    await follows(page, title);
+    const before = (await title.boundingBox())!;
+
+    await panel(page).getByRole("button", { name: "Type role" }).click();
+    await page.getByRole("option").filter({ hasText: /^h3/ }).first().click();
+    await expect
+      .poll(async () => (await title.boundingBox())!.height)
+      .not.toBe(before.height);
+    await follows(page, title);
+  });
+
+  test("an inline text, which no size observer is told of", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const link = nav(page, 1);
+    await link.click();
+    await link.evaluate((node) => {
+      node.style.display = "inline";
+    });
+    await link.evaluate((node) => {
+      node.style.fontSize = "28px";
+    });
+    await follows(page, link);
+  });
+
+  test("an element drawn anew in its place, as React does on a remount", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const link = nav(page, 1);
+    await link.click();
+    await follows(page, link);
+
+    /* The node the outline was watching is swapped for a fresh one, bigger. */
+    await link.evaluate((node) => {
+      const fresh = node.cloneNode(true) as HTMLElement;
+      fresh.style.fontSize = "30px";
+      node.replaceWith(fresh);
+    });
+    await expect
+      .poll(async () => (await nav(page, 1).boundingBox())!.height)
+      .toBeGreaterThan(25);
+    await follows(page, nav(page, 1));
+  });
+
+  test("an element only pushed along by a neighbour that grew", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const link = nav(page, 3);
+    await link.click();
+    await follows(page, link);
+    const before = (await link.boundingBox())!;
+
+    /* The first link takes more room: this one moves and does not resize. */
+    await nav(page, 1).evaluate((node) => {
+      node.style.display = "inline-block";
+      node.style.width = "320px";
+    });
+    await expect
+      .poll(async () => (await link.boundingBox())!.x)
+      .not.toBe(before.x);
+    await follows(page, link);
+  });
+});
+
 test.describe("Card groups and plans", () => {
   const cards = (page: Page, id: string) =>
     page.locator(`[data-preview-slot="${id}"]`);

@@ -10,6 +10,22 @@ interface Box {
   height: number;
 }
 
+/** Whether two sets of boxes are one: to a hundredth of a pixel. */
+function sameBoxes(a: readonly Box[], b: readonly Box[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every((box, index) => {
+      const other = b[index]!;
+      return (
+        Math.abs(box.left - other.left) < 0.01 &&
+        Math.abs(box.top - other.top) < 0.01 &&
+        Math.abs(box.width - other.width) < 0.01 &&
+        Math.abs(box.height - other.height) < 0.01
+      );
+    })
+  );
+}
+
 /**
  * The selected element's outline, with a handle at each corner and its size.
  * A group of cards has one outline for each card.
@@ -17,14 +33,17 @@ interface Box {
  * Boxes over the page, in the page's own scrolling content, so each moves with
  * its element as the page scrolls and no overflow on an ancestor can clip it.
  * The page is a scroller, so a position is the element's rectangle less the
- * page's, plus how far the page has scrolled. Measured again when the page or
- * an element changes size, which is what a new padding or a new line of copy
- * does, and when the page scrolls, since a sticky element, the nav, does not
- * move with the content and its place in it changes.
+ * page's, plus how far the page has scrolled.
  *
- * Sizes are watched as border boxes. The default is the content box, and a
- * padding added to a button of automatic width grows its border box and leaves
- * its content box alone, so an outline watching the content never heard of it.
+ * Measured on every frame, not on an event. Whatever an element's size or
+ * place turns on, a different size of type, a line of copy that wraps, a font
+ * that has just loaded, a neighbour that grew and pushed it along, a colour
+ * that eases while its padding changes, a sticky nav that holds its place as
+ * the page scrolls, can be missed by a watcher of one kind: a ResizeObserver
+ * is told nothing of an inline text, nor of an element that only moved. The
+ * elements are looked up again each frame too, so one that React has drawn
+ * anew is followed and not the one it replaced. A frame in which nothing
+ * moved sets nothing, so a still page costs a few rectangle reads.
  *
  * Laid over the page and passing clicks through, as the spacing overlay is,
  * and above the sticky nav, which would otherwise draw over its own outline.
@@ -42,45 +61,38 @@ export function PreviewSelectionBox({
   const [boxes, setBoxes] = useState<Box[]>([]);
 
   useLayoutEffect(() => {
-    const site = canvasRef.current;
-    const targets = site
-      ? [
-          ...site.querySelectorAll<HTMLElement>(
-            isBand
-              ? `[data-preview-section="${id}"]`
-              : `[data-preview-slot="${id}"]`,
-          ),
-        ]
-      : [];
-    if (!site || targets.length === 0) {
-      setBoxes([]);
-      return;
-    }
+    const selector = isBand
+      ? `[data-preview-section="${id}"]`
+      : `[data-preview-slot="${id}"]`;
+    let last: Box[] = [];
+
     const measure = () => {
-      const outer = site.getBoundingClientRect();
-      setBoxes(
-        targets.map((target) => {
-          const inner = target.getBoundingClientRect();
-          return {
-            left: inner.left - outer.left + site.scrollLeft,
-            top: inner.top - outer.top + site.scrollTop,
-            width: inner.width,
-            height: inner.height,
-          };
-        }),
-      );
+      const site = canvasRef.current;
+      const targets = site
+        ? [...site.querySelectorAll<HTMLElement>(selector)]
+        : [];
+      const outer = site?.getBoundingClientRect();
+      const next = targets.map((target): Box => {
+        const inner = target.getBoundingClientRect();
+        return {
+          left: inner.left - outer!.left + site!.scrollLeft,
+          top: inner.top - outer!.top + site!.scrollTop,
+          width: inner.width,
+          height: inner.height,
+        };
+      });
+      if (!sameBoxes(last, next)) {
+        last = next;
+        setBoxes(next);
+      }
     };
+
     measure();
-    const observer = new ResizeObserver(measure);
-    observer.observe(site);
-    for (const target of targets) {
-      observer.observe(target, { box: "border-box" });
-    }
-    site.addEventListener("scroll", measure, { passive: true });
-    return () => {
-      observer.disconnect();
-      site.removeEventListener("scroll", measure);
-    };
+    let frame = requestAnimationFrame(function tick() {
+      measure();
+      frame = requestAnimationFrame(tick);
+    });
+    return () => cancelAnimationFrame(frame);
   }, [canvasRef, id, isBand]);
 
   return (
