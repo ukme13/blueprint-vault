@@ -64,6 +64,11 @@ export interface PreviewSlotStyle {
   radius?: Partial<Record<PreviewRadiusCorner, string>>;
   /** A semantic token id: what a button is filled with. */
   fill?: string;
+  /**
+   * A semantic token id: the colour of a button's label. Absent, the label
+   * takes the one that reads on its fill.
+   */
+  labelColor?: string;
   stroke?: PreviewStroke;
   /** An elevation level id. */
   shadow?: string;
@@ -132,6 +137,7 @@ export type PreviewInspectField =
   | "opacity"
   | "radius"
   | "fill"
+  | "labelColor"
   | "stroke"
   | "effects";
 
@@ -155,6 +161,7 @@ export const PREVIEW_INSPECT_FIELDS: Record<
     "padding",
     "radius",
     "fill",
+    "labelColor",
     "stroke",
     "effects",
   ],
@@ -228,6 +235,7 @@ function readSlotStyle(value: unknown): PreviewSlotStyle | null {
   }
 
   if (isId(raw.fill)) style.fill = raw.fill;
+  if (isId(raw.labelColor)) style.labelColor = raw.labelColor;
   const stroke = readStroke(raw.stroke);
   if (stroke) style.stroke = stroke;
   if (isId(raw.shadow)) style.shadow = raw.shadow;
@@ -386,6 +394,25 @@ export function previewButtonLabelToken(
   return "fg.primary";
 }
 
+/**
+ * The label token a button is drawn with once it has a fill or a colour of its
+ * own choosing, and whether that was chosen or derived. Nothing when neither
+ * is set: the page draws the label as it always did.
+ */
+export function previewButtonLabelOf(
+  style: PreviewSlotStyle,
+  tokens: readonly SemanticToken[],
+): { tokenId: string; isChosen: boolean } | null {
+  if (style.labelColor) return { tokenId: style.labelColor, isChosen: true };
+  if (style.fill) {
+    return {
+      tokenId: previewButtonLabelToken(style.fill, tokens),
+      isChosen: false,
+    };
+  }
+  return null;
+}
+
 /** CSS properties, camel-cased as React takes them. */
 export type PreviewStyleDeclarations = Record<string, string | number>;
 
@@ -456,6 +483,12 @@ export function previewStyleDeclarations(
         previewButtonLabelToken(style.fill, tokens),
       )})`;
     }
+  }
+
+  /* A label colour of its own is the person's and wins over the one derived
+     from the fill. */
+  if (kind === "button" && style.labelColor) {
+    out.color = `var(${semanticVariableName(style.labelColor)})`;
   }
 
   const shadows = [

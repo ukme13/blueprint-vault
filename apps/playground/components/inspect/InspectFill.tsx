@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  previewButtonLabelOf,
   PREVIEW_FILL_TOKEN_GROUPS,
   PREVIEW_TEXT_COLOR_GROUPS,
   type PreviewSectionFill,
@@ -104,6 +105,65 @@ export function FillSection({
           }
         />
       </div>
+      {kind === "button" ? (
+        <LabelColour
+          options={textOptions}
+          style={style}
+          tokenColors={tokenColors}
+          tokens={tokens}
+          onStyleChange={onStyleChange}
+        />
+      ) : null}
     </InspectSection>
+  );
+}
+
+/**
+ * A button's label colour. Left alone it follows the fill, and says so; set,
+ * it is the token chosen, and removing it hands the label back to the fill.
+ */
+function LabelColour({
+  style,
+  tokens,
+  tokenColors,
+  options,
+  onStyleChange,
+}: Pick<
+  StyleSectionProps,
+  "style" | "tokens" | "tokenColors" | "onStyleChange"
+> & {
+  options: ReturnType<typeof useTokenOptions>;
+}) {
+  const label = previewButtonLabelOf(style, tokens);
+  const shown = label ? tokenDisplay(tokens, tokenColors, label.tokenId) : null;
+  return (
+    <div className={styles.item}>
+      <TokenSelect
+        clearLabel="Auto"
+        display={
+          shown && label && !label.isChosen
+            ? {
+                ...shown,
+                text: (
+                  <>
+                    Auto <small>{shown.text}</small>
+                  </>
+                ),
+              }
+            : shown
+        }
+        hasSearch
+        label="Label colour"
+        options={options}
+        placeholder="Auto"
+        value={style.labelColor}
+        onChange={(next) => onStyleChange({ ...style, labelColor: next })}
+      />
+      <RemoveButton
+        isDisabled={style.labelColor === undefined}
+        label="Remove label colour"
+        onClick={() => onStyleChange({ ...style, labelColor: undefined })}
+      />
+    </div>
   );
 }

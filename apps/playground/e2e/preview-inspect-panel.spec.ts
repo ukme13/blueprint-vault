@@ -808,6 +808,119 @@ test.describe("The featured plan", () => {
   });
 });
 
+test.describe("A button's label colour", () => {
+  /* A button's colours ease from one to the next: read once they have stopped. */
+  const settled = async (button: Locator, property: string) => {
+    let last = await style(button, property);
+    for (let tries = 0; tries < 20; tries += 1) {
+      await button.page().waitForTimeout(150);
+      const now = await style(button, property);
+      if (now === last) return now;
+      last = now;
+    }
+    return last;
+  };
+
+  const labelColour = (page: Page) =>
+    section(page, "Fill").getByRole("button", {
+      name: "Label colour",
+      exact: true,
+    });
+
+  test("is offered to a button, and to nothing else", async ({ page }) => {
+    await openPreview(page);
+    await heroTitle(page).click();
+    await expect(labelColour(page)).toHaveCount(0);
+    await selectHeroBand(page);
+    await expect(labelColour(page)).toHaveCount(0);
+
+    await seeThePreview(page).click();
+    await expect(labelColour(page)).toBeVisible();
+    /* Nothing chosen: it says it follows the fill, and has nothing to remove. */
+    await expect(labelColour(page)).toContainText("Auto");
+    await expect(
+      section(page, "Fill").getByRole("button", {
+        name: "Remove label colour",
+      }),
+    ).toBeDisabled();
+  });
+
+  test("follows the fill until one is chosen, then is that, and goes back when removed", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const button = seeThePreview(page);
+    await button.click();
+
+    await choose(section(page, "Fill"), page, "Fill", "Action primary");
+    await expect
+      .poll(() => style(button, "background-color"))
+      .not.toBe("rgba(0, 0, 0, 0)");
+    const derived = await settled(button, "color");
+    await expect(labelColour(page)).toContainText("Auto");
+
+    /* A token of its own choosing wins over the derived one. */
+    await labelColour(page).click();
+    await page.getByRole("option").nth(3).click();
+    await expect.poll(() => style(button, "color")).not.toBe(derived);
+    const chosen = await settled(button, "color");
+    await expect(labelColour(page)).not.toContainText("Auto");
+    /* The fill is untouched by it. */
+    expect(await style(button, "background-color")).not.toBe(
+      "rgba(0, 0, 0, 0)",
+    );
+
+    /* Saved as a reference, beside the fill. */
+    const saved = Object.values(
+      (await readStoredWorkspace(page))?.typography?.previewStyles ?? {},
+    ) as { fill?: string; labelColor?: string }[];
+    expect(saved).toHaveLength(1);
+    expect(saved[0]!.fill).toBe("action.primary");
+    expect(saved[0]!.labelColor).toMatch(/^[a-z]+\.[\w-]+$/);
+
+    /* Undone, it is the derived one again; redone, the chosen. */
+    await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+    await page.keyboard.press("Control+z");
+    await expect.poll(() => style(button, "color")).toBe(derived);
+    await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+    await page.keyboard.press("ControlOrMeta+Shift+z");
+    await expect.poll(() => style(button, "color")).toBe(chosen);
+
+    /* Removed, the label is handed back to the fill. */
+    await section(page, "Fill")
+      .getByRole("button", { name: "Remove label colour" })
+      .click();
+    await expect.poll(() => style(button, "color")).toBe(derived);
+    expect(
+      Object.values(
+        (await readStoredWorkspace(page))?.typography?.previewStyles ?? {},
+      ),
+    ).toEqual([{ fill: "action.primary" }]);
+  });
+
+  test("can be set with no fill, and Reset puts the label back", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const button = seeThePreview(page);
+    const before = await style(button, "color");
+    const ground = await style(button, "background-color");
+    await button.click();
+
+    await labelColour(page).click();
+    await page.getByRole("option").nth(3).click();
+    await expect.poll(() => style(button, "color")).not.toBe(before);
+    /* Only the label moved; the button's own ground is as it was. */
+    expect(await style(button, "background-color")).toBe(ground);
+
+    await panel(page).getByRole("button", { name: "Reset to default" }).click();
+    await expect.poll(() => style(button, "color")).toBe(before);
+    expect(
+      (await readStoredWorkspace(page))?.typography?.previewStyles,
+    ).toBeUndefined();
+  });
+});
+
 test.describe("The copy field's label", () => {
   test("is as small as the other labels, and the field is still named Copy", async ({
     page,

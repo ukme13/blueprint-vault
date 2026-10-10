@@ -6,6 +6,7 @@ import {
   PREVIEW_CARD_IDS,
   PREVIEW_CARD_LABEL,
   PREVIEW_INSPECT_FIELDS,
+  previewButtonLabelOf,
   previewButtonLabelToken,
   previewInspectKind,
   previewInspectOffers,
@@ -75,6 +76,7 @@ describe("what kind of element an id is", () => {
       "padding",
       "radius",
       "fill",
+      "labelColor",
       "stroke",
       "effects",
     ]);
@@ -88,6 +90,10 @@ describe("what kind of element an id is", () => {
       "stroke",
       "effects",
     ]);
+    expect(previewInspectOffers("button", "labelColor")).toBe(true);
+    for (const kind of ["text", "band", "card"] as const) {
+      expect(previewInspectOffers(kind, "labelColor")).toBe(false);
+    }
     expect(previewInspectOffers("button", "gap")).toBe(false);
     expect(previewInspectOffers("button", "opacity")).toBe(false);
     expect(previewInspectOffers("band", "typography")).toBe(false);
@@ -112,8 +118,18 @@ describe("readPreviewStyles", () => {
         stroke: { tokenId: "border.default", position: "outside", weight: 2 },
         shadow: "low",
       },
+      "landing-hero-cta": { fill: "action.primary", labelColor: "fg.primary" },
     };
     expect(readPreviewStyles(stored)).toEqual(stored);
+  });
+
+  it("drops a label colour that is not an id", () => {
+    expect(
+      readPreviewStyles({
+        a: { labelColor: 3, opacity: 40 },
+        b: { labelColor: "" },
+      }),
+    ).toEqual({ a: { opacity: 40 } });
   });
 
   it("drops what cannot be read, and an element left with nothing", () => {
@@ -277,6 +293,53 @@ describe("previewStyleDeclarations", () => {
     );
     expect(declared.backgroundColor).toBe("var(--color-action-primary)");
     expect(declared.color).toBe("var(--color-fg-on-action)");
+  });
+
+  it("labels a button with a colour of its own over the one its fill gives", () => {
+    const chosen = previewStyleDeclarations(
+      { fill: "action.primary", labelColor: "fg.primary" },
+      [],
+      "button",
+    );
+    expect(chosen.backgroundColor).toBe("var(--color-action-primary)");
+    expect(chosen.color).toBe("var(--color-fg-primary)");
+
+    /* With no fill the label is the only thing set. */
+    expect(
+      previewStyleDeclarations({ labelColor: "fg.secondary" }, [], "button"),
+    ).toEqual({ color: "var(--color-fg-secondary)" });
+
+    /* Taken away, the label is derived from the fill again. */
+    const { labelColor, ...rest } = {
+      fill: "action.primary",
+      labelColor: "fg.primary",
+    };
+    void labelColor;
+    expect(previewStyleDeclarations(rest, [], "button").color).toBe(
+      "var(--color-fg-on-action)",
+    );
+  });
+
+  it("draws a label colour only on a button", () => {
+    for (const kind of ["text", "band", "card"] as const) {
+      expect(
+        previewStyleDeclarations({ labelColor: "fg.primary" }, [], kind),
+      ).toEqual({});
+    }
+  });
+
+  it("says which label a button has, and whether it was chosen", () => {
+    expect(previewButtonLabelOf({}, [])).toBeNull();
+    expect(previewButtonLabelOf({ fill: "action.primary" }, [])).toEqual({
+      tokenId: "fg.on-action",
+      isChosen: false,
+    });
+    expect(
+      previewButtonLabelOf(
+        { fill: "action.primary", labelColor: "fg.primary" },
+        [],
+      ),
+    ).toEqual({ tokenId: "fg.primary", isChosen: true });
   });
 
   it("fills a card with its token and leaves its copy's colour alone", () => {
