@@ -139,6 +139,8 @@
   --color-info-850: #000C1D;
   --color-info-900: #00030D;
   --color-info-950: #000003;
+  --color-white: #FFFFFF; /* static */
+  --color-black: #000000; /* static */
 }
 
 :root {

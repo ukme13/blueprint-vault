@@ -1,3 +1,4 @@
+import { isStaticTrackId, staticColourAt } from "./static-colours";
 import { describe, expect, it } from "vitest";
 import { generatePalettes } from "./palette";
 import {
@@ -82,11 +83,14 @@ describe("seedSemanticTokens", () => {
 
       for (const token of tokens) {
         const resolved = resolveSemantic(token, "light", tracks)!;
-        const track = tracks.find((each) => each.id === resolved.trackId)!;
-        expect(
-          track.shades.some((shade) => shade.weight === resolved.weight),
-          `${token.id} at ${count} shades`,
-        ).toBe(true);
+        /* A palette shade, or white or black: the static primitives are in no
+           track, and a label that needs them points at them. */
+        const holds = isStaticTrackId(resolved.trackId)
+          ? staticColourAt(resolved.weight) !== undefined
+          : tracks
+              .find((each) => each.id === resolved.trackId)!
+              .shades.some((shade) => shade.weight === resolved.weight);
+        expect(holds, `${token.id} at ${count} shades`).toBe(true);
         expect(resolved.missing, token.id).toBeNull();
       }
     },
@@ -258,7 +262,13 @@ describe("resolveSemantic", () => {
     const tracks = fullPalette();
     const tokens = seedSemanticTokens(tracks);
     expect(resolveSemantics(tokens, "dark", tracks)).toHaveLength(73);
-    expect(resolveSemantics(tokens, "dark", [])).toEqual([]);
+    /* With no palette only the references to white and black resolve: they
+       are in no track, so there is nothing for them to be missing from. */
+    const withoutTracks = resolveSemantics(tokens, "dark", []);
+    expect(withoutTracks.every((each) => isStaticTrackId(each.trackId))).toBe(
+      true,
+    );
+    expect(withoutTracks.length).toBeLessThan(tokens.length);
   });
 });
 

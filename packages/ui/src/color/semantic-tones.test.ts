@@ -229,7 +229,9 @@ describe("generateToneFamily", () => {
     expect(family[0]!.light).toEqual({ trackId: "info", weight: 350 });
     expect(family[0]!.dark).toEqual({ trackId: "info", weight: 300 });
     /* The label is on neutral, measured against the fill. */
-    expect(family.at(-1)!.light.trackId).toBe("neutral");
+    /* Its own track's end where that reads, or white or black where it does
+       not: a label is never on the fill's track. */
+    expect(["neutral", "static"]).toContain(family.at(-1)!.light.trackId);
   });
 
   it("takes a base weight over the source", () => {

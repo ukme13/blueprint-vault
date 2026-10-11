@@ -5,6 +5,7 @@ import {
   type ColourMode,
   type SemanticToken,
 } from "./semantic";
+import { isStaticTrackId, staticColourAt } from "./static-colours";
 import type { ColorTrack } from "./types";
 
 /**
@@ -82,6 +83,18 @@ export function resolveSandboxColour(
   mode: ColourMode,
 ): ResolvedSandboxColour | null {
   if (colour.kind === "primitive") {
+    /* White and black are primitives that are in no track. */
+    if (isStaticTrackId(colour.trackId)) {
+      const fixed = staticColourAt(colour.weight);
+      return fixed
+        ? {
+            hex: fixed.hex,
+            name: fixed.label,
+            trackId: colour.trackId,
+            weight: fixed.weight,
+          }
+        : null;
+    }
     const track = tracks.find((each) => each.id === colour.trackId);
     const shade = track?.shades.find((each) => each.weight === colour.weight);
     return track && shade
