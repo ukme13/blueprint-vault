@@ -14,6 +14,7 @@ import {
   RemoveButton,
   tokenDisplay,
   useTokenOptions,
+  VisibilityButton,
   type StyleSectionProps,
 } from "./inspect-shared";
 import styles from "./inspect-panel.module.css";
@@ -51,40 +52,44 @@ export function StrokeSection({
   const stroke: PreviewStroke | undefined =
     style.stroke === null ? undefined : (style.stroke ?? native.stroke);
 
+  /* Changing what is hidden shows it: what is edited is what is seen. */
   const change = (next: Partial<PreviewStroke>) =>
-    stroke && onStyleChange({ ...style, stroke: { ...stroke, ...next } });
+    stroke &&
+    onStyleChange({
+      ...style,
+      stroke: { ...stroke, ...next },
+      isStrokeHidden: undefined,
+    });
+
+  const addStroke = () =>
+    onStyleChange({
+      ...style,
+      stroke: {
+        tokenId: native.stroke?.tokenId ?? firstBorder?.id ?? "border.default",
+        position: "inside",
+        weight: 1,
+        ...(native.stroke?.side ? { side: native.stroke.side } : {}),
+      },
+      isStrokeHidden: undefined,
+    });
 
   if (!stroke) {
     return (
       <InspectSection
-        action={
-          <AddButton
-            label="Add stroke"
-            onClick={() =>
-              onStyleChange({
-                ...style,
-                stroke: {
-                  tokenId:
-                    native.stroke?.tokenId ??
-                    firstBorder?.id ??
-                    "border.default",
-                  position: "inside",
-                  weight: 1,
-                  ...(native.stroke?.side ? { side: native.stroke.side } : {}),
-                },
-              })
-            }
-          />
-        }
+        action={<AddButton label="Add stroke" onClick={addStroke} />}
         isEmpty
         title="Stroke"
+        onAdd={addStroke}
       />
     );
   }
 
   return (
     <InspectSection title="Stroke">
-      <div className={styles.item}>
+      <div
+        className={styles.item}
+        data-hidden={style.isStrokeHidden || undefined}
+      >
         <TokenSelect
           display={tokenDisplay(tokens, tokenColors, stroke.tokenId)}
           hasSearch
@@ -93,11 +98,22 @@ export function StrokeSection({
           value={stroke.tokenId}
           onChange={(next) => next && change({ tokenId: next })}
         />
+        <VisibilityButton
+          isHidden={style.isStrokeHidden === true}
+          noun="stroke"
+          onClick={() =>
+            onStyleChange({
+              ...style,
+              isStrokeHidden: style.isStrokeHidden ? undefined : true,
+            })
+          }
+        />
         <RemoveButton
           label="Remove stroke"
           onClick={() =>
             onStyleChange({
               ...style,
+              isStrokeHidden: undefined,
               /* Where the page draws an edge of its own, none is a choice to
                  keep; where it does not, it is only the absence. */
               stroke: native.stroke ? null : undefined,

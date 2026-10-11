@@ -145,21 +145,24 @@ export function previewStyleDeclarations(
 
   /* An edge on one side alone is a border of that side; all the way round it
      is a shadow, so it can sit inside, outside or on the edge. */
-  const { stroke } = style;
+  /* A closed eye draws what taking it away would: nothing, and the edge the
+     page had gives way too. What was chosen stays in the style. */
+  const stroke = style.isStrokeHidden ? null : style.stroke;
+  const shadow = style.isShadowHidden ? null : style.shadow;
   const ringed = stroke && !stroke.side ? strokeShadow(stroke) : [];
   const shadows = [
     ...ringed,
-    ...(typeof style.shadow === "string"
-      ? [`var(${elevationVariableName(style.shadow)})`]
+    ...(typeof shadow === "string"
+      ? [`var(${elevationVariableName(shadow)})`]
       : []),
     /* With an edge drawn as a shadow, the shadow the element already had must
        be said too, or it is lost: the library keeps it in a variable. */
-    ...(style.shadow === undefined && native.hasShadow && ringed.length > 0
+    ...(shadow === undefined && native.hasShadow && ringed.length > 0
       ? ["var(--tw-shadow, 0 0 #0000)"]
       : []),
   ];
   if (shadows.length > 0) out.boxShadow = shadows.join(", ");
-  else if (style.shadow === null) out.boxShadow = "none";
+  else if (shadow === null) out.boxShadow = "none";
 
   /* A stroke, or the taking away of one, is the element's edge, so the edge it
      already has gives way: an outlined button, a card and a section keep a

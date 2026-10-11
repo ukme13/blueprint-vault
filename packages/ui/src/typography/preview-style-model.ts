@@ -82,6 +82,13 @@ export interface PreviewSlotStyle {
   stroke?: PreviewStroke | null;
   /** An elevation level id. Absent, the element's own; `null`, none. */
   shadow?: string | null;
+  /**
+   * The edge is kept and not drawn: the person's eye, closed, to see the
+   * element with and without it. Whatever the edge is, chosen or the page's own.
+   */
+  isStrokeHidden?: boolean;
+  /** The shadow is kept and not drawn, as the edge can be. */
+  isShadowHidden?: boolean;
 }
 
 export type PreviewStyles = Record<string, PreviewSlotStyle>;

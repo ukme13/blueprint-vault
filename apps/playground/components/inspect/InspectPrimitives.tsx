@@ -12,6 +12,7 @@ export function InspectSection({
   title,
   action,
   isEmpty = false,
+  onAdd,
   children,
 }: {
   title: string;
@@ -19,15 +20,34 @@ export function InspectSection({
   action?: ReactNode;
   /** Nothing set yet: only the heading, with its Plus. */
   isEmpty?: boolean;
+  /**
+   * What adding does. While the section is empty the whole heading does it, so
+   * the target is the row and not only the Plus; the Plus stays the one a
+   * keyboard reaches.
+   */
+  onAdd?: () => void;
   children?: ReactNode;
 }) {
+  const canAdd = isEmpty && onAdd !== undefined;
   return (
     <section
       aria-label={title}
       className={styles.section}
       data-empty={isEmpty || undefined}
     >
-      <header className={styles.sectionHead}>
+      <header
+        className={styles.sectionHead}
+        data-addable={canAdd || undefined}
+        onClick={
+          canAdd
+            ? (event) => {
+                /* The Plus has its own press. */
+                if ((event.target as HTMLElement).closest("button")) return;
+                onAdd();
+              }
+            : undefined
+        }
+      >
         <h3>{title}</h3>
         {action}
       </header>

@@ -220,3 +220,90 @@ describe("what a chip and a divider offer", () => {
     expect(PREVIEW_INSPECT_FIELDS.divider).toEqual(["padding", "stroke"]);
   });
 });
+
+describe("a closed eye on an edge or a shadow", () => {
+  const edge = {
+    tokenId: "border.default",
+    position: "inside",
+    weight: 2,
+  } as const;
+
+  it("is kept when it is closed, and is not when it is open", () => {
+    const stored = { a: { isStrokeHidden: true, isShadowHidden: true } };
+    expect(readPreviewStyles(stored)).toEqual(stored);
+    expect(
+      readPreviewStyles({
+        a: { isStrokeHidden: false, isShadowHidden: "yes", opacity: 40 },
+      }),
+    ).toEqual({ a: { opacity: 40 } });
+    expect(setPreviewStyle(undefined, "a", { isShadowHidden: true })).toEqual({
+      a: { isShadowHidden: true },
+    });
+  });
+
+  it("draws a chosen edge as nothing, and keeps it", () => {
+    const style = { stroke: edge, isStrokeHidden: true } as const;
+    const declared = previewStyleDeclarations(style, [], "card");
+    expect(declared.boxShadow).toBeUndefined();
+    expect(declared).toMatchObject({
+      borderTopWidth: 0,
+      borderRightWidth: 0,
+      borderBottomWidth: 0,
+      borderLeftWidth: 0,
+    });
+    /* Open again, the same edge is drawn. */
+    expect(
+      previewStyleDeclarations({ stroke: edge }, [], "card").boxShadow,
+    ).toBe("inset 0 0 0 2px var(--color-border-default)");
+  });
+
+  it("draws the edge the page had as nothing too", () => {
+    const declared = previewStyleDeclarations(
+      { isStrokeHidden: true },
+      [],
+      "button",
+      { stroke: edge },
+    );
+    expect(declared).toMatchObject({ borderTopWidth: 0, borderLeftWidth: 0 });
+    expect(declared.boxShadow).toBeUndefined();
+  });
+
+  it("draws an edge on one side as no border of that side", () => {
+    const declared = previewStyleDeclarations(
+      { stroke: { ...edge, side: "top" }, isStrokeHidden: true },
+      [],
+      "divider",
+    );
+    expect(declared).toMatchObject({ borderTopWidth: 0, borderBottomWidth: 0 });
+    expect(declared).not.toHaveProperty("borderTopStyle");
+  });
+
+  it("draws a chosen shadow as none, and leaves the edge", () => {
+    const declared = previewStyleDeclarations(
+      { stroke: edge, shadow: "low", isShadowHidden: true },
+      [],
+      "button",
+      { hasShadow: true },
+    );
+    expect(declared.boxShadow).toBe(
+      "inset 0 0 0 2px var(--color-border-default)",
+    );
+  });
+
+  it("draws the shadow the page had as none", () => {
+    expect(
+      previewStyleDeclarations({ isShadowHidden: true }, [], "button", {
+        hasShadow: true,
+      }).boxShadow,
+    ).toBe("none");
+  });
+
+  it("hides the one and not the other", () => {
+    const declared = previewStyleDeclarations(
+      { stroke: edge, shadow: "low", isStrokeHidden: true },
+      [],
+      "card",
+    );
+    expect(declared.boxShadow).toBe("var(--shadow-low)");
+  });
+});

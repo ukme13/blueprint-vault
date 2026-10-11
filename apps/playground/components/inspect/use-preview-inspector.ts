@@ -207,11 +207,21 @@ export function usePreviewInspector({
     },
   };
 
-  /** A press on the page picks what was pressed, and shows the panel. */
-  const select = useCallback((target: InspectTarget) => {
-    setInspecting(target);
-    setIsInspectorOpen(true);
-  }, []);
+  /**
+   * A press on the page picks what was pressed, and shows the panel; a press on
+   * what is already picked lets go of it, as a second press on a switch does.
+   */
+  const select = useCallback(
+    (target: InspectTarget) => {
+      if (inspecting?.source === target.source && inspecting.id === target.id) {
+        setInspecting(null);
+        return;
+      }
+      setInspecting(target);
+      setIsInspectorOpen(true);
+    },
+    [inspecting],
+  );
 
   const clearSelection = useCallback(() => setInspecting(null), []);
 
