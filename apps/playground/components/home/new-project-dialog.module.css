@@ -290,7 +290,8 @@
      padding, not the scroller's: a scroller's end padding is not scrolled
      to past grid or flex items, which left the last card on the edge. */
   .galleryScroll {
-    container-type: inline-size;
+    /* Never squeezed by the sheet's height: its own content sets it. */
+    flex: none;
     overflow-x: auto;
     overflow-y: hidden;
     padding: var(--spacing-4) 0;
@@ -308,11 +309,15 @@
     padding-inline: var(--spacing-4);
   }
 
-  /* A column and a third in view past the leading space: that width, less
-     the gap, over 4/3. */
+  /* A column and a third in view past the leading space: the sheet's width,
+     less the gap, over 4/3. The sheet is the window's width on a phone, so
+     this reads the window and not a container query: WebKit measures a
+     hugging sheet before a container's size is known, found the cards zero
+     wide, and sized the row to its padding alone, which left the cards
+     spilling out below an empty strip. */
   .presetCard {
     flex: none;
-    width: calc((100cqi - var(--spacing-4) - var(--spacing-3)) * 3 / 4);
+    width: calc((100vw - var(--spacing-4) - var(--spacing-3)) * 3 / 4);
     scroll-snap-align: start;
   }
 
