@@ -1,5 +1,5 @@
 import { APCA_LC, apcaContrast } from "./apca";
-import { contrastRatio } from "./accessibility";
+import { contrastRatio, WCAG_CONTRAST } from "./accessibility";
 import type { ContrastPolarity, ContrastStandard } from "./palette-view";
 
 /**
@@ -51,16 +51,21 @@ export const CONTRAST_STATUS_WORDS: Record<ContrastStatus, string> = {
  * Where the three steps fall.
  *
  * WCAG 2: under 3:1 nothing passes; from 3:1 up it clears large text and
- * graphics but not AAA; at 7:1 it clears AAA, and so AA with it. WCAG 3: under
- * Lc 45 nothing passes; from 45 up it clears UI or large text but not body
- * text; at 75 it clears body text, and the rest with it.
+ * graphics but not normal text; at 4.5:1 it clears AA for normal text, which
+ * is what a swatch is asked to be, so it stops warning there. AAA, at 7:1, is
+ * a stricter grade and not a warning: a swatch that clears AA has nothing to
+ * flag, and the shade's details still grade it AAA or AA. WCAG 3: under Lc 45
+ * nothing passes; from 45 up it clears UI or large text but not body text; at
+ * 75 it clears body text, and the rest with it.
  */
 export function contrastStatus(
   standard: ContrastStandard,
   value: number,
 ): ContrastStatus {
   const [partial, pass] =
-    standard === "wcag3" ? [APCA_LC.uiComponent, APCA_LC.bodyText] : [3, 7];
+    standard === "wcag3"
+      ? [APCA_LC.uiComponent, APCA_LC.bodyText]
+      : [WCAG_CONTRAST.largeTextAA, WCAG_CONTRAST.normalTextAA];
   if (value >= pass) return "pass";
   return value >= partial ? "partial" : "fail";
 }
@@ -113,3 +118,14 @@ export function swatchContrast(
     status,
   };
 }
+
+/**
+ * What a contrast score means, in a sentence, for the tooltip beside it.
+ *
+ * Built from the same constants the grades are judged by, so the sentence
+ * cannot say 4.5 while the grade says something else.
+ */
+export const CONTRAST_SCORE_NOTES: Record<ContrastStandard, string> = {
+  wcag2: `AA requires ${WCAG_CONTRAST.normalTextAA}:1 for normal text (${WCAG_CONTRAST.largeTextAA}:1 for large text & graphics). AAA requires ${WCAG_CONTRAST.normalTextAAA.toFixed(1)}:1.`,
+  wcag3: `Body text requires Lc ${APCA_LC.bodyText}, large text requires Lc ${APCA_LC.largeText}, and UI components require Lc ${APCA_LC.uiComponent}.`,
+};

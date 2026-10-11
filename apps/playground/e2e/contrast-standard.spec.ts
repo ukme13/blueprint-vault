@@ -229,7 +229,7 @@ test.describe("The Contrast tool", () => {
 
     /* Each step reads from the figure on the swatch, under both standards,
        leaving out the few within a tenth of a line where rounding hides it. */
-    const lines = { wcag2: [3, 7], wcag3: [45, 75] } as const;
+    const lines = { wcag2: [3, 4.5], wcag3: [45, 75] } as const;
     for (const which of ["wcag2", "wcag3"] as const) {
       if (which === "wcag3") await standard(page, "WCAG 3").click();
       await expect(swatches.first()).toHaveAttribute(
@@ -414,6 +414,98 @@ test.describe("The Contrast tool", () => {
     await expect(toggle).toHaveText("on");
   });
 
+  test("explains the score beside it, under each standard", async ({
+    seededPage: page,
+  }) => {
+    await contrastButton(page).click();
+    const shade = page.getByRole("button", { name: /Select primary 500,/ });
+    await shade.first().click();
+    const details = page.getByRole("dialog", {
+      name: "primary 500 shade details",
+    });
+
+    const wcag2 = details.getByRole("region", {
+      name: "WCAG 2 contrast result",
+    });
+    const info = wcag2.getByRole("button", {
+      name: "About this contrast score",
+    });
+    /* Right after the ratio, in the same row. */
+    const ratio = (await wcag2.locator("strong").boundingBox())!;
+    const infoBox = (await info.boundingBox())!;
+    expect(infoBox.x).toBeGreaterThanOrEqual(ratio.x + ratio.width - 1);
+    expect(
+      Math.abs(infoBox.y + infoBox.height / 2 - (ratio.y + ratio.height / 2)),
+    ).toBeLessThan(8);
+    const note2 = wcag2.getByText(
+      "AA requires 4.5:1 for normal text (3:1 for large text & graphics). AAA requires 7.0:1.",
+      { exact: true },
+    );
+    await expect(note2).toBeHidden();
+    await info.hover();
+    await expect(note2).toBeVisible();
+
+    await details.getByRole("button", { name: "Close shade details" }).click();
+    await standard(page, "WCAG 3").click();
+    await shade.first().click();
+
+    const wcag3 = details.getByRole("region", {
+      name: "WCAG 3 contrast result",
+    });
+    const apcaInfo = wcag3.getByRole("button", {
+      name: "About this contrast score",
+    });
+    const lc = (await wcag3.locator("strong").boundingBox())!;
+    const apcaBox = (await apcaInfo.boundingBox())!;
+    expect(apcaBox.x).toBeGreaterThanOrEqual(lc.x + lc.width - 1);
+    const note3 = wcag3.getByText(
+      "Body text requires Lc 75, large text requires Lc 60, and UI components require Lc 45.",
+      { exact: true },
+    );
+    await expect(note3).toBeHidden();
+    await apcaInfo.hover();
+    await expect(note3).toBeVisible();
+
+    /* A keyboard reaches it as well: Tab from the swap button lands on it and
+       shows the same sentence. */
+    await page.mouse.move(0, 0);
+    await expect(note3).toBeHidden();
+    await wcag3
+      .getByRole("button", { name: "Swap text and background" })
+      .focus();
+    await page.keyboard.press("Tab");
+    await expect(apcaInfo).toBeFocused();
+    await expect(note3).toBeVisible();
+  });
+
+  test("stops warning on a swatch once it clears AA, and keeps AAA for the details", async ({
+    seededPage: page,
+  }) => {
+    await contrastButton(page).click();
+    const swatches = page.locator("button[data-contrast-status]");
+    const rows = await page
+      .locator("button[data-contrast-ratio]")
+      .evaluateAll((nodes) =>
+        nodes.map((node) => ({
+          value: Number(node.getAttribute("data-contrast-ratio")),
+          status: node.getAttribute("data-contrast-status"),
+        })),
+      );
+    const clearsAaNotAaa = rows.filter(
+      (row) => row.value >= 4.6 && row.value < 6.9,
+    );
+    /* A real palette has swatches between the two, and none of them warns. */
+    expect(clearsAaNotAaa.length).toBeGreaterThan(0);
+    expect(clearsAaNotAaa.every((row) => row.status === "pass")).toBe(true);
+    /* The amber is 3 to 4.5, for large text and graphics only. */
+    const partial = rows.filter((row) => row.status === "partial");
+    expect(partial.length).toBeGreaterThan(0);
+    expect(partial.every((row) => row.value >= 2.9 && row.value < 4.6)).toBe(
+      true,
+    );
+    expect(swatches.first()).toBeDefined();
+  });
+
   test("grades a shade by the standard in force: AA and AAA, or Body, Large and UI", async ({
     seededPage: page,
   }) => {
@@ -443,7 +535,9 @@ test.describe("The Contrast tool", () => {
     await expect(wcag3).toBeVisible();
     await expect(wcag3).toContainText(/Lc -?\d+\.\d/);
     for (const tier of ["Body", "Large", "UI"]) {
-      await expect(wcag3.getByText(tier, { exact: false })).toBeVisible();
+      await expect(
+        wcag3.locator("dt").getByText(tier, { exact: false }),
+      ).toBeVisible();
     }
     await expect(wcag3).toContainText("Lc 75");
     await expect(wcag3).toContainText("Lc 60");
