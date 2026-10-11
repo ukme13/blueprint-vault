@@ -35,6 +35,28 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: readonly ChangelogEntry[] = [
   {
+    date: "2026-10-12",
+    version: "0.4.0",
+    schema: 8,
+    title:
+      "Accessibility Sandbox, Interactive Preview Inspector & APCA Contrast Engine",
+    changes: [
+      "The Accessibility tab opens on a sandbox: a full-bleed hero of a badge, a heading, a paragraph and a button, whose every colour can be picked. A press selects a layer (the background, the badge, the heading, the body or the button) with an outline, corner handles and a size tag such as `320 × 104 · Fill × Hug`. A badge or a button selects its fill first; Ctrl or Cmd click, a double click or Ctrl Enter goes into its text, and Escape lets go.",
+      "A layer takes its colour from two places: a role of the semantic layer, which follows light and dark, or a primitive shade, which does not. A 50px control bar holds the target, the picker with Semantic and Primitive tabs and a search, a 25 to 950 ramp on a wide screen, and a Reset that puts every layer back on the roles the sandbox opened with.",
+      "A card over the hero scores the selected pair as it changes: text on fill and fill on page. Each carries a mark drawn in the pair measured, a bold A for heading text, an a for body and small text and a square for a fill. A WCAG 2 | WCAG 3 toggle on the toolbar chooses the standard, WCAG 2.2 ratios or APCA Lc, and it re-words the hero's score and the whole report below it. A label is held to the line a label has, 4.5:1 or Lc 60, not body text's Lc 75.",
+      "One rule for the figure shown and the figure judged: an Lc is judged as the whole number it shows, and a WCAG 2 ratio is shown cut to its places and never rounded up, so no figure sits beside a verdict that disagrees with it.",
+      "The text colour on a fill is chosen by APCA, not by the WCAG 2 ratio, which leans toward black on a mid-tone. An orange, a purple or a blue now gets white where the ratio would have said black. The seeded label on a fill does the same: when no candidate clears both 4.5:1 and Lc 60, it is the one APCA reads best that still reaches 3:1, so a purple 500 secondary has a white label (Lc 74) and not a black one (Lc 35).",
+      "The Preview page has an inspector: a Figma-style column, 317px wide, beside the page, and a bottom sheet on a phone. Select text, a button, a band, a card, the Popular tag, the newsletter field or the footer divider on the page and the column shows what it is made of. The selection is an outline in the studio's info tone, softened, with its size; pressing what is selected again, or Escape, lets go of it.",
+      "The inspector offers each kind of element what it has: its copy, Auto layout (padding by axis or by side, and the gap of what lays children out), Appearance (radius, for all four corners or each, and opacity), Typography, Fill, Stroke and Effects. Every value is a token, not a free length. A list's Default row says the number the page draws, and the panel starts from what the page is drawn with: an outlined button shows its edge and a contained one its shadow.",
+      "A stroke is drawn as an outline over the border it replaces, inside, centred or outside, so an element is the size it was whether it has an edge or not. An eye beside a stroke and an effect keeps it and stops it drawing, for a before and after.",
+      "A button can be dressed Contained or Outlined in one edit: the action fill with its label and a light shadow, or no fill with plain text, an edge and no shadow. The label is derived from the fill until a label colour of its own is chosen, and Apply type to all buttons carries only the type role across the page.",
+      "Everything the inspector sets is saved with the project, undone with the same Undo as the rest of the studio, and put back by Reset to default.",
+      "White and black are primitives: a reserved static track in no palette, declared as `--color-white` and `--color-black` in every export, with a static group in the Design Tokens. A role can point at them, and the sandbox's Primitive tab opens with them.",
+      "A WCAG 2 swatch stops warning at AA. It is red under 3:1 and amber from 3:1 to 4.5:1, which is large text and graphics only, and AAA is a grade in the shade's details and not a warning. An Info button beside the score says what it is held to.",
+      "A spacing preset can bind layout uses of its own, and the navigation bar has one, `inset-nav-y`, for its vertical padding. A step is a multiple of the base unit, so a preset with an 8px unit used to double the bar: 64px of padding and 48px between links on Spacious / Editorial. The 8pt and Spacious presets now keep the bar at 16px of padding, with 24px and 32px between links.",
+    ],
+  },
+  {
     date: "2026-09-28",
     version: "0.3.0",
     schema: 8,

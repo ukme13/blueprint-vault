@@ -91,6 +91,14 @@ export const INTERNAL_DOCS_ROUTES: readonly DocsRoute[] = [
     audience: "internal",
   },
   {
+    path: "studio/guides/preview",
+    label: "Preview and the inspector",
+    description:
+      "Selecting parts of the Preview page, what each offers, strokes and effects, and dressing a button.",
+    group: "Studio",
+    audience: "internal",
+  },
+  {
     path: "studio/whats-new",
     label: "What's new",
     description:

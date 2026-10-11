@@ -3,6 +3,35 @@ import type { GuidanceBlock } from "../colour";
 /** The top of /studio/guides/accessibility. */
 export const ACCESSIBILITY_GUIDANCE: GuidanceBlock[] = [
   {
+    heading: "The sandbox",
+    paragraphs: [
+      "The Accessibility tab opens on a small hero: a badge, a heading, a paragraph and a button, drawn full width under the toolbar. It is there to be tried on. Every colour in it can be changed, and a score says whether the pair you are looking at still reads.",
+      "Press a layer to select it. It gets an outline, handles at its corners and a size tag, and what you pick next is that layer's colour. A badge or a button selects its fill first; Ctrl or Cmd click, a double click or Ctrl Enter goes into its text, and on a phone a tap on a held container goes in and a tap on its text comes back out. What is not another layer is the background. Escape lets go.",
+    ],
+  },
+  {
+    heading: "Choosing a colour",
+    paragraphs: [
+      "The control bar names the selected layer and holds the picker. It has two sources. A semantic role follows light and dark, as it does in the product; a primitive shade does not, and stays the colour it is. Search finds either, and on a wide screen the 25 to 950 ramp of the track sits beside it for stepping up and down a shade.",
+      "White and black are primitives too, at the top of the Primitive tab, so a label can be exactly white or exactly black without a hex typed into a role. Reset puts every layer back on the roles the sandbox opened with, and is dim while nothing has changed.",
+    ],
+  },
+  {
+    heading: "The score, and the two standards",
+    paragraphs: [
+      "A card over the hero's top left scores two pairs: text on its fill, and the fill on the page. A mark ahead of each is drawn in the pair measured: a bold A for heading text, an a for body and small text, a square for a fill. A pass is a tick and its grade; a fail says so. On a phone it is a strip under the hero. A canvas on its page is advisory, since it has no page of its own.",
+      "WCAG 2 | WCAG 3 sits before the Vision chip on this toolbar and chooses the standard: ratios, or APCA's Lc. It re-words the hero's score and the whole report below, and it is the same preference the Colour studio's Contrast tool reads, so the two never disagree.",
+      "The figure on screen is the figure judged. An Lc is judged as the whole number it shows, and a ratio is shown cut to its places and never rounded up, so \"4.5:1, fail\" cannot appear. A button's or badge's label is held to the line a label has, 4.5:1 or Lc 60, and not to body text's Lc 75.",
+    ],
+  },
+  {
+    heading: "Which text colour the studio suggests",
+    paragraphs: [
+      "On a saturated mid-tone such as an orange, a purple or a blue, WCAG 2's ratio leans toward black, where the eye reads white more easily. The studio chooses the text colour on a fill by APCA: the one with the larger Lc as text on that fill, white on a tie. The ratio it reports beside the choice is still WCAG 2's, so the pick can be the one with the lower ratio, and is said to be.",
+      "A seeded label does the same, with a safeguard. If one of the role's own ends, or white, or black, clears both 4.5:1 and Lc 60, it is taken, in that order. If none does, it is the one APCA reads best that still reaches 3:1, the line for large text and graphics, so a colour APCA likes and WCAG 2 cannot see is not chosen over one that plainly reads.",
+    ],
+  },
+  {
     heading: "What the contrast numbers mean",
     paragraphs: [
       "WCAG 2.2, and the thresholds it sets: normal text passes AA at 4.5:1 and AAA at 7:1, large text at 3:1 and 4.5:1, and anything that is not text — a control, a border, a focus ring, a graphical object — needs 3:1.",
