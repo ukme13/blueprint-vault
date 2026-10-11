@@ -1,5 +1,8 @@
 import { isStaticTrackId, staticColourAt } from "./static-colours";
 import { describe, expect, it } from "vitest";
+import { contrastRatio } from "./accessibility";
+import { APCA_LC, apcaContrast } from "./apca";
+import { shownLc } from "./contrast-reading";
 import { generatePalettes } from "./palette";
 import {
   addSemanticToken,
@@ -777,6 +780,65 @@ describe("fillSeedRoles", () => {
     expect(errorSurface.light.trackId).toBe(
       tracks.find((track) => track.name === "error")!.id,
     );
+  });
+
+  it("tries the end APCA prefers first, and holds it to both lines a label is held to", () => {
+    /* A mid-tone orange fill: the ratio leans to the dark end of the neutral
+       ramp there, and the Lc to the light end. The label is chosen by the two
+       lines together (4.5:1 and Lc 60), the end APCA prefers leading: it is
+       the label where it clears both, and where it does not, the one that
+       clears the ratio is. */
+    const tracks = palette([
+      { id: "t-primary", name: "primary", seedHex: "#f97316" },
+      { id: "t-secondary", name: "secondary", seedHex: "#4a6fa5" },
+      { id: "t-neutral", name: "neutral", seedHex: "#737373" },
+      { id: "t-success", name: "success", seedHex: "#2f7d32" },
+      { id: "t-warning", name: "warning", seedHex: "#b87503" },
+      { id: "t-error", name: "error", seedHex: "#b02b1b" },
+      { id: "t-info", name: "info", seedHex: "#2878b8" },
+    ]);
+    const tokens = seedSemanticTokens(tracks);
+    const neutral = tracks.find((track) => track.name === "neutral")!;
+    const lightest = neutral.shades[0]!;
+    const darkest = neutral.shades[neutral.shades.length - 1]!;
+
+    let differsFromRatio = false;
+    for (const mode of ["light", "dark"] as const) {
+      const fill = resolveSemantic(
+        tokenById(tokens, "action.primary"),
+        mode,
+        tracks,
+      )!;
+      const label = resolveSemantic(
+        tokenById(tokens, "fg.on-action"),
+        mode,
+        tracks,
+      )!;
+      const byLc =
+        Math.abs(apcaContrast(lightest.hex, fill.hex)) >=
+        Math.abs(apcaContrast(darkest.hex, fill.hex))
+          ? lightest
+          : darkest;
+      const byRatio =
+        contrastRatio(lightest.hex, fill.hex) >=
+        contrastRatio(darkest.hex, fill.hex)
+          ? lightest
+          : darkest;
+      const clearsBoth =
+        contrastRatio(byLc.hex, fill.hex) >= 4.5 &&
+        shownLc(apcaContrast(byLc.hex, fill.hex)) >= APCA_LC.largeText;
+      if (clearsBoth) {
+        expect(label.hex, mode).toBe(byLc.hex);
+      } else {
+        expect(contrastRatio(label.hex, fill.hex), mode).toBeGreaterThanOrEqual(
+          4.5,
+        );
+      }
+      if (byLc.hex !== byRatio.hex) differsFromRatio = true;
+    }
+    /* On this fill the two models disagree in at least one mode: the test is
+       about the one that was chosen, not a coincidence of both. */
+    expect(differsFromRatio).toBe(true);
   });
 
   it("leaves a complete layer untouched, by identity", () => {

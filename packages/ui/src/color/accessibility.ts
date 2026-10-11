@@ -1,3 +1,4 @@
+import { apcaContrast } from "./apca";
 import { hexToRgb, normalizeHex, rgbToOklch, srgbToLinear } from "./conversion";
 
 export const WCAG_CONTRAST = {
@@ -41,6 +42,7 @@ export interface NonTextContrastResult {
 
 export interface TextColourRecommendation {
   colour: string;
+  /** The WCAG 2 ratio of `colour` on the background, whichever way it was chosen. */
   ratio: number;
   alternative: string;
   alternativeRatio: number;
@@ -197,6 +199,20 @@ export function assessNonTextContrast(
   };
 }
 
+/**
+ * Which of two text colours reads better on a background: the light one or
+ * the dark one, white and black unless told otherwise.
+ *
+ * Chosen by APCA, not by WCAG 2's ratio. The ratio is biased toward black on
+ * mid-tones, such as an orange, a teal or a purple, and picks black labels on
+ * fills where white is the more legible to the eye; APCA models that, and
+ * picks by the size of the Lc of each as the text on this background. A tie
+ * goes to the light colour.
+ *
+ * The ratios returned are still WCAG 2's, for the reports that state them. The
+ * pick can therefore be the one with the lower ratio: that is the point of it,
+ * and a ratio below a WCAG 2 line is said as such wherever it is shown.
+ */
 export function recommendTextColour(
   background: string,
   lightColour = "#ffffff",
@@ -206,8 +222,10 @@ export function recommendTextColour(
   const normalizedDark = normalizeHex(darkColour);
   const lightRatio = contrastRatio(normalizedLight, background);
   const darkRatio = contrastRatio(normalizedDark, background);
+  const lightLc = Math.abs(apcaContrast(normalizedLight, background));
+  const darkLc = Math.abs(apcaContrast(normalizedDark, background));
 
-  return lightRatio >= darkRatio
+  return lightLc >= darkLc
     ? {
         colour: normalizedLight,
         ratio: lightRatio,

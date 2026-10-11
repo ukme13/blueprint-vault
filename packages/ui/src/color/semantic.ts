@@ -819,6 +819,10 @@ function labelTier(label: string, fill: string): 0 | 1 | 2 {
  * that, nothing reads, and the answer is whichever pure colour gives the more
  * contrast: no shade of a track can give more than white or black.
  *
+ * Judged by APCA, with each end as the text on the fill: WCAG 2's ratio leans
+ * toward the dark end on a mid-tone fill, where the light end is the more
+ * legible.
+ *
  * Null when the fill is not in the layer, which leaves the caller on its
  * declared weights: a seed that cannot measure should fall back to a stated
  * choice rather than to a guess about a colour that is not there.
@@ -840,8 +844,11 @@ function readableEnds(
     });
     if (!on) return own(mode === "light" ? lightest : darkest);
 
+    /* The end that is more legible as the text on this fill leads, by APCA:
+       WCAG 2's ratio leans toward the dark end on a mid-tone. */
     const isLightBetter =
-      contrastRatio(lightest.hex, on.hex) >= contrastRatio(darkest.hex, on.hex);
+      Math.abs(apcaContrast(lightest.hex, on.hex)) >=
+      Math.abs(apcaContrast(darkest.hex, on.hex));
     const candidates: { reference: LabelReference; hex: string }[] = [
       ...(isLightBetter ? [lightest, darkest] : [darkest, lightest]).map(
         (shade) => ({ reference: own(shade), hex: shade.hex }),
