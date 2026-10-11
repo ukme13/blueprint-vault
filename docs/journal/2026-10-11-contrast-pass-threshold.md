@@ -32,6 +32,7 @@ had to reach.
   out in the function while the grades read named constants; the warning went
   on meaning AAA after everything else meant AA. Reading both from one place is
   the fix.
-- **A test of what a tooltip says is a test of the constants.** The test reads
-  the sentence from the page and compares it to the constants, so changing a
-  threshold changes both and the test still holds.
+- **Say the sentence in the test, in words.** The unit and end-to-end tests assert
+  the exact sentence ("AA requires 4.5:1 …"), not a string built from the
+  constants, so moving a threshold fails them until the sentence is changed on
+  purpose.
