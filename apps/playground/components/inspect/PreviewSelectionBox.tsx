@@ -69,6 +69,11 @@ function sameBoxes(a: readonly Box[], b: readonly Box[]): boolean {
  * anew is followed and not the one it replaced. A frame in which nothing
  * moved sets nothing, so a still page costs a few rectangle reads.
  *
+ * The handles reach five pixels past a box, so a box that spans the page would
+ * add a scroll to it. Each box is in a layer as wide as what it is drawn in that
+ * cuts what is past its sides and leaves the rest alone, so the page is never
+ * wider for being selected.
+ *
  * A sticky element, the nav, and what is in it, hold their place while the
  * page scrolls, and a box that script moves is always a frame behind: the page
  * scrolls on its own thread and the script hears of it afterwards. So their
@@ -144,20 +149,20 @@ export function PreviewSelectionBox({
       {boxes.map((box, index) => {
         const { host, ...place } = box;
         const outline = (
-          <span
-            key={index}
-            aria-hidden="true"
-            className={host ? `${styles.box} ${styles.hosted}` : styles.box}
-            data-testid="preview-selection"
-            style={place}
-          >
-            <i />
-            <i />
-            <i />
-            <i />
-            <small>
-              {Math.round(box.width)} × {Math.round(box.height)}
-            </small>
+          <span key={index} aria-hidden="true" className={styles.layer}>
+            <span
+              className={host ? `${styles.box} ${styles.hosted}` : styles.box}
+              data-testid="preview-selection"
+              style={place}
+            >
+              <i />
+              <i />
+              <i />
+              <i />
+              <small>
+                {Math.round(box.width)} × {Math.round(box.height)}
+              </small>
+            </span>
           </span>
         );
         return host ? createPortal(outline, host, String(index)) : outline;

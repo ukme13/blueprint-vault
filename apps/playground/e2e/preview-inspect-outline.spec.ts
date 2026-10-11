@@ -428,3 +428,45 @@ test.describe("Focus on what is picked", () => {
     expect(ring.colour).toBe(ring.wanted);
   });
 });
+
+test.describe("A selection never makes the page scroll sideways", () => {
+  const overflowX = (page: import("@playwright/test").Page) =>
+    page
+      .locator("[data-preview-ready]")
+      .evaluate((node) => node.scrollWidth - node.clientWidth);
+
+  test("a band that spans the page, and the nav", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openPreview(page);
+    expect(await overflowX(page)).toBeLessThanOrEqual(0);
+
+    await heroBand(page).click({ position: { x: 6, y: 6 } });
+    await expect(page.getByTestId("preview-selection")).toHaveCount(1);
+    await expect.poll(() => overflowX(page)).toBeLessThanOrEqual(0);
+    /* Still drawn, and as wide as the band. */
+    const outline = (await page
+      .getByTestId("preview-selection")
+      .boundingBox())!;
+    const band = (await heroBand(page).boundingBox())!;
+    expect(outline.width).toBeCloseTo(band.width, 0);
+
+    await page
+      .locator('[data-preview-section="shell-nav"]')
+      .click({ position: { x: 6, y: 6 } });
+    await expect(page.getByTestId("preview-selection")).toHaveCount(1);
+    await expect.poll(() => overflowX(page)).toBeLessThanOrEqual(0);
+  });
+
+  test("a group of cards, and the footer", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openPreview(page);
+    await page
+      .locator('[data-preview-section="shell-footer"]')
+      .scrollIntoViewIfNeeded();
+    await page
+      .locator('[data-preview-section="shell-footer"]')
+      .click({ position: { x: 6, y: 6 } });
+    await expect(page.getByTestId("preview-selection")).toHaveCount(1);
+    await expect.poll(() => overflowX(page)).toBeLessThanOrEqual(0);
+  });
+});
