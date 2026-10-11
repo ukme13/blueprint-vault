@@ -131,7 +131,9 @@
   outline: none;
 }
 
+/* Important, since a stroke the inspector draws is an outline in line, and the
+   ring is how a key press finds its place. */
 [data-preview-slot]:focus-visible {
-  outline: 2px solid var(--color-focus-ring);
-  outline-offset: 2px;
+  outline: 2px solid var(--color-focus-ring) !important;
+  outline-offset: 2px !important;
 }

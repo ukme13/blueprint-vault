@@ -145,14 +145,10 @@ describe("taking an edge or a shadow away", () => {
     expect(clearPreviewStyle({ a: { stroke: null } }, "a")).toEqual({});
   });
 
-  it("draws no border and no ring for a stroke taken away", () => {
+  it("hides the page's edge and draws no outline for a stroke taken away", () => {
     const declared = previewStyleDeclarations({ stroke: null }, [], "card");
-    expect(declared).toMatchObject({
-      borderTopWidth: 0,
-      borderRightWidth: 0,
-      borderBottomWidth: 0,
-      borderLeftWidth: 0,
-    });
+    expect(declared.borderColor).toBe("transparent");
+    expect(declared).not.toHaveProperty("outlineStyle");
     expect(declared.boxShadow).toBeUndefined();
   });
 
@@ -165,24 +161,23 @@ describe("taking an edge or a shadow away", () => {
     ).toBeUndefined();
   });
 
-  it("keeps the shadow an element had when a ring is drawn over it", () => {
+  it("leaves the shadow an element had alone when an edge is drawn, since the edge is an outline", () => {
     const declared = previewStyleDeclarations({ stroke: edge }, [], "button", {
       hasShadow: true,
     });
-    expect(declared.boxShadow).toBe(
-      "inset 0 0 0 1px var(--color-border-default), var(--tw-shadow, 0 0 #0000)",
-    );
-    /* Not when the shadow is the person's, or is taken away. */
-    expect(
-      previewStyleDeclarations({ stroke: edge, shadow: null }, [], "button", {
-        hasShadow: true,
-      }).boxShadow,
-    ).toBe("inset 0 0 0 1px var(--color-border-default)");
+    expect(declared.boxShadow).toBeUndefined();
+    expect(declared.outlineColor).toBe("var(--color-border-default)");
+    /* A shadow that is the person's is the box-shadow, with or without an edge. */
     expect(
       previewStyleDeclarations({ stroke: edge, shadow: "low" }, [], "button", {
         hasShadow: true,
       }).boxShadow,
-    ).toBe("inset 0 0 0 1px var(--color-border-default), var(--shadow-low)");
+    ).toBe("var(--shadow-low)");
+    expect(
+      previewStyleDeclarations({ stroke: edge, shadow: null }, [], "button", {
+        hasShadow: true,
+      }).boxShadow,
+    ).toBe("none");
   });
 
   it("draws an edge on one side as a border of that side alone", () => {
@@ -250,17 +245,16 @@ describe("a closed eye on an edge or a shadow", () => {
   it("draws a chosen edge as nothing, and keeps it", () => {
     const style = { stroke: edge, isStrokeHidden: true } as const;
     const declared = previewStyleDeclarations(style, [], "card");
-    expect(declared.boxShadow).toBeUndefined();
-    expect(declared).toMatchObject({
-      borderTopWidth: 0,
-      borderRightWidth: 0,
-      borderBottomWidth: 0,
-      borderLeftWidth: 0,
+    expect(declared).not.toHaveProperty("outlineStyle");
+    expect(declared.borderColor).toBe("transparent");
+    /* Open again, the same edge is drawn, and the same size is kept. */
+    const open = previewStyleDeclarations({ stroke: edge }, [], "card");
+    expect(open).toMatchObject({
+      outlineWidth: "2px",
+      outlineColor: "var(--color-border-default)",
+      outlineOffset: "-2px",
     });
-    /* Open again, the same edge is drawn. */
-    expect(
-      previewStyleDeclarations({ stroke: edge }, [], "card").boxShadow,
-    ).toBe("inset 0 0 0 2px var(--color-border-default)");
+    expect(open).not.toHaveProperty("borderTopWidth");
   });
 
   it("draws the edge the page had as nothing too", () => {
@@ -270,7 +264,8 @@ describe("a closed eye on an edge or a shadow", () => {
       "button",
       { stroke: edge },
     );
-    expect(declared).toMatchObject({ borderTopWidth: 0, borderLeftWidth: 0 });
+    expect(declared.borderColor).toBe("transparent");
+    expect(declared).not.toHaveProperty("outlineStyle");
     expect(declared.boxShadow).toBeUndefined();
   });
 
@@ -280,7 +275,7 @@ describe("a closed eye on an edge or a shadow", () => {
       [],
       "divider",
     );
-    expect(declared).toMatchObject({ borderTopWidth: 0, borderBottomWidth: 0 });
+    expect(declared.borderColor).toBe("transparent");
     expect(declared).not.toHaveProperty("borderTopStyle");
   });
 
@@ -291,9 +286,8 @@ describe("a closed eye on an edge or a shadow", () => {
       "button",
       { hasShadow: true },
     );
-    expect(declared.boxShadow).toBe(
-      "inset 0 0 0 2px var(--color-border-default)",
-    );
+    expect(declared.boxShadow).toBe("none");
+    expect(declared.outlineColor).toBe("var(--color-border-default)");
   });
 
   it("draws the shadow the page had as none", () => {
@@ -311,6 +305,7 @@ describe("a closed eye on an edge or a shadow", () => {
       "card",
     );
     expect(declared.boxShadow).toBe("var(--shadow-low)");
+    expect(declared).not.toHaveProperty("outlineStyle");
   });
 });
 
@@ -399,9 +394,9 @@ describe("a button dressed the other way", () => {
       backgroundColor: "var(--color-action-primary)",
       color: "var(--color-fg-on-action)",
       boxShadow: "var(--shadow-low)",
-      borderTopWidth: 0,
-      borderLeftWidth: 0,
+      borderColor: "transparent",
     });
+    expect(declared).not.toHaveProperty("outlineStyle");
   });
 
   it("draws a contained button as outlined: transparent, plain text, an edge, no shadow", () => {
@@ -414,8 +409,12 @@ describe("a button dressed the other way", () => {
     expect(declared).toMatchObject({
       backgroundColor: "transparent",
       color: "var(--color-fg-primary)",
-      boxShadow: "inset 0 0 0 1px var(--color-border-default)",
-      borderTopWidth: 0,
+      boxShadow: "none",
+      outlineStyle: "solid",
+      outlineWidth: "1px",
+      outlineColor: "var(--color-border-default)",
+      outlineOffset: "-1px",
+      borderColor: "transparent",
     });
   });
 
@@ -435,9 +434,8 @@ describe("a button dressed the other way", () => {
       backgroundColor: "var(--color-surface-raised)",
       color: "var(--color-fg-muted)",
     });
-    expect(declared.boxShadow).toBe(
-      "inset 0 0 0 1px var(--color-border-default), var(--shadow-high)",
-    );
+    expect(declared.boxShadow).toBe("var(--shadow-high)");
+    expect(declared.outlineColor).toBe("var(--color-border-default)");
   });
 
   it("draws nothing of a variant on what is not a button", () => {

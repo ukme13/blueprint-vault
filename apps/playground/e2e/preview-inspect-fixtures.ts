@@ -57,3 +57,42 @@ export const selectHeroBand = async (page: Page) => {
     panel(page).getByRole("heading", { name: "Hero", level: 2 }),
   ).toBeVisible();
 };
+
+/**
+ * Whether an element shows an edge on a side: a border of that side that has a
+ * width and a colour, or an outline. A stroke is an outline over a border whose
+ * colour is let go of, so the width alone no longer says.
+ */
+export const edgeShown = (locator: Locator, side: "top" | "bottom" = "top") =>
+  locator.evaluate((node, edge) => {
+    const cs = getComputedStyle(node);
+    const border =
+      parseFloat(cs.getPropertyValue(`border-${edge}-width`)) > 0 &&
+      cs.getPropertyValue(`border-${edge}-style`) !== "none" &&
+      cs.getPropertyValue(`border-${edge}-color`) !== "rgba(0, 0, 0, 0)";
+    const outline =
+      cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0;
+    return border || outline;
+  }, side);
+
+/**
+ * An element's size once the page has stopped moving: opening the panel narrows
+ * the page, which takes a moment, and a size read in it is a size on the way.
+ */
+export const settledSize = async (locator: Locator) => {
+  const read = async () => {
+    const box = (await locator.boundingBox())!;
+    return { width: box.width, height: box.height };
+  };
+  let last = await read();
+  let steady = 0;
+  /* Still for three reads in a row: the panel's opening starts a beat late. */
+  for (let tries = 0; tries < 40 && steady < 3; tries += 1) {
+    await locator.page().waitForTimeout(120);
+    const now = await read();
+    steady =
+      now.width === last.width && now.height === last.height ? steady + 1 : 0;
+    last = now;
+  }
+  return last;
+};

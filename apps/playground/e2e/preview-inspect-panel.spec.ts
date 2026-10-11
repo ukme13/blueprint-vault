@@ -1,6 +1,7 @@
 import { expect, test } from "./fixtures";
 import { openPreview } from "./preview-fixtures";
 import {
+  edgeShown,
   HERO_TITLE,
   panel,
   section,
@@ -357,13 +358,13 @@ test.describe("Taking a value away again", () => {
     await section(page, "Stroke")
       .getByRole("button", { name: "Remove stroke" })
       .click();
-    await expect.poll(() => style(ghost, "border-top-width")).toBe("0px");
+    await expect.poll(() => edgeShown(ghost)).toBe(false);
     await section(page, "Stroke")
       .getByRole("button", { name: "Add stroke" })
       .click();
-    await expect.poll(() => style(ghost, "box-shadow")).toMatch(/inset/);
+    await expect.poll(() => style(ghost, "outline-style")).toBe("solid");
     await panel(page).getByRole("button", { name: "Reset to default" }).click();
-    await expect.poll(() => style(ghost, "border-top-width")).not.toBe("0px");
+    await expect.poll(() => edgeShown(ghost)).toBe(true);
 
     const solid = seeThePreview(page);
     await solid.click();
@@ -382,9 +383,9 @@ test.describe("Taking a value away again", () => {
     await section(page, "Stroke")
       .getByRole("button", { name: "Remove stroke" })
       .click();
-    await expect.poll(() => style(row, "border-top-width")).toBe("0px");
+    await expect.poll(() => edgeShown(row)).toBe(false);
     await panel(page).getByRole("button", { name: "Reset to default" }).click();
-    await expect.poll(() => style(row, "border-top-width")).toBe("1px");
+    await expect.poll(() => edgeShown(row)).toBe(true);
 
     expect(warnings).toEqual([]);
   });

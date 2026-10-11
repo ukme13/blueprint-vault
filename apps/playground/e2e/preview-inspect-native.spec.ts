@@ -1,7 +1,9 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { expect, readStoredWorkspace, test } from "./fixtures";
 import { openPreview } from "./preview-fixtures";
 import {
+  edgeShown,
+  settledSize,
   panel,
   section,
   seeThePreview,
@@ -39,14 +41,14 @@ test.describe("A stroke is the one edge", () => {
     await section(page, "Stroke")
       .getByRole("button", { name: "Remove stroke" })
       .click();
-    await expect.poll(() => style(button, "border-top-width")).toBe("0px");
+    await expect.poll(() => edgeShown(button)).toBe(false);
     await expect(
       section(page, "Stroke").getByRole("button", { name: "Add stroke" }),
     ).toBeVisible();
 
     /* Reset gives back the edge it was drawn with. */
     await panel(page).getByRole("button", { name: "Reset to default" }).click();
-    await expect.poll(() => style(button, "border-top-width")).toBe(own);
+    await expect.poll(() => edgeShown(button)).toBe(true);
     await expect(colour).toContainText("Border default");
   });
 
@@ -55,8 +57,11 @@ test.describe("A stroke is the one edge", () => {
     const button = page.getByRole("button", { name: "Open the studio" });
     await button.click();
     await choose(section(page, "Stroke"), page, "Stroke weight", "3px");
-    await expect.poll(() => style(button, "border-top-width")).toBe("0px");
-    await expect.poll(() => style(button, "box-shadow")).toMatch(/3px/);
+    /* The border it had keeps its width and loses its colour: one edge. */
+    await expect
+      .poll(() => style(button, "border-top-color"))
+      .toBe("rgba(0, 0, 0, 0)");
+    await expect.poll(() => style(button, "outline-width")).toBe("3px");
     await expect(
       section(page, "Stroke").getByRole("button", {
         name: "Stroke colour",
@@ -89,10 +94,10 @@ test.describe("A stroke is the one edge", () => {
     await section(page, "Stroke")
       .getByRole("button", { name: "Remove stroke" })
       .click();
-    await expect.poll(() => style(card, "border-top-width")).toBe("0px");
+    await expect.poll(() => edgeShown(card)).toBe(false);
 
     await panel(page).getByRole("button", { name: "Reset to default" }).click();
-    await expect.poll(() => style(card, "border-top-width")).toBe(own);
+    await expect.poll(() => edgeShown(card)).toBe(true);
   });
 
   test("a contained button shows the shadow it casts, and loses it when it is removed", async ({
@@ -388,7 +393,7 @@ test.describe("The Popular tag is a chip", () => {
     await section(page, "Stroke")
       .getByRole("button", { name: "Add stroke" })
       .click();
-    await expect.poll(() => style(chip, "box-shadow")).toMatch(/inset/);
+    await expect.poll(() => style(chip, "outline-style")).toBe("solid");
 
     await panel(page).getByRole("button", { name: "Reset to default" }).click();
     await expect
@@ -457,10 +462,10 @@ test.describe("The newsletter field is a surface", () => {
     await section(page, "Stroke")
       .getByRole("button", { name: "Remove stroke" })
       .click();
-    await expect.poll(() => style(box, "border-top-width")).toBe("0px");
+    await expect.poll(() => edgeShown(box)).toBe(false);
 
     await panel(page).getByRole("button", { name: "Reset to default" }).click();
-    await expect.poll(() => style(box, "border-top-width")).toBe(before.edge);
+    await expect.poll(() => edgeShown(box)).toBe(true);
     await expect.poll(() => style(box, "background-color")).toBe(before.ground);
   });
 
@@ -530,10 +535,10 @@ test.describe("The dividers are lines of their own", () => {
     await section(page, "Stroke")
       .getByRole("button", { name: "Remove stroke" })
       .click();
-    await expect.poll(() => style(row, "border-top-width")).toBe("0px");
+    await expect.poll(() => edgeShown(row)).toBe(false);
 
     await panel(page).getByRole("button", { name: "Reset to default" }).click();
-    await expect.poll(() => style(row, "border-top-width")).toBe(own);
+    await expect.poll(() => edgeShown(row)).toBe(true);
   });
 
   test("the nav and the footer bands show their own divider as the stroke", async ({
@@ -551,9 +556,9 @@ test.describe("The dividers are lines of their own", () => {
     await section(page, "Stroke")
       .getByRole("button", { name: "Remove stroke" })
       .click();
-    await expect.poll(() => style(nav, "border-bottom-width")).toBe("0px");
+    await expect.poll(() => edgeShown(nav, "bottom")).toBe(false);
     await panel(page).getByRole("button", { name: "Reset to default" }).click();
-    await expect.poll(() => style(nav, "border-bottom-width")).toBe(own);
+    await expect.poll(() => edgeShown(nav, "bottom")).toBe(true);
 
     const foot = page.locator('[data-preview-section="shell-footer"]');
     await foot.scrollIntoViewIfNeeded();
@@ -690,7 +695,7 @@ test.describe("An empty section adds from its whole heading", () => {
     await expect(
       stroke.getByRole("button", { name: "Stroke colour", exact: true }),
     ).toBeVisible();
-    await expect.poll(() => style(button, "box-shadow")).toMatch(/inset/);
+    await expect.poll(() => style(button, "outline-style")).toBe("solid");
   });
 
   test("the same on Effects, and the Plus still adds on its own", async ({
@@ -740,7 +745,7 @@ test.describe("An eye keeps a stroke or an effect and does not draw it", () => {
     const stroke = section(page, "Stroke");
 
     await stroke.getByRole("button", { name: "Hide stroke" }).click();
-    await expect.poll(() => style(button, "border-top-width")).toBe("0px");
+    await expect.poll(() => edgeShown(button)).toBe(false);
     /* Kept: still its colour, ready to show. */
     await expect(
       stroke.getByRole("button", { name: "Stroke colour", exact: true }),
@@ -750,7 +755,7 @@ test.describe("An eye keeps a stroke or an effect and does not draw it", () => {
     ).toBeVisible();
 
     await stroke.getByRole("button", { name: "Show stroke" }).click();
-    await expect.poll(() => style(button, "border-top-width")).toBe(own);
+    await expect.poll(() => edgeShown(button)).toBe(true);
     await expect(
       stroke.getByRole("button", { name: "Hide stroke" }),
     ).toBeVisible();
@@ -763,32 +768,22 @@ test.describe("An eye keeps a stroke or an effect and does not draw it", () => {
     const stroke = section(page, "Stroke");
     await stroke.getByRole("button", { name: "Add stroke" }).click();
     await choose(stroke, page, "Stroke weight", "3px");
-    await expect
-      .poll(() => style(button, "box-shadow"))
-      .toMatch(/0px 0px 0px 3px/);
+    await expect.poll(() => style(button, "outline-width")).toBe("3px");
 
     await stroke.getByRole("button", { name: "Hide stroke" }).click();
-    await expect
-      .poll(() => style(button, "box-shadow"))
-      .not.toMatch(/0px 0px 0px 3px/);
+    await expect.poll(() => style(button, "outline-style")).toBe("none");
     await stroke.getByRole("button", { name: "Show stroke" }).click();
-    await expect
-      .poll(() => style(button, "box-shadow"))
-      .toMatch(/0px 0px 0px 3px/);
+    await expect.poll(() => style(button, "outline-width")).toBe("3px");
 
     /* Editing what is closed shows it. */
     await stroke.getByRole("button", { name: "Hide stroke" }).click();
-    await expect
-      .poll(() => style(button, "box-shadow"))
-      .not.toMatch(/0px 0px 0px 3px/);
+    await expect.poll(() => style(button, "outline-style")).toBe("none");
     await page.waitForTimeout(400);
     await choose(stroke, page, "Stroke weight", "2px");
     await expect(
       stroke.getByRole("button", { name: "Hide stroke" }),
     ).toBeVisible();
-    await expect
-      .poll(() => style(button, "box-shadow"))
-      .toMatch(/0px 0px 0px 2px/);
+    await expect.poll(() => style(button, "outline-width")).toBe("2px");
   });
 
   test("closes a shadow, which comes back as it was", async ({ page }) => {
@@ -810,12 +805,11 @@ test.describe("An eye keeps a stroke or an effect and does not draw it", () => {
   }) => {
     await openPreview(page);
     const button = page.getByRole("button", { name: "Open the studio" });
-    const own = await style(button, "border-top-width");
     await button.click();
     const stroke = section(page, "Stroke");
 
     await stroke.getByRole("button", { name: "Hide stroke" }).click();
-    await expect.poll(() => style(button, "border-top-width")).toBe("0px");
+    await expect.poll(() => edgeShown(button)).toBe(false);
     const stored = async () =>
       Object.values(
         (await readStoredWorkspace(page))?.typography?.previewStyles ?? {},
@@ -824,32 +818,26 @@ test.describe("An eye keeps a stroke or an effect and does not draw it", () => {
 
     await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
     await page.keyboard.press("ControlOrMeta+z");
-    await expect.poll(() => style(button, "border-top-width")).toBe(own);
+    await expect.poll(() => edgeShown(button)).toBe(true);
     await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
     await page.keyboard.press("ControlOrMeta+Shift+z");
-    await expect.poll(() => style(button, "border-top-width")).toBe("0px");
+    await expect.poll(() => edgeShown(button)).toBe(false);
 
     await page.reload();
     await expect(page.locator("[data-preview-ready]")).toBeVisible();
     await expect
       .poll(() =>
-        style(
-          page.getByRole("button", { name: "Open the studio" }),
-          "border-top-width",
-        ),
+        edgeShown(page.getByRole("button", { name: "Open the studio" })),
       )
-      .toBe("0px");
+      .toBe(false);
 
     await page.getByRole("button", { name: "Open the studio" }).click();
     await panel(page).getByRole("button", { name: "Reset to default" }).click();
     await expect
       .poll(() =>
-        style(
-          page.getByRole("button", { name: "Open the studio" }),
-          "border-top-width",
-        ),
+        edgeShown(page.getByRole("button", { name: "Open the studio" })),
       )
-      .toBe(own);
+      .toBe(true);
     expect(
       (await readStoredWorkspace(page))?.typography?.previewStyles,
     ).toBeUndefined();
@@ -904,8 +892,10 @@ test.describe("A button's variant", () => {
     const own = {
       ground: await style(button, "background-color"),
       shadow: await style(button, "box-shadow"),
+      size: { width: 0, height: 0 },
     };
     await button.click();
+    own.size = await settledSize(button);
 
     await radio(page, "Outlined").check({ force: true });
     await expect
@@ -922,9 +912,13 @@ test.describe("A button's variant", () => {
     });
     await expect.poll(() => style(button, "color")).toBe(text);
     /* An edge drawn as a ring, and the button's own shadow gone. */
-    await expect.poll(() => style(button, "box-shadow")).toMatch(/inset/);
+    await expect.poll(() => style(button, "outline-style")).toBe("solid");
     expect(await style(button, "box-shadow")).not.toBe(own.shadow);
-    expect(await style(button, "border-top-width")).toBe("0px");
+    /* The edge is drawn over the border it replaces, so the button is as tall
+       and as wide as it was. */
+    const outlined = (await button.boundingBox())!;
+    expect(outlined.height).toBeCloseTo(own.size.height, 1);
+    expect(outlined.width).toBeCloseTo(own.size.width, 1);
 
     /* The panel agrees: an edge, no effect. */
     await expect(
@@ -941,6 +935,8 @@ test.describe("A button's variant", () => {
     await radio(page, "Contained").check({ force: true });
     await expect.poll(() => style(button, "background-color")).toBe(own.ground);
     await expect.poll(() => style(button, "box-shadow")).toBe(own.shadow);
+    const back = (await button.boundingBox())!;
+    expect(back.height).toBeCloseTo(own.size.height, 1);
     expect(
       (await readStoredWorkspace(page))?.typography?.previewStyles,
     ).toBeUndefined();
@@ -952,6 +948,7 @@ test.describe("A button's variant", () => {
     await openPreview(page);
     const button = page.getByRole("button", { name: "Open the studio" });
     await button.click();
+    const size = await settledSize(button);
 
     await radio(page, "Contained").check({ force: true });
     const wanted = await button.evaluate((node) => {
@@ -973,7 +970,10 @@ test.describe("A button's variant", () => {
       .toBe(wanted.fill);
     await expect.poll(() => style(button, "color")).toBe(wanted.label);
     await expect.poll(() => style(button, "box-shadow")).not.toBe("none");
-    expect(await style(button, "border-top-width")).toBe("0px");
+    expect(await edgeShown(button)).toBe(false);
+    const filled = (await button.boundingBox())!;
+    expect(filled.height).toBeCloseTo(size.height, 1);
+    expect(filled.width).toBeCloseTo(size.width, 1);
 
     await expect(
       section(page, "Effects").getByRole("button", {
@@ -1037,5 +1037,65 @@ test.describe("A button's variant", () => {
     expect(
       (await readStoredWorkspace(page))?.typography?.previewStyles,
     ).toBeUndefined();
+  });
+});
+
+test.describe("A stroke does not change the size of what it is on", () => {
+  const sizeOf = async (locator: Locator) => {
+    const { width, height } = await settledSize(locator);
+    return { w: Math.round(width * 10) / 10, h: Math.round(height * 10) / 10 };
+  };
+
+  test("a button keeps its size through adding, hiding and taking away an edge", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    for (const button of [
+      seeThePreview(page),
+      page.getByRole("button", { name: "Open the studio" }),
+    ]) {
+      await button.click();
+      /* With the panel open, which narrows the page. */
+      const own = await sizeOf(button);
+      const stroke = section(page, "Stroke");
+
+      /* Whichever it starts with, an edge on and an edge off leave it as it was. */
+      if (await stroke.getByRole("button", { name: "Add stroke" }).count()) {
+        await stroke.getByRole("button", { name: "Add stroke" }).click();
+        await expect.poll(() => edgeShown(button)).toBe(true);
+        expect(await sizeOf(button)).toEqual(own);
+      } else {
+        await stroke.getByRole("button", { name: "Hide stroke" }).click();
+        await expect.poll(() => edgeShown(button)).toBe(false);
+        expect(await sizeOf(button)).toEqual(own);
+        await stroke.getByRole("button", { name: "Show stroke" }).click();
+        await expect.poll(() => edgeShown(button)).toBe(true);
+        expect(await sizeOf(button)).toEqual(own);
+      }
+      await choose(stroke, page, "Stroke weight", "4px");
+      await expect.poll(() => style(button, "outline-width")).toBe("4px");
+      expect(await sizeOf(button)).toEqual(own);
+      await stroke.getByRole("button", { name: "Remove stroke" }).click();
+      await expect.poll(() => edgeShown(button)).toBe(false);
+      expect(await sizeOf(button)).toEqual(own);
+      /* Back as it was for the next one, when there is anything to put back. */
+      const reset = panel(page).getByRole("button", {
+        name: "Reset to default",
+      });
+      if (await reset.count()) await reset.click();
+    }
+  });
+
+  test("a card keeps its size too", async ({ page }) => {
+    await openPreview(page);
+    const card = page
+      .locator('[data-preview-slot="card-feature-card"]')
+      .first();
+    await card.click({ position: { x: 60, y: 6 } });
+    const own = await sizeOf(card);
+    const stroke = section(page, "Stroke");
+    await stroke.getByRole("button", { name: "Remove stroke" }).click();
+    await expect.poll(() => edgeShown(card)).toBe(false);
+    expect(await sizeOf(card)).toEqual(own);
   });
 });
