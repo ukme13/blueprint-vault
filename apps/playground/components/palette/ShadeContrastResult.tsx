@@ -11,6 +11,7 @@ import {
   WCAG_CONTRAST,
   type ShadeItem,
 } from "@blueprint/ui";
+import { ContrastScoreInfo } from "./ContrastScoreInfo";
 import { ContrastStatusIcon } from "./ContrastStatusIcon";
 import { ShadeApcaResult } from "./ShadeApcaResult";
 import { usePaletteView } from "./PaletteViewContext";
@@ -116,6 +117,7 @@ export function ShadeContrastResult({
           onClick={togglePolarity}
         />
         <strong>{ratioText(textContrast.ratio, 2)}</strong>
+        <ContrastScoreInfo standard="wcag2" />
       </p>
       {simulated && (
         /* A ratio and no verdict, as everywhere else: WCAG defines AA on the

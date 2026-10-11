@@ -778,6 +778,27 @@ test.describe("Folder names and spreadsheet editing", () => {
     await expect(heading.locator("td")).toHaveCSS("padding-bottom", "8px");
   });
 
+  test("a role can point at pure white or black, which the chip names", async ({
+    seededPage: page,
+  }) => {
+    const editor = await openSemantics(page);
+    await showBorders(editor);
+    await editor.getByLabel(/Edit Border subtle light reference/i).click();
+    const list = page.getByRole("listbox", { name: "Border subtle light" });
+    await expect(list).toBeVisible();
+
+    /* White and black are in the list, under Static, though in no track. */
+    await page.keyboard.type("white");
+    await expect(list.getByRole("option")).toHaveCount(1);
+    await list.getByRole("option", { name: "White", exact: true }).click();
+    await expect(list).toBeHidden();
+
+    /* Named, not numbered: static/0 is not what anybody calls white. */
+    const chip = editor.getByLabel(/Edit Border subtle light reference/i);
+    await expect(chip).toContainText("white");
+    await expect(chip).not.toContainText("static");
+  });
+
   test("the colour chip opens the reference picker", async ({
     seededPage: page,
   }) => {

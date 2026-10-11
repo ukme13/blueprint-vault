@@ -1,3 +1,5 @@
+import { STATIC_COLOURS, STATIC_TRACK_ID } from "./color/static-colours";
+
 /**
  * Every shade of every track as one selector list.
  *
@@ -64,4 +66,29 @@ export function shadeOptionSections<Icon = never>(
       ...(icon ? { icon: icon(shade.hex) } : {}),
     })),
   }));
+}
+
+/**
+ * White and black, as a section of the same list.
+ *
+ * They are primitives that are in no track, so a list built from the tracks
+ * never holds them. This is the section to put with it where a colour may be
+ * pure white or pure black: titled Static, since that is what they are, and
+ * valued like any shade (`static:0`, `static:1000`) so the one parser reads it.
+ */
+export function staticOptionSection<Icon = never>(
+  icon?: (hex: string) => Icon,
+): { type: "section"; title: string; options: ShadeOption<Icon>[] } {
+  return {
+    type: "section",
+    title: "Static",
+    options: STATIC_COLOURS.map((colour) => ({
+      label: colour.label,
+      value: shadeOptionValue({
+        trackId: STATIC_TRACK_ID,
+        weight: colour.weight,
+      }),
+      ...(icon ? { icon: icon(colour.hex) } : {}),
+    })),
+  };
 }

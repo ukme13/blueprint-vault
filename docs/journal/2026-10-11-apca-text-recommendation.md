@@ -31,7 +31,11 @@ legible. Both now compare the Lc of each as the text on the fill.
 - **The ratio has a known bias.** It treats the lightness of the two colours
   symmetrically in luminance terms, which favours black on a mid-tone fill. Anything
   that picks "the higher ratio" will pick black there, and the eye disagrees.
-- **This overlaps `feat/static-base-colors` (#200).** Both change `readableEnds`:
-  that branch orders candidates by ratio and takes the first to clear both 4.5:1 and
-  Lc 60; this one orders by Lc. Whichever merges second needs its `better` function
-  reconciled: the ordering in #200 (`isLightBetter`) should read Lc, as here.
+- **This met `feat/static-base-colors` (#200) in `readableEnds`.** That branch
+  merged first: it takes the first candidate to clear both 4.5:1 and Lc 60, trying
+  the role's own ends and then white and black. Resolved by keeping its candidates
+  and its two lines, and ordering the candidates by Lc, as this branch does. The
+  seed test is changed with it: where the end APCA prefers clears both lines it is
+  the label, as before; where it does not (a mid-tone orange, where white has the Lc
+  but not the ratio) the label is the one that clears the ratio. `recommendTextColour`
+  has no second line and still picks by Lc alone.

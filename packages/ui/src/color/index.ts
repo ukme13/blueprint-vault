@@ -1,6 +1,7 @@
 export * from "./contrast-reading";
 export * from "./apca";
 export * from "./accessibility";
+export * from "./static-colours";
 export * from "./accessibility-report";
 export * from "./accessibility-sandbox";
 export * from "./accessibility-standard";

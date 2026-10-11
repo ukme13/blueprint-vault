@@ -210,6 +210,65 @@ test.describe("The accessibility sandbox", () => {
     ).toBeVisible();
   });
 
+  test("offers pure white and black first under Primitive, and takes them", async ({
+    seededPage: page,
+  }) => {
+    await openAccessibility(page);
+    await layer(page, "body").click();
+    await controlBar(page)
+      .getByRole("button", { name: /^Body Text colour:/ })
+      .click();
+    const list = page.getByRole("dialog", { name: "Body Text colour" });
+    await list.getByRole("tab", { name: "Primitive" }).click();
+
+    /* A Static section ahead of every track, holding the two. */
+    const sections = list.getByRole("group");
+    await expect(sections.first()).toHaveAttribute("aria-label", "Static");
+    await expect(sections.first().getByRole("option")).toHaveText([
+      "White",
+      "Black",
+    ]);
+
+    await list.getByRole("option", { name: "White", exact: true }).click();
+    await expect.poll(() => colourOf(page, "body")).toBe("rgb(255, 255, 255)");
+    await expect(
+      controlBar(page).getByRole("button", { name: "Body Text colour: White" }),
+    ).toBeVisible();
+
+    /* It is scored as the colour it is: white on the hero's fill. */
+    const hud = card(page, "WCAG 2", "Body Text");
+    await expect(hud).toContainText(/\d+\.\d:1/);
+
+    /* And Black, from the same list, on a second pick. */
+    await page.waitForTimeout(400);
+    await controlBar(page)
+      .getByRole("button", { name: /^Body Text colour:/ })
+      .click();
+    await list.getByRole("tab", { name: "Primitive" }).click();
+    await list.getByRole("option", { name: "Black", exact: true }).click();
+    await expect.poll(() => colourOf(page, "body")).toBe("rgb(0, 0, 0)");
+  });
+
+  test("Reset takes a layer set to white back to its role", async ({
+    seededPage: page,
+  }) => {
+    await openAccessibility(page);
+    await layer(page, "heading").click();
+    const before = await colourOf(page, "heading");
+    await controlBar(page)
+      .getByRole("button", { name: /^Heading Text colour:/ })
+      .click();
+    const list = page.getByRole("dialog", { name: "Heading Text colour" });
+    await list.getByRole("tab", { name: "Primitive" }).click();
+    await list.getByRole("option", { name: "Black", exact: true }).click();
+    await expect.poll(() => colourOf(page, "heading")).toBe("rgb(0, 0, 0)");
+
+    await controlBar(page)
+      .getByRole("button", { name: "Reset sandbox colours" })
+      .click();
+    await expect.poll(() => colourOf(page, "heading")).toBe(before);
+  });
+
   test("moves along the shade ramp, outlining the one held", async ({
     seededPage: page,
   }) => {
@@ -558,6 +617,33 @@ test.describe("The contrast card", () => {
     await expect(hud).toContainText(/AAA|AA|Fail|Advisory/);
     /* The tick says pass, so the word is not repeated beside it. */
     await expect(hud).not.toContainText("Pass");
+  });
+
+  test("opens with button text that clears the label line, in light and in dark", async ({
+    seededPage: page,
+  }) => {
+    await openAccessibility(page);
+    await standardButton(page, "WCAG 3").click();
+    await layer(page, "buttonFill").click();
+
+    for (const mode of ["Light", "Dark"]) {
+      const theme = await openTheme(page);
+      await theme.getByRole("radio", { name: mode }).click();
+      await expect(page.locator("html")).toHaveAttribute(
+        "data-theme",
+        mode.toLowerCase(),
+      );
+      const hud = card(page, "WCAG 3", "Button Fill");
+      const row = hud.locator("li").first();
+      /* A tick, and an Lc of 60 or more: pure white or black where the
+         neutral ends fall short, not a pair that fails the label line. */
+      await expect(row.locator("svg")).toHaveCount(1);
+      await expect(row.locator("[class*='hudGrade']")).toHaveText("Pass");
+      const lc = Number(
+        (await row.locator("strong").innerText()).replace(/\D/g, ""),
+      );
+      expect(lc, mode).toBeGreaterThanOrEqual(60);
+    }
   });
 
   test("shows a tick with its grade, not the word Pass, and a cross with Fail", async ({

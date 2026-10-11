@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  CONTRAST_SCORE_NOTES,
   contrastStatus,
   cutRatio,
   isContrastWarning,
@@ -39,16 +40,33 @@ describe("swatchContrast", () => {
   });
 
   it("changes step on the line, as the figure crosses it", () => {
-    /* #595959 on white is 7.005:1, which clears AAA; #5a5a5a is 6.897:1,
-       cut to 6.8 and not rounded up to the 6.9 it is read as. */
+    /* #767676 on white is 4.54:1, which clears AA; #777777 is 4.478:1, cut to
+       4.4 and not rounded up to the 4.5 it is short of. */
+    expect(swatchContrast("wcag2", "#767676", "#ffffff")).toMatchObject({
+      label: "4.5",
+      status: "pass",
+    });
+    expect(swatchContrast("wcag2", "#777777", "#ffffff")).toMatchObject({
+      label: "4.4",
+      status: "partial",
+    });
+  });
+
+  it("does not warn between AA and AAA", () => {
+    /* #5a5a5a is 6.9:1: past 4.5, short of AAA's 7, and nothing to flag. */
+    expect(swatchContrast("wcag2", "#5a5a5a", "#ffffff")).toMatchObject({
+      label: "6.8",
+      status: "pass",
+    });
     expect(swatchContrast("wcag2", "#595959", "#ffffff")).toMatchObject({
       label: "7.0",
       status: "pass",
     });
-    expect(swatchContrast("wcag2", "#5a5a5a", "#ffffff")).toMatchObject({
-      label: "6.8",
-      status: "partial",
-    });
+    /* 3:1 up to 4.5 is the amber: large text and graphics, not normal text. */
+    expect(swatchContrast("wcag2", "#959595", "#ffffff").status).toBe("fail");
+    expect(swatchContrast("wcag2", "#8a8a8a", "#ffffff").status).toBe(
+      "partial",
+    );
   });
 
   it("judges an Lc on the whole number it shows", () => {
@@ -111,10 +129,13 @@ describe("isContrastWarning", () => {
 });
 
 describe("contrastStatus", () => {
-  it("steps at 3:1 and 7:1 under WCAG 2", () => {
+  it("steps at 3:1 and 4.5:1 under WCAG 2: AA is a pass", () => {
     expect(contrastStatus("wcag2", 2.9)).toBe("fail");
     expect(contrastStatus("wcag2", 3)).toBe("partial");
-    expect(contrastStatus("wcag2", 6.9)).toBe("partial");
+    expect(contrastStatus("wcag2", 4.49)).toBe("partial");
+    expect(contrastStatus("wcag2", 4.5)).toBe("pass");
+    /* AAA is a grade, not a warning: 4.5 to 7 has nothing to flag. */
+    expect(contrastStatus("wcag2", 6.9)).toBe("pass");
     expect(contrastStatus("wcag2", 7)).toBe("pass");
     expect(contrastStatus("wcag2", 21)).toBe("pass");
   });
@@ -125,6 +146,27 @@ describe("contrastStatus", () => {
     expect(contrastStatus("wcag3", 74)).toBe("partial");
     expect(contrastStatus("wcag3", 75)).toBe("pass");
     expect(contrastStatus("wcag3", 106)).toBe("pass");
+  });
+});
+
+describe("CONTRAST_SCORE_NOTES", () => {
+  it("says what each standard asks, in the words the tooltip shows", () => {
+    expect(CONTRAST_SCORE_NOTES.wcag2).toBe(
+      "AA requires 4.5:1 for normal text (3:1 for large text & graphics). AAA requires 7.0:1.",
+    );
+    expect(CONTRAST_SCORE_NOTES.wcag3).toBe(
+      "Body text requires Lc 75, large text requires Lc 60, and UI components require Lc 45.",
+    );
+  });
+
+  it("names the same line the swatch warns at", () => {
+    /* Under 4.5 the swatch warns and the note says 4.5 is what AA asks. */
+    expect(contrastStatus("wcag2", 4.49)).not.toBe("pass");
+    expect(contrastStatus("wcag2", 4.5)).toBe("pass");
+    expect(CONTRAST_SCORE_NOTES.wcag2).toContain("4.5:1");
+    expect(contrastStatus("wcag3", 74)).not.toBe("pass");
+    expect(contrastStatus("wcag3", 75)).toBe("pass");
+    expect(CONTRAST_SCORE_NOTES.wcag3).toContain("Lc 75");
   });
 });
 

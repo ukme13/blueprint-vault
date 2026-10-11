@@ -1,6 +1,8 @@
+import { isStaticTrackId, staticColourAt } from "./static-colours";
 import { describe, expect, it } from "vitest";
 import { contrastRatio } from "./accessibility";
-import { apcaContrast } from "./apca";
+import { APCA_LC, apcaContrast } from "./apca";
+import { shownLc } from "./contrast-reading";
 import { generatePalettes } from "./palette";
 import {
   addSemanticToken,
@@ -84,11 +86,14 @@ describe("seedSemanticTokens", () => {
 
       for (const token of tokens) {
         const resolved = resolveSemantic(token, "light", tracks)!;
-        const track = tracks.find((each) => each.id === resolved.trackId)!;
-        expect(
-          track.shades.some((shade) => shade.weight === resolved.weight),
-          `${token.id} at ${count} shades`,
-        ).toBe(true);
+        /* A palette shade, or white or black: the static primitives are in no
+           track, and a label that needs them points at them. */
+        const holds = isStaticTrackId(resolved.trackId)
+          ? staticColourAt(resolved.weight) !== undefined
+          : tracks
+              .find((each) => each.id === resolved.trackId)!
+              .shades.some((shade) => shade.weight === resolved.weight);
+        expect(holds, `${token.id} at ${count} shades`).toBe(true);
         expect(resolved.missing, token.id).toBeNull();
       }
     },
@@ -260,7 +265,13 @@ describe("resolveSemantic", () => {
     const tracks = fullPalette();
     const tokens = seedSemanticTokens(tracks);
     expect(resolveSemantics(tokens, "dark", tracks)).toHaveLength(73);
-    expect(resolveSemantics(tokens, "dark", [])).toEqual([]);
+    /* With no palette only the references to white and black resolve: they
+       are in no track, so there is nothing for them to be missing from. */
+    const withoutTracks = resolveSemantics(tokens, "dark", []);
+    expect(withoutTracks.every((each) => isStaticTrackId(each.trackId))).toBe(
+      true,
+    );
+    expect(withoutTracks.length).toBeLessThan(tokens.length);
   });
 });
 
@@ -771,9 +782,12 @@ describe("fillSeedRoles", () => {
     );
   });
 
-  it("puts the label on a fill by APCA, white where WCAG 2 would have chosen black", () => {
+  it("tries the end APCA prefers first, and holds it to both lines a label is held to", () => {
     /* A mid-tone orange fill: the ratio leans to the dark end of the neutral
-       ramp there, and the Lc to the light end. */
+       ramp there, and the Lc to the light end. The label is chosen by the two
+       lines together (4.5:1 and Lc 60), the end APCA prefers leading: it is
+       the label where it clears both, and where it does not, the one that
+       clears the ratio is. */
     const tracks = palette([
       { id: "t-primary", name: "primary", seedHex: "#f97316" },
       { id: "t-secondary", name: "secondary", seedHex: "#4a6fa5" },
@@ -810,7 +824,16 @@ describe("fillSeedRoles", () => {
         contrastRatio(darkest.hex, fill.hex)
           ? lightest
           : darkest;
-      expect(label.hex, mode).toBe(byLc.hex);
+      const clearsBoth =
+        contrastRatio(byLc.hex, fill.hex) >= 4.5 &&
+        shownLc(apcaContrast(byLc.hex, fill.hex)) >= APCA_LC.largeText;
+      if (clearsBoth) {
+        expect(label.hex, mode).toBe(byLc.hex);
+      } else {
+        expect(contrastRatio(label.hex, fill.hex), mode).toBeGreaterThanOrEqual(
+          4.5,
+        );
+      }
       if (byLc.hex !== byRatio.hex) differsFromRatio = true;
     }
     /* On this fill the two models disagree in at least one mode: the test is

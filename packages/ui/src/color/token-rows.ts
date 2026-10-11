@@ -1,3 +1,10 @@
+import {
+  isStaticTrackId,
+  nearestStaticColour,
+  STATIC_COLOURS,
+  STATIC_TRACK_ID,
+  STATIC_TRACK_NAME,
+} from "./static-colours";
 import { alphaPercent } from "./composite";
 import { formatColour, type ColourFormat } from "./format";
 import { paletteTokenName } from "./export";
@@ -161,16 +168,30 @@ export function primitiveTrackRows(
   palettes: ColorTrack[],
   colourFormat: ColourFormat,
 ): PrimitiveTrackRows[] {
-  return palettes.map((track) => ({
-    id: track.id,
-    name: track.name,
-    rows: track.shades.map((shade) => ({
-      weight: shade.weight,
-      variable: `--color-${paletteTokenName(track.name)}-${shade.weight}`,
-      hex: shade.hex,
-      value: formatColour(shade.hex, colourFormat),
+  return [
+    ...palettes.map((track) => ({
+      id: track.id,
+      name: track.name,
+      rows: track.shades.map((shade) => ({
+        weight: shade.weight,
+        variable: `--color-${paletteTokenName(track.name)}-${shade.weight}`,
+        hex: shade.hex,
+        value: formatColour(shade.hex, colourFormat),
+      })),
     })),
-  }));
+    /* White and black, last: they are in every export, and a role can point at
+       them. */
+    {
+      id: STATIC_TRACK_ID,
+      name: STATIC_TRACK_NAME,
+      rows: STATIC_COLOURS.map((colour) => ({
+        weight: colour.weight,
+        variable: colour.variable,
+        hex: colour.hex,
+        value: formatColour(colour.hex, colourFormat),
+      })),
+    },
+  ];
 }
 
 /** A role name and where it landed, for one mode. */
@@ -206,7 +227,9 @@ export function describeReference(reference: {
   weight: number;
   alpha: number;
 }): string {
-  const primitive = `${reference.trackId} ${reference.weight}`;
+  const primitive = isStaticTrackId(reference.trackId)
+    ? nearestStaticColour(reference.weight).name
+    : `${reference.trackId} ${reference.weight}`;
   return reference.alpha >= 1
     ? primitive
     : `${primitive} at ${alphaPercent(reference.alpha)}`;

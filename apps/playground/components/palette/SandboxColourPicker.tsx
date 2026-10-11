@@ -8,6 +8,7 @@ import {
   resolveSemantic,
   shadeOptionSections,
   shadeOptionValue,
+  staticOptionSection,
   type ColorTrack,
   type ColourMode,
   type ResolvedSandboxColour,
@@ -80,7 +81,12 @@ export function SandboxColourPicker({
         : [];
     }),
   }));
-  const primitiveOptions = shadeOptionSections(palettes, swatch);
+  /* White and black first: they are the two a person reaches for, and they
+     are in no track. */
+  const primitiveOptions = [
+    staticOptionSection(swatch),
+    ...shadeOptionSections(palettes, swatch),
+  ];
 
   const value =
     tab !== colour.kind
