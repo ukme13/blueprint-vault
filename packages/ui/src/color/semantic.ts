@@ -1,4 +1,4 @@
-import { contrastRatio } from "./accessibility";
+import { contrastRatio, WCAG_CONTRAST } from "./accessibility";
 import { APCA_LC, apcaContrast } from "./apca";
 import { alphaHex } from "./composite";
 import {
@@ -794,17 +794,19 @@ interface LabelReference {
 }
 
 /**
- * How well a colour reads as the label of a filled control, on that fill.
+ * Whether a colour reads as the label of a filled control, on that fill, by both
+ * lines a label is held to: WCAG 2's 4.5:1 for text, and APCA's Lc 60 (the line
+ * for a short, heavy label), judged on the Lc as it is shown.
  *
- * Two lines, the two a label is held to: WCAG 2's 4.5:1 for text, and APCA's
- * Lc 60 (the line for a short, heavy label), judged on the Lc as it is shown.
- * 2 clears both, 1 clears only the ratio, 0 clears neither. They disagree on a
- * mid-tone fill: the ratio favours the dark end where APCA, which weighs
- * light text on a saturated colour more kindly, wants the light one.
+ * They disagree on a mid-tone fill: the ratio favours the dark end where APCA,
+ * which weighs light text on a saturated colour more kindly, wants the light
+ * one. A colour that clears both has nothing to argue about.
  */
-function labelTier(label: string, fill: string): 0 | 1 | 2 {
-  if (contrastRatio(label, fill) < 4.5) return 0;
-  return shownLc(apcaContrast(label, fill)) >= APCA_LC.largeText ? 2 : 1;
+function clearsBothLines(label: string, fill: string): boolean {
+  return (
+    contrastRatio(label, fill) >= WCAG_CONTRAST.normalTextAA &&
+    shownLc(apcaContrast(label, fill)) >= APCA_LC.largeText
+  );
 }
 
 /**
@@ -862,13 +864,26 @@ function readableEnds(
       })),
     ];
 
-    for (const wanted of [2, 1] as const) {
-      const found = candidates.find(
-        (candidate) => labelTier(candidate.hex, on.hex) >= wanted,
-      );
-      if (found) return found.reference;
-    }
-    return candidates[2]!.reference;
+    /* The first to clear both lines: the role's own ends before white and black,
+       so a palette whose neutral ends already read is seeded as it always was. */
+    const clears = candidates.find((candidate) =>
+      clearsBothLines(candidate.hex, on.hex),
+    );
+    if (clears) return clears.reference;
+
+    /* None does, as on a mid-tone such as a purple 500. Then the one APCA reads
+       best, which is the light end there: black clears the ratio and has half the
+       Lc. Among those that still reach the 3:1 of large text and graphics, so a
+       colour APCA likes and WCAG 2 cannot see is not chosen over one that is
+       plainly readable; failing that, the best of all. A tie keeps the order. */
+    const reach = candidates.filter(
+      (candidate) =>
+        contrastRatio(candidate.hex, on.hex) >= WCAG_CONTRAST.largeTextAA,
+    );
+    const lc = (hex: string) => shownLc(apcaContrast(hex, on.hex));
+    return (reach.length > 0 ? reach : candidates).reduce((best, candidate) =>
+      lc(candidate.hex) > lc(best.hex) ? candidate : best,
+    ).reference;
   };
 
   return { light: better("light"), dark: better("dark") };
