@@ -90,6 +90,9 @@ export function usePreviewInspector({
         return;
       }
       setInspecting(null);
+      /* The press that picked it left it focused, and a key press makes the
+         browser draw its ring: let go of the focus with the selection. */
+      (document.activeElement as HTMLElement | null)?.blur();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);

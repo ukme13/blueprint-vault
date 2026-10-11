@@ -365,3 +365,66 @@ test.describe("The outline's tone, and a second press", () => {
     await expect(page.getByTestId("preview-selection")).toHaveCount(0);
   });
 });
+
+test.describe("Focus on what is picked", () => {
+  const activeSlot = (page: import("@playwright/test").Page) =>
+    page.evaluate(
+      () => document.activeElement?.getAttribute("data-preview-slot") ?? null,
+    );
+
+  test("Escape lets go of the focus with the selection, and leaves no ring", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const title = heroTitle(page);
+    await title.click();
+    await expect(page.getByTestId("preview-selection")).toHaveCount(1);
+    expect(await activeSlot(page)).toBe("landing-hero-title");
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("preview-selection")).toHaveCount(0);
+    await expect.poll(() => activeSlot(page)).toBeNull();
+    expect(
+      await title.evaluate((node) => getComputedStyle(node).outlineStyle),
+    ).toBe("none");
+  });
+
+  test("a slot pressed with the mouse shows no ring", async ({ page }) => {
+    await openPreview(page);
+    const title = heroTitle(page);
+    await title.click();
+    expect(
+      await title.evaluate((node) => getComputedStyle(node).outlineStyle),
+    ).toBe("none");
+  });
+
+  test("a slot reached by key shows the studio's focus ring, not the browser's", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    for (let presses = 0; presses < 40; presses += 1) {
+      await page.keyboard.press("Tab");
+      if (await activeSlot(page)) break;
+    }
+    const slot = page.locator(":focus");
+    await expect(slot).toHaveAttribute("data-preview-slot", /.+/);
+
+    const ring = await slot.evaluate((node) => {
+      const cs = getComputedStyle(node);
+      const probe = document.createElement("i");
+      probe.style.color = "var(--color-focus-ring)";
+      node.append(probe);
+      const wanted = getComputedStyle(probe).color;
+      probe.remove();
+      return {
+        style: cs.outlineStyle,
+        width: cs.outlineWidth,
+        colour: cs.outlineColor,
+        wanted,
+      };
+    });
+    expect(ring.style).toBe("solid");
+    expect(ring.width).toBe("2px");
+    expect(ring.colour).toBe(ring.wanted);
+  });
+});
