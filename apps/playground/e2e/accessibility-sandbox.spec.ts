@@ -158,6 +158,53 @@ test.describe("The accessibility sandbox", () => {
     await expect(controlBar(page)).toContainText("Select a layer");
   });
 
+  test("Escape also lets go of the focus, so no ring lingers on the layer", async ({
+    seededPage: page,
+  }) => {
+    await openAccessibility(page);
+    await layer(page, "body").focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByTestId("sandbox-selection")).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("sandbox-selection")).toHaveCount(0);
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () =>
+            document.activeElement?.getAttribute("data-sandbox-target") ?? null,
+        ),
+      )
+      .toBeNull();
+  });
+
+  test("the selection is the info tone, let through, as on the Preview", async ({
+    seededPage: page,
+  }) => {
+    await openAccessibility(page);
+    await layer(page, "body").click();
+    const outline = page.getByTestId("sandbox-selection");
+    await expect(outline).toBeVisible();
+
+    const alphaOf = (colour: string) =>
+      colour.includes("/") ? parseFloat(colour.split("/")[1]!) : 1;
+    const line = await outline.evaluate(
+      (node) => getComputedStyle(node).borderTopColor,
+    );
+    expect(alphaOf(line)).toBeGreaterThan(0.5);
+    expect(alphaOf(line)).toBeLessThan(1);
+
+    const action = await outline.evaluate((node) => {
+      const probe = document.createElement("i");
+      probe.style.color = "var(--color-action-primary)";
+      node.append(probe);
+      const colour = getComputedStyle(probe).color;
+      probe.remove();
+      return colour;
+    });
+    expect(line).not.toBe(action);
+  });
+
   test("clicking the hero around its layers selects the background", async ({
     seededPage: page,
   }) => {

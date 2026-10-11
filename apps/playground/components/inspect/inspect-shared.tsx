@@ -2,6 +2,8 @@
 
 import { useMemo } from "react";
 import {
+  EyeClosedIcon,
+  EyeIcon,
   MinusIcon,
   PlusIcon,
   previewTokenSelectorOptions,
@@ -164,6 +166,29 @@ export function RemoveButton({
       icon={<MinusIcon />}
       isDisabled={isDisabled}
       label={label}
+      onClick={onClick}
+    />
+  );
+}
+
+/**
+ * The eye beside a stroke or an effect: closed, it is kept and not drawn, so
+ * the element can be seen with it and without it.
+ */
+export function VisibilityButton({
+  noun,
+  isHidden,
+  onClick,
+}: {
+  /** What it hides, as the label says it: "stroke", "effect". */
+  noun: string;
+  isHidden: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <InspectIconButton
+      icon={isHidden ? <EyeClosedIcon /> : <EyeIcon />}
+      label={isHidden ? `Show ${noun}` : `Hide ${noun}`}
       onClick={onClick}
     />
   );

@@ -1,7 +1,15 @@
 import type { Locator, Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { openPreview } from "./preview-fixtures";
-import { panel, section, heroTitle, choose } from "./preview-inspect-fixtures";
+import {
+  HERO_TITLE,
+  panel,
+  section,
+  heroBand,
+  heroTitle,
+  seeThePreview,
+  choose,
+} from "./preview-inspect-fixtures";
 
 /**
  * The outline drawn on the selected element: that it keeps to what it
@@ -287,5 +295,136 @@ test.describe("The outline follows what it outlines", () => {
       .poll(async () => (await link.boundingBox())!.x)
       .not.toBe(before.x);
     await follows(page, link);
+  });
+});
+
+test.describe("The outline's tone, and a second press", () => {
+  test("is the studio's info tone, let through, and not the action colour", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await heroTitle(page).click();
+    const outline = page.getByTestId("preview-selection");
+    await expect(outline).toBeVisible();
+
+    const alphaOf = (colour: string) =>
+      colour.includes("/") ? parseFloat(colour.split("/")[1]!) : 1;
+    const line = await outline.evaluate(
+      (node) => getComputedStyle(node).borderTopColor,
+    );
+    expect(alphaOf(line)).toBeGreaterThan(0.5);
+    expect(alphaOf(line)).toBeLessThan(1);
+
+    const action = await outline.evaluate((node) => {
+      const probe = document.createElement("i");
+      probe.style.color = "var(--color-action-primary)";
+      node.append(probe);
+      const colour = getComputedStyle(probe).color;
+      probe.remove();
+      return colour;
+    });
+    expect(line).not.toBe(action);
+  });
+
+  test("a second press on what is selected lets go of it", async ({ page }) => {
+    await openPreview(page);
+    const title = heroTitle(page);
+    await title.click();
+    await expect(page.getByTestId("preview-selection")).toHaveCount(1);
+    await expect(
+      panel(page).getByRole("textbox", { name: "Copy" }),
+    ).toHaveValue(HERO_TITLE);
+
+    await title.click();
+    await expect(page.getByTestId("preview-selection")).toHaveCount(0);
+    await expect(
+      panel(page).getByText("Select text, a button or a band"),
+    ).toBeVisible();
+
+    /* And a third picks it again. */
+    await title.click();
+    await expect(page.getByTestId("preview-selection")).toHaveCount(1);
+  });
+
+  test("a press on something else still moves the selection, and a band lets go too", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await heroTitle(page).click();
+    await seeThePreview(page).click();
+    await expect(page.getByTestId("preview-selection")).toHaveCount(1);
+    await expect(
+      panel(page).getByRole("textbox", { name: "Copy" }),
+    ).toHaveValue("See the preview");
+
+    await heroBand(page).click({ position: { x: 6, y: 6 } });
+    await expect(
+      panel(page).getByRole("heading", { name: "Hero", level: 2 }),
+    ).toBeVisible();
+    await heroBand(page).click({ position: { x: 6, y: 6 } });
+    await expect(page.getByTestId("preview-selection")).toHaveCount(0);
+  });
+});
+
+test.describe("Focus on what is picked", () => {
+  const activeSlot = (page: import("@playwright/test").Page) =>
+    page.evaluate(
+      () => document.activeElement?.getAttribute("data-preview-slot") ?? null,
+    );
+
+  test("Escape lets go of the focus with the selection, and leaves no ring", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const title = heroTitle(page);
+    await title.click();
+    await expect(page.getByTestId("preview-selection")).toHaveCount(1);
+    expect(await activeSlot(page)).toBe("landing-hero-title");
+
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("preview-selection")).toHaveCount(0);
+    await expect.poll(() => activeSlot(page)).toBeNull();
+    expect(
+      await title.evaluate((node) => getComputedStyle(node).outlineStyle),
+    ).toBe("none");
+  });
+
+  test("a slot pressed with the mouse shows no ring", async ({ page }) => {
+    await openPreview(page);
+    const title = heroTitle(page);
+    await title.click();
+    expect(
+      await title.evaluate((node) => getComputedStyle(node).outlineStyle),
+    ).toBe("none");
+  });
+
+  test("a slot reached by key shows the studio's focus ring, not the browser's", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    for (let presses = 0; presses < 40; presses += 1) {
+      await page.keyboard.press("Tab");
+      if (await activeSlot(page)) break;
+    }
+    const slot = page.locator(":focus");
+    await expect(slot).toHaveAttribute("data-preview-slot", /.+/);
+
+    const ring = await slot.evaluate((node) => {
+      const cs = getComputedStyle(node);
+      const probe = document.createElement("i");
+      probe.style.color = "var(--color-focus-ring)";
+      node.append(probe);
+      const wanted = getComputedStyle(probe).color;
+      probe.remove();
+      return {
+        style: cs.outlineStyle,
+        width: cs.outlineWidth,
+        colour: cs.outlineColor,
+        wanted,
+      };
+    });
+    expect(ring.style).toBe("solid");
+    expect(ring.width).toBe("2px");
+    expect(ring.colour).toBe(ring.wanted);
   });
 });

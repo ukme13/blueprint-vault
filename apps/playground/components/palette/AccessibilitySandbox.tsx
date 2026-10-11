@@ -131,7 +131,11 @@ export function AccessibilitySandbox({
       aria-label="Accessibility sandbox"
       className={styles.sandbox}
       onKeyDown={(event) => {
-        if (event.key === "Escape") setTarget(null);
+        if (event.key === "Escape") {
+          setTarget(null);
+          /* Let go of the focus the press left, so no ring lingers. */
+          (document.activeElement as HTMLElement | null)?.blur();
+        }
       }}
     >
       <header className={styles.controlBar}>

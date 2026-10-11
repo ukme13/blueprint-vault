@@ -360,3 +360,17 @@ button.control {
   padding-inline: 8px;
   color: var(--color-fg-secondary);
 }
+
+/* An empty section adds from anywhere on its heading. */
+.sectionHead[data-addable] {
+  cursor: pointer;
+}
+
+.sectionHead[data-addable]:hover {
+  background: color-mix(in oklch, var(--color-fg-primary) 4%, transparent);
+}
+
+/* A fill, a stroke or an effect with its eye closed: kept, and not drawn. */
+.item[data-hidden] .control {
+  opacity: 0.5;
+}

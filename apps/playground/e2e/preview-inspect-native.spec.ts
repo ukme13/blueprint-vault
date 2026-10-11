@@ -675,3 +675,198 @@ test.describe("The featured plan", () => {
     await expect(page.getByTestId("preview-selection")).toHaveCount(1);
   });
 });
+
+test.describe("An empty section adds from its whole heading", () => {
+  test("a press on the word Stroke adds one, and so does a press beside it", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const button = seeThePreview(page);
+    await button.click();
+    const stroke = section(page, "Stroke");
+    expect(await style(stroke.locator("header"), "cursor")).toBe("pointer");
+
+    await stroke.getByRole("heading", { name: "Stroke" }).click();
+    await expect(
+      stroke.getByRole("button", { name: "Stroke colour", exact: true }),
+    ).toBeVisible();
+    await expect.poll(() => style(button, "box-shadow")).toMatch(/inset/);
+  });
+
+  test("the same on Effects, and the Plus still adds on its own", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const ghost = page.getByRole("button", { name: "Open the studio" });
+    await ghost.click();
+    const effects = section(page, "Effects");
+    const header = effects.locator("header");
+    const box = (await header.boundingBox())!;
+    /* Out in the empty part of the row, away from the word and the Plus. */
+    await header.click({ position: { x: box.width / 2, y: box.height / 2 } });
+    await expect(
+      effects.getByRole("button", { name: "Shadow", exact: true }),
+    ).toBeVisible();
+
+    await effects.getByRole("button", { name: "Remove effect" }).click();
+    await effects.getByRole("button", { name: "Add effect" }).click();
+    await expect(
+      effects.getByRole("button", { name: "Shadow", exact: true }),
+    ).toBeVisible();
+  });
+
+  test("a section that has its item is not a row to press", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await page.getByRole("button", { name: "Open the studio" }).click();
+    const stroke = section(page, "Stroke");
+    /* It has an edge: pressing its heading changes nothing. */
+    await stroke.getByRole("heading", { name: "Stroke" }).click();
+    await expect(
+      stroke.getByRole("button", { name: "Remove stroke" }),
+    ).toHaveCount(1);
+    expect(await style(stroke.locator("header"), "cursor")).not.toBe("pointer");
+  });
+});
+
+test.describe("An eye keeps a stroke or an effect and does not draw it", () => {
+  test("closes the page's own edge, and opens it again", async ({ page }) => {
+    await openPreview(page);
+    const button = page.getByRole("button", { name: "Open the studio" });
+    const own = await style(button, "border-top-width");
+    expect(own).not.toBe("0px");
+    await button.click();
+    const stroke = section(page, "Stroke");
+
+    await stroke.getByRole("button", { name: "Hide stroke" }).click();
+    await expect.poll(() => style(button, "border-top-width")).toBe("0px");
+    /* Kept: still its colour, ready to show. */
+    await expect(
+      stroke.getByRole("button", { name: "Stroke colour", exact: true }),
+    ).toContainText("Border default");
+    await expect(
+      stroke.getByRole("button", { name: "Show stroke" }),
+    ).toBeVisible();
+
+    await stroke.getByRole("button", { name: "Show stroke" }).click();
+    await expect.poll(() => style(button, "border-top-width")).toBe(own);
+    await expect(
+      stroke.getByRole("button", { name: "Hide stroke" }),
+    ).toBeVisible();
+  });
+
+  test("closes a chosen stroke and keeps what was chosen", async ({ page }) => {
+    await openPreview(page);
+    const button = seeThePreview(page);
+    await button.click();
+    const stroke = section(page, "Stroke");
+    await stroke.getByRole("button", { name: "Add stroke" }).click();
+    await choose(stroke, page, "Stroke weight", "3px");
+    await expect
+      .poll(() => style(button, "box-shadow"))
+      .toMatch(/0px 0px 0px 3px/);
+
+    await stroke.getByRole("button", { name: "Hide stroke" }).click();
+    await expect
+      .poll(() => style(button, "box-shadow"))
+      .not.toMatch(/0px 0px 0px 3px/);
+    await stroke.getByRole("button", { name: "Show stroke" }).click();
+    await expect
+      .poll(() => style(button, "box-shadow"))
+      .toMatch(/0px 0px 0px 3px/);
+
+    /* Editing what is closed shows it. */
+    await stroke.getByRole("button", { name: "Hide stroke" }).click();
+    await expect
+      .poll(() => style(button, "box-shadow"))
+      .not.toMatch(/0px 0px 0px 3px/);
+    await page.waitForTimeout(400);
+    await choose(stroke, page, "Stroke weight", "2px");
+    await expect(
+      stroke.getByRole("button", { name: "Hide stroke" }),
+    ).toBeVisible();
+    await expect
+      .poll(() => style(button, "box-shadow"))
+      .toMatch(/0px 0px 0px 2px/);
+  });
+
+  test("closes a shadow, which comes back as it was", async ({ page }) => {
+    await openPreview(page);
+    const button = seeThePreview(page);
+    const own = await style(button, "box-shadow");
+    expect(own).not.toBe("none");
+    await button.click();
+    const effects = section(page, "Effects");
+
+    await effects.getByRole("button", { name: "Hide effect" }).click();
+    await expect.poll(() => style(button, "box-shadow")).toBe("none");
+    await effects.getByRole("button", { name: "Show effect" }).click();
+    await expect.poll(() => style(button, "box-shadow")).toBe(own);
+  });
+
+  test("is undone and redone, saved with the project and put back by Reset", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const button = page.getByRole("button", { name: "Open the studio" });
+    const own = await style(button, "border-top-width");
+    await button.click();
+    const stroke = section(page, "Stroke");
+
+    await stroke.getByRole("button", { name: "Hide stroke" }).click();
+    await expect.poll(() => style(button, "border-top-width")).toBe("0px");
+    const stored = async () =>
+      Object.values(
+        (await readStoredWorkspace(page))?.typography?.previewStyles ?? {},
+      ) as { isStrokeHidden?: boolean }[];
+    expect((await stored())[0]?.isStrokeHidden).toBe(true);
+
+    await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect.poll(() => style(button, "border-top-width")).toBe(own);
+    await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+    await page.keyboard.press("ControlOrMeta+Shift+z");
+    await expect.poll(() => style(button, "border-top-width")).toBe("0px");
+
+    await page.reload();
+    await expect(page.locator("[data-preview-ready]")).toBeVisible();
+    await expect
+      .poll(() =>
+        style(
+          page.getByRole("button", { name: "Open the studio" }),
+          "border-top-width",
+        ),
+      )
+      .toBe("0px");
+
+    await page.getByRole("button", { name: "Open the studio" }).click();
+    await panel(page).getByRole("button", { name: "Reset to default" }).click();
+    await expect
+      .poll(() =>
+        style(
+          page.getByRole("button", { name: "Open the studio" }),
+          "border-top-width",
+        ),
+      )
+      .toBe(own);
+    expect(
+      (await readStoredWorkspace(page))?.typography?.previewStyles,
+    ).toBeUndefined();
+  });
+
+  test("removing what is closed takes the closed eye with it", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await page.getByRole("button", { name: "Open the studio" }).click();
+    const stroke = section(page, "Stroke");
+    await stroke.getByRole("button", { name: "Hide stroke" }).click();
+    await stroke.getByRole("button", { name: "Remove stroke" }).click();
+    await stroke.getByRole("button", { name: "Add stroke" }).click();
+    /* A new stroke is open. */
+    await expect(
+      stroke.getByRole("button", { name: "Hide stroke" }),
+    ).toBeVisible();
+  });
+});

@@ -123,3 +123,15 @@
     outline-offset: -2px;
   }
 }
+
+/* The page's pickable parts take focus, so they can be reached by key. Pressed
+   with a mouse they show no ring, and reached by key they show the studio's,
+   not the browser's black rectangle. */
+[data-preview-slot]:focus {
+  outline: none;
+}
+
+[data-preview-slot]:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}

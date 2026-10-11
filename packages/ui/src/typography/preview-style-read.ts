@@ -84,6 +84,9 @@ export function readSlotStyle(value: unknown): PreviewSlotStyle | null {
   }
   if (raw.shadow === null) style.shadow = null;
   else if (isId(raw.shadow)) style.shadow = raw.shadow;
+  /* Only a closed eye is kept: an open one is what absent already says. */
+  if (raw.isStrokeHidden === true) style.isStrokeHidden = true;
+  if (raw.isShadowHidden === true) style.isShadowHidden = true;
 
   return Object.keys(style).length > 0 ? style : null;
 }
