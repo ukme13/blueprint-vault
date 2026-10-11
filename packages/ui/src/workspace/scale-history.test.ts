@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { defaultElevationScale } from "../scale/elevation";
 import { defaultLayoutTokens } from "../scale/layout-tokens";
-import { removeLayoutToken, setLayoutReference } from "../scale/layout-edit";
+import {
+  addLayoutToken,
+  removeLayoutToken,
+  setLayoutReference,
+} from "../scale/layout-edit";
+import { defaultPreviewDevices } from "../typography/preview-devices";
 import { defaultRadiusScale } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import {
@@ -157,16 +162,46 @@ describe("createScaleHistory", () => {
   });
 
   it("puts a deleted use back in its old slot", () => {
+    /* A custom use: a system use cannot be deleted. */
     const history = createScaleHistory(snapshot());
-    const before = history.present.layout.map((token) => token.id);
+    const devices = defaultPreviewDevices(1.25);
+    const system = history.present.layout.map((token) => token.id);
     history.commit({
-      layout: removeLayoutToken(history.present.layout, "gap-section"),
+      layout: addLayoutToken(
+        history.present.layout,
+        "spacing",
+        devices,
+        "Hero gap",
+      ),
     });
+    history.commit({
+      layout: addLayoutToken(
+        history.present.layout,
+        "spacing",
+        devices,
+        "Card gap",
+      ),
+    });
+    const before = history.present.layout.map((token) => token.id);
+    expect(before).toEqual([...system, "hero-gap", "card-gap"]);
 
+    history.commit({
+      layout: removeLayoutToken(history.present.layout, "hero-gap"),
+    });
     expect(history.present.layout.map((token) => token.id)).toEqual([
-      "inset-container",
-      "radius-surface",
+      ...system,
+      "card-gap",
     ]);
     expect(history.undo()?.layout.map((token) => token.id)).toEqual(before);
+  });
+
+  it("does not delete a use the system relies on", () => {
+    const history = createScaleHistory(snapshot());
+    const before = history.present.layout.map((token) => token.id);
+    expect(
+      removeLayoutToken(history.present.layout, "gap-section").map(
+        (token) => token.id,
+      ),
+    ).toEqual(before);
   });
 });
