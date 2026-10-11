@@ -27,8 +27,11 @@ export function EffectsSection({
   elevation: readonly ResolvedElevation[];
 }) {
   const own = typeof style.shadow === "string" ? style.shadow : undefined;
-  const isDefault = style.shadow === undefined && native.hasShadow === true;
-  const level = elevation.find((each) => each.id === own);
+  /* The level shown: the person's, or the one the button's variant gives. */
+  const shown = style.shadow === null ? undefined : (own ?? native.shadow);
+  const isDefault =
+    style.shadow === undefined && native.hasShadow === true && !native.shadow;
+  const level = elevation.find((each) => each.id === shown);
 
   const addEffect = () =>
     onStyleChange({
@@ -37,7 +40,7 @@ export function EffectsSection({
       isShadowHidden: undefined,
     });
 
-  if (!own && !isDefault) {
+  if (!shown && !isDefault) {
     return (
       <InspectSection
         action={<AddButton label="Add effect" onClick={addEffect} />}
@@ -57,7 +60,7 @@ export function EffectsSection({
         <TokenSelect
           display={{
             icon: <i aria-hidden className={styles.effectIcon} />,
-            text: isDefault ? "Default shadow" : `shadow-${level?.id ?? own}`,
+            text: isDefault ? "Default shadow" : `shadow-${level?.id ?? shown}`,
           }}
           label="Shadow"
           options={elevation.map((each) => ({
@@ -65,7 +68,7 @@ export function EffectsSection({
             label: `shadow-${each.id}`,
             description: each.name,
           }))}
-          value={own}
+          value={shown}
           onChange={(next) =>
             onStyleChange({ ...style, shadow: next, isShadowHidden: undefined })
           }
@@ -86,7 +89,7 @@ export function EffectsSection({
             onStyleChange({
               ...style,
               isShadowHidden: undefined,
-              shadow: native.hasShadow ? null : undefined,
+              shadow: native.hasShadow || native.shadow ? null : undefined,
             })
           }
         />

@@ -503,7 +503,9 @@ test.describe("The slot inspector", () => {
     // Only the hero's button changed.
     await expect.poll(() => size("Sign up")).toBe(before[0]);
 
-    await dialog.getByRole("button", { name: "Apply to all buttons" }).click();
+    await dialog
+      .getByRole("button", { name: "Apply type to all buttons" })
+      .click();
     for (const [index, name] of others.entries()) {
       await expect.poll(() => size(name), name).not.toBe(before[index]);
     }
@@ -512,7 +514,7 @@ test.describe("The slot inspector", () => {
       .toBe(await size("See the preview"));
   });
 
-  test("offers Apply to all buttons on buttons only", async ({ page }) => {
+  test("offers Apply type to all buttons on buttons only", async ({ page }) => {
     await openPreview(page);
     await page
       .getByRole("navigation", { name: "Site" })
@@ -521,7 +523,7 @@ test.describe("The slot inspector", () => {
     const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
     await expect(
-      dialog.getByRole("button", { name: "Apply to all buttons" }),
+      dialog.getByRole("button", { name: "Apply type to all buttons" }),
     ).toHaveCount(0);
   });
 

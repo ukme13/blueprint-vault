@@ -50,11 +50,12 @@ export function usePreviewSlotStyle(id: string, isBand = false): CSSProperties {
   const { styles, tokens } = useContext(PreviewStylesContext);
   return useMemo(() => {
     const kind = previewInspectKind(id, isBand);
+    const style = previewStyleOf(styles, previewStyleKey(id, isBand));
     return previewStyleDeclarations(
-      previewStyleOf(styles, previewStyleKey(id, isBand)),
+      style,
       tokens,
       kind,
-      previewNativeStyle(id, kind),
+      previewNativeStyle(id, kind, style.variant),
     ) as CSSProperties;
   }, [styles, tokens, id, isBand]);
 }

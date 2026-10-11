@@ -870,3 +870,172 @@ test.describe("An eye keeps a stroke or an effect and does not draw it", () => {
     ).toBeVisible();
   });
 });
+
+test.describe("A button's variant", () => {
+  const radio = (page: Page, name: string) =>
+    panel(page).getByRole("radio", { name, exact: true });
+
+  test("is offered to a button, set to how the page draws it, and to nothing else", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await seeThePreview(page).click();
+    await expect(section(page, "Variant")).toBeVisible();
+    await expect(radio(page, "Contained")).toBeChecked();
+    await expect(radio(page, "Outlined")).not.toBeChecked();
+
+    await page.getByRole("button", { name: "Open the studio" }).click();
+    await expect(radio(page, "Outlined")).toBeChecked();
+
+    await page
+      .locator('[data-preview-slot="card-feature-card"]')
+      .first()
+      .click({
+        position: { x: 60, y: 6 },
+      });
+    await expect(section(page, "Variant")).toHaveCount(0);
+  });
+
+  test("contained becomes outlined: no fill, plain text, an edge, no shadow", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const button = seeThePreview(page);
+    const own = {
+      ground: await style(button, "background-color"),
+      shadow: await style(button, "box-shadow"),
+    };
+    await button.click();
+
+    await radio(page, "Outlined").check({ force: true });
+    await expect
+      .poll(() => style(button, "background-color"))
+      .toBe("rgba(0, 0, 0, 0)");
+    /* The text is the ordinary text colour. */
+    const text = await button.evaluate((node) => {
+      const probe = document.createElement("i");
+      probe.style.color = "var(--color-fg-primary)";
+      node.append(probe);
+      const colour = getComputedStyle(probe).color;
+      probe.remove();
+      return colour;
+    });
+    await expect.poll(() => style(button, "color")).toBe(text);
+    /* An edge drawn as a ring, and the button's own shadow gone. */
+    await expect.poll(() => style(button, "box-shadow")).toMatch(/inset/);
+    expect(await style(button, "box-shadow")).not.toBe(own.shadow);
+    expect(await style(button, "border-top-width")).toBe("0px");
+
+    /* The panel agrees: an edge, no effect. */
+    await expect(
+      section(page, "Stroke").getByRole("button", {
+        name: "Stroke colour",
+        exact: true,
+      }),
+    ).toContainText("Border default");
+    await expect(
+      section(page, "Effects").getByRole("button", { name: "Add effect" }),
+    ).toBeVisible();
+
+    /* Back to how the page draws it hands it back, and keeps nothing. */
+    await radio(page, "Contained").check({ force: true });
+    await expect.poll(() => style(button, "background-color")).toBe(own.ground);
+    await expect.poll(() => style(button, "box-shadow")).toBe(own.shadow);
+    expect(
+      (await readStoredWorkspace(page))?.typography?.previewStyles,
+    ).toBeUndefined();
+  });
+
+  test("outlined becomes contained: filled, labelled to read, lightly shadowed, edgeless", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const button = page.getByRole("button", { name: "Open the studio" });
+    await button.click();
+
+    await radio(page, "Contained").check({ force: true });
+    const wanted = await button.evaluate((node) => {
+      const read = (value: string) => {
+        const probe = document.createElement("i");
+        probe.style.color = value;
+        node.append(probe);
+        const colour = getComputedStyle(probe).color;
+        probe.remove();
+        return colour;
+      };
+      return {
+        fill: read("var(--color-action-primary)"),
+        label: read("var(--color-fg-on-action)"),
+      };
+    });
+    await expect
+      .poll(() => style(button, "background-color"))
+      .toBe(wanted.fill);
+    await expect.poll(() => style(button, "color")).toBe(wanted.label);
+    await expect.poll(() => style(button, "box-shadow")).not.toBe("none");
+    expect(await style(button, "border-top-width")).toBe("0px");
+
+    await expect(
+      section(page, "Effects").getByRole("button", {
+        name: "Shadow",
+        exact: true,
+      }),
+    ).toContainText("shadow-low");
+    await expect(
+      section(page, "Stroke").getByRole("button", { name: "Add stroke" }),
+    ).toBeVisible();
+    await expect(
+      section(page, "Fill").getByRole("button", { name: "Fill", exact: true }),
+    ).toContainText("Action primary");
+  });
+
+  test("starts the other pattern clean, and keeps the room and the shape", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const button = seeThePreview(page);
+    await button.click();
+    await choose(section(page, "Fill"), page, "Fill", "Surface raised");
+    await choose(
+      section(page, "Auto layout"),
+      page,
+      "Padding horizontal",
+      "64px",
+    );
+    await expect.poll(() => style(button, "padding-left")).toBe("64px");
+
+    await radio(page, "Outlined").check({ force: true });
+    /* The fill chosen for the filled button is gone with its pattern. */
+    await expect
+      .poll(() => style(button, "background-color"))
+      .toBe("rgba(0, 0, 0, 0)");
+    /* The room is kept. */
+    expect(await style(button, "padding-left")).toBe("64px");
+  });
+
+  test("is undone in one step, and put back by Reset", async ({ page }) => {
+    await openPreview(page);
+    const button = seeThePreview(page);
+    const own = await style(button, "background-color");
+    await button.click();
+
+    await radio(page, "Outlined").check({ force: true });
+    await expect
+      .poll(() => style(button, "background-color"))
+      .toBe("rgba(0, 0, 0, 0)");
+    await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect.poll(() => style(button, "background-color")).toBe(own);
+    await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+    await page.keyboard.press("ControlOrMeta+Shift+z");
+    await expect
+      .poll(() => style(button, "background-color"))
+      .toBe("rgba(0, 0, 0, 0)");
+
+    await panel(page).getByRole("button", { name: "Reset to default" }).click();
+    await expect.poll(() => style(button, "background-color")).toBe(own);
+    expect(
+      (await readStoredWorkspace(page))?.typography?.previewStyles,
+    ).toBeUndefined();
+  });
+});

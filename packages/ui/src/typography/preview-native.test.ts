@@ -15,7 +15,13 @@ import {
   readPreviewStyles,
   setPreviewStyle,
 } from "./preview-styles";
-import { previewButtonLook, previewNativeStyle } from "./preview-native";
+import {
+  previewButtonAppearance,
+  previewButtonLook,
+  previewNativeStyle,
+  previewVariantNative,
+  withButtonVariant,
+} from "./preview-native";
 
 describe("what the page draws before anything is changed", () => {
   it("says a contained button is filled and casts a shadow, with no edge", () => {
@@ -305,5 +311,138 @@ describe("a closed eye on an edge or a shadow", () => {
       "card",
     );
     expect(declared.boxShadow).toBe("var(--shadow-low)");
+  });
+});
+
+describe("a button dressed the other way", () => {
+  const edge = {
+    tokenId: "border.default",
+    position: "inside",
+    weight: 1,
+  } as const;
+
+  it("is offered to buttons and to nothing else", () => {
+    expect(PREVIEW_INSPECT_FIELDS.button).toContain("variant");
+    for (const kind of ["text", "band", "card", "chip", "divider"] as const) {
+      expect(PREVIEW_INSPECT_FIELDS[kind]).not.toContain("variant");
+    }
+  });
+
+  it("reads how the page draws a button, the featured plan's as a filled one", () => {
+    expect(previewButtonAppearance("landing-hero-cta")).toBe("contained");
+    expect(previewButtonAppearance("landing-plan-2-cta")).toBe("contained");
+    expect(previewButtonAppearance("landing-hero-ghost")).toBe("outlined");
+  });
+
+  it("gives each variant its own fill, edge and shadow, as tokens", () => {
+    expect(previewVariantNative("contained")).toEqual({
+      fill: "action.primary",
+      shadow: "low",
+    });
+    expect(previewVariantNative("outlined")).toEqual({ stroke: edge });
+    expect(
+      previewNativeStyle("landing-hero-ghost", "button", "contained"),
+    ).toEqual(previewVariantNative("contained"));
+    expect(
+      previewNativeStyle("landing-hero-cta", "button", "outlined"),
+    ).toEqual(previewVariantNative("outlined"));
+  });
+
+  it("switches to the other pattern and drops what belonged to this one, keeping room and shape", () => {
+    const set = {
+      padding: { top: 4 },
+      radius: { topLeft: "full" },
+      fill: "surface.raised",
+      labelColor: "fg.muted",
+      stroke: edge,
+      shadow: "med",
+      isStrokeHidden: true,
+      isShadowHidden: true,
+    };
+    expect(withButtonVariant(set, "landing-hero-cta", "outlined")).toEqual({
+      padding: { top: 4 },
+      radius: { topLeft: "full" },
+      variant: "outlined",
+    });
+  });
+
+  it("clears the variant when the page already draws it that way", () => {
+    expect(
+      withButtonVariant(
+        { variant: "outlined", opacity: 50 },
+        "landing-hero-cta",
+        "contained",
+      ),
+    ).toEqual({ opacity: 50 });
+    expect(withButtonVariant({}, "landing-hero-ghost", "outlined")).toEqual({});
+  });
+
+  it("keeps a variant that is valid, and drops one that is not", () => {
+    expect(readPreviewStyles({ a: { variant: "outlined" } })).toEqual({
+      a: { variant: "outlined" },
+    });
+    expect(readPreviewStyles({ a: { variant: "ghost", opacity: 30 } })).toEqual(
+      {
+        a: { opacity: 30 },
+      },
+    );
+  });
+
+  it("draws an outlined button as contained: filled, labelled to read, lightly shadowed, edgeless", () => {
+    const declared = previewStyleDeclarations(
+      { variant: "contained" },
+      [],
+      "button",
+      previewNativeStyle("landing-hero-ghost", "button", "contained"),
+    );
+    expect(declared).toMatchObject({
+      backgroundColor: "var(--color-action-primary)",
+      color: "var(--color-fg-on-action)",
+      boxShadow: "var(--shadow-low)",
+      borderTopWidth: 0,
+      borderLeftWidth: 0,
+    });
+  });
+
+  it("draws a contained button as outlined: transparent, plain text, an edge, no shadow", () => {
+    const declared = previewStyleDeclarations(
+      { variant: "outlined" },
+      [],
+      "button",
+      previewNativeStyle("landing-hero-cta", "button", "outlined"),
+    );
+    expect(declared).toMatchObject({
+      backgroundColor: "transparent",
+      color: "var(--color-fg-primary)",
+      boxShadow: "inset 0 0 0 1px var(--color-border-default)",
+      borderTopWidth: 0,
+    });
+  });
+
+  it("lets what is set on the button win over the variant's", () => {
+    const declared = previewStyleDeclarations(
+      {
+        variant: "outlined",
+        fill: "surface.raised",
+        shadow: "high",
+        labelColor: "fg.muted",
+      },
+      [],
+      "button",
+      previewNativeStyle("landing-hero-cta", "button", "outlined"),
+    );
+    expect(declared).toMatchObject({
+      backgroundColor: "var(--color-surface-raised)",
+      color: "var(--color-fg-muted)",
+    });
+    expect(declared.boxShadow).toBe(
+      "inset 0 0 0 1px var(--color-border-default), var(--shadow-high)",
+    );
+  });
+
+  it("draws nothing of a variant on what is not a button", () => {
+    expect(
+      previewStyleDeclarations({ variant: "outlined" }, [], "card", {}),
+    ).toEqual({});
   });
 });

@@ -73,6 +73,7 @@ describe("what kind of element an id is", () => {
     expect(PREVIEW_INSPECT_FIELDS.button).toEqual([
       "copy",
       "typography",
+      "variant",
       "padding",
       "radius",
       "fill",

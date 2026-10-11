@@ -126,15 +126,24 @@ export function previewStyleDeclarations(
     if (id) out[corners[corner]] = `var(${radiusVariableName(id)})`;
   }
 
-  if (style.fill && (kind === "button" || kind === "card" || kind === "chip")) {
-    out.backgroundColor = `var(${semanticVariableName(style.fill)})`;
+  /* A button dressed the other way draws the variant's fill, edge and shadow
+     where none is set: the page's own are the other pattern's. */
+  const look = kind === "button" ? style.variant : undefined;
+  const fill = style.fill ?? (look ? native.fill : undefined);
+
+  if (fill && (kind === "button" || kind === "card" || kind === "chip")) {
+    out.backgroundColor = `var(${semanticVariableName(fill)})`;
     /* A button's label has to read on what it is now filled with. A card's
        copy is its own slots', set where each is drawn. */
     if (kind === "button") {
       out.color = `var(${semanticVariableName(
-        previewButtonLabelToken(style.fill, tokens),
+        previewButtonLabelToken(fill, tokens),
       )})`;
     }
+  } else if (look) {
+    /* Outlined: no fill, and the text is the ordinary text colour. */
+    out.backgroundColor = "transparent";
+    out.color = "var(--color-fg-primary)";
   }
 
   /* A label colour of its own is the person's and wins over the one derived
@@ -147,8 +156,20 @@ export function previewStyleDeclarations(
      is a shadow, so it can sit inside, outside or on the edge. */
   /* A closed eye draws what taking it away would: nothing, and the edge the
      page had gives way too. What was chosen stays in the style. */
-  const stroke = style.isStrokeHidden ? null : style.stroke;
-  const shadow = style.isShadowHidden ? null : style.shadow;
+  const chosenStroke =
+    style.stroke !== undefined
+      ? style.stroke
+      : look
+        ? (native.stroke ?? null)
+        : undefined;
+  const chosenShadow =
+    style.shadow !== undefined
+      ? style.shadow
+      : look
+        ? (native.shadow ?? null)
+        : undefined;
+  const stroke = style.isStrokeHidden ? null : chosenStroke;
+  const shadow = style.isShadowHidden ? null : chosenShadow;
   const ringed = stroke && !stroke.side ? strokeShadow(stroke) : [];
   const shadows = [
     ...ringed,

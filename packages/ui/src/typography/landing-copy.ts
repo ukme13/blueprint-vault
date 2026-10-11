@@ -691,7 +691,7 @@ export function landingCardSlots(component: LandingCardComponent): Array<{
 /**
  * Every landing slot drawn as a button. Their labels are "label" slots like
  * any other, so nothing else says which ones are buttons; the inspector's
- * Apply to all buttons reads this. A test holds it to the seeded slots.
+ * Apply type to all buttons reads this. A test holds it to the seeded slots.
  */
 export const LANDING_BUTTON_IDS: readonly string[] = [
   "landing-hero-cta",
