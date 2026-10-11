@@ -34,6 +34,7 @@ export * from "./landing-copy";
 export * from "./preview-sections";
 export * from "./preview-native";
 export * from "./preview-styles";
+export * from "./preview-inspect-target";
 export { ARTICLE_COPY } from "./article-copy";
 
 /**

@@ -1,70 +1,26 @@
 "use client";
 
+import { useCallback, useRef, useState } from "react";
 import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-} from "react";
-import {
-  PREVIEW_SECTION_LABEL,
-  previewSurfaceLabel,
-  previewInspectKind,
-  previewStyleKey,
-  previewInspectorChrome,
-  previewStyleOf,
-  resolveElevation,
-  resolveRadius,
-  resolveSpacing,
-  typeRoleRowGroups,
-  type PreviewStyles,
-  applyColorToBlocks,
-  applyRoleToButtons,
-  applyStyleToGroup,
-  defaultElevationScale,
-  defaultLayoutTokens,
-  setLayoutReference,
-  withLayoutTokens,
-  defaultPreviewDevices,
-  defaultRadiusScale,
-  defaultSpacingScale,
-  elevationCssVariables,
-  generatePalettes,
   bindLayoutSlot,
-  layoutBindingVariables,
-  layoutCssVariablesForDevice,
-  type LayoutBindings,
-  previewSection,
-  radiusCssVariables,
+  defaultLayoutTokens,
+  defaultPreviewDevices,
+  defaultSpacingScale,
   resolvePreviewDevice,
-  resolveSemanticColorMap,
-  seedPreviewLanding,
   seedPreviewSections,
-  seedPreviewShell,
   seedTypographyProject,
-  semanticCssVariables,
-  spacingCssVariables,
-  typeCssVariablesForDevice,
-  PREVIEW_SECTION_SEED_TOKEN,
-  idsSharingStyle,
-  isPreviewButton,
-  type PreviewDocumentBlock,
+  setLayoutReference,
   useWorkspaceStore,
+  withLayoutTokens,
+  type LayoutBindings,
+  type PreviewStyles,
 } from "@blueprint/ui";
 import { useIsPhone } from "../use-is-phone";
 import { useThemeMode } from "../../app/theme-provider";
-import {
-  PreviewInspectPanel,
-  type PreviewInspectPanelProps,
-} from "../inspect/PreviewInspectPanel";
+import { PreviewInspectPanel } from "../inspect/PreviewInspectPanel";
 import { PreviewSelectionBox } from "../inspect/PreviewSelectionBox";
+import { usePreviewInspector } from "../inspect/use-preview-inspector";
 import { Sheet } from "../Sheet";
-import {
-  usePreviewEdits,
-  type InspectTarget,
-} from "../inspect/use-preview-edits";
 import { PreviewStylesProvider } from "./preview-styles-context";
 import { PreviewChrome } from "../PreviewChrome";
 import { usePaletteView } from "../palette/PaletteViewContext";
@@ -72,9 +28,9 @@ import { useGoogleFontsLink } from "../typography/use-google-fonts";
 import { useLocalFonts } from "../typography/use-local-fonts";
 import { PreviewSite } from "./PreviewSite";
 import { SpacingOverlay } from "../spacing-overlay/SpacingOverlay";
+import { usePreviewScales } from "./use-preview-scales";
 
 const EMPTY_TOKENS: never[] = [];
-const EMPTY_PALETTES: never[] = [];
 const EMPTY_STYLES: PreviewStyles = {};
 
 /**
@@ -101,10 +57,6 @@ export function SystemPreview() {
      the overlay it belongs to, a way of looking: not saved, not undone, and
      the Uses table is not touched by it. */
   const [layoutBindings, setLayoutBindings] = useState<LayoutBindings>({});
-  const [inspecting, setInspecting] = useState<InspectTarget | null>(null);
-  /* The panel beside the page: opened by a selection, hidden by its own
-     button. A way of looking, so not saved. */
-  const [isInspectorOpen, setIsInspectorOpen] = useState(false);
 
   const tokens = project?.semantics ?? EMPTY_TOKENS;
   const typography =
@@ -121,158 +73,42 @@ export function SystemPreview() {
   useGoogleFontsLink(system, undefined, 400);
   useLocalFonts(system);
 
-  const palettes = useMemo(
-    () =>
-      project?.palette ? generatePalettes(project.palette) : EMPTY_PALETTES,
-    [project],
-  );
-
-  const tokenColors = useMemo(
-    () => resolveSemanticColorMap(tokens, mode, palettes, seen),
-    [tokens, mode, palettes, seen],
-  );
-
-  const variables = useMemo((): CSSProperties => {
-    return {
-      ...semanticCssVariables(tokens, mode, palettes, seen),
-      ...spacingCssVariables(project?.spacing ?? defaultSpacingScale()),
-      ...radiusCssVariables(project?.radius ?? defaultRadiusScale()),
-      ...elevationCssVariables(
-        project?.elevation ?? defaultElevationScale(),
-        palettes,
-        mode,
-      ),
-      ...layoutCssVariablesForDevice(
-        project?.layout ?? defaultLayoutTokens(),
-        frame.id,
-      ),
-      ...layoutBindingVariables(
-        project?.layout ?? defaultLayoutTokens(),
-        layoutBindings,
-        frame.id,
-      ),
-      ...typeCssVariablesForDevice(
-        system,
-        frame,
-        typography.unit,
-        typography.remRootPx,
-        devices,
-      ),
-    } as CSSProperties;
-  }, [
+  const scales = usePreviewScales({
+    project,
     tokens,
     mode,
     seen,
-    palettes,
-    project?.spacing,
-    project?.radius,
-    project?.elevation,
-    project?.layout,
-    layoutBindings,
     frame,
-    system,
-    typography.unit,
-    typography.remRootPx,
     devices,
-  ]);
-
-  const inspectedBlock = ((): PreviewDocumentBlock | null => {
-    if (!inspecting || inspecting.source === "section") return null;
-    const list =
-      inspecting.source === "shell"
-        ? typography.previewShell
-        : typography.previewLanding;
-    return list.find((block) => block.id === inspecting.id) ?? null;
-  })();
-
-  const inspectedSection =
-    inspecting?.source === "section"
-      ? (previewSection(sections, inspecting.id) ?? null)
-      : null;
-
-  const onDeviceChange = useCallback((id: string) => {
-    /* Close the inspector first: its <dialog> is on the top layer, and the
-       canvas remounts when the overflow ancestor changes. Unmounting that
-       node while it is still open throws removeChild on null. The timeout
-       lets Dialog's close() effect run; an rAF can fire before that effect. */
-    setInspecting(null);
-    window.setTimeout(() => setDeviceId(id), 0);
-  }, []);
-
-  /* Escape lets go of the selection, unless something over the page has it
-     open: a list closes on Escape before the selection does. */
-  useEffect(() => {
-    if (!inspecting) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      if (
-        document.querySelector('dialog[open], :popover-open [role="listbox"]')
-      ) {
-        return;
-      }
-      setInspecting(null);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [inspecting]);
-
-  const slotSource =
-    inspecting && inspecting.source !== "section" ? inspecting.source : null;
-
-  const defaultBlock = useMemo(() => {
-    if (!inspecting || inspecting.source === "section") return null;
-    if (inspecting.source === "landing") {
-      return (
-        seedPreviewLanding(system).find((b) => b.id === inspecting.id) ?? null
-      );
-    }
-    if (inspecting.source === "shell") {
-      return (
-        seedPreviewShell(system).find((b) => b.id === inspecting.id) ?? null
-      );
-    }
-    return null;
-  }, [inspecting, system]);
-
-  const {
-    patchSlot,
-    patchDocument,
-    patchSectionFill,
-    patchStyle,
-    resetSlotToDefault,
-    resetSectionToDefault,
-    resetAllToDefault,
-  } = usePreviewEdits({
+    system,
+    unit: typography.unit,
+    remRootPx: typography.remRootPx,
+    layoutBindings,
+  });
+  const previewStyles = typography.previewStyles ?? EMPTY_STYLES;
+  const inspector = usePreviewInspector({
     update,
     system,
-    inspecting,
-    slotSource,
-    defaultBlock,
-    setInspecting,
+    previewLanding: typography.previewLanding,
+    previewShell: typography.previewShell,
+    previewStyles,
+    sections,
+    tokens,
+    scales,
     setLayoutBindings,
   });
+  const { inspecting, clearSelection } = inspector;
 
-  /* What the panel's token lists are drawn from: the project's own scales. */
-  const spacingTokens = useMemo(
-    () => resolveSpacing(project?.spacing ?? defaultSpacingScale()),
-    [project?.spacing],
-  );
-  const radiusTokens = useMemo(
-    () => resolveRadius(project?.radius ?? defaultRadiusScale()),
-    [project?.radius],
-  );
-  const elevationLevels = useMemo(
-    () =>
-      resolveElevation(
-        project?.elevation ?? defaultElevationScale(),
-        palettes,
-        mode,
-      ),
-    [project?.elevation, palettes, mode],
-  );
-  const roleGroups = useMemo(
-    () => typeRoleRowGroups(system, frame.id),
-    [system, frame.id],
+  const onDeviceChange = useCallback(
+    (id: string) => {
+      /* Close the inspector first: its <dialog> is on the top layer, and the
+         canvas remounts when the overflow ancestor changes. Unmounting that
+         node while it is still open throws removeChild on null. The timeout
+         lets Dialog's close() effect run; an rAF can fire before that effect. */
+      clearSelection();
+      window.setTimeout(() => setDeviceId(id), 0);
+    },
+    [clearSelection],
   );
 
   if (!hasLoaded) {
@@ -303,96 +139,6 @@ export function SystemPreview() {
     );
   }
 
-  const previewStyles = typography.previewStyles ?? EMPTY_STYLES;
-  const inspectedId = inspecting?.id ?? null;
-  const isBandSelected = inspecting?.source === "section";
-  /* A band and a slot can share an id, so a band's style has a key of its own. */
-  const styleKey = inspectedId
-    ? previewStyleKey(inspectedId, isBandSelected)
-    : null;
-  const panelProps: PreviewInspectPanelProps = {
-    target: inspecting
-      ? {
-          id: inspecting.id,
-          kind: previewInspectKind(inspecting.id, isBandSelected),
-          title:
-            inspecting.source === "section"
-              ? PREVIEW_SECTION_LABEL[inspecting.id]
-              : (previewSurfaceLabel(inspecting.id) ??
-                previewInspectorChrome(inspecting.id).title),
-        }
-      : null,
-    style: styleKey ? previewStyleOf(previewStyles, styleKey) : {},
-    block: inspectedBlock,
-    bandFill: inspectedSection?.fill ?? null,
-    spacing: spacingTokens,
-    radius: radiusTokens,
-    elevation: elevationLevels,
-    tokens,
-    tokenColors,
-    roleGroups,
-    isGrouped: inspectedId ? idsSharingStyle(inspectedId).length > 1 : false,
-    isButton: inspectedId ? isPreviewButton(inspectedId) : false,
-    isOverridden:
-      (styleKey !== null && styleKey in previewStyles) ||
-      (defaultBlock
-        ? inspectedBlock?.text !== defaultBlock.text ||
-          inspectedBlock?.roleId !== defaultBlock.roleId ||
-          inspectedBlock?.colorTokenId !== defaultBlock.colorTokenId
-        : Boolean(inspectedBlock?.colorTokenId)) ||
-      (inspecting?.source === "section" &&
-        (inspectedSection?.fill.kind === "image" ||
-          inspectedSection?.fill.tokenId !==
-            PREVIEW_SECTION_SEED_TOKEN[inspecting.id])),
-    onStyleChange: (next) => {
-      if (styleKey) patchStyle(styleKey, next);
-    },
-    onTextChange: (text) => patchSlot((block) => ({ ...block, text })),
-    onRoleChange: (roleId) => patchSlot((block) => ({ ...block, roleId })),
-    onColourChange: (colorTokenId) => {
-      if (!slotSource || !inspecting || inspecting.source === "section") return;
-      patchDocument(slotSource, (document) =>
-        applyColorToBlocks(document, [inspecting.id], colorTokenId),
-      );
-    },
-    onBandFillChange: (tokenId) => {
-      if (inspecting?.source !== "section") return;
-      const current = previewSection(sections, inspecting.id)?.fill;
-      patchSectionFill(
-        inspecting.id,
-        current?.kind === "image"
-          ? { ...current, fallbackTokenId: tokenId }
-          : { kind: "token", tokenId },
-      );
-    },
-    onApplyToGroup: () => {
-      if (!slotSource || !inspecting || inspecting.source === "section") return;
-      patchDocument(slotSource, (document) =>
-        applyStyleToGroup(document, inspecting.id),
-      );
-    },
-    onApplyToAllButtons: () => {
-      const roleId = inspectedBlock?.roleId;
-      if (!roleId) return;
-      /* The shell's sign-up and the landing buttons live in two documents;
-         both take the role. */
-      patchDocument("landing", (document) =>
-        applyRoleToButtons(document, roleId),
-      );
-      patchDocument("shell", (document) =>
-        applyRoleToButtons(document, roleId),
-      );
-    },
-    onResetToDefault:
-      inspecting?.source === "section"
-        ? resetSectionToDefault
-        : resetSlotToDefault,
-    onClose: () => {
-      setIsInspectorOpen(false);
-      setInspecting(null);
-    },
-  };
-
   return (
     <PreviewChrome
       canvas={
@@ -406,20 +152,15 @@ export function SystemPreview() {
             sections={sections}
             shell={typography.previewShell}
             system={system}
-            variables={variables}
-            onInspectLanding={(id) => {
-              setInspecting({ source: "landing", id });
-              setIsInspectorOpen(true);
-            }}
-            onInspectSection={(id) => {
-              setInspecting({ source: "section", id });
-              setIsInspectorOpen(true);
-            }}
-            onInspectShell={(id) => {
-              setInspecting({ source: "shell", id });
-              setIsInspectorOpen(true);
-            }}
-            onSectionFill={patchSectionFill}
+            variables={scales.variables}
+            onInspectLanding={(id) =>
+              inspector.select({ source: "landing", id })
+            }
+            onInspectSection={(id) =>
+              inspector.select({ source: "section", id })
+            }
+            onInspectShell={(id) => inspector.select({ source: "shell", id })}
+            onSectionFill={inspector.patchSectionFill}
           >
             {showSpacing ? (
               <SpacingOverlay
@@ -463,13 +204,15 @@ export function SystemPreview() {
       }
       device={frame}
       devices={devices}
-      inspector={isPhone ? undefined : <PreviewInspectPanel {...panelProps} />}
-      isInspectorOpen={isInspectorOpen}
-      onInspectorOpenChange={setIsInspectorOpen}
+      inspector={
+        isPhone ? undefined : <PreviewInspectPanel {...inspector.panelProps} />
+      }
+      isInspectorOpen={inspector.isInspectorOpen}
+      onInspectorOpenChange={inspector.setIsInspectorOpen}
       mode={mode}
       onDeviceChange={onDeviceChange}
       showSpacing={showSpacing}
-      onResetToDefault={resetAllToDefault}
+      onResetToDefault={inspector.resetAllToDefault}
       onShowSpacingChange={setShowSpacing}
     >
       {isPhone ? (
@@ -477,11 +220,9 @@ export function SystemPreview() {
           isOpen={inspecting !== null}
           label="Inspect"
           padding="flush"
-          onClose={() => {
-            setInspecting(null);
-          }}
+          onClose={clearSelection}
         >
-          <PreviewInspectPanel {...panelProps} isInSheet />
+          <PreviewInspectPanel {...inspector.panelProps} isInSheet />
         </Sheet>
       ) : null}
     </PreviewChrome>
