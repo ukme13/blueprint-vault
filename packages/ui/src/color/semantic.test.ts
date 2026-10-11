@@ -841,6 +841,67 @@ describe("fillSeedRoles", () => {
     expect(differsFromRatio).toBe(true);
   });
 
+  describe("the label on a mid-tone secondary", () => {
+    /** The seeded label and fill of the secondary tone, in a mode. */
+    const secondary = (seedHex: string, mode: "light" | "dark") => {
+      const tracks = palette([
+        { id: "t-primary", name: "primary", seedHex: "#2563eb" },
+        { id: "t-secondary", name: "secondary", seedHex },
+        { id: "t-neutral", name: "neutral", seedHex: "#737373" },
+        { id: "t-success", name: "success", seedHex: "#2f7d32" },
+        { id: "t-warning", name: "warning", seedHex: "#b87503" },
+        { id: "t-error", name: "error", seedHex: "#b02b1b" },
+        { id: "t-info", name: "info", seedHex: "#2878b8" },
+      ]);
+      const tokens = seedSemanticTokens(tracks);
+      return {
+        fill: resolveSemantic(
+          tokenById(tokens, "action.secondary"),
+          mode,
+          tracks,
+        )!,
+        label: resolveSemantic(
+          tokenById(tokens, "fg.on-secondary"),
+          mode,
+          tracks,
+        )!,
+      };
+    };
+
+    it("is white on a purple 500, where black has half the Lc", () => {
+      for (const mode of ["light", "dark"] as const) {
+        const { fill, label } = secondary("#8b5cf6", mode);
+        expect(label.hex, mode).toBe("#ffffff");
+        expect(isStaticTrackId(label.trackId), mode).toBe(true);
+        /* Far more legible than the black it was: the Lc, not the ratio, says. */
+        expect(
+          shownLc(apcaContrast(label.hex, fill.hex)),
+          mode,
+        ).toBeGreaterThanOrEqual(65);
+        expect(shownLc(apcaContrast("#000000", fill.hex)), mode).toBeLessThan(
+          45,
+        );
+      }
+    });
+
+    it("stays on the track's own end where that already clears both lines", () => {
+      const { fill, label } = secondary("#7c3aed", "light");
+      expect(label.hex).not.toBe("#ffffff");
+      expect(contrastRatio(label.hex, fill.hex)).toBeGreaterThanOrEqual(4.5);
+      expect(shownLc(apcaContrast(label.hex, fill.hex))).toBeGreaterThanOrEqual(
+        60,
+      );
+    });
+
+    it("does not take a colour APCA likes and WCAG 2 cannot see, under 3:1", () => {
+      /* A light violet: white has the higher Lc, at 2.7:1; black reads plainly. */
+      const { fill, label } = secondary("#a78bfa", "light");
+      expect(contrastRatio("#ffffff", fill.hex)).toBeLessThan(3);
+      expect(label.hex).not.toBe("#ffffff");
+      expect(contrastRatio(label.hex, fill.hex)).toBeGreaterThanOrEqual(4.5);
+    });
+  });
+
   it("leaves a complete layer untouched, by identity", () => {
     const complete = seedSemanticTokens(fullPalette());
     expect(fillSeedRoles(complete, fullPalette())).toBe(complete);

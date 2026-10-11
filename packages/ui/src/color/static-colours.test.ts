@@ -316,7 +316,7 @@ describe("seeding a label for a fill", () => {
     expect(resolveSemantic(label, "light", tracks)?.hex).toBe("#ffffff");
   });
 
-  it("never picks a worse label than white, black or the track's ends offer", () => {
+  it("picks what clears both lines, and else what APCA reads best that still reaches 3:1", () => {
     for (const seed of SEEDS) {
       const tracks = palette(seed);
       const tokens = seedSemanticTokens(tracks);
@@ -340,21 +340,20 @@ describe("seeding a label for a fill", () => {
             "#ffffff",
             "#000000",
           ];
-          const tier = (hex: string) =>
-            reads(hex, fill.hex)
-              ? 2
-              : contrastRatio(hex, fill.hex) >= 4.5
-                ? 1
-                : 0;
-          const best = Math.max(...options.map(tier));
+          const lc = (hex: string) => shownLc(apcaContrast(hex, fill.hex));
           const message = `${seed} ${mode} ${labelId} on ${fillId}`;
-          if (best > 0) {
-            expect(tier(chosen.hex), message).toBe(best);
+          if (options.some((hex) => reads(hex, fill.hex))) {
+            /* Something clears both lines: so does what was chosen. */
+            expect(reads(chosen.hex, fill.hex), message).toBe(true);
           } else {
-            /* Nothing reaches 4.5:1; it is the most contrast there is. */
-            expect(contrastRatio(chosen.hex, fill.hex), message).toBeCloseTo(
-              Math.max(...options.map((hex) => contrastRatio(hex, fill.hex))),
-              5,
+            /* Nothing does. The one APCA reads best, among those that still
+               reach 3:1; and if none reach it, the best of all. */
+            const reach = options.filter(
+              (hex) => contrastRatio(hex, fill.hex) >= 3,
+            );
+            const pool = reach.length > 0 ? reach : options;
+            expect(lc(chosen.hex), message).toBe(
+              Math.max(...pool.map((hex) => lc(hex))),
             );
           }
           /* Static only ever as the exact colour. */
