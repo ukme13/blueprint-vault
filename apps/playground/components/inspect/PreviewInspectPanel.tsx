@@ -24,6 +24,7 @@ import { AutoLayoutSection } from "./InspectAutoLayout";
 import { EffectsSection } from "./InspectEffects";
 import { FillSection } from "./InspectFill";
 import { StrokeSection } from "./InspectStroke";
+import { VariantSection } from "./InspectVariant";
 import { CopySection, TypographySection } from "./InspectTextSections";
 import { readNativeMetrics } from "./native-metrics";
 import styles from "./inspect-panel.module.css";
@@ -51,7 +52,7 @@ export interface PreviewInspectPanelProps {
   roleGroups: readonly TypeRoleRowGroup[];
   /** Whether the slot is in a style group, which Apply to group acts on. */
   isGrouped: boolean;
-  /** Whether it is a button, which Apply to all buttons acts on. */
+  /** Whether it is a button, which Apply type to all buttons acts on. */
   isButton: boolean;
   isOverridden: boolean;
   /** In a phone's sheet rather than the page's right edge. */
@@ -113,7 +114,11 @@ export function PreviewInspectPanel(props: PreviewInspectPanelProps) {
   }
 
   const fields = PREVIEW_INSPECT_FIELDS[target.kind];
-  const native = previewNativeStyle(target.id, target.kind);
+  const native = previewNativeStyle(
+    target.id,
+    target.kind,
+    props.style.variant,
+  );
   const has = (...wanted: (typeof fields)[number][]) =>
     wanted.some((field) => fields.includes(field));
   const { block, style } = props;
@@ -139,6 +144,14 @@ export function PreviewInspectPanel(props: PreviewInspectPanelProps) {
           field={previewInspectorCopyField(target.id)}
           text={block.text}
           onTextChange={props.onTextChange}
+        />
+      ) : null}
+
+      {has("variant") ? (
+        <VariantSection
+          id={target.id}
+          style={style}
+          onStyleChange={props.onStyleChange}
         />
       ) : null}
 
@@ -219,7 +232,7 @@ export function PreviewInspectPanel(props: PreviewInspectPanelProps) {
           ) : null}
           {props.isButton ? (
             <Button
-              label="Apply to all buttons"
+              label="Apply type to all buttons"
               size="md"
               variant="secondary"
               width="100%"

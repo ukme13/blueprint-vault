@@ -11,6 +11,8 @@ import {
   PreviewRadiusCorner,
   PreviewSlotStyle,
   PreviewStyles,
+  PREVIEW_BUTTON_VARIANTS,
+  PreviewButtonVariant,
 } from "./preview-style-model";
 
 /* ---- reading ---- */
@@ -84,6 +86,9 @@ export function readSlotStyle(value: unknown): PreviewSlotStyle | null {
   }
   if (raw.shadow === null) style.shadow = null;
   else if (isId(raw.shadow)) style.shadow = raw.shadow;
+  if (PREVIEW_BUTTON_VARIANTS.includes(raw.variant as PreviewButtonVariant)) {
+    style.variant = raw.variant as PreviewButtonVariant;
+  }
   /* Only a closed eye is kept: an open one is what absent already says. */
   if (raw.isStrokeHidden === true) style.isStrokeHidden = true;
   if (raw.isShadowHidden === true) style.isShadowHidden = true;

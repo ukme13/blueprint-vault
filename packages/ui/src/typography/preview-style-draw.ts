@@ -65,16 +65,29 @@ export function previewButtonLabelOf(
 /** CSS properties, camel-cased as React takes them. */
 export type PreviewStyleDeclarations = Record<string, string | number>;
 
-function strokeShadow(stroke: PreviewStroke): string[] {
-  const colour = `var(${semanticVariableName(stroke.tokenId)})`;
+/**
+ * An edge all the way round, as an outline.
+ *
+ * An outline is drawn over the border box's edge and takes no room, so an edge
+ * can sit inside, on or outside it without the element growing or shrinking by
+ * the border it replaces, which a border or an inset shadow would: a button
+ * that is 38px tall is 38px tall with the stroke and without it. It follows the
+ * corner radius, and it leaves the box-shadow to the shadow.
+ */
+function strokeOutline(stroke: PreviewStroke): PreviewStyleDeclarations {
   const { weight } = stroke;
-  if (stroke.position === "inside") {
-    return [`inset 0 0 0 ${weight}px ${colour}`];
-  }
-  if (stroke.position === "outside") return [`0 0 0 ${weight}px ${colour}`];
-  /* Centred: half of it either side of the edge. */
-  const half = weight / 2;
-  return [`inset 0 0 0 ${half}px ${colour}`, `0 0 0 ${half}px ${colour}`];
+  const offset =
+    stroke.position === "inside"
+      ? -weight
+      : stroke.position === "center"
+        ? -weight / 2
+        : 0;
+  return {
+    outlineStyle: "solid",
+    outlineWidth: `${weight}px`,
+    outlineColor: `var(${semanticVariableName(stroke.tokenId)})`,
+    outlineOffset: `${offset}px`,
+  };
 }
 
 /**
@@ -126,15 +139,24 @@ export function previewStyleDeclarations(
     if (id) out[corners[corner]] = `var(${radiusVariableName(id)})`;
   }
 
-  if (style.fill && (kind === "button" || kind === "card" || kind === "chip")) {
-    out.backgroundColor = `var(${semanticVariableName(style.fill)})`;
+  /* A button dressed the other way draws the variant's fill, edge and shadow
+     where none is set: the page's own are the other pattern's. */
+  const look = kind === "button" ? style.variant : undefined;
+  const fill = style.fill ?? (look ? native.fill : undefined);
+
+  if (fill && (kind === "button" || kind === "card" || kind === "chip")) {
+    out.backgroundColor = `var(${semanticVariableName(fill)})`;
     /* A button's label has to read on what it is now filled with. A card's
        copy is its own slots', set where each is drawn. */
     if (kind === "button") {
       out.color = `var(${semanticVariableName(
-        previewButtonLabelToken(style.fill, tokens),
+        previewButtonLabelToken(fill, tokens),
       )})`;
     }
+  } else if (look) {
+    /* Outlined: no fill, and the text is the ordinary text colour. */
+    out.backgroundColor = "transparent";
+    out.color = "var(--color-fg-primary)";
   }
 
   /* A label colour of its own is the person's and wins over the one derived
@@ -147,39 +169,44 @@ export function previewStyleDeclarations(
      is a shadow, so it can sit inside, outside or on the edge. */
   /* A closed eye draws what taking it away would: nothing, and the edge the
      page had gives way too. What was chosen stays in the style. */
-  const stroke = style.isStrokeHidden ? null : style.stroke;
-  const shadow = style.isShadowHidden ? null : style.shadow;
-  const ringed = stroke && !stroke.side ? strokeShadow(stroke) : [];
-  const shadows = [
-    ...ringed,
-    ...(typeof shadow === "string"
-      ? [`var(${elevationVariableName(shadow)})`]
-      : []),
-    /* With an edge drawn as a shadow, the shadow the element already had must
-       be said too, or it is lost: the library keeps it in a variable. */
-    ...(shadow === undefined && native.hasShadow && ringed.length > 0
-      ? ["var(--tw-shadow, 0 0 #0000)"]
-      : []),
-  ];
-  if (shadows.length > 0) out.boxShadow = shadows.join(", ");
-  else if (shadow === null) out.boxShadow = "none";
+  const chosenStroke =
+    style.stroke !== undefined
+      ? style.stroke
+      : look
+        ? (native.stroke ?? null)
+        : undefined;
+  const chosenShadow =
+    style.shadow !== undefined
+      ? style.shadow
+      : look
+        ? (native.shadow ?? null)
+        : undefined;
+  const stroke = style.isStrokeHidden ? null : chosenStroke;
+  const shadow = style.isShadowHidden ? null : chosenShadow;
+  if (typeof shadow === "string") {
+    out.boxShadow = `var(${elevationVariableName(shadow)})`;
+  } else if (shadow === null) {
+    out.boxShadow = "none";
+  }
 
-  /* A stroke, or the taking away of one, is the element's edge, so the edge it
-     already has gives way: an outlined button, a card and a section keep a
-     border of their own, and with a stroke on top the element would show two
-     outlines. Longhands, since the base styles set border colours as longhands
-     and a shorthand beside them is what React warns of when one is removed. */
-  if (stroke !== undefined) {
+  /* An edge, or the taking away of one, is the element's edge, so the one it
+     has gives way: an outlined button, a card and a section keep a border of
+     their own. Its colour goes and its width stays, so the element keeps its
+     size; with a stroke on top it would otherwise show two outlines. The colour
+     is the shorthand, which is what the buttons' own style sets. */
+  if (stroke !== undefined) out.borderColor = "transparent";
+  if (stroke && !stroke.side) Object.assign(out, strokeOutline(stroke));
+  if (stroke?.side) {
+    /* On one side alone it is that side's border, and the others have none. */
     out.borderTopWidth = 0;
     out.borderRightWidth = 0;
     out.borderBottomWidth = 0;
     out.borderLeftWidth = 0;
-  }
-  if (stroke?.side) {
     const edge = stroke.side === "top" ? "Top" : "Bottom";
     out[`border${edge}Width`] = stroke.weight;
     out[`border${edge}Style`] = "solid";
     out[`border${edge}Color`] = `var(${semanticVariableName(stroke.tokenId)})`;
+    delete out.borderColor;
   }
 
   return out;

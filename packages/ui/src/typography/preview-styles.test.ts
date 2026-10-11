@@ -73,6 +73,7 @@ describe("what kind of element an id is", () => {
     expect(PREVIEW_INSPECT_FIELDS.button).toEqual([
       "copy",
       "typography",
+      "variant",
       "padding",
       "radius",
       "fill",
@@ -282,33 +283,36 @@ describe("previewStyleDeclarations", () => {
     });
   });
 
-  it("draws a stroke as a shadow, inside, outside or centred", () => {
+  it("draws a stroke as an outline, inside, outside or centred", () => {
     const stroke = (position: "inside" | "center" | "outside") =>
       previewStyleDeclarations({
         stroke: { tokenId: "border.default", position, weight: 2 },
-      }).boxShadow;
-    expect(stroke("inside")).toBe(
-      "inset 0 0 0 2px var(--color-border-default)",
-    );
-    expect(stroke("outside")).toBe("0 0 0 2px var(--color-border-default)");
-    expect(stroke("center")).toBe(
-      "inset 0 0 0 1px var(--color-border-default), 0 0 0 1px var(--color-border-default)",
-    );
+      });
+    expect(stroke("inside")).toMatchObject({
+      outlineStyle: "solid",
+      outlineWidth: "2px",
+      outlineColor: "var(--color-border-default)",
+      outlineOffset: "-2px",
+    });
+    expect(stroke("center").outlineOffset).toBe("-1px");
+    expect(stroke("outside").outlineOffset).toBe("0px");
+    /* The outline takes no room, and leaves the shadow to the shadow. */
+    expect(stroke("inside").boxShadow).toBeUndefined();
   });
 
-  it("puts a stroke over a shadow in the one box-shadow", () => {
-    expect(
-      previewStyleDeclarations({
-        shadow: "low",
-        stroke: { tokenId: "border.default", position: "inside", weight: 1 },
-      }).boxShadow,
-    ).toBe("inset 0 0 0 1px var(--color-border-default), var(--shadow-low)");
+  it("keeps a stroke and a shadow apart: one in the outline, one in the box-shadow", () => {
+    const declared = previewStyleDeclarations({
+      shadow: "low",
+      stroke: { tokenId: "border.default", position: "inside", weight: 1 },
+    });
+    expect(declared.boxShadow).toBe("var(--shadow-low)");
+    expect(declared.outlineColor).toBe("var(--color-border-default)");
     expect(previewStyleDeclarations({ shadow: "med" }).boxShadow).toBe(
       "var(--shadow-med)",
     );
   });
 
-  it("gives way the element's own border to a stroke, so there is one edge", () => {
+  it("gives way the element's own border to a stroke by its colour, so the element keeps its size", () => {
     const stroke = {
       tokenId: "border.default",
       position: "inside",
@@ -316,13 +320,19 @@ describe("previewStyleDeclarations", () => {
     } as const;
     for (const kind of ["button", "card", "band"] as const) {
       const declared = previewStyleDeclarations({ stroke }, [], kind);
-      expect(declared).toMatchObject({
-        borderTopWidth: 0,
-        borderRightWidth: 0,
-        borderBottomWidth: 0,
-        borderLeftWidth: 0,
-      });
+      expect(declared.borderColor).toBe("transparent");
+      /* No width is changed: that is what changed the size. */
+      for (const side of ["Top", "Right", "Bottom", "Left"]) {
+        expect(declared).not.toHaveProperty(`border${side}Width`);
+      }
     }
+  });
+
+  it("hides the page's own edge the same way when a stroke is taken away", () => {
+    const declared = previewStyleDeclarations({ stroke: null }, [], "card");
+    expect(declared.borderColor).toBe("transparent");
+    expect(declared).not.toHaveProperty("outlineStyle");
+    expect(declared).not.toHaveProperty("borderTopWidth");
   });
 
   it("leaves the element's own border alone with no stroke", () => {
@@ -333,18 +343,20 @@ describe("previewStyleDeclarations", () => {
         kind,
       );
       expect(
-        Object.keys(declared).some((key) => key.startsWith("border")),
+        Object.keys(declared).some(
+          (key) => key.startsWith("border") || key.startsWith("outline"),
+        ),
       ).toBe(false);
     }
   });
 
-  it("sets no shorthand border beside the longhands", () => {
+  it("sets no border or outline shorthand beside the longhands it sets", () => {
     const declared = previewStyleDeclarations(
       { stroke: { tokenId: "border.default", position: "outside", weight: 1 } },
       [],
       "button",
     );
-    for (const shorthand of ["border", "borderWidth", "borderColor"]) {
+    for (const shorthand of ["border", "borderWidth", "outline"]) {
       expect(declared).not.toHaveProperty(shorthand);
     }
   });

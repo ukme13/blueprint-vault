@@ -1,5 +1,10 @@
 import { isPreviewButton } from "./preview-shell";
-import type { PreviewInspectKind, PreviewStroke } from "./preview-styles";
+import type {
+  PreviewButtonVariant,
+  PreviewInspectKind,
+  PreviewSlotStyle,
+  PreviewStroke,
+} from "./preview-styles";
 
 /**
  * What an element of the preview page is drawn with before anyone changes it:
@@ -20,6 +25,8 @@ export interface PreviewNative {
   stroke?: PreviewStroke;
   /** It casts a shadow of its own. */
   hasShadow?: boolean;
+  /** An elevation level it is drawn with, where the shadow is a token's. */
+  shadow?: string;
 }
 
 const inside = (tokenId: string, side?: "top" | "bottom"): PreviewStroke => ({
@@ -54,13 +61,68 @@ const BAND_DIVIDERS: Record<string, PreviewStroke> = {
   "shell-footer": inside("border.default", "top"),
 };
 
+/**
+ * How a button reads, for the control that switches it: the featured plan's
+ * light button is a filled one.
+ */
+export function previewButtonAppearance(id: string): PreviewButtonVariant {
+  return previewButtonLook(id) === "outlined" ? "outlined" : "contained";
+}
+
+/**
+ * A button as the variant dresses it: filled and lightly shadowed, or
+ * transparent with an edge. A variant is drawn from tokens, where the page's
+ * own contained button is drawn by the button library, so the shadow here is a
+ * level of the elevation scale.
+ */
+export function previewVariantNative(
+  variant: PreviewButtonVariant,
+): PreviewNative {
+  return variant === "contained"
+    ? { fill: "action.primary", shadow: "low" }
+    : { stroke: inside("border.default") };
+}
+
+/**
+ * A button's style with the variant switched. Choosing the way the page already
+ * draws it clears the variant, so it is drawn by the page again; the other way
+ * starts it clean, dropping the fill, label, edge and shadow set before, which
+ * belonged to the other pattern. Room and shape are kept.
+ */
+export function withButtonVariant(
+  style: PreviewSlotStyle,
+  id: string,
+  variant: PreviewButtonVariant,
+): PreviewSlotStyle {
+  const {
+    fill,
+    labelColor,
+    stroke,
+    shadow,
+    isStrokeHidden,
+    isShadowHidden,
+    variant: previous,
+    ...rest
+  } = style;
+  void fill;
+  void labelColor;
+  void stroke;
+  void shadow;
+  void isStrokeHidden;
+  void isShadowHidden;
+  void previous;
+  return variant === previewButtonAppearance(id) ? rest : { ...rest, variant };
+}
+
 export function previewNativeStyle(
   id: string,
   kind: PreviewInspectKind,
+  variant?: PreviewButtonVariant,
 ): PreviewNative {
   switch (kind) {
     case "button": {
       if (!isPreviewButton(id)) return {};
+      if (variant) return previewVariantNative(variant);
       const look = previewButtonLook(id);
       if (look === "outlined") return { stroke: inside("border.default") };
       if (look === "inverted") {

@@ -146,12 +146,14 @@ test.describe("Changing a token redraws the page", () => {
     await expect(
       stroke.getByRole("button", { name: "Stroke colour", exact: true }),
     ).toBeVisible();
-    await expect.poll(() => style(button, "box-shadow")).toMatch(/inset/);
+    await expect.poll(() => style(button, "outline-style")).toBe("solid");
 
+    /* Inside the edge it is drawn pulled in by its weight; outside, not at all. */
+    await expect.poll(() => style(button, "outline-offset")).toBe("-1px");
     await choose(stroke, page, "Stroke position", "Outside");
-    await expect.poll(() => style(button, "box-shadow")).not.toMatch(/inset/);
+    await expect.poll(() => style(button, "outline-offset")).toBe("0px");
     await choose(stroke, page, "Stroke weight", "3px");
-    await expect.poll(() => style(button, "box-shadow")).toMatch(/3px/);
+    await expect.poll(() => style(button, "outline-width")).toBe("3px");
 
     /* The shadow it had is kept under the stroke, then a level joins it in the
        one box-shadow. */
@@ -310,13 +312,14 @@ test.describe("What is changed is kept and can be taken back", () => {
     await section(page, "Stroke")
       .getByRole("button", { name: "Add stroke" })
       .click();
-    await expect.poll(() => style(button, "box-shadow")).not.toBe(own);
+    await expect.poll(() => style(button, "outline-style")).toBe("solid");
 
     await page
       .locator("header[aria-label='Preview']")
       .getByRole("button", { name: "Reset to default" })
       .click();
-    await expect.poll(() => style(button, "box-shadow")).toBe(own);
+    await expect.poll(() => style(button, "outline-style")).toBe("none");
+    expect(await style(button, "box-shadow")).toBe(own);
     expect(
       (await readStoredWorkspace(page))?.typography?.previewStyles,
     ).toBeUndefined();

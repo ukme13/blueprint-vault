@@ -59,6 +59,14 @@ export const PREVIEW_RADIUS_CORNERS = [
 ] as const;
 export type PreviewRadiusCorner = (typeof PREVIEW_RADIUS_CORNERS)[number];
 
+/** How a button is dressed: filled with a shadow, or outlined with neither. */
+export type PreviewButtonVariant = "contained" | "outlined";
+
+export const PREVIEW_BUTTON_VARIANTS: readonly PreviewButtonVariant[] = [
+  "contained",
+  "outlined",
+];
+
 export interface PreviewSlotStyle {
   /** A spacing step: the gap between what the element holds. */
   gap?: number;
@@ -82,6 +90,12 @@ export interface PreviewSlotStyle {
   stroke?: PreviewStroke | null;
   /** An elevation level id. Absent, the element's own; `null`, none. */
   shadow?: string | null;
+  /**
+   * A button dressed the other way from how the page draws it. Absent, it is
+   * as drawn. The fill, label, edge and shadow it gives are the variant's own
+   * until one of them is set.
+   */
+  variant?: PreviewButtonVariant;
   /**
    * The edge is kept and not drawn: the person's eye, closed, to see the
    * element with and without it. Whatever the edge is, chosen or the page's own.
@@ -193,6 +207,7 @@ export function previewStyleKey(id: string, isBand = false): string {
 export type PreviewInspectField =
   | "copy"
   | "typography"
+  | "variant"
   | "gap"
   | "padding"
   | "opacity"
@@ -219,6 +234,7 @@ export const PREVIEW_INSPECT_FIELDS: Record<
   button: [
     "copy",
     "typography",
+    "variant",
     "padding",
     "radius",
     "fill",
