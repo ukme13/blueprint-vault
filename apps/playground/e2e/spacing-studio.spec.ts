@@ -557,6 +557,90 @@ test.describe("The spacing studio", () => {
     await expect.poll(async () => (await stored())?.baseUnitPx).toBe(4);
   });
 
+  test("a preset with a bigger base unit does not stretch the navigation bar", async ({
+    seededPage: page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const bar = () =>
+      page
+        .locator('[data-preview-section="shell-nav"]')
+        .locator('[class*="navInner"]')
+        .first();
+    const measure = async () => ({
+      padding: await bar().evaluate(
+        (node) => getComputedStyle(node).paddingTop,
+      ),
+      gap: await bar().evaluate((node) => getComputedStyle(node).rowGap),
+      height: (await page
+        .locator('[data-preview-section="shell-nav"]')
+        .boundingBox())!.height,
+    });
+    /* Through the rail, not an address: a reload would lose the history. */
+    const toPreview = async () => {
+      await page
+        .getByRole("navigation", { name: "Blueprint workspaces" })
+        .getByRole("link", { name: "Preview", exact: true })
+        .click();
+      await expect(page.locator("[data-preview-ready]")).toBeVisible();
+    };
+    const bindings = async () => {
+      const layout = (await readStoredWorkspace(page))?.layout as
+        { id: string; byDevice: Record<string, string> }[] | undefined;
+      return {
+        y: layout?.find((use) => use.id === "inset-nav-y")?.byDevice.desktop,
+        gap: layout?.find((use) => use.id === "gap-nav")?.byDevice.desktop,
+      };
+    };
+
+    /* The seeded 4px grid: 16px above and below, 24px between the links. */
+    await page.goto("/preview");
+    await expect(page.locator("[data-preview-ready]")).toBeVisible();
+    const before = await measure();
+    expect(before.padding).toBe("16px");
+    expect(before.gap).toBe("24px");
+
+    await showScaleView(page, "Spacing");
+    await openSpacingSteps(page);
+    await page.getByRole("button", { name: /^Scale preset:/ }).click();
+    await page.getByRole("option", { name: /Spacious/ }).click();
+    await expect.poll(bindings).toEqual({ y: "2", gap: "4" });
+
+    /* A 8px unit would have made them 32 and 48: the bar is as it was, and
+       the links a step roomier, since there is no step for 24. */
+    await toPreview();
+    const spacious = await measure();
+    expect(spacious.padding).toBe("16px");
+    expect(spacious.gap).toBe("32px");
+    /* The bar is still taller by what the Sign up button grows by: a control's
+       own inset is a use of its own, and a roomy grid makes buttons roomy. */
+    expect(spacious.height).toBeGreaterThan(before.height);
+
+    /* One undo takes back the preset and the bindings together. */
+    await page
+      .getByRole("navigation", { name: "Blueprint workspaces" })
+      .getByRole("link", { name: "Spacing", exact: true })
+      .click();
+    await openSpacingSteps(page);
+    await page
+      .getByRole("region", { name: "Scale toolbar" })
+      .getByRole("button", { name: "Undo" })
+      .click();
+    await expect.poll(bindings).toEqual({ y: "4", gap: "6" });
+  });
+
+  test("lists the navigation block inset among the spacing uses", async ({
+    seededPage: page,
+  }) => {
+    await page
+      .getByRole("navigation", { name: "Scale sections" })
+      .getByRole("button", { name: "Uses" })
+      .click();
+    const uses = page.getByRole("region", { name: "Spacing uses" });
+    await expect(
+      uses.locator('[data-token="inset-nav-y"] [data-system-use]'),
+    ).toHaveText("Navigation block inset");
+  });
+
   test("shows the scale preset as a card with its name and full description", async ({
     seededPage: page,
   }) => {
@@ -2319,6 +2403,7 @@ test.describe("Layout uses", () => {
         "inset-control-y",
         "gap-grid",
         "gap-nav",
+        "inset-nav-y",
         "inset-card",
       ]);
   });

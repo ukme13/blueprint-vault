@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  applySpacingPreset,
+  applySpacingPresetWithLayout,
   toggleSpacingStepWithLayout,
   type LayoutToken,
   type ColorTrack,
@@ -70,10 +70,11 @@ export function ScaleInspector({
             write(toggleSpacingStepWithLayout(spacing, layout, step))
           }
           onApplyPreset={(id) => {
-            /* The preset's base unit is a named one; show it as such. A
+            /* The preset's base unit is a named one; show it as such. The
+               layout uses the preset binds move with it, in the one edit. A
                write with no edit key is its own step in history. */
             onDetachedBaseUnitChange(null);
-            write({ spacing: applySpacingPreset(spacing, id) });
+            write(applySpacingPresetWithLayout(spacing, layout, id));
           }}
           onBaseUnitChange={(next: HybridTokenizedValue) => {
             onDetachedBaseUnitChange(next.isPreset ? null : next.value);

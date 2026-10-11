@@ -35,7 +35,7 @@ const extra = {
 };
 
 describe("layout tokens", () => {
-  it("seeds twelve uses against the required frames", () => {
+  it("seeds thirteen uses against the required frames", () => {
     const tokens = defaultLayoutTokens();
     expect(tokens.map((token) => token.id)).toEqual([
       "inset-container",
@@ -45,6 +45,7 @@ describe("layout tokens", () => {
       "inset-control-y",
       "gap-grid",
       "gap-nav",
+      "inset-nav-y",
       "inset-card",
       "radius-surface",
       "radius-button",
@@ -124,6 +125,7 @@ describe("layout tokens", () => {
       "inset-control-y",
       "gap-grid",
       "gap-nav",
+      "inset-nav-y",
       "inset-card",
       "radius-surface",
       "radius-button",
@@ -143,6 +145,7 @@ describe("layout tokens", () => {
       "inset-control-y",
       "gap-grid",
       "gap-nav",
+      "inset-nav-y",
       "inset-card",
       "radius-surface",
       "radius-button",
@@ -181,6 +184,7 @@ describe("layout tokens", () => {
       "inset-control-y",
       "gap-grid",
       "gap-nav",
+      "inset-nav-y",
       "inset-card",
       "radius-surface",
       "radius-button",
@@ -365,6 +369,7 @@ describe("layout tokens", () => {
       "inset-control-y",
       "gap-grid",
       "gap-nav",
+      "inset-nav-y",
       "inset-card",
       "radius-surface",
       "radius-button",
@@ -429,6 +434,7 @@ describe("layout tokens", () => {
       "inset-control-y",
       "gap-grid",
       "gap-nav",
+      "inset-nav-y",
       "inset-card",
       "radius-surface",
       "radius-button",
@@ -451,6 +457,7 @@ describe("layout tokens", () => {
       "inset-control-y",
       "gap-grid",
       "gap-nav",
+      "inset-nav-y",
       "inset-card",
       "radius-surface",
       "radius-button",
@@ -471,6 +478,7 @@ describe("layout tokens", () => {
       "inset-control-y",
       "gap-grid",
       "gap-nav",
+      "inset-nav-y",
       "inset-card",
       "radius-surface",
       "radius-button",
@@ -529,6 +537,7 @@ describe("tokensUsingSpacingStep", () => {
       "inset-control-x",
       "gap-grid",
       "gap-nav",
+      "inset-nav-y",
       "inset-card",
     ]);
     expect(names(10)).toEqual(["inset-container"]);

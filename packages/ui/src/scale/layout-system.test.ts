@@ -26,6 +26,7 @@ const SYSTEM = [
   "inset-control-y",
   "gap-grid",
   "gap-nav",
+  "inset-nav-y",
   "inset-card",
   "radius-surface",
   "radius-button",
@@ -38,7 +39,7 @@ function withCustom(label = "Hero inset"): LayoutToken[] {
 }
 
 describe("system layout uses", () => {
-  it("are the twelve the system relies on, and nothing custom", () => {
+  it("are the thirteen the system relies on, and nothing custom", () => {
     expect([...SYSTEM_LAYOUT_TOKEN_IDS].sort()).toEqual([...SYSTEM].sort());
     expect(isSystemLayoutToken("radius-button")).toBe(true);
     expect(isSystemLayoutToken("hero-inset")).toBe(false);
