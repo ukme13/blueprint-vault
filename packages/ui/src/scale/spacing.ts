@@ -218,18 +218,36 @@ export function resolveSpacing(scale: SpacingScale): SpacingToken[] {
   });
 }
 
+/** The last step offered one at a time; above it, layout jumps. */
+const LAST_WHOLE_SPACING_STEP = 16;
+
+/**
+ * Steps above 16, for section and page spacing: 80px to 256px on a 4px unit.
+ * A step of one is no distinction anybody makes at that size, so the ramp
+ * jumps by four, then by eight.
+ */
+export const LARGE_SPACING_STEPS: readonly number[] = [
+  20, 24, 28, 32, 40, 48, 56, 64,
+];
+
 /**
  * A full ramp to prune.
  *
- * Halves below 2, whole numbers above it. This is a starting point offered to
- * the editor, never the stored scale: a scale that regenerated itself would
- * undo every removal the moment the base unit changed.
+ * Halves below 2, whole numbers to 16, then the large layout steps up to
+ * `maxStep`. This is a starting point offered to the editor, never the stored
+ * scale: a scale that regenerated itself would undo every removal the moment
+ * the base unit changed.
  */
 export function generateSpacingSteps(maxStep = 12): number[] {
   const limit = Math.min(Math.max(Math.floor(maxStep), 1), MAX_SPACING_STEP);
   const halves = [0, 0.5, 1, 1.5];
-  const wholes = Array.from({ length: limit - 1 }, (_, at) => at + 2);
-  return [...halves, ...wholes].filter((step) => step <= limit);
+  const wholes = Array.from(
+    { length: Math.min(limit, LAST_WHOLE_SPACING_STEP) - 1 },
+    (_, at) => at + 2,
+  );
+  return [...halves, ...wholes, ...LARGE_SPACING_STEPS].filter(
+    (step) => step <= limit,
+  );
 }
 
 /**
@@ -293,12 +311,13 @@ export function spacingCssVariables(
 }
 
 /**
- * The step chips the studio shows: every step it offers, plus any the scale
- * holds beyond them — a preset's 2.5 — so every kept step can be turned off.
+ * The step chips the studio shows: every step it offers, up to the large
+ * layout steps, plus any the scale holds beyond them — a preset's 2.5 — so
+ * every kept step can be turned off.
  */
 export function spacingChipSteps(
   scale: Pick<SpacingScale, "steps">,
-  offered: readonly number[] = generateSpacingSteps(16),
+  offered: readonly number[] = generateSpacingSteps(MAX_SPACING_STEP),
 ): number[] {
   return [...new Set([...offered, ...scale.steps])].sort((a, b) => a - b);
 }

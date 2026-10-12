@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   toggleSpacingStep,
+  MAX_SPACING_STEP,
   DEFAULT_SPACING_BASE_UNIT_PX,
   DEFAULT_SPACING_DENSITY,
   MAX_SPACING_BASE_UNIT_PX,
@@ -139,6 +140,33 @@ describe("generateSpacingSteps", () => {
   it("stays inside its bounds", () => {
     expect(generateSpacingSteps(0)).toEqual([0, 0.5, 1]);
     expect(generateSpacingSteps(9999).at(-1)).toBeLessThanOrEqual(64);
+  });
+
+  it("jumps by layout steps past 16, up to 64", () => {
+    /* A step of one is no distinction at 80px and up. */
+    expect(generateSpacingSteps(MAX_SPACING_STEP).slice(-9)).toEqual([
+      16, 20, 24, 28, 32, 40, 48, 56, 64,
+    ]);
+    expect(generateSpacingSteps(MAX_SPACING_STEP)).not.toContain(17);
+    expect(generateSpacingSteps(30).slice(-4)).toEqual([16, 20, 24, 28]);
+  });
+});
+
+describe("the large layout steps", () => {
+  it("are offered as chips, so a page step can be kept or pruned", () => {
+    const chips = spacingChipSteps(defaultSpacingScale());
+    for (const step of [20, 24, 32, 48, 64]) expect(chips).toContain(step);
+  });
+
+  it("resolve once kept, which is what the Uses presets list", () => {
+    /* The Uses table offers resolveSpacing(scale): a kept step is there. */
+    const scale = toggleSpacingStep(defaultSpacingScale(), 32);
+    const token = resolveSpacing(scale).find((each) => each.step === 32)!;
+    expect(token.px).toBe(128);
+    expect(token.variable).toBe("--spacing-32");
+    expect(
+      resolveSpacing(defaultSpacingScale()).some((each) => each.step === 32),
+    ).toBe(false);
   });
 });
 
@@ -330,7 +358,9 @@ describe("spacingChipSteps", () => {
     expect(chips).toContain(2.5);
     expect(chips).toEqual([...chips].sort((a, b) => a - b));
     expect(chips).toEqual(
-      [...new Set([...generateSpacingSteps(16), 2.5])].sort((a, b) => a - b),
+      [...new Set([...generateSpacingSteps(MAX_SPACING_STEP), 2.5])].sort(
+        (a, b) => a - b,
+      ),
     );
   });
 });

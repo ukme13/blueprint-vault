@@ -12,6 +12,8 @@ import {
   rebindPrunedSpacingTokens,
   toggleSpacingStepWithLayout,
   tokensUsingSpacingStep,
+  syncSquishInsets,
+  isSquishFollowing,
   type LayoutToken,
 } from "./layout-tokens";
 import { defaultSpacingScale } from "./spacing";
@@ -24,6 +26,8 @@ import {
   renameLayoutToken,
   reorderLayoutTokens,
   setLayoutReference,
+  setLayoutSquish,
+  clearLayoutSquishOverride,
 } from "./layout-edit";
 
 const extra = {
@@ -637,5 +641,129 @@ describe("rebindPrunedSpacingTokens", () => {
     const kept = toggleSpacingStepWithLayout(pruned.spacing, layout, 4);
     expect(kept.spacing.steps).toEqual([2, 4, 8]);
     expect(kept.layout).toEqual(layout);
+  });
+});
+
+describe("squish: the control block inset follows the inline one", () => {
+  const spacing = defaultSpacingScale();
+  const cell = (tokens: readonly LayoutToken[], device: string) =>
+    tokens.find((token) => token.id === "inset-control-y")!.byDevice[device];
+  /* Move the inline inset, then write, as the studio does. */
+  const withInline = (
+    tokens: readonly LayoutToken[],
+    device: string,
+    value: string,
+  ) =>
+    syncSquishInsets(
+      setLayoutReference(tokens, "inset-control-x", device, value),
+      spacing,
+    );
+
+  it("starts at 1:2, which is where the defaults already sit", () => {
+    const tokens = defaultLayoutTokens();
+    expect(tokens.find((token) => token.id === "inset-control-y")!.squish).toBe(
+      0.5,
+    );
+    /* 12px → 6px (step 1.5), 16px → 8px (step 2): nothing to move. */
+    expect(syncSquishInsets(tokens, spacing)).toBe(tokens);
+  });
+
+  it("follows the inline inset on the frame that moved", () => {
+    const next = withInline(defaultLayoutTokens(), "phone", "4");
+    expect(cell(next, "phone")).toBe("2");
+    expect(cell(next, "desktop")).toBe("2");
+  });
+
+  it("names a step when it lands on one, a length when it does not", () => {
+    const at = (ratio: 0.6 | 0.75 | 1) =>
+      syncSquishInsets(
+        setLayoutSquish(defaultLayoutTokens(), "inset-control-y", ratio),
+        spacing,
+      );
+    /* Desktop inline is 16px. 60% is 9.6, rounded to an even 10. */
+    expect(cell(at(0.6), "desktop")).toBe("10px");
+    expect(cell(at(0.75), "desktop")).toBe("3");
+    expect(cell(at(1), "desktop")).toBe("4");
+  });
+
+  it("moves with the spacing scale's density too", () => {
+    /* Step 4 at density 1.5 is 24px; half is 12px, which is step 2 at that
+       density too. Phone's 3 is 18px; 9 rounds to an even 8, on no step. */
+    const roomy = { ...spacing, density: 1.5 };
+    const next = syncSquishInsets(defaultLayoutTokens(), roomy);
+    expect(cell(next, "desktop")).toBe("2");
+    expect(cell(next, "phone")).toBe("8px");
+  });
+
+  it("keeps a typed frame, and clearing it follows again", () => {
+    const typed = setLayoutReference(
+      defaultLayoutTokens(),
+      "inset-control-y",
+      "phone",
+      "10px",
+    );
+    const y = (tokens: readonly LayoutToken[]) =>
+      tokens.find((token) => token.id === "inset-control-y")!;
+    expect(isSquishFollowing(y(typed), "phone")).toBe(false);
+    expect(isSquishFollowing(y(typed), "tablet")).toBe(true);
+
+    const moved = withInline(typed, "phone", "4");
+    expect(cell(moved, "phone")).toBe("10px");
+
+    const cleared = syncSquishInsets(
+      clearLayoutSquishOverride(moved, "inset-control-y", "phone"),
+      spacing,
+    );
+    expect(cell(cleared, "phone")).toBe("2");
+    expect(y(cleared).squishOverrides).toBeUndefined();
+  });
+
+  it("leaves Custom alone, and reads a saved project's inset as Custom", () => {
+    const custom = setLayoutSquish(
+      defaultLayoutTokens(),
+      "inset-control-y",
+      null,
+    );
+    expect(cell(withInline(custom, "phone", "6"), "phone")).toBe("1-5");
+
+    /* Saved before squish: its cells were set by hand and must not move. */
+    const saved = defaultLayoutTokens().map((token) =>
+      token.id === "inset-control-y"
+        ? {
+            ...token,
+            squish: undefined,
+            byDevice: { phone: "3", tablet: "3", desktop: "3" },
+          }
+        : token,
+    );
+    const loaded = normalizeLayoutTokens(
+      JSON.parse(JSON.stringify(saved)),
+      defaultPreviewDevices(),
+    );
+    expect(
+      loaded.find((token) => token.id === "inset-control-y")!.squish,
+    ).toBeNull();
+    expect(syncSquishInsets(loaded, spacing)).toBe(loaded);
+  });
+
+  it("stores its ratio and typed frames, and drops a frame that is gone", () => {
+    const typed = setLayoutReference(
+      setLayoutSquish(defaultLayoutTokens(), "inset-control-y", 0.75),
+      "inset-control-y",
+      "desktop",
+      "10px",
+    );
+    const loaded = normalizeLayoutTokens(
+      JSON.parse(JSON.stringify(typed)),
+      defaultPreviewDevices(),
+    ).find((token) => token.id === "inset-control-y")!;
+    expect(loaded.squish).toBe(0.75);
+    expect(loaded.squishOverrides).toEqual(["desktop"]);
+
+    const phoneOnly = normalizeLayoutTokens(
+      JSON.parse(JSON.stringify(typed)),
+      defaultPreviewDevices().filter((device) => device.id === "phone"),
+    ).find((token) => token.id === "inset-control-y")!;
+    expect(phoneOnly.squishOverrides).toBeUndefined();
   });
 });

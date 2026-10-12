@@ -126,3 +126,48 @@ describe("createScaleHistory", () => {
     expect(history.present.spacing.steps).toEqual(defaultSpacingScale().steps);
   });
 });
+
+describe("the squish on write", () => {
+  it("moves the control block inset when the inline one is written", () => {
+    const history = createScaleHistory({
+      spacing: defaultSpacingScale(),
+      radius: defaultRadiusScale(),
+      elevation: defaultElevationScale(),
+      layout: defaultLayoutTokens(),
+    });
+    const inline = setLayoutReference(
+      history.present.layout,
+      "inset-control-x",
+      "desktop",
+      "6",
+    );
+    history.commit({ layout: inline });
+    expect(
+      history.present.layout.find((token) => token.id === "inset-control-y")!
+        .byDevice.desktop,
+    ).toBe("3");
+  });
+});
+
+describe("the squish on a studio write", () => {
+  it("moves the control block inset when the store is written", () => {
+    /* The path the scale studio takes: a snapshot into the workspace. */
+    const project = emptyWorkspace();
+    const layout = setLayoutReference(
+      defaultLayoutTokens(),
+      "inset-control-x",
+      "desktop",
+      "6",
+    );
+    const next = workspaceWithScaleSnapshot(project, {
+      spacing: defaultSpacingScale(),
+      radius: defaultRadiusScale(),
+      elevation: defaultElevationScale(),
+      layout,
+    });
+    expect(
+      next.layout.find((token) => token.id === "inset-control-y")!.byDevice
+        .desktop,
+    ).toBe("3");
+  });
+});

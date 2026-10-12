@@ -12,8 +12,10 @@ import {
   isLayoutCellValue,
   isLayoutPrimitive,
   parseLayoutRawPx,
+  SQUISH_SOURCES,
   type LayoutToken,
   type LayoutTokenKind,
+  type SquishRatio,
 } from "./layout-tokens";
 import { uniqueTokenName } from "./token-names";
 
@@ -37,7 +39,58 @@ export function setLayoutReference(
     return {
       ...token,
       byDevice: { ...token.byDevice, [deviceId]: cell },
+      /* Typed while squished: this frame keeps its own value from now on. */
+      ...(typeof token.squish === "number"
+        ? {
+            squishOverrides: [
+              ...new Set([...(token.squishOverrides ?? []), deviceId]),
+            ],
+          }
+        : {}),
     };
+  });
+}
+
+/**
+ * Choose how a squished use follows its source: a ratio, or Custom (null).
+ *
+ * Picking a ratio is asking every frame to follow it, so any typed frame
+ * goes back to following; the values themselves are filled in by
+ * `syncSquishInsets` when the edit is written. Custom keeps the values as
+ * they are, each frame now set by hand.
+ */
+export function setLayoutSquish(
+  tokens: readonly LayoutToken[],
+  tokenId: string,
+  squish: SquishRatio | null,
+): LayoutToken[] {
+  return tokens.map((token) => {
+    if (token.id !== tokenId || !(token.id in SQUISH_SOURCES)) return token;
+    if (squish === null) {
+      const custom: LayoutToken = { ...token, squish: null };
+      delete custom.squishOverrides;
+      return custom;
+    }
+    const following: LayoutToken = { ...token, squish };
+    delete following.squishOverrides;
+    return following;
+  });
+}
+
+/** Put one typed frame back on the squish. Its value follows on write. */
+export function clearLayoutSquishOverride(
+  tokens: readonly LayoutToken[],
+  tokenId: string,
+  deviceId: string,
+): LayoutToken[] {
+  return tokens.map((token) => {
+    if (token.id !== tokenId || !token.squishOverrides?.includes(deviceId)) {
+      return token;
+    }
+    const rest = token.squishOverrides.filter((id) => id !== deviceId);
+    const next: LayoutToken = { ...token, squishOverrides: rest };
+    if (rest.length === 0) delete next.squishOverrides;
+    return next;
   });
 }
 
