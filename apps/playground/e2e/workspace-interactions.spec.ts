@@ -146,6 +146,35 @@ test.describe("Shade details", () => {
     });
   });
 
+  test("keeps the contrast score out of a paragraph, under either standard", async ({
+    seededPage: page,
+  }) => {
+    /* The info button's tooltip wraps it in a div, and a div inside a <p>
+       is invalid HTML: React warned of a hydration error on /colour. The
+       warning is development-only, so the DOM is what is checked. */
+    await page.getByRole("button", { name: "Contrast", exact: true }).click();
+    const shade = page.getByRole("button", { name: /Select primary 500,/ });
+    const details = page.getByRole("dialog", {
+      name: "primary 500 shade details",
+    });
+
+    for (const standard of ["WCAG 2", "WCAG 3"]) {
+      /* The lit standard turns contrast off when pressed, so only switch. */
+      const button = page.getByRole("button", { name: standard, exact: true });
+      if ((await button.getAttribute("aria-pressed")) !== "true") {
+        await button.click();
+      }
+      await expect(button).toHaveAttribute("aria-pressed", "true");
+      await shade.click();
+      await expect(
+        details.getByRole("button", { name: "About this contrast score" }),
+      ).toBeVisible();
+      await expect(details.locator("p div")).toHaveCount(0);
+      await page.keyboard.press("Escape");
+      await expect(details).toBeHidden();
+    }
+  });
+
   test("opens, copies the OKLCH value, and returns focus when closed", async ({
     seededPage: page,
   }) => {

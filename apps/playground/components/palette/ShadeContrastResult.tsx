@@ -97,7 +97,9 @@ export function ShadeContrastResult({
         <h3>WCAG 2 contrast</h3>
         <small>{caption}</small>
       </header>
-      <p className={styles.popoverContrastScore}>
+      {/* A div, not a p: the info button's tooltip wraps it in a div,
+          which a paragraph cannot hold. */}
+      <div className={styles.popoverContrastScore}>
         <span
           aria-hidden="true"
           data-swapped={isSwapped || undefined}
@@ -118,7 +120,7 @@ export function ShadeContrastResult({
         />
         <strong>{ratioText(textContrast.ratio, 2)}</strong>
         <ContrastScoreInfo standard="wcag2" />
-      </p>
+      </div>
       {simulated && (
         /* A ratio and no verdict, as everywhere else: WCAG defines AA on the
            real colours, so this is what the pair measures once simulated and
