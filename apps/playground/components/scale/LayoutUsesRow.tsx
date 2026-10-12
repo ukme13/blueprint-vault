@@ -2,6 +2,7 @@
 
 import type { MouseEvent } from "react";
 import { TableCell, TableRow } from "@astryxdesign/core/Table";
+import { Tooltip } from "@astryxdesign/core/Tooltip";
 import { Link, Lock } from "lucide-react";
 import {
   HybridTokenizedInput,
@@ -39,6 +40,7 @@ export function LayoutUsesRow({
   onReset,
   onRowClick,
   squishRatio,
+  squishSourceName,
   onClearSquishOverride,
 }: {
   autoFocusName: boolean;
@@ -59,6 +61,8 @@ export function LayoutUsesRow({
    * follows. Set under Base unit, so here it is said, not chosen.
    */
   squishRatio?: SquishRatio;
+  /** The inline inset it follows, named in the link icon's tooltip. */
+  squishSourceName?: string;
   /** A paired block inset only: put a typed frame back on the squish. */
   onClearSquishOverride?: (deviceId: string) => void;
 }) {
@@ -70,6 +74,25 @@ export function LayoutUsesRow({
   });
   const pickerSheet = usePickerSheet();
   const maxPx = token.kind === "radius" ? MAX_RADIUS_PX : SPACING_MAX_PX;
+  /* A paired inset says so beside its name, as the lock does: an icon, with
+     the detail on hover or focus. */
+  const squishNote =
+    squishRatio === undefined
+      ? null
+      : `Squished: ${Math.round(squishRatio * 100)}% of ${squishSourceName ?? "its inline inset"}. Change it under Base unit on the Scale tab.`;
+  const squishIcon = squishNote && (
+    <Tooltip content={squishNote} hasHoverIndication={false}>
+      <span
+        aria-label={squishNote}
+        className="inline-flex shrink-0 text-fg-muted"
+        data-squish={squishRatio}
+        role="img"
+        tabIndex={0}
+      >
+        <Link aria-hidden className="size-3" />
+      </span>
+    </Tooltip>
+  );
   const minPx = token.kind === "radius" ? MIN_RADIUS_PX : 0;
 
   return (
@@ -99,6 +122,17 @@ export function LayoutUsesRow({
               >
                 <Lock aria-hidden className="size-3" />
               </span>
+              {squishIcon}
+            </span>
+          ) : squishIcon ? (
+            <span className="flex min-w-0 items-center gap-1.5">
+              <InlineTextCell
+                autoFocus={autoFocusName}
+                label={`${token.id} name`}
+                value={token.name}
+                onCommit={onCommitName}
+              />
+              {squishIcon}
             </span>
           ) : (
             <InlineTextCell
@@ -112,15 +146,6 @@ export function LayoutUsesRow({
           {hint && (
             <span className={styles.usesRowHint} data-row-hint={token.id}>
               {hint}
-            </span>
-          )}
-          {squishRatio !== undefined && (
-            <span
-              className="inline-flex w-fit items-center gap-1 text-xs text-fg-muted"
-              data-squish={squishRatio}
-            >
-              <Link aria-hidden className="size-3" />
-              Squished ({Math.round(squishRatio * 100)}%)
             </span>
           )}
         </div>

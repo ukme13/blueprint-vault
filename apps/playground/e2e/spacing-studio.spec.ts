@@ -647,9 +647,16 @@ test.describe("The spacing studio", () => {
 
     /* A new workspace follows the inline inset at 1:2, and the row says so;
        the ratio is chosen under Base unit, not here. */
-    await expect(
-      uses.locator('[data-token="inset-control-y"] [data-squish]'),
-    ).toHaveText("Squished (50%)");
+    const link = uses.locator('[data-token="inset-control-y"] [data-squish]');
+    await expect(link).toHaveAttribute(
+      "aria-label",
+      /^Squished: 50% of Control inline inset\./,
+    );
+    /* An icon beside the lock, with the detail on hover. */
+    await link.hover();
+    await expect(page.getByRole("tooltip")).toContainText(
+      "Squished: 50% of Control inline inset",
+    );
     await expect(uses.getByRole("combobox", { name: /squish/i })).toHaveCount(
       0,
     );
@@ -676,15 +683,43 @@ test.describe("The spacing studio", () => {
 
     /* 100%, under Base unit: symmetric, on every frame, and the row
        follows. */
+    /* A step picked by hand is typed too, shown as a chip: its ✕ sits at
+       the end of the field, not against the chip. */
+    await uses
+      .getByRole("button", { name: "Control block inset on Tablet" })
+      .click();
+    await page
+      .getByRole("listbox", { name: "Spacing steps" })
+      .getByRole("option")
+      .nth(6)
+      .click();
+    const tabletClear = uses.getByRole("button", {
+      name: "Clear Control block inset on Tablet",
+    });
+    await expect(tabletClear).toBeVisible();
+    const [field, chip, x] = await Promise.all([
+      /* The field: the bordered row the chip, caret and ✕ sit in. */
+      tabletClear
+        .locator("xpath=ancestor::div[contains(@class, 'size-element-md')][1]")
+        .boundingBox(),
+      uses
+        .getByRole("button", {
+          name: "Control block inset on Tablet",
+          exact: true,
+        })
+        .boundingBox(),
+      tabletClear.boundingBox(),
+    ]);
+    expect(field!.x + field!.width - (x!.x + x!.width)).toBeLessThanOrEqual(12);
+    expect(x!.x - (chip!.x + chip!.width)).toBeGreaterThan(12);
+
     const sections = page.getByRole("navigation", { name: "Scale sections" });
     await sections.getByRole("button", { name: "Scale" }).click();
     await page.getByRole("radio", { name: "100%", exact: true }).click();
     await expect.poll(() => blockY("desktop")).toBe("8");
     await expect.poll(() => blockY("phone")).toBe("3");
     await sections.getByRole("button", { name: "Uses" }).click();
-    await expect(
-      uses.locator('[data-token="inset-control-y"] [data-squish]'),
-    ).toHaveText("Squished (100%)");
+    await expect(link).toHaveAttribute("aria-label", /^Squished: 100% of /);
   });
 
   test("offers the large layout steps up to 64", async ({

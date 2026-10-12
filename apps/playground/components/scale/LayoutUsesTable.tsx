@@ -229,6 +229,12 @@ export function LayoutUsesTable({
                           ? squishRatioOf(spacing)
                           : undefined
                       }
+                      squishSourceName={
+                        tokens.find(
+                          (each) =>
+                            each.id === squishSourceId(tokens, token.id),
+                        )?.name
+                      }
                       onClearSquishOverride={(deviceId) =>
                         onChange(
                           clearLayoutSquishOverride(tokens, token.id, deviceId),

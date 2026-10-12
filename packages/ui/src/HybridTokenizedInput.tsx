@@ -349,7 +349,13 @@ export function HybridTokenizedInput({
               }
             }}
           />
-          {relinkButton}
+          {/* At the field's end, as it is beside a typed value, not beside
+              the chip. */}
+          {relinkButton && (
+            <span className="ml-auto inline-flex shrink-0 items-center">
+              {relinkButton}
+            </span>
+          )}
         </>
       ) : (
         <>
