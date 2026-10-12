@@ -12,6 +12,10 @@ import {
   rebindPrunedSpacingTokens,
   toggleSpacingStepWithLayout,
   tokensUsingSpacingStep,
+  syncSquishInsets,
+  isSquishFollowing,
+  squishSourceId,
+  adoptSquishOverrides,
   type LayoutToken,
 } from "./layout-tokens";
 import { defaultSpacingScale } from "./spacing";
@@ -24,6 +28,7 @@ import {
   renameLayoutToken,
   reorderLayoutTokens,
   setLayoutReference,
+  clearLayoutSquishOverride,
 } from "./layout-edit";
 
 const extra = {
@@ -637,5 +642,163 @@ describe("rebindPrunedSpacingTokens", () => {
     const kept = toggleSpacingStepWithLayout(pruned.spacing, layout, 4);
     expect(kept.spacing.steps).toEqual([2, 4, 8]);
     expect(kept.layout).toEqual(layout);
+  });
+});
+
+describe("squish: a block inset follows its inline partner", () => {
+  const spacing = defaultSpacingScale();
+  const cell = (
+    tokens: readonly LayoutToken[],
+    device: string,
+    id = "inset-control-y",
+  ) => tokens.find((token) => token.id === id)!.byDevice[device];
+  /* Move a cell, then write, as the studio does. */
+  const write = (
+    tokens: readonly LayoutToken[],
+    id: string,
+    device: string,
+    value: string,
+    scale = spacing,
+  ) => syncSquishInsets(setLayoutReference(tokens, id, device, value), scale);
+  const y = (tokens: readonly LayoutToken[], id = "inset-control-y") =>
+    tokens.find((token) => token.id === id)!;
+  /* A pair somebody added: Add use, named so the ids end in -x and -y. */
+  const withBadgePair = () => {
+    const devices = defaultPreviewDevices();
+    const withX = addLayoutToken(
+      defaultLayoutTokens(),
+      "spacing",
+      devices,
+      "inset badge x",
+    );
+    return addLayoutToken(withX, "spacing", devices, "inset badge y");
+  };
+
+  it("pairs a -y use with its -x use, and nothing else", () => {
+    const tokens = defaultLayoutTokens();
+    expect(squishSourceId(tokens, "inset-control-y")).toBe("inset-control-x");
+    /* inset-nav-y has no -x to follow; an -x has nothing to pair from. */
+    expect(squishSourceId(tokens, "inset-nav-y")).toBeUndefined();
+    expect(squishSourceId(tokens, "inset-control-x")).toBeUndefined();
+  });
+
+  it("starts at 1:2, which is where the defaults already sit", () => {
+    const tokens = defaultLayoutTokens();
+    /* 12px → 6px (step 1.5), 16px → 8px (step 2): nothing to move. */
+    expect(syncSquishInsets(tokens, spacing)).toBe(tokens);
+  });
+
+  it("follows the inline inset on the frame that moved", () => {
+    const next = write(defaultLayoutTokens(), "inset-control-x", "phone", "4");
+    expect(cell(next, "phone")).toBe("2");
+    expect(cell(next, "desktop")).toBe("2");
+  });
+
+  it("squishes a custom pair too", () => {
+    /* A use added in pairs follows like the built-in one. */
+    const tokens = withBadgePair();
+    expect(squishSourceId(tokens, "inset-badge-y")).toBe("inset-badge-x");
+
+    const next = write(tokens, "inset-badge-x", "desktop", "6");
+    expect(cell(next, "desktop", "inset-badge-y")).toBe("3");
+  });
+
+  it("moves every pair when the scale's ratio changes", () => {
+    const tokens = withBadgePair();
+    const badge = write(tokens, "inset-badge-x", "desktop", "8");
+
+    const at = (ratio: 0.6 | 0.75 | 1) =>
+      syncSquishInsets(badge, { ...spacing, squish: ratio });
+    /* Control inline is 16px on desktop, badge inline 32px. */
+    expect(cell(at(0.6), "desktop")).toBe("10px");
+    expect(cell(at(0.75), "desktop")).toBe("3");
+    expect(cell(at(1), "desktop")).toBe("4");
+    expect(cell(at(0.75), "desktop", "inset-badge-y")).toBe("6");
+    expect(cell(at(1), "desktop", "inset-badge-y")).toBe("8");
+  });
+
+  it("moves with the spacing scale's density too", () => {
+    /* Step 4 at density 1.5 is 24px; half is 12px, which is step 2 at that
+       density too. Phone's 3 is 18px; 9 rounds to an even 8, on no step. */
+    const roomy = { ...spacing, density: 1.5 };
+    const next = syncSquishInsets(defaultLayoutTokens(), roomy);
+    expect(cell(next, "desktop")).toBe("2");
+    expect(cell(next, "phone")).toBe("8px");
+  });
+
+  it("keeps a typed frame, and clearing it follows again", () => {
+    const typed = setLayoutReference(
+      defaultLayoutTokens(),
+      "inset-control-y",
+      "phone",
+      "10px",
+    );
+    expect(isSquishFollowing(y(typed), "phone")).toBe(false);
+    expect(isSquishFollowing(y(typed), "tablet")).toBe(true);
+
+    const moved = write(typed, "inset-control-x", "phone", "4");
+    expect(cell(moved, "phone")).toBe("10px");
+
+    const cleared = syncSquishInsets(
+      clearLayoutSquishOverride(moved, "inset-control-y", "phone"),
+      spacing,
+    );
+    expect(cell(cleared, "phone")).toBe("2");
+    expect(y(cleared).squishOverrides).toBeUndefined();
+  });
+
+  it("does not mark a typed value on a use with no partner", () => {
+    const next = setLayoutReference(
+      defaultLayoutTokens(),
+      "inset-nav-y",
+      "phone",
+      "10px",
+    );
+    expect(y(next, "inset-nav-y").squishOverrides).toBeUndefined();
+  });
+
+  it("takes a saved project's insets as typed where they differ", () => {
+    /* Saved before squish: 12px on every frame, set by hand. Loading must
+       not move it, so each frame that is not the squish becomes typed. */
+    const saved = defaultLayoutTokens().map((token) =>
+      token.id === "inset-control-y"
+        ? { ...token, byDevice: { phone: "1-5", tablet: "3", desktop: "3" } }
+        : token,
+    );
+    const adopted = adoptSquishOverrides(saved, spacing);
+    expect(y(adopted).squishOverrides).toEqual(["tablet", "desktop"]);
+    /* Phone already matched, and follows. Nothing moves on the next write. */
+    expect(syncSquishInsets(adopted, spacing)).toBe(adopted);
+    /* And a second load changes nothing. */
+    expect(adoptSquishOverrides(adopted, spacing)).toEqual(adopted);
+  });
+
+  it("stores typed frames, and drops a frame or a pair that is gone", () => {
+    const typed = setLayoutReference(
+      defaultLayoutTokens(),
+      "inset-control-y",
+      "desktop",
+      "10px",
+    );
+    const load = (value: unknown, devices = defaultPreviewDevices()) =>
+      normalizeLayoutTokens(JSON.parse(JSON.stringify(value)), devices);
+    expect(y(load(typed)).squishOverrides).toEqual(["desktop"]);
+
+    const phoneOnly = load(
+      typed,
+      defaultPreviewDevices().filter((device) => device.id === "phone"),
+    );
+    expect(y(phoneOnly).squishOverrides).toBeUndefined();
+
+    /* Its partner renamed away, an inset has nothing to override. */
+    const badge = setLayoutReference(
+      withBadgePair(),
+      "inset-badge-y",
+      "desktop",
+      "10px",
+    );
+    expect(y(badge, "inset-badge-y").squishOverrides).toEqual(["desktop"]);
+    const unpaired = renameLayoutToken(badge, "inset-badge-x", "badge padding");
+    expect(y(load(unpaired), "inset-badge-y").squishOverrides).toBeUndefined();
   });
 });

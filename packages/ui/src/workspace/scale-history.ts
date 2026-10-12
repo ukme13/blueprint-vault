@@ -1,6 +1,10 @@
 import { createHistory, type History } from "../history";
 import { defaultElevationScale, type ElevationScale } from "../scale/elevation";
-import { defaultLayoutTokens, type LayoutToken } from "../scale/layout-tokens";
+import {
+  defaultLayoutTokens,
+  syncSquishInsets,
+  type LayoutToken,
+} from "../scale/layout-tokens";
 import { defaultRadiusScale, type RadiusScale } from "../scale/radius";
 import { defaultSpacingScale, type SpacingScale } from "../scale/spacing";
 import type { WorkspaceProject } from "./types";
@@ -35,6 +39,9 @@ function cloneSpacing(scale: SpacingScale): SpacingScale {
     baseUnitPx: scale.baseUnitPx,
     density: Number.isFinite(scale.density) ? scale.density : 1,
     steps: [...scale.steps],
+    /* Field by field, so a new one has to be named here: the squish was
+       dropped on every write until it was. */
+    ...(scale.squish === undefined ? {} : { squish: scale.squish }),
   };
 }
 
@@ -100,7 +107,10 @@ export function workspaceWithScaleSnapshot(
       radius: cloned.radius,
       elevation: cloned.elevation,
     },
-    cloned.layout,
+    /* Every scale studio write lands here, so a squished inset follows its
+       source whether the inline inset, the unit, the density or a pruned
+       step moved it. */
+    syncSquishInsets(cloned.layout, cloned.spacing),
   );
 }
 
@@ -153,11 +163,14 @@ export function createScaleHistory(
     commit(patch, options) {
       const key = options?.key;
       const present = history.present ?? start;
+      const spacing = patch.spacing ?? present.spacing;
       const next = cloneScaleSnapshot({
-        spacing: patch.spacing ?? present.spacing,
+        spacing,
         radius: patch.radius ?? present.radius,
         elevation: patch.elevation ?? present.elevation,
-        layout: patch.layout ?? present.layout,
+        /* Squished as `workspaceWithScaleSnapshot` does, so this history's
+           snapshots agree with what the studio stores. */
+        layout: [...syncSquishInsets(patch.layout ?? present.layout, spacing)],
       });
       const coalesces = key !== undefined && key === openEdit;
       openEdit = key;

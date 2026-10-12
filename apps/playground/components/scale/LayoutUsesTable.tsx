@@ -26,6 +26,9 @@ import {
   renameLayoutToken,
   reorderLayoutTokens,
   resetLayoutToken,
+  clearLayoutSquishOverride,
+  squishRatioOf,
+  squishSourceId,
   resolveRadius,
   resolveSpacing,
   setLayoutReference,
@@ -247,6 +250,22 @@ export function LayoutUsesTable({
                       }
                       onReset={() =>
                         onChange(resetLayoutToken(tokens, token.id, devices))
+                      }
+                      squishRatio={
+                        squishSourceId(tokens, token.id)
+                          ? squishRatioOf(spacing)
+                          : undefined
+                      }
+                      squishSourceName={
+                        tokens.find(
+                          (each) =>
+                            each.id === squishSourceId(tokens, token.id),
+                        )?.name
+                      }
+                      onClearSquishOverride={(deviceId) =>
+                        onChange(
+                          clearLayoutSquishOverride(tokens, token.id, deviceId),
+                        )
                       }
                       onRemove={() => {
                         onChange(removeLayoutToken(tokens, token.id));

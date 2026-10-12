@@ -253,6 +253,33 @@ export function HybridTokenizedInput({
     />
   );
 
+  /* The ✕ beside an override, typed or picked: it drops the override and the
+     field follows again. Beside the chip too, since a step can be picked as
+     an override as well as typed. */
+  const relinkButton = onRelink ? (
+    <Tooltip content="Clear" hasHoverIndication={false}>
+      <button
+        aria-label={`Clear ${label}`}
+        /* In the accent colour with the override it clears. */
+        className={
+          isOverride
+            ? `${MINI_BUTTON_CLASS} text-fg-accent! hover:text-fg-accent!`
+            : MINI_BUTTON_CLASS
+        }
+        type="button"
+        onClick={(event: MouseEvent) => {
+          /* A press moves focus first, so the field's blur has already
+             written its draft by the time this runs, and the relink lands
+             after it. */
+          event.stopPropagation();
+          onRelink();
+        }}
+      >
+        <CloseIcon />
+      </button>
+    </Tooltip>
+  ) : null;
+
   const renderField = (trigger: FieldTrigger) => (
     <div
       className={FIELD_CLASS}
@@ -322,6 +349,13 @@ export function HybridTokenizedInput({
               }
             }}
           />
+          {/* At the field's end, as it is beside a typed value, not beside
+              the chip. */}
+          {relinkButton && (
+            <span className="ml-auto inline-flex shrink-0 items-center">
+              {relinkButton}
+            </span>
+          )}
         </>
       ) : (
         <>
@@ -366,24 +400,7 @@ export function HybridTokenizedInput({
             onKeyDown={onRawKeyDown}
           />
           <span className="inline-flex shrink-0 items-center gap-1">
-            {onRelink ? (
-              <Tooltip content="Clear" hasHoverIndication={false}>
-                <button
-                  aria-label={`Clear ${label}`}
-                  className={MINI_BUTTON_CLASS}
-                  type="button"
-                  onClick={(event: MouseEvent) => {
-                    /* A press moves focus first, so the field's blur has
-                       already written its draft by the time this runs, and
-                       the relink lands after it. */
-                    event.stopPropagation();
-                    onRelink();
-                  }}
-                >
-                  <CloseIcon />
-                </button>
-              </Tooltip>
-            ) : null}
+            {relinkButton}
             <Tooltip content="Apply preset" hasHoverIndication={false}>
               <button
                 aria-label="Apply preset"

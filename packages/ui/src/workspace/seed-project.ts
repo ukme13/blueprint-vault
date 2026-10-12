@@ -4,7 +4,7 @@ import {
   normalizeElevationScale,
   type ElevationScale,
 } from "../scale/elevation";
-import { defaultLayoutTokens } from "../scale/layout-tokens";
+import { defaultLayoutTokens, syncSquishInsets } from "../scale/layout-tokens";
 import {
   defaultRadiusScale,
   normalizeRadiusScale,
@@ -292,6 +292,7 @@ export function seedWorkspaceProject(
     input.paletteTracks,
   );
   const typography = { ...SEED_TYPOGRAPHY, ...input.typography };
+  const spacing = seedSpacing(input.spacing);
   /* The frames the studio always has, each on the preset's own ratio where
      it sets one: a phone steps more gently than a desktop. */
   const previewDevices = defaultPreviewDevices(typography.ratio).map(
@@ -309,12 +310,14 @@ export function seedWorkspaceProject(
     semantics: semanticsForPalette(palette),
     removedSeedRoles: [],
     buttonSchemes: normalizeButtonSchemes(undefined),
-    spacing: seedSpacing(input.spacing),
+    spacing,
     spacingPreview: defaultSpacingPreviewSettings(),
     radius: seedRadius(input.radius),
     elevation: seedElevation(input.elevation),
     previewDevices,
-    layout: defaultLayoutTokens(),
+    /* Squished against this workspace's own spacing: a preset's unit or
+       density moves the control block inset with the inline one. */
+    layout: [...syncSquishInsets(defaultLayoutTokens(), spacing)],
     typography: seedTypographyProject(name, input.typography),
   };
 }

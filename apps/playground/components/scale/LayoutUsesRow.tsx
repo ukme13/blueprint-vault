@@ -2,9 +2,11 @@
 
 import type { MouseEvent } from "react";
 import { TableCell, TableRow } from "@astryxdesign/core/Table";
-import { Lock } from "lucide-react";
+import { Tooltip } from "@astryxdesign/core/Tooltip";
+import { Link, Lock } from "lucide-react";
 import {
   HybridTokenizedInput,
+  isSquishFollowing,
   isSystemLayoutToken,
   MAX_RADIUS_PX,
   MIN_RADIUS_PX,
@@ -14,6 +16,7 @@ import {
   type HybridTokenPreset,
   type LayoutToken,
   type PreviewDevice,
+  type SquishRatio,
 } from "@blueprint/ui";
 import { InlineTextCell } from "../InlineTextCell";
 import { usePickerSheet } from "../picker-sheet";
@@ -22,6 +25,9 @@ import { LayoutUsesRowMenu } from "./LayoutUsesRowMenu";
 import styles from "./scale-workspace.module.css";
 
 const SPACING_MAX_PX = 400;
+
+const LOCK_NOTE =
+  "Built in: its name and variable are fixed. Point it anywhere, or reset it.";
 
 export function LayoutUsesRow({
   autoFocusName,
@@ -36,6 +42,9 @@ export function LayoutUsesRow({
   onRemove,
   onReset,
   onRowClick,
+  squishRatio,
+  squishSourceName,
+  onClearSquishOverride,
 }: {
   autoFocusName: boolean;
   canReorder: boolean;
@@ -50,6 +59,15 @@ export function LayoutUsesRow({
   onRemove: () => void;
   onReset: () => void;
   onRowClick?: (event: MouseEvent<HTMLTableRowElement>) => void;
+  /**
+   * A paired block inset only (`…-y` beside `…-x`): the scale's squish it
+   * follows. Set under Base unit, so here it is said, not chosen.
+   */
+  squishRatio?: SquishRatio;
+  /** The inline inset it follows, named in the link icon's tooltip. */
+  squishSourceName?: string;
+  /** A paired block inset only: put a typed frame back on the squish. */
+  onClearSquishOverride?: (deviceId: string) => void;
 }) {
   const isSystem = isSystemLayoutToken(token.id);
   const { isDragging, setNodeRef, sortableProps } = useSemanticRowSort({
@@ -59,6 +77,25 @@ export function LayoutUsesRow({
   });
   const pickerSheet = usePickerSheet();
   const maxPx = token.kind === "radius" ? MAX_RADIUS_PX : SPACING_MAX_PX;
+  /* A paired inset says so beside its name, as the lock does: an icon, with
+     the detail on hover or focus. */
+  const squishNote =
+    squishRatio === undefined
+      ? null
+      : `Squished: ${Math.round(squishRatio * 100)}% of ${squishSourceName ?? "its inline inset"}. Change it under Base unit on the Scale tab.`;
+  const squishIcon = squishNote && (
+    <Tooltip content={squishNote} hasHoverIndication={false}>
+      <span
+        aria-label={squishNote}
+        className="inline-flex shrink-0 text-fg-muted"
+        data-squish={squishRatio}
+        role="img"
+        tabIndex={0}
+      >
+        <Link aria-hidden className="size-3" />
+      </span>
+    </Tooltip>
+  );
   const minPx = token.kind === "radius" ? MIN_RADIUS_PX : 0;
 
   return (
@@ -80,14 +117,30 @@ export function LayoutUsesRow({
               data-system-use=""
             >
               <span className="truncate">{token.name}</span>
-              <span
-                aria-label="Built in: its name and variable are fixed"
-                className="inline-flex shrink-0 text-fg-muted"
-                role="img"
-                title="Built in: its name and variable are fixed. Point it anywhere, or reset it."
-              >
-                <Lock aria-hidden className="size-3" />
-              </span>
+              {/* The same Astryx tooltip as the link icon beside it, so the
+                  two icons explain themselves the same way. */}
+              <Tooltip content={LOCK_NOTE} hasHoverIndication={false}>
+                <span
+                  aria-label={LOCK_NOTE}
+                  className="inline-flex shrink-0 text-fg-muted"
+                  data-system-lock=""
+                  role="img"
+                  tabIndex={0}
+                >
+                  <Lock aria-hidden className="size-3" />
+                </span>
+              </Tooltip>
+              {squishIcon}
+            </span>
+          ) : squishIcon ? (
+            <span className="flex min-w-0 items-center gap-1.5">
+              <InlineTextCell
+                autoFocus={autoFocusName}
+                label={`${token.id} name`}
+                value={token.name}
+                onCommit={onCommitName}
+              />
+              {squishIcon}
             </span>
           ) : (
             <InlineTextCell
@@ -105,35 +158,48 @@ export function LayoutUsesRow({
           )}
         </div>
       </TableCell>
-      {columns.map((device) => (
-        <TableCell key={device.id}>
-          <HybridTokenizedInput
-            decimals={0}
-            isLabelHidden
-            label={`${token.name} on ${device.name}`}
-            max={maxPx}
-            min={minPx}
-            popoverTitle={
-              token.kind === "radius" ? "Radius tokens" : "Spacing steps"
-            }
-            presets={presets}
-            sheet={pickerSheet}
-            searchPlaceholder={
-              token.kind === "radius" ? "Search radius..." : "Search steps..."
-            }
-            step={1}
-            value={hybridValueFromLayoutCell(
-              token.kind,
-              token.byDevice[device.id],
-              presets,
-            )}
-            valueSuffix="px"
-            onChange={(next) =>
-              onReferenceChange(device.id, layoutCellFromHybrid(next))
-            }
-          />
-        </TableCell>
-      ))}
+      {columns.map((device) => {
+        /* Squished, a frame either follows (default look, nothing to clear)
+           or was typed by hand (accent, with a ✕ back to following), as a
+           type role's size is on a frame of its own. */
+        const isTyped =
+          squishRatio !== undefined && !isSquishFollowing(token, device.id);
+        return (
+          <TableCell key={device.id}>
+            <HybridTokenizedInput
+              isOverride={isTyped}
+              onRelink={
+                isTyped && onClearSquishOverride
+                  ? () => onClearSquishOverride(device.id)
+                  : undefined
+              }
+              decimals={0}
+              isLabelHidden
+              label={`${token.name} on ${device.name}`}
+              max={maxPx}
+              min={minPx}
+              popoverTitle={
+                token.kind === "radius" ? "Radius tokens" : "Spacing steps"
+              }
+              presets={presets}
+              sheet={pickerSheet}
+              searchPlaceholder={
+                token.kind === "radius" ? "Search radius..." : "Search steps..."
+              }
+              step={1}
+              value={hybridValueFromLayoutCell(
+                token.kind,
+                token.byDevice[device.id],
+                presets,
+              )}
+              valueSuffix="px"
+              onChange={(next) =>
+                onReferenceChange(device.id, layoutCellFromHybrid(next))
+              }
+            />
+          </TableCell>
+        );
+      })}
       <TableCell>
         <LayoutUsesRowMenu
           isSystem={isSystem}

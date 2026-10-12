@@ -15,6 +15,7 @@ import {
   workspaceWithScaleSnapshot,
 } from "./scale-history";
 import { emptyWorkspace } from "./workspace";
+import { readSpacingScale } from "./scale-slices";
 
 function snapshot() {
   return scaleSnapshotOf(emptyWorkspace());
@@ -203,5 +204,73 @@ describe("createScaleHistory", () => {
         (token) => token.id,
       ),
     ).toEqual(before);
+  });
+});
+
+describe("the squish on write", () => {
+  it("moves the control block inset when the inline one is written", () => {
+    const history = createScaleHistory({
+      spacing: defaultSpacingScale(),
+      radius: defaultRadiusScale(),
+      elevation: defaultElevationScale(),
+      layout: defaultLayoutTokens(),
+    });
+    const inline = setLayoutReference(
+      history.present.layout,
+      "inset-control-x",
+      "desktop",
+      "6",
+    );
+    history.commit({ layout: inline });
+    expect(
+      history.present.layout.find((token) => token.id === "inset-control-y")!
+        .byDevice.desktop,
+    ).toBe("3");
+  });
+});
+
+describe("the squish on a studio write", () => {
+  it("moves the control block inset when the store is written", () => {
+    /* The path the scale studio takes: a snapshot into the workspace. */
+    const project = emptyWorkspace();
+    const layout = setLayoutReference(
+      defaultLayoutTokens(),
+      "inset-control-x",
+      "desktop",
+      "6",
+    );
+    const next = workspaceWithScaleSnapshot(project, {
+      spacing: defaultSpacingScale(),
+      radius: defaultRadiusScale(),
+      elevation: defaultElevationScale(),
+      layout,
+    });
+    expect(
+      next.layout.find((token) => token.id === "inset-control-y")!.byDevice
+        .desktop,
+    ).toBe("3");
+  });
+});
+
+describe("the squish ratio on the scale", () => {
+  it("survives a studio write and a read back", () => {
+    /* The write copies the scale field by field; a field it does not name
+       is gone, which the squish was. */
+    const next = workspaceWithScaleSnapshot(emptyWorkspace(), {
+      spacing: { ...defaultSpacingScale(), squish: 1 },
+      radius: defaultRadiusScale(),
+      elevation: defaultElevationScale(),
+      layout: defaultLayoutTokens(),
+    });
+    expect(next.spacing.squish).toBe(1);
+    expect(scaleSnapshotOf(next).spacing.squish).toBe(1);
+    /* Symmetric: the control's 16px desktop inline is its block too. */
+    expect(
+      next.layout.find((token) => token.id === "inset-control-y")!.byDevice
+        .desktop,
+    ).toBe("4");
+    expect(readSpacingScale(JSON.parse(JSON.stringify(next.spacing)))).toEqual(
+      next.spacing,
+    );
   });
 });

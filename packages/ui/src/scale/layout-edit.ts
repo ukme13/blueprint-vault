@@ -12,6 +12,7 @@ import {
   isLayoutCellValue,
   isLayoutPrimitive,
   parseLayoutRawPx,
+  squishSourceId,
   type LayoutToken,
   type LayoutTokenKind,
 } from "./layout-tokens";
@@ -37,7 +38,33 @@ export function setLayoutReference(
     return {
       ...token,
       byDevice: { ...token.byDevice, [deviceId]: cell },
+      /* Typed on a paired inset: this frame keeps its own value from now
+         on, instead of following the squish. */
+      ...(squishSourceId(tokens, token.id)
+        ? {
+            squishOverrides: [
+              ...new Set([...(token.squishOverrides ?? []), deviceId]),
+            ],
+          }
+        : {}),
     };
+  });
+}
+
+/** Put one typed frame back on the squish. Its value follows on write. */
+export function clearLayoutSquishOverride(
+  tokens: readonly LayoutToken[],
+  tokenId: string,
+  deviceId: string,
+): LayoutToken[] {
+  return tokens.map((token) => {
+    if (token.id !== tokenId || !token.squishOverrides?.includes(deviceId)) {
+      return token;
+    }
+    const rest = token.squishOverrides.filter((id) => id !== deviceId);
+    const next: LayoutToken = { ...token, squishOverrides: rest };
+    if (rest.length === 0) delete next.squishOverrides;
+    return next;
   });
 }
 

@@ -1,4 +1,7 @@
 import {
+  resolveSpacing,
+  roundToEvenSpacingPx,
+  squishRatioOf,
   spacingStepName,
   toggleSpacingStep,
   type SpacingScale,
@@ -29,6 +32,31 @@ export interface LayoutToken {
    * (`container`), or a typed length (`20px`).
    */
   byDevice: Record<string, string>;
+  /**
+   * A paired block inset only (see `squishSourceId`): frames typed by hand,
+   * which keep their own value instead of following the squish.
+   */
+  squishOverrides?: string[];
+}
+
+/**
+ * The inline inset a block inset pairs with: `inset-control-y` with
+ * `inset-control-x`, `inset-badge-y` with `inset-badge-x`. Any spacing use
+ * whose id ends in `-y` pairs with the `-x` use of the same name when the
+ * workspace has one, so a use added in pairs squishes like the built-in
+ * one. Undefined when there is no partner.
+ */
+export function squishSourceId(
+  tokens: readonly LayoutToken[],
+  tokenId: string,
+): string | undefined {
+  if (!tokenId.endsWith("-y")) return undefined;
+  const token = tokens.find((each) => each.id === tokenId);
+  if (token?.kind !== "spacing") return undefined;
+  const sourceId = `${tokenId.slice(0, -2)}-x`;
+  return tokens.some((each) => each.id === sourceId && each.kind === "spacing")
+    ? sourceId
+    : undefined;
 }
 
 /**
@@ -101,7 +129,9 @@ export const DEFAULT_LAYOUT_TOKENS: readonly LayoutToken[] = [
     name: "Control block inset",
     description: "Vertical padding for buttons and inputs.",
     kind: "spacing",
-    /* Step 1.5, named as its variable is: --spacing-1-5. */
+    /* Step 1.5, named as its variable is: --spacing-1-5. Half the inline
+       inset on every frame (12px → 6px, 16px → 8px), which is what the
+       squish keeps it at. */
     byDevice: { phone: "1-5", tablet: "2", desktop: "2" },
   },
   {
@@ -227,10 +257,17 @@ export function layoutVariableName(id: string): string {
 }
 
 export function defaultLayoutTokens(): LayoutToken[] {
-  return DEFAULT_LAYOUT_TOKENS.map((token) => ({
+  return DEFAULT_LAYOUT_TOKENS.map(copyLayoutToken);
+}
+
+function copyLayoutToken(token: LayoutToken): LayoutToken {
+  return {
     ...token,
     byDevice: { ...token.byDevice },
-  }));
+    ...(token.squishOverrides
+      ? { squishOverrides: [...token.squishOverrides] }
+      : {}),
+  };
 }
 
 const RAW_PX = /^(-?\d+(?:\.\d+)?)px$/i;
@@ -347,12 +384,143 @@ export function normalizeLayoutTokens(
       description: typeof raw.description === "string" ? raw.description : "",
       kind: raw.kind,
       byDevice,
+      ...readSquishOverrides(raw, devices),
     });
   }
 
-  return withSystemUses(parsed).map((token) =>
-    fillDevices(migrateUnshrunkSectionGap(token), devices),
+  const healed = withSystemUses(parsed);
+  return healed.map((token) =>
+    fillDevices(
+      migrateUnshrunkSectionGap(
+        /* A use renamed out of its pair has nothing to override. */
+        token.squishOverrides && !squishSourceId(healed, token.id)
+          ? withoutOverrides(token)
+          : token,
+      ),
+      devices,
+    ),
   );
+}
+
+/** Typed frames, read tolerantly: frames that exist, each once. */
+function readSquishOverrides(
+  raw: Record<string, unknown>,
+  devices: readonly PreviewDevice[],
+): Pick<LayoutToken, "squishOverrides"> {
+  if (!Array.isArray(raw.squishOverrides)) return {};
+  const ids = new Set(devices.map((device) => device.id));
+  const overrides = [
+    ...new Set(
+      raw.squishOverrides.filter(
+        (id): id is string => typeof id === "string" && ids.has(id),
+      ),
+    ),
+  ];
+  /* None is no key, as a new workspace has it, so a round trip through
+     storage is a fixed point. */
+  return overrides.length > 0 ? { squishOverrides: overrides } : {};
+}
+
+function withoutOverrides(token: LayoutToken): LayoutToken {
+  const next = { ...token };
+  delete next.squishOverrides;
+  return next;
+}
+
+/**
+ * The value each frame of a paired block inset would squish to: its inline
+ * partner's length times the scale's ratio, rounded to an even pixel, named
+ * as a step when it lands on one the scale keeps (so the export still links
+ * `--spacing-…`) and a px length otherwise.
+ */
+function squishedCells(
+  tokens: readonly LayoutToken[],
+  token: LayoutToken,
+  spacing: SpacingScale,
+): Record<string, string> {
+  const sourceId = squishSourceId(tokens, token.id);
+  const source = tokens.find((each) => each.id === sourceId);
+  if (!source) return {};
+  const steps = resolveSpacing(spacing);
+  const ratio = squishRatioOf(spacing);
+  const cells: Record<string, string> = {};
+  for (const [deviceId, cell] of Object.entries(source.byDevice)) {
+    const px =
+      parseLayoutRawPx(cell) ?? steps.find((each) => each.name === cell)?.px;
+    if (px === undefined) continue;
+    const squished = roundToEvenSpacingPx(px * ratio);
+    const onStep = steps.find((each) => each.px === squished);
+    cells[deviceId] = onStep ? onStep.name : formatLayoutRawPx(squished);
+  }
+  return cells;
+}
+
+/**
+ * Take a stored workspace's paired insets as they are.
+ *
+ * Read on load: any frame whose stored value is not what the squish would
+ * give was set by hand — saved before squish existed, or typed since — and
+ * becomes a typed frame, so loading moves nothing. A frame that already
+ * matches follows from here on. Idempotent, since a typed frame stays typed
+ * and a following one matches by construction.
+ */
+export function adoptSquishOverrides(
+  tokens: readonly LayoutToken[],
+  spacing: SpacingScale,
+): LayoutToken[] {
+  return tokens.map((token) => {
+    if (!squishSourceId(tokens, token.id)) return token;
+    const typed = new Set(token.squishOverrides ?? []);
+    for (const [deviceId, value] of Object.entries(
+      squishedCells(tokens, token, spacing),
+    )) {
+      if (token.byDevice[deviceId] !== value) typed.add(deviceId);
+    }
+    if (typed.size === (token.squishOverrides ?? []).length) return token;
+    return { ...token, squishOverrides: [...typed] };
+  });
+}
+
+/**
+ * Keep every paired block inset at the scale's squish of its inline partner,
+ * on each frame not typed by hand.
+ *
+ * The result is written into `byDevice` like any other cell, so the preview,
+ * the export and the table read it without knowing squish exists. Called
+ * wherever spacing or layout is written (the scale studio's writes, a new
+ * workspace's seed). Returns the same array when nothing moves, so an
+ * unrelated edit records no layout change.
+ */
+export function syncSquishInsets(
+  tokens: readonly LayoutToken[],
+  spacing: SpacingScale,
+): readonly LayoutToken[] {
+  let changed = false;
+  const next = tokens.map((token) => {
+    if (!squishSourceId(tokens, token.id)) return token;
+    const typed = new Set(token.squishOverrides ?? []);
+    const byDevice = { ...token.byDevice };
+    let moved = false;
+    for (const [deviceId, value] of Object.entries(
+      squishedCells(tokens, token, spacing),
+    )) {
+      if (typed.has(deviceId) || byDevice[deviceId] === value) continue;
+      byDevice[deviceId] = value;
+      moved = true;
+    }
+    if (!moved) return token;
+    changed = true;
+    return { ...token, byDevice };
+  });
+  return changed ? next : tokens;
+}
+
+/** Whether a paired inset's frame follows the squish rather than being typed. */
+export function isSquishFollowing(
+  token: LayoutToken,
+  deviceId: string,
+): boolean {
+  return !(token.squishOverrides ?? []).includes(deviceId);
 }
 
 /**
@@ -374,7 +542,7 @@ export function defaultSystemLayoutToken(
 ): LayoutToken | undefined {
   const seed = DEFAULT_LAYOUT_TOKENS.find((token) => token.id === id);
   if (!seed) return undefined;
-  return fillDevices({ ...seed, byDevice: { ...seed.byDevice } }, devices);
+  return fillDevices(copyLayoutToken(seed), devices);
 }
 
 /**
@@ -407,7 +575,7 @@ function withSystemUses(tokens: LayoutToken[]): LayoutToken[] {
       insertAt = index + 1;
       continue;
     }
-    next.splice(insertAt, 0, { ...seed, byDevice: { ...seed.byDevice } });
+    next.splice(insertAt, 0, copyLayoutToken(seed));
     insertAt += 1;
   }
   return next;

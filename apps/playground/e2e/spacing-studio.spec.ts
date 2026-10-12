@@ -631,6 +631,121 @@ test.describe("The spacing studio", () => {
     await expect.poll(bindings).toEqual({ y: "4", gap: "6" });
   });
 
+  test("squishes the control block inset to the inline one", async ({
+    seededPage: page,
+  }) => {
+    await page
+      .getByRole("navigation", { name: "Scale sections" })
+      .getByRole("button", { name: "Uses" })
+      .click();
+    const uses = page.getByRole("region", { name: "Spacing uses" });
+    const blockY = async (device: string) =>
+      (
+        (await readStoredWorkspace(page))?.layout as
+          { id: string; byDevice: Record<string, string> }[] | undefined
+      )?.find((use) => use.id === "inset-control-y")?.byDevice[device];
+    const clear = uses.getByRole("button", {
+      name: "Clear Control block inset on Desktop",
+    });
+
+    /* A new workspace follows the inline inset at 1:2, and the row says so;
+       the ratio is chosen under Base unit, not here. */
+    const link = uses.locator('[data-token="inset-control-y"] [data-squish]');
+    await expect(link).toHaveAttribute(
+      "aria-label",
+      /^Squished: 50% of Control inline inset\./,
+    );
+    /* An icon beside the lock, with the detail on hover. */
+    await link.hover();
+    await expect(page.getByRole("tooltip")).toContainText(
+      "Squished: 50% of Control inline inset",
+    );
+    /* The lock beside it explains itself the same way. */
+    await page.mouse.move(0, 0);
+    await uses
+      .locator('[data-token="inset-control-y"] [data-system-lock]')
+      .hover();
+    await expect(page.getByRole("tooltip")).toContainText(
+      "Built in: its name and variable are fixed",
+    );
+    await expect(uses.getByRole("combobox", { name: /squish/i })).toHaveCount(
+      0,
+    );
+
+    /* Inline 24px on desktop: the block inset follows to 12px, step 3. */
+    await fillHybridNumber(page, "Control inline inset on Desktop", "24");
+    await expect.poll(() => blockY("desktop")).toBe("3");
+    await expect(clear).toHaveCount(0);
+
+    /* Typed by hand: it keeps its own value, with a ✕ ... */
+    await fillHybridNumber(page, "Control block inset on Desktop", "10");
+    await expect.poll(() => blockY("desktop")).toBe("10px");
+    await expect(clear).toBeVisible();
+    await expect(
+      uses.getByRole("textbox", { name: "Control block inset on Desktop" }),
+    ).toHaveAttribute("data-override", "true");
+    await fillHybridNumber(page, "Control inline inset on Desktop", "32");
+    await expect.poll(() => blockY("desktop")).toBe("10px");
+
+    /* ... which puts it back on the squish: half of 32 is step 4. */
+    await clear.click();
+    await expect.poll(() => blockY("desktop")).toBe("4");
+    await expect(clear).toHaveCount(0);
+
+    /* 100%, under Base unit: symmetric, on every frame, and the row
+       follows. */
+    /* A step picked by hand is typed too, shown as a chip: its ✕ sits at
+       the end of the field, not against the chip. */
+    await uses
+      .getByRole("button", { name: "Control block inset on Tablet" })
+      .click();
+    await page
+      .getByRole("listbox", { name: "Spacing steps" })
+      .getByRole("option")
+      .nth(6)
+      .click();
+    const tabletClear = uses.getByRole("button", {
+      name: "Clear Control block inset on Tablet",
+    });
+    await expect(tabletClear).toBeVisible();
+    const [field, chip, x] = await Promise.all([
+      /* The field: the bordered row the chip, caret and ✕ sit in. */
+      tabletClear
+        .locator("xpath=ancestor::div[contains(@class, 'size-element-md')][1]")
+        .boundingBox(),
+      uses
+        .getByRole("button", {
+          name: "Control block inset on Tablet",
+          exact: true,
+        })
+        .boundingBox(),
+      tabletClear.boundingBox(),
+    ]);
+    expect(field!.x + field!.width - (x!.x + x!.width)).toBeLessThanOrEqual(12);
+    expect(x!.x - (chip!.x + chip!.width)).toBeGreaterThan(12);
+
+    const sections = page.getByRole("navigation", { name: "Scale sections" });
+    await sections.getByRole("button", { name: "Scale" }).click();
+    await page.getByRole("radio", { name: "100%", exact: true }).click();
+    await expect.poll(() => blockY("desktop")).toBe("8");
+    await expect.poll(() => blockY("phone")).toBe("3");
+    await sections.getByRole("button", { name: "Uses" }).click();
+    await expect(link).toHaveAttribute("aria-label", /^Squished: 100% of /);
+  });
+
+  test("offers the large layout steps up to 64", async ({
+    seededPage: page,
+  }) => {
+    await openSpacingSteps(page);
+    const steps = page.getByRole("region", { name: "Generated spacing steps" });
+    for (const step of ["20", "32", "64"]) {
+      await expect(steps.locator(`[data-spacing-step="${step}"]`)).toHaveCount(
+        1,
+      );
+    }
+    await expect(steps.locator('[data-spacing-step="17"]')).toHaveCount(0);
+  });
+
   test("lists the navigation block inset among the spacing uses", async ({
     seededPage: page,
   }) => {
