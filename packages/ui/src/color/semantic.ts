@@ -814,12 +814,16 @@ function clearsBothLines(label: string, fill: string): boolean {
  * black.
  *
  * Four candidates in an order of preference: the ends of the role's own
- * track, the better by ratio first, then pure white and pure black on the same
- * footing. The first to clear both lines wins, so a palette whose neutral ends
- * already read is seeded exactly as it always was. Failing that, the first to
- * clear the ratio, which is where this stood before Lc was a line. Failing
- * that, nothing reads, and the answer is whichever pure colour gives the more
- * contrast: no shade of a track can give more than white or black.
+ * track, the one APCA reads better on this fill first, then pure white and
+ * pure black in the same light-or-dark order. The first to clear both lines
+ * (4.5:1 and Lc 60) wins, so a palette whose neutral ends already read is
+ * seeded exactly as it always was.
+ *
+ * When none clears both, as on a mid-tone such as a purple 500, the label is
+ * the candidate with the highest APCA Lc among those that still reach 3:1,
+ * the large-text AA line, so a colour APCA likes and WCAG 2 cannot see is not
+ * chosen over one that plainly reads. If none reaches 3:1 either, it is the
+ * highest Lc of all four. A tie keeps the order above.
  *
  * Judged by APCA, with each end as the text on the fill: WCAG 2's ratio leans
  * toward the dark end on a mid-tone fill, where the light end is the more
