@@ -53,7 +53,9 @@ export function ShadeApcaResult({
         <h3>WCAG 3 contrast</h3>
         <small>{caption}</small>
       </header>
-      <p className={styles.popoverContrastScore}>
+      {/* A div, not a p: the info button's tooltip wraps it in a div,
+          which a paragraph cannot hold. */}
+      <div className={styles.popoverContrastScore}>
         <span
           aria-hidden="true"
           data-swapped={isSwapped || undefined}
@@ -73,7 +75,7 @@ export function ShadeApcaResult({
           Lc {assessment.lc.toFixed(1)}
         </strong>
         <ContrastScoreInfo standard="wcag3" />
-      </p>
+      </div>
       {isSimulated && (
         /* A figure and no verdict, as for WCAG 2: the grades are for the real
            colours, and this is what the pair measures once simulated. */
