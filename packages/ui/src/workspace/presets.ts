@@ -2,6 +2,7 @@ import { DEFAULT_RADIUS_TOKENS } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { TYPE_SCALE_RATIO_PRESETS } from "../typography/presets";
 import { TYPE_ROLE_PRESETS } from "../typography/role-presets";
+import { isGenericFamily } from "../typography/system";
 import {
   SEED_PALETTE_TRACKS,
   SEED_TYPOGRAPHY,
@@ -10,6 +11,8 @@ import {
   type SeedWorkspaceInput,
 } from "./seed-project";
 import type { WorkspaceProject } from "./types";
+import { parseBlueprintWorkspace } from "./workspace-file";
+import designallyWorkspace from "./presets/designally.blueprint.json";
 
 /**
  * A starting point for Home create.
@@ -24,13 +27,32 @@ import type { WorkspaceProject } from "./types";
  * So a preset carries only what it changes, and `instantiate` hands it to the
  * same `seedWorkspaceProject` every other caller uses. A slice added there
  * reaches every preset without anybody editing this file.
+ *
+ * The one exception is a `snapshot`: a whole saved workspace, for a system the
+ * inputs cannot describe — two typefaces, its own role groups, palette
+ * anchors, hand-picked semantic weights, its own layout uses. It is kept as
+ * the file the studio exports and read through `parseBlueprintWorkspace`, the
+ * loader every import goes through, so a format change migrates it like any
+ * other saved file rather than leaving it stale.
  */
 export type WorkspacePreset = SeedWorkspaceInput & {
   /** Stable across releases; the dialog stores it only for the open session. */
   id: string;
   name: string;
   summary: string;
+  /**
+   * A saved workspace file (`kind: "blueprint-workspace"`). When present, a
+   * new workspace is this one, renamed, and the inputs above are not read.
+   */
+  snapshot?: unknown;
 };
+
+/** The workspace a snapshot preset holds, loaded as an import would be. */
+function snapshotWorkspace(preset: WorkspacePreset): WorkspaceProject | null {
+  return preset.snapshot === undefined
+    ? null
+    : parseBlueprintWorkspace(JSON.stringify(preset.snapshot));
+}
 
 /** The seed hexes a preset paints as swatches, in the order they are shown. */
 const SWATCH_TRACK_IDS = ["primary", "secondary", "neutral"] as const;
@@ -402,6 +424,20 @@ const NOTION: WorkspacePreset = {
   },
 };
 
+/**
+ * Designally: the studio's own house system, kept whole. Two Google faces
+ * (Zalando Sans Expanded for display, Poppins for the rest, IBM Plex Sans Thai
+ * behind both), seventeen role groups, a perfect fourth on 16px, coral and
+ * deep navy on a cool neutral with anchored ends, pill controls.
+ */
+const DESIGNALLY: WorkspacePreset = {
+  id: "designally",
+  name: "Designally",
+  summary:
+    "Designally's house system. Coral and navy, Zalando Sans Expanded with Poppins, 17 role groups and pill controls.",
+  snapshot: designallyWorkspace,
+};
+
 /** Every preset the create dialog offers, in the order it lists them. */
 export const WORKSPACE_PRESETS: readonly WorkspacePreset[] = [
   PRIMER,
@@ -412,6 +448,7 @@ export const WORKSPACE_PRESETS: readonly WorkspacePreset[] = [
   MEDIUM,
   GUARDIAN,
   NOTION,
+  DESIGNALLY,
 ];
 
 /** The one a freshly opened dialog starts on. */
@@ -430,6 +467,14 @@ export function findWorkspacePreset(id: string): WorkspacePreset | undefined {
  * honest thing to show: it is the colour the person picked the preset for.
  */
 export function workspacePresetSwatches(preset: WorkspacePreset): string[] {
+  const snapshot = snapshotWorkspace(preset);
+  if (snapshot) {
+    return SWATCH_TRACK_IDS.map(
+      (id) =>
+        snapshot.palette?.tracks.find((track) => track.id === id)?.seedHex ??
+        SEED_PALETTE_TRACKS.find((track) => track.id === id)!.seedHex,
+    );
+  }
   return SWATCH_TRACK_IDS.map((id) => presetTrackHex(preset, id));
 }
 
@@ -460,6 +505,14 @@ export function instantiateWorkspacePreset(
   preset: WorkspacePreset,
   name: string,
 ): WorkspaceProject {
+  const snapshot = snapshotWorkspace(preset);
+  if (snapshot) {
+    /* A new workspace, not the saved one: its own name, and no edit time
+       carried over from whenever the snapshot was exported. */
+    const project: WorkspaceProject = { ...snapshot, name };
+    delete project.updatedAt;
+    return project;
+  }
   return seedWorkspaceProject(name, preset);
 }
 
@@ -470,6 +523,8 @@ export interface WorkspacePresetDetails {
   neutralHex: string;
   /** The face the stack leads with, as a person would name it. */
   typeface: string;
+  /** A CSS font stack to set a sample in: the lead face, its fallbacks behind. */
+  sampleFontFamily: string;
   baseFontSizePx: number;
   ratio: number;
   /** The ratio's musical name, or null for one no preset names. */
@@ -505,6 +560,8 @@ const GENERIC_FAMILY_NAMES: Record<string, string> = {
 export function workspacePresetDetails(
   preset: WorkspacePreset,
 ): WorkspacePresetDetails {
+  const snapshot = snapshotWorkspace(preset);
+  if (snapshot) return snapshotDetails(snapshot);
   const type = { ...SEED_TYPOGRAPHY, ...preset.typography };
   const lead = type.fontFamily
     .split(",")[0]!
@@ -529,12 +586,76 @@ export function workspacePresetDetails(
         (each) => each.id === (type.rolePresetId ?? "minimal"),
       )?.label ?? "Minimal",
     typeface: GENERIC_FAMILY_NAMES[lead] ?? lead,
+    sampleFontFamily: type.fontFamily,
     baseFontSizePx: type.baseFontSizePx,
     ratio: type.ratio,
     ratioName: named?.name ?? null,
     stepCount: type.stepCount,
     baseSpacingPx:
       preset.spacing?.baseUnitPx ?? defaultSpacingScale().baseUnitPx,
+    elementRadiusPx: radiusPx("element"),
+    containerRadiusPx: radiusPx("container"),
+  };
+}
+
+/** Families as a CSS stack: a named face quoted, a generic keyword bare. */
+function cssFontStack(families: readonly string[]): string {
+  return families
+    .map((family) => (isGenericFamily(family) ? family : `"${family}"`))
+    .join(", ");
+}
+
+/** A face as a person would name it: the lead family, generics in words. */
+function typefaceName(stack: string): string {
+  const lead = stack
+    .split(",")[0]!
+    .trim()
+    .replace(/^["']|["']$/g, "");
+  return GENERIC_FAMILY_NAMES[lead] ?? lead;
+}
+
+/**
+ * The same details, read off a whole workspace. Every face it uses is named,
+ * display first, and its role groups are its own rather than a named set.
+ */
+function snapshotDetails(project: WorkspaceProject): WorkspacePresetDetails {
+  const system = project.typography?.system;
+  const seedHex = (id: (typeof SWATCH_TRACK_IDS)[number]) =>
+    project.palette?.tracks.find((track) => track.id === id)?.seedHex ??
+    SEED_PALETTE_TRACKS.find((track) => track.id === id)!.seedHex;
+  const radiusPx = (id: string) => {
+    const token = project.radius.tokens.find((each) => each.id === id);
+    if (!token) return 0;
+    return token.scales
+      ? token.basePx * project.radius.multiplier
+      : token.basePx;
+  };
+  const ratio = system?.ratio ?? SEED_TYPOGRAPHY.ratio;
+  const named = TYPE_SCALE_RATIO_PRESETS.find(
+    (each) => Math.abs(each.ratio - ratio) < 0.001,
+  );
+  const faces = [
+    ...new Set(
+      (system?.fonts ?? []).map((font) =>
+        typefaceName(font.families.join(",")),
+      ),
+    ),
+  ];
+  return {
+    primaryHex: seedHex("primary"),
+    secondaryHex: seedHex("secondary"),
+    neutralHex: seedHex("neutral"),
+    typeface: faces.join(" + ") || typefaceName(SEED_TYPOGRAPHY.fontFamily),
+    /* The first face, which is the display one: the sample is a headline. */
+    sampleFontFamily: system?.fonts[0]
+      ? cssFontStack(system.fonts[0].families)
+      : SEED_TYPOGRAPHY.fontFamily,
+    baseFontSizePx: system?.baseFontSizePx ?? SEED_TYPOGRAPHY.baseFontSizePx,
+    ratio,
+    ratioName: named?.name ?? null,
+    stepCount: system?.stepCount ?? SEED_TYPOGRAPHY.stepCount,
+    roleGroups: `Custom, ${system?.groups.length ?? 0} groups`,
+    baseSpacingPx: project.spacing.baseUnitPx,
     elementRadiusPx: radiusPx("element"),
     containerRadiusPx: radiusPx("container"),
   };

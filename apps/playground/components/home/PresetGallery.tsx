@@ -90,7 +90,7 @@ function PresetCard({
         </span>
         <span
           className={styles.presetSample}
-          style={{ fontFamily: preset.typography?.fontFamily }}
+          style={{ fontFamily: details.sampleFontFamily }}
         >
           Aa
         </span>

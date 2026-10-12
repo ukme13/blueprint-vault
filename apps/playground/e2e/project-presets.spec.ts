@@ -241,8 +241,9 @@ test.describe("Project presets", () => {
         };
       });
     expect((await fit()).level).toBe(true);
-    // With the room, every card shows whole and nothing scrolls.
-    await page.setViewportSize({ width: 1280, height: 1200 });
+    /* With the room, every card shows whole and nothing scrolls. Nine
+       presets are five rows, which 1200px no longer held. */
+    await page.setViewportSize({ width: 1280, height: 1400 });
     await expect.poll(fit).toEqual({ level: true, overflow: 0, inside: true });
 
     /* One action, the panel's width; closing is the header's job. */
