@@ -297,7 +297,10 @@ test.describe("The spacing studio", () => {
     await expect(list).toBeHidden();
     await expect(chip).toContainText("Comfortable");
 
-    /* Escape closes and changes nothing. */
+    /* Escape closes and changes nothing. Astryx ignores a press on a trigger
+       for a beat after its list closes, so a click made at once is dropped
+       now and then and the search is never focused; wait the beat out. */
+    await page.waitForTimeout(400);
     await chip.click();
     await expect(search).toBeFocused();
     await search.press("ArrowDown");
