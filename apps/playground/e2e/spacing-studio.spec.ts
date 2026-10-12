@@ -2433,6 +2433,34 @@ test.describe("Layout uses", () => {
     );
     expect(inset.byDevice.phone).toBe("20px");
   });
+
+  test("Ctrl+Z in a cell undoes the layout edit, not the typed digits", async ({
+    seededPage: page,
+  }) => {
+    const uses = await openSpacingUses(page);
+    const phone = uses.getByLabel("Container inset on Phone");
+    await uses
+      .getByRole("cell", { name: "Container inset on Phone" })
+      .getByLabel("Custom number")
+      .click();
+    await page.keyboard.type("20");
+    await phone.blur();
+    await expect(phone).toHaveValue("20");
+
+    await phone.focus();
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect(phone).toContainText("4");
+
+    await expect
+      .poll(async () => {
+        const stored = await readStoredWorkspace(page);
+        const inset = stored?.layout.find(
+          (token: { id: string }) => token.id === "inset-container",
+        );
+        return inset?.byDevice.phone;
+      })
+      .toBe("4");
+  });
 });
 
 async function openSpacingUses(page: Page): Promise<Locator> {
