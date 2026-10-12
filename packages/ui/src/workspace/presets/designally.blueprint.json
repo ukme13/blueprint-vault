@@ -1,0 +1,2178 @@
+{
+  "kind": "blueprint-workspace",
+  "version": 8,
+  "project": {
+    "name": "Designally",
+    "updatedAt": 1791773577605,
+    "palette": {
+      "tracks": [
+        {
+          "id": "primary",
+          "name": "primary",
+          "seedHex": "#ff5c40",
+          "adjustments": {
+            "anchors": {},
+            "manualOverrides": {}
+          }
+        },
+        {
+          "id": "secondary",
+          "name": "secondary",
+          "seedHex": "#112d4a",
+          "adjustments": {
+            "anchors": {},
+            "manualOverrides": {}
+          }
+        },
+        {
+          "id": "neutral",
+          "name": "neutral",
+          "seedHex": "#1b1d23",
+          "adjustments": {
+            "anchors": {
+              "50": "#f2f2f4",
+              "300": "#aaaaaa"
+            },
+            "manualOverrides": {}
+          }
+        },
+        {
+          "id": "success",
+          "name": "success",
+          "seedHex": "#41d762",
+          "adjustments": {
+            "anchors": {},
+            "manualOverrides": {}
+          }
+        },
+        {
+          "id": "warning",
+          "name": "warning",
+          "seedHex": "#ffb329",
+          "adjustments": {
+            "anchors": {},
+            "manualOverrides": {}
+          }
+        },
+        {
+          "id": "error",
+          "name": "error",
+          "seedHex": "#dd4839",
+          "adjustments": {
+            "anchors": {},
+            "manualOverrides": {}
+          }
+        },
+        {
+          "id": "info",
+          "name": "info",
+          "seedHex": "#2fa9de",
+          "adjustments": {
+            "anchors": {},
+            "manualOverrides": {}
+          }
+        }
+      ],
+      "lightnessPattern": "custom",
+      "lightnessValues": [
+        97.5, 95, 90, 85, 80, 75, 70, 65, 60, 55, 50, 45, 40, 35, 30, 25, 20,
+        15, 10, 5
+      ]
+    },
+    "typography": {
+      "system": {
+        "id": "type-system",
+        "name": "Designally",
+        "groups": [
+          {
+            "id": "display",
+            "label": "Display",
+            "indexing": "number",
+            "autoLineHeightRatio": 1.1
+          },
+          {
+            "id": "h",
+            "label": "H",
+            "indexing": "number",
+            "autoLineHeightRatio": 1.2
+          },
+          {
+            "id": "subtitle",
+            "label": "Subtitle",
+            "indexing": "number",
+            "autoLineHeightRatio": 1.5
+          },
+          {
+            "id": "subtitle-display",
+            "label": "Subtitle display",
+            "indexing": "number",
+            "autoLineHeightRatio": 1.5
+          },
+          {
+            "id": "body",
+            "label": "Body",
+            "indexing": "number",
+            "autoLineHeightRatio": 1.5
+          },
+          {
+            "id": "quote",
+            "label": "Quote",
+            "indexing": "number",
+            "autoLineHeightRatio": 1.4
+          },
+          {
+            "id": "code",
+            "label": "Code",
+            "indexing": "number",
+            "autoLineHeightRatio": 1.5
+          },
+          {
+            "id": "button",
+            "label": "Button",
+            "indexing": "size",
+            "autoLineHeightRatio": 1.2
+          },
+          {
+            "id": "input-label",
+            "label": "Input label",
+            "indexing": "size",
+            "autoLineHeightRatio": 1.5
+          },
+          {
+            "id": "input-value",
+            "label": "Input value",
+            "indexing": "size",
+            "autoLineHeightRatio": 1.5
+          },
+          {
+            "id": "input-helper",
+            "label": "Input helper",
+            "indexing": "number",
+            "autoLineHeightRatio": 1.5
+          },
+          {
+            "id": "table-header",
+            "label": "Table header",
+            "indexing": "number",
+            "autoLineHeightRatio": 1.5
+          },
+          {
+            "id": "list-subheader",
+            "label": "List subheader",
+            "indexing": "number",
+            "autoLineHeightRatio": 1.5
+          },
+          {
+            "id": "label",
+            "label": "Label",
+            "indexing": "number",
+            "autoLineHeightRatio": 1.3
+          },
+          {
+            "id": "caption",
+            "label": "Caption",
+            "indexing": "number",
+            "autoLineHeightRatio": 1.4
+          },
+          {
+            "id": "overline",
+            "label": "Overline",
+            "indexing": "number",
+            "autoLineHeightRatio": 1.3
+          },
+          {
+            "id": "tag",
+            "label": "Tag",
+            "indexing": "number",
+            "autoLineHeightRatio": 1.5
+          }
+        ],
+        "baseFontSizePx": 16,
+        "ratio": 1.333,
+        "stepCount": 9,
+        "fonts": [
+          {
+            "id": "display",
+            "name": "Display",
+            "families": [
+              "Zalando Sans Expanded",
+              "IBM Plex Sans Thai",
+              "ui-sans-serif",
+              "system-ui"
+            ],
+            "sources": { "primary": "google", "fallback": "google" }
+          },
+          {
+            "id": "main",
+            "name": "Main",
+            "families": [
+              "Poppins",
+              "IBM Plex Sans Thai",
+              "ui-sans-serif",
+              "system-ui"
+            ],
+            "sources": { "primary": "google", "fallback": "google" }
+          }
+        ],
+        "roles": [
+          {
+            "id": "display-1",
+            "name": "display-1",
+            "groupId": "display",
+            "fontId": "display",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 6,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "display-2",
+            "name": "display-2",
+            "groupId": "display",
+            "fontId": "display",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 5,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "display-3",
+            "name": "display-3",
+            "groupId": "display",
+            "fontId": "display",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 4,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "display-4",
+            "name": "display-4",
+            "groupId": "display",
+            "fontId": "display",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 3,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "display-5",
+            "name": "display-5",
+            "groupId": "display",
+            "fontId": "display",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 2,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "display-6",
+            "name": "display-6",
+            "groupId": "display",
+            "fontId": "display",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 1,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "h1",
+            "name": "h1",
+            "groupId": "h",
+            "fontId": "main",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 6,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "h2",
+            "name": "h2",
+            "groupId": "h",
+            "fontId": "main",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 5,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "h3",
+            "name": "h3",
+            "groupId": "h",
+            "fontId": "main",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 4,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "h4",
+            "name": "h4",
+            "groupId": "h",
+            "fontId": "main",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 3,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "h5",
+            "name": "h5",
+            "groupId": "h",
+            "fontId": "main",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 2,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "h6",
+            "name": "h6",
+            "groupId": "h",
+            "fontId": "main",
+            "fontWeight": 700,
+            "textTransform": "none",
+            "stepOffset": 1,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "subtitle-1",
+            "name": "subtitle-1",
+            "groupId": "subtitle",
+            "fontId": "main",
+            "fontWeight": 500,
+            "textTransform": "none",
+            "stepOffset": 2,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "subtitle-2",
+            "name": "subtitle-2",
+            "groupId": "subtitle",
+            "fontId": "main",
+            "fontWeight": 500,
+            "textTransform": "none",
+            "stepOffset": 1,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "subtitle-3",
+            "name": "subtitle-3",
+            "groupId": "subtitle",
+            "fontId": "main",
+            "fontWeight": 500,
+            "textTransform": "none",
+            "stepOffset": 0,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "subtitle-4",
+            "name": "subtitle-4",
+            "groupId": "subtitle",
+            "fontId": "main",
+            "fontWeight": 500,
+            "textTransform": "none",
+            "stepOffset": -1,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": { "desktop": 14 },
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "subtitle-display-1",
+            "name": "subtitle-display-1",
+            "groupId": "subtitle-display",
+            "fontId": "display",
+            "fontWeight": 500,
+            "textTransform": "none",
+            "stepOffset": 2,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "subtitle-display-2",
+            "name": "subtitle-display-2",
+            "groupId": "subtitle-display",
+            "fontId": "display",
+            "fontWeight": 500,
+            "textTransform": "none",
+            "stepOffset": 1,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "subtitle-display-3",
+            "name": "subtitle-display-3",
+            "groupId": "subtitle-display",
+            "fontId": "display",
+            "fontWeight": 500,
+            "textTransform": "none",
+            "stepOffset": 0,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "subtitle-display-4",
+            "name": "subtitle-display-4",
+            "groupId": "subtitle-display",
+            "fontId": "display",
+            "fontWeight": 500,
+            "textTransform": "none",
+            "stepOffset": -1,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": { "desktop": 14 },
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "body-1",
+            "name": "body-1",
+            "groupId": "body",
+            "fontId": "main",
+            "fontWeight": 400,
+            "textTransform": "none",
+            "stepOffset": 0,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "body-2",
+            "name": "body-2",
+            "groupId": "body",
+            "fontId": "main",
+            "fontWeight": 400,
+            "textTransform": "none",
+            "stepOffset": -1,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": { "desktop": 14 },
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "body-3",
+            "name": "body-3",
+            "groupId": "body",
+            "fontId": "main",
+            "fontWeight": 400,
+            "textTransform": "none",
+            "stepOffset": -1,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "quote",
+            "name": "quote",
+            "groupId": "quote",
+            "fontId": "display",
+            "fontWeight": 400,
+            "textTransform": "none",
+            "stepOffset": 2,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "code",
+            "name": "code",
+            "groupId": "code",
+            "fontId": "main",
+            "fontWeight": 400,
+            "textTransform": "none",
+            "stepOffset": -1,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "button-md",
+            "name": "button-md",
+            "groupId": "button",
+            "fontId": "main",
+            "fontWeight": 600,
+            "textTransform": "none",
+            "stepOffset": 0,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "button-sm",
+            "name": "button-sm",
+            "groupId": "button",
+            "fontId": "main",
+            "fontWeight": 600,
+            "textTransform": "none",
+            "stepOffset": -1,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": { "desktop": 14 },
+            "unlinkedLineHeights": { "desktop": { "mode": "px", "value": 18 } },
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "button-xs",
+            "name": "button-xs",
+            "groupId": "button",
+            "fontId": "main",
+            "fontWeight": 600,
+            "textTransform": "none",
+            "stepOffset": -1,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "input-label-md",
+            "name": "input-label-md",
+            "groupId": "input-label",
+            "fontId": "main",
+            "fontWeight": 500,
+            "textTransform": "none",
+            "stepOffset": 0,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": { "desktop": 14 },
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "input-value-md",
+            "name": "input-value-md",
+            "groupId": "input-value",
+            "fontId": "main",
+            "fontWeight": 400,
+            "textTransform": "none",
+            "stepOffset": 0,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": { "desktop": 14 },
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "input-value-sm",
+            "name": "input-value-sm",
+            "groupId": "input-value",
+            "fontId": "main",
+            "fontWeight": 400,
+            "textTransform": "none",
+            "stepOffset": -1,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "input-helper",
+            "name": "input-helper",
+            "groupId": "input-helper",
+            "fontId": "main",
+            "fontWeight": 400,
+            "textTransform": "none",
+            "stepOffset": -1,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "table-header",
+            "name": "table-header",
+            "groupId": "table-header",
+            "fontId": "main",
+            "fontWeight": 600,
+            "textTransform": "none",
+            "stepOffset": -1,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "list-subheader",
+            "name": "list-subheader",
+            "groupId": "list-subheader",
+            "fontId": "main",
+            "fontWeight": 600,
+            "textTransform": "none",
+            "stepOffset": -1,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "label",
+            "name": "label",
+            "groupId": "label",
+            "fontId": "main",
+            "fontWeight": 500,
+            "textTransform": "none",
+            "stepOffset": -1,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "caption",
+            "name": "caption",
+            "groupId": "caption",
+            "fontId": "main",
+            "fontWeight": 400,
+            "textTransform": "none",
+            "stepOffset": -2,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "overline",
+            "name": "overline",
+            "groupId": "overline",
+            "fontId": "main",
+            "fontWeight": 600,
+            "textTransform": "uppercase",
+            "stepOffset": -2,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "tag",
+            "name": "tag",
+            "groupId": "tag",
+            "fontId": "main",
+            "fontWeight": 600,
+            "textTransform": "none",
+            "stepOffset": -2,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "input-label-sm",
+            "name": "input-label-sm",
+            "groupId": "input-label",
+            "fontId": "main",
+            "fontWeight": 500,
+            "textTransform": "none",
+            "stepOffset": -1,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "input-label-xs",
+            "name": "input-label-xs",
+            "groupId": "input-label",
+            "fontId": "main",
+            "fontWeight": 500,
+            "textTransform": "none",
+            "stepOffset": -2,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          },
+          {
+            "id": "input-value-xs",
+            "name": "input-value-xs",
+            "groupId": "input-value",
+            "fontId": "main",
+            "fontWeight": 400,
+            "textTransform": "none",
+            "stepOffset": -2,
+            "sameAsRoleId": null,
+            "lineHeight": { "mode": "auto" },
+            "letterSpacingPx": 0,
+            "unlinkedSizes": {},
+            "unlinkedLineHeights": {},
+            "unlinkedLetterSpacings": {}
+          }
+        ]
+      },
+      "unit": "px",
+      "specimenText": "How vexingly quick daft zebras กระโดด",
+      "template": "article",
+      "remRootPx": 16,
+      "previewDocument": [
+        { "id": "preview-kicker", "roleId": "label", "text": "Design systems" },
+        {
+          "id": "preview-title",
+          "roleId": "display-1",
+          "text": "A type scale is a set of decisions, not a set of sizes"
+        },
+        {
+          "id": "preview-standfirst",
+          "roleId": "display",
+          "text": "Choosing a ratio is the easy part. The work is deciding what each size is for, and holding that line as a product grows."
+        },
+        {
+          "id": "preview-byline",
+          "roleId": "caption",
+          "text": "Blueprint team"
+        },
+        {
+          "id": "preview-heading-one",
+          "roleId": "h3",
+          "text": "Start from the reading size"
+        },
+        {
+          "id": "preview-body-one",
+          "roleId": "body",
+          "text": "Body text is the size most people spend the most time with, so it should be chosen first and everything else derived from it. Picking a display size first tends to produce scales that look impressive in a specimen and read badly in a paragraph."
+        },
+        {
+          "id": "preview-quote",
+          "roleId": "display-3",
+          "text": "If two sizes are close enough that nobody can tell them apart, they are not two sizes."
+        },
+        {
+          "id": "preview-heading-two",
+          "roleId": "h3",
+          "text": "Give every step a job"
+        },
+        {
+          "id": "preview-body-two",
+          "roleId": "body",
+          "text": "A step that has no purpose will be used for something eventually, and usually for the wrong thing. Fewer, well-named sizes are easier to hold to than a long ramp of near-identical values."
+        },
+        {
+          "id": "preview-caption",
+          "roleId": "caption",
+          "text": "Figure 1 — the same paragraph set at three neighbouring steps"
+        }
+      ],
+      "previewShell": [
+        {
+          "id": "shell-brand",
+          "roleId": "subtitle-3",
+          "text": "D E S I G N A L L Y"
+        },
+        { "id": "shell-nav-1", "roleId": "button-xs", "text": "Home" },
+        { "id": "shell-nav-2", "roleId": "button-xs", "text": "Features" },
+        { "id": "shell-nav-3", "roleId": "button-xs", "text": "Pricing" },
+        { "id": "shell-nav-4", "roleId": "button-xs", "text": "About us" },
+        { "id": "shell-nav-5", "roleId": "button-xs", "text": "Contact" },
+        { "id": "shell-action", "roleId": "label", "text": "Sign up" },
+        { "id": "shell-login", "roleId": "button-xs", "text": "Login" },
+        {
+          "id": "shell-footer",
+          "roleId": "caption",
+          "text": "A studio for palettes, type and layout — then a page that proves them."
+        },
+        {
+          "id": "shell-foot-h-product",
+          "roleId": "subtitle-3",
+          "text": "Product"
+        },
+        {
+          "id": "shell-foot-h-company",
+          "roleId": "subtitle-3",
+          "text": "Company"
+        },
+        {
+          "id": "shell-foot-h-resources",
+          "roleId": "subtitle-3",
+          "text": "Resources"
+        },
+        { "id": "shell-foot-h-legal", "roleId": "subtitle-3", "text": "Legal" },
+        {
+          "id": "shell-foot-product-features",
+          "roleId": "caption",
+          "text": "Features"
+        },
+        {
+          "id": "shell-foot-product-pricing",
+          "roleId": "caption",
+          "text": "Pricing"
+        },
+        {
+          "id": "shell-foot-product-integrations",
+          "roleId": "caption",
+          "text": "Integrations"
+        },
+        {
+          "id": "shell-foot-product-changelog",
+          "roleId": "caption",
+          "text": "Changelog"
+        },
+        {
+          "id": "shell-foot-company-about",
+          "roleId": "caption",
+          "text": "About us"
+        },
+        {
+          "id": "shell-foot-company-careers",
+          "roleId": "caption",
+          "text": "Careers"
+        },
+        {
+          "id": "shell-foot-company-press",
+          "roleId": "caption",
+          "text": "Press"
+        },
+        {
+          "id": "shell-foot-company-contact",
+          "roleId": "caption",
+          "text": "Contact"
+        },
+        {
+          "id": "shell-foot-resources-docs",
+          "roleId": "caption",
+          "text": "Documentation"
+        },
+        {
+          "id": "shell-foot-resources-guides",
+          "roleId": "caption",
+          "text": "Guides"
+        },
+        {
+          "id": "shell-foot-resources-support",
+          "roleId": "caption",
+          "text": "Support"
+        },
+        {
+          "id": "shell-foot-resources-status",
+          "roleId": "caption",
+          "text": "Status"
+        },
+        {
+          "id": "shell-foot-legal-privacy",
+          "roleId": "caption",
+          "text": "Privacy"
+        },
+        {
+          "id": "shell-foot-legal-terms",
+          "roleId": "caption",
+          "text": "Terms"
+        },
+        {
+          "id": "shell-foot-legal-cookies",
+          "roleId": "caption",
+          "text": "Cookies"
+        },
+        {
+          "id": "shell-foot-legal-licences",
+          "roleId": "caption",
+          "text": "Licences"
+        },
+        {
+          "id": "shell-foot-copy",
+          "roleId": "caption",
+          "text": "© 2026 Blueprint. Placeholder content for typography preview."
+        },
+        {
+          "id": "shell-foot-credit",
+          "roleId": "caption",
+          "text": "Made for type testing"
+        }
+      ],
+      "previewLanding": [
+        {
+          "id": "landing-hero-eyebrow",
+          "roleId": "label",
+          "text": "Design system studio"
+        },
+        {
+          "id": "landing-hero-title",
+          "roleId": "display-2",
+          "text": "Finish the piece in one place"
+        },
+        {
+          "id": "landing-hero-lead",
+          "roleId": "body-1",
+          "text": "Blueprint is a studio for colour, type and layout. Build the tokens, then preview them on a page the way a client will."
+        },
+        {
+          "id": "landing-hero-cta",
+          "roleId": "label",
+          "text": "See the preview",
+          "colorTokenId": "fg.on-neutral"
+        },
+        {
+          "id": "landing-hero-ghost",
+          "roleId": "label",
+          "text": "Open the studio"
+        },
+        {
+          "id": "landing-hero-note",
+          "roleId": "caption",
+          "text": "No card needed to try it"
+        },
+        {
+          "id": "landing-features-title",
+          "roleId": "subtitle-3",
+          "text": "The system, not the dump"
+        },
+        {
+          "id": "landing-features-lead",
+          "roleId": "display-4",
+          "text": "Three things Blueprint keeps in one workspace."
+        },
+        {
+          "id": "landing-feat-1-title",
+          "roleId": "h6",
+          "text": "Shared palettes"
+        },
+        {
+          "id": "landing-feat-1-body",
+          "roleId": "body",
+          "text": "Colour, type and spacing live as one set of tokens, so a button in preview matches the export."
+        },
+        {
+          "id": "landing-feat-2-title",
+          "roleId": "h6",
+          "text": "Type that travels"
+        },
+        {
+          "id": "landing-feat-2-body",
+          "roleId": "body",
+          "text": "Headings, captions and body keep their roles when the page leaves the studio."
+        },
+        {
+          "id": "landing-feat-3-title",
+          "roleId": "h6",
+          "text": "Live preview"
+        },
+        {
+          "id": "landing-feat-3-body",
+          "roleId": "body",
+          "text": "Sign-off happens on a real page. No screenshot thread."
+        },
+        {
+          "id": "landing-split-a-eyebrow",
+          "roleId": "label",
+          "text": "Token file"
+        },
+        {
+          "id": "landing-split-a-title",
+          "roleId": "display-4",
+          "text": "Your roles, in the export"
+        },
+        {
+          "id": "landing-split-a-body",
+          "roleId": "body",
+          "text": "Blueprint stores the type decisions with the palette. A heading stays a heading when it leaves the studio, so design is not a second transcription."
+        },
+        {
+          "id": "landing-split-a-cta",
+          "roleId": "label",
+          "text": "How roles work"
+        },
+        {
+          "id": "landing-split-b-eyebrow",
+          "roleId": "label",
+          "text": "Real people"
+        },
+        {
+          "id": "landing-split-b-title",
+          "roleId": "display-4",
+          "text": "Help from the studio"
+        },
+        {
+          "id": "landing-split-b-body",
+          "roleId": "body",
+          "text": "When something is stuck, you talk to someone who uses Blueprint. They have seen the same tokens you have."
+        },
+        {
+          "id": "landing-split-b-cta",
+          "roleId": "label",
+          "text": "Talk to us"
+        },
+        {
+          "id": "landing-quad-title",
+          "roleId": "subtitle-3",
+          "text": "What the system actually holds"
+        },
+        {
+          "id": "landing-quad-lead",
+          "roleId": "display-4",
+          "text": "Not a pile of extras. The few things that keep a page together."
+        },
+        {
+          "id": "landing-quad-1-title",
+          "roleId": "label",
+          "text": "Shared library"
+        },
+        {
+          "id": "landing-quad-1-body",
+          "roleId": "body",
+          "text": "One set of roles for every surface, so a caption looks like a caption everywhere."
+        },
+        {
+          "id": "landing-quad-2-title",
+          "roleId": "label",
+          "text": "Quiet interface"
+        },
+        {
+          "id": "landing-quad-2-body",
+          "roleId": "body",
+          "text": "The chrome stays out of the way while you read."
+        },
+        {
+          "id": "landing-quad-3-title",
+          "roleId": "label",
+          "text": "Live proofs"
+        },
+        {
+          "id": "landing-quad-3-body",
+          "roleId": "body",
+          "text": "See the page as a client will, while you are still editing."
+        },
+        {
+          "id": "landing-quad-4-title",
+          "roleId": "label",
+          "text": "Any screen"
+        },
+        {
+          "id": "landing-quad-4-body",
+          "roleId": "body",
+          "text": "Open the same preview on a phone and keep the tokens."
+        },
+        {
+          "id": "landing-quote",
+          "roleId": "h4",
+          "text": "We stopped guessing hex in three files. The tokens came with the page, which was the whole point."
+        },
+        { "id": "landing-cite-name", "roleId": "label", "text": "Mei Okada" },
+        {
+          "id": "landing-cite-role",
+          "roleId": "caption",
+          "text": "Design lead, Harbour Press"
+        },
+        {
+          "id": "landing-pricing-title",
+          "roleId": "subtitle-3",
+          "text": "Plans that stay out of the way"
+        },
+        {
+          "id": "landing-pricing-lead",
+          "roleId": "display-4",
+          "text": "Start with a product. Add people when the system needs them."
+        },
+        { "id": "landing-plan-1-name", "roleId": "label", "text": "Starter" },
+        {
+          "id": "landing-plan-1-blurb",
+          "roleId": "caption",
+          "text": "For a single product."
+        },
+        { "id": "landing-plan-1-price", "roleId": "h3", "text": "$19" },
+        {
+          "id": "landing-plan-1-unit",
+          "roleId": "caption",
+          "text": "/ user / month"
+        },
+        {
+          "id": "landing-plan-1-f1",
+          "roleId": "subtitle-3",
+          "text": "Three surfaces at a time"
+        },
+        {
+          "id": "landing-plan-1-f2",
+          "roleId": "subtitle-3",
+          "text": "Token grid included"
+        },
+        {
+          "id": "landing-plan-1-f3",
+          "roleId": "subtitle-3",
+          "text": "Mail support"
+        },
+        {
+          "id": "landing-plan-1-cta",
+          "roleId": "label",
+          "text": "Choose Starter"
+        },
+        { "id": "landing-plan-2-name", "roleId": "label", "text": "Growth" },
+        { "id": "landing-plan-2-tag", "roleId": "caption", "text": "Popular" },
+        {
+          "id": "landing-plan-2-blurb",
+          "roleId": "caption",
+          "text": "For a small team."
+        },
+        { "id": "landing-plan-2-price", "roleId": "h3", "text": "$39" },
+        {
+          "id": "landing-plan-2-unit",
+          "roleId": "caption",
+          "text": "/ user / month"
+        },
+        {
+          "id": "landing-plan-2-f1",
+          "roleId": "subtitle-3",
+          "text": "Unlimited surfaces"
+        },
+        {
+          "id": "landing-plan-2-f2",
+          "roleId": "subtitle-3",
+          "text": "Preview and inspect"
+        },
+        {
+          "id": "landing-plan-2-f3",
+          "roleId": "subtitle-3",
+          "text": "Same-day replies"
+        },
+        {
+          "id": "landing-plan-2-cta",
+          "roleId": "label",
+          "text": "Choose Growth"
+        },
+        {
+          "id": "landing-plan-3-name",
+          "roleId": "label",
+          "text": "Enterprise"
+        },
+        {
+          "id": "landing-plan-3-blurb",
+          "roleId": "caption",
+          "text": "For a whole org."
+        },
+        { "id": "landing-plan-3-price", "roleId": "h3", "text": "Custom" },
+        {
+          "id": "landing-plan-3-unit",
+          "roleId": "caption",
+          "text": "/ talk to us"
+        },
+        {
+          "id": "landing-plan-3-f1",
+          "roleId": "subtitle-3",
+          "text": "Single sign-on"
+        },
+        {
+          "id": "landing-plan-3-f2",
+          "roleId": "subtitle-3",
+          "text": "Your own roles"
+        },
+        {
+          "id": "landing-plan-3-f3",
+          "roleId": "subtitle-3",
+          "text": "A named editor at Blueprint"
+        },
+        {
+          "id": "landing-plan-3-cta",
+          "roleId": "label",
+          "text": "Contact sales"
+        },
+        {
+          "id": "landing-cta-title",
+          "roleId": "subtitle-3",
+          "text": "Try Blueprint on a page you already have"
+        },
+        {
+          "id": "landing-cta-lead",
+          "roleId": "display-4",
+          "text": "Open a workspace, paint the tokens, and see whether the type holds."
+        },
+        {
+          "id": "landing-cta-primary",
+          "roleId": "label",
+          "text": "Start free"
+        },
+        {
+          "id": "landing-cta-ghost",
+          "roleId": "label",
+          "text": "Book a walkthrough"
+        },
+        {
+          "id": "landing-cta-note",
+          "roleId": "caption",
+          "text": "Fourteen days. No card."
+        },
+        {
+          "id": "landing-newsletter-eyebrow",
+          "roleId": "label",
+          "text": "Blueprint · Newsletter"
+        },
+        {
+          "id": "landing-newsletter-title",
+          "roleId": "h3",
+          "text": "Better design systems, twice a month."
+        },
+        {
+          "id": "landing-newsletter-lead",
+          "roleId": "h6",
+          "text": "One token study, one working method, and useful notes on colour, type and layout."
+        },
+        {
+          "id": "landing-newsletter-cta",
+          "roleId": "label",
+          "text": "Subscribe"
+        },
+        {
+          "id": "landing-newsletter-note",
+          "roleId": "caption",
+          "text": "No spam. Unsubscribe at any time."
+        }
+      ],
+      "previewSections": [
+        {
+          "id": "shell-nav",
+          "fill": { "kind": "token", "tokenId": "surface.overlay" }
+        },
+        {
+          "id": "landing-hero",
+          "fill": { "kind": "token", "tokenId": "surface.overlay" }
+        },
+        {
+          "id": "landing-features",
+          "fill": { "kind": "token", "tokenId": "surface.base" }
+        },
+        {
+          "id": "landing-split-a",
+          "fill": { "kind": "token", "tokenId": "surface.base" }
+        },
+        {
+          "id": "landing-split-b",
+          "fill": { "kind": "token", "tokenId": "surface.overlay" }
+        },
+        {
+          "id": "landing-quad",
+          "fill": { "kind": "token", "tokenId": "surface.base" }
+        },
+        {
+          "id": "landing-quote",
+          "fill": { "kind": "token", "tokenId": "surface.overlay" }
+        },
+        {
+          "id": "landing-pricing",
+          "fill": { "kind": "token", "tokenId": "surface.base" }
+        },
+        {
+          "id": "landing-cta",
+          "fill": { "kind": "token", "tokenId": "surface.overlay" }
+        },
+        {
+          "id": "landing-newsletter",
+          "fill": { "kind": "token", "tokenId": "surface.base" }
+        },
+        {
+          "id": "shell-footer",
+          "fill": { "kind": "token", "tokenId": "surface.base" }
+        }
+      ],
+      "previewStyles": {
+        "landing-split-a-cta": { "variant": "outlined" },
+        "divider-footer-base": {
+          "stroke": {
+            "tokenId": "border.subtle",
+            "position": "inside",
+            "weight": 1,
+            "side": "top"
+          }
+        },
+        "band:shell-footer": {
+          "stroke": {
+            "tokenId": "border.subtle",
+            "position": "inside",
+            "weight": 1,
+            "side": "top"
+          }
+        }
+      }
+    },
+    "semantics": [
+      {
+        "id": "action.primary",
+        "name": "Action primary",
+        "description": "The fill of a primary button or an active control.",
+        "light": { "trackId": "primary", "weight": 300 },
+        "dark": { "trackId": "primary", "weight": 250 }
+      },
+      {
+        "id": "action.primary-hover",
+        "name": "Action primary hover",
+        "description": "The fill under the pointer.",
+        "light": { "trackId": "primary", "weight": 350 },
+        "dark": { "trackId": "primary", "weight": 200 }
+      },
+      {
+        "id": "action.primary-active",
+        "name": "Action primary active",
+        "description": "The fill while it is pressed.",
+        "light": { "trackId": "primary", "weight": 400 },
+        "dark": { "trackId": "primary", "weight": 150 }
+      },
+      {
+        "id": "action.primary-surface",
+        "name": "Action primary surface",
+        "description": "The soft ground of an alert, a ghost control or a hovered outline.",
+        "light": { "trackId": "primary", "weight": 50, "alpha": 0.12 },
+        "dark": { "trackId": "primary", "weight": 950, "alpha": 0.16 }
+      },
+      {
+        "id": "action.primary-surface-hover",
+        "name": "Action primary surface hover",
+        "description": "That soft ground, hovered or pressed.",
+        "light": { "trackId": "primary", "weight": 100, "alpha": 0.18 },
+        "dark": { "trackId": "primary", "weight": 900, "alpha": 0.22 }
+      },
+      {
+        "id": "action.primary-fg",
+        "name": "Action primary foreground",
+        "description": "Text and icons on the surface, and on the canvas.",
+        "light": { "trackId": "primary", "weight": 900 },
+        "dark": { "trackId": "primary", "weight": 100 }
+      },
+      {
+        "id": "action.primary-border",
+        "name": "Action primary border",
+        "description": "The edge of an outlined control or an alert.",
+        "light": { "trackId": "primary", "weight": 450 },
+        "dark": { "trackId": "primary", "weight": 450 }
+      },
+      {
+        "id": "action.secondary",
+        "name": "Action secondary",
+        "description": "The fill of a button in the second brand colour.",
+        "light": { "trackId": "secondary", "weight": 700 },
+        "dark": { "trackId": "secondary", "weight": 650 }
+      },
+      {
+        "id": "action.secondary-hover",
+        "name": "Action secondary hover",
+        "description": "The fill under the pointer.",
+        "light": { "trackId": "secondary", "weight": 750 },
+        "dark": { "trackId": "secondary", "weight": 600 }
+      },
+      {
+        "id": "action.secondary-active",
+        "name": "Action secondary active",
+        "description": "The fill while it is pressed.",
+        "light": { "trackId": "secondary", "weight": 800 },
+        "dark": { "trackId": "secondary", "weight": 550 }
+      },
+      {
+        "id": "action.secondary-surface",
+        "name": "Action secondary surface",
+        "description": "The soft ground of an alert, a ghost control or a hovered outline.",
+        "light": { "trackId": "secondary", "weight": 50, "alpha": 0.12 },
+        "dark": { "trackId": "secondary", "weight": 950, "alpha": 0.16 }
+      },
+      {
+        "id": "action.secondary-surface-hover",
+        "name": "Action secondary surface hover",
+        "description": "That soft ground, hovered or pressed.",
+        "light": { "trackId": "secondary", "weight": 100, "alpha": 0.18 },
+        "dark": { "trackId": "secondary", "weight": 900, "alpha": 0.22 }
+      },
+      {
+        "id": "action.secondary-fg",
+        "name": "Action secondary foreground",
+        "description": "Text and icons on the surface, and on the canvas.",
+        "light": { "trackId": "secondary", "weight": 900 },
+        "dark": { "trackId": "secondary", "weight": 100 }
+      },
+      {
+        "id": "action.secondary-border",
+        "name": "Action secondary border",
+        "description": "The edge of an outlined control or an alert.",
+        "light": { "trackId": "secondary", "weight": 450 },
+        "dark": { "trackId": "secondary", "weight": 450 }
+      },
+      {
+        "id": "action.muted",
+        "name": "Action muted",
+        "description": "A quiet fill in the action colour: a tint or a soft badge.",
+        "light": { "trackId": "primary", "weight": 400 },
+        "dark": { "trackId": "primary", "weight": 900 }
+      },
+      {
+        "id": "action.neutral",
+        "name": "Action neutral",
+        "description": "The fill of a plain button: black on light, white on dark.",
+        "light": { "trackId": "neutral", "weight": 950 },
+        "dark": { "trackId": "neutral", "weight": 50 }
+      },
+      {
+        "id": "action.neutral-hover",
+        "name": "Action neutral hover",
+        "description": "The fill under the pointer.",
+        "light": { "trackId": "neutral", "weight": 900 },
+        "dark": { "trackId": "neutral", "weight": 100 }
+      },
+      {
+        "id": "action.neutral-active",
+        "name": "Action neutral active",
+        "description": "The fill while it is pressed.",
+        "light": { "trackId": "neutral", "weight": 850 },
+        "dark": { "trackId": "neutral", "weight": 150 }
+      },
+      {
+        "id": "action.neutral-surface",
+        "name": "Action neutral surface",
+        "description": "The soft ground of an alert, a ghost control or a hovered outline.",
+        "light": { "trackId": "neutral", "weight": 50, "alpha": 0.12 },
+        "dark": { "trackId": "neutral", "weight": 950, "alpha": 0.16 }
+      },
+      {
+        "id": "action.neutral-surface-hover",
+        "name": "Action neutral surface hover",
+        "description": "That soft ground, hovered or pressed.",
+        "light": { "trackId": "neutral", "weight": 100, "alpha": 0.18 },
+        "dark": { "trackId": "neutral", "weight": 900, "alpha": 0.22 }
+      },
+      {
+        "id": "action.neutral-fg",
+        "name": "Action neutral foreground",
+        "description": "Text and icons on the surface, and on the canvas.",
+        "light": { "trackId": "neutral", "weight": 850 },
+        "dark": { "trackId": "neutral", "weight": 100 }
+      },
+      {
+        "id": "action.neutral-border",
+        "name": "Action neutral border",
+        "description": "The edge of an outlined control or an alert.",
+        "light": { "trackId": "neutral", "weight": 450 },
+        "dark": { "trackId": "neutral", "weight": 450 }
+      },
+      {
+        "id": "surface.base",
+        "name": "Surface base",
+        "description": "The page canvas, behind everything else.",
+        "light": { "trackId": "neutral", "weight": 50 },
+        "dark": { "trackId": "neutral", "weight": 850 }
+      },
+      {
+        "id": "surface.subtle",
+        "name": "Surface subtle",
+        "description": "A quiet wash set into the canvas: a well, a code block.",
+        "light": { "trackId": "neutral", "weight": 100 },
+        "dark": { "trackId": "neutral", "weight": 800 }
+      },
+      {
+        "id": "surface.raised",
+        "name": "Surface raised",
+        "description": "A card or panel lifted off the canvas.",
+        "light": { "trackId": "primary", "weight": 50 },
+        "dark": { "trackId": "primary", "weight": 650 }
+      },
+      {
+        "id": "surface.overlay",
+        "name": "Surface overlay",
+        "description": "A popover, menu or dialog over everything else.",
+        "light": { "trackId": "neutral", "weight": 25, "alpha": 0.96 },
+        "dark": { "trackId": "neutral", "weight": 950, "alpha": 0.92 }
+      },
+      {
+        "id": "surface.skeleton",
+        "name": "Surface skeleton",
+        "description": "The placeholder block shown while content loads.",
+        "light": { "trackId": "neutral", "weight": 200 },
+        "dark": { "trackId": "neutral", "weight": 800 }
+      },
+      {
+        "id": "surface.track",
+        "name": "Surface track",
+        "description": "The groove of a slider, scrollbar or progress bar.",
+        "light": { "trackId": "neutral", "weight": 200 },
+        "dark": { "trackId": "neutral", "weight": 800 }
+      },
+      {
+        "id": "border.default",
+        "name": "Border default",
+        "description": "Borders and dividers.",
+        "light": { "trackId": "neutral", "weight": 450 },
+        "dark": { "trackId": "neutral", "weight": 500 }
+      },
+      {
+        "id": "border.subtle",
+        "name": "Border subtle",
+        "description": "A border that separates without drawing the eye.",
+        "light": { "trackId": "neutral", "weight": 300, "alpha": 0.12 },
+        "dark": { "trackId": "neutral", "weight": 650, "alpha": 0.16 }
+      },
+      {
+        "id": "border.muted",
+        "name": "Border muted",
+        "description": "The faintest rule: a divider inside a surface.",
+        "light": { "trackId": "neutral", "weight": 200 },
+        "dark": { "trackId": "neutral", "weight": 750 }
+      },
+      {
+        "id": "border.strong",
+        "name": "Border strong",
+        "description": "A border meant to be noticed: a card edge, a section rule.",
+        "light": { "trackId": "neutral", "weight": 300 },
+        "dark": { "trackId": "neutral", "weight": 700 }
+      },
+      {
+        "id": "fg.primary",
+        "name": "Foreground primary",
+        "description": "Body text, headings and icons.",
+        "light": { "trackId": "neutral", "weight": 800 },
+        "dark": { "trackId": "neutral", "weight": 100 }
+      },
+      {
+        "id": "fg.secondary",
+        "name": "Foreground secondary",
+        "description": "Supporting text, captions and help.",
+        "light": { "trackId": "neutral", "weight": 650 },
+        "dark": { "trackId": "neutral", "weight": 300 }
+      },
+      {
+        "id": "fg.disabled",
+        "name": "Foreground disabled",
+        "description": "Text and icons on a control that cannot be used.",
+        "light": { "trackId": "neutral", "weight": 500, "alpha": 0.45 },
+        "dark": { "trackId": "neutral", "weight": 450, "alpha": 0.5 }
+      },
+      {
+        "id": "fg.accent",
+        "name": "Foreground accent",
+        "description": "Text or an icon in the accent colour, on a surface.",
+        "light": { "trackId": "primary", "weight": 600 },
+        "dark": { "trackId": "primary", "weight": 400 }
+      },
+      {
+        "id": "fg.on-action",
+        "name": "Foreground on action",
+        "description": "Text and icons on the action primary fill.",
+        "light": { "trackId": "static", "weight": 0 },
+        "dark": { "trackId": "neutral", "weight": 950 }
+      },
+      {
+        "id": "fg.on-secondary",
+        "name": "Foreground on secondary",
+        "description": "Text and icons on the action secondary fill.",
+        "light": { "trackId": "neutral", "weight": 25 },
+        "dark": { "trackId": "neutral", "weight": 25 }
+      },
+      {
+        "id": "fg.on-neutral",
+        "name": "Foreground on neutral",
+        "description": "Text and icons on the action neutral fill.",
+        "light": { "trackId": "neutral", "weight": 25 },
+        "dark": { "trackId": "neutral", "weight": 950 }
+      },
+      {
+        "id": "fg.on-success",
+        "name": "Foreground on success",
+        "description": "Text and icons on the status success fill.",
+        "light": { "trackId": "neutral", "weight": 950 },
+        "dark": { "trackId": "neutral", "weight": 950 }
+      },
+      {
+        "id": "fg.on-warning",
+        "name": "Foreground on warning",
+        "description": "Text and icons on the status warning fill.",
+        "light": { "trackId": "neutral", "weight": 950 },
+        "dark": { "trackId": "neutral", "weight": 950 }
+      },
+      {
+        "id": "fg.on-error",
+        "name": "Foreground on error",
+        "description": "Text and icons on the status error fill.",
+        "light": { "trackId": "static", "weight": 0 },
+        "dark": { "trackId": "static", "weight": 0 }
+      },
+      {
+        "id": "fg.on-info",
+        "name": "Foreground on info",
+        "description": "Text and icons on the status info fill.",
+        "light": { "trackId": "neutral", "weight": 950 },
+        "dark": { "trackId": "neutral", "weight": 950 }
+      },
+      {
+        "id": "focus.ring",
+        "name": "Focus ring",
+        "description": "The focus indicator.",
+        "light": { "trackId": "primary", "weight": 300 },
+        "dark": { "trackId": "primary", "weight": 650 }
+      },
+      {
+        "id": "status.success",
+        "name": "Status success",
+        "description": "A success badge or message.",
+        "light": { "trackId": "success", "weight": 200 },
+        "dark": { "trackId": "success", "weight": 150 }
+      },
+      {
+        "id": "status.success-hover",
+        "name": "Status success hover",
+        "description": "The fill under the pointer.",
+        "light": { "trackId": "success", "weight": 250 },
+        "dark": { "trackId": "success", "weight": 100 }
+      },
+      {
+        "id": "status.success-active",
+        "name": "Status success active",
+        "description": "The fill while it is pressed.",
+        "light": { "trackId": "success", "weight": 300 },
+        "dark": { "trackId": "success", "weight": 50 }
+      },
+      {
+        "id": "status.success-surface",
+        "name": "Status success surface",
+        "description": "The soft ground of an alert, a ghost control or a hovered outline.",
+        "light": { "trackId": "success", "weight": 50, "alpha": 0.12 },
+        "dark": { "trackId": "success", "weight": 950, "alpha": 0.16 }
+      },
+      {
+        "id": "status.success-surface-hover",
+        "name": "Status success surface hover",
+        "description": "That soft ground, hovered or pressed.",
+        "light": { "trackId": "success", "weight": 100, "alpha": 0.18 },
+        "dark": { "trackId": "success", "weight": 900, "alpha": 0.22 }
+      },
+      {
+        "id": "status.success-fg",
+        "name": "Status success foreground",
+        "description": "Text and icons on the surface, and on the canvas.",
+        "light": { "trackId": "success", "weight": 900 },
+        "dark": { "trackId": "success", "weight": 100 }
+      },
+      {
+        "id": "status.success-border",
+        "name": "Status success border",
+        "description": "The edge of an outlined control or an alert.",
+        "light": { "trackId": "success", "weight": 450 },
+        "dark": { "trackId": "success", "weight": 450 }
+      },
+      {
+        "id": "status.warning",
+        "name": "Status warning",
+        "description": "A warning badge or message.",
+        "light": { "trackId": "warning", "weight": 200 },
+        "dark": { "trackId": "warning", "weight": 250 }
+      },
+      {
+        "id": "status.warning-hover",
+        "name": "Status warning hover",
+        "description": "The fill under the pointer.",
+        "light": { "trackId": "warning", "weight": 250 },
+        "dark": { "trackId": "warning", "weight": 200 }
+      },
+      {
+        "id": "status.warning-active",
+        "name": "Status warning active",
+        "description": "The fill while it is pressed.",
+        "light": { "trackId": "warning", "weight": 300 },
+        "dark": { "trackId": "warning", "weight": 150 }
+      },
+      {
+        "id": "status.warning-surface",
+        "name": "Status warning surface",
+        "description": "The soft ground of an alert, a ghost control or a hovered outline.",
+        "light": { "trackId": "warning", "weight": 50, "alpha": 0.12 },
+        "dark": { "trackId": "warning", "weight": 950, "alpha": 0.16 }
+      },
+      {
+        "id": "status.warning-surface-hover",
+        "name": "Status warning surface hover",
+        "description": "That soft ground, hovered or pressed.",
+        "light": { "trackId": "warning", "weight": 100, "alpha": 0.18 },
+        "dark": { "trackId": "warning", "weight": 900, "alpha": 0.22 }
+      },
+      {
+        "id": "status.warning-fg",
+        "name": "Status warning foreground",
+        "description": "Text and icons on the surface, and on the canvas.",
+        "light": { "trackId": "warning", "weight": 900 },
+        "dark": { "trackId": "warning", "weight": 100 }
+      },
+      {
+        "id": "status.warning-border",
+        "name": "Status warning border",
+        "description": "The edge of an outlined control or an alert.",
+        "light": { "trackId": "warning", "weight": 450 },
+        "dark": { "trackId": "warning", "weight": 450 }
+      },
+      {
+        "id": "status.error",
+        "name": "Status error",
+        "description": "An error badge or message.",
+        "light": { "trackId": "error", "weight": 400 },
+        "dark": { "trackId": "error", "weight": 350 }
+      },
+      {
+        "id": "status.error-hover",
+        "name": "Status error hover",
+        "description": "The fill under the pointer.",
+        "light": { "trackId": "error", "weight": 450 },
+        "dark": { "trackId": "error", "weight": 300 }
+      },
+      {
+        "id": "status.error-active",
+        "name": "Status error active",
+        "description": "The fill while it is pressed.",
+        "light": { "trackId": "error", "weight": 500 },
+        "dark": { "trackId": "error", "weight": 250 }
+      },
+      {
+        "id": "status.error-surface",
+        "name": "Status error surface",
+        "description": "The soft ground of an alert, a ghost control or a hovered outline.",
+        "light": { "trackId": "error", "weight": 50, "alpha": 0.12 },
+        "dark": { "trackId": "error", "weight": 950, "alpha": 0.16 }
+      },
+      {
+        "id": "status.error-surface-hover",
+        "name": "Status error surface hover",
+        "description": "That soft ground, hovered or pressed.",
+        "light": { "trackId": "error", "weight": 100, "alpha": 0.18 },
+        "dark": { "trackId": "error", "weight": 900, "alpha": 0.22 }
+      },
+      {
+        "id": "status.error-fg",
+        "name": "Status error foreground",
+        "description": "Text and icons on the surface, and on the canvas.",
+        "light": { "trackId": "error", "weight": 900 },
+        "dark": { "trackId": "error", "weight": 100 }
+      },
+      {
+        "id": "status.error-border",
+        "name": "Status error border",
+        "description": "The edge of an outlined control or an alert.",
+        "light": { "trackId": "error", "weight": 450 },
+        "dark": { "trackId": "error", "weight": 450 }
+      },
+      {
+        "id": "status.info",
+        "name": "Status info",
+        "description": "An informational badge or message.",
+        "light": { "trackId": "info", "weight": 300 },
+        "dark": { "trackId": "info", "weight": 250 }
+      },
+      {
+        "id": "status.info-hover",
+        "name": "Status info hover",
+        "description": "The fill under the pointer.",
+        "light": { "trackId": "info", "weight": 350 },
+        "dark": { "trackId": "info", "weight": 200 }
+      },
+      {
+        "id": "status.info-active",
+        "name": "Status info active",
+        "description": "The fill while it is pressed.",
+        "light": { "trackId": "info", "weight": 400 },
+        "dark": { "trackId": "info", "weight": 150 }
+      },
+      {
+        "id": "status.info-surface",
+        "name": "Status info surface",
+        "description": "The soft ground of an alert, a ghost control or a hovered outline.",
+        "light": { "trackId": "info", "weight": 50, "alpha": 0.12 },
+        "dark": { "trackId": "info", "weight": 950, "alpha": 0.16 }
+      },
+      {
+        "id": "status.info-surface-hover",
+        "name": "Status info surface hover",
+        "description": "That soft ground, hovered or pressed.",
+        "light": { "trackId": "info", "weight": 100, "alpha": 0.18 },
+        "dark": { "trackId": "info", "weight": 900, "alpha": 0.22 }
+      },
+      {
+        "id": "status.info-fg",
+        "name": "Status info foreground",
+        "description": "Text and icons on the surface, and on the canvas.",
+        "light": { "trackId": "info", "weight": 900 },
+        "dark": { "trackId": "info", "weight": 100 }
+      },
+      {
+        "id": "status.info-border",
+        "name": "Status info border",
+        "description": "The edge of an outlined control or an alert.",
+        "light": { "trackId": "info", "weight": 450 },
+        "dark": { "trackId": "info", "weight": 450 }
+      },
+      {
+        "id": "fg.muted",
+        "name": "Foreground muted",
+        "description": "Placeholders, subtle captions and de-emphasized text.",
+        "light": { "trackId": "neutral", "weight": 550 },
+        "dark": { "trackId": "neutral", "weight": 500 }
+      }
+    ],
+    "removedSeedRoles": [],
+    "buttonSchemes": [
+      "primary",
+      "secondary",
+      "neutral",
+      "success",
+      "warning",
+      "error",
+      "info"
+    ],
+    "spacing": {
+      "baseUnitPx": 4,
+      "density": 1.5,
+      "steps": [0, 0.5, 1, 1.5, 2, 3, 4, 5, 6, 8, 10, 12, 16]
+    },
+    "spacingPreview": {
+      "slots": { "inset": 4, "stack": 3, "columns": 4 },
+      "showSpacing": false,
+      "unit": "px"
+    },
+    "radius": {
+      "multiplier": 1,
+      "tokens": [
+        {
+          "id": "none",
+          "name": "None",
+          "description": "A square corner.",
+          "basePx": 0,
+          "scales": false
+        },
+        {
+          "id": "inner",
+          "name": "Inner",
+          "description": "A corner inside another corner — a chip inside a card.",
+          "basePx": 4,
+          "scales": true
+        },
+        {
+          "id": "element",
+          "name": "Element",
+          "description": "A button, an input, a badge.",
+          "basePx": 8,
+          "scales": true
+        },
+        {
+          "id": "container",
+          "name": "Container",
+          "description": "A card, a panel, a dialog.",
+          "basePx": 12,
+          "scales": true
+        },
+        {
+          "id": "page",
+          "name": "Page",
+          "description": "A full-width surface or a sheet.",
+          "basePx": 28,
+          "scales": true
+        },
+        {
+          "id": "full",
+          "name": "Full",
+          "description": "A pill or a circle.",
+          "basePx": 9999,
+          "scales": false
+        }
+      ]
+    },
+    "elevation": {
+      "colour": { "trackId": "primary", "weight": 900 },
+      "levels": [
+        {
+          "id": "low",
+          "name": "Low",
+          "description": "A card resting on the page.",
+          "layers": [
+            {
+              "offsetXPx": 0,
+              "offsetYPx": 1,
+              "blurPx": 1,
+              "spreadPx": 0,
+              "opacity": { "light": 0.1, "dark": 0.4 }
+            },
+            {
+              "offsetXPx": 0,
+              "offsetYPx": 2,
+              "blurPx": 8,
+              "spreadPx": 0,
+              "opacity": { "light": 0.1, "dark": 0.4 }
+            }
+          ]
+        },
+        {
+          "id": "med",
+          "name": "Medium",
+          "description": "A menu or a popover above the page.",
+          "layers": [
+            {
+              "offsetXPx": 0,
+              "offsetYPx": 1,
+              "blurPx": 2,
+              "spreadPx": 0,
+              "opacity": { "light": 0.1, "dark": 0.4 }
+            },
+            {
+              "offsetXPx": 0,
+              "offsetYPx": 4,
+              "blurPx": 12,
+              "spreadPx": 0,
+              "opacity": { "light": 0.1, "dark": 0.45 }
+            }
+          ]
+        },
+        {
+          "id": "high",
+          "name": "High",
+          "description": "A dialog over everything else.",
+          "layers": [
+            {
+              "offsetXPx": 0,
+              "offsetYPx": 2,
+              "blurPx": 2,
+              "spreadPx": 0,
+              "opacity": { "light": 0.1, "dark": 0.45 }
+            },
+            {
+              "offsetXPx": 0,
+              "offsetYPx": 8,
+              "blurPx": 24,
+              "spreadPx": 0,
+              "opacity": { "light": 0.1, "dark": 0.5 }
+            }
+          ]
+        }
+      ]
+    },
+    "previewDevices": [
+      {
+        "id": "phone",
+        "kind": "phone",
+        "name": "Phone",
+        "widthPx": 375,
+        "ratio": 1.28
+      },
+      {
+        "id": "tablet",
+        "kind": "tablet",
+        "name": "Tablet",
+        "widthPx": 768,
+        "ratio": 1.3
+      },
+      {
+        "id": "desktop",
+        "kind": "desktop",
+        "name": "Desktop",
+        "widthPx": 1280,
+        "ratio": 1.333
+      }
+    ],
+    "layout": [
+      {
+        "id": "inset-container",
+        "name": "Container inset",
+        "description": "Page and shell padding.",
+        "kind": "spacing",
+        "byDevice": { "phone": "4", "tablet": "6", "desktop": "8" }
+      },
+      {
+        "id": "inset-section",
+        "name": "Section inset",
+        "description": "Vertical padding for page sections and footer.",
+        "kind": "spacing",
+        "byDevice": { "phone": "8", "tablet": "12", "desktop": "16" }
+      },
+      {
+        "id": "gap-section",
+        "name": "Section gap",
+        "description": "Space between page sections.",
+        "kind": "spacing",
+        "byDevice": { "phone": "16", "tablet": "16", "desktop": "16" }
+      },
+      {
+        "id": "inset-control-x",
+        "name": "Control inline inset",
+        "description": "Horizontal padding for buttons and inputs.",
+        "kind": "spacing",
+        "byDevice": { "phone": "3", "tablet": "4", "desktop": "4" }
+      },
+      {
+        "id": "inset-control-y",
+        "name": "Control block inset",
+        "description": "Vertical padding for buttons and inputs.",
+        "kind": "spacing",
+        "byDevice": { "phone": "2", "tablet": "2", "desktop": "2" }
+      },
+      {
+        "id": "gap-grid",
+        "name": "Grid gap",
+        "description": "Space between cards in features and pricing grids.",
+        "kind": "spacing",
+        "byDevice": { "phone": "2", "tablet": "3", "desktop": "4" }
+      },
+      {
+        "id": "gap-nav",
+        "name": "Navigation gap",
+        "description": "Space between navigation links and actions.",
+        "kind": "spacing",
+        "byDevice": { "phone": "3", "tablet": "4", "desktop": "6" }
+      },
+      {
+        "id": "inset-nav-y",
+        "name": "Navigation block inset",
+        "description": "Vertical padding of the navigation bar.",
+        "kind": "spacing",
+        "byDevice": { "phone": "4", "tablet": "4", "desktop": "4" }
+      },
+      {
+        "id": "inset-card",
+        "name": "Card inset",
+        "description": "Padding inside cards and panels.",
+        "kind": "spacing",
+        "byDevice": { "phone": "3", "tablet": "3", "desktop": "4" }
+      },
+      {
+        "id": "radius-surface",
+        "name": "Surface radius",
+        "description": "Cards, panels, and other large surfaces.",
+        "kind": "radius",
+        "byDevice": { "phone": "20px", "tablet": "24px", "desktop": "page" }
+      },
+      {
+        "id": "radius-button",
+        "name": "Button radius",
+        "description": "Buttons, including icon buttons.",
+        "kind": "radius",
+        "byDevice": { "phone": "full", "tablet": "full", "desktop": "full" }
+      },
+      {
+        "id": "radius-input",
+        "name": "Input radius",
+        "description": "Text fields, selects and search boxes.",
+        "kind": "radius",
+        "byDevice": { "phone": "full", "tablet": "full", "desktop": "full" }
+      },
+      {
+        "id": "radius-chip",
+        "name": "Chip radius",
+        "description": "Chips, badges and tags.",
+        "kind": "radius",
+        "byDevice": { "phone": "full", "tablet": "full", "desktop": "full" }
+      }
+    ]
+  }
+}

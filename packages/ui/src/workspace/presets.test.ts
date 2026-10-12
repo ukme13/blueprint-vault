@@ -155,7 +155,10 @@ describe("instantiating a preset", () => {
       const { spacing } = instantiateWorkspacePreset(preset, "Test");
       expect([preset.id, spacing.baseUnitPx]).toEqual([preset.id, 4]);
       /* Up to Stripe's old 1.15: a modest density on the 4px unit moves a
-         use by a tenth, where the 8px base doubled it. */
+         use by a tenth, where the 8px base doubled it. A snapshot's layout
+         uses were chosen against its own density, so it keeps whatever that
+         is. */
+      if (preset.snapshot !== undefined) continue;
       expect(spacing.density).toBeLessThanOrEqual(1.15);
     }
   });
@@ -225,8 +228,8 @@ describe("instantiating a preset", () => {
 
   it("keeps headings and body on the scale, descending and responsive", () => {
     for (const preset of WORKSPACE_PRESETS) {
-      const system = instantiateWorkspacePreset(preset, "Test").typography!
-        .system;
+      const project = instantiateWorkspacePreset(preset, "Test");
+      const system = project.typography!.system;
       const at = (frame: string, ratio: number, roleId: string) =>
         resolveRoleSizePx(
           system,
@@ -257,7 +260,7 @@ describe("instantiating a preset", () => {
       }
       expect(sizes[0]).toBeGreaterThan(sizes.at(-1)!);
       /* And they shrink on a phone, whose ratio is smaller. */
-      const phoneRatio = preset.previewDevices!.find(
+      const phoneRatio = project.previewDevices.find(
         (device) => device.id === "phone",
       )!.ratio;
       expect(at("phone", phoneRatio, "h1")).toBeLessThan(sizes[0]!);
@@ -286,8 +289,11 @@ describe("instantiating a preset", () => {
     for (const preset of WORKSPACE_PRESETS) {
       const system = instantiateWorkspacePreset(preset, "Test").typography!
         .system;
+      /* A snapshot's groups are its own, which the studio calls Custom. */
       expect(detectTypeRolePreset(system)).toBe(
-        preset.typography?.rolePresetId,
+        preset.snapshot === undefined
+          ? preset.typography?.rolePresetId
+          : "custom",
       );
     }
   });
@@ -410,6 +416,7 @@ describe("preset details", () => {
       secondaryHex: "#242424",
       neutralHex: "#6b6b6b",
       typeface: "Charter",
+      sampleFontFamily: findWorkspacePreset("medium")!.typography!.fontFamily,
       baseFontSizePx: 18,
       ratio: 1.25,
       ratioName: "Major Third",
@@ -463,6 +470,7 @@ describe("preset details", () => {
       secondaryHex: "#1a7f37",
       neutralHex: "#656d76",
       typeface: "System sans",
+      sampleFontFamily: findWorkspacePreset("primer")!.typography!.fontFamily,
       baseFontSizePx: 14,
       ratio: 1.25,
       ratioName: "Major Third",
@@ -509,5 +517,76 @@ describe("preset details", () => {
       typography: { ratio: 1.31 },
     };
     expect(workspacePresetDetails(preset).ratioName).toBeNull();
+  });
+});
+
+describe("the Designally preset", () => {
+  const preset = findWorkspacePreset("designally")!;
+
+  it("is in the catalogue", () => {
+    expect(preset.name).toBe("Designally");
+    expect(WORKSPACE_PRESETS).toContain(preset);
+  });
+
+  it("starts a workspace that is the saved one, renamed", () => {
+    /* Everything the inputs cannot say survives: both faces, its own role
+       groups, the neutral's anchors and lightness, hand-picked semantics,
+       its layout uses. */
+    const project = instantiateWorkspacePreset(preset, "Client site");
+    expect(project.name).toBe("Client site");
+    expect(project.updatedAt).toBeUndefined();
+
+    const system = project.typography!.system;
+    expect(system.fonts.map((font) => font.families[0])).toEqual([
+      "Zalando Sans Expanded",
+      "Poppins",
+    ]);
+    expect(system.groups).toHaveLength(17);
+    expect(system.roles).toHaveLength(41);
+
+    const neutral = project.palette!.tracks.find(
+      (track) => track.id === "neutral",
+    )!;
+    expect(neutral.adjustments?.anchors).toEqual({
+      50: "#f2f2f4",
+      300: "#aaaaaa",
+    });
+    expect(project.palette!.lightnessValues[0]).toBe(97.5);
+
+    expect(
+      project.semantics!.find((token) => token.id === "surface.raised")!.light,
+    ).toEqual({ trackId: "primary", weight: 50 });
+    expect(
+      project.layout.find((token) => token.id === "radius-button")!.byDevice,
+    ).toEqual({ phone: "full", tablet: "full", desktop: "full" });
+    expect(project.spacing.density).toBe(1.5);
+  });
+
+  it("gives every workspace a copy of its own", () => {
+    const first = instantiateWorkspacePreset(preset, "A");
+    const second = instantiateWorkspacePreset(preset, "B");
+    first.typography!.system.roles[0]!.fontWeight = 100;
+    expect(second.typography!.system.roles[0]!.fontWeight).toBe(700);
+  });
+
+  it("paints its own seeds and describes both faces", () => {
+    expect(workspacePresetSwatches(preset)).toEqual([
+      "#ff5c40",
+      "#112d4a",
+      "#1b1d23",
+    ]);
+    expect(workspacePresetDetails(preset)).toMatchObject({
+      typeface: "Zalando Sans Expanded + Poppins",
+      sampleFontFamily:
+        '"Zalando Sans Expanded", "IBM Plex Sans Thai", ui-sans-serif, system-ui',
+      baseFontSizePx: 16,
+      ratio: 1.333,
+      ratioName: "Perfect Fourth",
+      stepCount: 9,
+      roleGroups: "Custom, 17 groups",
+      baseSpacingPx: 4,
+      elementRadiusPx: 8,
+      containerRadiusPx: 12,
+    });
   });
 });
