@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   toggleSpacingStep,
   MAX_SPACING_STEP,
+  squishRatioOf,
   DEFAULT_SPACING_BASE_UNIT_PX,
   DEFAULT_SPACING_DENSITY,
   MAX_SPACING_BASE_UNIT_PX,
@@ -167,6 +168,24 @@ describe("the large layout steps", () => {
     expect(
       resolveSpacing(defaultSpacingScale()).some((each) => each.step === 32),
     ).toBe(false);
+  });
+});
+
+describe("the squish ratio", () => {
+  it("is 1:2 when a scale names none", () => {
+    expect(squishRatioOf(defaultSpacingScale())).toBe(0.5);
+    expect(defaultSpacingScale().squish).toBeUndefined();
+  });
+
+  it("is kept when it is one offered, and dropped when it is not", () => {
+    const base = defaultSpacingScale();
+    expect(normalizeSpacingScale({ ...base, squish: 0.75 }).squish).toBe(0.75);
+    const odd = normalizeSpacingScale({
+      ...base,
+      squish: 0.33 as unknown as 0.5,
+    });
+    expect(odd.squish).toBeUndefined();
+    expect(squishRatioOf(odd)).toBe(0.5);
   });
 });
 

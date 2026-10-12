@@ -36,6 +36,8 @@ export function readSpacingScale(value: unknown): SpacingScale | null {
     baseUnitPx: raw.baseUnitPx,
     density: raw.density as number,
     steps: raw.steps.filter((step): step is number => typeof step === "number"),
+    /* Checked by the normalizer; anything not offered is the default. */
+    squish: raw.squish as SpacingScale["squish"],
   });
 }
 

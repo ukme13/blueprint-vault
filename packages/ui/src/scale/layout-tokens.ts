@@ -1,6 +1,7 @@
 import {
   resolveSpacing,
   roundToEvenSpacingPx,
+  squishRatioOf,
   spacingStepName,
   toggleSpacingStep,
   type SpacingScale,
@@ -32,36 +33,30 @@ export interface LayoutToken {
    */
   byDevice: Record<string, string>;
   /**
-   * A squished inset only (`inset-control-y`): the share of its source inset
-   * (`inset-control-x`) it follows on every frame, or null for Custom, where
-   * each frame is set by hand as any other use is. See `syncSquishInsets`.
+   * A paired block inset only (see `squishSourceId`): frames typed by hand,
+   * which keep their own value instead of following the squish.
    */
-  squish?: SquishRatio | null;
-  /** Frames typed by hand while squished: these keep their own value. */
   squishOverrides?: string[];
 }
 
 /**
- * Squish: a control's block inset as a share of its inline one.
- *
- * A button whose vertical padding is half its horizontal (1:2) is the
- * familiar shape; 60% and 75% are rounder; 1 is symmetric. Kept as a ratio
- * rather than a step, so the block inset moves when the inline one does, on
- * every frame, and when the spacing scale's unit or density changes.
+ * The inline inset a block inset pairs with: `inset-control-y` with
+ * `inset-control-x`, `inset-badge-y` with `inset-badge-x`. Any spacing use
+ * whose id ends in `-y` pairs with the `-x` use of the same name when the
+ * workspace has one, so a use added in pairs squishes like the built-in
+ * one. Undefined when there is no partner.
  */
-export const SQUISH_RATIOS = [0.5, 0.6, 0.75, 1] as const;
-export type SquishRatio = (typeof SQUISH_RATIOS)[number];
-
-/** The default for a new workspace: 1:2. */
-export const DEFAULT_SQUISH_RATIO: SquishRatio = 0.5;
-
-/** Which use each squished use follows, by id. */
-export const SQUISH_SOURCES: Readonly<Record<string, string>> = {
-  "inset-control-y": "inset-control-x",
-};
-
-export function isSquishRatio(value: unknown): value is SquishRatio {
-  return (SQUISH_RATIOS as readonly unknown[]).includes(value);
+export function squishSourceId(
+  tokens: readonly LayoutToken[],
+  tokenId: string,
+): string | undefined {
+  if (!tokenId.endsWith("-y")) return undefined;
+  const token = tokens.find((each) => each.id === tokenId);
+  if (token?.kind !== "spacing") return undefined;
+  const sourceId = `${tokenId.slice(0, -2)}-x`;
+  return tokens.some((each) => each.id === sourceId && each.kind === "spacing")
+    ? sourceId
+    : undefined;
 }
 
 /**
@@ -138,7 +133,6 @@ export const DEFAULT_LAYOUT_TOKENS: readonly LayoutToken[] = [
        inset on every frame (12px → 6px, 16px → 8px), which is what the
        squish keeps it at. */
     byDevice: { phone: "1-5", tablet: "2", desktop: "2" },
-    squish: DEFAULT_SQUISH_RATIO,
   },
   {
     id: "gap-grid",
@@ -390,83 +384,129 @@ export function normalizeLayoutTokens(
       description: typeof raw.description === "string" ? raw.description : "",
       kind: raw.kind,
       byDevice,
-      ...readSquish(raw, devices),
+      ...readSquishOverrides(raw, devices),
     });
   }
 
-  return withSystemUses(parsed).map((token) =>
-    fillDevices(migrateUnshrunkSectionGap(token), devices),
+  const healed = withSystemUses(parsed);
+  return healed.map((token) =>
+    fillDevices(
+      migrateUnshrunkSectionGap(
+        /* A use renamed out of its pair has nothing to override. */
+        token.squishOverrides && !squishSourceId(healed, token.id)
+          ? withoutOverrides(token)
+          : token,
+      ),
+      devices,
+    ),
   );
 }
 
-/**
- * A stored squish, read tolerantly. A squishable use saved before squish
- * existed reads as Custom (null): its cells were chosen by hand, and turning
- * the squish on by itself would move them. Overrides name frames that exist.
- */
-function readSquish(
+/** Typed frames, read tolerantly: frames that exist, each once. */
+function readSquishOverrides(
   raw: Record<string, unknown>,
   devices: readonly PreviewDevice[],
-): Pick<LayoutToken, "squish" | "squishOverrides"> {
-  if (typeof raw.id !== "string" || !(raw.id in SQUISH_SOURCES)) return {};
-  const squish = isSquishRatio(raw.squish) ? raw.squish : null;
+): Pick<LayoutToken, "squishOverrides"> {
+  if (!Array.isArray(raw.squishOverrides)) return {};
   const ids = new Set(devices.map((device) => device.id));
-  const overrides = Array.isArray(raw.squishOverrides)
-    ? raw.squishOverrides.filter(
+  const overrides = [
+    ...new Set(
+      raw.squishOverrides.filter(
         (id): id is string => typeof id === "string" && ids.has(id),
-      )
-    : [];
-  /* No overrides is no key, as a new workspace has it, so a round trip
-     through storage is a fixed point. */
-  return squish === null || overrides.length === 0
-    ? { squish }
-    : { squish, squishOverrides: [...new Set(overrides)] };
+      ),
+    ),
+  ];
+  /* None is no key, as a new workspace has it, so a round trip through
+     storage is a fixed point. */
+  return overrides.length > 0 ? { squishOverrides: overrides } : {};
+}
+
+function withoutOverrides(token: LayoutToken): LayoutToken {
+  const next = { ...token };
+  delete next.squishOverrides;
+  return next;
 }
 
 /**
- * Keep every squished inset at its share of its source, on each frame it has
- * not been typed on by hand.
+ * The value each frame of a paired block inset would squish to: its inline
+ * partner's length times the scale's ratio, rounded to an even pixel, named
+ * as a step when it lands on one the scale keeps (so the export still links
+ * `--spacing-…`) and a px length otherwise.
+ */
+function squishedCells(
+  tokens: readonly LayoutToken[],
+  token: LayoutToken,
+  spacing: SpacingScale,
+): Record<string, string> {
+  const sourceId = squishSourceId(tokens, token.id);
+  const source = tokens.find((each) => each.id === sourceId);
+  if (!source) return {};
+  const steps = resolveSpacing(spacing);
+  const ratio = squishRatioOf(spacing);
+  const cells: Record<string, string> = {};
+  for (const [deviceId, cell] of Object.entries(source.byDevice)) {
+    const px =
+      parseLayoutRawPx(cell) ?? steps.find((each) => each.name === cell)?.px;
+    if (px === undefined) continue;
+    const squished = roundToEvenSpacingPx(px * ratio);
+    const onStep = steps.find((each) => each.px === squished);
+    cells[deviceId] = onStep ? onStep.name : formatLayoutRawPx(squished);
+  }
+  return cells;
+}
+
+/**
+ * Take a stored workspace's paired insets as they are.
  *
- * The result is written into `byDevice` like any other cell — a step name
- * when it lands exactly on a step the scale keeps (so the export still links
- * `--spacing-…`), a px length otherwise — so the preview, the export and the
- * table read it without knowing squish exists. Rounded to an even pixel, as
- * a density-scaled step is. Called wherever spacing or layout is written
- * (the scale studio's history, a new workspace's seed). Returns the same
- * array when nothing moves, so an unrelated edit records no layout change.
+ * Read on load: any frame whose stored value is not what the squish would
+ * give was set by hand — saved before squish existed, or typed since — and
+ * becomes a typed frame, so loading moves nothing. A frame that already
+ * matches follows from here on. Idempotent, since a typed frame stays typed
+ * and a following one matches by construction.
+ */
+export function adoptSquishOverrides(
+  tokens: readonly LayoutToken[],
+  spacing: SpacingScale,
+): LayoutToken[] {
+  return tokens.map((token) => {
+    if (!squishSourceId(tokens, token.id)) return token;
+    const typed = new Set(token.squishOverrides ?? []);
+    for (const [deviceId, value] of Object.entries(
+      squishedCells(tokens, token, spacing),
+    )) {
+      if (token.byDevice[deviceId] !== value) typed.add(deviceId);
+    }
+    if (typed.size === (token.squishOverrides ?? []).length) return token;
+    return { ...token, squishOverrides: [...typed] };
+  });
+}
+
+/**
+ * Keep every paired block inset at the scale's squish of its inline partner,
+ * on each frame not typed by hand.
+ *
+ * The result is written into `byDevice` like any other cell, so the preview,
+ * the export and the table read it without knowing squish exists. Called
+ * wherever spacing or layout is written (the scale studio's writes, a new
+ * workspace's seed). Returns the same array when nothing moves, so an
+ * unrelated edit records no layout change.
  */
 export function syncSquishInsets(
   tokens: readonly LayoutToken[],
   spacing: SpacingScale,
 ): readonly LayoutToken[] {
-  const steps = resolveSpacing(spacing);
-  const pxOf = (cell: string | undefined): number | undefined => {
-    if (cell === undefined) return undefined;
-    const typed = parseLayoutRawPx(cell);
-    if (typed !== undefined) return typed;
-    return steps.find((token) => token.name === cell)?.px;
-  };
-
   let changed = false;
   const next = tokens.map((token) => {
-    const sourceId = SQUISH_SOURCES[token.id];
-    if (!sourceId || typeof token.squish !== "number") return token;
-    const source = tokens.find((each) => each.id === sourceId);
-    if (!source) return token;
-    const overrides = new Set(token.squishOverrides ?? []);
+    if (!squishSourceId(tokens, token.id)) return token;
+    const typed = new Set(token.squishOverrides ?? []);
     const byDevice = { ...token.byDevice };
     let moved = false;
-    for (const [deviceId, cell] of Object.entries(source.byDevice)) {
-      if (overrides.has(deviceId)) continue;
-      const px = pxOf(cell);
-      if (px === undefined) continue;
-      const squished = roundToEvenSpacingPx(px * token.squish);
-      const onStep = steps.find((each) => each.px === squished);
-      const value = onStep ? onStep.name : formatLayoutRawPx(squished);
-      if (byDevice[deviceId] !== value) {
-        byDevice[deviceId] = value;
-        moved = true;
-      }
+    for (const [deviceId, value] of Object.entries(
+      squishedCells(tokens, token, spacing),
+    )) {
+      if (typed.has(deviceId) || byDevice[deviceId] === value) continue;
+      byDevice[deviceId] = value;
+      moved = true;
     }
     if (!moved) return token;
     changed = true;
@@ -475,15 +515,12 @@ export function syncSquishInsets(
   return changed ? next : tokens;
 }
 
-/** Whether this frame's cell follows the squish rather than being typed. */
+/** Whether a paired inset's frame follows the squish rather than being typed. */
 export function isSquishFollowing(
   token: LayoutToken,
   deviceId: string,
 ): boolean {
-  return (
-    typeof token.squish === "number" &&
-    !(token.squishOverrides ?? []).includes(deviceId)
-  );
+  return !(token.squishOverrides ?? []).includes(deviceId);
 }
 
 /**

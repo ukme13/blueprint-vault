@@ -89,6 +89,10 @@ export function ScaleInspector({
               { editKey: "spacing:density" },
             )
           }
+          onSquishChange={(squish) =>
+            /* The write syncs every paired inset to it. */
+            write({ spacing: { ...spacing, squish } })
+          }
         />
       )}
       {section === "radius" && (

@@ -10,12 +10,15 @@ import {
   resolveSpacing,
   resolveSpacingSlots,
   resolveHybridValue,
+  squishRatioOf,
   type HybridTokenizedValue,
+  type SquishRatio,
   type SpacingPresetId,
   type SpacingScale,
 } from "@blueprint/ui";
 import { usePickerSheet } from "../picker-sheet";
 import { SpacingDensitySetting } from "./SpacingDensitySetting";
+import { SpacingSquishSetting } from "./SpacingSquishSetting";
 import { SpacingPresetSelector } from "./SpacingPresetSelector";
 import { SpacingStepList } from "./SpacingStepList";
 import { SpacingPreviewTile } from "./SpacingPreviewTile";
@@ -28,6 +31,8 @@ interface SpacingInspectorProps {
   detachedBaseUnit: number | null;
   onBaseUnitChange: (next: HybridTokenizedValue) => void;
   onDensityChange: (density: number) => void;
+  /** The squish every paired block inset follows. */
+  onSquishChange: (squish: SquishRatio) => void;
   /** A density preset: its own step in history, not part of a drag. */
   onApplyPreset: (id: SpacingPresetId) => void;
   view: SpacingView;
@@ -40,6 +45,7 @@ export function SpacingInspector({
   detachedBaseUnit,
   onBaseUnitChange,
   onDensityChange,
+  onSquishChange,
   onApplyPreset,
   view,
   onToggleStep,
@@ -76,6 +82,10 @@ export function SpacingInspector({
           onChange={onBaseUnitChange}
         />
       </div>
+      <SpacingSquishSetting
+        squish={squishRatioOf(scale)}
+        onChange={onSquishChange}
+      />
       <SpacingDensitySetting
         density={scale.density ?? 1}
         onChange={onDensityChange}

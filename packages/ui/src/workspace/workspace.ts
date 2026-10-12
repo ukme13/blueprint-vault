@@ -16,6 +16,7 @@ import {
 } from "./scale-slices";
 import { defaultElevationScale } from "../scale/elevation";
 import {
+  adoptSquishOverrides,
   defaultLayoutTokens,
   normalizeLayoutTokens,
   pruneLayoutDevices,
@@ -161,6 +162,8 @@ export function readWorkspaceProject(value: unknown): WorkspaceProject | null {
   const removedSeedRoles = readRemovedSeedRoles(
     (value as { removedSeedRoles?: unknown }).removedSeedRoles,
   );
+  const spacing = spacingOrDefault(value.spacing);
+  const frames = readWorkspaceFrames(value, typography);
   const updatedAt =
     typeof (value as { updatedAt?: unknown }).updatedAt === "number"
       ? (value as { updatedAt: number }).updatedAt
@@ -184,13 +187,16 @@ export function readWorkspaceProject(value: unknown): WorkspaceProject | null {
     buttonSchemes: normalizeButtonSchemes(
       (value as { buttonSchemes?: unknown }).buttonSchemes,
     ),
-    spacing: spacingOrDefault(value.spacing),
+    spacing,
     spacingPreview: spacingPreviewOrDefault(
       (value as { spacingPreview?: unknown }).spacingPreview,
     ),
     radius: radiusOrDefault(value.radius),
     elevation: elevationOrDefault(value.elevation),
-    ...readWorkspaceFrames(value, typography),
+    previewDevices: frames.previewDevices,
+    /* A paired inset is taken as it was saved: any frame that is not what
+       the squish would give becomes a typed one, so loading moves nothing. */
+    layout: adoptSquishOverrides(frames.layout, spacing),
   };
 }
 

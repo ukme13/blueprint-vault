@@ -114,6 +114,36 @@ export interface SpacingScale {
   density: number;
   /** Multiples of the base unit, ascending and unique. */
   steps: number[];
+  /**
+   * Squish: every paired block inset (`…-y`) as this share of its inline
+   * one (`…-x`). Missing means the default, 1:2. See `syncSquishInsets`.
+   */
+  squish?: SquishRatio;
+}
+
+/**
+ * The squish ratios offered.
+ *
+ * A button whose vertical padding is half its horizontal (1:2) is the
+ * familiar shape; 60% and 75% are rounder; 1 is symmetric. One ratio for the
+ * whole scale, as the base unit is: a control's shape is a decision about the
+ * system, not about one row.
+ */
+export const SQUISH_RATIOS = [0.5, 0.6, 0.75, 1] as const;
+export type SquishRatio = (typeof SQUISH_RATIOS)[number];
+
+/** 1:2, what a scale without a stored squish uses. */
+export const DEFAULT_SQUISH_RATIO: SquishRatio = 0.5;
+
+export function isSquishRatio(value: unknown): value is SquishRatio {
+  return (SQUISH_RATIOS as readonly unknown[]).includes(value);
+}
+
+/** The squish a scale applies, its own or the default. */
+export function squishRatioOf(
+  scale: Pick<SpacingScale, "squish">,
+): SquishRatio {
+  return scale.squish ?? DEFAULT_SQUISH_RATIO;
 }
 
 export function defaultSpacingScale(): SpacingScale {
@@ -292,6 +322,8 @@ export function normalizeSpacingScale(scale: SpacingScale): SpacingScale {
     baseUnitPx,
     density,
     steps: steps.length > 0 ? steps : [...DEFAULT_SPACING_STEPS],
+    /* Kept only when it is one offered; anything else is the default. */
+    ...(isSquishRatio(scale.squish) ? { squish: scale.squish } : {}),
   };
 }
 

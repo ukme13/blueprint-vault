@@ -645,10 +645,14 @@ test.describe("The spacing studio", () => {
       name: "Clear Control block inset on Desktop",
     });
 
-    /* A new workspace follows the inline inset at 1:2. */
+    /* A new workspace follows the inline inset at 1:2, and the row says so;
+       the ratio is chosen under Base unit, not here. */
     await expect(
-      uses.getByRole("combobox", { name: "Control block inset squish" }),
-    ).toContainText("Squish 50%");
+      uses.locator('[data-token="inset-control-y"] [data-squish]'),
+    ).toHaveText("Squished (50%)");
+    await expect(uses.getByRole("combobox", { name: /squish/i })).toHaveCount(
+      0,
+    );
 
     /* Inline 24px on desktop: the block inset follows to 12px, step 3. */
     await fillHybridNumber(page, "Control inline inset on Desktop", "24");
@@ -670,13 +674,17 @@ test.describe("The spacing studio", () => {
     await expect.poll(() => blockY("desktop")).toBe("4");
     await expect(clear).toHaveCount(0);
 
-    /* Symmetric: the block inset is the inline one, on every frame. */
-    await uses
-      .getByRole("combobox", { name: "Control block inset squish" })
-      .click();
-    await page.getByRole("option", { name: "Symmetric" }).click();
+    /* 100%, under Base unit: symmetric, on every frame, and the row
+       follows. */
+    const sections = page.getByRole("navigation", { name: "Scale sections" });
+    await sections.getByRole("button", { name: "Scale" }).click();
+    await page.getByRole("radio", { name: "100%", exact: true }).click();
     await expect.poll(() => blockY("desktop")).toBe("8");
     await expect.poll(() => blockY("phone")).toBe("3");
+    await sections.getByRole("button", { name: "Uses" }).click();
+    await expect(
+      uses.locator('[data-token="inset-control-y"] [data-squish]'),
+    ).toHaveText("Squished (100%)");
   });
 
   test("offers the large layout steps up to 64", async ({

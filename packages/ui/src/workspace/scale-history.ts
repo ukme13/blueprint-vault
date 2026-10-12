@@ -39,6 +39,9 @@ function cloneSpacing(scale: SpacingScale): SpacingScale {
     baseUnitPx: scale.baseUnitPx,
     density: Number.isFinite(scale.density) ? scale.density : 1,
     steps: [...scale.steps],
+    /* Field by field, so a new one has to be named here: the squish was
+       dropped on every write until it was. */
+    ...(scale.squish === undefined ? {} : { squish: scale.squish }),
   };
 }
 
