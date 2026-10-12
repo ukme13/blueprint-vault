@@ -657,6 +657,14 @@ test.describe("The spacing studio", () => {
     await expect(page.getByRole("tooltip")).toContainText(
       "Squished: 50% of Control inline inset",
     );
+    /* The lock beside it explains itself the same way. */
+    await page.mouse.move(0, 0);
+    await uses
+      .locator('[data-token="inset-control-y"] [data-system-lock]')
+      .hover();
+    await expect(page.getByRole("tooltip")).toContainText(
+      "Built in: its name and variable are fixed",
+    );
     await expect(uses.getByRole("combobox", { name: /squish/i })).toHaveCount(
       0,
     );

@@ -26,6 +26,9 @@ import styles from "./scale-workspace.module.css";
 
 const SPACING_MAX_PX = 400;
 
+const LOCK_NOTE =
+  "Built in: its name and variable are fixed. Point it anywhere, or reset it.";
+
 export function LayoutUsesRow({
   autoFocusName,
   canReorder,
@@ -114,14 +117,19 @@ export function LayoutUsesRow({
               data-system-use=""
             >
               <span className="truncate">{token.name}</span>
-              <span
-                aria-label="Built in: its name and variable are fixed"
-                className="inline-flex shrink-0 text-fg-muted"
-                role="img"
-                title="Built in: its name and variable are fixed. Point it anywhere, or reset it."
-              >
-                <Lock aria-hidden className="size-3" />
-              </span>
+              {/* The same Astryx tooltip as the link icon beside it, so the
+                  two icons explain themselves the same way. */}
+              <Tooltip content={LOCK_NOTE} hasHoverIndication={false}>
+                <span
+                  aria-label={LOCK_NOTE}
+                  className="inline-flex shrink-0 text-fg-muted"
+                  data-system-lock=""
+                  role="img"
+                  tabIndex={0}
+                >
+                  <Lock aria-hidden className="size-3" />
+                </span>
+              </Tooltip>
               {squishIcon}
             </span>
           ) : squishIcon ? (
