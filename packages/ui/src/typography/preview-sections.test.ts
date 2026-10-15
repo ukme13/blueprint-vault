@@ -131,10 +131,27 @@ describe("preview sections", () => {
         "blob:hero",
       ),
     ).toMatchObject({
-      backgroundColor: "var(--color-surface-base)",
+      /* On the page's own token the image has the page under it, not a colour. */
+      backgroundColor: "transparent",
       backgroundImage: 'url("blob:hero")',
       backgroundSize: "cover",
     });
+  });
+
+  it("lets the page show through a band on the page's own token", () => {
+    const on = (tokenId: string, isOpaque?: boolean) =>
+      previewSectionFillStyle({ kind: "token", tokenId }, null, { isOpaque });
+    expect(on("surface.base")).toEqual({ backgroundColor: "transparent" });
+    /* A band content passes under takes the page's colour, so it stays opaque. */
+    expect(on("surface.base", true)).toEqual({
+      backgroundColor: "var(--preview-page, var(--color-surface-base))",
+    });
+    /* A band with a fill of its own keeps it, opaque or not. */
+    for (const isOpaque of [false, true]) {
+      expect(on("surface.raised", isOpaque)).toEqual({
+        backgroundColor: "var(--color-surface-raised)",
+      });
+    }
   });
 
   it("names token pickers from the layer groups in requested order", () => {

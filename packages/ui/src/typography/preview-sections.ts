@@ -137,10 +137,31 @@ export function previewSectionImageIds(
   );
 }
 
-/** Paint a band: token colour, and a cover image when one resolved. */
+/**
+ * What paints the Preview page behind its bands: the canvas role,
+ * `surface.base`. A band filled with it is not painted at all: the page shows
+ * through, so choosing another colour for the page changes every band that was
+ * left on it, and a band with a fill of its own keeps it.
+ */
+export const PREVIEW_PAGE_TOKEN = "surface.base";
+
+/**
+ * The page's colour as a custom property, set on the page and read by a band that
+ * has to be opaque over it: the sticky nav, which content scrolls under.
+ */
+export const PREVIEW_PAGE_VARIABLE = "--preview-page";
+
+/**
+ * Paint a band: token colour, and a cover image when one resolved.
+ *
+ * A band on the page's own token is transparent, so the page shows through. One
+ * that cannot be, because content passes under it, takes the page's colour from
+ * its variable instead.
+ */
 export function previewSectionFillStyle(
   fill: PreviewSectionFill,
   imageUrl: string | null,
+  options: { isOpaque?: boolean } = {},
 ): {
   backgroundColor: string;
   backgroundImage?: string;
@@ -149,7 +170,12 @@ export function previewSectionFillStyle(
   backgroundRepeat?: string;
 } {
   const tokenId = fill.kind === "token" ? fill.tokenId : fill.fallbackTokenId;
-  const backgroundColor = `var(${semanticVariableName(tokenId)})`;
+  const backgroundColor =
+    tokenId === PREVIEW_PAGE_TOKEN
+      ? options.isOpaque
+        ? `var(${PREVIEW_PAGE_VARIABLE}, var(${semanticVariableName(tokenId)}))`
+        : "transparent"
+      : `var(${semanticVariableName(tokenId)})`;
   if (fill.kind !== "image" || !imageUrl) {
     return { backgroundColor };
   }

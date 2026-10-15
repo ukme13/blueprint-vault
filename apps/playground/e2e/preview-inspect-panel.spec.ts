@@ -488,10 +488,6 @@ test.describe("With nothing selected the panel shows the page's colour", () => {
     page
       .locator("[data-preview-ready]")
       .evaluate((node) => getComputedStyle(node).backgroundColor);
-  const features = (page: Page) =>
-    page
-      .locator('[data-preview-section="landing-features"]')
-      .evaluate((node) => getComputedStyle(node).backgroundColor);
   const openEmptyPanel = async (page: Page) => {
     await openPreview(page);
     await page.getByRole("button", { name: "Show inspector" }).click();
@@ -514,25 +510,42 @@ test.describe("With nothing selected the panel shows the page's colour", () => {
     ).toBeUndefined();
   });
 
-  test("takes another token, which paints the page and what is filled with it", async ({
+  test("takes another token, which paints the page and lets the bands on it show it", async ({
     page,
   }) => {
     await openEmptyPanel(page);
-    const before = { canvas: await canvas(page), band: await features(page) };
-    /* The features band is filled from the canvas role, so it is the page's. */
-    expect(before.band).toBe(before.canvas);
+    const band = (id: string) =>
+      page
+        .locator(`[data-preview-section="${id}"]`)
+        .evaluate((node) => getComputedStyle(node).backgroundColor);
+    const baseRole = () =>
+      page
+        .locator("[data-preview-ready]")
+        .evaluate((node) =>
+          getComputedStyle(node).getPropertyValue("--color-surface-base"),
+        );
+    const before = {
+      canvas: await canvas(page),
+      role: await baseRole(),
+      quote: await band("landing-quote"),
+    };
+    /* A band on the page's own token is not painted: the page shows through. */
+    expect(await band("landing-features")).toBe("rgba(0, 0, 0, 0)");
+    expect(await band("landing-hero")).toBe("rgba(0, 0, 0, 0)");
 
     await choose(pageSection(page), page, "Page colour", "Surface subtle");
     await expect.poll(() => canvas(page)).not.toBe(before.canvas);
-    await expect.poll(() => features(page)).toBe(await canvas(page));
     await expect(pageColour(page)).toContainText("Surface subtle");
     await expect(pageColour(page)).not.toContainText("Default");
 
-    /* A band with a fill of its own is its own. */
-    const hero = await page
-      .locator('[data-preview-section="landing-hero"]')
-      .evaluate((node) => getComputedStyle(node).backgroundColor);
-    expect(typeof hero).toBe("string");
+    /* Still not painted, so it is the page that is seen. */
+    expect(await band("landing-features")).toBe("rgba(0, 0, 0, 0)");
+    /* The sticky nav has content under it: it takes the page's colour. */
+    expect(await band("shell-nav")).toBe(await canvas(page));
+    /* A band with a fill of its own keeps it. */
+    expect(await band("landing-quote")).toBe(before.quote);
+    /* And the canvas role is not rebound, so nothing else that reads it moves. */
+    expect(await baseRole()).toBe(before.role);
 
     const stored = (await readStoredWorkspace(page))?.typography
       ?.previewStyles as Record<string, { fill?: string }>;

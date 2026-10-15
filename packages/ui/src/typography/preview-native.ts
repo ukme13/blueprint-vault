@@ -1,3 +1,4 @@
+import { PREVIEW_PAGE_TOKEN } from "./preview-sections";
 import { isPreviewButton } from "./preview-shell";
 import type {
   PreviewButtonVariant,
@@ -55,13 +56,9 @@ export function previewButtonLook(id: string): PreviewButtonLook {
   return "contained";
 }
 
-/**
- * What the Preview page is painted with behind its bands: the page canvas, which
- * is the semantic role `surface.base`. Its stylesheet says so
- * (`var(--color-surface-base)`), and the inspector shows it when nothing is
- * selected.
- */
-export const PREVIEW_PAGE_TOKEN = "surface.base";
+/* What the page is painted with behind its bands: with the sections, since a band
+   on that token is the page showing through. */
+export { PREVIEW_PAGE_TOKEN };
 
 /** The edge a band is drawn with: the line it shares with the next. */
 const BAND_DIVIDERS: Record<string, PreviewStroke> = {

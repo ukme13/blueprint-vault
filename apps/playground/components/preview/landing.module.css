@@ -1,4 +1,6 @@
 .site {
+  /* The page's colour, as a property, for the band that must be opaque over it. */
+  --preview-page: var(--color-surface-base);
   /* The containing block for the spacing overlay laid over the page. */
   position: relative;
   display: flex;

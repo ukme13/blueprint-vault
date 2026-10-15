@@ -82,6 +82,7 @@ function Band({
       className={className}
       fill={fill}
       label={PREVIEW_SECTION_LABEL[id]}
+      isOpaque={id === "shell-nav"}
       sectionId={id}
       onFillChange={(next) => onSectionFill(id, next)}
       onPickColour={() => onInspectSection(id)}

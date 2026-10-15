@@ -473,12 +473,13 @@ describe("the page's colour", () => {
     expect(previewStyleDeclarations({}, [], "page")).toEqual({});
   });
 
-  it("paints the canvas, and the role it is, with the one chosen", () => {
+  it("paints the canvas with the one chosen, and leaves the role it is alone", () => {
     expect(
       previewStyleDeclarations({ fill: "surface.raised" }, [], "page"),
     ).toEqual({
       backgroundColor: "var(--color-surface-raised)",
-      "--color-surface-base": "var(--color-surface-raised)",
+      /* For a band that must be opaque over the page, the sticky nav. */
+      "--preview-page": "var(--color-surface-raised)",
     });
   });
 
