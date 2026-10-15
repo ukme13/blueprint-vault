@@ -2,7 +2,6 @@
 
 import type { ReactNode } from "react";
 import {
-  previewBandFillToAdd,
   previewButtonLabelOf,
   type PreviewNative,
   type PreviewSectionId,
@@ -12,13 +11,13 @@ import {
 } from "@blueprint/ui";
 import { InspectSection } from "./InspectPrimitives";
 import {
-  AddButton,
   RemoveButton,
   tokenDisplay,
   useTokenOptions,
   type StyleSectionProps,
 } from "./inspect-shared";
 import styles from "./inspect-panel.module.css";
+import { BandFillSection } from "./InspectBandFill";
 import { TokenSelect } from "./TokenSelect";
 
 /**
@@ -66,51 +65,15 @@ export function FillSection({
   );
 
   if (kind === "band") {
-    const tokenId =
-      bandFill?.kind === "image"
-        ? bandFill.fallbackTokenId
-        : bandFill?.kind === "token"
-          ? bandFill.tokenId
-          : undefined;
-    /* A band with no fill shows the page, as a stroke or an effect starts with
-       none, and one is added from the row. Only taking it away comes back here:
-       choosing the page's own token is a fill like any other. */
-    if (bandFill?.kind === "none" && bandId) {
-      const add = () => onBandFillChange(previewBandFillToAdd(bandId));
-      return (
-        <InspectSection
-          action={<AddButton label="Add fill" onClick={add} />}
-          isEmpty
-          title="Fill"
-          onAdd={add}
-        />
-      );
-    }
+    if (!bandFill || !bandId) return null;
     return (
-      <InspectSection title="Fill">
-        <div className={styles.item}>
-          <TokenSelect
-            display={tokenDisplay(tokens, tokenColors, tokenId)}
-            hasSearch
-            label="Fill"
-            options={fillOptions}
-            value={tokenId}
-            onChange={(next) => next && onBandFillChange(next)}
-          />
-          {/* Taking it away lets the page show through again. An image is taken
-              off from the band's own menu. */}
-          <RemoveButton
-            isDisabled={bandFill?.kind === "image"}
-            label="Remove fill"
-            onClick={() => onBandFillChange(null)}
-          />
-        </div>
-        {bandFill?.kind === "image" ? (
-          <p className={styles.note}>
-            An image is laid over this colour. Remove it from the ⋯ on the band.
-          </p>
-        ) : null}
-      </InspectSection>
+      <BandFillSection
+        bandId={bandId}
+        fill={bandFill}
+        tokenColors={tokenColors}
+        tokens={tokens}
+        onChange={onBandFillChange}
+      />
     );
   }
 

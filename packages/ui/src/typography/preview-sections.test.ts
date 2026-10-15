@@ -7,6 +7,8 @@ import {
   PREVIEW_SECTION_SEED_TOKEN,
   PREVIEW_TEXT_COLOR_GROUPS,
   previewBandFillToAdd,
+  previewSectionFillTokenId,
+  previewSectionFillWithToken,
   isPreviewSectionSeedFill,
   previewSectionFillStyle,
   previewTokenSelectorOptions,
@@ -196,5 +198,43 @@ describe("preview sections", () => {
     /* A band seeded with a fill of its own gets that one back. */
     expect(previewBandFillToAdd("landing-quote")).toBe("surface.raised");
     expect(previewBandFillToAdd("landing-hero")).toBe("surface.raised");
+  });
+
+  it("names the token under a fill, if it has one", () => {
+    expect(previewSectionFillTokenId({ kind: "none" })).toBeUndefined();
+    expect(
+      previewSectionFillTokenId({ kind: "token", tokenId: "surface.subtle" }),
+    ).toBe("surface.subtle");
+    expect(
+      previewSectionFillTokenId({
+        kind: "image",
+        imageId: "i",
+        fallbackTokenId: "surface.raised",
+      }),
+    ).toBe("surface.raised");
+  });
+
+  it("changes a fill by its token: a token is a fill, null is none, an image stays", () => {
+    const none = { kind: "none" } as const;
+    expect(previewSectionFillWithToken(none, "surface.base")).toEqual({
+      kind: "token",
+      tokenId: "surface.base",
+    });
+    expect(
+      previewSectionFillWithToken(
+        { kind: "token", tokenId: "surface.raised" },
+        null,
+      ),
+    ).toEqual(none);
+    const image = {
+      kind: "image",
+      imageId: "i",
+      fallbackTokenId: "surface.base",
+    } as const;
+    expect(previewSectionFillWithToken(image, "surface.subtle")).toEqual({
+      ...image,
+      fallbackTokenId: "surface.subtle",
+    });
+    expect(previewSectionFillWithToken(image, null)).toEqual(image);
   });
 });

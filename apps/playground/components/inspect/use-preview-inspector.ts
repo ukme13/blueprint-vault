@@ -17,6 +17,7 @@ import {
   previewInspectTitle,
   previewIsOverridden,
   previewSection,
+  previewSectionFillWithToken,
   previewStyleKey,
   previewStyleOf,
   seedPreviewLanding,
@@ -176,18 +177,10 @@ export function usePreviewInspector({
     onBandFillChange: (tokenId) => {
       if (inspecting?.source !== "section") return;
       const current = previewSection(sections, inspecting.id)?.fill;
-      /* An image is let go from the band's own menu, not from here. */
-      if (current?.kind === "image") {
-        if (tokenId)
-          patchSectionFill(inspecting.id, {
-            ...current,
-            fallbackTokenId: tokenId,
-          });
-        return;
-      }
+      if (!current) return;
       patchSectionFill(
         inspecting.id,
-        tokenId === null ? { kind: "none" } : { kind: "token", tokenId },
+        previewSectionFillWithToken(current, tokenId),
       );
     },
     onApplyToGroup: () => {

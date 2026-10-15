@@ -166,6 +166,31 @@ export function previewSectionImageIds(
   );
 }
 
+/** The token a fill shows: its own, or the one under an image. None has none. */
+export function previewSectionFillTokenId(
+  fill: PreviewSectionFill,
+): string | undefined {
+  if (fill.kind === "token") return fill.tokenId;
+  if (fill.kind === "image") return fill.fallbackTokenId;
+  return undefined;
+}
+
+/**
+ * A band's fill after a token is chosen for it, or `null` to take it away.
+ *
+ * An image stays: the token is the colour under it, and it is let go of from the
+ * band's own menu, so taking the fill away from it changes nothing.
+ */
+export function previewSectionFillWithToken(
+  fill: PreviewSectionFill,
+  tokenId: string | null,
+): PreviewSectionFill {
+  if (fill.kind === "image") {
+    return tokenId ? { ...fill, fallbackTokenId: tokenId } : fill;
+  }
+  return tokenId === null ? { kind: "none" } : { kind: "token", tokenId };
+}
+
 /**
  * What paints the Preview page behind its bands by default: the canvas role,
  * `surface.base`. A band with no fill shows it, so choosing another colour for
