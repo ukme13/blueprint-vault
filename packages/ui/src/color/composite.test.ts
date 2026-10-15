@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { composite } from "./composite";
+import { alphaHex, composite, splitAlphaHex } from "./composite";
 import { contrastRatio } from "./accessibility";
 
 describe("compositing a translucent colour", () => {
@@ -75,5 +75,28 @@ describe("compositing a translucent colour", () => {
     expect(composite({ hex: "#000000", alpha: Number.NaN }, "#ffffff")).toBe(
       "#000000",
     );
+  });
+});
+
+describe("taking a colour apart again", () => {
+  it("reads a six-digit value as opaque", () => {
+    expect(splitAlphaHex("#F2F2F4")).toEqual({ hex: "#f2f2f4", alpha: 1 });
+    expect(splitAlphaHex("f2f2f4")).toEqual({ hex: "#f2f2f4", alpha: 1 });
+  });
+
+  it("reads the alpha digits a map writes after the hex", () => {
+    expect(splitAlphaHex("#f2f2f4f5")).toEqual({
+      hex: "#f2f2f4",
+      alpha: Number((0xf5 / 255).toFixed(4)),
+    });
+    expect(splitAlphaHex("#00000080").alpha).toBeCloseTo(0.5, 2);
+  });
+
+  it("is the inverse of writing an alpha after a hex", () => {
+    for (const alpha of [0.12, 0.45, 0.96]) {
+      const back = splitAlphaHex(`#336699${alphaHex(alpha)}`);
+      expect(back.hex).toBe("#336699");
+      expect(back.alpha).toBeCloseTo(alpha, 2);
+    }
   });
 });

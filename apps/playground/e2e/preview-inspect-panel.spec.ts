@@ -1,3 +1,4 @@
+import type { Page } from "@playwright/test";
 import { expect, test } from "./fixtures";
 import { openPreview } from "./preview-fixtures";
 import {
@@ -475,5 +476,54 @@ test.describe("On a phone", () => {
     /* A token list is a sheet over the sheet, as everywhere on a phone. */
     await sheet.getByRole("button", { name: "Type role" }).click();
     await expect(page.getByRole("dialog", { name: "Type role" })).toBeVisible();
+  });
+});
+
+test.describe("With nothing selected the panel shows the page", () => {
+  const rgbOf = (hex: string) => {
+    const n = parseInt(hex, 16);
+    return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
+  };
+  const pageSection = (page: Page) =>
+    panel(page).getByRole("region", { name: "Page", exact: true });
+
+  test("its colour, named as the role it is, as the page paints it", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await page.getByRole("button", { name: "Show inspector" }).click();
+    await expect(pageSection(page)).toBeVisible();
+    const colour = pageSection(page).getByRole("group", {
+      name: "Page colour",
+    });
+    await expect(colour).toContainText("Surface base");
+
+    /* The hex it shows is the colour the page canvas is drawn in. */
+    const shown = (await colour.locator("small").innerText()).match(
+      /([0-9A-F]{6}) · (\d+)%/,
+    );
+    expect(shown).not.toBeNull();
+    expect(shown![2]).toBe("100");
+    const canvas = await page
+      .locator("[data-preview-ready]")
+      .evaluate((node) => getComputedStyle(node).backgroundColor);
+    expect(canvas).toBe(rgbOf(shown![1]!));
+
+    /* The hint to select something is still there under it. */
+    await expect(panel(page)).toContainText("Select text, a button or a band");
+  });
+
+  test("goes when something is selected, and comes back when it is let go", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await page.getByRole("button", { name: "Show inspector" }).click();
+    await expect(pageSection(page)).toBeVisible();
+
+    await heroTitle(page).click();
+    await expect(pageSection(page)).toHaveCount(0);
+
+    await page.keyboard.press("Escape");
+    await expect(pageSection(page)).toBeVisible();
   });
 });

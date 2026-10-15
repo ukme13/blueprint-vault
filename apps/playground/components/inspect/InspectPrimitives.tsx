@@ -71,6 +71,33 @@ export function InspectField({
   );
 }
 
+/**
+ * A control that shows a value and has nothing to choose: the edge of a divider,
+ * the colour of the page. Drawn as the other controls are, so it sits in a row
+ * with them, and named so a reader hears what it is.
+ */
+export function InspectStatic({
+  label,
+  icon,
+  children,
+}: {
+  label: string;
+  /** A mark ahead of the value: a swatch. */
+  icon?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <span aria-label={label} className={styles.control} role="group">
+      {icon ? <span className={styles.lead}>{icon}</span> : null}
+      <span
+        className={`${styles.value} ${icon ? "" : styles.staticValue}`.trim()}
+      >
+        {children}
+      </span>
+    </span>
+  );
+}
+
 export function InspectIconButton({
   label,
   icon,

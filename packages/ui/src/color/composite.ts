@@ -49,6 +49,22 @@ export function alphaHex(alpha: number): string {
 }
 
 /**
+ * A colour as a map holds it, taken apart: the six-digit value, and its alpha
+ * from 0 to 1. The inverse of writing `alphaHex` after a hex; a value with no
+ * alpha digits is opaque.
+ */
+export function splitAlphaHex(value: string): { hex: string; alpha: number } {
+  const digits = value.replace(/^#/, "").toLowerCase();
+  if (digits.length === 8) {
+    return {
+      hex: `#${digits.slice(0, 6)}`,
+      alpha: Number((parseInt(digits.slice(6), 16) / 255).toFixed(4)),
+    };
+  }
+  return { hex: `#${digits.slice(0, 6)}`, alpha: 1 };
+}
+
+/**
  * Source-over, in sRGB, on the values as they are written.
  *
  * The space is the one the browser paints in, which is the only space whose

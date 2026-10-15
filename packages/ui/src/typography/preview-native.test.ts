@@ -16,6 +16,7 @@ import {
   setPreviewStyle,
 } from "./preview-styles";
 import {
+  PREVIEW_PAGE_TOKEN,
   previewButtonAppearance,
   previewButtonLook,
   previewNativeStyle,
@@ -442,5 +443,11 @@ describe("a button dressed the other way", () => {
     expect(
       previewStyleDeclarations({ variant: "outlined" }, [], "card", {}),
     ).toEqual({});
+  });
+});
+
+describe("what paints the page", () => {
+  it("is the canvas role, which a stored map carries", () => {
+    expect(PREVIEW_PAGE_TOKEN).toBe("surface.base");
   });
 });

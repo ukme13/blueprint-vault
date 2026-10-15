@@ -8,7 +8,11 @@ import {
   type PreviewStroke,
   type PreviewStrokePosition,
 } from "@blueprint/ui";
-import { InspectField, InspectSection } from "./InspectPrimitives";
+import {
+  InspectField,
+  InspectSection,
+  InspectStatic,
+} from "./InspectPrimitives";
 import {
   AddButton,
   RemoveButton,
@@ -124,11 +128,9 @@ export function StrokeSection({
       <div className={styles.row}>
         {stroke.side ? (
           <InspectField label="Edge">
-            <span aria-label="Stroke edge" className={styles.control}>
-              <span className={`${styles.value} ${styles.staticValue}`}>
-                {SIDE_LABEL[stroke.side]}
-              </span>
-            </span>
+            <InspectStatic label="Stroke edge">
+              {SIDE_LABEL[stroke.side]}
+            </InspectStatic>
           </InspectField>
         ) : (
           <InspectField label="Position">

@@ -55,6 +55,14 @@ export function previewButtonLook(id: string): PreviewButtonLook {
   return "contained";
 }
 
+/**
+ * What the Preview page is painted with behind its bands: the page canvas, which
+ * is the semantic role `surface.base`. Its stylesheet says so
+ * (`var(--color-surface-base)`), and the inspector shows it when nothing is
+ * selected.
+ */
+export const PREVIEW_PAGE_TOKEN = "surface.base";
+
 /** The edge a band is drawn with: the line it shares with the next. */
 const BAND_DIVIDERS: Record<string, PreviewStroke> = {
   "shell-nav": inside("border.default", "bottom"),
