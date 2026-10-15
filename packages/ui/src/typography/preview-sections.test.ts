@@ -7,7 +7,7 @@ import {
   PREVIEW_SECTION_SEED_TOKEN,
   PREVIEW_TEXT_COLOR_GROUPS,
   previewBandFillToAdd,
-  previewBandHasNoFill,
+  isPreviewSectionSeedFill,
   previewSectionFillStyle,
   previewTokenSelectorOptions,
   readPreviewSections,
@@ -28,18 +28,14 @@ describe("preview sections", () => {
       kind: "token",
       tokenId: "surface.raised",
     });
+    /* The bands that sit on the page have no fill of their own. */
+    expect(PREVIEW_SECTION_SEED_TOKEN["landing-hero"]).toBeNull();
     expect(
       sections.find((section) => section.id === "landing-hero")?.fill,
-    ).toEqual({
-      kind: "token",
-      tokenId: PREVIEW_SECTION_SEED_TOKEN["landing-hero"],
-    });
+    ).toEqual({ kind: "none" });
     expect(
       sections.find((section) => section.id === "landing-quad")?.fill,
-    ).toEqual({
-      kind: "token",
-      tokenId: "surface.base",
-    });
+    ).toEqual({ kind: "none" });
   });
 
   it("fills a missing list from the seed and drops unknown ids", () => {
@@ -63,10 +59,7 @@ describe("preview sections", () => {
     });
     expect(
       after.find((section) => section.id === "landing-quad")?.fill,
-    ).toEqual({
-      kind: "token",
-      tokenId: "surface.base",
-    });
+    ).toEqual({ kind: "none" });
     expect(after.map((section) => section.id)).not.toContain("landing-extra");
   });
 
@@ -103,10 +96,7 @@ describe("preview sections", () => {
     ]);
     expect(
       loaded.find((section) => section.id === "landing-quad")?.fill,
-    ).toEqual({
-      kind: "token",
-      tokenId: "surface.base",
-    });
+    ).toEqual({ kind: "none" });
     expect(
       loaded.find((section) => section.id === "landing-hero")?.fill,
     ).toEqual({
@@ -134,27 +124,53 @@ describe("preview sections", () => {
         "blob:hero",
       ),
     ).toMatchObject({
-      /* On the page's own token the image has the page under it, not a colour. */
-      backgroundColor: "transparent",
+      backgroundColor: "var(--color-surface-base)",
       backgroundImage: 'url("blob:hero")',
       backgroundSize: "cover",
     });
   });
 
-  it("lets the page show through a band on the page's own token", () => {
-    const on = (tokenId: string, isOpaque?: boolean) =>
-      previewSectionFillStyle({ kind: "token", tokenId }, null, { isOpaque });
-    expect(on("surface.base")).toEqual({ backgroundColor: "transparent" });
+  it("lets the page show through a band with no fill", () => {
+    const none = (isOpaque?: boolean) =>
+      previewSectionFillStyle({ kind: "none" }, null, { isOpaque });
+    expect(none()).toEqual({ backgroundColor: "transparent" });
     /* A band content passes under takes the page's colour, so it stays opaque. */
-    expect(on("surface.base", true)).toEqual({
+    expect(none(true)).toEqual({
       backgroundColor: "var(--preview-page, var(--color-surface-base))",
     });
-    /* A band with a fill of its own keeps it, opaque or not. */
+  });
+
+  it("paints a band given surface.base with it, whatever the page is", () => {
+    const on = (tokenId: string, isOpaque?: boolean) =>
+      previewSectionFillStyle({ kind: "token", tokenId }, null, { isOpaque });
+    /* The page's own token is a fill like another: not the page's variable. */
     for (const isOpaque of [false, true]) {
+      expect(on("surface.base", isOpaque)).toEqual({
+        backgroundColor: "var(--color-surface-base)",
+      });
       expect(on("surface.raised", isOpaque)).toEqual({
         backgroundColor: "var(--color-surface-raised)",
       });
     }
+  });
+
+  it("reads a stored none fill, and tells a seeded band from an edited one", () => {
+    const hero = readPreviewSections([
+      { id: "landing-hero", fill: { kind: "none" } },
+    ]).find((section) => section.id === "landing-hero")!;
+    expect(hero.fill).toEqual({ kind: "none" });
+    expect(isPreviewSectionSeedFill(hero)).toBe(true);
+    /* Choosing surface.base is an edit: it is no longer the band with none. */
+    expect(
+      isPreviewSectionSeedFill({
+        id: "landing-hero",
+        fill: { kind: "token", tokenId: "surface.base" },
+      }),
+    ).toBe(false);
+    /* A band seeded on a surface is edited by losing it. */
+    expect(
+      isPreviewSectionSeedFill({ id: "landing-quote", fill: { kind: "none" } }),
+    ).toBe(false);
   });
 
   it("names token pickers from the layer groups in requested order", () => {
@@ -171,30 +187,11 @@ describe("preview sections", () => {
     expect(text.some((group) => group.title === "Surfaces")).toBe(false);
   });
 
-  it("has no fill when a band is on the page's own token", () => {
-    expect(
-      previewBandHasNoFill({ kind: "token", tokenId: PREVIEW_PAGE_TOKEN }),
-    ).toBe(true);
-    expect(
-      previewBandHasNoFill({ kind: "token", tokenId: "surface.raised" }),
-    ).toBe(false);
-    /* An image is laid over a colour, so the band is painted. */
-    expect(
-      previewBandHasNoFill({
-        kind: "image",
-        imageId: "a",
-        fallbackTokenId: PREVIEW_PAGE_TOKEN,
-      }),
-    ).toBe(false);
-  });
-
-  it("adds a fill that is not the page's own, so the band is painted", () => {
+  it("adds a fill that can be told from the page", () => {
     for (const id of PREVIEW_SECTION_IDS) {
       const token = previewBandFillToAdd(id);
       expect(token).not.toBe(PREVIEW_PAGE_TOKEN);
-      expect(previewBandHasNoFill({ kind: "token", tokenId: token })).toBe(
-        false,
-      );
+      expect(token).toBe(PREVIEW_SECTION_SEED_TOKEN[id] ?? "surface.raised");
     }
     /* A band seeded with a fill of its own gets that one back. */
     expect(previewBandFillToAdd("landing-quote")).toBe("surface.raised");

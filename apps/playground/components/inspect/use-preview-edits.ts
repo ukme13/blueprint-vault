@@ -6,7 +6,7 @@ import {
   applyRoleToBlocks,
   clearPreviewStyle,
   isPreviewSurface,
-  PREVIEW_SECTION_SEED_TOKEN,
+  previewSectionSeedFill,
   previewStyleKey,
   seedPreviewLanding,
   seedPreviewSections,
@@ -221,7 +221,7 @@ export function usePreviewEdits({
   const resetSectionToDefault = useCallback(() => {
     if (!inspecting || inspecting.source !== "section") return;
     const id = inspecting.id;
-    const defaultTokenId = PREVIEW_SECTION_SEED_TOKEN[id];
+    const seedFill = previewSectionSeedFill(id);
     update(
       (current) => {
         if (!current) return seedWorkspaceProject("Workspace");
@@ -243,7 +243,7 @@ export function usePreviewEdits({
             previewSections: updateSectionFill(
               slice.previewSections ?? seedPreviewSections(),
               id,
-              { kind: "token", tokenId: defaultTokenId },
+              seedFill,
             ),
             ...(Object.keys(styles).length > 0
               ? { previewStyles: styles }

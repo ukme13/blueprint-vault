@@ -2,9 +2,7 @@
 
 import type { ReactNode } from "react";
 import {
-  PREVIEW_PAGE_TOKEN,
   previewBandFillToAdd,
-  previewBandHasNoFill,
   previewButtonLabelOf,
   type PreviewNative,
   type PreviewSectionId,
@@ -53,7 +51,8 @@ export function FillSection({
   /** A band's own fill, which may be an image. */
   bandFill?: PreviewSectionFill | null;
   onColourChange: (tokenId: string | undefined) => void;
-  onBandFillChange: (tokenId: string) => void;
+  /** A token for the band's fill, or `null` to take the fill away. */
+  onBandFillChange: (tokenId: string | null) => void;
 }) {
   const textOptions = useTokenOptions(
     tokens,
@@ -68,10 +67,15 @@ export function FillSection({
 
   if (kind === "band") {
     const tokenId =
-      bandFill?.kind === "image" ? bandFill.fallbackTokenId : bandFill?.tokenId;
-    /* A band on the page's own token is not painted: it has no fill, as a stroke
-       or an effect starts with none, and one is added from the row. */
-    if (bandFill && bandId && previewBandHasNoFill(bandFill)) {
+      bandFill?.kind === "image"
+        ? bandFill.fallbackTokenId
+        : bandFill?.kind === "token"
+          ? bandFill.tokenId
+          : undefined;
+    /* A band with no fill shows the page, as a stroke or an effect starts with
+       none, and one is added from the row. Only taking it away comes back here:
+       choosing the page's own token is a fill like any other. */
+    if (bandFill?.kind === "none" && bandId) {
       const add = () => onBandFillChange(previewBandFillToAdd(bandId));
       return (
         <InspectSection
@@ -98,7 +102,7 @@ export function FillSection({
           <RemoveButton
             isDisabled={bandFill?.kind === "image"}
             label="Remove fill"
-            onClick={() => onBandFillChange(PREVIEW_PAGE_TOKEN)}
+            onClick={() => onBandFillChange(null)}
           />
         </div>
         {bandFill?.kind === "image" ? (

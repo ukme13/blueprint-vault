@@ -63,7 +63,7 @@ export interface PreviewInspectPanelProps {
   onTextChange: (text: string) => void;
   onRoleChange: (roleId: string) => void;
   onColourChange: (tokenId: string | undefined) => void;
-  onBandFillChange: (tokenId: string) => void;
+  onBandFillChange: (tokenId: string | null) => void;
   onApplyToGroup: () => void;
   onApplyToAllButtons: () => void;
   onResetToDefault: () => void;

@@ -519,6 +519,56 @@ test.describe("A band's fill is added and taken away like a stroke", () => {
     await expect.poll(() => ground(heroBand(page))).toBe(TRANSPARENT);
   });
 
+  test("keeps surface.base once chosen: it stays a fill, and the page's colour does not reach it", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await selectHeroBand(page);
+
+    await addFill(page).click();
+    await choose(fillSection(page), page, "Fill", "Surface base");
+    /* Not collapsed back to +: it is a fill, with a - to take it away. */
+    await expect(fillRow(page)).toContainText("Surface base");
+    await expect(
+      fillSection(page).getByRole("button", { name: "Remove fill" }),
+    ).toBeEnabled();
+    await expect(addFill(page)).toHaveCount(0);
+    await expect
+      .poll(() => storedFill(page, "landing-hero"))
+      .toEqual({ kind: "token", tokenId: "surface.base" });
+    const own = await ground(heroBand(page));
+    expect(own).not.toBe(TRANSPARENT);
+
+    /* The page takes another colour; a band with none follows it, this one not. */
+    await page.keyboard.press("Escape");
+    const pageSection = panel(page).getByRole("region", {
+      name: "Page",
+      exact: true,
+    });
+    await choose(pageSection, page, "Page colour", "Surface subtle");
+    await expect
+      .poll(() =>
+        page
+          .locator("[data-preview-ready]")
+          .evaluate((node) => getComputedStyle(node).backgroundColor),
+      )
+      .not.toBe(own);
+    expect(await ground(heroBand(page))).toBe(own);
+
+    await selectHeroBand(page);
+    await expect(fillRow(page)).toContainText("Surface base");
+
+    /* Only the minus takes it away. */
+    await fillSection(page)
+      .getByRole("button", { name: "Remove fill" })
+      .click();
+    await expect(addFill(page)).toBeVisible();
+    await expect.poll(() => ground(heroBand(page))).toBe(TRANSPARENT);
+    await expect
+      .poll(() => storedFill(page, "landing-hero"))
+      .toEqual({ kind: "none" });
+  });
+
   test("starts filled on a band seeded with a raised surface, and can lose it", async ({
     page,
   }) => {
