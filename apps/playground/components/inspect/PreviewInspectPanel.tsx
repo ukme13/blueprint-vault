@@ -6,11 +6,13 @@ import { useMemo } from "react";
 import { PanelRightClose } from "lucide-react";
 import {
   PREVIEW_INSPECT_FIELDS,
+  PREVIEW_PAGE_ID,
   previewNativeStyle,
   previewInspectorCopyField,
   type PreviewDocumentBlock,
   type PreviewInspectKind,
   type PreviewSectionFill,
+  type PreviewSectionId,
   type PreviewSlotStyle,
   type ResolvedElevation,
   type ResolvedRadius,
@@ -61,7 +63,7 @@ export interface PreviewInspectPanelProps {
   onTextChange: (text: string) => void;
   onRoleChange: (roleId: string) => void;
   onColourChange: (tokenId: string | undefined) => void;
-  onBandFillChange: (tokenId: string) => void;
+  onBandFillChange: (tokenId: string | null) => void;
   onApplyToGroup: () => void;
   onApplyToAllButtons: () => void;
   onResetToDefault: () => void;
@@ -105,10 +107,34 @@ export function PreviewInspectPanel(props: PreviewInspectPanelProps) {
             onClick={props.onClose}
           />
         </header>
+        <FillSection
+          kind="page"
+          native={previewNativeStyle(PREVIEW_PAGE_ID, "page")}
+          style={props.style}
+          title="Page"
+          tokenColors={props.tokenColors}
+          tokens={props.tokens}
+          onBandFillChange={props.onBandFillChange}
+          onColourChange={props.onColourChange}
+          onStyleChange={props.onStyleChange}
+        />
         <p className={styles.empty}>
           Select text, a button or a band on the page to see what it is made of
           and change it.
         </p>
+        {props.isOverridden ? (
+          <div className={styles.actions}>
+            <ResetButton
+              className={styles.fullWidth}
+              scheme="neutral"
+              size="medium"
+              variant="outlined"
+              onClick={props.onResetToDefault}
+            >
+              Reset to default
+            </ResetButton>
+          </div>
+        ) : null}
       </aside>
     );
   }
@@ -188,6 +214,9 @@ export function PreviewInspectPanel(props: PreviewInspectPanelProps) {
       {has("fill") ? (
         <FillSection
           bandFill={props.bandFill}
+          bandId={
+            target.kind === "band" ? (target.id as PreviewSectionId) : undefined
+          }
           colourTokenId={block?.colorTokenId}
           kind={target.kind}
           native={native}

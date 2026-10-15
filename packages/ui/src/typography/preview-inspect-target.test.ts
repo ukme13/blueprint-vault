@@ -3,7 +3,6 @@ import {
   previewInspectTitle,
   previewIsOverridden,
 } from "./preview-inspect-target";
-import { PREVIEW_SECTION_SEED_TOKEN } from "./preview-sections";
 
 const block = { id: "landing-hero", roleId: "h1", text: "Hello" };
 
@@ -85,10 +84,7 @@ describe("previewIsOverridden", () => {
   it("is true for a band off its seed fill, or holding an image", () => {
     const seeded = {
       id: "landing-hero" as const,
-      fill: {
-        kind: "token" as const,
-        tokenId: PREVIEW_SECTION_SEED_TOKEN["landing-hero"],
-      },
+      fill: { kind: "none" as const },
     };
     expect(previewIsOverridden({ ...none, section: seeded })).toBe(false);
     expect(
@@ -97,6 +93,16 @@ describe("previewIsOverridden", () => {
         section: {
           ...seeded,
           fill: { kind: "token", tokenId: "surface.raised" },
+        },
+      }),
+    ).toBe(true);
+    /* Choosing surface.base is a fill, so the band is edited. */
+    expect(
+      previewIsOverridden({
+        ...none,
+        section: {
+          ...seeded,
+          fill: { kind: "token", tokenId: "surface.base" },
         },
       }),
     ).toBe(true);

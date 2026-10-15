@@ -6,7 +6,8 @@ import {
 import { elevationVariableName } from "../scale/elevation";
 import { radiusVariableName } from "../scale/radius";
 import { spacingVariableName } from "../scale/spacing";
-import { PreviewNative } from "./preview-native";
+import type { PreviewNative } from "./preview-native";
+import { PREVIEW_PAGE_VARIABLE } from "./preview-sections";
 import {
   PreviewStroke,
   PREVIEW_PADDING_SIDES,
@@ -144,8 +145,17 @@ export function previewStyleDeclarations(
   const look = kind === "button" ? style.variant : undefined;
   const fill = style.fill ?? (look ? native.fill : undefined);
 
-  if (fill && (kind === "button" || kind === "card" || kind === "chip")) {
+  if (
+    fill &&
+    (kind === "button" || kind === "card" || kind === "chip" || kind === "page")
+  ) {
     out.backgroundColor = `var(${semanticVariableName(fill)})`;
+    /* The page is painted, and only the page: the canvas role is left as it is.
+       Its colour is also said as a property, for a band that must be opaque over
+       it, the sticky nav. */
+    if (kind === "page") {
+      out[PREVIEW_PAGE_VARIABLE] = `var(${semanticVariableName(fill)})`;
+    }
     /* A button's label has to read on what it is now filled with. A card's
        copy is its own slots', set where each is drawn. */
     if (kind === "button") {

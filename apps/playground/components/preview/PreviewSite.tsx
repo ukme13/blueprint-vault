@@ -4,6 +4,7 @@ import type { CSSProperties, ReactNode, Ref } from "react";
 import {
   PREVIEW_FOOTER_COLUMNS,
   PREVIEW_NAV_LINK_IDS,
+  PREVIEW_PAGE_ID,
   PREVIEW_SECTION_LABEL,
   previewSection,
   type PreviewDocument,
@@ -26,6 +27,7 @@ import { LandingNewsletter } from "./LandingNewsletter";
 import { LandingPricing } from "./LandingPricing";
 import { LandingQuote } from "./LandingQuote";
 import { CardSurface } from "./CardSurface";
+import { usePreviewSlotStyle } from "./preview-styles-context";
 import styles from "./landing.module.css";
 
 const NAV_IDS = PREVIEW_NAV_LINK_IDS.filter((id) => id !== "shell-login");
@@ -80,6 +82,7 @@ function Band({
       className={className}
       fill={fill}
       label={PREVIEW_SECTION_LABEL[id]}
+      isOpaque={id === "shell-nav"}
       sectionId={id}
       onFillChange={(next) => onSectionFill(id, next)}
       onPickColour={() => onInspectSection(id)}
@@ -119,6 +122,8 @@ export function PreviewSite({
   /** Laid over the page, inside it, so it scrolls with it: the overlay. */
   children?: ReactNode;
 }) {
+  /* The page's own colour, if one was chosen for it. */
+  const pageStyle = usePreviewSlotStyle(PREVIEW_PAGE_ID);
   const landingProps = {
     landing,
     system,
@@ -131,7 +136,7 @@ export function PreviewSite({
       className={styles.site}
       data-frame={frameId}
       data-preview-ready={ready ? "true" : undefined}
-      style={variables}
+      style={{ ...variables, ...pageStyle }}
     >
       <Band
         as="header"

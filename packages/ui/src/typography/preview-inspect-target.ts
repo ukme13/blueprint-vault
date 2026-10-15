@@ -2,7 +2,7 @@ import type { PreviewDocumentBlock } from "./preview-document";
 import { previewInspectorChrome } from "./preview-shell";
 import {
   PREVIEW_SECTION_LABEL,
-  PREVIEW_SECTION_SEED_TOKEN,
+  isPreviewSectionSeedFill,
   type PreviewSection,
   type PreviewSectionId,
 } from "./preview-sections";
@@ -43,8 +43,5 @@ export function previewIsOverridden(input: {
     : Boolean(block?.colorTokenId);
   if (slotChanged) return true;
   if (!section) return false;
-  return (
-    section.fill.kind === "image" ||
-    section.fill.tokenId !== PREVIEW_SECTION_SEED_TOKEN[section.id]
-  );
+  return !isPreviewSectionSeedFill(section);
 }

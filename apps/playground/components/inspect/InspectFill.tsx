@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import {
   previewButtonLabelOf,
   type PreviewNative,
+  type PreviewSectionId,
   PREVIEW_FILL_TOKEN_GROUPS,
   PREVIEW_TEXT_COLOR_GROUPS,
   type PreviewSectionFill,
@@ -16,6 +17,7 @@ import {
   type StyleSectionProps,
 } from "./inspect-shared";
 import styles from "./inspect-panel.module.css";
+import { BandFillSection } from "./InspectBandFill";
 import { TokenSelect } from "./TokenSelect";
 
 /**
@@ -31,18 +33,25 @@ export function FillSection({
   colourTokenId,
   bandFill,
   native,
+  bandId,
+  title = "Fill",
   onColourChange,
   onBandFillChange,
   onStyleChange,
 }: StyleSectionProps & {
+  /** What the section is called: Fill, and Page for the page's colour. */
+  title?: string;
   /** The text's colour token, for a text slot. */
   colourTokenId?: string;
   /** What the element is drawn with before it is changed. */
   native: PreviewNative;
+  /** Which band it is, for the fill it is given when one is added. */
+  bandId?: PreviewSectionId;
   /** A band's own fill, which may be an image. */
   bandFill?: PreviewSectionFill | null;
   onColourChange: (tokenId: string | undefined) => void;
-  onBandFillChange: (tokenId: string) => void;
+  /** A token for the band's fill, or `null` to take the fill away. */
+  onBandFillChange: (tokenId: string | null) => void;
 }) {
   const textOptions = useTokenOptions(
     tokens,
@@ -56,32 +65,22 @@ export function FillSection({
   );
 
   if (kind === "band") {
-    const tokenId =
-      bandFill?.kind === "image" ? bandFill.fallbackTokenId : bandFill?.tokenId;
+    if (!bandFill || !bandId) return null;
     return (
-      <InspectSection title="Fill">
-        <div className={styles.item}>
-          <TokenSelect
-            display={tokenDisplay(tokens, tokenColors, tokenId)}
-            hasSearch
-            label="Fill"
-            options={fillOptions}
-            value={tokenId}
-            onChange={(next) => next && onBandFillChange(next)}
-          />
-        </div>
-        {bandFill?.kind === "image" ? (
-          <p className={styles.note}>
-            An image is laid over this colour. Remove it from the ⋯ on the band.
-          </p>
-        ) : null}
-      </InspectSection>
+      <BandFillSection
+        bandId={bandId}
+        fill={bandFill}
+        tokenColors={tokenColors}
+        tokens={tokens}
+        onChange={onBandFillChange}
+      />
     );
   }
 
   /* A button, a card and a chip are filled with a token of their own; a text
      is coloured. */
-  const isFilled = kind === "button" || kind === "card" || kind === "chip";
+  const isFilled =
+    kind === "button" || kind === "card" || kind === "chip" || kind === "page";
   const value = isFilled ? style.fill : colourTokenId;
   /* What the page fills it with, until that is changed: shown, and marked. */
   const shown = tokenDisplay(
@@ -91,13 +90,13 @@ export function FillSection({
   );
   const display = shown && value === undefined ? withDefaultMark(shown) : shown;
   return (
-    <InspectSection title="Fill">
+    <InspectSection title={title}>
       <div className={styles.item}>
         <TokenSelect
           clearLabel="Default"
           display={display}
           hasSearch
-          label="Fill"
+          label={kind === "page" ? "Page colour" : "Fill"}
           options={isFilled ? fillOptions : textOptions}
           placeholder="Default"
           value={value}
@@ -109,7 +108,7 @@ export function FillSection({
         />
         <RemoveButton
           isDisabled={value === undefined}
-          label="Remove fill"
+          label={kind === "page" ? "Reset page colour" : "Remove fill"}
           onClick={() =>
             isFilled
               ? onStyleChange({ ...style, fill: undefined })

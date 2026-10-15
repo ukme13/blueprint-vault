@@ -31,8 +31,11 @@ export function PreviewSectionBand({
   className,
   children,
   onPickColour,
+  isOpaque = false,
   onFillChange,
 }: {
+  /** Content passes under it, so it cannot let the page show through. */
+  isOpaque?: boolean;
   as?: ElementType;
   sectionId: string;
   label: string;
@@ -74,7 +77,7 @@ export function PreviewSectionBand({
 
   const imageUrl = loaded?.id === imageId ? loaded.url : null;
 
-  const fillStyle = previewSectionFillStyle(fill, imageUrl);
+  const fillStyle = previewSectionFillStyle(fill, imageUrl, { isOpaque });
   const overrides = usePreviewSlotStyle(sectionId, true);
 
   return (

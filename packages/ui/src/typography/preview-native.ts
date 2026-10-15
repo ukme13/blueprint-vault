@@ -1,3 +1,4 @@
+import { PREVIEW_PAGE_TOKEN } from "./preview-sections";
 import { isPreviewButton } from "./preview-shell";
 import type {
   PreviewButtonVariant,
@@ -54,6 +55,10 @@ export function previewButtonLook(id: string): PreviewButtonLook {
   if (INVERTED_BUTTONS.includes(id)) return "inverted";
   return "contained";
 }
+
+/* What the page is painted with behind its bands: with the sections, since a band
+   on that token is the page showing through. */
+export { PREVIEW_PAGE_TOKEN };
 
 /** The edge a band is drawn with: the line it shares with the next. */
 const BAND_DIVIDERS: Record<string, PreviewStroke> = {
@@ -142,6 +147,8 @@ export function previewNativeStyle(
       return { fill: "surface.raised", stroke: inside("border.subtle") };
     case "divider":
       return { stroke: inside("border.default", "top") };
+    case "page":
+      return { fill: PREVIEW_PAGE_TOKEN };
     case "band": {
       const stroke = BAND_DIVIDERS[id];
       return stroke ? { stroke } : {};
