@@ -146,6 +146,24 @@ export function previewSectionImageIds(
 export const PREVIEW_PAGE_TOKEN = "surface.base";
 
 /**
+ * Whether a band has no fill of its own: it is on the page's token, so the page
+ * shows through. What the panel calls an empty Fill.
+ */
+export function previewBandHasNoFill(fill: PreviewSectionFill): boolean {
+  return fill.kind === "token" && fill.tokenId === PREVIEW_PAGE_TOKEN;
+}
+
+/**
+ * The token a band is given when a fill is added to it: the one it was seeded
+ * with, where that is a fill of its own, and else a raised surface, which is
+ * a colour that can be told from the page.
+ */
+export function previewBandFillToAdd(id: PreviewSectionId): string {
+  const seed = PREVIEW_SECTION_SEED_TOKEN[id];
+  return seed === PREVIEW_PAGE_TOKEN ? "surface.raised" : seed;
+}
+
+/**
  * The page's colour as a custom property, set on the page and read by a band that
  * has to be opaque over it: the sticky nav, which content scrolls under.
  */

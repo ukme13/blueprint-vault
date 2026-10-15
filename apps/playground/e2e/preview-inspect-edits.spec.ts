@@ -448,3 +448,94 @@ test.describe("A button's label colour", () => {
     ).toBeUndefined();
   });
 });
+
+test.describe("A band's fill is added and taken away like a stroke", () => {
+  const fillSection = (page: Page) => section(page, "Fill");
+  const addFill = (page: Page) =>
+    fillSection(page).getByRole("button", { name: "Add fill" });
+  const fillRow = (page: Page) =>
+    fillSection(page).getByRole("button", { name: "Fill", exact: true });
+  const ground = (locator: Locator) => style(locator, "background-color");
+  const storedFill = async (page: Page, id: string) =>
+    (await readStoredWorkspace(page))?.typography?.previewSections?.find(
+      (each: { id: string }) => each.id === id,
+    )?.fill;
+  const TRANSPARENT = "rgba(0, 0, 0, 0)";
+
+  test("starts empty on a band that shows the page", async ({ page }) => {
+    await openPreview(page);
+    await selectHeroBand(page);
+
+    await expect(addFill(page)).toBeVisible();
+    await expect(fillRow(page)).toHaveCount(0);
+    await expect(
+      fillSection(page).getByRole("button", { name: "Remove fill" }),
+    ).toHaveCount(0);
+    expect(await ground(heroBand(page))).toBe(TRANSPARENT);
+  });
+
+  test("is added from +, painting the band, and taken away from -", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    await selectHeroBand(page);
+
+    await addFill(page).click();
+    await expect(fillRow(page)).toContainText("Surface raised");
+    await expect.poll(() => ground(heroBand(page))).not.toBe(TRANSPARENT);
+    await expect
+      .poll(() => storedFill(page, "landing-hero"))
+      .toEqual({ kind: "token", tokenId: "surface.raised" });
+
+    await choose(fillSection(page), page, "Fill", "Surface subtle");
+    await expect(fillRow(page)).toContainText("Surface subtle");
+
+    await fillSection(page)
+      .getByRole("button", { name: "Remove fill" })
+      .click();
+    await expect(addFill(page)).toBeVisible();
+    await expect(fillRow(page)).toHaveCount(0);
+    await expect.poll(() => ground(heroBand(page))).toBe(TRANSPARENT);
+  });
+
+  test("is added by pressing the row as well as the +", async ({ page }) => {
+    await openPreview(page);
+    await selectHeroBand(page);
+
+    await fillSection(page).getByText("Fill", { exact: true }).click();
+    await expect(fillRow(page)).toBeVisible();
+    await expect.poll(() => ground(heroBand(page))).not.toBe(TRANSPARENT);
+  });
+
+  test("is put back by Reset to default", async ({ page }) => {
+    await openPreview(page);
+    await selectHeroBand(page);
+
+    await addFill(page).click();
+    await expect(fillRow(page)).toBeVisible();
+    await expect.poll(() => ground(heroBand(page))).not.toBe(TRANSPARENT);
+    await panel(page).getByRole("button", { name: "Reset to default" }).click();
+    await expect(addFill(page)).toBeVisible();
+    await expect.poll(() => ground(heroBand(page))).toBe(TRANSPARENT);
+  });
+
+  test("starts filled on a band seeded with a raised surface, and can lose it", async ({
+    page,
+  }) => {
+    await openPreview(page);
+    const quote = page.locator('[data-preview-section="landing-quote"]');
+    await quote.click({ position: { x: 6, y: 6 } });
+    await expect(fillRow(page)).toContainText("Surface raised");
+    expect(await ground(quote)).not.toBe(TRANSPARENT);
+
+    await fillSection(page)
+      .getByRole("button", { name: "Remove fill" })
+      .click();
+    await expect(addFill(page)).toBeVisible();
+    await expect.poll(() => ground(quote)).toBe(TRANSPARENT);
+
+    await panel(page).getByRole("button", { name: "Reset to default" }).click();
+    await expect(fillRow(page)).toContainText("Surface raised");
+    await expect.poll(() => ground(quote)).not.toBe(TRANSPARENT);
+  });
+});

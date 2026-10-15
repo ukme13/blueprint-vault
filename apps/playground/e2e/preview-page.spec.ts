@@ -741,9 +741,11 @@ test.describe("The slot inspector", () => {
       dialog.getByRole("button", { name: "Reset to default" }),
     ).toHaveCount(0);
 
+    /* The band starts with no fill; adding one is an edit. */
+    await dialog.getByRole("button", { name: "Add fill" }).click();
     await dialog.getByRole("button", { name: "Fill", exact: true }).click();
     await page
-      .getByRole("option", { name: "Surface raised", exact: true })
+      .getByRole("option", { name: "Surface subtle", exact: true })
       .click();
     await expect(
       dialog.getByRole("button", { name: "Reset to default" }),
@@ -754,8 +756,11 @@ test.describe("The slot inspector", () => {
       dialog.getByRole("button", { name: "Reset to default" }),
     ).toHaveCount(0);
     await expect(
+      dialog.getByRole("button", { name: "Add fill" }),
+    ).toBeVisible();
+    await expect(
       dialog.getByRole("button", { name: "Fill", exact: true }),
-    ).toHaveText(/Surface base/);
+    ).toHaveCount(0);
   });
 
   test("survives a device switch after inspecting", async ({ page }) => {
@@ -790,6 +795,7 @@ test.describe("Preview section fill and token colour", () => {
 
     const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: "Add fill" }).click();
     const combobox = dialog.getByRole("button", { name: "Fill", exact: true });
     await combobox.click();
 
@@ -832,7 +838,7 @@ test.describe("Preview section fill and token colour", () => {
     await expect(triggerSwatch).toBeVisible();
 
     await page
-      .getByRole("option", { name: "Surface raised", exact: true })
+      .getByRole("option", { name: "Surface subtle", exact: true })
       .click();
 
     await expect
@@ -861,9 +867,8 @@ test.describe("Preview section fill and token colour", () => {
     await band.click({ position: { x: 6, y: 6 } });
     await page
       .getByRole("complementary", { name: "Inspect" })
-      .getByRole("button", { name: "Fill", exact: true })
+      .getByRole("button", { name: "Add fill" })
       .click();
-    await page.getByRole("option").nth(1).click();
     await expect
       .poll(async () => (await readStoredWorkspace(page))?.typography)
       .toBeTruthy();
@@ -918,9 +923,10 @@ test.describe("Preview section fill and token colour", () => {
 
     const dialog = page.getByRole("complementary", { name: "Inspect" });
     await expect(dialog).toBeVisible();
+    await dialog.getByRole("button", { name: "Add fill" }).click();
     await dialog.getByRole("button", { name: "Fill", exact: true }).click();
     await page
-      .getByRole("option", { name: "Surface raised", exact: true })
+      .getByRole("option", { name: "Surface subtle", exact: true })
       .click();
 
     await expect

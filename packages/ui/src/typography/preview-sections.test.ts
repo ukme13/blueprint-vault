@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import { seedWorkspaceProject } from "../workspace/seed-project";
 import {
   PREVIEW_FILL_TOKEN_GROUPS,
+  PREVIEW_PAGE_TOKEN,
   PREVIEW_SECTION_IDS,
   PREVIEW_SECTION_SEED_TOKEN,
   PREVIEW_TEXT_COLOR_GROUPS,
+  previewBandFillToAdd,
+  previewBandHasNoFill,
   previewSectionFillStyle,
   previewTokenSelectorOptions,
   readPreviewSections,
@@ -166,5 +169,35 @@ describe("preview sections", () => {
       "Status",
     ]);
     expect(text.some((group) => group.title === "Surfaces")).toBe(false);
+  });
+
+  it("has no fill when a band is on the page's own token", () => {
+    expect(
+      previewBandHasNoFill({ kind: "token", tokenId: PREVIEW_PAGE_TOKEN }),
+    ).toBe(true);
+    expect(
+      previewBandHasNoFill({ kind: "token", tokenId: "surface.raised" }),
+    ).toBe(false);
+    /* An image is laid over a colour, so the band is painted. */
+    expect(
+      previewBandHasNoFill({
+        kind: "image",
+        imageId: "a",
+        fallbackTokenId: PREVIEW_PAGE_TOKEN,
+      }),
+    ).toBe(false);
+  });
+
+  it("adds a fill that is not the page's own, so the band is painted", () => {
+    for (const id of PREVIEW_SECTION_IDS) {
+      const token = previewBandFillToAdd(id);
+      expect(token).not.toBe(PREVIEW_PAGE_TOKEN);
+      expect(previewBandHasNoFill({ kind: "token", tokenId: token })).toBe(
+        false,
+      );
+    }
+    /* A band seeded with a fill of its own gets that one back. */
+    expect(previewBandFillToAdd("landing-quote")).toBe("surface.raised");
+    expect(previewBandFillToAdd("landing-hero")).toBe("surface.raised");
   });
 });

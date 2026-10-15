@@ -12,6 +12,7 @@ import {
   type PreviewDocumentBlock,
   type PreviewInspectKind,
   type PreviewSectionFill,
+  type PreviewSectionId,
   type PreviewSlotStyle,
   type ResolvedElevation,
   type ResolvedRadius,
@@ -213,6 +214,9 @@ export function PreviewInspectPanel(props: PreviewInspectPanelProps) {
       {has("fill") ? (
         <FillSection
           bandFill={props.bandFill}
+          bandId={
+            target.kind === "band" ? (target.id as PreviewSectionId) : undefined
+          }
           colourTokenId={block?.colorTokenId}
           kind={target.kind}
           native={native}

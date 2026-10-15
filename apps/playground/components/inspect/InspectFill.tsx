@@ -2,14 +2,19 @@
 
 import type { ReactNode } from "react";
 import {
+  PREVIEW_PAGE_TOKEN,
+  previewBandFillToAdd,
+  previewBandHasNoFill,
   previewButtonLabelOf,
   type PreviewNative,
+  type PreviewSectionId,
   PREVIEW_FILL_TOKEN_GROUPS,
   PREVIEW_TEXT_COLOR_GROUPS,
   type PreviewSectionFill,
 } from "@blueprint/ui";
 import { InspectSection } from "./InspectPrimitives";
 import {
+  AddButton,
   RemoveButton,
   tokenDisplay,
   useTokenOptions,
@@ -31,6 +36,7 @@ export function FillSection({
   colourTokenId,
   bandFill,
   native,
+  bandId,
   title = "Fill",
   onColourChange,
   onBandFillChange,
@@ -42,6 +48,8 @@ export function FillSection({
   colourTokenId?: string;
   /** What the element is drawn with before it is changed. */
   native: PreviewNative;
+  /** Which band it is, for the fill it is given when one is added. */
+  bandId?: PreviewSectionId;
   /** A band's own fill, which may be an image. */
   bandFill?: PreviewSectionFill | null;
   onColourChange: (tokenId: string | undefined) => void;
@@ -61,6 +69,19 @@ export function FillSection({
   if (kind === "band") {
     const tokenId =
       bandFill?.kind === "image" ? bandFill.fallbackTokenId : bandFill?.tokenId;
+    /* A band on the page's own token is not painted: it has no fill, as a stroke
+       or an effect starts with none, and one is added from the row. */
+    if (bandFill && bandId && previewBandHasNoFill(bandFill)) {
+      const add = () => onBandFillChange(previewBandFillToAdd(bandId));
+      return (
+        <InspectSection
+          action={<AddButton label="Add fill" onClick={add} />}
+          isEmpty
+          title="Fill"
+          onAdd={add}
+        />
+      );
+    }
     return (
       <InspectSection title="Fill">
         <div className={styles.item}>
@@ -71,6 +92,13 @@ export function FillSection({
             options={fillOptions}
             value={tokenId}
             onChange={(next) => next && onBandFillChange(next)}
+          />
+          {/* Taking it away lets the page show through again. An image is taken
+              off from the band's own menu. */}
+          <RemoveButton
+            isDisabled={bandFill?.kind === "image"}
+            label="Remove fill"
+            onClick={() => onBandFillChange(PREVIEW_PAGE_TOKEN)}
           />
         </div>
         {bandFill?.kind === "image" ? (
