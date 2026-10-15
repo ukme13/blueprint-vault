@@ -559,7 +559,31 @@ describe("the Designally preset", () => {
     expect(
       project.layout.find((token) => token.id === "radius-button")!.byDevice,
     ).toEqual({ phone: "full", tablet: "full", desktop: "full" });
-    expect(project.spacing.density).toBe(1.5);
+    /* The spacing it was saved with: a 4px ramp at 1x, squished to 0.75. */
+    expect(project.spacing.density).toBe(1);
+    expect(project.spacing.squish).toBe(0.75);
+    expect(project.spacing.steps).toEqual([
+      0, 0.5, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10, 12, 16, 24, 32,
+    ]);
+    /* The page it was saved with: the bands that sit on the page have no fill,
+       the others are filled from a token, and the page itself is painted. */
+    const sections = project.typography!.previewSections!;
+    const fillOf = (id: string) =>
+      sections.find((section) => section.id === id)!.fill;
+    expect(fillOf("landing-split-a")).toEqual({ kind: "none" });
+    expect(fillOf("landing-quad")).toEqual({ kind: "none" });
+    expect(fillOf("landing-pricing")).toEqual({ kind: "none" });
+    expect(fillOf("shell-footer")).toEqual({
+      kind: "token",
+      tokenId: "surface.overlay",
+    });
+    expect(fillOf("landing-features")).toEqual({
+      kind: "token",
+      tokenId: "action.primary",
+    });
+    expect(project.typography!.previewStyles!.page).toEqual({
+      fill: "surface.base",
+    });
   });
 
   it("gives every workspace a copy of its own", () => {
