@@ -109,7 +109,18 @@ export type PreviewStyles = Record<string, PreviewSlotStyle>;
 
 /** What the inspector shows for an element. */
 export type PreviewInspectKind =
-  "text" | "button" | "band" | "card" | "chip" | "divider";
+  "text" | "button" | "band" | "card" | "chip" | "divider" | "page";
+
+/**
+ * The page itself, which is no element to press but what the panel shows when
+ * nothing is selected: the canvas behind the bands. Its style is kept under this
+ * id like any other.
+ */
+export const PREVIEW_PAGE_ID = "page";
+
+export function isPreviewPage(id: string): id is typeof PREVIEW_PAGE_ID {
+  return id === PREVIEW_PAGE_ID;
+}
 
 /**
  * The groups of cards on the page, each styled as one: every feature card
@@ -188,6 +199,7 @@ export function previewInspectKind(
   isBand = false,
 ): PreviewInspectKind {
   if (isBand) return "band";
+  if (isPreviewPage(id)) return "page";
   if (isPreviewCard(id)) return "card";
   if (isPreviewDivider(id)) return "divider";
   if (isPreviewChip(id)) return "chip";
@@ -259,6 +271,8 @@ export const PREVIEW_INSPECT_FIELDS: Record<
     "labelColor",
     "stroke",
   ],
+  /* The page has a colour, and nothing else to say. */
+  page: ["fill"],
   /* A divider is a line, and the room around it. */
   divider: ["padding", "stroke"],
 };

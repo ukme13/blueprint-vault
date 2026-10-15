@@ -31,10 +31,13 @@ export function FillSection({
   colourTokenId,
   bandFill,
   native,
+  title = "Fill",
   onColourChange,
   onBandFillChange,
   onStyleChange,
 }: StyleSectionProps & {
+  /** What the section is called: Fill, and Page for the page's colour. */
+  title?: string;
   /** The text's colour token, for a text slot. */
   colourTokenId?: string;
   /** What the element is drawn with before it is changed. */
@@ -81,7 +84,8 @@ export function FillSection({
 
   /* A button, a card and a chip are filled with a token of their own; a text
      is coloured. */
-  const isFilled = kind === "button" || kind === "card" || kind === "chip";
+  const isFilled =
+    kind === "button" || kind === "card" || kind === "chip" || kind === "page";
   const value = isFilled ? style.fill : colourTokenId;
   /* What the page fills it with, until that is changed: shown, and marked. */
   const shown = tokenDisplay(
@@ -91,13 +95,13 @@ export function FillSection({
   );
   const display = shown && value === undefined ? withDefaultMark(shown) : shown;
   return (
-    <InspectSection title="Fill">
+    <InspectSection title={title}>
       <div className={styles.item}>
         <TokenSelect
           clearLabel="Default"
           display={display}
           hasSearch
-          label="Fill"
+          label={kind === "page" ? "Page colour" : "Fill"}
           options={isFilled ? fillOptions : textOptions}
           placeholder="Default"
           value={value}
@@ -109,7 +113,7 @@ export function FillSection({
         />
         <RemoveButton
           isDisabled={value === undefined}
-          label="Remove fill"
+          label={kind === "page" ? "Reset page colour" : "Remove fill"}
           onClick={() =>
             isFilled
               ? onStyleChange({ ...style, fill: undefined })

@@ -6,7 +6,7 @@ import {
 import { elevationVariableName } from "../scale/elevation";
 import { radiusVariableName } from "../scale/radius";
 import { spacingVariableName } from "../scale/spacing";
-import { PreviewNative } from "./preview-native";
+import { PREVIEW_PAGE_TOKEN, type PreviewNative } from "./preview-native";
 import {
   PreviewStroke,
   PREVIEW_PADDING_SIDES,
@@ -144,8 +144,17 @@ export function previewStyleDeclarations(
   const look = kind === "button" ? style.variant : undefined;
   const fill = style.fill ?? (look ? native.fill : undefined);
 
-  if (fill && (kind === "button" || kind === "card" || kind === "chip")) {
+  if (
+    fill &&
+    (kind === "button" || kind === "card" || kind === "chip" || kind === "page")
+  ) {
     out.backgroundColor = `var(${semanticVariableName(fill)})`;
+    /* The page's colour is the canvas role, and what the page draws from it, a
+       band that is filled with it, follows the one that is chosen. */
+    if (kind === "page") {
+      out[semanticVariableName(PREVIEW_PAGE_TOKEN)] =
+        `var(${semanticVariableName(fill)})`;
+    }
     /* A button's label has to read on what it is now filled with. A card's
        copy is its own slots', set where each is drawn. */
     if (kind === "button") {

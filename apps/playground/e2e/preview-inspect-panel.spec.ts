@@ -1,5 +1,5 @@
 import type { Page } from "@playwright/test";
-import { expect, test } from "./fixtures";
+import { expect, readStoredWorkspace, test } from "./fixtures";
 import { openPreview } from "./preview-fixtures";
 import {
   edgeShown,
@@ -479,47 +479,104 @@ test.describe("On a phone", () => {
   });
 });
 
-test.describe("With nothing selected the panel shows the page", () => {
-  const rgbOf = (hex: string) => {
-    const n = parseInt(hex, 16);
-    return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
-  };
+test.describe("With nothing selected the panel shows the page's colour", () => {
   const pageSection = (page: Page) =>
     panel(page).getByRole("region", { name: "Page", exact: true });
-
-  test("its colour, named as the role it is, as the page paints it", async ({
-    page,
-  }) => {
+  const pageColour = (page: Page) =>
+    pageSection(page).getByRole("button", { name: "Page colour", exact: true });
+  const canvas = (page: Page) =>
+    page
+      .locator("[data-preview-ready]")
+      .evaluate((node) => getComputedStyle(node).backgroundColor);
+  const features = (page: Page) =>
+    page
+      .locator('[data-preview-section="landing-features"]')
+      .evaluate((node) => getComputedStyle(node).backgroundColor);
+  const openEmptyPanel = async (page: Page) => {
     await openPreview(page);
     await page.getByRole("button", { name: "Show inspector" }).click();
     await expect(pageSection(page)).toBeVisible();
-    const colour = pageSection(page).getByRole("group", {
-      name: "Page colour",
-    });
-    await expect(colour).toContainText("Surface base");
+  };
 
-    /* The hex it shows is the colour the page canvas is drawn in. */
-    const shown = (await colour.locator("small").innerText()).match(
-      /([0-9A-F]{6}) · (\d+)%/,
-    );
-    expect(shown).not.toBeNull();
-    expect(shown![2]).toBe("100");
-    const canvas = await page
-      .locator("[data-preview-ready]")
-      .evaluate((node) => getComputedStyle(node).backgroundColor);
-    expect(canvas).toBe(rgbOf(shown![1]!));
-
-    /* The hint to select something is still there under it. */
+  test("is the canvas role by default, as a row like a fill's", async ({
+    page,
+  }) => {
+    await openEmptyPanel(page);
+    await expect(pageColour(page)).toContainText("Surface base");
+    await expect(pageColour(page)).toContainText("Default");
+    /* Nothing to put back yet. */
+    await expect(
+      pageSection(page).getByRole("button", { name: "Reset page colour" }),
+    ).toBeDisabled();
     await expect(panel(page)).toContainText("Select text, a button or a band");
+    expect(
+      (await readStoredWorkspace(page))?.typography?.previewStyles,
+    ).toBeUndefined();
+  });
+
+  test("takes another token, which paints the page and what is filled with it", async ({
+    page,
+  }) => {
+    await openEmptyPanel(page);
+    const before = { canvas: await canvas(page), band: await features(page) };
+    /* The features band is filled from the canvas role, so it is the page's. */
+    expect(before.band).toBe(before.canvas);
+
+    await choose(pageSection(page), page, "Page colour", "Surface subtle");
+    await expect.poll(() => canvas(page)).not.toBe(before.canvas);
+    await expect.poll(() => features(page)).toBe(await canvas(page));
+    await expect(pageColour(page)).toContainText("Surface subtle");
+    await expect(pageColour(page)).not.toContainText("Default");
+
+    /* A band with a fill of its own is its own. */
+    const hero = await page
+      .locator('[data-preview-section="landing-hero"]')
+      .evaluate((node) => getComputedStyle(node).backgroundColor);
+    expect(typeof hero).toBe("string");
+
+    const stored = (await readStoredWorkspace(page))?.typography
+      ?.previewStyles as Record<string, { fill?: string }>;
+    expect(stored.page).toEqual({ fill: "surface.subtle" });
+  });
+
+  test("is put back from its row, and by Reset to default", async ({
+    page,
+  }) => {
+    await openEmptyPanel(page);
+    const own = await canvas(page);
+
+    await choose(pageSection(page), page, "Page colour", "Surface subtle");
+    await expect.poll(() => canvas(page)).not.toBe(own);
+    await pageSection(page)
+      .getByRole("button", { name: "Reset page colour" })
+      .click();
+    await expect.poll(() => canvas(page)).toBe(own);
+    expect(
+      (await readStoredWorkspace(page))?.typography?.previewStyles,
+    ).toBeUndefined();
+
+    await page.waitForTimeout(400);
+    await choose(pageSection(page), page, "Page colour", "Surface subtle");
+    await expect.poll(() => canvas(page)).not.toBe(own);
+    await panel(page).getByRole("button", { name: "Reset to default" }).click();
+    await expect.poll(() => canvas(page)).toBe(own);
+  });
+
+  test("is undone with Undo", async ({ page }) => {
+    await openEmptyPanel(page);
+    const own = await canvas(page);
+    await choose(pageSection(page), page, "Page colour", "Surface subtle");
+    await expect.poll(() => canvas(page)).not.toBe(own);
+
+    await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
+    await page.keyboard.press("ControlOrMeta+z");
+    await expect.poll(() => canvas(page)).toBe(own);
   });
 
   test("goes when something is selected, and comes back when it is let go", async ({
     page,
   }) => {
-    await openPreview(page);
-    await page.getByRole("button", { name: "Show inspector" }).click();
-    await expect(pageSection(page)).toBeVisible();
-
+    await openEmptyPanel(page);
     await heroTitle(page).click();
     await expect(pageSection(page)).toHaveCount(0);
 

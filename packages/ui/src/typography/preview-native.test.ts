@@ -5,9 +5,11 @@ import {
   PREVIEW_CHIP_IDS,
   PREVIEW_DIVIDER_IDS,
   PREVIEW_INSPECT_FIELDS,
+  PREVIEW_PAGE_ID,
   clearPreviewStyle,
   isPreviewChip,
   isPreviewDivider,
+  isPreviewPage,
   isPreviewSurface,
   previewInspectKind,
   previewStyleDeclarations,
@@ -449,5 +451,43 @@ describe("a button dressed the other way", () => {
 describe("what paints the page", () => {
   it("is the canvas role, which a stored map carries", () => {
     expect(PREVIEW_PAGE_TOKEN).toBe("surface.base");
+  });
+});
+
+describe("the page's colour", () => {
+  it("is a kind of its own, with a fill and nothing else", () => {
+    expect(previewInspectKind("page")).toBe("page");
+    expect(previewInspectKind("page", true)).toBe("band");
+    expect(PREVIEW_INSPECT_FIELDS.page).toEqual(["fill"]);
+    expect(isPreviewPage("page")).toBe(true);
+    expect(isPreviewPage("landing-hero")).toBe(false);
+  });
+
+  it("starts as the canvas role, which is what the page draws from", () => {
+    expect(previewNativeStyle(PREVIEW_PAGE_ID, "page")).toEqual({
+      fill: PREVIEW_PAGE_TOKEN,
+    });
+  });
+
+  it("draws nothing until a colour is chosen", () => {
+    expect(previewStyleDeclarations({}, [], "page")).toEqual({});
+  });
+
+  it("paints the canvas, and the role it is, with the one chosen", () => {
+    expect(
+      previewStyleDeclarations({ fill: "surface.raised" }, [], "page"),
+    ).toEqual({
+      backgroundColor: "var(--color-surface-raised)",
+      "--color-surface-base": "var(--color-surface-raised)",
+    });
+  });
+
+  it("is kept with the other styles, and read back", () => {
+    const stored = { page: { fill: "surface.subtle" } };
+    expect(readPreviewStyles(stored)).toEqual(stored);
+    expect(
+      setPreviewStyle(undefined, "page", { fill: "surface.subtle" }),
+    ).toEqual(stored);
+    expect(clearPreviewStyle(stored, "page")).toEqual({});
   });
 });

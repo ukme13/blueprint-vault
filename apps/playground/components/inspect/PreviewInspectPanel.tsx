@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { PanelRightClose } from "lucide-react";
 import {
   PREVIEW_INSPECT_FIELDS,
+  PREVIEW_PAGE_ID,
   previewNativeStyle,
   previewInspectorCopyField,
   type PreviewDocumentBlock,
@@ -23,7 +24,6 @@ import { AppearanceSection } from "./InspectAppearance";
 import { AutoLayoutSection } from "./InspectAutoLayout";
 import { EffectsSection } from "./InspectEffects";
 import { FillSection } from "./InspectFill";
-import { PageSection } from "./InspectPage";
 import { StrokeSection } from "./InspectStroke";
 import { VariantSection } from "./InspectVariant";
 import { CopySection, TypographySection } from "./InspectTextSections";
@@ -106,11 +106,34 @@ export function PreviewInspectPanel(props: PreviewInspectPanelProps) {
             onClick={props.onClose}
           />
         </header>
-        <PageSection tokenColors={props.tokenColors} tokens={props.tokens} />
+        <FillSection
+          kind="page"
+          native={previewNativeStyle(PREVIEW_PAGE_ID, "page")}
+          style={props.style}
+          title="Page"
+          tokenColors={props.tokenColors}
+          tokens={props.tokens}
+          onBandFillChange={props.onBandFillChange}
+          onColourChange={props.onColourChange}
+          onStyleChange={props.onStyleChange}
+        />
         <p className={styles.empty}>
           Select text, a button or a band on the page to see what it is made of
           and change it.
         </p>
+        {props.isOverridden ? (
+          <div className={styles.actions}>
+            <ResetButton
+              className={styles.fullWidth}
+              scheme="neutral"
+              size="medium"
+              variant="outlined"
+              onClick={props.onResetToDefault}
+            >
+              Reset to default
+            </ResetButton>
+          </div>
+        ) : null}
       </aside>
     );
   }

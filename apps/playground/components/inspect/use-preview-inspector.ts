@@ -11,6 +11,7 @@ import {
   applyRoleToButtons,
   applyStyleToGroup,
   idsSharingStyle,
+  PREVIEW_PAGE_ID,
   isPreviewButton,
   previewInspectKind,
   previewInspectTitle,
@@ -133,7 +134,7 @@ export function usePreviewInspector({
   /* A band and a slot can share an id, so a band's style has a key of its own. */
   const styleKey = inspectedId
     ? previewStyleKey(inspectedId, isBandSelected)
-    : null;
+    : PREVIEW_PAGE_ID;
 
   const panelProps: PreviewInspectPanelProps = {
     target: inspecting
@@ -200,8 +201,10 @@ export function usePreviewInspector({
         applyRoleToButtons(document, roleId),
       );
     },
-    onResetToDefault:
-      inspecting?.source === "section"
+    /* With nothing selected it is the page's colour that is put back. */
+    onResetToDefault: !inspecting
+      ? () => patchStyle(PREVIEW_PAGE_ID, {})
+      : inspecting.source === "section"
         ? resetSectionToDefault
         : resetSlotToDefault,
     onClose: () => {

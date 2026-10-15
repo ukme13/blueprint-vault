@@ -150,6 +150,8 @@ export function previewNativeStyle(
       return { fill: "surface.raised", stroke: inside("border.subtle") };
     case "divider":
       return { stroke: inside("border.default", "top") };
+    case "page":
+      return { fill: PREVIEW_PAGE_TOKEN };
     case "band": {
       const stroke = BAND_DIVIDERS[id];
       return stroke ? { stroke } : {};
