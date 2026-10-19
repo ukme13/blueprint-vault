@@ -46,6 +46,7 @@ import {
   BlueprintWordmark,
   ColourStudioIcon,
   ElevationStudioIcon,
+  MotionStudioIcon,
   OverviewStudioIcon,
   PreviewStudioIcon,
   RadiusStudioIcon,
@@ -76,6 +77,7 @@ const STUDIOS = [
   { href: "/spacing", label: "Spacing", icon: SpacingStudioIcon },
   { href: "/radius", label: "Radius", icon: RadiusStudioIcon },
   { href: "/elevation", label: "Elevation", icon: ElevationStudioIcon },
+  { href: "/motion", label: "Motion", icon: MotionStudioIcon },
   { href: "/preview", label: "Preview", icon: PreviewStudioIcon },
   { href: "/overview", label: "Overview", icon: OverviewStudioIcon },
 ] as const;
@@ -102,7 +104,7 @@ function shouldIgnorePreviewShortcut(target: EventTarget | null): boolean {
  * Studios get the wordmark (Home) with collapse on the heading, the B
  * that expands on hover when the rail is closed, then the name under
  * that heading, Colour /
- * Typography / Spacing / Radius / Elevation / Preview, theme on the
+ * Typography / Spacing / Radius / Elevation / Motion / Preview, theme on the
  * rail, and Settings as a rail row (this workspace's preview frames).
  * Space also swaps the current studio with `/preview`.
  */

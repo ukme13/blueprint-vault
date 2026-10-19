@@ -14,7 +14,11 @@ import {
   spacingOrDefault,
   spacingPreviewOrDefault,
 } from "./scale-slices";
-import { defaultMotionScale, motionOrDefault } from "../motion";
+import {
+  defaultMotionScale,
+  motionOrDefault,
+  type MotionScale,
+} from "../motion";
 import { defaultElevationScale } from "../scale/elevation";
 import {
   adoptSquishOverrides,
@@ -401,6 +405,14 @@ export function withRadiusSlice(
   radius: RadiusScale,
 ): WorkspaceProject {
   return { ...(current ?? emptyWorkspace()), radius };
+}
+
+/** Replace the motion scale, keeping the other slices. */
+export function withMotionScale(
+  current: WorkspaceProject | null,
+  motion: MotionScale,
+): WorkspaceProject {
+  return { ...(current ?? emptyWorkspace()), motion };
 }
 
 /** Replace the elevation scale, keeping the other slices. */

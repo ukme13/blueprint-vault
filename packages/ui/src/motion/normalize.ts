@@ -48,7 +48,7 @@ function readDuration(value: unknown): DurationToken | null {
  * then drops the whole declaration, so the transition silently has no curve. A
  * y may leave the range, which is how an overshoot is drawn, within reason.
  */
-function readCurve(value: unknown): CubicBezier | null {
+export function normalizeCurve(value: unknown): CubicBezier | null {
   if (!Array.isArray(value) || value.length !== 4) return null;
   if (
     !value.every((each) => typeof each === "number" && Number.isFinite(each))
@@ -69,7 +69,7 @@ function readEasing(value: unknown): EasingToken | null {
   if (!value || typeof value !== "object") return null;
   const raw = value as Record<string, unknown>;
   const id = readId(raw.id);
-  const curve = readCurve(raw.curve);
+  const curve = normalizeCurve(raw.curve);
   if (!id || !curve) return null;
   return {
     id,

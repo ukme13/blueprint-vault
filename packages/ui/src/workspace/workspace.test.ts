@@ -44,6 +44,7 @@ import {
   workspaceFromLegacy,
   workspaceHasStudios,
   emptyWorkspace,
+  withMotionScale,
 } from "./workspace";
 
 const LIGHTNESS = [
@@ -992,5 +993,29 @@ describe("motion in a stored workspace", () => {
 
   it("is on an empty workspace", () => {
     expect(emptyWorkspace().motion).toEqual(defaultMotionScale());
+  });
+});
+
+describe("withMotionScale", () => {
+  const scale = {
+    durations: [{ id: "snap", name: "Snap", ms: 70 }],
+    easings: [],
+  };
+
+  it("replaces the motion and keeps every other slice", () => {
+    const before = emptyWorkspace();
+    const after = withMotionScale(before, scale);
+    expect(after.motion).toEqual(scale);
+    expect({ ...after, motion: before.motion }).toEqual(before);
+  });
+
+  it("starts a workspace when there is none", () => {
+    expect(withMotionScale(null, scale).motion).toEqual(scale);
+  });
+
+  it("leaves the workspace it was given as it was", () => {
+    const before = emptyWorkspace();
+    withMotionScale(before, scale);
+    expect(before.motion).toEqual(defaultMotionScale());
   });
 });

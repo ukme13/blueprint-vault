@@ -81,6 +81,8 @@ const DOCUMENT_FORMATTERS = [
 const VALUE_FORMATTERS = [
   "formatColour",
   "formatAlpha",
+  /* Four curve numbers as the field shows them: `0.2, 0, 0, 1`. */
+  "formatCurveText",
   "formatLength",
   "formatLayoutRawPx",
   "formatLetterSpacing",
