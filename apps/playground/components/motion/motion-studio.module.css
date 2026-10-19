@@ -231,6 +231,15 @@
   transform: scale(0.94);
 }
 
+/* The trigger's chevron turns over as the panel opens, on the same pace and curve. */
+.chevron {
+  transition: transform var(--duration-medium) var(--ease-standard);
+}
+
+.chevron[data-open] {
+  transform: rotate(180deg);
+}
+
 /* A dropdown: its panel is a layer over the card, hung from the trigger, so the
    trigger does not move when it opens. It fades in and settles from a little
    smaller, from the edge it hangs from. */
@@ -439,6 +448,7 @@
   }
 
   .pressTarget,
+  .chevron,
   .dropdownPanel,
   .scrim,
   .dialogPanel {

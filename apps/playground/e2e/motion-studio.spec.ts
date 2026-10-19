@@ -742,4 +742,97 @@ test.describe("The Motion studio", () => {
     await stage(page).getByRole("button", { name: "Open dialog" }).click();
     await expect(dialog(page)).toBeVisible();
   });
+
+  test("moves the studio's Button on the scale, at rest, under the pointer and pressed", async ({
+    seededPage: page,
+  }) => {
+    /* The Button once carried a fixed 200ms of its own, and ignored the scale. */
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await openMotion(page);
+    const button = stage(page).getByRole("button", { name: "Cancel" });
+    const transition = () =>
+      button.evaluate((node) => {
+        const style = getComputedStyle(node);
+        return {
+          duration: style.transitionDuration,
+          curve: style.transitionTimingFunction,
+        };
+      });
+
+    /* Fast is 150ms, and the standard curve is the one the scale has. */
+    await expect.poll(transition).toEqual({
+      duration: "0.15s",
+      curve: "cubic-bezier(0.2, 0, 0, 1)",
+    });
+    await button.hover();
+    expect(await transition()).toEqual({
+      duration: "0.15s",
+      curve: "cubic-bezier(0.2, 0, 0, 1)",
+    });
+    await page.mouse.down();
+    expect(await transition()).toEqual({
+      duration: "0.15s",
+      curve: "cubic-bezier(0.2, 0, 0, 1)",
+    });
+    await page.mouse.up();
+
+    /* Slowed, it is slower. */
+    await page
+      .getByRole("radiogroup", { name: "Playback speed" })
+      .getByText("0.25x", { exact: true })
+      .click();
+    await expect.poll(async () => (await transition()).duration).toBe("0.6s");
+
+    /* The token edited is the one it plays, and so is the curve. */
+    await chooseOption(page, "Duration token", "Fast · 150ms");
+    const field = durationField(page, "Fast");
+    await field.fill("400");
+    await field.press("Enter");
+    await expect.poll(async () => (await transition()).duration).toBe("1.6s");
+    await chooseOption(page, "Easing preset", "Ease Out");
+    await expect
+      .poll(async () => (await transition()).curve)
+      .toBe("cubic-bezier(0, 0, 0.58, 1)");
+  });
+
+  test("turns the dropdown's chevron over as it opens, on the panel's pace", async ({
+    seededPage: page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await openMotion(page);
+    const trigger = stage(page).getByRole("button", { name: "Options" });
+    const chevron = trigger.locator("svg");
+    const angle = () =>
+      chevron.evaluate((node) => {
+        const matrix = new DOMMatrix(getComputedStyle(node).transform);
+        return Math.round((Math.atan2(matrix.b, matrix.a) * 180) / Math.PI);
+      });
+    const transition = () =>
+      chevron.evaluate((node) => {
+        const style = getComputedStyle(node);
+        return [style.transitionDuration, style.transitionTimingFunction];
+      });
+
+    expect(await angle()).toBe(0);
+    /* The panel's own band, which is Normal, 250ms. */
+    expect(await transition()).toEqual(["0.25s", "cubic-bezier(0.2, 0, 0, 1)"]);
+
+    await trigger.click();
+    await expect.poll(async () => Math.abs(await angle())).toBe(180);
+    await trigger.click();
+    await expect.poll(angle).toBe(0);
+  });
+
+  test("turns the chevron over at once when the system asks for less motion", async ({
+    seededPage: page,
+  }) => {
+    await openMotion(page);
+    const trigger = stage(page).getByRole("button", { name: "Options" });
+    await trigger.click();
+    const duration = await trigger
+      .locator("svg")
+      .evaluate((node) => getComputedStyle(node).transitionDuration);
+    expect(duration).toBe("0s");
+    await expect(trigger.locator("svg")).toHaveAttribute("data-open", "true");
+  });
 });

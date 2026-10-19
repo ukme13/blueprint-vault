@@ -94,7 +94,13 @@ export function DropdownDemo({ replayKey, holdMs }: DemoProps) {
     <span className={styles.dropdown}>
       <Button
         aria-expanded={isOpen}
-        rightIcon={<ChevronDown aria-hidden className="size-4" />}
+        rightIcon={
+          <ChevronDown
+            aria-hidden
+            className={`size-4 ${styles.chevron}`}
+            data-open={isOpen || undefined}
+          />
+        }
         scheme="neutral"
         size="medium"
         variant="outlined"

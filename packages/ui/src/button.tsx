@@ -27,10 +27,15 @@ const cn = (...classes: (string | undefined | false | null)[]): string =>
  * de-StyleX'd copy of @astryxdesign/core/Button — it owns zero cosmetics,
  * so these classes are the only thing that ever draws pixels. No `!important`
  * needed; there's no competing stylesheet to out-specificity anymore.
+ *
+ * Its hover, press and focus run on `--duration-fast` and `--ease-standard`,
+ * the properties Astryx's own controls read. A fixed `duration-200` here is
+ * what once made it the one control that ignored the motion scale: a stage or a
+ * page that sets those two moves the button with everything else.
  */
 const buttonVariants = cva(
   // Base styles applied to all button states
-  "inline-flex items-center justify-center font-[inherit] font-semibold transition duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none",
+  "inline-flex items-center justify-center font-[inherit] font-semibold transition duration-(--duration-fast) ease-(--ease-standard) active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed select-none",
   {
     variants: {
       /**
