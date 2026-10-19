@@ -188,6 +188,13 @@ export function SystemExportDialog({
           ) : (
             <CodeBlock
               code={preview.text}
+              onCopy={() => {
+                /* The block copies what it draws. A long export is drawn from its
+                   start, and what is wanted on the clipboard is all of it. */
+                if (preview.isTruncated && output) {
+                  void navigator.clipboard.writeText(output);
+                }
+              }}
               container="card"
               language={
                 extension === "json"

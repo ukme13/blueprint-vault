@@ -140,6 +140,35 @@ test.describe("A long export", () => {
     expect(() => JSON.parse(text)).not.toThrow();
   });
 
+  test("copies all of a long export from the code block's copy button", async ({
+    seededPage: page,
+  }) => {
+    await page
+      .context()
+      .grantPermissions(["clipboard-read", "clipboard-write"]);
+    await openExport(page);
+    await reportButton(page, "Report (JSON)").click();
+    await expect(preview(page)).toContainText("The download has all of it.");
+
+    await preview(page).getByRole("button", { name: /copy/i }).click();
+    /* The block copied what it draws; the clipboard is then given the rest. */
+    await expect
+      .poll(
+        async () =>
+          (await page.evaluate(() => navigator.clipboard.readText())).split(
+            "\n",
+          ).length,
+      )
+      .toBeGreaterThan(5_000);
+
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    const downloaded = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download" }).click();
+    const file = readFileSync(await (await downloaded).path(), "utf8");
+    /* The clipboard may hold the platform's line endings; the text is the same. */
+    expect(copied.replace(/\r\n/g, "\n")).toBe(file);
+  });
+
   test("keeps the page responsive while Markdown and JSON are switched between", async ({
     seededPage: page,
   }) => {

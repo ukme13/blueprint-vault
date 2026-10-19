@@ -173,7 +173,7 @@ test.describe("Sampling a colour from the screen", () => {
     await expect(hex).toHaveValue("#1A2B3C");
     expect(before).not.toBe("#1A2B3C");
     /* Applied, not only drawn: the picker's own swatch holds it. */
-    await expect(picker.locator('[class*="colourHexSwatch"]')).toHaveCSS(
+    await expect(picker.locator('i[class*="colourHexSwatch"]')).toHaveCSS(
       "background-color",
       "rgb(26, 43, 60)",
     );
@@ -212,5 +212,81 @@ test.describe("Sampling a colour from the screen", () => {
     await expect(
       picker.getByRole("button", { name: /from the screen/ }),
     ).toHaveCount(0);
+  });
+});
+
+test.describe("The picker's colour field", () => {
+  test("draws no border of its own inside the field's", async ({
+    seededPage: page,
+  }) => {
+    const picker = await openPicker(page);
+    const input = picker.getByLabel("primary 200 manual colour HEX value");
+    await expect(input).toHaveCSS("border-top-width", "0px");
+    await expect(input).toHaveCSS("outline-style", "none");
+    await expect(input).toHaveCSS("box-shadow", "none");
+    await expect(input).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    /* Focused, it still draws none: the field's outer edge is the one line. */
+    await input.focus();
+    await expect(input).toHaveCSS("outline-style", "none");
+    await expect(input).toHaveCSS("border-top-width", "0px");
+  });
+
+  test("copies its colour from the swatch, and says so", async ({
+    seededPage: page,
+  }) => {
+    await page
+      .context()
+      .grantPermissions(["clipboard-read", "clipboard-write"]);
+    const picker = await openPicker(page);
+    const input = picker.getByLabel("primary 200 manual colour HEX value");
+    const shown = await input.inputValue();
+
+    const swatch = picker.getByRole("button", { name: `Copy ${shown}` });
+    await expect(swatch).toBeVisible();
+    await swatch.click();
+
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+      shown,
+    );
+    const toast = page.getByLabel("Notifications").getByText("Color copied", {
+      exact: true,
+    });
+    await expect(toast).toBeVisible();
+    /* It fades on its own. */
+    await expect(toast).toBeHidden({ timeout: 6_000 });
+  });
+
+  test("copies the colour in the format the field is in", async ({
+    seededPage: page,
+  }) => {
+    await page
+      .context()
+      .grantPermissions(["clipboard-read", "clipboard-write"]);
+    const picker = await openPicker(page);
+    await picker.getByLabel("Colour format").click();
+    await page.getByRole("option", { name: "HSL", exact: true }).click();
+    const input = picker.getByLabel("primary 200 manual colour HSL value");
+    const shown = await input.inputValue();
+    expect(shown).toMatch(/^hsl\(/);
+
+    await picker.getByRole("button", { name: `Copy ${shown}` }).click();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(
+      shown,
+    );
+  });
+
+  test("takes focus from the keyboard with a ring", async ({
+    seededPage: page,
+  }) => {
+    const picker = await openPicker(page);
+    const input = picker.getByLabel("primary 200 manual colour HEX value");
+    const swatch = picker.getByRole("button", {
+      name: `Copy ${await input.inputValue()}`,
+    });
+    await swatch.focus();
+    await page.keyboard.press("Tab");
+    await swatch.focus();
+    await expect(swatch).toHaveCSS("outline-style", "solid");
+    await expect(swatch).toHaveCSS("cursor", "pointer");
   });
 });

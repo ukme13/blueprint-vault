@@ -34,6 +34,7 @@ import { useColourFormat } from "./ColourFormatContext";
 import { ChannelControl } from "./ChannelControl";
 import { ColourFormatSelector } from "./ColourFormatSelector";
 import { HslChannels } from "./HslChannels";
+import { useCopyColour } from "./use-copy-colour";
 import { useDraggablePanel } from "./use-draggable-panel";
 import { useEyeDropper } from "./use-eye-dropper";
 import styles from "./palette-workspace.module.css";
@@ -209,6 +210,7 @@ function ColourPickerPanel({
     [value],
   );
   const [draft, setDraft] = useState(() => formatColour(value, colourFormat));
+  const copyColour = useCopyColour();
 
   /* Re-sync the draft during render rather than in an effect, so the input
      never shows one frame of the previous colour or format.
@@ -420,10 +422,17 @@ function ColourPickerPanel({
             label={`${label} ${COLOUR_FORMAT_LABELS[colourFormat]} value`}
             size="lg"
             startIcon={
-              <i
-                className={styles.colourHexSwatch}
-                style={{ backgroundColor: value }}
-              />
+              <button
+                aria-label={`Copy ${draft}`}
+                className={styles.colourHexSwatchButton}
+                type="button"
+                onClick={() => void copyColour(draft)}
+              >
+                <i
+                  className={styles.colourHexSwatch}
+                  style={{ backgroundColor: value }}
+                />
+              </button>
             }
             value={draft}
             width="100%"
