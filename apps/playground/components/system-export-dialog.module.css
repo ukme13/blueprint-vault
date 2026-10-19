@@ -96,6 +96,13 @@
   min-height: 430px;
 }
 
+/* Said under the code when only the start of a long export is drawn. */
+.exportPreviewNote {
+  margin: 8px 0 0;
+  color: var(--color-fg-secondary);
+  font-size: 0.8125rem;
+}
+
 .exportDialogFooter {
   border-top: 1px solid var(--color-border-strong);
 }

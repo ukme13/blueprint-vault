@@ -9,6 +9,7 @@ import { Spinner } from "@astryxdesign/core/Spinner";
 import { useIsPhone } from "./use-is-phone";
 import {
   Button,
+  exportPreviewExcerpt,
   generatePalettes,
   parseBlueprintWorkspace,
   type ColourFormat,
@@ -94,6 +95,10 @@ export function SystemExportDialog({
     { workspace, palettes, colourFormat, unit, remRootPx },
     isOpen,
   );
+  /* What is drawn is the start of a long export. The file is the whole of it:
+     highlighting and numbering a report of thirty thousand lines locked the
+     page, and no one reads that far in a preview. */
+  const preview = useMemo(() => exportPreviewExcerpt(output), [output]);
   const extension = exportExtension(exportFormat);
   const filename = exportFilename(workspace.name, exportFormat);
 
@@ -182,7 +187,7 @@ export function SystemExportDialog({
             </div>
           ) : (
             <CodeBlock
-              code={output}
+              code={preview.text}
               container="card"
               language={
                 extension === "json"
@@ -197,6 +202,13 @@ export function SystemExportDialog({
               width="100%"
             />
           )}
+          {!isPending && preview.isTruncated ? (
+            <p className={styles.exportPreviewNote}>
+              Preview shows the first {preview.shownLines.toLocaleString("en")}{" "}
+              of {preview.totalLines.toLocaleString("en")} lines. The download
+              has all of it.
+            </p>
+          ) : null}
         </section>
       </div>
       <footer className={styles.exportDialogFooter}>
