@@ -9,6 +9,7 @@ import { Spinner } from "@astryxdesign/core/Spinner";
 import { useIsPhone } from "./use-is-phone";
 import {
   Button,
+  EXPORT_PREVIEW_LIMITS,
   exportPreviewExcerpt,
   generatePalettes,
   parseBlueprintWorkspace,
@@ -98,7 +99,12 @@ export function SystemExportDialog({
   /* What is drawn is the start of a long export. The file is the whole of it:
      highlighting and numbering a report of thirty thousand lines locked the
      page, and no one reads that far in a preview. */
-  const preview = useMemo(() => exportPreviewExcerpt(output), [output]);
+  const preview = useMemo(() => {
+    const limits = REPORT_FORMATS.includes(exportFormat)
+      ? EXPORT_PREVIEW_LIMITS.report
+      : EXPORT_PREVIEW_LIMITS.file;
+    return exportPreviewExcerpt(output, limits.maxLines, limits.maxChars);
+  }, [exportFormat, output]);
   const extension = exportExtension(exportFormat);
   const filename = exportFilename(workspace.name, exportFormat);
 

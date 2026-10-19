@@ -4,11 +4,28 @@
  * A preview is highlighted and numbered line by line in the page, and that
  * costs the main thread in proportion to what it is given. An accessibility
  * report in JSON is a million characters on thirty-seven thousand lines; drawn
- * whole it froze the browser. The cap is far above what anyone reads in a
- * preview, and the file that is downloaded is never cut.
+ * whole it froze the browser. The cap is above every plain export (the CSS and
+ * the project file are under three thousand lines), so only a long report is
+ * cut, and the file that is downloaded is never cut.
  */
-export const EXPORT_PREVIEW_MAX_LINES = 500;
-export const EXPORT_PREVIEW_MAX_CHARS = 60_000;
+export const EXPORT_PREVIEW_MAX_LINES = 4_000;
+export const EXPORT_PREVIEW_MAX_CHARS = 150_000;
+
+/**
+ * The caps for each kind of export.
+ *
+ * A file the system is written into (the CSS, the tokens, the project) is drawn
+ * whole up to the general cap. A report is drawn from a tighter one: it is
+ * measured, not read down, and its JSON runs to tens of thousands of lines. The
+ * Markdown report, at about nine hundred lines, still fits whole.
+ */
+export const EXPORT_PREVIEW_LIMITS = {
+  file: {
+    maxLines: EXPORT_PREVIEW_MAX_LINES,
+    maxChars: EXPORT_PREVIEW_MAX_CHARS,
+  },
+  report: { maxLines: 1_000, maxChars: 120_000 },
+} as const;
 
 export interface ExportPreviewExcerpt {
   /** What to draw: the whole text when it is short enough, else its start. */

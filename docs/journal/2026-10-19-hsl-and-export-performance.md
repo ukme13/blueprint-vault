@@ -22,8 +22,9 @@ characters on 37,000 lines, is chosen.
 - **The preview shows the start of a long export.** Measured, the JSON report is
   1,029,279 characters; computing it takes about 8 ms. What froze the page was
   `CodeBlock` highlighting and numbering 37,596 lines. `exportPreviewExcerpt`
-  (in `packages/ui`) cuts the preview at 500 lines or 60,000 characters, on a whole
-  line, and a note says how much is shown. The downloaded file is never cut.
+  (in `packages/ui`) cuts the preview on a whole line, and a note says how much is
+  shown: at 4,000 lines or 150,000 characters for a file, and at 1,000 lines for a
+  report, whose JSON runs to tens of thousands. Only the JSON report reaches either. The downloaded file is never cut.
 - **A worker makes them.** `export-worker.ts` runs the same two functions the page
   would; the page falls back to making the file itself, after the spinner paints, when
   a worker cannot be had, fails, or cannot be sent the project.
@@ -71,5 +72,10 @@ characters on 37,000 lines, is chosen.
   a file has to say so.
 - **A selector can match what was added.** `[class*="colourHexSwatch"]` matched the new
   `colourHexSwatchButton` as well; the existing test now names the element.
+- **The first cap was too tight, and CI found it.** At 500 lines the preview of the CSS
+  hid the type scale, and a test in the spacing studio that reads it from the preview
+  failed on all three attempts. The plain exports are 800 to 3,000 lines and drew
+  fine before; the cap was set from the one export that froze. It is now per kind,
+  and I had not run that spec: a change to the dialog needs every spec that opens it.
 - **Flaky tests, reported and not changed.** "A press on its own controls is theirs"
   (colour-picker-tools) failed once on a loaded first run and passed on every run after.

@@ -123,14 +123,14 @@ test.describe("A long export", () => {
     await reportButton(page, "Report (JSON)").click();
 
     await expect(preview(page)).toContainText(
-      /Preview shows the first 500 of [\d,]+ lines\./,
+      /Preview shows the first 1,000 of [\d,]+ lines\./,
     );
     await expect(preview(page)).toContainText("The download has all of it.");
     /* What is in the page is a small part of the megabyte the file holds. */
     const drawn = await preview(page).evaluate(
       (node) => node.textContent!.length,
     );
-    expect(drawn).toBeLessThan(100_000);
+    expect(drawn).toBeLessThan(200_000);
 
     const downloaded = page.waitForEvent("download");
     await page.getByRole("button", { name: "Download" }).click();

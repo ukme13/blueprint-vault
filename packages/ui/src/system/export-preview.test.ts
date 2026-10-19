@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  EXPORT_PREVIEW_LIMITS,
   EXPORT_PREVIEW_MAX_CHARS,
   EXPORT_PREVIEW_MAX_LINES,
   exportPreviewExcerpt,
@@ -67,5 +68,28 @@ describe("the export preview excerpt", () => {
   it("takes the caps as arguments", () => {
     expect(exportPreviewExcerpt(lines(5), 2, 1_000).text).toBe(lines(2));
     expect(exportPreviewExcerpt("abcdef", 10, 4).text).toBe("abcd");
+  });
+
+  it("draws a Markdown report whole, and cuts a long JSON one sooner than a file", () => {
+    const { report, file } = EXPORT_PREVIEW_LIMITS;
+    expect(report.maxLines).toBeLessThan(file.maxLines);
+    /* About the size of the Markdown report: 930 lines, 104,000 characters. */
+    const markdown = lines(930, "x".repeat(110));
+    expect(
+      exportPreviewExcerpt(markdown, report.maxLines, report.maxChars)
+        .isTruncated,
+    ).toBe(false);
+    /* And a file of the same size is whole under the general cap too. */
+    expect(
+      exportPreviewExcerpt(markdown, file.maxLines, file.maxChars).isTruncated,
+    ).toBe(false);
+    const json = lines(37_596, '  "ratio": 3.84,');
+    const excerpt = exportPreviewExcerpt(
+      json,
+      report.maxLines,
+      report.maxChars,
+    );
+    expect(excerpt.isTruncated).toBe(true);
+    expect(excerpt.shownLines).toBe(report.maxLines);
   });
 });
