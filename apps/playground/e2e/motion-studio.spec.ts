@@ -655,4 +655,76 @@ test.describe("The Motion studio", () => {
     await field.press("Enter");
     await expect(reset).toBeDisabled();
   });
+
+  test("holds a handle to its guide while Shift is down", async ({
+    seededPage: page,
+  }) => {
+    await openMotion(page);
+    const drag = async (
+      name: string,
+      dx: number,
+      dy: number,
+      shift: boolean,
+    ) => {
+      const handle = page.getByRole("slider", { name });
+      const box = (await handle.boundingBox())!;
+      const from = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+      await page.mouse.move(from.x, from.y);
+      await page.mouse.down();
+      if (shift) await page.keyboard.down("Shift");
+      await page.mouse.move(from.x + dx, from.y + dy, { steps: 6 });
+      if (shift) await page.keyboard.up("Shift");
+      await page.mouse.up();
+    };
+
+    /* The first handle pulled up and across: y stays on the foot, x moves. */
+    const start = (await stored(page)).easings[0]!.curve;
+    await drag("Standard handle 1", 50, -60, true);
+    const first = (await stored(page)).easings[0]!.curve;
+    expect(first[1]).toBe(0);
+    expect(first[0]).toBeGreaterThan(start[0]!);
+    expect(first.slice(2)).toEqual(start.slice(2));
+
+    /* The second handle pulled down and across: y stays on the top, x moves. */
+    await drag("Standard handle 2", 50, 60, true);
+    const second = (await stored(page)).easings[0]!.curve;
+    expect(second[3]).toBe(1);
+    expect(second[2]).toBeGreaterThan(first[2]!);
+    expect(second.slice(0, 2)).toEqual(first.slice(0, 2));
+  });
+
+  test("moves a handle freely again without Shift", async ({
+    seededPage: page,
+  }) => {
+    await openMotion(page);
+    const handle = page.getByRole("slider", { name: "Standard handle 1" });
+    const box = (await handle.boundingBox())!;
+    const from = { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+    await page.mouse.move(from.x, from.y);
+    await page.mouse.down();
+    await page.mouse.move(from.x + 40, from.y - 60, { steps: 6 });
+    await page.mouse.up();
+    expect((await stored(page)).easings[0]!.curve[1]).toBeGreaterThan(0.1);
+  });
+
+  test("leaves the dialog shut on Replay, and plays the rest", async ({
+    seededPage: page,
+  }) => {
+    await openMotion(page);
+    const toggle = stage(page).getByRole("switch", { name: "Notifications" });
+    await page.getByRole("button", { name: "Replay" }).click();
+    /* The inline controls play... */
+    await expect(toggle).toBeChecked();
+    await expect(
+      stage(page).locator('[class*="dropdownPanel"]'),
+    ).toHaveAttribute("data-open", "true");
+    /* ...and the modal is not popped over the page. */
+    await expect(dialog(page)).toBeHidden();
+    await expect(toggle).not.toBeChecked({ timeout: 5_000 });
+    await expect(dialog(page)).toBeHidden();
+
+    /* It opens when it is asked to. */
+    await stage(page).getByRole("button", { name: "Open dialog" }).click();
+    await expect(dialog(page)).toBeVisible();
+  });
 });

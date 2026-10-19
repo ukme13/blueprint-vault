@@ -166,6 +166,15 @@ function round(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
+/**
+ * A handle held to its guide, as Shift holds it while it is dragged: the first
+ * handle on the foot of the box (y 0), the second on its top (y 1), the lines the
+ * dashes mark. Only y is held; x goes where the pointer does.
+ */
+export function snapHandleToGuide(handle: 1 | 2, point: Point): Point {
+  return { x: point.x, y: handle === 1 ? 0 : 1 };
+}
+
 /** A curve with one of its two handles moved to a curve value. */
 export function moveCurveHandle(
   curve: CubicBezier,

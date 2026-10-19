@@ -7,6 +7,7 @@ import {
   curveToPixel,
   moveCurveHandle,
   pixelToCurve,
+  snapHandleToGuide,
   type CubicBezier,
   type CurveFrame,
 } from "@blueprint/ui";
@@ -57,8 +58,15 @@ export function BezierEditor({
     },
     onPointerMove: (event: PointerEvent<SVGCircleElement>) => {
       if (!event.currentTarget.hasPointerCapture(event.pointerId)) return;
+      /* Shift holds the handle to its guide, so a curve can be pulled along the
+         foot or the top without the other number drifting. */
+      const at = pixelToCurve(toFrame(event), FRAME);
       onChange(
-        moveCurveHandle(curve, handle, pixelToCurve(toFrame(event), FRAME)),
+        moveCurveHandle(
+          curve,
+          handle,
+          event.shiftKey ? snapHandleToGuide(handle, at) : at,
+        ),
       );
     },
     onKeyDown: (event: KeyboardEvent<SVGCircleElement>) => {

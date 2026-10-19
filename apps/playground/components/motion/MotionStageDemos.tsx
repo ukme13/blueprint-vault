@@ -134,12 +134,12 @@ const noBody = () => null;
  * middle of it, which fades in and settles from a little smaller. A press on the
  * scrim, Delete or Escape closes it.
  *
- * It is drawn in the body, outside the stage, so it sets the stage's properties
+ * Replay leaves it alone: a modal over the whole window is opened by the person,
+ * not popped up by a button on a toolbar. It is drawn in the body, outside the stage, so it sets the stage's properties
  * on itself to move on the same scale.
  */
-export function DialogDemo({ replayKey, holdMs, variables }: DemoProps) {
+export function DialogDemo({ variables }: DemoProps) {
   const [isOpen, setIsOpen] = useState(false);
-  useReplay(replayKey, holdMs, setIsOpen);
   const host = useSyncExternalStore(subscribeNothing, documentBody, noBody);
   const trigger = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);

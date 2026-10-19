@@ -15,6 +15,7 @@ import {
   playedMs,
   setDurationMs,
   setEasingCurve,
+  snapHandleToGuide,
   type CurveFrame,
 } from "./index";
 
@@ -225,6 +226,11 @@ describe("drawing a curve", () => {
     );
     expect(drawing.handle1).toEqual(curveToPixel({ x: 0.42, y: 0 }, frame));
     expect(drawing.handle2).toEqual(curveToPixel({ x: 0.58, y: 1 }, frame));
+  });
+
+  it("holds a handle to its guide: the first to the foot, the second to the top", () => {
+    expect(snapHandleToGuide(1, { x: 0.4, y: 0.7 })).toEqual({ x: 0.4, y: 0 });
+    expect(snapHandleToGuide(2, { x: 0.6, y: -0.3 })).toEqual({ x: 0.6, y: 1 });
   });
 
   it("moves one handle and leaves the other", () => {
