@@ -1,5 +1,6 @@
 import {
   expect,
+  openTheme,
   test,
   PALETTE_VIEW_STORAGE_KEY,
   readCurrentWorkspaceRaw,
@@ -677,4 +678,77 @@ test.describe("Where the simulated numbers show", () => {
 
     expect(simulated).toBe(verdict);
   });
+});
+
+test.describe("The vision control's pill", () => {
+  /* WCAG contrast of the type picker's text on its ground, as drawn. */
+  const contrast = (page: Page) =>
+    page.evaluate(() => {
+      const ctx = document
+        .createElement("canvas")
+        .getContext("2d", { willReadFrequently: true })!;
+      const rgb = (colour: string, over?: number[]) => {
+        ctx.clearRect(0, 0, 1, 1);
+        if (over) {
+          ctx.fillStyle = `rgb(${over.join(",")})`;
+          ctx.fillRect(0, 0, 1, 1);
+        }
+        ctx.fillStyle = colour;
+        ctx.fillRect(0, 0, 1, 1);
+        return Array.from(ctx.getImageData(0, 0, 1, 1).data).slice(0, 3);
+      };
+      const luminance = ([r, g, b]: number[]) => {
+        const f = (v: number) => {
+          const c = v / 255;
+          return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+        };
+        return 0.2126 * f(r!) + 0.7152 * f(g!) + 0.0722 * f(b!);
+      };
+      const ratio = (a: number[], b: number[]) => {
+        const [high, low] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+        return (high! + 0.05) / (low! + 0.05);
+      };
+      const style = (node: Element) => getComputedStyle(node);
+      const pill = document.querySelector(
+        '[class*="visionOptions"]',
+      ) as HTMLElement;
+      const selector = pill.querySelector("button") as HTMLElement;
+      const chevron = pill.querySelector(
+        ".astryx-selector > :last-child",
+      ) as HTMLElement;
+      const mode = document.querySelector(
+        '[class*="visionModeButton"]',
+      ) as HTMLElement;
+      const ground = rgb(style(document.documentElement).backgroundColor);
+      const pillGround = rgb(style(pill).backgroundColor, ground);
+      const modeGround = rgb(style(mode).backgroundColor, ground);
+      return {
+        selector: ratio(rgb(style(selector).color, pillGround), pillGround),
+        chevron: ratio(rgb(style(chevron).color, pillGround), pillGround),
+        mode: ratio(rgb(style(mode).color, modeGround), modeGround),
+        sameGround: pillGround.join() === modeGround.join(),
+      };
+    });
+
+  for (const theme of ["Light", "Dark"]) {
+    test(`reads in ${theme.toLowerCase()}, in the colour of the Vision button beside it`, async ({
+      seededPage: page,
+    }) => {
+      await visionChip(page).click();
+      await expect(visionChip(page)).toHaveAttribute("aria-pressed", "true");
+      await (await openTheme(page)).getByRole("radio", { name: theme }).click();
+      await expect(page.locator("html")).toHaveAttribute(
+        "data-theme",
+        theme.toLowerCase(),
+      );
+      await page.waitForTimeout(500);
+
+      const measured = await contrast(page);
+      expect(measured.selector).toBeGreaterThanOrEqual(4.5);
+      expect(measured.chevron).toBeGreaterThanOrEqual(4.5);
+      expect(measured.mode).toBeGreaterThanOrEqual(4.5);
+      /* One fill across the joined pair. */
+      expect(measured.sameGround).toBe(true);
+    });
+  }
 });

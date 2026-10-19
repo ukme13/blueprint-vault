@@ -860,7 +860,7 @@
   gap: 8px;
   margin: 0 -16px;
   padding: 16px 16px 2px;
-  border-top: 1px solid var(--color-border-strong);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .colourHexInput {

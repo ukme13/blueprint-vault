@@ -49,7 +49,10 @@
   border: 1px solid var(--color-action-primary);
   border-left: none;
   border-radius: 0 8px 8px 0;
-  background: var(--color-action-muted);
+  /* The fill the Vision button beside it has when on, so what is written on it
+     (the colour that reads on that fill) reads here too. On the muted accent it
+     was 3.6:1 in light and 1.0:1 in dark. */
+  background: var(--color-action-primary);
 }
 
 .visionOptions > * {
@@ -65,9 +68,9 @@
 }
 
 .visionOptions :global(.astryx-selector) > button {
-  /* Ordinary text on the muted accent behind it: 5.0:1 in light, 17.9:1 in
-     dark. */
-  color: var(--color-fg-primary);
+  /* The colour that reads on the action fill, as the Vision button beside it
+     does, so the two halves of the pill are written in one colour. */
+  color: var(--color-fg-on-action);
   /* Base size 0 so the label can shrink. Default min-width: auto is the
      string, which left no room for the chevron and overflow clipped it. */
   flex: 1 1 0%;
@@ -88,7 +91,7 @@
 .visionOptions :global(.astryx-selector) > :last-child {
   flex: none;
   margin-inline-start: auto;
-  color: var(--color-fg-primary);
+  color: var(--color-fg-on-action);
 }
 
 /* The severity dial sits outside the joined pair rather than inside it: it
