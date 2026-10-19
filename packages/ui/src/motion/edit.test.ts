@@ -8,6 +8,7 @@ import {
   defaultMotionScale,
   formatCurveText,
   matchEasingPreset,
+  motionScalesEqual,
   moveCurveHandle,
   parseCurveText,
   pixelToCurve,
@@ -235,5 +236,42 @@ describe("drawing a curve", () => {
       0.2, 0, 0.6, 0.9,
     ]);
     expect(curve).toEqual([0.2, 0, 0, 1]);
+  });
+});
+
+describe("comparing scales", () => {
+  it("is by value, so a scale read back is the one it was", () => {
+    const scale = defaultMotionScale();
+    expect(motionScalesEqual(scale, defaultMotionScale())).toBe(true);
+    expect(motionScalesEqual(scale, JSON.parse(JSON.stringify(scale)))).toBe(
+      true,
+    );
+  });
+
+  it("sees a changed duration, a changed curve, and a token more or fewer", () => {
+    const scale = defaultMotionScale();
+    expect(motionScalesEqual(scale, setDurationMs(scale, "fast", 151))).toBe(
+      false,
+    );
+    expect(
+      motionScalesEqual(
+        scale,
+        setEasingCurve(scale, "standard", [0.2, 0, 0, 0.9]),
+      ),
+    ).toBe(false);
+    expect(
+      motionScalesEqual(scale, {
+        ...scale,
+        durations: scale.durations.slice(1),
+      }),
+    ).toBe(false);
+  });
+
+  it("is back to equal when a change is put back", () => {
+    const scale = defaultMotionScale();
+    const there = setDurationMs(scale, "fast", 300);
+    expect(motionScalesEqual(scale, setDurationMs(there, "fast", 150))).toBe(
+      true,
+    );
   });
 });

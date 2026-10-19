@@ -34,6 +34,14 @@ export function matchEasingPreset(curve: CubicBezier): EasingToken | null {
   );
 }
 
+/**
+ * Whether two scales are the same tokens in the same order. By value: a scale
+ * read back from storage is a new object each time, and is still the same scale.
+ */
+export function motionScalesEqual(a: MotionScale, b: MotionScale): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
 /** A duration changed, held to what a duration can be. Others are as they were. */
 export function setDurationMs(
   scale: MotionScale,

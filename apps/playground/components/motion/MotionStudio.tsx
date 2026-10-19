@@ -5,6 +5,7 @@ import {
   Button,
   DEFAULT_WORKSPACE_NAME,
   defaultMotionScale,
+  motionScalesEqual,
   emptyWorkspace,
   useWorkspaceStore,
   type MotionSpeed,
@@ -90,7 +91,9 @@ export function MotionStudio() {
         history={history}
         speed={speed}
         onOpenSettings={() => setIsSettingsOpen(true)}
+        isModified={!motionScalesEqual(scale, defaultMotionScale())}
         onReplay={() => setReplayKey((key) => key + 1)}
+        onReset={() => history.write(defaultMotionScale())}
         onSpeedChange={setSpeed}
       />
 

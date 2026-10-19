@@ -597,4 +597,62 @@ test.describe("The Motion studio", () => {
     await dialog(page).locator("strong").click();
     await expect(dialog(page)).toBeVisible();
   });
+
+  test("resets the scale in one step, and only offers to when it has changed", async ({
+    seededPage: page,
+  }) => {
+    await openMotion(page);
+    const toolbar = page.getByRole("region", { name: "Motion toolbar" });
+    const reset = toolbar.getByRole("button", { name: "Reset", exact: true });
+    const original = await stored(page);
+    await expect(reset).toBeDisabled();
+
+    /* A duration and a curve changed: two edits. */
+    await chooseOption(page, "Duration token", "Fast · 150ms");
+    const field = durationField(page, "Fast");
+    await field.fill("300");
+    await field.press("Enter");
+    await chooseOption(page, "Easing preset", "Ease Out");
+    await expect
+      .poll(async () => (await stored(page)).durations[1]!.ms)
+      .toBe(300);
+    const edited = await stored(page);
+    expect(edited.easings[0]!.curve).toEqual([0, 0, 0.58, 1]);
+    await expect(reset).toBeEnabled();
+
+    await reset.click();
+    await expect
+      .poll(async () => (await stored(page)).durations[1]!.ms)
+      .toBe(150);
+    const after = await stored(page);
+    expect(after.durations).toEqual(original.durations);
+    expect(after.easings).toEqual(original.easings);
+    await expect(reset).toBeDisabled();
+    await expect.poll(() => stageVar(page, "--duration-fast")).toBe("150ms");
+
+    /* One step: a single undo gives back both edits. */
+    await toolbar.getByRole("button", { name: "Undo" }).click();
+    await expect
+      .poll(async () => (await stored(page)).durations[1]!.ms)
+      .toBe(300);
+    expect((await stored(page)).easings[0]!.curve).toEqual([0, 0, 0.58, 1]);
+    await expect(reset).toBeEnabled();
+  });
+
+  test("is not offered again once an edit is put back by hand", async ({
+    seededPage: page,
+  }) => {
+    await openMotion(page);
+    const reset = page
+      .getByRole("region", { name: "Motion toolbar" })
+      .getByRole("button", { name: "Reset", exact: true });
+    await chooseOption(page, "Duration token", "Fast · 150ms");
+    const field = durationField(page, "Fast");
+    await field.fill("200");
+    await field.press("Enter");
+    await expect(reset).toBeEnabled();
+    await field.fill("150");
+    await field.press("Enter");
+    await expect(reset).toBeDisabled();
+  });
 });

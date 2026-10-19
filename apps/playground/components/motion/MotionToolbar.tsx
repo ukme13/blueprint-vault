@@ -14,20 +14,26 @@ import styles from "./motion-studio.module.css";
 export const speedLabel = (speed: MotionSpeed) => `${speed}x`;
 
 /**
- * Undo and redo, the playback speed, and Replay, which plays every moment on
- * the stage again. On a phone the settings are a sheet, opened from here.
+ * Undo and redo, the playback speed, Replay, which plays every moment on the
+ * stage again, and Reset, which puts the scale back as it starts (one step to
+ * undo, and off while the scale is as it starts). On a phone the settings are a sheet, opened from here.
  */
 export function MotionToolbar({
   history,
   speed,
   onSpeedChange,
   onReplay,
+  isModified,
+  onReset,
   onOpenSettings,
 }: {
   history: MotionHistoryBinding;
   speed: MotionSpeed;
   onSpeedChange: (speed: MotionSpeed) => void;
   onReplay: () => void;
+  /** Whether the scale differs from the one a reset goes back to. */
+  isModified: boolean;
+  onReset: () => void;
   onOpenSettings: () => void;
 }) {
   return (
@@ -74,6 +80,15 @@ export function MotionToolbar({
         onClick={onReplay}
       >
         Replay
+      </Button>
+      <Button
+        disabled={!isModified}
+        scheme="neutral"
+        size="small"
+        variant="text"
+        onClick={onReset}
+      >
+        Reset
       </Button>
       <span className={styles.settingsTrigger}>
         <IconButton
