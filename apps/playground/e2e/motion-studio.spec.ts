@@ -712,16 +712,31 @@ test.describe("The Motion studio", () => {
   }) => {
     await openMotion(page);
     const toggle = stage(page).getByRole("switch", { name: "Notifications" });
+    /* Watched from before Replay: a dialog that opened and closed again while
+       it played would pass a check made only at the end. */
+    await page.evaluate(() => {
+      const scrim = document.querySelector('[class*="scrim"]')!;
+      const seen = window as unknown as { __dialogOpened: boolean };
+      seen.__dialogOpened = false;
+      new MutationObserver(() => {
+        if (scrim.hasAttribute("data-open")) seen.__dialogOpened = true;
+      }).observe(scrim, { attributes: true, attributeFilter: ["data-open"] });
+    });
+
     await page.getByRole("button", { name: "Replay" }).click();
     /* The inline controls play... */
     await expect(toggle).toBeChecked();
     await expect(
       stage(page).locator('[class*="dropdownPanel"]'),
     ).toHaveAttribute("data-open", "true");
-    /* ...and the modal is not popped over the page. */
-    await expect(dialog(page)).toBeHidden();
+    /* ...held, and let go. */
     await expect(toggle).not.toBeChecked({ timeout: 5_000 });
     await expect(dialog(page)).toBeHidden();
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { __dialogOpened: boolean }).__dialogOpened,
+      ),
+    ).toBe(false);
 
     /* It opens when it is asked to. */
     await stage(page).getByRole("button", { name: "Open dialog" }).click();
