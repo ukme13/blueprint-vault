@@ -1,4 +1,4 @@
-import type { Oklch, Rgb } from "./types";
+import type { Hsl, Oklch, Rgb } from "./types";
 
 const HEX_COLOR_PATTERN = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i;
 
@@ -58,6 +58,69 @@ export function hexToRgb(hex: string): Rgb {
     Number.parseInt(normalized.slice(3, 5), 16) / 255,
     Number.parseInt(normalized.slice(5, 7), 16) / 255,
   ];
+}
+
+/**
+ * sRGB to HSL, as CSS defines it: hue in degrees, saturation and lightness
+ * from 0 to 1. A grey has no hue, so it reads as 0, and no saturation.
+ */
+export function rgbToHsl(r: number, g: number, b: number): Hsl {
+  assertFiniteChannel(r, "Red");
+  assertFiniteChannel(g, "Green");
+  assertFiniteChannel(b, "Blue");
+
+  const red = clamp(r, 0, 1);
+  const green = clamp(g, 0, 1);
+  const blue = clamp(b, 0, 1);
+  const maximum = Math.max(red, green, blue);
+  const minimum = Math.min(red, green, blue);
+  const delta = maximum - minimum;
+  const lightness = (maximum + minimum) / 2;
+  if (delta === 0) return [0, 0, lightness];
+
+  const saturation = delta / (1 - Math.abs(2 * lightness - 1));
+  let hue: number;
+  if (maximum === red) hue = ((green - blue) / delta) % 6;
+  else if (maximum === green) hue = (blue - red) / delta + 2;
+  else hue = (red - green) / delta + 4;
+  hue *= 60;
+  if (hue < 0) hue += 360;
+
+  return [hue, clamp(saturation, 0, 1), lightness];
+}
+
+/** HSL to sRGB. The hue wraps; saturation and lightness are held to 0..1. */
+export function hslToRgb(
+  hue: number,
+  saturation: number,
+  lightness: number,
+): Rgb {
+  assertFiniteChannel(hue, "Hue");
+  assertFiniteChannel(saturation, "Saturation");
+  assertFiniteChannel(lightness, "Lightness");
+
+  const h = ((hue % 360) + 360) % 360;
+  const s = clamp(saturation, 0, 1);
+  const l = clamp(lightness, 0, 1);
+  const chroma = (1 - Math.abs(2 * l - 1)) * s;
+  const channel = (offset: number) => {
+    const k = (offset + h / 30) % 12;
+    return l - (chroma / 2) * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+  };
+
+  return [channel(0), channel(8), channel(4)];
+}
+
+export function hexToHsl(hex: string): Hsl {
+  return rgbToHsl(...hexToRgb(hex));
+}
+
+export function hslToHex(
+  hue: number,
+  saturation: number,
+  lightness: number,
+): string {
+  return rgbToHex(...hslToRgb(hue, saturation, lightness));
 }
 
 export function rgbToOklch(r: number, g: number, b: number): Oklch {

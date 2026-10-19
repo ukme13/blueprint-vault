@@ -7,7 +7,11 @@ import {
   TableRow,
 } from "@astryxdesign/core/Table";
 import { Text } from "@astryxdesign/core/Text";
-import { primitiveTrackRows, type ColorTrack } from "@blueprint/ui";
+import {
+  primitiveTrackRows,
+  type ColorTrack,
+  type ColourFormat,
+} from "@blueprint/ui";
 import { Swatch } from "./Swatch";
 
 /**
@@ -26,7 +30,7 @@ import { Swatch } from "./Swatch";
 
 interface PrimitiveTableProps {
   palettes: ColorTrack[];
-  colourFormat: "hex" | "oklch" | "rgb";
+  colourFormat: ColourFormat;
 }
 
 export function PrimitiveTable({

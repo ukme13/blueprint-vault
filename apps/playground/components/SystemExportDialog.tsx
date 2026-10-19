@@ -5,6 +5,7 @@ import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Dialog } from "@astryxdesign/core/Dialog";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
+import { Spinner } from "@astryxdesign/core/Spinner";
 import { useIsPhone } from "./use-is-phone";
 import {
   Button,
@@ -20,12 +21,12 @@ import {
   useExportTypeUnit,
   type TypePreference,
 } from "./ExportOptions";
+import { useExportOutput } from "./use-export-output";
 import {
   downloadExport,
   exportExtension,
   exportFilename,
-  exportHandoverFiles,
-  exportOutput,
+  exportPendingLabel,
   FORMATS,
   REPORT_FORMATS,
   TYPE_FORMATS,
@@ -88,26 +89,10 @@ export function SystemExportDialog({
     onOpenChange(nextIsOpen);
   };
 
-  const handover = useMemo(
-    () => exportHandoverFiles({ workspace, colourFormat, unit, remRootPx }),
-    [colourFormat, remRootPx, unit, workspace],
-  );
-  const output = useMemo(
-    () =>
-      exportOutput(
-        exportFormat,
-        { workspace, palettes, colourFormat, unit, remRootPx },
-        handover,
-      ),
-    [
-      colourFormat,
-      exportFormat,
-      handover,
-      palettes,
-      remRootPx,
-      unit,
-      workspace,
-    ],
+  const { output, handover, isPending } = useExportOutput(
+    exportFormat,
+    { workspace, palettes, colourFormat, unit, remRootPx },
+    isOpen,
   );
   const extension = exportExtension(exportFormat);
   const filename = exportFilename(workspace.name, exportFormat);
@@ -186,22 +171,32 @@ export function SystemExportDialog({
             onColourFormatChange={setColourFormat}
           />
         </section>
-        <section className={styles.exportPreview} aria-label="Export preview">
-          <CodeBlock
-            code={output}
-            container="card"
-            language={
-              extension === "json"
-                ? "json"
-                : extension === "md" || extension === "zip"
-                  ? "markdown"
-                  : "css"
-            }
-            maxHeight={isPhone ? "40dvh" : "430px"}
-            hasLineNumbers
-            size="sm"
-            width="100%"
-          />
+        <section
+          aria-busy={isPending}
+          aria-label="Export preview"
+          className={styles.exportPreview}
+        >
+          {isPending ? (
+            <div className={styles.exportPending}>
+              <Spinner label={exportPendingLabel(exportFormat)} size="md" />
+            </div>
+          ) : (
+            <CodeBlock
+              code={output}
+              container="card"
+              language={
+                extension === "json"
+                  ? "json"
+                  : extension === "md" || extension === "zip"
+                    ? "markdown"
+                    : "css"
+              }
+              maxHeight={isPhone ? "40dvh" : "430px"}
+              hasLineNumbers
+              size="sm"
+              width="100%"
+            />
+          )}
         </section>
       </div>
       <footer className={styles.exportDialogFooter}>
@@ -234,6 +229,7 @@ export function SystemExportDialog({
         <span className={styles.exportDialogFooterSpacer} />
         <Button
           className={styles.exportDownload}
+          disabled={isPending}
           scheme="primary"
           size="medium"
           variant="contained"

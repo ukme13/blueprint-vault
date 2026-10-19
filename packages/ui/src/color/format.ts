@@ -1,12 +1,14 @@
 import {
+  hexToHsl,
   hexToRgb,
+  hslToHex,
   normalizeHex,
   oklchToHex,
   rgbToHex,
   rgbToOklch,
 } from "./conversion";
 
-export const COLOUR_FORMATS = ["hex", "oklch", "rgb"] as const;
+export const COLOUR_FORMATS = ["hex", "oklch", "rgb", "hsl"] as const;
 
 export type ColourFormat = (typeof COLOUR_FORMATS)[number];
 
@@ -14,10 +16,16 @@ export const COLOUR_FORMAT_LABELS: Record<ColourFormat, string> = {
   hex: "HEX",
   oklch: "OKLCH",
   rgb: "RGB",
+  hsl: "HSL",
 };
 
 export function isColourFormat(value: unknown): value is ColourFormat {
   return COLOUR_FORMATS.includes(value as ColourFormat);
+}
+
+/** A channel to one decimal, without a trailing zero: 210 and 33.3, not 210.0. */
+function trimmed(value: number): string {
+  return String(Number(value.toFixed(1)));
 }
 
 export function formatColour(hex: string, format: ColourFormat): string {
@@ -28,6 +36,11 @@ export function formatColour(hex: string, format: ColourFormat): string {
   const rgb = hexToRgb(normalized);
   if (format === "rgb") {
     return `rgb(${rgb.map((channel) => Math.round(channel * 255)).join(" ")})`;
+  }
+
+  if (format === "hsl") {
+    const [hue, saturation, lightness] = hexToHsl(normalized);
+    return `hsl(${trimmed(hue)} ${trimmed(saturation * 100)}% ${trimmed(lightness * 100)}%)`;
   }
 
   const [lightness, chroma, hue] = rgbToOklch(...rgb);
@@ -71,6 +84,21 @@ export function parseColour(value: string, format: ColourFormat): string {
       throw new RangeError("RGB channels must be between 0 and 255.");
     }
     return rgbToHex(numbers[0]! / 255, numbers[1]! / 255, numbers[2]! / 255);
+  }
+
+  if (format === "hsl") {
+    const [hue, saturation, lightness] = numbers;
+    if (
+      hue! < 0 ||
+      hue! > 360 ||
+      saturation! < 0 ||
+      saturation! > 100 ||
+      lightness! < 0 ||
+      lightness! > 100
+    ) {
+      throw new RangeError("HSL channels are outside their allowed range.");
+    }
+    return hslToHex(hue!, saturation! / 100, lightness! / 100);
   }
 
   const [lightness, chroma, hue] = numbers;
