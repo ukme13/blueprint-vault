@@ -83,6 +83,7 @@ export function originOfChange(
   if (differs("spacing")) return { path: "/spacing" };
   if (differs("radius")) return { path: "/radius" };
   if (differs("elevation")) return { path: "/elevation" };
+  if (differs("motion")) return { path: "/motion" };
   if (differs("layout")) {
     const was = new Map(from.layout.map((token) => [token.id, token]));
     const moved = to.layout.filter(

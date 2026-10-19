@@ -1313,6 +1313,63 @@
       }
     }
   },
+  "motion": {
+    "duration": {
+      "$type": "duration",
+      "$description": "Durations exported from Blueprint.",
+      "instant": {
+        "$value": "100ms"
+      },
+      "fast": {
+        "$value": "150ms"
+      },
+      "normal": {
+        "$value": "250ms"
+      },
+      "moderate": {
+        "$value": "350ms"
+      },
+      "slow": {
+        "$value": "500ms"
+      }
+    },
+    "easing": {
+      "$type": "cubicBezier",
+      "$description": "Easing curves exported from Blueprint.",
+      "standard": {
+        "$value": [
+          0.2,
+          0,
+          0,
+          1
+        ]
+      },
+      "decelerate": {
+        "$value": [
+          0,
+          0,
+          0.2,
+          1
+        ]
+      },
+      "accelerate": {
+        "$value": [
+          0.3,
+          0,
+          1,
+          1
+        ]
+      },
+      "emphasized": {
+        "$value": [
+          0.05,
+          0.7,
+          0.1,
+          1
+        ]
+      }
+    }
+  },
   "layout": {
     "$type": "dimension",
     "$description": "Layout uses exported from Blueprint, one group per preview frame",

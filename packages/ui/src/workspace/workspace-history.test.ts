@@ -8,6 +8,7 @@ import {
   undoableKey,
 } from "./workspace-history";
 import { changedSemanticTargets, originOfChange } from "./workspace-origin";
+import { originLabel } from "./undo-navigation";
 import type { WorkspaceProject } from "./types";
 import { updateRoleValue } from "../typography/system";
 
@@ -189,6 +190,63 @@ describe("restoreUndoable", () => {
     expect(restoreUndoable(withType, without).typography).toBe(
       withType.typography,
     );
+  });
+});
+
+describe("motion in the history", () => {
+  const withDuration = (project: WorkspaceProject, ms: number) => ({
+    ...project,
+    motion: {
+      ...project.motion,
+      durations: project.motion.durations.map((token, at) =>
+        at === 0 ? { ...token, ms } : token,
+      ),
+    },
+  });
+
+  it("takes a step for a change of pace, and puts the earlier one back", () => {
+    const start = base();
+    const history = createWorkspaceHistory(start);
+    expect(history.commit(withDuration(start, 40))).toBe(true);
+    expect(history.undo()).toBe(start);
+    expect(history.redo()!.motion.durations[0]!.ms).toBe(40);
+  });
+
+  it("is part of what an undo owns, and puts back only that", () => {
+    const start = base();
+    const edited = withDuration(start, 40);
+    const current = { ...edited, name: "Renamed" };
+    const restored = restoreUndoable(current, start);
+    expect(restored.motion).toEqual(start.motion);
+    expect(restored.name).toBe("Renamed");
+  });
+
+  it("takes a motion edit back from another studio, latest edit first", () => {
+    const start = base();
+    const history = createWorkspaceHistory(start);
+    const paced = withDuration(start, 40);
+    const spaced = withBaseUnit(paced, 8);
+    history.commit(paced);
+    history.commit(spaced);
+    expect(history.undo()).toBe(paced);
+    expect(history.undo()).toBe(start);
+  });
+
+  it("names Motion as the studio of the edit", () => {
+    const start = base();
+    expect(originOfChange(start, withDuration(start, 40))).toEqual({
+      path: "/motion",
+    });
+    expect(originLabel({ path: "/motion" })).toBe("Motion");
+  });
+
+  it("is Spacing's when a spacing step moved with it", () => {
+    const start = base();
+    expect(
+      originOfChange(start, withBaseUnit(withDuration(start, 40), 8)),
+    ).toEqual({
+      path: "/spacing",
+    });
   });
 });
 

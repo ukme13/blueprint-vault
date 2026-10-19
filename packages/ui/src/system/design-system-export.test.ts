@@ -24,6 +24,7 @@ function input(
     spacing: project.spacing,
     radius: project.radius,
     elevation: project.elevation,
+    motion: project.motion,
     colourFormat: "hex",
     layout: project.layout,
     previewDevices: project.previewDevices,
@@ -87,5 +88,64 @@ describe("the design system export", () => {
     expect(size(rem)).toContain("rem");
     expect(size(px)).not.toContain("rem");
     expect(size(px)).toContain("px");
+  });
+});
+
+describe("motion in the design system export", () => {
+  it("writes the durations and the curves into the CSS, once", () => {
+    const css = formatDesignSystemCss(input());
+    expect(css).toContain("--duration-fast: 150ms;");
+    expect(css).toContain("--ease-standard: cubic-bezier(0.2, 0, 0, 1);");
+    expect(css.match(/--duration-fast:/g)).toHaveLength(1);
+  });
+
+  it("writes them into the Tailwind theme, with a utility for each duration", () => {
+    const tailwind = formatDesignSystemTailwind(input());
+    expect(tailwind).toContain("--duration-fast: 150ms;");
+    expect(tailwind).toContain(
+      "--ease-emphasized: cubic-bezier(0.05, 0.7, 0.1, 1);",
+    );
+    expect(tailwind).toContain("@utility duration-fast {");
+  });
+
+  it("writes them into the tokens, beside the other families", () => {
+    const tokens = JSON.parse(formatDesignSystemDesignTokens(input()));
+    expect(tokens.motion.duration.fast.$value).toBe("150ms");
+    expect(tokens.motion.easing.standard.$value).toEqual([0.2, 0, 0, 1]);
+    expect(Object.keys(tokens)).toEqual(
+      expect.arrayContaining([
+        "palette",
+        "spacing",
+        "radius",
+        "shadow",
+        "motion",
+      ]),
+    );
+  });
+
+  it("writes a preset's own scale, not the default", () => {
+    const own = {
+      ...input(),
+      motion: {
+        durations: [{ id: "snap", name: "Snap", ms: 70 }],
+        easings: [],
+      },
+    };
+    const css = formatDesignSystemCss(own);
+    expect(css).toContain("--duration-snap: 70ms;");
+    expect(css).not.toContain("--duration-fast:");
+    expect(css).not.toContain("--ease-");
+  });
+
+  it("leaves motion out when the caller has none, as it always did", () => {
+    const { motion, ...without } = input();
+    void motion;
+    expect(formatDesignSystemCss(without)).not.toContain("--duration-");
+    expect(formatDesignSystemTailwind(without)).not.toContain(
+      "@utility duration-",
+    );
+    expect(
+      JSON.parse(formatDesignSystemDesignTokens(without)).motion,
+    ).toBeUndefined();
   });
 });
