@@ -40,6 +40,17 @@ describe("palette developer exports", () => {
     expect(tokens.palette.$type).toBe("color");
     expect(tokens.palette.primary[50].$value).toMatch(/^rgb\(/);
   });
+
+  it("writes HSL as CSS reads it, in the CSS, Tailwind and token files", () => {
+    expect(formatPaletteCssExport([palette], "hsl")).toMatch(
+      /--color-primary-50: hsl\(\d+(\.\d)? \d+(\.\d)?% \d+(\.\d)?%\);/,
+    );
+    expect(formatPaletteTailwindExport([palette], "hsl")).toContain(
+      "@theme static {\n  --color-primary-50: hsl(",
+    );
+    const tokens = JSON.parse(formatPaletteDesignTokens([palette], "hsl"));
+    expect(tokens.palette.primary[50].$value).toMatch(/^hsl\(/);
+  });
 });
 
 /* Written from parts, so this file never holds a comment delimiter of its own. */

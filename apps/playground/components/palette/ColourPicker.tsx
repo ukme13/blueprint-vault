@@ -5,7 +5,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type KeyboardEvent,
   type PointerEvent,
   type ReactNode,
@@ -32,7 +31,10 @@ import { Sheet } from "../Sheet";
 import { useIsPhone } from "../use-is-phone";
 import { useIsolatedTouch } from "../use-isolated-touch";
 import { useColourFormat } from "./ColourFormatContext";
+import { ChannelControl } from "./ChannelControl";
 import { ColourFormatSelector } from "./ColourFormatSelector";
+import { HslChannels } from "./HslChannels";
+import { useCopyColour } from "./use-copy-colour";
 import { useDraggablePanel } from "./use-draggable-panel";
 import { useEyeDropper } from "./use-eye-dropper";
 import styles from "./palette-workspace.module.css";
@@ -134,61 +136,6 @@ interface ColourPickerPanelProps extends ColourPickerProps {
   inSheet?: boolean;
 }
 
-interface ChannelControlProps {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step: number;
-  gradient?: string;
-  hasOutOfGamut?: boolean;
-  thumbColour?: string;
-  onChange: (value: number) => void;
-}
-
-function ChannelControl({
-  label,
-  value,
-  min,
-  max,
-  step,
-  gradient,
-  hasOutOfGamut,
-  thumbColour,
-  onChange,
-}: ChannelControlProps) {
-  return (
-    <label className={styles.colourChannel}>
-      <span>{label}</span>
-      <input
-        aria-label={`${label} value`}
-        max={max}
-        min={min}
-        step={step}
-        type="number"
-        value={Number(value.toFixed(step < 0.01 ? 3 : step < 1 ? 2 : 0))}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
-      <input
-        aria-label={`${label} slider`}
-        data-has-out-of-gamut={hasOutOfGamut || undefined}
-        max={max}
-        min={min}
-        step={step}
-        style={
-          {
-            background: gradient,
-            "--slider-thumb-colour": thumbColour,
-          } as CSSProperties
-        }
-        type="range"
-        value={value}
-        onChange={(event) => onChange(Number(event.target.value))}
-      />
-    </label>
-  );
-}
-
 interface OklchGradient {
   background: string;
   hasOutOfGamut: boolean;
@@ -263,6 +210,7 @@ function ColourPickerPanel({
     [value],
   );
   const [draft, setDraft] = useState(() => formatColour(value, colourFormat));
+  const copyColour = useCopyColour();
 
   /* Re-sync the draft during render rather than in an effect, so the input
      never shows one frame of the previous colour or format.
@@ -435,6 +383,10 @@ function ColourPickerPanel({
         <OklchChannels value={value} onChange={onChange} />
       )}
 
+      {colourFormat === "hsl" && (
+        <HslChannels value={value} onChange={onChange} />
+      )}
+
       {colourFormat === "rgb" && (
         <section className={styles.colourChannels}>
           {(["Red", "Green", "Blue"] as const).map((channel, index) => (
@@ -470,10 +422,17 @@ function ColourPickerPanel({
             label={`${label} ${COLOUR_FORMAT_LABELS[colourFormat]} value`}
             size="lg"
             startIcon={
-              <i
-                className={styles.colourHexSwatch}
-                style={{ backgroundColor: value }}
-              />
+              <button
+                aria-label={`Copy ${draft}`}
+                className={styles.colourHexSwatchButton}
+                type="button"
+                onClick={() => void copyColour(draft)}
+              >
+                <i
+                  className={styles.colourHexSwatch}
+                  style={{ backgroundColor: value }}
+                />
+              </button>
             }
             value={draft}
             width="100%"

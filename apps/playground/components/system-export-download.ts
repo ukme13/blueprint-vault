@@ -58,7 +58,19 @@ export const TYPE_FORMATS: ExportFormat[] = [
 
 export type ExportExtension = "zip" | "md" | "json" | "css";
 
-type HandoverFiles = ReturnType<typeof buildHandoverFiles>;
+export type HandoverFiles = ReturnType<typeof buildHandoverFiles>;
+
+/* The formats that measure the whole palette rather than write it out: the
+   archive builds every file in it, and a report checks every pair of shades.
+   They are made when chosen, not with the dialog. */
+export function isHeavyExport(format: ExportFormat): boolean {
+  return format === "handover" || REPORT_FORMATS.includes(format);
+}
+
+/** What the preview says while a heavy format is being made. */
+export function exportPendingLabel(format: ExportFormat): string {
+  return format === "handover" ? "Generating handover…" : "Generating report…";
+}
 
 export interface ExportInput {
   workspace: WorkspaceProject;

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { TextInput } from "@astryxdesign/core/TextInput";
-import { useToast } from "@astryxdesign/core/Toast";
 import {
   COLOUR_FORMAT_LABELS,
   cleanShadeLabel,
@@ -17,7 +16,7 @@ import { ShadeContrastResult } from "./ShadeContrastResult";
 import { ShadeEditModeControls } from "./ShadeEditModeControls";
 import { usePaletteView } from "./PaletteViewContext";
 import styles from "./palette-workspace.module.css";
-import { useCopyFeedback } from "../useCopyFeedback";
+import { useCopyColour } from "./use-copy-colour";
 
 interface ShadeDetailPopoverProps {
   paletteName: string;
@@ -65,8 +64,7 @@ export function ShadeDetailPopover({
   const isSource = openedOnSource || shade.anchorType === "source";
   const { seen } = usePaletteView();
   const { colourFormat } = useColourFormat();
-  const { copyText } = useCopyFeedback(1200);
-  const toast = useToast();
+  const copyColourText = useCopyColour();
   /* What is in the field is kept here, as typed: the nickname that comes back
      from the track is cleaned and trimmed, and a field fed that could not take
      a space, so a second word would be impossible. The popover is new each time
@@ -88,31 +86,7 @@ export function ShadeDetailPopover({
       ? `${paletteName} ${shade.weight} anchor colour`
       : `${paletteName} ${shade.weight} manual colour`;
 
-  const copyColour = async () => {
-    const didCopy = await copyText(colourValue);
-    toast({
-      autoHideDuration: 1800,
-      body: didCopy ? (
-        <span className={styles.copyToastMessage}>
-          <svg aria-hidden="true" height="16" viewBox="0 0 16 16" width="16">
-            <path
-              d="m3.5 8.2 2.8 2.8 6.2-6.2"
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="1.8"
-            />
-          </svg>
-          Color copied
-        </span>
-      ) : (
-        "Could not copy color"
-      ),
-      type: didCopy ? "info" : "error",
-      uniqueID: "shade-color-copy",
-    });
-  };
+  const copyColour = () => copyColourText(colourValue);
 
   const editColour = (hex: string) => {
     /* Still the source after it has moved: see isSource above. */

@@ -1,5 +1,7 @@
 export type Rgb = [number, number, number];
 export type Oklch = [number, number, number];
+/** Hue in degrees, 0 to 360; saturation and lightness as 0 to 1. */
+export type Hsl = [number, number, number];
 
 export type DistributionMode =
   "linear" | "ease-in-out" | "ease-in" | "ease-out" | "custom";

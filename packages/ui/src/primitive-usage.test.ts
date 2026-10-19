@@ -291,6 +291,9 @@ const CHROME_ALLOWED: ReadonlyArray<[RegExp, RegExp]> = [
   [/palette[\\/]palette-workspace\.module\.css$/, /^(?:hsl|oklch)\($/],
   // A colour the user typed, written back out for the swatch to show.
   [/palette[\\/]ColourPicker\.tsx$/, /^(?:oklch|hsl)\($/],
+  // The HSL sliders' tracks: the rainbow, and the same colour from grey to full
+  // and from black to white. Literal by definition, as the hue slider is.
+  [/palette[\\/]HslChannels\.tsx$/, /^hsl\($/],
   // Palette data, not chrome: the source colour a new track starts from, the
   // white and black a contrast ratio is measured against, and a value read
   // back out of the palette. None of these style the studio.

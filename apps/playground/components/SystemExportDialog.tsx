@@ -5,9 +5,12 @@ import { CodeBlock } from "@astryxdesign/core/CodeBlock";
 import { Dialog } from "@astryxdesign/core/Dialog";
 import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
+import { Spinner } from "@astryxdesign/core/Spinner";
 import { useIsPhone } from "./use-is-phone";
 import {
   Button,
+  EXPORT_PREVIEW_LIMITS,
+  exportPreviewExcerpt,
   generatePalettes,
   parseBlueprintWorkspace,
   type ColourFormat,
@@ -20,12 +23,12 @@ import {
   useExportTypeUnit,
   type TypePreference,
 } from "./ExportOptions";
+import { useExportOutput } from "./use-export-output";
 import {
   downloadExport,
   exportExtension,
   exportFilename,
-  exportHandoverFiles,
-  exportOutput,
+  exportPendingLabel,
   FORMATS,
   REPORT_FORMATS,
   TYPE_FORMATS,
@@ -88,27 +91,20 @@ export function SystemExportDialog({
     onOpenChange(nextIsOpen);
   };
 
-  const handover = useMemo(
-    () => exportHandoverFiles({ workspace, colourFormat, unit, remRootPx }),
-    [colourFormat, remRootPx, unit, workspace],
+  const { output, handover, isPending } = useExportOutput(
+    exportFormat,
+    { workspace, palettes, colourFormat, unit, remRootPx },
+    isOpen,
   );
-  const output = useMemo(
-    () =>
-      exportOutput(
-        exportFormat,
-        { workspace, palettes, colourFormat, unit, remRootPx },
-        handover,
-      ),
-    [
-      colourFormat,
-      exportFormat,
-      handover,
-      palettes,
-      remRootPx,
-      unit,
-      workspace,
-    ],
-  );
+  /* What is drawn is the start of a long export. The file is the whole of it:
+     highlighting and numbering a report of thirty thousand lines locked the
+     page, and no one reads that far in a preview. */
+  const preview = useMemo(() => {
+    const limits = REPORT_FORMATS.includes(exportFormat)
+      ? EXPORT_PREVIEW_LIMITS.report
+      : EXPORT_PREVIEW_LIMITS.file;
+    return exportPreviewExcerpt(output, limits.maxLines, limits.maxChars);
+  }, [exportFormat, output]);
   const extension = exportExtension(exportFormat);
   const filename = exportFilename(workspace.name, exportFormat);
 
@@ -186,22 +182,46 @@ export function SystemExportDialog({
             onColourFormatChange={setColourFormat}
           />
         </section>
-        <section className={styles.exportPreview} aria-label="Export preview">
-          <CodeBlock
-            code={output}
-            container="card"
-            language={
-              extension === "json"
-                ? "json"
-                : extension === "md" || extension === "zip"
-                  ? "markdown"
-                  : "css"
-            }
-            maxHeight={isPhone ? "40dvh" : "430px"}
-            hasLineNumbers
-            size="sm"
-            width="100%"
-          />
+        <section
+          aria-busy={isPending}
+          aria-label="Export preview"
+          className={styles.exportPreview}
+        >
+          {isPending ? (
+            <div className={styles.exportPending}>
+              <Spinner label={exportPendingLabel(exportFormat)} size="md" />
+            </div>
+          ) : (
+            <CodeBlock
+              code={preview.text}
+              onCopy={() => {
+                /* The block copies what it draws. A long export is drawn from its
+                   start, and what is wanted on the clipboard is all of it. */
+                if (preview.isTruncated && output) {
+                  void navigator.clipboard.writeText(output);
+                }
+              }}
+              container="card"
+              language={
+                extension === "json"
+                  ? "json"
+                  : extension === "md" || extension === "zip"
+                    ? "markdown"
+                    : "css"
+              }
+              maxHeight={isPhone ? "40dvh" : "430px"}
+              hasLineNumbers
+              size="sm"
+              width="100%"
+            />
+          )}
+          {!isPending && preview.isTruncated ? (
+            <p className={styles.exportPreviewNote}>
+              Preview shows the first {preview.shownLines.toLocaleString("en")}{" "}
+              of {preview.totalLines.toLocaleString("en")} lines. The download
+              has all of it.
+            </p>
+          ) : null}
         </section>
       </div>
       <footer className={styles.exportDialogFooter}>
@@ -234,6 +254,7 @@ export function SystemExportDialog({
         <span className={styles.exportDialogFooterSpacer} />
         <Button
           className={styles.exportDownload}
+          disabled={isPending}
           scheme="primary"
           size="medium"
           variant="contained"

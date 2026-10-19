@@ -860,7 +860,7 @@
   gap: 8px;
   margin: 0 -16px;
   padding: 16px 16px 2px;
-  border-top: 1px solid var(--color-border-strong);
+  border-top: 1px solid var(--color-border-subtle);
 }
 
 .colourHexInput {
@@ -869,9 +869,35 @@
   min-width: 0;
 }
 
-.colourHexInput input {
+/* The field's own box is the one border: the input inside it draws none, or
+   the two meet as a double line when the outer one takes focus. */
+.colourHexInput input,
+.contrastColourField input {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
   font-family: var(--font-mono);
   font-size: 16px;
+}
+
+/* The swatch as a button: it copies the colour in the field. */
+.colourHexSwatchButton {
+  display: inline-flex;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.colourHexSwatchButton:hover .colourHexSwatch {
+  border-color: var(--color-fg-secondary);
+}
+
+.colourHexSwatchButton:focus-visible {
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
 }
 
 .colourHexSwatch {
@@ -1893,9 +1919,4 @@
 .contrastColourField {
   display: block;
   min-width: 0;
-}
-
-.contrastColourField input {
-  font-family: var(--font-mono);
-  font-size: 16px;
 }
