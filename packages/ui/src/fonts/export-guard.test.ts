@@ -1,3 +1,4 @@
+import { defaultMotionScale } from "../motion";
 import { describe, expect, it } from "vitest";
 import * as blueprint from "../index";
 import {
@@ -53,6 +54,9 @@ const DOCUMENT_FORMATTERS = [
   "formatBlueprintWorkspace",
   "formatLayoutCss",
   "formatLayoutTailwind",
+  "formatMotionCss",
+  "formatMotionDesignTokens",
+  "formatMotionTailwind",
   "formatPaletteCss",
   "formatPaletteCssExport",
   "formatPaletteDesignTokens",
@@ -237,6 +241,7 @@ describe("no export carries font data", () => {
       spacingPreview: defaultSpacingPreviewSettings(),
       radius: defaultRadiusScale(),
       elevation: defaultElevationScale(),
+      motion: defaultMotionScale(),
       previewDevices: defaultPreviewDevices(1.25),
       layout: defaultLayoutTokens(),
       typography: {

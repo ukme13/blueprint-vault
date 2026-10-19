@@ -14,6 +14,7 @@ import {
   spacingOrDefault,
   spacingPreviewOrDefault,
 } from "./scale-slices";
+import { defaultMotionScale, motionOrDefault } from "../motion";
 import { defaultElevationScale } from "../scale/elevation";
 import {
   adoptSquishOverrides,
@@ -193,6 +194,7 @@ export function readWorkspaceProject(value: unknown): WorkspaceProject | null {
     ),
     radius: radiusOrDefault(value.radius),
     elevation: elevationOrDefault(value.elevation),
+    motion: motionOrDefault((value as { motion?: unknown }).motion),
     previewDevices: frames.previewDevices,
     /* A paired inset is taken as it was saved: any frame that is not what
        the squish would give becomes a typed one, so loading moves nothing. */
@@ -238,6 +240,7 @@ export function workspaceFromLegacy(
     spacingPreview: defaultSpacingPreviewSettings(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
+    motion: defaultMotionScale(),
     ...readWorkspaceFrames(
       { typography: typographyValue } as Record<string, unknown>,
       typography,
@@ -330,6 +333,7 @@ export function emptyWorkspace(
     spacingPreview: defaultSpacingPreviewSettings(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
+    motion: defaultMotionScale(),
     previewDevices: defaultPreviewDevices(),
     layout: defaultLayoutTokens(),
   };

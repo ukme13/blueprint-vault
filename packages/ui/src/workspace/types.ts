@@ -1,6 +1,7 @@
 import type { PaletteProjectData } from "../color/export";
 import type { SemanticToken } from "../color/semantic";
 import type { ButtonScheme } from "../button-tones";
+import type { MotionScale } from "../motion/types";
 import type { ElevationScale } from "../scale/elevation";
 import type { LayoutToken } from "../scale/layout-tokens";
 import type { RadiusScale } from "../scale/radius";
@@ -132,6 +133,13 @@ export interface WorkspaceProject {
   radius: RadiusScale;
   /** Shadow levels. Filled like the other two scales. */
   elevation: ElevationScale;
+  /**
+   * Durations and easing curves.
+   *
+   * Filled like the scales above: a workspace saved before motion existed has
+   * the default scale, not a gap.
+   */
+  motion: MotionScale;
   /**
    * Named frames for preview and layout.
    *

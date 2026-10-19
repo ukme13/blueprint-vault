@@ -28,6 +28,7 @@ export * from "./shade-options";
 export * from "./use-colour-mode";
 export * from "./color";
 export * from "./scale";
+export * from "./motion";
 export * from "./system";
 export * from "./fonts";
 export * from "./preview-images";

@@ -7,6 +7,7 @@ import {
   workspacePresetDetails,
   workspacePresetSwatches,
 } from "./presets";
+import { defaultMotionScale } from "../motion";
 import { defaultRadiusScale } from "../scale/radius";
 import { detectTypeRolePreset } from "../typography/role-presets";
 import { generateTypeSteps } from "../typography/scale";
@@ -24,6 +25,7 @@ const SLICES = [
   "spacing",
   "radius",
   "elevation",
+  "motion",
   "previewDevices",
   "layout",
   "typography",
@@ -612,5 +614,119 @@ describe("the Designally preset", () => {
       elementRadiusPx: 8,
       containerRadiusPx: 12,
     });
+  });
+});
+
+describe("motion in the presets", () => {
+  const motionOf = (id: string) =>
+    instantiateWorkspacePreset(findWorkspacePreset(id)!, "Test").motion;
+  const ms = (id: string) => motionOf(id).durations.map((token) => token.ms);
+
+  it("gives Carbon its own six durations, 70 to 700ms", () => {
+    expect(ms("carbon")).toEqual([70, 110, 150, 240, 400, 700]);
+    expect(motionOf("carbon").durations.map((token) => token.id)).toEqual([
+      "fast-01",
+      "fast-02",
+      "moderate-01",
+      "moderate-02",
+      "slow-01",
+      "slow-02",
+    ]);
+  });
+
+  it("gives Carbon its productive and expressive curves", () => {
+    const curves = Object.fromEntries(
+      motionOf("carbon").easings.map((easing) => [easing.id, easing.css]),
+    );
+    expect(curves).toMatchObject({
+      standard: "cubic-bezier(0.2, 0, 0.38, 0.9)",
+      decelerate: "cubic-bezier(0, 0, 0.38, 0.9)",
+      accelerate: "cubic-bezier(0.2, 0, 1, 0.9)",
+      emphasized: "cubic-bezier(0.4, 0.14, 0.3, 1)",
+      "entrance-expressive": "cubic-bezier(0, 0, 0.3, 1)",
+      "exit-expressive": "cubic-bezier(0.4, 0.14, 1, 1)",
+    });
+  });
+
+  it("gives Linear the fastest set, 80 to 200ms", () => {
+    const linear = ms("linear");
+    expect(linear[0]).toBe(80);
+    expect(linear.at(-1)).toBe(200);
+    expect(linear).toEqual([...linear].sort((a, b) => a - b));
+  });
+
+  it("gives Polaris, Primer and Stripe the paces each was set for", () => {
+    expect(ms("polaris")).toEqual([100, 150, 200, 300, 500]);
+    expect(ms("primer")).toEqual([150, 200, 300]);
+    expect(ms("stripe")).toEqual([150, 250, 350]);
+  });
+
+  it("keeps the default curves where a preset sets only durations", () => {
+    for (const id of ["linear", "polaris", "primer", "stripe"]) {
+      expect(motionOf(id).easings).toEqual(defaultMotionScale().easings);
+    }
+  });
+
+  it("leaves every other preset on the default scale", () => {
+    const setsMotion = ["carbon", "linear", "polaris", "primer", "stripe"];
+    const others = WORKSPACE_PRESETS.filter(
+      (preset) => !setsMotion.includes(preset.id),
+    );
+    expect(others.map((preset) => preset.id)).toEqual([
+      "medium",
+      "guardian",
+      "notion",
+      "designally",
+    ]);
+    for (const preset of others) {
+      expect(motionOf(preset.id), preset.id).toEqual(defaultMotionScale());
+    }
+  });
+
+  it("gives a motion preset only the motion it sets, not another preset's", () => {
+    expect(motionOf("primer").durations).toHaveLength(3);
+    expect(motionOf("medium").durations).toHaveLength(5);
+  });
+
+  it("gives every workspace a copy of its own", () => {
+    const first = instantiateWorkspacePreset(
+      findWorkspacePreset("carbon")!,
+      "A",
+    );
+    const second = instantiateWorkspacePreset(
+      findWorkspacePreset("carbon")!,
+      "B",
+    );
+    first.motion.durations[0]!.ms = 1;
+    first.motion.easings[0]!.curve[0] = 0.9;
+    expect(second.motion.durations[0]!.ms).toBe(70);
+    expect(second.motion.easings[0]!.curve[0]).toBe(0.2);
+    expect(findWorkspacePreset("carbon")!.motion!.durations![0]!.ms).toBe(70);
+  });
+
+  it("survives being stored and read back, for every preset", () => {
+    for (const preset of WORKSPACE_PRESETS) {
+      const project = instantiateWorkspacePreset(preset, "Round trip");
+      const stored = readWorkspaceProject(roundTrip(project));
+      expect(stored?.motion, preset.id).toEqual(project.motion);
+    }
+  });
+
+  it("is seeded from whatever a caller passes, a family at a time", () => {
+    const onlyDurations = seedWorkspaceProject("S", {
+      motion: { durations: [{ id: "tick", name: "Tick", ms: 40 }] },
+    });
+    expect(onlyDurations.motion.durations).toEqual([
+      { id: "tick", name: "Tick", ms: 40 },
+    ]);
+    expect(onlyDurations.motion.easings).toEqual(defaultMotionScale().easings);
+    expect(seedWorkspaceProject("S").motion).toEqual(defaultMotionScale());
+  });
+
+  it("clamps a seeded value that is out of bounds rather than storing it", () => {
+    const project = seedWorkspaceProject("S", {
+      motion: { durations: [{ id: "x", name: "X", ms: 1e9 }] },
+    });
+    expect(project.motion.durations[0]!.ms).toBe(10_000);
   });
 });

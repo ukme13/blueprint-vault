@@ -4,6 +4,11 @@ import {
   normalizeElevationScale,
   type ElevationScale,
 } from "../scale/elevation";
+import {
+  defaultMotionScale,
+  normalizeMotionScale,
+  type MotionScale,
+} from "../motion";
 import { defaultLayoutTokens, syncSquishInsets } from "../scale/layout-tokens";
 import {
   defaultRadiusScale,
@@ -250,6 +255,8 @@ export type SeedWorkspaceInput = {
   spacing?: Partial<SpacingScale>;
   radius?: SeedRadiusInput;
   elevation?: Partial<ElevationScale>;
+  /** Durations and curves; whichever family is left out is the default. */
+  motion?: Partial<MotionScale>;
   /** A type-scale ratio per frame, by id: phone, tablet, desktop. */
   previewDevices?: readonly { id: string; ratio: number }[];
 };
@@ -314,6 +321,7 @@ export function seedWorkspaceProject(
     spacingPreview: defaultSpacingPreviewSettings(),
     radius: seedRadius(input.radius),
     elevation: seedElevation(input.elevation),
+    motion: normalizeMotionScale({ ...defaultMotionScale(), ...input.motion }),
     previewDevices,
     /* Squished against this workspace's own spacing: a preset's unit or
        density moves the control block inset with the inline one. */

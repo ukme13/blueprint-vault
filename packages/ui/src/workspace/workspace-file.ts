@@ -18,6 +18,7 @@ import {
   spacingOrDefault,
   spacingPreviewOrDefault,
 } from "./scale-slices";
+import { motionOrDefault } from "../motion";
 import { readTypographyProjectData } from "./typography-project";
 import { DEFAULT_WORKSPACE_NAME, readWorkspaceFrames } from "./workspace";
 import type { WorkspaceProject } from "./types";
@@ -113,6 +114,7 @@ function paletteOnlyWorkspace(
     spacingPreview: spacingPreviewOrDefault(undefined),
     radius: radiusOrDefault(undefined),
     elevation: elevationOrDefault(undefined),
+    motion: motionOrDefault(undefined),
     ...readWorkspaceFrames({}, null),
   };
 }
@@ -224,6 +226,10 @@ function readWorkspaceFileProject(value: unknown): WorkspaceProject {
     spacingPreview: spacingPreviewOrDefault(raw.spacingPreview),
     radius: radiusOrDefault(raw.radius),
     elevation: elevationOrDefault(raw.elevation),
+    /* Absent in every file written before motion existed: the default scale,
+       with no version of its own, since nothing a build that predates it could
+       lose is yet editable. */
+    motion: motionOrDefault(raw.motion),
     ...readWorkspaceFrames(raw, typography),
   };
 }

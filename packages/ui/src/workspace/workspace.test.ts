@@ -1,3 +1,4 @@
+import { defaultMotionScale } from "../motion";
 import { describe, expect, it } from "vitest";
 import { defaultElevationScale } from "../scale/elevation";
 import { defaultLayoutTokens } from "../scale/layout-tokens";
@@ -308,6 +309,7 @@ describe("readWorkspaceProject", () => {
       spacingPreview: defaultSpacingPreviewSettings(),
       radius: defaultRadiusScale(),
       elevation: defaultElevationScale(),
+      motion: defaultMotionScale(),
       previewDevices: defaultPreviewDevices(),
       layout: defaultLayoutTokens(),
     });
@@ -959,5 +961,36 @@ describe("retiring the keys the workspace grew out of", () => {
 
     expect(storage.held["blueprint.colour-format.v1"]).toBe("hex");
     expect(storage.held["blueprint.palette-view.v1"]).toBeTruthy();
+  });
+});
+
+describe("motion in a stored workspace", () => {
+  const base = { name: "M", palette: null, typography: legacyTypography() };
+
+  it("is the default scale when none was stored", () => {
+    expect(readWorkspaceProject(base)?.motion).toEqual(defaultMotionScale());
+  });
+
+  it("is read back as it was stored", () => {
+    const stored = {
+      durations: [{ id: "snap", name: "Snap", ms: 90 }],
+      easings: [{ id: "glide", name: "Glide", curve: [0.1, 0.9, 0.2, 1] }],
+    };
+    const read = readWorkspaceProject({ ...base, motion: stored });
+    expect(read?.motion.durations).toEqual(stored.durations);
+    expect(read?.motion.easings[0]).toMatchObject({
+      id: "glide",
+      css: "cubic-bezier(0.1, 0.9, 0.2, 1)",
+    });
+  });
+
+  it("is the default scale for a workspace upgraded from the two old keys", () => {
+    expect(workspaceFromLegacy(null, legacyTypography())?.motion).toEqual(
+      defaultMotionScale(),
+    );
+  });
+
+  it("is on an empty workspace", () => {
+    expect(emptyWorkspace().motion).toEqual(defaultMotionScale());
   });
 });

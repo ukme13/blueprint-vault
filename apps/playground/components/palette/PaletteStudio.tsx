@@ -149,6 +149,7 @@ function emptyForeignSlices(): ForeignSlices {
     spacingPreview: empty.spacingPreview,
     radius: empty.radius,
     elevation: empty.elevation,
+    motion: empty.motion,
     previewDevices: empty.previewDevices,
     layout: empty.layout,
   };
@@ -166,6 +167,7 @@ function readForeignSlices(): ForeignSlices {
       spacingPreview: project.spacingPreview,
       radius: project.radius,
       elevation: project.elevation,
+      motion: project.motion,
       previewDevices: project.previewDevices,
       layout: project.layout,
     };

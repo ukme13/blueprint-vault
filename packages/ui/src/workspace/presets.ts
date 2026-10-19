@@ -1,3 +1,4 @@
+import { easingToken, type MotionScale } from "../motion";
 import { DEFAULT_RADIUS_TOKENS } from "../scale/radius";
 import { defaultSpacingScale } from "../scale/spacing";
 import { TYPE_SCALE_RATIO_PRESETS } from "../typography/presets";
@@ -65,9 +66,82 @@ const SWATCH_TRACK_IDS = ["primary", "secondary", "neutral"] as const;
  * and the corners.
  */
 
+/*
+ * How each system moves. A preset names only the family it changes: the others
+ * keep the studio's defaults, and a system that publishes no motion at all
+ * (Medium, The Guardian, Notion) sets none.
+ *
+ * Carbon's numbers are its own published tokens. The rest are the paces each
+ * product is known for, set as a starting point for the person to tune; a name
+ * that does not exist in a system's own vocabulary is the studio's.
+ */
+const duration = (id: string, name: string, ms: number) => ({ id, name, ms });
+
+/** Carbon: six durations, 70 to 700ms, and its productive and expressive curves. */
+const CARBON_MOTION: Partial<MotionScale> = {
+  durations: [
+    duration("fast-01", "Fast 01", 70),
+    duration("fast-02", "Fast 02", 110),
+    duration("moderate-01", "Moderate 01", 150),
+    duration("moderate-02", "Moderate 02", 240),
+    duration("slow-01", "Slow 01", 400),
+    duration("slow-02", "Slow 02", 700),
+  ],
+  /* Productive for what is moving about, expressive for what is announced. */
+  easings: [
+    easingToken("standard", "Standard productive", [0.2, 0, 0.38, 0.9]),
+    easingToken("decelerate", "Entrance productive", [0, 0, 0.38, 0.9]),
+    easingToken("accelerate", "Exit productive", [0.2, 0, 1, 0.9]),
+    easingToken("emphasized", "Standard expressive", [0.4, 0.14, 0.3, 1]),
+    easingToken("entrance-expressive", "Entrance expressive", [0, 0, 0.3, 1]),
+    easingToken("exit-expressive", "Exit expressive", [0.4, 0.14, 1, 1]),
+  ],
+};
+
+/** Linear: everything answers at once. 80 to 200ms. */
+const LINEAR_MOTION: Partial<MotionScale> = {
+  durations: [
+    duration("instant", "Instant", 80),
+    duration("fast", "Fast", 100),
+    duration("normal", "Normal", 130),
+    duration("moderate", "Moderate", 160),
+    duration("slow", "Slow", 200),
+  ],
+};
+
+/** Polaris: the paces of a merchant admin, 100 to 500ms. */
+const POLARIS_MOTION: Partial<MotionScale> = {
+  durations: [
+    duration("instant", "Instant", 100),
+    duration("fast", "Fast", 150),
+    duration("normal", "Normal", 200),
+    duration("moderate", "Moderate", 300),
+    duration("slow", "Slow", 500),
+  ],
+};
+
+/** Primer: three paces and no more. */
+const PRIMER_MOTION: Partial<MotionScale> = {
+  durations: [
+    duration("fast", "Fast", 150),
+    duration("normal", "Normal", 200),
+    duration("slow", "Slow", 300),
+  ],
+};
+
+/** Stripe: fluid, a little slower to settle. */
+const STRIPE_MOTION: Partial<MotionScale> = {
+  durations: [
+    duration("fast", "Fast", 150),
+    duration("normal", "Normal", 250),
+    duration("slow", "Slow", 350),
+  ],
+};
+
 /** GitHub Primer: Enterprise groups, a 4px grid, 6px corners. */
 const PRIMER: WorkspacePreset = {
   id: "primer",
+  motion: PRIMER_MOTION,
   name: "GitHub Primer",
   summary:
     "GitHub's design system. Primer blue, 4px grid, 6px radius, and Enterprise type groups.",
@@ -113,6 +187,7 @@ const PRIMER: WorkspacePreset = {
 /** Stripe: App UI groups, an 8px rhythm on a 4px unit, a perfect fourth. */
 const STRIPE: WorkspacePreset = {
   id: "stripe",
+  motion: STRIPE_MOTION,
   name: "Stripe Vibrant",
   summary:
     "Stripe's high-conversion fintech style. Blurple and teal, an 8px rhythm, App UI groups.",
@@ -161,6 +236,7 @@ const STRIPE: WorkspacePreset = {
 /** Linear: App UI groups, compact, a tight minor third over ten steps. */
 const LINEAR: WorkspacePreset = {
   id: "linear",
+  motion: LINEAR_MOTION,
   name: "Linear Studio",
   summary:
     "Linear's focused craft. Brand indigo and cyan, compact 4px grid, App UI groups.",
@@ -206,6 +282,7 @@ const LINEAR: WorkspacePreset = {
 /** Shopify Polaris: Enterprise groups, a balanced 4px grid. */
 const POLARIS: WorkspacePreset = {
   id: "polaris",
+  motion: POLARIS_MOTION,
   name: "Shopify Polaris",
   summary:
     "Shopify's commerce platform. Deep emerald and slate, balanced 4px grid, Enterprise groups.",
@@ -252,6 +329,7 @@ const POLARIS: WorkspacePreset = {
 /** IBM Carbon: Enterprise groups, square corners, a 4px mini-unit. */
 const CARBON: WorkspacePreset = {
   id: "carbon",
+  motion: CARBON_MOTION,
   name: "IBM Carbon",
   summary:
     "IBM's enterprise system. Carbon blue, IBM Plex Sans, sharp 0px corners, Enterprise groups.",
