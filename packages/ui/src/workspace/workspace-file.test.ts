@@ -1,3 +1,5 @@
+import { BLUEPRINT_PROJECT_FILE_VERSION } from "../color/export";
+import { defaultMotionScale } from "../motion";
 import { describe, expect, it } from "vitest";
 import { generatePalettes } from "../color/palette";
 import {
@@ -109,6 +111,7 @@ const workspace = (over: Partial<WorkspaceProject> = {}): WorkspaceProject => {
     spacingPreview: defaultSpacingPreviewSettings(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
+    motion: defaultMotionScale(),
     previewDevices: defaultPreviewDevices(1.25),
     layout: defaultLayoutTokens(),
     ...over,
@@ -757,6 +760,61 @@ describe("buttonSchemes", () => {
     expect(after.buttonSchemes).not.toContain("info");
     expect(after.semantics!.map((token) => token.id)).not.toContain(
       "status.info",
+    );
+  });
+});
+
+describe("motion in a workspace file", () => {
+  const custom = {
+    durations: [{ id: "snap", name: "Snap", ms: 90 }],
+    easings: [
+      {
+        id: "glide",
+        name: "Glide",
+        curve: [0.1, 0.9, 0.2, 1],
+        css: "cubic-bezier(0.1, 0.9, 0.2, 1)",
+      },
+    ],
+  };
+
+  it("round-trips a scale somebody changed", () => {
+    const before = workspace({ motion: custom as WorkspaceProject["motion"] });
+    const after = parseBlueprintWorkspace(formatBlueprintWorkspace(before));
+    expect(after.motion).toEqual(custom);
+  });
+
+  it("is written in the file, beside the other scales", () => {
+    const file = JSON.parse(formatBlueprintWorkspace(workspace()));
+    expect(file.project.motion).toEqual(defaultMotionScale());
+  });
+
+  it("is the default scale in a file written before motion existed", () => {
+    const file = JSON.parse(formatBlueprintWorkspace(workspace()));
+    delete file.project.motion;
+    for (const version of [5, 7, BLUEPRINT_WORKSPACE_FILE_VERSION]) {
+      const read = parseBlueprintWorkspace(
+        JSON.stringify({ ...file, version }),
+      );
+      expect(read.motion, `version ${version}`).toEqual(defaultMotionScale());
+    }
+  });
+
+  it("keeps a good family when the other is damaged", () => {
+    const file = JSON.parse(formatBlueprintWorkspace(workspace()));
+    file.project.motion = { durations: "broken", easings: custom.easings };
+    const read = parseBlueprintWorkspace(JSON.stringify(file));
+    expect(read.motion.durations).toEqual(defaultMotionScale().durations);
+    expect(read.motion.easings.map((easing) => easing.id)).toEqual(["glide"]);
+  });
+
+  it("is the default scale in a palette-only file", () => {
+    const palette = JSON.stringify({
+      kind: "blueprint-palette",
+      version: BLUEPRINT_PROJECT_FILE_VERSION,
+      project: workspace().palette,
+    });
+    expect(parseBlueprintWorkspace(palette).motion).toEqual(
+      defaultMotionScale(),
     );
   });
 });

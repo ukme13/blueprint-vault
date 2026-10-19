@@ -67,6 +67,7 @@ const STUDIO_LABELS: Readonly<Record<string, string>> = {
   "/spacing": "Spacing",
   "/radius": "Radius",
   "/elevation": "Elevation",
+  "/motion": "Motion",
   "/preview": "Preview",
 };
 

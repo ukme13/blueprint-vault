@@ -64,6 +64,7 @@ export function restoreUndoable(
     spacing: target.spacing,
     radius: target.radius,
     elevation: target.elevation,
+    motion: target.motion,
     layout: target.layout,
     previewDevices: target.previewDevices,
     semantics: target.semantics,

@@ -74,7 +74,7 @@ export const HANDOVER_REPORT_JSON = "accessibility-report.json";
  */
 const DESCRIPTIONS: Readonly<Record<string, string>> = {
   "blueprint.css":
-    "Every colour, spacing, radius and elevation token, and the uses that point at them, as CSS custom properties. **Install this one** if you write plain CSS.",
+    "Every colour, spacing, radius, elevation and motion token, and the uses that point at them, as CSS custom properties. **Install this one** if you write plain CSS.",
   "blueprint-typography.css":
     "The type scale: one variable per role for family, size, line height, letter spacing, weight and transform. Install it beside `blueprint.css`; the Tailwind and Design Tokens files already carry typography.",
   "blueprint.tailwind.css":

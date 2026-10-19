@@ -287,3 +287,34 @@ describe("isHandoverPagePath", () => {
     }
   });
 });
+
+describe("motion in the handover archive", () => {
+  const file = (files: ReturnType<typeof build>, path: string) =>
+    files.find((each) => each.path === path)!.contents;
+
+  it("is in the CSS, the Tailwind file and the tokens", () => {
+    const files = build();
+    expect(file(files, "blueprint.css")).toContain("--duration-normal: 250ms;");
+    expect(file(files, "blueprint.tailwind.css")).toContain(
+      "--ease-decelerate: cubic-bezier(0, 0, 0.2, 1);",
+    );
+    expect(
+      JSON.parse(file(files, "blueprint.tokens.json")).motion.duration.slow
+        .$value,
+    ).toBe("500ms");
+  });
+
+  it("is the workspace's own scale, so a preset's paces reach the client", () => {
+    const project = seedWorkspaceProject("Client", {
+      motion: { durations: [{ id: "tick", name: "Tick", ms: 40 }] },
+    });
+    const files = buildHandoverFiles(project, options);
+    expect(file(files, "blueprint.css")).toContain("--duration-tick: 40ms;");
+    expect(file(files, "blueprint.css")).not.toContain("--duration-fast:");
+    expect(file(files, "workspace.blueprint.json")).toContain('"id": "tick"');
+  });
+
+  it("is named in the README's description of the CSS", () => {
+    expect(file(build(), "README.md")).toContain("motion");
+  });
+});

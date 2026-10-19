@@ -110,6 +110,20 @@ export function ElevationStudioIcon(props: MarkProps) {
   return <Layers aria-hidden {...props} />;
 }
 
+/**
+ * An easing curve between its two ends: the one picture of motion that means
+ * the same thing at 24px as it does in the studio.
+ */
+export function MotionStudioIcon(props: MarkProps) {
+  return (
+    <svg aria-hidden {...mark} {...props}>
+      <path d="M4 18c7 0 9-12 16-12" />
+      <circle cx="4" cy="18" r="1.5" />
+      <circle cx="20" cy="6" r="1.5" />
+    </svg>
+  );
+}
+
 /** An open book — the guide written about the studio, on the docs site. */
 export function StudioGuideIcon(props: MarkProps) {
   return <BookOpen aria-hidden {...props} />;

@@ -1,3 +1,4 @@
+import { defaultMotionScale } from "../motion";
 import { describe, expect, it } from "vitest";
 import { generatePalettes } from "../color/palette";
 import { deleteTokens, dropButtonScheme } from "../color/selection-ops";
@@ -64,6 +65,7 @@ function workspace(over: Partial<WorkspaceProject> = {}): WorkspaceProject {
     spacingPreview: defaultSpacingPreviewSettings(),
     radius: defaultRadiusScale(),
     elevation: defaultElevationScale(),
+    motion: defaultMotionScale(),
     previewDevices: defaultPreviewDevices(),
     layout: defaultLayoutTokens(),
     ...over,

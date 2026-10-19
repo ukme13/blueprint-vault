@@ -132,6 +132,7 @@ export function exportOutput(
     spacing: workspace.spacing,
     radius: workspace.radius,
     elevation: workspace.elevation,
+    motion: workspace.motion,
     colourFormat,
     layout: workspace.layout,
     previewDevices: workspace.previewDevices,

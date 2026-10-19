@@ -1,3 +1,4 @@
+import { defaultMotionScale } from "../motion";
 import { describe, expect, it } from "vitest";
 import * as blueprint from "../index";
 import {
@@ -53,6 +54,9 @@ const DOCUMENT_FORMATTERS = [
   "formatBlueprintWorkspace",
   "formatLayoutCss",
   "formatLayoutTailwind",
+  "formatMotionCss",
+  "formatMotionDesignTokens",
+  "formatMotionTailwind",
   "formatPaletteCss",
   "formatPaletteCssExport",
   "formatPaletteDesignTokens",
@@ -77,6 +81,8 @@ const DOCUMENT_FORMATTERS = [
 const VALUE_FORMATTERS = [
   "formatColour",
   "formatAlpha",
+  /* Four curve numbers as the field shows them: `0.2, 0, 0, 1`. */
+  "formatCurveText",
   "formatLength",
   "formatLayoutRawPx",
   "formatLetterSpacing",
@@ -237,6 +243,7 @@ describe("no export carries font data", () => {
       spacingPreview: defaultSpacingPreviewSettings(),
       radius: defaultRadiusScale(),
       elevation: defaultElevationScale(),
+      motion: defaultMotionScale(),
       previewDevices: defaultPreviewDevices(1.25),
       layout: defaultLayoutTokens(),
       typography: {

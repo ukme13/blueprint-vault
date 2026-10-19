@@ -75,6 +75,7 @@ export function designSystemFiles(
     spacing: project.spacing,
     radius: project.radius,
     elevation: project.elevation,
+    motion: project.motion,
     /* hex by default, which is what the studio opens on and what the widest
        set of tools reads. The values are OKLCH-derived either way: this is the
        notation, not the colour. */

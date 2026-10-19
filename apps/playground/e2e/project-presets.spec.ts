@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { expect, readStoredWorkspace, test } from "./fixtures";
 
 /**
@@ -339,5 +340,41 @@ test.describe("Project presets", () => {
       thumbFlush: [0, 0, 0],
       namePadded: true,
     });
+  });
+
+  test("a created workspace carries its preset's motion, and a palette edit keeps it", async ({
+    page,
+  }) => {
+    await page.getByRole("button", { name: "New project" }).click();
+    const dialog = page.getByRole("dialog", { name: "New project" });
+    await dialog.getByLabel("Project name").fill("Carbon");
+    await dialog.getByRole("radio", { name: "IBM Carbon" }).click();
+    await dialog.getByRole("button", { name: "Create workspace" }).click();
+    await expect(page).toHaveURL(/\/colour\/?$/);
+
+    const durations = (stored: {
+      motion: { durations: Array<{ ms: number }> };
+    }) => stored.motion.durations.map((token) => token.ms);
+    expect(durations(await readStoredWorkspace(page))).toEqual([
+      70, 110, 150, 240, 400, 700,
+    ]);
+
+    /* The Colour studio hands its export the slices it does not own, beside
+       the palette it does. A project file written there must carry the motion
+       too, or exporting from Colour would quietly cost a workspace its pace. */
+    await page.getByRole("button", { name: "Export palette" }).click();
+    await page.getByRole("button", { name: "Blueprint", exact: true }).click();
+    await expect(
+      page.getByRole("region", { name: "Export preview" }),
+    ).toContainText("fast-01");
+    const downloaded = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Download" }).click();
+    const file = JSON.parse(
+      readFileSync(await (await downloaded).path(), "utf8"),
+    );
+    expect(durations(file.project)).toEqual([70, 110, 150, 240, 400, 700]);
+    expect(file.project.motion.easings[0].css).toBe(
+      "cubic-bezier(0.2, 0, 0.38, 0.9)",
+    );
   });
 });

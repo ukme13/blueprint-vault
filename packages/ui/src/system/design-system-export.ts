@@ -22,6 +22,12 @@ import {
   layoutDesignTokenGroup,
   type LayoutToken,
 } from "../scale/layout-tokens";
+import {
+  formatMotionCss,
+  formatMotionTailwind,
+  motionDesignTokenGroups,
+  type MotionScale,
+} from "../motion";
 import type { PreviewDevice } from "../typography/preview-devices";
 import type { TypeSystem } from "../typography/system";
 import {
@@ -52,6 +58,8 @@ import type { TypeScaleUnit } from "../typography/types";
 export interface DesignSystemExportInput extends ScaleExportInput {
   semantics: SemanticToken[];
   colourFormat: ColourFormat;
+  /** Durations and easing curves. Left out, the file has none. */
+  motion?: MotionScale;
   /** Layout uses, written per preview frame. Needs `previewDevices`. */
   layout?: readonly LayoutToken[];
   previewDevices?: readonly PreviewDevice[];
@@ -87,6 +95,13 @@ function typographyPart(
     : "";
 }
 
+function motionPart(
+  input: DesignSystemExportInput,
+  format: typeof formatMotionCss,
+): string {
+  return input.motion ? format(input.motion) : "";
+}
+
 function joined(parts: string[]): string {
   return parts.filter((part) => part.trim().length > 0).join("\n\n");
 }
@@ -98,6 +113,7 @@ export function formatDesignSystemCss(input: DesignSystemExportInput): string {
     formatPaletteCssExport(palettes, colourFormat),
     semantics.length === 0 ? "" : formatSemanticCssExport(semantics, palettes),
     formatScaleCss(input),
+    motionPart(input, formatMotionCss),
     layoutPart(input, formatLayoutCss),
     typographyPart(input, formatTypeSystemCssExport),
   ]);
@@ -114,6 +130,7 @@ export function formatDesignSystemTailwind(
       ? ""
       : formatSemanticTailwindExport(semantics, palettes),
     formatScaleTailwind(input),
+    motionPart(input, formatMotionTailwind),
     layoutPart(input, formatLayoutTailwind),
     typographyPart(input, formatTypeSystemTailwindExport),
   ]);
@@ -137,6 +154,7 @@ export function formatDesignSystemDesignTokens(
             ).semantic,
           }),
       ...scaleDesignTokenGroups(input),
+      ...(input.motion ? motionDesignTokenGroups(input.motion) : {}),
       ...(input.layout && input.previewDevices
         ? { layout: layoutDesignTokenGroup(input.layout, input.previewDevices) }
         : {}),

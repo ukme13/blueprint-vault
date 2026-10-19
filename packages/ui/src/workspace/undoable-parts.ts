@@ -43,6 +43,7 @@ export function undoableParts(project: WorkspaceProject) {
     spacing: project.spacing,
     radius: project.radius,
     elevation: project.elevation,
+    motion: project.motion,
     layout: project.layout,
     previewDevices: project.previewDevices,
     semantics: comparableSemantics(project.semantics),
