@@ -79,12 +79,13 @@ export function MotionStage({
   selectedDurationId: string | undefined;
   onSelectDuration: (id: string) => void;
 }) {
+  const variables = stageVariables(scale, speed);
   return (
     <section
       aria-label="Motion stage"
       className={styles.stage}
       data-speed={speed}
-      style={stageVariables(scale, speed)}
+      style={variables}
     >
       <p className={styles.reducedHint}>
         Your system asks for reduced motion, so the controls here change without
@@ -112,6 +113,7 @@ export function MotionStage({
               <Demo
                 holdMs={playedMs(token?.ms ?? 0, speed) + HOLD_MS}
                 replayKey={replayKey}
+                variables={variables}
               />
             </div>
           </article>

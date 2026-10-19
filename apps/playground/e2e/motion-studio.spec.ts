@@ -21,6 +21,16 @@ const stored = async (page: Page) =>
     easings: Array<{ id: string; curve: number[]; css: string }>;
   };
 
+/** The dialog, which is drawn over the whole window and not in the stage. */
+const dialog = (page: Page) =>
+  page.getByRole("dialog", { name: "Delete project" });
+
+/** The centre of an element, to compare where things sit. */
+const centreOf = async (locator: ReturnType<Page["locator"]>) => {
+  const box = (await locator.boundingBox())!;
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
+};
+
 /** The number field of a duration token: the steppers share its label. */
 const durationField = (page: Page, name: string) =>
   page.getByRole("spinbutton", { name: `${name} duration in milliseconds` });
@@ -72,11 +82,10 @@ test.describe("The Motion studio", () => {
     await inStage.getByRole("button", { name: "Options" }).click();
     await expect(panel).toHaveAttribute("data-open", "true");
 
-    const scrim = inStage.locator('[class*="scrim"]');
     await inStage.getByRole("button", { name: "Open dialog" }).click();
-    await expect(scrim).toHaveAttribute("data-open", "true");
-    await inStage.getByRole("button", { name: "Delete" }).click();
-    await expect(scrim).not.toHaveAttribute("data-open", "true");
+    await expect(dialog(page)).toBeVisible();
+    await dialog(page).getByRole("button", { name: "Delete" }).click();
+    await expect(dialog(page)).toBeHidden();
   });
 
   test("plays every moment again on Replay", async ({ seededPage: page }) => {
@@ -397,10 +406,161 @@ test.describe("The Motion studio", () => {
     await page.getByRole("button", { name: "Replay" }).click();
     await stage(page).getByRole("button", { name: "Options" }).click();
     await stage(page).getByRole("button", { name: "Open dialog" }).click();
+    await page.keyboard.press("Escape");
     await page.getByRole("button", { name: "Export", exact: true }).click();
     await expect(
       page.getByRole("region", { name: "Export preview" }),
     ).toBeVisible();
     expect(problems).toEqual([]);
+  });
+
+  test("centres each moment in its card", async ({ seededPage: page }) => {
+    await openMotion(page);
+    const cards = stage(page).locator("article");
+    await expect(cards).toHaveCount(4);
+    for (let at = 0; at < 4; at += 1) {
+      const body = cards.nth(at).locator('[class*="demoBody"]');
+      const content = body.locator("> *").first();
+      const box = await centreOf(body);
+      const inner = await centreOf(content);
+      expect(Math.abs(box.x - inner.x), `card ${at} across`).toBeLessThan(2);
+      expect(Math.abs(box.y - inner.y), `card ${at} down`).toBeLessThan(2);
+    }
+    await expect(stage(page).locator('[class*="demoBody"]').first()).toHaveCSS(
+      "text-align",
+      "center",
+    );
+  });
+
+  test("opens the dropdown over the card, without moving its trigger", async ({
+    seededPage: page,
+  }) => {
+    await openMotion(page);
+    const trigger = stage(page).getByRole("button", { name: "Options" });
+    const panel = stage(page).locator('[class*="dropdownPanel"]');
+    const before = await trigger.boundingBox();
+
+    /* Closed, it is out of reach as well as out of sight. */
+    await expect(panel).toHaveAttribute("inert", "");
+    await trigger.click();
+    await expect(panel).toHaveAttribute("data-open", "true");
+    await expect(panel).not.toHaveAttribute("inert");
+    await expect(panel.getByRole("button", { name: "Rename" })).toBeVisible();
+
+    expect(await trigger.boundingBox()).toEqual(before);
+    /* Hung under the trigger, level with it across. */
+    const panelBox = (await panel.boundingBox())!;
+    expect(panelBox.y).toBeGreaterThan(before!.y + before!.height);
+    expect(
+      Math.abs(
+        panelBox.x + panelBox.width / 2 - (before!.x + before!.width / 2),
+      ),
+    ).toBeLessThan(2);
+
+    /* Nothing between the card's shadow and the page clips it. */
+    const clipped = await panel.evaluate((node) => {
+      /* Up to the stage, which scrolls and is where the panel is allowed to end. */
+      for (let at: Element | null = node; at; at = at.parentElement) {
+        if (at.matches('[class*="stage"]')) return null;
+        if (getComputedStyle(at).overflow !== "visible") {
+          return at.className.toString();
+        }
+      }
+      return null;
+    });
+    expect(clipped).toBeNull();
+
+    await trigger.click();
+    await expect(panel).not.toHaveAttribute("data-open");
+    expect(await trigger.boundingBox()).toEqual(before);
+  });
+
+  test("opens the dialog as a modal over the whole window", async ({
+    seededPage: page,
+  }) => {
+    await openMotion(page);
+    const opener = stage(page).getByRole("button", { name: "Open dialog" });
+    await expect(dialog(page)).toBeHidden();
+    await opener.click();
+    await expect(dialog(page)).toBeVisible();
+    await expect(dialog(page)).toHaveAttribute("aria-modal", "true");
+
+    const viewport = page.viewportSize()!;
+    const scrim = page.locator('[class*="scrim"]');
+    const scrimBox = (await scrim.boundingBox())!;
+    expect(scrimBox).toMatchObject({
+      x: 0,
+      y: 0,
+      width: viewport.width,
+      height: viewport.height,
+    });
+    await expect(scrim).toHaveCSS("position", "fixed");
+    await expect(scrim).toHaveCSS("z-index", "1000");
+
+    /* The panel is in the middle of the window, not of the card. */
+    const panel = await centreOf(dialog(page));
+    expect(Math.abs(panel.x - viewport.width / 2)).toBeLessThan(2);
+    expect(Math.abs(panel.y - viewport.height / 2)).toBeLessThan(2);
+  });
+
+  test("carries the stage's scale into the dialog, which is outside the stage", async ({
+    seededPage: page,
+  }) => {
+    await openMotion(page);
+    const scrim = page.locator('[class*="scrim"]');
+    const inScrim = (name: string) =>
+      scrim.evaluate(
+        (node, property) => getComputedStyle(node).getPropertyValue(property),
+        name,
+      );
+    /* Moderate is 350ms, which the dialog plays; and the curve is the standard. */
+    await expect.poll(() => inScrim("--duration-slow")).toBe("350ms");
+    await expect
+      .poll(() => inScrim("--ease-standard"))
+      .toBe("cubic-bezier(0.2, 0, 0, 1)");
+
+    await page
+      .getByRole("radiogroup", { name: "Playback speed" })
+      .getByText("0.5x", { exact: true })
+      .click();
+    await expect.poll(() => inScrim("--duration-slow")).toBe("700ms");
+
+    await chooseOption(page, "Easing preset", "Ease Out");
+    await expect
+      .poll(() => inScrim("--ease-standard"))
+      .toBe("cubic-bezier(0, 0, 0.58, 1)");
+  });
+
+  test("closes the dialog from the scrim, Close, Delete or Escape, and gives focus back", async ({
+    seededPage: page,
+  }) => {
+    await openMotion(page);
+    const opener = stage(page).getByRole("button", { name: "Open dialog" });
+    const scrim = page.locator('[class*="scrim"]');
+
+    await opener.click();
+    await expect(dialog(page)).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(dialog(page)).toBeHidden();
+    await expect(opener).toBeFocused();
+
+    await opener.click();
+    await expect(dialog(page)).toBeVisible();
+    /* A press on the scrim, away from the panel. */
+    await scrim.click({ position: { x: 8, y: 8 } });
+    await expect(dialog(page)).toBeHidden();
+
+    await opener.click();
+    await dialog(page).getByRole("button", { name: "Close" }).click();
+    await expect(dialog(page)).toBeHidden();
+
+    await opener.click();
+    await dialog(page).getByRole("button", { name: "Delete" }).click();
+    await expect(dialog(page)).toBeHidden();
+
+    /* A press on the panel itself is not a press on the scrim. */
+    await opener.click();
+    await dialog(page).locator("strong").click();
+    await expect(dialog(page)).toBeVisible();
   });
 });
