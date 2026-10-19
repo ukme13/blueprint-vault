@@ -269,6 +269,14 @@
   text-align: left;
 }
 
+/* Items read as a menu's do: from the left edge, across the whole row. */
+.dropdownItems button {
+  justify-content: flex-start;
+  text-align: left;
+  width: 100%;
+  padding: 6px 12px;
+}
+
 /* A dialog: a scrim over the whole window, and the panel settling in its middle. */
 .dialogStage {
   display: flex;

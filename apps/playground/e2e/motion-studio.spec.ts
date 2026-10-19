@@ -475,6 +475,40 @@ test.describe("The Motion studio", () => {
     expect(await trigger.boundingBox()).toEqual(before);
   });
 
+  test("lists the dropdown's items from the left, Reset among them", async ({
+    seededPage: page,
+  }) => {
+    await openMotion(page);
+    await stage(page).getByRole("button", { name: "Options" }).click();
+    const panel = stage(page).locator('[class*="dropdownPanel"]');
+    const items = panel.getByRole("button");
+    await expect(items).toHaveText(["Rename", "Duplicate", "Archive", "Reset"]);
+
+    const widths: number[] = [];
+    const lefts: number[] = [];
+    for (let at = 0; at < 4; at += 1) {
+      const item = items.nth(at);
+      await expect(item).toHaveCSS("justify-content", "flex-start");
+      await expect(item).toHaveCSS("text-align", "left");
+      const measured = await item.evaluate((node) => {
+        const box = node.getBoundingClientRect();
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        /* Where the words start, from the row's own left edge. */
+        const text = [...range.getClientRects()]
+          .filter((rect) => rect.width > 0)
+          .reduce((left, rect) => Math.min(left, rect.left), Infinity);
+        return { width: box.width, textOffset: text - box.left };
+      });
+      widths.push(measured.width);
+      lefts.push(measured.textOffset);
+    }
+    /* Every row is as wide as the menu, and its words start at the same inset. */
+    expect(new Set(widths.map(Math.round)).size).toBe(1);
+    expect(Math.max(...lefts) - Math.min(...lefts)).toBeLessThan(1);
+    expect(Math.max(...lefts)).toBeLessThan(20);
+  });
+
   test("opens the dialog as a modal over the whole window", async ({
     seededPage: page,
   }) => {

@@ -110,7 +110,7 @@ export function DropdownDemo({ replayKey, holdMs }: DemoProps) {
         <span className={styles.dropdownInner}>
           <Card elevation="med" padding={1}>
             <span className={styles.dropdownItems}>
-              {["Rename", "Duplicate", "Archive"].map((item) => (
+              {["Rename", "Duplicate", "Archive", "Reset"].map((item) => (
                 <Button key={item} scheme="neutral" size="small" variant="text">
                   {item}
                 </Button>
